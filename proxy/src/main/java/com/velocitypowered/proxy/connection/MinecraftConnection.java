@@ -178,8 +178,10 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
           activeSessionHandler.exception(cause);
         } catch (Exception ex) {
           logger.error("{}: exception handling exception in {}",
-              (association != null ? association : channel.remoteAddress()), activeSessionHandler,
-              cause);
+                  (association != null ? association :
+                          (channel != null ? channel.remoteAddress() : "<NULL IP>")),
+                  activeSessionHandler,
+                  cause);
         }
       }
 
