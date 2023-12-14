@@ -908,8 +908,13 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   public String toString() {
     boolean isPlayerAddressLoggingEnabled = server.getConfiguration()
         .isPlayerAddressLoggingEnabled();
+
+    InetSocketAddress remoteAddress = getRemoteAddress();
+
+    String address = remoteAddress != null ? remoteAddress.toString() : "<ip address null>";
+
     String playerIp =
-        isPlayerAddressLoggingEnabled ? getRemoteAddress().toString() : "<ip address withheld>";
+        isPlayerAddressLoggingEnabled ? address : "<ip address withheld>";
     return "[connected player] " + profile.getName() + " (" + playerIp + ")";
   }
 

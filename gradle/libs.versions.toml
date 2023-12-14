@@ -2,25 +2,25 @@
 configurate3 = "3.7.3"
 configurate4 = "4.1.2"
 flare = "2.0.1"
-log4j = "2.20.0"
-netty = "4.1.100.Final"
+log4j = "2.22.0"
+netty = "4.1.101.Final"
 
 [plugins]
-indra-publishing = "net.kyori.indra.publishing:2.0.6"
-shadow = "com.github.johnrengelman.shadow:8.1.0"
-spotless = "com.diffplug.spotless:6.12.0"
+indra-publishing = "net.kyori.indra.publishing:3.1.3"
+shadow = "com.github.johnrengelman.shadow:8.1.1"
+spotless = "com.diffplug.spotless:6.23.3"
 
 [libraries]
 # See JD links in velocity-apo when moving to non-snapshot versions
 adventure-bom = "net.kyori:adventure-bom:4.15.0-SNAPSHOT"
-adventure-facet = "net.kyori:adventure-platform-facet:4.3.0"
-asm = "org.ow2.asm:asm:9.5"
+adventure-facet = "net.kyori:adventure-platform-facet:4.3.1"
+asm = "org.ow2.asm:asm:9.6"
 asynchttpclient = "org.asynchttpclient:async-http-client:2.12.3"
 brigadier = "com.velocitypowered:velocity-brigadier:1.0.0-SNAPSHOT"
-bstats = "org.bstats:bstats-base:3.0.1"
-caffeine = "com.github.ben-manes.caffeine:caffeine:3.1.5"
-checker-qual = "org.checkerframework:checker-qual:3.28.0"
-checkstyle = "com.puppycrawl.tools:checkstyle:10.9.3"
+bstats = "org.bstats:bstats-base:3.0.2"
+caffeine = "com.github.ben-manes.caffeine:caffeine:3.1.8"
+checker-qual = "org.checkerframework:checker-qual:3.41.0"
+checkstyle = "com.puppycrawl.tools:checkstyle:10.12.5"
 completablefutures = "com.spotify:completable-futures:0.3.5"
 configurate3-hocon = { module = "org.spongepowered:configurate-hocon", version.ref = "configurate3" }
 configurate3-yaml = { module = "org.spongepowered:configurate-yaml", version.ref = "configurate3" }
@@ -32,11 +32,11 @@ disruptor = "com.lmax:disruptor:3.4.4"
 fastutil = "it.unimi.dsi:fastutil:8.5.12"
 flare-core = { module = "space.vectrix.flare:flare", version.ref = "flare" }
 flare-fastutil = { module = "space.vectrix.flare:flare-fastutil", version.ref = "flare" }
-jline = "org.jline:jline-terminal-jansi:3.23.0"
+jline = "org.jline:jline-terminal-jansi:3.24.1"
 jopt = "net.sf.jopt-simple:jopt-simple:5.0.4"
-junit = "org.junit.jupiter:junit-jupiter:5.9.0"
+junit = "org.junit.jupiter:junit-jupiter:5.10.1"
 kyori-ansi = "net.kyori:ansi:1.0.3"
-guava = "com.google.guava:guava:25.1-jre"
+guava = "com.google.guava:guava:32.1.3-jre"
 gson = "com.google.code.gson:gson:2.10.1"
 guice = "com.google.inject:guice:6.0.0"
 lmbda = "org.lanternpowered:lmbda:2.0.0"
@@ -45,17 +45,17 @@ log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "lo
 log4j-slf4j-impl = { module = "org.apache.logging.log4j:log4j-slf4j2-impl", version.ref = "log4j" }
 log4j-iostreams = { module = "org.apache.logging.log4j:log4j-iostreams", version.ref = "log4j" }
 log4j-jul = { module = "org.apache.logging.log4j:log4j-jul", version.ref = "log4j" }
-mockito = "org.mockito:mockito-core:5.2.0"
+mockito = "org.mockito:mockito-core:5.8.0"
 netty-codec = { module = "io.netty:netty-codec", version.ref = "netty" }
 netty-codec-haproxy = { module = "io.netty:netty-codec-haproxy", version.ref = "netty" }
 netty-codec-http = { module = "io.netty:netty-codec-http", version.ref = "netty" }
 netty-handler = { module = "io.netty:netty-handler", version.ref = "netty" }
 netty-transport-native-epoll = { module = "io.netty:netty-transport-native-epoll", version.ref = "netty" }
 netty-transport-native-kqueue = { module = "io.netty:netty-transport-native-kqueue", version.ref = "netty" }
-nightconfig = "com.electronwill.night-config:toml:3.6.6"
-slf4j = "org.slf4j:slf4j-api:2.0.7"
-snakeyaml = "org.yaml:snakeyaml:1.33"
-spotbugs-annotations = "com.github.spotbugs:spotbugs-annotations:4.7.3"
+nightconfig = "com.electronwill.night-config:toml:3.6.7"
+slf4j = "org.slf4j:slf4j-api:2.0.9"
+snakeyaml = "org.yaml:snakeyaml:2.2"
+spotbugs-annotations = "com.github.spotbugs:spotbugs-annotations:4.8.2"
 terminalconsoleappender = "net.minecrell:terminalconsoleappender:1.3.0"
 
 [bundles]
