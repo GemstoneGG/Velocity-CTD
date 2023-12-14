@@ -278,7 +278,7 @@ public class AdventureBossBarManager implements BossBar.Listener {
     private byte serializeFlags(Set<Flag> flags) {
       byte val = 0x0;
       for (Flag flag : flags) {
-        val |= FLAG_BITS_TO_PROTOCOL.get(flag);
+        val |= (byte) FLAG_BITS_TO_PROTOCOL.get(flag);
       }
       return val;
     }
