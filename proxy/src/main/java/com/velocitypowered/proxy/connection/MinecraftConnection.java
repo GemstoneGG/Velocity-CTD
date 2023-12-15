@@ -131,7 +131,6 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
         && association.toString().contains("(")
     ) {
       logger.info("{} has disconnected", association);
-      logger.info("debug: " + association);
     }
   }
 
