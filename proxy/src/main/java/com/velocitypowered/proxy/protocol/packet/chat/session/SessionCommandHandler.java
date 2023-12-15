@@ -43,13 +43,14 @@ public class SessionCommandHandler implements CommandHandler<SessionPlayerComman
     queueCommandResult(this.server, this.player, event -> {
       CommandExecuteEvent.CommandResult result = event.getResult();
       if (result == CommandExecuteEvent.CommandResult.denied()) {
-
         return CompletableFuture.completedFuture(null);
       }
 
       String commandToRun = result.getCommand().orElse(packet.command);
       if (result.isForwardToServer()) {
-
+        if (packet.isSigned() && commandToRun.equals(packet.command)) {
+          return CompletableFuture.completedFuture(packet);
+        } else {
           return CompletableFuture.completedFuture(this.player.getChatBuilderFactory()
               .builder()
               .setTimestamp(packet.timeStamp)

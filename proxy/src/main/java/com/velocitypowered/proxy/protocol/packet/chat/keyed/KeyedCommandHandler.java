@@ -66,7 +66,6 @@ public class KeyedCommandHandler implements CommandHandler<KeyedPlayerCommand> {
           if (commandToRun.equals(packet.getCommand())) {
             return packet;
           }
-
           return this.player.getChatBuilderFactory()
               .builder()
               .setTimestamp(packet.getTimestamp())
