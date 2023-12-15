@@ -113,7 +113,8 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
       activeSessionHandler.connected();
     }
 
-    if (association instanceof ConnectedPlayer && server.getConfiguration().isLogPlayerConnections()) {
+    if (association instanceof ConnectedPlayer 
+        && server.getConfiguration().isLogPlayerConnections()) {
       logger.info("{} has connected", association);
     }
   }
