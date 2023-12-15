@@ -58,7 +58,6 @@ public class SessionChatHandler implements ChatHandler<SessionPlayerChat> {
 
               if (chatResult.getMessage().map(str -> !str.equals(packet.getMessage()))
                   .orElse(false)) {
-                if (packet.isSigned()) {
                 return this.player.getChatBuilderFactory().builder().message(packet.message)
                     .setTimestamp(packet.timestamp)
                     .toServer();
