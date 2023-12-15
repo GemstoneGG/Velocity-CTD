@@ -94,10 +94,12 @@ public final class InitialInboundConnection implements VelocityInboundConnection
    */
   public void disconnect(Component reason) {
     Component translated = GlobalTranslator.render(reason, ClosestLocaleMatcher.INSTANCE
-        .lookupClosest(Locale.getDefault()));
-    if (connection.server.getConfiguration().isLogPlayerConnections()) {
-      logger.info("{} has disconnected: {}", this,
-          LegacyComponentSerializer.legacySection().serialize(translated));
+            .lookupClosest(Locale.getDefault()));
+
+    if (connection.server.getConfiguration().isLogPlayerConnections()
+            && !this.toString().contains("(")) {
+      logger.info("{} has disconnected: {}", this, LegacyComponentSerializer
+              .legacySection().serialize(translated));
     }
     connection.closeWith(Disconnect.create(translated, getProtocolVersion(), true));
   }
