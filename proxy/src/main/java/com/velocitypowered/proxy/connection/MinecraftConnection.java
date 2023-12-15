@@ -113,7 +113,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
       activeSessionHandler.connected();
     }
 
-    if (association != null && server.getConfiguration().isLogPlayerConnections()) {
+    if (association instanceof ConnectedPlayer && server.getConfiguration().isLogPlayerConnections()) {
       logger.info("{} has connected", association);
     }
   }
@@ -124,7 +124,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
       activeSessionHandler.disconnected();
     }
 
-    if (association != null && !knownDisconnect
+    if (association instanceof ConnectedPlayer && !knownDisconnect
         && !(activeSessionHandler instanceof StatusSessionHandler)
         && server.getConfiguration().isLogPlayerConnections()) {
       logger.info("{} has disconnected", association);
