@@ -97,7 +97,7 @@ public final class InitialInboundConnection implements VelocityInboundConnection
             .lookupClosest(Locale.getDefault()));
 
     if (connection.server.getConfiguration().isLogPlayerConnections()
-            && !this.toString().contains("(")) {
+            && this.toString().contains("(")) {
       logger.info("{} has disconnected: {}", this, LegacyComponentSerializer
               .legacySection().serialize(translated));
     }
