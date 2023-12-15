@@ -93,7 +93,7 @@ public class KeyedChatHandler implements
           return null;
       }
 
-      if (chatResult.getMessage().map(str -> !str.equals(packet.getMessage())).orElse(false))
+      if (chatResult.getMessage().map(str -> !str.equals(packet.getMessage())).orElse(false)) {
         return player.getChatBuilderFactory().builder()
                 .message(chatResult.getMessage().get() /* Always present */)
                 .setTimestamp(packet.getExpiry())
