@@ -161,8 +161,10 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         }
       } else {
         if (!Objects.equals(playerKey.getSignatureHolder(), playerUniqueId)) {
+          /*
           logger.warn("UUID for Player " + player.getUsername() + " mismatches! "
               + "Chat/Commands signatures will not work correctly for this player!");
+          */
         }
       }
     }
