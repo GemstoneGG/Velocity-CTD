@@ -39,7 +39,7 @@ jspecify = "org.jspecify:jspecify:0.3.0"
 kyori-ansi = "net.kyori:ansi:1.0.3"
 guava = "com.google.guava:guava:33.0.0-jre"
 gson = "com.google.code.gson:gson:2.10.1"
-guice = "com.google.inject:guice:7.0.0"
+guice = "com.google.inject:guice:6.0.0"
 lmbda = "org.lanternpowered:lmbda:2.0.0"
 log4j-api = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
 log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
