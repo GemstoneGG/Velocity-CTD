@@ -91,7 +91,7 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
       connection.close(true);
     } else {
       final InitialInboundConnection ic = new InitialInboundConnection(connection,
-                          cleanVhost(handshake.getServerAddress()), handshake);
+          cleanVhost(handshake.getServerAddress()), handshake);
       connection.setProtocolVersion(handshake.getProtocolVersion());
       connection.setAssociation(ic);
 
