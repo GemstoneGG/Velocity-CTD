@@ -215,7 +215,7 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
     final String playerIp =
             isPlayerAddressLoggingEnabled
                     ? this.connection.getRemoteAddress().toString() : "<ip address null>")
-                    : <ip address withheld>";
+                    : "<ip address withheld>";
     return "[initial connection] " + playerIp;
   }
 
