@@ -212,10 +212,10 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
   public String toString() {
     final boolean isPlayerAddressLoggingEnabled = connection.server.getConfiguration()
             .isPlayerAddressLoggingEnabled();
-    boolean isValidAddress = this.getRemoteAddress() != null;
     final String playerIp =
-            (isPlayerAddressLoggingEnabled && isValidAddress)
-                    ? this.connection.getRemoteAddress().toString() : "<ip address null>";
+            isPlayerAddressLoggingEnabled
+                    ? (getRemoteAddress() != null
+                    ? this.connection.getRemoteAddress().toString() : "<ip address null>")
                     : "<ip address withheld>";
     return "[initial connection] " + playerIp;
   }
@@ -249,10 +249,10 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
     public String toString() {
       boolean isPlayerAddressLoggingEnabled = connection.server.getConfiguration()
           .isPlayerAddressLoggingEnabled();
-      boolean isValidAddress = this.getRemoteAddress() != null;
       String playerIp =
-          (isPlayerAddressLoggingEnabled && isValidAddress)
-              ? this.getRemoteAddress().toString() : "<ip address null>";
+          isPlayerAddressLoggingEnabled
+              ? (getRemoteAddress() != null
+              ? this.getRemoteAddress().toString() : "<ip address null>")
               : "<ip address withheld>";
       return "[legacy connection] " + playerIp;
     }
