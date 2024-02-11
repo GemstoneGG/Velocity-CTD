@@ -32,7 +32,7 @@ disruptor = "com.lmax:disruptor:3.4.4"
 fastutil = "it.unimi.dsi:fastutil:8.5.13"
 flare-core = { module = "space.vectrix.flare:flare", version.ref = "flare" }
 flare-fastutil = { module = "space.vectrix.flare:flare-fastutil", version.ref = "flare" }
-jline = "org.jline:jline-terminal-jansi:3.23.0"
+jline = "org.jline:jline-terminal-jansi:3.25.1"
 jopt = "net.sf.jopt-simple:jopt-simple:5.0.4"
 junit = "org.junit.jupiter:junit-jupiter:5.10.2"
 jspecify = "org.jspecify:jspecify:0.3.0"
