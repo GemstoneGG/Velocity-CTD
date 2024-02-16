@@ -33,10 +33,7 @@ import com.velocitypowered.natives.encryption.VelocityCipher;
 import com.velocitypowered.natives.encryption.VelocityCipherFactory;
 import com.velocitypowered.natives.util.Natives;
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.connection.client.HandshakeSessionHandler;
-import com.velocitypowered.proxy.connection.client.InitialLoginSessionHandler;
-import com.velocitypowered.proxy.connection.client.StatusSessionHandler;
+import com.velocitypowered.proxy.connection.client.*;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.StateRegistry;
@@ -128,8 +125,8 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
 
     if (association != null && !knownDisconnect
             && !(activeSessionHandler instanceof StatusSessionHandler)
+            && !(association instanceof InitialInboundConnection)
             && server.getConfiguration().isLogPlayerConnections()
-            && !association.toString().startsWith("[initial connection]")
     ) {
       logger.info("{} has disconnected", association);
     }
@@ -192,8 +189,10 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
       }
 
       if (association != null) {
-        if (cause instanceof ReadTimeoutException && association instanceof ConnectedPlayer) {
-          logger.error("{}: read timed out", association);
+        if (cause instanceof ReadTimeoutException) {
+          if (!(association instanceof InitialInboundConnection)) {
+            logger.error("{}: read timed out", association);
+          }
         } else {
           boolean frontlineHandler = activeSessionHandler instanceof InitialLoginSessionHandler
               || activeSessionHandler instanceof HandshakeSessionHandler
