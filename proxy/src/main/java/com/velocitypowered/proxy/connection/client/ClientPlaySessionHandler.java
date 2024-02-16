@@ -19,6 +19,7 @@ package com.velocitypowered.proxy.connection.client;
 
 import static com.velocitypowered.proxy.protocol.util.PluginMessageUtil.constructChannelsPacket;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.mojang.brigadier.suggestion.Suggestion;
 import com.velocitypowered.api.command.VelocityBrigadierMessage;
@@ -316,6 +317,10 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
         List<String> channels = PluginMessageUtil.getChannels(packet);
         List<ChannelIdentifier> channelIdentifiers = new ArrayList<>();
         for (String channel : channels) {
+          if (Strings.isNullOrEmpty(channel)) {
+            continue;
+          }
+
           try {
             channelIdentifiers.add(MinecraftChannelIdentifier.from(channel));
           } catch (IllegalArgumentException e) {
