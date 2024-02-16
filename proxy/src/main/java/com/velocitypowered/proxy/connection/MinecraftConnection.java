@@ -125,7 +125,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
 
     if (association != null && !knownDisconnect
             && !(activeSessionHandler instanceof StatusSessionHandler)
-            && !(association instanceof InitialInboundConnection)
+            && (!(association instanceof InitialInboundConnection) || server.getConfiguration().isLogOfflineConnections())
             && server.getConfiguration().isLogPlayerConnections()
     ) {
       logger.info("{} has disconnected", association);
@@ -190,7 +190,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
 
       if (association != null) {
         if (cause instanceof ReadTimeoutException) {
-          if (!(association instanceof InitialInboundConnection)) {
+          if (server.getConfiguration().isLogOfflineConnections() || !(association instanceof InitialInboundConnection)) {
             logger.error("{}: read timed out", association);
           }
         } else {
