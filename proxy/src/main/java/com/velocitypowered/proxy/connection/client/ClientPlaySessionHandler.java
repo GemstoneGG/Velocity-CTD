@@ -97,6 +97,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class ClientPlaySessionHandler implements MinecraftSessionHandler {
 
   private static final Logger logger = LogManager.getLogger(ClientPlaySessionHandler.class);
+  private static final int MAX_STORED_LOGIN_PLUGIN_MESSAGES = 16384; // arbitrary choice
 
   private final ConnectedPlayer player;
   private boolean spawned = false;
@@ -363,7 +364,9 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
               //
               // We also need to make sure to retain these packets, so they can be flushed
               // appropriately.
-              loginPluginMessages.add(packet.retain());
+              if (loginPluginMessages.size() <= MAX_STORED_LOGIN_PLUGIN_MESSAGES) {
+                loginPluginMessages.add(packet.retain());
+              }
             } else {
               // The connection is ready, send the packet now.
               backendConn.write(packet.retain());
@@ -378,7 +381,9 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
                 if (!player.getPhase().consideredComplete() || !serverConn.getPhase()
                     .consideredComplete()) {
                   // We're still processing the connection (see above), enqueue the packet for now.
-                  loginPluginMessages.add(message.retain());
+                  if (loginPluginMessages.size() <= MAX_STORED_LOGIN_PLUGIN_MESSAGES) {
+                    loginPluginMessages.add(packet.retain());
+                  }
                 } else {
                   backendConn.write(message);
                 }
