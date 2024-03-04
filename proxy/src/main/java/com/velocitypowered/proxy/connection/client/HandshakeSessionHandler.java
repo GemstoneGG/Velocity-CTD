@@ -20,6 +20,7 @@ package com.velocitypowered.proxy.connection.client;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.velocitypowered.api.event.connection.ConnectionHandshakeEvent;
+import com.velocitypowered.api.network.ProtocolState;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.PlayerInfoForwarding;
@@ -254,9 +255,9 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
 
     @Override
     public String toString() {
-      boolean isPlayerAddressLoggingEnabled = connection.server.getConfiguration()
+      final boolean isPlayerAddressLoggingEnabled = connection.server.getConfiguration()
           .isPlayerAddressLoggingEnabled();
-      String playerIp =
+      final String playerIp =
           isPlayerAddressLoggingEnabled
               ? (this.getRemoteAddress() != null
               ? this.getRemoteAddress().toString() : "<ip address null>")
@@ -267,6 +268,11 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
     @Override
     public MinecraftConnection getConnection() {
       return connection;
+    }
+
+    @Override
+    public ProtocolState getProtocolState() {
+      return connection.getState().toProtocolState();
     }
   }
 }
