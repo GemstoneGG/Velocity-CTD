@@ -42,6 +42,7 @@ import com.velocitypowered.proxy.command.builtin.FindCommand;
 import com.velocitypowered.proxy.command.builtin.GlistCommand;
 import com.velocitypowered.proxy.command.builtin.SendCommand;
 import com.velocitypowered.proxy.command.builtin.ServerCommand;
+import com.velocitypowered.proxy.command.builtin.ShowAllCommand;
 import com.velocitypowered.proxy.command.builtin.ShutdownCommand;
 import com.velocitypowered.proxy.command.builtin.VelocityCommand;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
@@ -232,6 +233,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     new GlistCommand(this).register();
     new SendCommand(this).register();
     new FindCommand(this).register();
+    new ShowAllCommand(this).register();
 
     this.doStartupConfigLoad();
 
