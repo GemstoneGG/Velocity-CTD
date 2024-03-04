@@ -19,7 +19,22 @@ Velocity-CTD is licensed under the GPLv3 license.
   specifically.)
 * Features that deliver an "all-in-one" experience with various features that
   we believe every network wants and needs.
-  
+
+## Additional Features
+
+* Configurable `/alert` command sends messages across your entire network.
+* Configurable `/find` command that locates yourself and other users.
+* Configurable `/ping` command that displays your and other users' ping.
+* The `/send` supports sending users from `{SERVER_FROM}` to `{SERVER_TO}`.
+* Configurable `/showall` command that displays all users connected to a specific
+  instance rather than flooding your chat with users connected everywhere.
+* Fallback servers allow users to be sent to the server with the
+  least number of players, which will cycle for even distribution.
+* "Virtual server" manager with various modes allowing first-joining
+  users to be sent to the server with the least number of players.
+* Preliminary MiniMessage support to permit full configurability of all Velocity
+  messages.
+
 ## Building
 
 Velocity is built with [Gradle](https://gradle.org). We recommend using the
