@@ -77,7 +77,7 @@ public class SendCommand {
           }
 
           if (argument.startsWith("+")) {
-            for (final RegisteredServer server: server.getAllServers()) {
+            for (final RegisteredServer server : server.getAllServers()) {
               final String serverName = server.getServerInfo().getName();
 
               if (serverName.regionMatches(true, 0, argument, 1, argument.length())) {
@@ -167,11 +167,11 @@ public class SendCommand {
     }
 
     if (player.startsWith("+")) {
-      for (RegisteredServer server: server.getAllServers()) {
+      for (RegisteredServer server : server.getAllServers()) {
         String name = server.getServerInfo().getName();
 
         if (name.equalsIgnoreCase(player)) {
-          for (Player targetPlayer: server.getPlayersConnected()) {
+          for (Player targetPlayer : server.getPlayersConnected()) {
             targetPlayer.createConnectionRequest(server).fireAndForget();
           }
 
