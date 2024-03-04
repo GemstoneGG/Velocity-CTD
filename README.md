@@ -1,12 +1,11 @@
-# Velocity
+# Velocity-CTD
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/PaperMC/Velocity/gradle.yml)](https://papermc.io/downloads/velocity)
-[![Join our Discord](https://img.shields.io/discord/289587909051416579.svg?logo=discord&label=)](https://discord.gg/papermc)
+[![Join our Discord](https://img.shields.io/discord/289587909051416579.svg?logo=discord&label=)](https://discord.gg/beer)
 
 A Minecraft server proxy with unparalleled server support, scalability,
 and flexibility.
 
-Velocity is licensed under the GPLv3 license.
+Velocity-CTD is licensed under the GPLv3 license.
 
 ## Goals
 
@@ -18,6 +17,8 @@ Velocity is licensed under the GPLv3 license.
 * First-class support for Paper, Sponge, Fabric and Forge. (Other implementations
   may work, but we make every endeavor to support these server implementations
   specifically.)
+* Features that deliver an "all-in-one" experience with various features that
+  we believe every network wants and needs.
   
 ## Building
 
@@ -26,11 +27,11 @@ wrapper script (`./gradlew`) as our CI builds using it.
 
 It is sufficient to run `./gradlew build` to run the full build cycle.
 
+We do not explicitly provide publicly available builds. Following the steps
+above ensures that you receive the latest iterations of our software.
+
 ## Running
 
 Once you've built Velocity, you can copy and run the `-all` JAR from
 `proxy/build/libs`. Velocity will generate a default configuration file
 and you can configure it from there.
-
-Alternatively, you can get the proxy JAR from the [downloads](https://papermc.io/downloads/velocity)
-page.
