@@ -28,10 +28,10 @@ Velocity-CTD is licensed under the GPLv3 license.
 * The `/send` supports sending users from `{SERVER_FROM}` to `{SERVER_TO}`.
 * Configurable `/showall` command that displays all users connected to a specific
   instance rather than flooding your chat with users connected everywhere.
-* Fallback servers allow users to be sent to the server with the
-  least number of players, which will cycle for even distribution.
+* Fallback servers allow users to be sent to the least populated server,
+  which will cycle for even distribution.
 * "Virtual server" manager with various modes allowing first-joining
-  users to be sent to the server with the least number of players.
+  users to be sent to the least populated server.
 * Preliminary MiniMessage support to permit full configurability of all Velocity
   messages.
 
