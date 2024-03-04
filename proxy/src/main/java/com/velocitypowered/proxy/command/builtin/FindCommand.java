@@ -51,7 +51,7 @@ public class FindCommand {
           return builder.buildFuture();
         })
         .executes(this::find);
-    rootNode.then(playerNode.build());
+    rootNode.then(playerNode);
     server.getCommandManager().register(new BrigadierCommand(rootNode.build()));
   }
 
