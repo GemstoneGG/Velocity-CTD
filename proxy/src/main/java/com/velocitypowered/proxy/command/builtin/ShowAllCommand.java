@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2024 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ public class ShowAllCommand {
         .requires(source ->
             source.getPermissionValue("velocity.command.showall") == Tristate.TRUE)
         .executes(this::usage);
-    final RequiredArgumentBuilder<CommandSource, String> playerNode = BrigadierCommand
+    final RequiredArgumentBuilder<CommandSource, String> serverNode = BrigadierCommand
         .requiredArgumentBuilder("server", StringArgumentType.word())
         .suggests((context, builder) -> {
           final String argument = context.getArguments().containsKey("server")
@@ -66,7 +66,7 @@ public class ShowAllCommand {
           return builder.buildFuture();
         })
         .executes(this::find);
-    rootNode.then(playerNode);
+    rootNode.then(serverNode);
     server.getCommandManager().register(new BrigadierCommand(rootNode.build()));
   }
 

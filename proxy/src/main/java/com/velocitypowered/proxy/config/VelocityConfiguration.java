@@ -462,7 +462,8 @@ public class VelocityConfiguration implements ProxyConfig {
       final ConfigurationMigration[] migrations = {
           new ForwardingMigration(),
           new KeyAuthenticationMigration(),
-          new MotdMigration()
+          new MotdMigration(),
+          new MiniMessageTranslationsMigration()
       };
 
       for (final ConfigurationMigration migration : migrations) {
