@@ -51,7 +51,7 @@ public class ShowAllCommand {
         .requires(source ->
             source.getPermissionValue("velocity.command.showall") == Tristate.TRUE)
         .executes(this::usage);
-    final RequiredArgumentBuilder<CommandSource, String> playerNode = BrigadierCommand
+    final RequiredArgumentBuilder<CommandSource, String> serverNode = BrigadierCommand
         .requiredArgumentBuilder("server", StringArgumentType.word())
         .suggests((context, builder) -> {
           final String argument = context.getArguments().containsKey("server")
@@ -66,7 +66,7 @@ public class ShowAllCommand {
           return builder.buildFuture();
         })
         .executes(this::find);
-    rootNode.then(playerNode);
+    rootNode.then(serverNode);
     server.getCommandManager().register(new BrigadierCommand(rootNode.build()));
   }
 
