@@ -19,6 +19,7 @@ package com.velocitypowered.proxy.command.builtin;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
@@ -43,7 +44,7 @@ public class PingCommand {
    * Registers this command.
    */
   public void register() {
-    BrigadierCommand.literalArgumentBuilder("ping")
+    LiteralArgumentBuilder<CommandSource> node = BrigadierCommand.literalArgumentBuilder("ping")
         .requires(source -> source.getPermissionValue("velocity.command.ping") != Tristate.FALSE)
         .then(
             BrigadierCommand.requiredArgumentBuilder("player", StringArgumentType.word())
@@ -69,6 +70,8 @@ public class PingCommand {
             return 0;
           }
         });
+
+    server.getCommandManager().register(new BrigadierCommand(node.build()));
   }
 
   private int getPing(CommandContext<CommandSource> context, Player player) {
