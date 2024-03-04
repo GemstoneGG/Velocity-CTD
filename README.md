@@ -1,6 +1,6 @@
 # Velocity-CTD
 
-[![Join our Discord](https://img.shields.io/discord/289587909051416579.svg?logo=discord&label=)](https://discord.gg/beer)
+[![Join my Discord]([https://img.shields.io/discord/289587909051416579.svg?logo=discord&label=](https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdG5sdGgwazRwYjh4djdsdXJwcHR5ajZrNGE2NDBvcTUzdXltbHp1cCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/fGIwpaCrtkFdHVksSu/giphy.gif))](https://discord.gg/beer)
 
 A Minecraft server proxy with unparalleled server support, scalability,
 and flexibility.
