@@ -97,12 +97,12 @@ public class PingCommand {
 
     if (matchesSender) {
       context.getSource().sendMessage(
-          Component.translatable("velocity.command.ping.other", NamedTextColor.GREEN)
+          Component.translatable("velocity.command.ping.self", NamedTextColor.GREEN)
               .arguments(Component.text(ping))
       );
     } else {
       context.getSource().sendMessage(
-          Component.translatable("velocity.command.ping.yours", NamedTextColor.GREEN)
+          Component.translatable("velocity.command.ping.other", NamedTextColor.GREEN)
               .arguments(Component.text(player.getUsername()), Component.text(ping))
       );
     }

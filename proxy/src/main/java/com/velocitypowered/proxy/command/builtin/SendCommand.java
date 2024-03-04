@@ -76,12 +76,12 @@ public class SendCommand {
             builder.suggest("current");
           }
 
-          if (argument.startsWith("+")) {
+          if (argument.isEmpty() || argument.startsWith("+")) {
             for (final RegisteredServer server : server.getAllServers()) {
               final String serverName = server.getServerInfo().getName();
 
-              if (serverName.regionMatches(true, 0, argument, 1, argument.length())) {
-                builder.suggest(serverName);
+              if (serverName.regionMatches(true, 0, argument, 1, argument.length() - 1)) {
+                builder.suggest("+" + serverName);
               }
             }
           }
@@ -170,14 +170,17 @@ public class SendCommand {
       for (RegisteredServer server : server.getAllServers()) {
         String name = server.getServerInfo().getName();
 
-        if (name.equalsIgnoreCase(player)) {
+        if (name.regionMatches(true, 0, player, 1, player.length() - 1)) {
           for (Player targetPlayer : server.getPlayersConnected()) {
-            targetPlayer.createConnectionRequest(server).fireAndForget();
+            targetPlayer.createConnectionRequest(targetServer).fireAndForget();
           }
 
           return Command.SINGLE_SUCCESS;
         }
       }
+
+      context.getSource().sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Component.text(player)));
+      return 0;
     }
 
     // The player at this point must be present
