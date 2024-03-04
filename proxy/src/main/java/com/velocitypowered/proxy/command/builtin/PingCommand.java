@@ -48,6 +48,20 @@ public class PingCommand {
         .requires(source -> source.getPermissionValue("velocity.command.ping") != Tristate.FALSE)
         .then(
             BrigadierCommand.requiredArgumentBuilder("player", StringArgumentType.word())
+                .suggests((context, builder) -> {
+                  final String argument = context.getArguments().containsKey("player")
+                      ? context.getArgument("player", String.class)
+                      : "";
+
+                  for (final Player player : server.getAllPlayers()) {
+                    final String playerName = player.getUsername();
+                    if (playerName.regionMatches(true, 0, argument, 0, argument.length())) {
+                      builder.suggest(playerName);
+                    }
+                  }
+
+                  return builder.buildFuture();
+                })
                 .executes(context -> {
                   String player = context.getArgument("player", String.class);
                   Optional<Player> maybePlayer = server.getPlayer(player);
