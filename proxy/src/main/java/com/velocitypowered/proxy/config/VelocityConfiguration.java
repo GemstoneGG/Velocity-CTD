@@ -411,6 +411,10 @@ public class VelocityConfiguration implements ProxyConfig {
     return advanced.getOudatedVersionPing();
   }
 
+  public boolean isEnableDynamicFallback() {
+    return servers.isEnableDynamicFallback();
+  }
+
   public boolean isForceKeyAuthentication() {
     return forceKeyAuthentication;
   }
@@ -591,6 +595,8 @@ public class VelocityConfiguration implements ProxyConfig {
     );
     private List<String> attemptConnectionOrder = ImmutableList.of("lobby");
 
+    private boolean enableDynamicFallback = true;
+
     private Servers() {
     }
 
@@ -601,7 +607,7 @@ public class VelocityConfiguration implements ProxyConfig {
           if (entry.getValue() instanceof String) {
             servers.put(cleanServerName(entry.getKey()), entry.getValue());
           } else {
-            if (!entry.getKey().equalsIgnoreCase("try")) {
+            if (!entry.getKey().equalsIgnoreCase("try") && !entry.getKey().equalsIgnoreCase("enable-dynamic-fallbacks")) {
               throw new IllegalArgumentException(
                   "Server entry " + entry.getKey() + " is not a string!");
             }
@@ -609,6 +615,7 @@ public class VelocityConfiguration implements ProxyConfig {
         }
         this.servers = ImmutableMap.copyOf(servers);
         this.attemptConnectionOrder = config.getOrElse("try", attemptConnectionOrder);
+        this.enableDynamicFallback = config.getOrElse("enable-dynamic-fallbacks", true);
       }
     }
 
@@ -627,6 +634,10 @@ public class VelocityConfiguration implements ProxyConfig {
 
     public List<String> getAttemptConnectionOrder() {
       return attemptConnectionOrder;
+    }
+
+    public boolean isEnableDynamicFallback() {
+      return enableDynamicFallback;
     }
 
     public void setAttemptConnectionOrder(List<String> attemptConnectionOrder) {

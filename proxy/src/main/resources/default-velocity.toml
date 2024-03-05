@@ -87,6 +87,9 @@ try = [
     "lobby"
 ]
 
+# Sends you to the least populated fallback server, instead of the first available fallback server.
+enable-dynamic-fallbacks = true
+
 [forced-hosts]
 # Configure your forced hosts here.
 "lobby.example.com" = [

@@ -41,6 +41,7 @@ import com.velocitypowered.proxy.command.builtin.AlertCommand;
 import com.velocitypowered.proxy.command.builtin.CallbackCommand;
 import com.velocitypowered.proxy.command.builtin.FindCommand;
 import com.velocitypowered.proxy.command.builtin.GlistCommand;
+import com.velocitypowered.proxy.command.builtin.HubCommand;
 import com.velocitypowered.proxy.command.builtin.PingCommand;
 import com.velocitypowered.proxy.command.builtin.SendCommand;
 import com.velocitypowered.proxy.command.builtin.ServerCommand;
@@ -237,6 +238,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     new PingCommand(this).register();
     new SendCommand(this).register();
     new ShowAllCommand(this).register();
+    commandManager.register("hub", new HubCommand(this).register(), "lobby");
 
     this.doStartupConfigLoad();
 
