@@ -28,8 +28,10 @@ import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.player.PlayerResourcePackStatusEvent;
 import com.velocitypowered.api.event.player.ServerResourcePackSendEvent;
 import com.velocitypowered.api.event.proxy.ProxyPingEvent;
+import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.player.ResourcePackInfo;
+import com.velocitypowered.api.util.ProxyVersion;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.CommandGraphInjector;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
@@ -264,9 +266,19 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
     }
 
     if (PluginMessageUtil.isMcBrand(packet)) {
+
+      //PluginMessagePacket rewritten = PluginMessageUtil
+      //        .rewriteMinecraftBrand(packet,
+      //                server.getVersion(), playerConnection.getProtocolVersion());
+
+
+      String serverBrand = server.getConfiguration().getProxyVersion();
       PluginMessagePacket rewritten = PluginMessageUtil
-              .rewriteMinecraftBrand(packet,
-                      server.getVersion(), playerConnection.getProtocolVersion());
+          .rewriteMinecraftBrand(packet,
+              serverBrand.equalsIgnoreCase("{1}") ? server.getVersion() : new ProxyVersion(serverBrand, serverBrand, serverBrand),
+              ProtocolVersion.MAXIMUM_VERSION,
+              server.getConfiguration().getServerBrand());
+
       playerConnection.write(rewritten);
       return true;
     }

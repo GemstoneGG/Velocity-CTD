@@ -402,6 +402,18 @@ public class VelocityConfiguration implements ProxyConfig {
     return advanced.isLogPlayerConnections();
   }
 
+  public String getServerBrand() {
+    return advanced.getServerBrand();
+  }
+
+  public String getOudatedServerPing() {
+    return advanced.getOudatedVersionPing();
+  }
+
+  public String getProxyVersion() {
+    return advanced.getProxyVersion();
+  }
+
   public boolean isForceKeyAuthentication() {
     return forceKeyAuthentication;
   }
@@ -722,6 +734,12 @@ public class VelocityConfiguration implements ProxyConfig {
     private boolean logCommandExecutions = false;
     @Expose
     private boolean logPlayerConnections = true;
+    @Expose
+    private String serverBrand = "{0} ";
+    @Expose
+    private String proxyVersion = "{1}";
+    @Expose
+    private String oudatedVersionPing = "{0} {1}";
 
     private Advanced() {
     }
@@ -746,6 +764,9 @@ public class VelocityConfiguration implements ProxyConfig {
         this.announceProxyCommands = config.getOrElse("announce-proxy-commands", true);
         this.logCommandExecutions = config.getOrElse("log-command-executions", false);
         this.logPlayerConnections = config.getOrElse("log-player-connections", true);
+        this.serverBrand = config.getOrElse("server-brand", "{0} ");
+        this.proxyVersion = config.getOrElse("proxy-version", "{1}");
+        this.oudatedVersionPing = config.getOrElse("outdated-version-ping", "{0} {1}");
       }
     }
 
@@ -805,6 +826,10 @@ public class VelocityConfiguration implements ProxyConfig {
       return logPlayerConnections;
     }
 
+    public String getServerBrand() {
+      return serverBrand;
+    }
+
     @Override
     public String toString() {
       return "Advanced{"
@@ -822,6 +847,14 @@ public class VelocityConfiguration implements ProxyConfig {
           + ", logCommandExecutions=" + logCommandExecutions
           + ", logPlayerConnections=" + logPlayerConnections
           + '}';
+    }
+
+    public String getProxyVersion() {
+      return proxyVersion;
+    }
+
+    public String getOudatedVersionPing() {
+      return this.oudatedVersionPing;
     }
   }
 

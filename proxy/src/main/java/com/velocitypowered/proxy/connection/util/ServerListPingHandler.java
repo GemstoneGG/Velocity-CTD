@@ -53,7 +53,8 @@ public class ServerListPingHandler {
     VelocityConfiguration configuration = server.getConfiguration();
     return new ServerPing(
         new ServerPing.Version(version.getProtocol(),
-            "Velocity " + ProtocolVersion.SUPPORTED_VERSION_STRING),
+            configuration.getOudatedServerPing().equalsIgnoreCase("{0} {1}")
+                ? "Velocity " + ProtocolVersion.SUPPORTED_VERSION_STRING : configuration.getOudatedServerPing()),
         new ServerPing.Players(server.getPlayerCount(), configuration.getShowMaxPlayers(),
             ImmutableList.of()),
         configuration.getMotd(),
@@ -118,6 +119,7 @@ public class ServerListPingHandler {
             if (response.getDescriptionComponent() == null) {
               continue;
             }
+            // fallback.getVersion()
 
             return new ServerPing(
                 fallback.getVersion(),

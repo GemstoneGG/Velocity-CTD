@@ -147,6 +147,16 @@ log-command-executions = false
 # and disconnecting from the proxy.
 log-player-connections = true
 
+# The server brand that shows on your client in F3 at the top.
+# Default usually is something like "Pufferfish (Velocity)"
+# Server brand is the Pufferfish part and the proxy version is the Velocity part
+server-brand = "{0} "
+proxy-version = "{1}"
+
+# When you're on an outdated client, this text displays when you hover over the server
+outdated-version-ping = "{0} {1}"
+
+
 [query]
 # Whether to enable responding to GameSpy 4 query responses or not.
 enabled = false
@@ -159,3 +169,4 @@ map = "Velocity"
 
 # Whether plugins should be shown in query response by default or not
 show-plugins = false
+
