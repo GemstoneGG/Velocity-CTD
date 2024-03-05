@@ -733,7 +733,7 @@ public class VelocityConfiguration implements ProxyConfig {
     @Expose
     private boolean logPlayerConnections = true;
     @Expose
-    private String serverBrand = "{0} {1}";
+    private String serverBrand = "{0}";
     @Expose
     private String oudatedVersionPing = "{0} {1}";
 
