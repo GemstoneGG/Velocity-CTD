@@ -760,7 +760,7 @@ public class VelocityConfiguration implements ProxyConfig {
         this.announceProxyCommands = config.getOrElse("announce-proxy-commands", true);
         this.logCommandExecutions = config.getOrElse("log-command-executions", false);
         this.logPlayerConnections = config.getOrElse("log-player-connections", true);
-        this.serverBrand = config.getOrElse("server-brand", "{0} {1}");
+        this.serverBrand = config.getOrElse("server-brand", "{0}");
         this.oudatedVersionPing = config.getOrElse("outdated-version-ping", "{0} {1}");
       }
     }

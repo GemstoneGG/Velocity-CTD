@@ -148,7 +148,7 @@ log-command-executions = false
 log-player-connections = true
 
 # Modifies the server brand that displays in your debug menu.
-server-brand = "{0} {1}"
+server-brand = "{0}"
 
 # Modifies the outdated server brand that displays in your server menu.
 outdated-server-ping = "{0} {1}"

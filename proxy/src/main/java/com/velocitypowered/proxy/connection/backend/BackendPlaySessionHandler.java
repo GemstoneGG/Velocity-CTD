@@ -266,10 +266,9 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
     }
 
     if (PluginMessageUtil.isMcBrand(packet)) {
-      String serverBrand = server.getConfiguration().getProxyVersion();
       PluginMessagePacket rewritten = PluginMessageUtil
           .rewriteMinecraftBrand(packet,
-              serverBrand.equalsIgnoreCase("{1}") ? server.getVersion() : new ProxyVersion(serverBrand, serverBrand, serverBrand),
+              server.getVersion(),
               ProtocolVersion.MAXIMUM_VERSION,
               server.getConfiguration().getServerBrand());
       playerConnection.write(rewritten);
