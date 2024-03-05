@@ -20,7 +20,7 @@ Velocity-CTD is licensed under the GPLv3 license.
 * Features that deliver an "all-in-one" experience with various features that
   we believe every network wants and needs.
 
-## Additional Features
+## Additional Features/Removals
 
 * Configurable `/alert` command sends messages across your entire network.
 * Configurable `/find` command that locates yourself and other users.
@@ -30,10 +30,12 @@ Velocity-CTD is licensed under the GPLv3 license.
   instance rather than flooding your chat with users connected everywhere.
 * Fallback servers allow users to be sent to the least populated server,
   which will cycle for even distribution.
-* "Virtual server" manager with various modes allowing first-joining
-  users to be sent to the least populated server.
+* Configurable server brand and server pinger message.
 * Preliminary MiniMessage support to permit full configurability of all Velocity
   messages.
+* Removal of all language files except `messages.properties` to preserve
+  maintainability. PR's are welcome that reimplement all language files
+  with our changes.
 
 ## Building
 
