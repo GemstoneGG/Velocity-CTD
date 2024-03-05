@@ -63,7 +63,7 @@ public class HubCommand {
 
     RegisteredServer registeredServer = connection.getServer();
     if (server.getConfiguration().getAttemptConnectionOrder().contains(registeredServer.getServerInfo().getName())) {
-      player.sendMessage(Component.translatable("velocity.command.hub.alreadyinhub"));
+      player.sendMessage(Component.translatable("velocity.command.hub.alreadyatfallback"));
       return 0;
     }
 
