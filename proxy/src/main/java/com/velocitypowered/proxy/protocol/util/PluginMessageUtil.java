@@ -138,7 +138,7 @@ public final class PluginMessageUtil {
     checkArgument(isMcBrand(message), "message is not a brand plugin message");
 
     String rewrittenBrand = String.format("%s", brand.equalsIgnoreCase("{0}")
-        ? readBrandMessage(message.content()) + "(" + version.getName() + ")" : brand);
+        ? readBrandMessage(message.content()) + " (" + version.getName() + ")" : brand);
 
     ByteBuf rewrittenBuf = Unpooled.buffer();
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
