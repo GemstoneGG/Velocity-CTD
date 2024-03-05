@@ -137,7 +137,7 @@ public final class PluginMessageUtil {
     checkNotNull(version, "version");
     checkArgument(isMcBrand(message), "message is not a brand plugin message");
 
-    String rewrittenBrand = String.format("%s (%s)", brand.equalsIgnoreCase("{0} ") 
+    String rewrittenBrand = String.format("%s (%s)", brand.equalsIgnoreCase("{0} {1}") 
     ? readBrandMessage(message.content()) : brand, version.getName());
 
     ByteBuf rewrittenBuf = Unpooled.buffer();
