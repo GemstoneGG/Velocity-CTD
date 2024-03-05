@@ -94,7 +94,7 @@ public class FindCommand {
     ServerConnection connection = p.getCurrentServer().orElse(null);
     if (connection == null) {
       context.getSource().sendMessage(
-          Component.translatable("velocity.command.find.noserver", NamedTextColor.YELLOW)
+          Component.translatable("velocity.command.find.no-server", NamedTextColor.YELLOW)
       );
       return 0;
     }
@@ -102,7 +102,7 @@ public class FindCommand {
     RegisteredServer server = connection.getServer();
     if (server == null) {
       context.getSource().sendMessage(
-          Component.translatable("velocity.command.find.noserver", NamedTextColor.YELLOW)
+          Component.translatable("velocity.command.find.no-server", NamedTextColor.YELLOW)
       );
       return 0;
     }

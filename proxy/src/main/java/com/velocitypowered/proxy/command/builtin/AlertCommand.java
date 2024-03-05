@@ -91,7 +91,7 @@ public class AlertCommand {
     String message = StringArgumentType.getString(context, "message");
     if (message.isEmpty()) {
       context.getSource().sendMessage(
-          Component.translatable("velocity.command.alert.nomessage", NamedTextColor.YELLOW)
+          Component.translatable("velocity.command.alert.no-message", NamedTextColor.YELLOW)
       );
       return 0;
     }
