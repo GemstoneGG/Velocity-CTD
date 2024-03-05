@@ -21,6 +21,7 @@ import com.velocitypowered.api.event.player.PlayerResourcePackStatusEvent;
 import com.velocitypowered.api.event.player.ServerResourcePackSendEvent;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.player.ResourcePackInfo;
+import com.velocitypowered.api.util.ProxyVersion;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
@@ -209,9 +210,11 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
   @Override
   public boolean handle(PluginMessagePacket packet) {
     if (PluginMessageUtil.isMcBrand(packet)) {
+      String serverBrand = server.getConfiguration().getServerBrand();
       serverConn.getPlayer().getConnection().write(
-          PluginMessageUtil.rewriteMinecraftBrand(packet, server.getVersion(),
-              serverConn.getPlayer().getProtocolVersion()));
+          PluginMessageUtil.rewriteMinecraftBrand(packet, serverBrand.equalsIgnoreCase("{1}")
+                  ? server.getVersion() : new ProxyVersion(serverBrand, serverBrand, serverBrand),
+              serverConn.getPlayer().getProtocolVersion(), server.getConfiguration().getServerBrand()));
     } else {
       serverConn.getPlayer().getConnection().write(packet.retain());
     }

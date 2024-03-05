@@ -147,6 +147,12 @@ log-command-executions = false
 # and disconnecting from the proxy.
 log-player-connections = true
 
+# Modifies the server brand that displays in your debug menu.
+server-brand = "{0} {1}"
+
+# Modifies the outdated server brand that displays in your server menu.
+outdated-server-ping = "{0} {1}"
+
 [query]
 # Whether to enable responding to GameSpy 4 query responses or not.
 enabled = false
