@@ -87,7 +87,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         onlineMode);
     final GameProfile finalProfile = profile;
 
-    // Make sure the player is on min version set in config or higher
+    // Make sure the player is on the minimum version set in configuration or higher
     if (!versionCheck(mcConnection)) {
       return;
     }
