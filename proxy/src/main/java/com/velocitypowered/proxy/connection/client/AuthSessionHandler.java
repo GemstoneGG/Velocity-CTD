@@ -92,7 +92,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
 
     // Make sure the player is on the minimum version set in configuration or higher
     if (!versionCheck(mcConnection)) {
-      if (server.getConfiguration().isLogOfflineConnections()){
+      if (server.getConfiguration().isLogOfflineConnections()) {
         return;
       }
 
@@ -108,6 +108,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
 
     server.getEventManager().fire(profileRequestEvent).thenComposeAsync(profileEvent -> {
       if (mcConnection.isClosed()) {
+        // The player disconnected after we authenticated them.
         return CompletableFuture.completedFuture(null);
       }
 
@@ -116,7 +117,6 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
           mcConnection, inbound.getVirtualHost().orElse(null), onlineMode,
           inbound.getIdentifiedKey());
       this.connectedPlayer = player;
-
       if (!server.canRegisterConnection(player)) {
         player.disconnect0(
             Component.translatable("velocity.error.already-connected-proxy", NamedTextColor.RED),
@@ -297,7 +297,6 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
     }
     this.inbound.cleanup();
   }
-
 
   enum State {
     START, SUCCESS_SENT, ACKNOWLEDGED
