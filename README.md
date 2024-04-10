@@ -30,17 +30,21 @@ Velocity-CTD is licensed under the GPLv3 license.
 * The `/send` supports sending users from `{SERVER_FROM}` to `{SERVER_TO}`.
 * Configurable `/showall` command that displays all users connected to a specific
   instance rather than flooding your chat with users connected everywhere.
+* Configurable minimum version value that allows users to block users on versions
+  older than your desired minimum server version.
 * Fallback servers allow users to be sent to the least populated server,
   which will cycle for even distribution.
 * Configurable server brand and server pinger message.
-* Removal of unsigned message kick/disconnection events for plugins with improper
-  compatibility.
+* Configurable removal of unsigned message kick/disconnection events for plugins
+  with improper compatibility.
+* Configurable deactivation of Forge inbound handshakes for servers that do not
+  run Forge or NeoForge as their server software.
 * Other miscellaneous optimizations and tweaks that will only continue to be
   implemented as this fork matures.
 * Preliminary MiniMessage support to permit full configurability of all Velocity
   messages.
 * Removal of all language files except `messages.properties` to preserve
-  maintainability. PR's are welcome that reimplement all language files
+  maintainability. PR's are welcome to reimplement all language files
   with our changes.
 
 ## Building
