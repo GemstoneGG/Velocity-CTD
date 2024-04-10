@@ -59,7 +59,6 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 public class AuthSessionHandler implements MinecraftSessionHandler {
 
   private static final Logger logger = LogManager.getLogger(AuthSessionHandler.class);
-
   private final VelocityServer server;
   private final MinecraftConnection mcConnection;
   private final LoginInboundConnection inbound;
@@ -68,7 +67,6 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
   private final boolean onlineMode;
   private State loginState = State.START; // 1.20.2+
   private final String minimumVersion;
-
 
   AuthSessionHandler(VelocityServer server, LoginInboundConnection inbound,
       GameProfile profile, boolean onlineMode) {
@@ -89,6 +87,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         onlineMode);
     final GameProfile finalProfile = profile;
 
+    // Make sure the player is on min version set in config or higher
     if (!versionCheck(mcConnection)) {
       return;
     }
@@ -112,6 +111,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         return CompletableFuture.completedFuture(null);
       }
 
+      logger.info("{} has connected", player);
 
       return server.getEventManager()
           .fire(new PermissionsSetupEvent(player, ConnectedPlayer.DEFAULT_PERMISSIONS))
