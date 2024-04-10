@@ -49,6 +49,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -59,6 +60,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 public class AuthSessionHandler implements MinecraftSessionHandler {
 
   private static final Logger logger = LogManager.getLogger(AuthSessionHandler.class);
+  private static final ComponentLogger componentLogger = ComponentLogger.logger(AuthSessionHandler.class);
 
   private final VelocityServer server;
   private final MinecraftConnection mcConnection;
@@ -90,6 +92,14 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
 
     // Make sure the player is on the minimum version set in configuration or higher
     if (!versionCheck(mcConnection)) {
+      if (server.getConfiguration().isLogOfflineConnections()) return;
+
+      final String discMessage = String.format("[initial connection] %s (%s) has disconnected: ",
+              finalProfile.getName(),
+              mcConnection.getRemoteAddress().toString());
+
+      componentLogger.info(Component.text(discMessage).append(Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
+              .arguments(Component.text(minimumVersion))));
       return;
     }
 
