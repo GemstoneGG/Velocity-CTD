@@ -59,6 +59,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 public class AuthSessionHandler implements MinecraftSessionHandler {
 
   private static final Logger logger = LogManager.getLogger(AuthSessionHandler.class);
+
   private final VelocityServer server;
   private final MinecraftConnection mcConnection;
   private final LoginInboundConnection inbound;
@@ -103,7 +104,6 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
           mcConnection, inbound.getVirtualHost().orElse(null), onlineMode,
           inbound.getIdentifiedKey());
       this.connectedPlayer = player;
-
       if (!server.canRegisterConnection(player)) {
         player.disconnect0(
             Component.translatable("velocity.error.already-connected-proxy", NamedTextColor.RED),
