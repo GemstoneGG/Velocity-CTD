@@ -100,7 +100,8 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
               finalProfile.getName(),
               mcConnection.getRemoteAddress().toString());
 
-      componentLogger.info(Component.text(discMessage).append(Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
+      componentLogger.info(Component.text(discMessage).append(
+              Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
               .arguments(Component.text(minimumVersion))));
       return;
     }
