@@ -67,6 +67,8 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
   private @MonotonicNonNull ConnectedPlayer connectedPlayer;
   private final boolean onlineMode;
   private State loginState = State.START; // 1.20.2+
+  private final String minimumVersion;
+
 
   AuthSessionHandler(VelocityServer server, LoginInboundConnection inbound,
       GameProfile profile, boolean onlineMode) {
@@ -75,6 +77,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
     this.profile = Preconditions.checkNotNull(profile, "profile");
     this.onlineMode = onlineMode;
     this.mcConnection = inbound.delegatedConnection();
+    this.minimumVersion = server.getConfiguration().getMinimumVersion();
   }
 
   @Override
@@ -85,6 +88,10 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
     GameProfileRequestEvent profileRequestEvent = new GameProfileRequestEvent(inbound, profile,
         onlineMode);
     final GameProfile finalProfile = profile;
+
+    if (!versionCheck(mcConnection)) {
+      return;
+    }
 
     server.getEventManager().fire(profileRequestEvent).thenComposeAsync(profileEvent -> {
       if (mcConnection.isClosed()) {
@@ -97,6 +104,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
           mcConnection, inbound.getVirtualHost().orElse(null), onlineMode,
           inbound.getIdentifiedKey());
       this.connectedPlayer = player;
+
       if (!server.canRegisterConnection(player)) {
         player.disconnect0(
             Component.translatable("velocity.error.already-connected-proxy", NamedTextColor.RED),
@@ -104,7 +112,6 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         return CompletableFuture.completedFuture(null);
       }
 
-      logger.info("{} has connected", player);
 
       return server.getEventManager()
           .fire(new PermissionsSetupEvent(player, ConnectedPlayer.DEFAULT_PERMISSIONS))
@@ -127,6 +134,20 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
       logger.error("Exception during connection of {}", finalProfile, ex);
       return null;
     });
+  }
+
+  private boolean versionCheck(MinecraftConnection connection) {
+    final ProtocolVersion minimumProtocolVersion = ProtocolVersion.getVersionByName(minimumVersion);
+    final String clientProtocolVersion = connection.getProtocolVersion().getVersionIntroducedIn();
+
+    // Compare the client's protocol version with the minimum required version
+    if (ProtocolVersion.getVersionByName(clientProtocolVersion).lessThan(minimumProtocolVersion)) {
+      // Disconnect the player with an error message if client version is too low
+      this.inbound.disconnect(Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED));
+      return false;
+    }
+
+    return true;
   }
 
   private void startLoginCompletion(ConnectedPlayer player) {

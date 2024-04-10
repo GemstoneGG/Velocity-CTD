@@ -97,6 +97,8 @@ public class VelocityConfiguration implements ProxyConfig {
   private boolean disableForge = true;
   @Expose
   private boolean enforceChatSigning = false;
+  @Expose
+  private String minimumVersion = "1.7.2";
 
   private VelocityConfiguration(Servers servers, ForcedHosts forcedHosts, Advanced advanced,
       Query query, Metrics metrics) {
@@ -113,7 +115,7 @@ public class VelocityConfiguration implements ProxyConfig {
       boolean onlineModeKickExistingPlayers, PingPassthroughMode pingPassthrough,
       boolean enablePlayerAddressLogging, Servers servers, ForcedHosts forcedHosts,
       Advanced advanced, Query query, Metrics metrics, boolean forceKeyAuthentication,
-      boolean logOfflineConnections, boolean disableForge, boolean enforceChatSigning) {
+      boolean logOfflineConnections, boolean disableForge, boolean enforceChatSigning, String minimumVersion) {
     this.bind = bind;
     this.motd = motd;
     this.showMaxPlayers = showMaxPlayers;
@@ -134,6 +136,7 @@ public class VelocityConfiguration implements ProxyConfig {
     this.logOfflineConnections = logOfflineConnections;
     this.disableForge = disableForge;
     this.enforceChatSigning = enforceChatSigning;
+    this.minimumVersion = minimumVersion;
   }
 
   /**
@@ -449,6 +452,7 @@ public class VelocityConfiguration implements ProxyConfig {
         .add("logOfflineConnections", logOfflineConnections)
         .add("disableForge", disableForge)
         .add("enforceChatSigning", enforceChatSigning)
+        .add("minimumVersion", minimumVersion)
         .toString();
   }
 
@@ -543,6 +547,7 @@ public class VelocityConfiguration implements ProxyConfig {
       final boolean disableForge = config.getOrElse("disable-forge", true);
       final boolean enforceChatSigning = config.getOrElse(
           "enforce-chat-signing", false);
+      final String minimumVersion = config.getOrElse("minimum-version", "1.7.2");
 
       // Throw an exception if the forwarding-secret file is empty and the proxy is using a
       // forwarding mode that requires it.
@@ -572,7 +577,8 @@ public class VelocityConfiguration implements ProxyConfig {
               forceKeyAuthentication,
               logOfflineConnections,
               disableForge,
-              enforceChatSigning
+              enforceChatSigning,
+              minimumVersion
       );
     }
   }
@@ -607,6 +613,10 @@ public class VelocityConfiguration implements ProxyConfig {
 
   public boolean enforceChatSigning() {
     return enforceChatSigning;
+  }
+
+  public String getMinimumVersion() {
+    return minimumVersion;
   }
 
   private static class Servers {

@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.velocitypowered.api.util.Ordered;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -248,6 +249,19 @@ public enum ProtocolVersion implements Ordered<ProtocolVersion> {
    */
   public static ProtocolVersion getProtocolVersion(int protocol) {
     return ID_TO_PROTOCOL_CONSTANT.getOrDefault(protocol, UNKNOWN);
+  }
+
+  /**
+   * Gets the {@link ProtocolVersion} for the given protocol.
+   *
+   * @param version the protocol as a string version
+   * @return the protocol version
+   */
+  public static ProtocolVersion getVersionByName(String version) {
+    return Arrays.stream(ProtocolVersion.values())
+            .filter(protocolVersion -> Arrays.asList(protocolVersion.names).contains(version))
+            .findFirst()
+            .orElse(ProtocolVersion.MINECRAFT_1_7_2);
   }
 
   /**
