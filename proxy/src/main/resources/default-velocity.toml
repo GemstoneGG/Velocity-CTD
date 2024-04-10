@@ -16,7 +16,7 @@ show-max-players = 500
 online-mode = true
 
 # Whether chat signing should be enforced. If disabled, backend servers MUST disable chat signing.
-enforce-chat-signing = false
+enforce-chat-signing = true
 
 # Modify the minimum version, so the proxy blocks out users on the wrong version, rather than the backend server.
 minimum-version = "1.7.2"
@@ -54,7 +54,7 @@ forwarding-secret-file = "forwarding.secret"
 announce-forge = false
 
 # If true, disables handling of inbound Forge handshakes.
-disable-forge = true
+disable-forge = false
 
 # If enabled (default is false) and the proxy is in online mode, Velocity will kick
 # any existing player who is online if a duplicate connection attempt is made.
@@ -79,7 +79,7 @@ ping-passthrough = "DISABLED"
 enable-player-address-logging = true
 
 # If false, disables logging for offline player connections.
-log-offline-connections = false
+log-offline-connections = true
 
 [servers]
 # Configure your servers here. Each key represents the server's name, and the value
