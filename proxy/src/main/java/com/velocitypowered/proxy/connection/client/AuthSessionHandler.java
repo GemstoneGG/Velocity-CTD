@@ -143,7 +143,8 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
     // Compare the client's protocol version with the minimum required version
     if (ProtocolVersion.getVersionByName(clientProtocolVersion).lessThan(minimumProtocolVersion)) {
       // Disconnect the player with an error message if client version is too low
-      this.inbound.disconnect(Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED));
+      this.inbound.disconnect(Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
+              .arguments(Component.text(minimumVersion)));
       return false;
     }
 
