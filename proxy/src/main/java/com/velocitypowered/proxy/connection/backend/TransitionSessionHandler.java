@@ -39,6 +39,7 @@ import com.velocitypowered.proxy.protocol.packet.JoinGamePacket;
 import com.velocitypowered.proxy.protocol.packet.KeepAlivePacket;
 import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -187,7 +188,7 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public boolean handle(PluginMessagePacket packet) {
+  public boolean handle(PluginMessagePacket packet, Locale format) {
     if (bungeecordMessageResponder.process(packet)) {
       return true;
     }

@@ -779,7 +779,7 @@ public class VelocityConfiguration implements ProxyConfig {
     @Expose
     private boolean allowIllegalCharactersInChat = false;
     @Expose
-    private String serverBrand = "{0}";
+    private String serverBrand = "{0} ({1})";
     @Expose
     private String outdatedVersionPing = "{0} {1}";
 

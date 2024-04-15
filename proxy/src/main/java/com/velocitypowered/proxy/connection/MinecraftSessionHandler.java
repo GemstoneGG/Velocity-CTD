@@ -72,6 +72,7 @@ import com.velocitypowered.proxy.protocol.packet.title.TitleSubtitlePacket;
 import com.velocitypowered.proxy.protocol.packet.title.TitleTextPacket;
 import com.velocitypowered.proxy.protocol.packet.title.TitleTimesPacket;
 import io.netty.buffer.ByteBuf;
+import java.util.Locale;
 
 /**
  * Interface for dispatching received Minecraft packets.
@@ -178,7 +179,7 @@ public interface MinecraftSessionHandler {
     return false;
   }
 
-  default boolean handle(PluginMessagePacket packet) {
+  default boolean handle(PluginMessagePacket packet, Locale format) {
     return false;
   }
 

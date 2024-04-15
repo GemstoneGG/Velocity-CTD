@@ -163,7 +163,7 @@ log-player-connections = true
 allow-illegal-characters-in-chat = false
 
 # Modifies the server brand that displays in your debug menu.
-server-brand = "{0}"
+server-brand = "{0} ({1})"
 
 # Modifies the outdated server brand that displays in your server menu.
 outdated-server-ping = "{0} {1}"
