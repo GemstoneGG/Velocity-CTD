@@ -28,8 +28,6 @@ import io.netty.buffer.ByteBuf;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Locale;
-
 public class PluginMessagePacket extends DeferredByteBufHolder implements MinecraftPacket {
 
   private @Nullable String channel;
@@ -103,8 +101,7 @@ public class PluginMessagePacket extends DeferredByteBufHolder implements Minecr
 
   @Override
   public boolean handle(MinecraftSessionHandler handler) {
-    Locale format = null;
-    return handler.handle(this, format);
+    return handler.handle(this);
   }
 
   @Override

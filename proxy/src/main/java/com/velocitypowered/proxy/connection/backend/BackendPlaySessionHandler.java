@@ -66,7 +66,6 @@ import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.handler.timeout.ReadTimeoutException;
-import java.util.Locale;
 import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -263,7 +262,7 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public boolean handle(PluginMessagePacket packet, Locale format) {
+  public boolean handle(PluginMessagePacket packet) {
     if (bungeecordMessageResponder.process(packet)) {
       return true;
     }
@@ -278,7 +277,7 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
           .rewriteMinecraftBrand(packet,
               server.getVersion(),
               ProtocolVersion.MAXIMUM_VERSION,
-              server.getConfiguration().getServerBrand(), format);
+              server.getConfiguration().getServerBrand());
       playerConnection.write(rewritten);
       return true;
     }

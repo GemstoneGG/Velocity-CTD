@@ -38,6 +38,7 @@ import java.util.regex.Pattern;
  */
 public final class PluginMessageUtil {
 
+  private static String format;
   private static final String BRAND_CHANNEL_LEGACY = "MC|Brand";
   private static final String BRAND_CHANNEL = "minecraft:brand";
   private static final String REGISTER_CHANNEL_LEGACY = "REGISTER";
@@ -127,13 +128,13 @@ public final class PluginMessageUtil {
    *
    * @param message the plugin message
    * @param version the proxy version
-   * @param format the initial brand format
+   * @param proxyBrand the initial brand format
    * @return the rewritten plugin message
    */
   public static PluginMessagePacket rewriteMinecraftBrand(PluginMessagePacket message,
                                                           ProxyVersion version,
                                                           ProtocolVersion protocolVersion,
-                                                          String proxyBrand, Locale format) {
+                                                          String proxyBrand) {
     checkNotNull(message, "message");
     checkNotNull(version, "version");
     checkArgument(isMcBrand(message), "message is not a brand plugin message");
