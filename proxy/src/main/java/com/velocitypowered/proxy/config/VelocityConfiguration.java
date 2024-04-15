@@ -807,7 +807,7 @@ public class VelocityConfiguration implements ProxyConfig {
         this.logCommandExecutions = config.getOrElse("log-command-executions", false);
         this.logPlayerConnections = config.getOrElse("log-player-connections", true);
         this.allowIllegalCharactersInChat = config.getOrElse("allow-illegal-characters-in-chat", false);
-        this.serverBrand = config.getOrElse("server-brand", "{0}");
+        this.serverBrand = config.getOrElse("server-brand", "{0} ({1})");
         this.outdatedVersionPing = config.getOrElse("outdated-version-ping", "{0} {1}");
       }
     }
