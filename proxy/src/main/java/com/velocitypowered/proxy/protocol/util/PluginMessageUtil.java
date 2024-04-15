@@ -28,6 +28,7 @@ import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import java.nio.charset.StandardCharsets;
+import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -38,7 +39,6 @@ import java.util.regex.Pattern;
  */
 public final class PluginMessageUtil {
 
-  private static String format;
   private static final String BRAND_CHANNEL_LEGACY = "MC|Brand";
   private static final String BRAND_CHANNEL = "minecraft:brand";
   private static final String REGISTER_CHANNEL_LEGACY = "REGISTER";
@@ -128,19 +128,19 @@ public final class PluginMessageUtil {
    *
    * @param message the plugin message
    * @param version the proxy version
-   * @param proxyBrand the initial brand format
+   * @param brand the initial brand format
    * @return the rewritten plugin message
    */
   public static PluginMessagePacket rewriteMinecraftBrand(PluginMessagePacket message,
                                                           ProxyVersion version,
                                                           ProtocolVersion protocolVersion,
-                                                          String proxyBrand) {
+                                                          String brand) {
     checkNotNull(message, "message");
     checkNotNull(version, "version");
     checkArgument(isMcBrand(message), "message is not a brand plugin message");
 
     String backendBrand = readBrandMessage(message.content());
-    String rewrittenBrand = String.format(format, backendBrand, proxyBrand);
+    String rewrittenBrand = MessageFormat.format(brand, backendBrand, version.getName());
 
     ByteBuf rewrittenBuf = Unpooled.buffer();
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
