@@ -34,7 +34,6 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import java.util.List;
 import java.util.Optional;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 
@@ -130,22 +129,18 @@ public class GlistCommand {
       return;
     }
 
-    final TextComponent.Builder builder = Component.text()
-        .append(Component.text("[" + server.getServerInfo().getName() + "] ",
-            NamedTextColor.DARK_AQUA))
-        .append(Component.text("(" + onServer.size() + ")", NamedTextColor.GRAY))
-        .append(Component.text(": "))
-        .resetStyle();
-
-    for (int i = 0; i < onServer.size(); i++) {
-      final Player player = onServer.get(i);
-      builder.append(Component.text(player.getUsername()));
-
-      if (i + 1 < onServer.size()) {
-        builder.append(Component.text(", "));
-      }
-    }
-
-    target.sendMessage(builder.build());
+    onServer.stream()
+            .map(Player::getUsername)
+            .reduce((a, b) -> a + ", " + b)
+            .ifPresent(playerList -> {
+              final TranslatableComponent.Builder builder = Component.translatable()
+                      .key("velocity.command.glist-server")
+                      .arguments(
+                              Component.text(server.getServerInfo().getName()),
+                              Component.text(onServer.size()),
+                              Component.text(playerList)
+                      );
+              target.sendMessage(builder.build());
+            });
   }
 }
