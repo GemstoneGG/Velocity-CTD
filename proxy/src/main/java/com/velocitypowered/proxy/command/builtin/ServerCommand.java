@@ -64,12 +64,11 @@ public final class ServerCommand {
               final String argument = ctx.getArguments().containsKey(SERVER_ARG)
                       ? StringArgumentType.getString(ctx, SERVER_ARG)
                       : "";
-              boolean hasWildcardPermission = ctx.getSource().getPermissionValue("velocity.command.server.*") == Tristate.TRUE;
               for (final RegisteredServer sv : server.getAllServers()) {
                 final String serverName = sv.getServerInfo().getName();
                 if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
                   final String permission = "velocity.command.server." + serverName;
-                  if (hasWildcardPermission || ctx.getSource().getPermissionValue(permission) != Tristate.FALSE) {
+                  if (ctx.getSource().getPermissionValue(permission) != Tristate.FALSE) {
                     builder.suggest(serverName);
                   }
                 }
@@ -92,10 +91,8 @@ public final class ServerCommand {
               }
 
               // Check if the player has permission to connect to the server
-              final String wildcardPermission = "velocity.command.server.*";
               final String permission = "velocity.command.server." + serverName;
-              if (player.getPermissionValue(wildcardPermission) == Tristate.FALSE
-                  || player.getPermissionValue(permission) == Tristate.FALSE) {
+              if (player.getPermissionValue(permission) == Tristate.FALSE) {
                 player.sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
                         .arguments(Component.text(serverName)));
                 return -1;
@@ -128,9 +125,8 @@ public final class ServerCommand {
     }
 
     // Filter servers based on player permissions
-    boolean hasWildcardPermission = executor.getPermissionValue("velocity.command.server.*") != Tristate.FALSE;
     final List<RegisteredServer> accessibleServers = servers.stream()
-        .filter(rs -> hasWildcardPermission || executor.getPermissionValue("velocity.command.server."
+        .filter(rs -> executor.getPermissionValue("velocity.command.server."
             + rs.getServerInfo().getName()) != Tristate.FALSE)
         .toList();
 
