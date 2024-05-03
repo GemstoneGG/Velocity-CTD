@@ -49,10 +49,13 @@ public final class ServerCommand {
   public static BrigadierCommand create(final ProxyServer server) {
     final LiteralCommandNode<CommandSource> node = BrigadierCommand
         .literalArgumentBuilder("server")
-        .requires(src -> src instanceof Player
-                && src.getPermissionValue("velocity.command.server") != Tristate.FALSE)
+        .requires(src -> src.getPermissionValue("velocity.command.server") != Tristate.FALSE)
         .executes(ctx -> {
-          final Player player = (Player) ctx.getSource();
+          if (!(ctx.getSource() instanceof Player player)) {
+            ctx.getSource().sendMessage(CommandMessages.PLAYERS_ONLY);
+            return 0;
+          }
+
           outputServerInformation(player, server);
           return Command.SINGLE_SUCCESS;
         })
@@ -61,24 +64,24 @@ public final class ServerCommand {
               final String argument = ctx.getArguments().containsKey(SERVER_ARG)
                       ? StringArgumentType.getString(ctx, SERVER_ARG)
                       : "";
-              boolean hasWildcardPermission = ctx.getSource() instanceof Player player
-                  && player.getPermissionValue("velocity.command.server.*") == Tristate.TRUE;
+              boolean hasWildcardPermission = ctx.getSource().getPermissionValue("velocity.command.server.*") == Tristate.TRUE;
               for (final RegisteredServer sv : server.getAllServers()) {
                 final String serverName = sv.getServerInfo().getName();
                 if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
-                  if (ctx.getSource() instanceof Player) {
-                    final String permission = "velocity.command.server." + serverName;
-                    if (hasWildcardPermission || (ctx.getSource() instanceof Player player
-                            && player.getPermissionValue(permission) != Tristate.FALSE)) {
-                      builder.suggest(serverName);
-                    }
+                  final String permission = "velocity.command.server." + serverName;
+                  if (hasWildcardPermission || ctx.getSource().getPermissionValue(permission) != Tristate.FALSE) {
+                    builder.suggest(serverName);
                   }
                 }
               }
               return builder.buildFuture();
             })
             .executes(ctx -> {
-              final Player player = (Player) ctx.getSource();
+              if (!(ctx.getSource() instanceof Player player)) {
+                ctx.getSource().sendMessage(CommandMessages.PLAYERS_ONLY);
+                return 0;
+              }
+
               // Trying to connect to a server.
               final String serverName = StringArgumentType.getString(ctx, SERVER_ARG);
               final Optional<RegisteredServer> toConnect = server.getServer(serverName);
