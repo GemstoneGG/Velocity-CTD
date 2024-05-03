@@ -61,12 +61,15 @@ public final class ServerCommand {
               final String argument = ctx.getArguments().containsKey(SERVER_ARG)
                       ? StringArgumentType.getString(ctx, SERVER_ARG)
                       : "";
+              boolean hasWildcardPermission = ctx.getSource() instanceof Player player
+                  && player.getPermissionValue("velocity.command.server.*") == Tristate.TRUE;
               for (final RegisteredServer sv : server.getAllServers()) {
                 final String serverName = sv.getServerInfo().getName();
                 if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
-                  if (ctx.getSource() instanceof Player player) {
+                  if (ctx.getSource() instanceof Player) {
                     final String permission = "velocity.command.server." + serverName;
-                    if (player.hasPermission(permission)) {
+                    if (hasWildcardPermission || (ctx.getSource() instanceof Player player
+                            && player.getPermissionValue(permission) != Tristate.FALSE)) {
                       builder.suggest(serverName);
                     }
                   }
@@ -86,8 +89,10 @@ public final class ServerCommand {
               }
 
               // Check if the player has permission to connect to the server
+              final String wildcardPermission = "velocity.command.server.*";
               final String permission = "velocity.command.server." + serverName;
-              if (!player.hasPermission(permission)) {
+              if (player.getPermissionValue(wildcardPermission) == Tristate.FALSE
+                  || player.getPermissionValue(permission) == Tristate.FALSE) {
                 player.sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
                         .arguments(Component.text(serverName)));
                 return -1;
@@ -120,8 +125,10 @@ public final class ServerCommand {
     }
 
     // Filter servers based on player permissions
+    boolean hasWildcardPermission = executor.getPermissionValue("velocity.command.server.*") != Tristate.TRUE;
     final List<RegisteredServer> accessibleServers = servers.stream()
-        .filter(rs -> executor.hasPermission("velocity.command.server." + rs.getServerInfo().getName()))
+        .filter(rs -> hasWildcardPermission || executor.getPermissionValue("velocity.command.server."
+            + rs.getServerInfo().getName()) != Tristate.FALSE)
         .toList();
 
     if (accessibleServers.isEmpty()) {
