@@ -125,7 +125,7 @@ public final class ServerCommand {
     }
 
     // Filter servers based on player permissions
-    boolean hasWildcardPermission = executor.getPermissionValue("velocity.command.server.*") != Tristate.TRUE;
+    boolean hasWildcardPermission = executor.getPermissionValue("velocity.command.server.*") != Tristate.FALSE;
     final List<RegisteredServer> accessibleServers = servers.stream()
         .filter(rs -> hasWildcardPermission || executor.getPermissionValue("velocity.command.server."
             + rs.getServerInfo().getName()) != Tristate.FALSE)
