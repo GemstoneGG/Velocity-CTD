@@ -21,11 +21,9 @@ import static net.kyori.adventure.text.event.HoverEvent.showText;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
-import com.velocitypowered.api.command.VelocityBrigadierMessage;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
@@ -39,7 +37,6 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 
 /**
  * Implements Velocity's {@code /server} command.
@@ -51,7 +48,7 @@ public final class ServerCommand {
   @SuppressWarnings("checkstyle:MissingJavadocMethod")
   public static BrigadierCommand create(final ProxyServer server) {
     final LiteralCommandNode<CommandSource> node = BrigadierCommand.literalArgumentBuilder("server")
-        .requires(src -> src.getPermissionValue("velocity.command.server") == Tristate.TRUE)
+        .requires(src -> src.getPermissionValue("velocity.command.server") != Tristate.FALSE)
         .executes(ctx -> {
           if (!(ctx.getSource() instanceof Player player)) {
             ctx.getSource().sendMessage(CommandMessages.PLAYERS_ONLY);
@@ -69,7 +66,7 @@ public final class ServerCommand {
               for (final RegisteredServer sv : server.getAllServers()) {
                 final String serverName = sv.getServerInfo().getName();
                 if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
-                  if (ctx.getSource().getPermissionValue("velocity.command.server." + serverName) == Tristate.TRUE) {
+                  if (ctx.getSource().getPermissionValue("velocity.command.server." + serverName) != Tristate.FALSE) {
                     builder.suggest(serverName);
                   }
                 }
@@ -93,7 +90,7 @@ public final class ServerCommand {
 
               // Check if the player has permission to connect to the server
               final String permission = "velocity.command.server." + serverName;
-              if (player.getPermissionValue(permission) == Tristate.FALSE) {
+              if (player.getPermissionValue(permission) != Tristate.FALSE) {
                 player.sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
                         .arguments(Component.text(serverName)));
                 return -1;
