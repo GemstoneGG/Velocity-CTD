@@ -178,28 +178,21 @@ public class SendCommand {
     }
 
     if (player.startsWith("+")) {
-      for (RegisteredServer server : server.getAllServers()) {
-        String name = server.getServerInfo().getName();
+      final ServerResult result = findServer(player.substring(1));
 
-        if (name.regionMatches(true, 0, player, 1, player.length() - 1)) {
-          final int playerSize = server.getPlayersConnected().size();
-          if (playerSize == 0) {
-            context.getSource().sendMessage(Component.translatable("velocity.command.send-server-none",
-                Component.text(name), Component.text(targetServer.getServerInfo().getName())));
-            return Command.SINGLE_SUCCESS;
-          }
-          for (Player targetPlayer : server.getPlayersConnected()) {
-            targetPlayer.createConnectionRequest(targetServer).fireAndForget();
-          }
-          context.getSource().sendMessage(Component.translatable(playerSize == 1
-                          ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural",
-                  Component.text(playerSize), Component.text(name),
-                  Component.text(targetServer.getServerInfo().getName())));
-          return Command.SINGLE_SUCCESS;
-        }
+      if (result.getBestMatch().isEmpty()) {
+        context.getSource().sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Component.text(player.substring(1))));
+        return 0;
       }
-      context.getSource().sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Component.text(player)));
-      return 0;
+
+      if (result.hasMultipleMatches()) {
+        context.getSource().sendMessage(CommandMessages.SERVER_MULTIPLE_MATCH);
+        return 0;
+      }
+
+      final RegisteredServer sourceServer = result.getBestMatch().get();
+      sendPlayersFromServer(context, sourceServer, targetServer);
+      return Command.SINGLE_SUCCESS;
     }
 
     // The player at this point must be present
@@ -208,5 +201,71 @@ public class SendCommand {
     context.getSource().sendMessage(Component.translatable("velocity.command.send-player",
         Component.text(player0.getUsername()), Component.text(targetServer.getServerInfo().getName())));
     return Command.SINGLE_SUCCESS;
+  }
+
+  private void sendPlayersFromServer(CommandContext<CommandSource> context, RegisteredServer server, RegisteredServer targetServer) {
+    final int playerSize = server.getPlayersConnected().size();
+    final String name = server.getServerInfo().getName();
+
+    if (playerSize == 0) {
+      context.getSource().sendMessage(Component.translatable("velocity.command.send-server-none",
+              Component.text(name), Component.text(targetServer.getServerInfo().getName())));
+      return;
+    }
+    for (Player targetPlayer : server.getPlayersConnected()) {
+      targetPlayer.createConnectionRequest(targetServer).fireAndForget();
+    }
+    context.getSource().sendMessage(Component.translatable(playerSize == 1
+                    ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural",
+            Component.text(playerSize), Component.text(name),
+            Component.text(targetServer.getServerInfo().getName())));
+  }
+
+  private ServerResult findServer(String serverName) {
+    final Collection<RegisteredServer> servers = server.getAllServers();
+    final String lowerServerName = serverName.toLowerCase();
+
+    Optional<RegisteredServer> bestMatch = Optional.empty();
+    boolean multipleMatches = false;
+
+    for (RegisteredServer server : servers) {
+      final String lowerName = server.getServerInfo().getName().toLowerCase();
+
+      if (lowerName.equals(lowerServerName)) {
+        bestMatch = Optional.of(server);
+        break;
+      }
+
+      if (lowerName.contains(lowerServerName)) {
+        if (bestMatch.isPresent()) {
+          multipleMatches = true;
+          break;
+        }
+
+        bestMatch = Optional.of(server);
+      }
+    }
+
+    return new ServerResult(bestMatch, multipleMatches);
+  }
+
+  private class ServerResult {
+
+    private final Optional<RegisteredServer> bestMatch;
+    private final boolean multipleMatches;
+
+    public ServerResult(Optional<RegisteredServer> bestMatch, boolean multipleMatches) {
+      this.bestMatch = bestMatch;
+      this.multipleMatches = multipleMatches;
+    }
+
+    public Optional<RegisteredServer> getBestMatch() {
+      return bestMatch;
+    }
+
+    public boolean hasMultipleMatches() {
+      return multipleMatches;
+    }
+
   }
 }
