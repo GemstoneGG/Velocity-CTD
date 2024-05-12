@@ -34,5 +34,4 @@ public class CommandMessages {
           "velocity.command.server-multiple-matches", NamedTextColor.RED);
   public static final TranslatableComponent PLAYER_NOT_FOUND = Component.translatable(
       "velocity.command.player-not-found", NamedTextColor.RED);
-
 }
