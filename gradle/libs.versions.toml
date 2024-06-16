@@ -55,7 +55,7 @@ netty-handler = { module = "io.netty:netty-handler", version.ref = "netty" }
 netty-transport-native-epoll = { module = "io.netty:netty-transport-native-epoll", version.ref = "netty" }
 netty-transport-native-iouring = { module = "io.netty.incubator:netty-incubator-transport-native-io_uring", version.ref = "netty-io_uring" }
 netty-transport-native-kqueue = { module = "io.netty:netty-transport-native-kqueue", version.ref = "netty" }
-nightconfig = "com.electronwill.night-config:toml:3.7.2"
+nightconfig = "com.electronwill.night-config:toml:3.7.3"
 slf4j = "org.slf4j:slf4j-api:2.0.13"
 snakeyaml = "org.yaml:snakeyaml:1.33"
 spotbugs-annotations = "com.github.spotbugs:spotbugs-annotations:4.8.5"
