@@ -58,7 +58,7 @@ netty-transport-native-kqueue = { module = "io.netty:netty-transport-native-kque
 nightconfig = "com.electronwill.night-config:toml:3.7.3"
 slf4j = "org.slf4j:slf4j-api:2.0.13"
 snakeyaml = "org.yaml:snakeyaml:1.33"
-spotbugs-annotations = "com.github.spotbugs:spotbugs-annotations:4.8.5"
+spotbugs-annotations = "com.github.spotbugs:spotbugs-annotations:4.8.6"
 terminalconsoleappender = "net.minecrell:terminalconsoleappender:1.3.0"
 
 [bundles]
