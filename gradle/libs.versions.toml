@@ -1,5 +1,5 @@
 [versions]
-configurate3 = "3.7.3"
+configurate3 = "4.1.2"
 configurate4 = "4.1.2"
 flare = "2.0.1"
 log4j = "2.23.1"
