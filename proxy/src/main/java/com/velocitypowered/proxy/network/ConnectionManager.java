@@ -105,7 +105,7 @@ public final class ConnectionManager {
         .childOption(ChannelOption.IP_TOS, 0x18)
         .localAddress(address);
 
-    if (transportType != TransportType.NIO && server.getConfiguration().useTcpFastOpen()) {
+    if (server.getConfiguration().useTcpFastOpen()) {
       bootstrap.option(ChannelOption.TCP_FASTOPEN, 3);
     }
 
@@ -168,7 +168,7 @@ public final class ConnectionManager {
             this.server.getConfiguration().getConnectTimeout())
         .group(group == null ? this.workerGroup : group)
         .resolver(this.resolver.asGroup());
-    if (transportType != TransportType.NIO && server.getConfiguration().useTcpFastOpen()) {
+    if (server.getConfiguration().useTcpFastOpen()) {
       bootstrap.option(ChannelOption.TCP_FASTOPEN_CONNECT, true);
     }
     return bootstrap;
