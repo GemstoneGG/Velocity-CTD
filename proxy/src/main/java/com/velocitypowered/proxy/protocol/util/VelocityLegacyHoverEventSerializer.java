@@ -58,7 +58,7 @@ public class VelocityLegacyHoverEventSerializer implements LegacyHoverEventSeria
     @Subst("") CompoundBinaryTag item = TagStringIO.get().asCompound(snbt);
 
     Key key;
-    @Subst("") String idIfString = item.getString("id", "");
+    String idIfString = item.getString("id", "");
     if (idIfString.isEmpty()) {
       key = legacyIdToFakeKey(item.getByte("id"));
     } else {
