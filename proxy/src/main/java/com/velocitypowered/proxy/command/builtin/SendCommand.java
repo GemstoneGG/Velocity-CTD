@@ -180,7 +180,7 @@ public class SendCommand {
     if (player.startsWith("+")) {
       final ServerResult result = findServer(player.substring(1));
 
-      if (result.getBestMatch().isEmpty()) {
+      if (result.bestMatch().isEmpty()) {
         context.getSource().sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Component.text(player.substring(1))));
         return 0;
       }
@@ -190,7 +190,7 @@ public class SendCommand {
         return 0;
       }
 
-      final RegisteredServer sourceServer = result.getBestMatch().get();
+      final RegisteredServer sourceServer = result.bestMatch().get();
       sendPlayersFromServer(context, sourceServer, targetServer);
       return Command.SINGLE_SUCCESS;
     }
@@ -258,19 +258,7 @@ public class SendCommand {
     return new ServerResult(bestMatch, multipleMatches);
   }
 
-  private class ServerResult {
-
-    private final Optional<RegisteredServer> bestMatch;
-    private final boolean multipleMatches;
-
-    public ServerResult(Optional<RegisteredServer> bestMatch, boolean multipleMatches) {
-      this.bestMatch = bestMatch;
-      this.multipleMatches = multipleMatches;
-    }
-
-    public Optional<RegisteredServer> getBestMatch() {
-      return bestMatch;
-    }
+  private record ServerResult(Optional<RegisteredServer> bestMatch, boolean multipleMatches) {
 
     public boolean hasMultipleMatches() {
       return multipleMatches;

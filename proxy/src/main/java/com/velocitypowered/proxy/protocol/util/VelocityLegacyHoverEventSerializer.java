@@ -32,6 +32,7 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.kyori.adventure.util.Codec.Decoder;
 import net.kyori.adventure.util.Codec.Encoder;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.intellij.lang.annotations.Subst;
 
 /**
  * An implementation of {@link LegacyHoverEventSerializer} that implements the interface in the most
@@ -46,7 +47,7 @@ public class VelocityLegacyHoverEventSerializer implements LegacyHoverEventSeria
 
   }
 
-  private static Key legacyIdToFakeKey(byte id) {
+  private static Key legacyIdToFakeKey(@Subst("") byte id) {
     return Key.key("velocity", "legacy_hover/id_" + id);
   }
 
@@ -54,10 +55,10 @@ public class VelocityLegacyHoverEventSerializer implements LegacyHoverEventSeria
   public HoverEvent.@NonNull ShowItem deserializeShowItem(@NonNull Component input)
       throws IOException {
     String snbt = PlainTextComponentSerializer.plainText().serialize(input);
-    CompoundBinaryTag item = TagStringIO.get().asCompound(snbt);
+    @Subst("") CompoundBinaryTag item = TagStringIO.get().asCompound(snbt);
 
     Key key;
-    String idIfString = item.getString("id", "");
+    @Subst("") String idIfString = item.getString("id", "");
     if (idIfString.isEmpty()) {
       key = legacyIdToFakeKey(item.getByte("id"));
     } else {
@@ -72,7 +73,7 @@ public class VelocityLegacyHoverEventSerializer implements LegacyHoverEventSeria
   public HoverEvent.@NonNull ShowEntity deserializeShowEntity(@NonNull Component input,
       Decoder<Component, String, ? extends RuntimeException> componentDecoder) throws IOException {
     String snbt = PlainTextComponentSerializer.plainText().serialize(input);
-    CompoundBinaryTag item = TagStringIO.get().asCompound(snbt);
+    @Subst("") CompoundBinaryTag item = TagStringIO.get().asCompound(snbt);
 
     Component name;
     try {

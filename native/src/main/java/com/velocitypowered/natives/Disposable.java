@@ -28,7 +28,7 @@ public interface Disposable extends Closeable {
 
   /**
    * Disposes this object. After this call returns, any use of this object becomes invalid. Multiple
-   * calls to this function should be safe: there should be no side-effects once an object is
+   * calls to this function should be safe: there should be no side effects once an object is
    * disposed.
    */
   @Override

@@ -107,13 +107,11 @@ public final class VelocityTranslationRegistry implements TranslationRegistry {
     backedRegistry.unregister(key);
   }
 
-  private static final class ArgumentTag implements TagResolver {
+  private record ArgumentTag(List<? extends ComponentLike> argumentComponents) implements TagResolver {
     private static final String NAME = "argument";
     private static final String NAME_1 = "arg";
 
-    private final List<? extends ComponentLike> argumentComponents;
-
-    public ArgumentTag(final @NotNull List<? extends ComponentLike> argumentComponents) {
+    private ArgumentTag(final @NotNull List<? extends ComponentLike> argumentComponents) {
       this.argumentComponents = Objects.requireNonNull(argumentComponents, "argumentComponents");
     }
 

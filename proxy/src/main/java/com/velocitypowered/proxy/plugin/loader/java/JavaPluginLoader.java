@@ -49,11 +49,9 @@ import java.util.jar.JarInputStream;
  */
 public class JavaPluginLoader implements PluginLoader {
 
-  private final ProxyServer server;
   private final Path baseDirectory;
 
-  public JavaPluginLoader(ProxyServer server, Path baseDirectory) {
-    this.server = server;
+  public JavaPluginLoader(ProxyServer ignoredServer, Path baseDirectory) {
     this.baseDirectory = baseDirectory;
   }
 
@@ -102,11 +100,10 @@ public class JavaPluginLoader implements PluginLoader {
   @Override
   public Module createModule(PluginContainer container) {
     PluginDescription description = container.getDescription();
-    if (!(description instanceof JavaVelocityPluginDescription)) {
+    if (!(description instanceof JavaVelocityPluginDescription javaDescription)) {
       throw new IllegalArgumentException("Description provided isn't of the Java plugin loader");
     }
 
-    JavaVelocityPluginDescription javaDescription = (JavaVelocityPluginDescription) description;
     Optional<Path> source = javaDescription.getSource();
 
     if (source.isEmpty()) {

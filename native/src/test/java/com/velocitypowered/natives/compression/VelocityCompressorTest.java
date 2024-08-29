@@ -86,7 +86,7 @@ class VelocityCompressorTest {
     source.writeBytes(TEST_DATA);
     int uncompressedData = source.readableBytes();
 
-    try {
+    try (compressor) {
       compressor.deflate(source, dest);
       compressor.inflate(dest, decompressed, uncompressedData);
       source.readerIndex(0);
@@ -95,7 +95,6 @@ class VelocityCompressorTest {
       source.release();
       dest.release();
       decompressed.release();
-      compressor.close();
     }
   }
 }

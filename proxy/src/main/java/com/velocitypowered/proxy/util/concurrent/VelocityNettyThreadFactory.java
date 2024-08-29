@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import io.netty.util.concurrent.FastThreadLocalThread;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Factory to create threads for the Netty event loop groups.
@@ -36,7 +37,7 @@ public class VelocityNettyThreadFactory implements ThreadFactory {
   }
 
   @Override
-  public Thread newThread(Runnable r) {
+  public Thread newThread(@NotNull Runnable r) {
     String name = String.format(nameFormat, threadNumber.getAndIncrement());
     return new FastThreadLocalThread(r, name);
   }

@@ -111,8 +111,7 @@ public class ArgumentPropertyRegistry {
       if (property.result() != null) {
         property.serializer().serialize(property.result(), buf, protocolVersion);
       }
-    } else if (type instanceof ModArgumentProperty) {
-      ModArgumentProperty property = (ModArgumentProperty) type;
+    } else if (type instanceof ModArgumentProperty property) {
       writeIdentifier(buf, property.identifier(), protocolVersion);
       buf.writeBytes(property.data());
     } else {

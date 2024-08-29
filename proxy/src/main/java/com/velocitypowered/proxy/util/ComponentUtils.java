@@ -186,15 +186,14 @@ public final class ComponentUtils {
       final String hexCode = matched.substring(index + 1, index + 7);
 
       if (!requiresBoxing) {
+        final String start;
+        final String end = matched.substring(index + 7);
         if (MOJANG_PATTERNS.contains(pattern)) {
-          final String start = matched.substring(0, index).replace("&", "");
-          final String end = matched.substring(index + 7);
-          literal = literal.replace(matched, start + "D#DONE" + hexCode + end);
+          start = matched.substring(0, index).replace("&", "");
         } else {
-          final String start = matched.substring(0, index);
-          final String end = matched.substring(index + 7);
-          literal = literal.replace(matched, start + "D#DONE" + hexCode + end);
+          start = matched.substring(0, index);
         }
+        literal = literal.replace(matched, start + "D#DONE" + hexCode + end);
       } else {
         literal = literal.replace(matched, "<D#DONE" + hexCode + ">");
       }

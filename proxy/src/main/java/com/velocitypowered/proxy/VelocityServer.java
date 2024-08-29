@@ -366,7 +366,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
                 }
               });
             } catch (Exception e) {
-              logger.error("Failed to read directory: " + path.toString(), e);
+              logger.error("Failed to read directory: {}", path.toString(), e);
             }
           }
         } catch (Exception e) {

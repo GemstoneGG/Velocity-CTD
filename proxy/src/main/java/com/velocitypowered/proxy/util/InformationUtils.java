@@ -40,6 +40,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Helper class for {@code /velocity dump}.
@@ -145,8 +146,7 @@ public enum InformationUtils {
    * @return {@link String} address with public parts redacted
    */
   public static String anonymizeInetAddress(InetAddress address) {
-    if (address instanceof Inet4Address) {
-      Inet4Address v4 = (Inet4Address) address;
+    if (address instanceof Inet4Address v4) {
       if (v4.isAnyLocalAddress() || v4.isLoopbackAddress()
           || v4.isLinkLocalAddress()
           || v4.isSiteLocalAddress()) {
@@ -155,35 +155,39 @@ public enum InformationUtils {
         byte[] addr = v4.getAddress();
         return (addr[0] & 0xff) + "." + (addr[1] & 0xff) + ".XXX.XXX";
       }
-    } else if (address instanceof Inet6Address) {
-      Inet6Address v6 = (Inet6Address) address;
+    } else if (address instanceof Inet6Address v6) {
       if (v6.isAnyLocalAddress() || v6.isLoopbackAddress()
           || v6.isSiteLocalAddress()
           || v6.isSiteLocalAddress()) {
         return address.getHostAddress();
       } else {
-        String[] bits = v6.getHostAddress().split(":");
-        String ret = "";
-        boolean flag = false;
-        for (int iter = 0; iter < bits.length; iter++) {
-          if (flag) {
-            ret += ":X";
-            continue;
-          }
-          if (!bits[iter].equals("0")) {
-            if (iter == 0) {
-              ret = bits[iter];
-            } else {
-              ret = "::" + bits[iter];
-            }
-            flag = true;
-          }
-        }
-        return ret;
+        StringBuilder ret = getStringBuilder(v6);
+        return ret.toString();
       }
     } else {
       return address.getHostAddress();
     }
+  }
+
+  private static @NotNull StringBuilder getStringBuilder(Inet6Address v6) {
+    String[] bits = v6.getHostAddress().split(":");
+    StringBuilder ret = new StringBuilder();
+    boolean flag = false;
+    for (int iter = 0; iter < bits.length; iter++) {
+      if (flag) {
+        ret.append(":X");
+        continue;
+      }
+      if (!bits[iter].equals("0")) {
+        if (iter == 0) {
+          ret = new StringBuilder(bits[iter]);
+        } else {
+          ret = new StringBuilder("::" + bits[iter]);
+        }
+        flag = true;
+      }
+    }
+    return ret;
   }
 
   /**

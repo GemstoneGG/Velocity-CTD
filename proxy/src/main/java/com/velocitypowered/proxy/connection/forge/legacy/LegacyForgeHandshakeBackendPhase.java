@@ -113,7 +113,7 @@ public enum LegacyForgeHandshakeBackendPhase implements BackendConnectionPhase {
    *
    * @param packetToAdvanceOn The ID of the packet discriminator that indicates that the server has
    *                          moved onto a new phase, and as such, Velocity should do so too
-   *                          (inspecting {@link #nextPhase()}. A null indicates there is no further
+   *                          (inspecting {@link #nextPhase()}). A null indicates there is no further
    *                          phase to transition to.
    */
   LegacyForgeHandshakeBackendPhase(@Nullable Integer packetToAdvanceOn) {

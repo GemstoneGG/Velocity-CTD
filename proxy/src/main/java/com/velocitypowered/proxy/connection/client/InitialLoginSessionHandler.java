@@ -235,7 +235,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
               mcConnection.enableEncryption(decryptedSharedSecret);
             } catch (GeneralSecurityException e) {
               logger.error("Unable to enable encryption for connection", e);
-              // At this point, the connection is encrypted, but something's wrong on our side and
+              // At this point, the connection is encrypted, but something's wrong on our side, and
               // we can't do anything about it.
               mcConnection.close(true);
               return;

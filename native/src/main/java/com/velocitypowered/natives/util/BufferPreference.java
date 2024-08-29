@@ -18,7 +18,7 @@
 package com.velocitypowered.natives.util;
 
 /**
- * Emumerates Netty buffer preferences and requirements for use with Netty.
+ * Enumerates Netty buffer preferences and requirements for use with Netty.
  */
 public enum BufferPreference {
   /**

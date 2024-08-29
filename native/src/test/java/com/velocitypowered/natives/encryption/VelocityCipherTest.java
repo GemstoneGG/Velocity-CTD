@@ -36,7 +36,7 @@ import org.junit.jupiter.api.condition.EnabledOnOs;
 class VelocityCipherTest {
 
   private static final int ENCRYPT_DATA_SIZE = 1 << 14;
-  private static byte[] TEST_DATA = new byte[ENCRYPT_DATA_SIZE];
+  private static final byte[] TEST_DATA = new byte[ENCRYPT_DATA_SIZE];
   private static final byte[] AES_KEY = new byte[16];
 
   @BeforeAll

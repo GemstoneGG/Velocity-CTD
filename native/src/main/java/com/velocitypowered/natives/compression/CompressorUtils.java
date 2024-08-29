@@ -31,7 +31,7 @@ class CompressorUtils {
    *
    * @param buf the buffer for check
    * @param max the maximum size for the buffer
-   * @throws DataFormatException if the buffer becomes too bug
+   * @throws DataFormatException if the buffer becomes too buggy
    */
   static void ensureMaxSize(ByteBuf buf, int max) throws DataFormatException {
     int len = buf.readableBytes();
