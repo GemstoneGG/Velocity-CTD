@@ -36,7 +36,7 @@ public class PluginMessagePacket extends DeferredByteBufHolder implements Minecr
     super(null);
   }
 
-  public PluginMessagePacket(String channel,
+  public PluginMessagePacket(@Nullable String channel,
                              @MonotonicNonNull ByteBuf backing) {
     super(backing);
     this.channel = channel;
@@ -49,7 +49,7 @@ public class PluginMessagePacket extends DeferredByteBufHolder implements Minecr
     return channel;
   }
 
-  public void setChannel(String channel) {
+  public void setChannel(@Nullable String channel) {
     this.channel = channel;
   }
 

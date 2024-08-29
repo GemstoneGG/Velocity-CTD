@@ -75,7 +75,7 @@ public final class CookieReceiveEvent implements ResultedEvent<CookieReceiveEven
   }
 
   /**
-   * A result determining whether or not to forward the cookie response on.
+   * A result determining whether to forward the cookie response on.
    */
   public static final class ForwardResult implements ResultedEvent.Result {
 

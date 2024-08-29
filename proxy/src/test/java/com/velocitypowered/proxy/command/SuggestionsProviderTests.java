@@ -283,7 +283,7 @@ public class SuggestionsProviderTests extends CommandTestSuite {
 
     @Override
     public List<String> suggest(final Invocation invocation) {
-      return ImmutableList.of();
+      return RawCommand.super.suggest(invocation);
     }
   }
 }

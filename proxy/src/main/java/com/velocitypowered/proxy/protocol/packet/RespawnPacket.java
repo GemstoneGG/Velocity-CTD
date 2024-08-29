@@ -125,11 +125,11 @@ public class RespawnPacket implements MinecraftPacket {
     this.previousGamemode = previousGamemode;
   }
 
-  public Pair<String, Long> getLastDeathPosition() {
+  public @Nullable Pair<String, Long> getLastDeathPosition() {
     return lastDeathPosition;
   }
 
-  public void setLastDeathPosition(Pair<String, Long> lastDeathPosition) {
+  public void setLastDeathPosition(@Nullable Pair<String, Long> lastDeathPosition) {
     this.lastDeathPosition = lastDeathPosition;
   }
 

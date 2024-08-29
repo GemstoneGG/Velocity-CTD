@@ -104,7 +104,7 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
   }
 
   @Override
-  protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket msg) throws Exception {
+  protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket msg) {
     ByteBuf queryMessage = msg.content();
     InetAddress senderAddress = msg.sender().getAddress();
 
@@ -212,12 +212,9 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
     return result;
   }
 
-  private static class ResponseWriter {
+  private record ResponseWriter(ByteBuf buf, boolean isBasic) {
 
-    private final ByteBuf buf;
-    private final boolean isBasic;
-
-    ResponseWriter(ByteBuf buf, boolean isBasic) {
+    private ResponseWriter(ByteBuf buf, boolean isBasic) {
       this.buf = buf;
       this.isBasic = isBasic;
 
@@ -227,7 +224,7 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
     }
 
     // Writes k/v to stat packet body if this writer is initialized
-    // for full stat response. Otherwise this follows
+    // for full stat response. Otherwise, this follows
     // GS4QueryHandler#QUERY_BASIC_RESPONSE_CONTENTS to decide what
     // to write into packet body
     void write(String key, Object value) {

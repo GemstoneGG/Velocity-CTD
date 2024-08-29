@@ -137,7 +137,7 @@ public class BossBarPacket implements MinecraftPacket {
     return uuid;
   }
 
-  public void setUuid(UUID uuid) {
+  public void setUuid(@Nullable UUID uuid) {
     this.uuid = uuid;
   }
 
@@ -153,7 +153,7 @@ public class BossBarPacket implements MinecraftPacket {
     return name;
   }
 
-  public void setName(ComponentHolder name) {
+  public void setName(@Nullable ComponentHolder name) {
     this.name = name;
   }
 
@@ -278,7 +278,7 @@ public class BossBarPacket implements MinecraftPacket {
   private static byte serializeFlags(Set<BossBar.Flag> flags) {
     byte val = 0x0;
     for (BossBar.Flag flag : flags) {
-      val |= FLAG_BITS_TO_PROTOCOL.get(flag);
+      val |= (byte) FLAG_BITS_TO_PROTOCOL.get(flag);
     }
     return val;
   }

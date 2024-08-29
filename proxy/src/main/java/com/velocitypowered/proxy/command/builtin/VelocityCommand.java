@@ -311,8 +311,7 @@ public final class VelocityCommand {
                 + "this proxy has been saved at " + dumpPath.toAbsolutePath(),
             NamedTextColor.GREEN));
       } catch (IOException e) {
-        logger.error("Failed to complete dump command, "
-            + "the executor was interrupted: " + e.getMessage(), e);
+        logger.error("Failed to complete dump command, the executor was interrupted: {}", e.getMessage(), e);
         source.sendMessage(Component.text(
             "We could not save the anonymized dump. Check the console for more details.",
             NamedTextColor.RED)

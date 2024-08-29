@@ -38,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.packet.HandshakePacket;
 import com.velocitypowered.proxy.protocol.packet.StatusPingPacket;
+import java.util.Objects;
 import org.junit.jupiter.api.Test;
 
 class PacketRegistryTest {
@@ -146,14 +147,14 @@ class PacketRegistryTest {
         new StateRegistry.PacketMapping(0x01, MINECRAFT_1_12_1, null, false),
         new StateRegistry.PacketMapping(0x02, MINECRAFT_1_13, null, false));
     assertEquals(HandshakePacket.class,
-        registry.getProtocolRegistry(MINECRAFT_1_12).createPacket(0x00).getClass());
+        Objects.requireNonNull(registry.getProtocolRegistry(MINECRAFT_1_12).createPacket(0x00)).getClass());
     assertEquals(HandshakePacket.class,
-        registry.getProtocolRegistry(MINECRAFT_1_12_1).createPacket(0x01).getClass());
+        Objects.requireNonNull(registry.getProtocolRegistry(MINECRAFT_1_12_1).createPacket(0x01)).getClass());
     assertEquals(HandshakePacket.class,
-        registry.getProtocolRegistry(MINECRAFT_1_12_2).createPacket(0x01).getClass());
+        Objects.requireNonNull(registry.getProtocolRegistry(MINECRAFT_1_12_2).createPacket(0x01)).getClass());
     assertEquals(HandshakePacket.class,
-        registry.getProtocolRegistry(MINECRAFT_1_13).createPacket(0x02).getClass());
+        Objects.requireNonNull(registry.getProtocolRegistry(MINECRAFT_1_13).createPacket(0x02)).getClass());
     assertEquals(HandshakePacket.class,
-        registry.getProtocolRegistry(MINECRAFT_1_14_2).createPacket(0x02).getClass());
+        Objects.requireNonNull(registry.getProtocolRegistry(MINECRAFT_1_14_2).createPacket(0x02)).getClass());
   }
 }

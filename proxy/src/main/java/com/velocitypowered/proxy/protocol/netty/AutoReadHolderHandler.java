@@ -22,6 +22,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.ReferenceCountUtil;
 import java.util.ArrayDeque;
 import java.util.Queue;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A variation on {@link io.netty.handler.flow.FlowControlHandler} that explicitly holds messages on
@@ -52,7 +53,7 @@ public class AutoReadHolderHandler extends ChannelDuplexHandler {
   }
 
   @Override
-  public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+  public void channelRead(ChannelHandlerContext ctx, @NotNull Object msg) throws Exception {
     if (ctx.channel().config().isAutoRead()) {
       ctx.fireChannelRead(msg);
     } else {

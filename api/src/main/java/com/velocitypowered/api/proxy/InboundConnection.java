@@ -32,9 +32,9 @@ public interface InboundConnection {
   Optional<InetSocketAddress> getVirtualHost();
 
   /**
-   * Determine whether or not the player remains online.
+   * Determine whether the player remains online.
    *
-   * @return whether or not the player active
+   * @return whether the player active
    */
   boolean isActive();
 

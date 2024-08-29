@@ -73,7 +73,7 @@ public class SignedChatCommand implements KeySigned {
   }
 
   @Override
-  public @Nullable byte[] getSignature() {
+  public byte @Nullable [] getSignature() {
     return null;
   }
 
@@ -95,7 +95,7 @@ public class SignedChatCommand implements KeySigned {
     return isPreviewSigned;
   }
 
-  public SignaturePair getLastSignature() {
+  public @Nullable SignaturePair getLastSignature() {
     return lastSignature;
   }
 

@@ -116,15 +116,6 @@ public class VelocityTabListEntry implements TabListEntry {
     return this.gameMode;
   }
 
-  @Override
-  public TabListEntry setGameMode(int gameMode) {
-    this.gameMode = gameMode;
-    UpsertPlayerInfoPacket.Entry upsertEntry = this.tabList.createRawEntry(this);
-    upsertEntry.setGameMode(gameMode);
-    this.tabList.emitActionRaw(UpsertPlayerInfoPacket.Action.UPDATE_GAME_MODE, upsertEntry);
-    return this;
-  }
-
   void setGameModeWithoutUpdate(int gameMode) {
     this.gameMode = gameMode;
   }
@@ -136,15 +127,6 @@ public class VelocityTabListEntry implements TabListEntry {
   @Override
   public boolean isListed() {
     return listed;
-  }
-
-  @Override
-  public VelocityTabListEntry setListed(boolean listed) {
-    this.listed = listed;
-    UpsertPlayerInfoPacket.Entry upsertEntry = this.tabList.createRawEntry(this);
-    upsertEntry.setListed(listed);
-    this.tabList.emitActionRaw(UpsertPlayerInfoPacket.Action.UPDATE_LISTED, upsertEntry);
-    return this;
   }
 
   void setListedWithoutUpdate(boolean listed) {

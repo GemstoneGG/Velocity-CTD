@@ -39,6 +39,7 @@ import java.security.Signature;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import java.util.Objects;
 import javax.crypto.Cipher;
 
 /**
@@ -60,8 +61,8 @@ public enum EncryptionUtils {
   public static final QuietDecoderException PREVIEW_SIGNATURE_MISSING
       = new QuietDecoderException("Unsigned chat message requested signed preview");
   public static final byte[] EMPTY = new byte[0];
-  private static PublicKey YGGDRASIL_SESSION_KEY;
-  private static KeyFactory RSA_KEY_FACTORY;
+  private static final PublicKey YGGDRASIL_SESSION_KEY;
+  private static final KeyFactory RSA_KEY_FACTORY;
 
   private static final Base64.Encoder MIME_SPECIAL_ENCODER
       = Base64.getMimeEncoder(76, "\n".getBytes(StandardCharsets.UTF_8));
@@ -75,8 +76,8 @@ public enum EncryptionUtils {
 
     try {
       byte[] bytes = ByteStreams.toByteArray(
-          EncryptionUtils.class.getClassLoader()
-              .getResourceAsStream("yggdrasil_session_pubkey.der"));
+          Objects.requireNonNull(EncryptionUtils.class.getClassLoader()
+              .getResourceAsStream("yggdrasil_session_pubkey.der")));
       YGGDRASIL_SESSION_KEY = parseRsaPublicKey(bytes);
     } catch (IOException | NullPointerException err) {
       throw new RuntimeException(err);

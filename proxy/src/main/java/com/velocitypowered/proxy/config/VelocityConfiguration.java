@@ -211,7 +211,7 @@ public class VelocityConfiguration implements ProxyConfig {
 
     for (String s : servers.getAttemptConnectionOrder()) {
       if (!servers.getServers().containsKey(s)) {
-        logger.error("Fallback server " + s + " is not registered in your configuration!");
+        logger.error("Fallback server {} is not registered in your configuration!", s);
         valid = false;
       }
     }

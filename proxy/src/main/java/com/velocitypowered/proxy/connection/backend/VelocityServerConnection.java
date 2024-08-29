@@ -290,7 +290,7 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
    *
    * @param identifier the channel ID to use
    * @param data       the data
-   * @return whether or not the message was sent
+   * @return whether the message was sent
    */
   public boolean sendPluginMessage(ChannelIdentifier identifier, ByteBuf data) {
     Preconditions.checkNotNull(identifier, "identifier");
@@ -331,7 +331,7 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
    * Ensures that this server connection remains "active": the connection is established and not
    * closed, the player is still connected to the server, and the player still remains online.
    *
-   * @return whether or not the player is online
+   * @return whether the player is online
    */
   public boolean isActive() {
     return connection != null && !connection.isClosed() && !gracefulDisconnect

@@ -386,7 +386,7 @@ public enum ProtocolUtils {
   }
 
   /**
-   * Reads an UUID from the {@code buf}.
+   * Reads a UUID from the {@code buf}.
    *
    * @param buf the buffer to read from
    * @return the UUID from the buffer
@@ -403,7 +403,7 @@ public enum ProtocolUtils {
   }
 
   /**
-   * Reads an UUID stored as an Integer Array from the {@code buf}.
+   * Reads a UUID stored as an Integer Array from the {@code buf}.
    *
    * @param buf the buffer to read from
    * @return the UUID from the buffer
@@ -419,7 +419,7 @@ public enum ProtocolUtils {
   }
 
   /**
-   * Writes an UUID as an Integer Array to the {@code buf}.
+   * Writes a UUID as an Integer Array to the {@code buf}.
    *
    * @param buf  the buffer to write to
    * @param uuid the UUID to write
@@ -452,11 +452,11 @@ public enum ProtocolUtils {
    * Reads a {@link net.kyori.adventure.nbt.BinaryTag} from the {@code buf}.
    *
    * @param buf    the buffer to read from
-   * @param reader the {@link BinaryTagIO.Reader} to use
+   * @param ignoredReader the {@link BinaryTagIO.Reader} to use
    * @return {@link net.kyori.adventure.nbt.BinaryTag} the BinaryTag from the buffer
    */
   public static BinaryTag readBinaryTag(ByteBuf buf, ProtocolVersion version,
-                                        BinaryTagIO.Reader reader) {
+                                        BinaryTagIO.Reader ignoredReader) {
     BinaryTagType<?> type = BINARY_TAG_TYPES[buf.readByte()];
     if (version.lessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
       buf.skipBytes(buf.readUnsignedShort());
@@ -544,8 +544,8 @@ public enum ProtocolUtils {
    */
   public static void writeVarIntArray(ByteBuf buf, int[] intArray) {
     writeVarInt(buf, intArray.length);
-    for (int i = 0; i < intArray.length; i++) {
-      writeVarInt(buf, intArray[i]);
+    for (int j : intArray) {
+      writeVarInt(buf, j);
     }
   }
 
@@ -595,7 +595,7 @@ public enum ProtocolUtils {
   private static final int FORGE_MAX_ARRAY_LENGTH = Integer.MAX_VALUE & 0x1FFF9A;
 
   /**
-   * Reads an byte array for legacy version 1.7 from the specified {@code buf}.
+   * Reads a byte array for legacy version 1.7 from the specified {@code buf}.
    *
    * @param buf the buffer to read from
    * @return the read byte array
@@ -633,7 +633,7 @@ public enum ProtocolUtils {
   }
 
   /**
-   * Writes an byte array for legacy version 1.7 to the specified {@code buf}.
+   * Writes a byte array for legacy version 1.7 to the specified {@code buf}.
    *
    * @param b             array
    * @param buf           buf

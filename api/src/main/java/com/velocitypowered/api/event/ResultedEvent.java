@@ -38,10 +38,10 @@ public interface ResultedEvent<R extends ResultedEvent.Result> {
   interface Result {
 
     /**
-     * Returns whether or not the event is allowed to proceed. Plugins may choose to skip denied
+     * Returns whether the event is allowed to proceed. Plugins may choose to skip denied
      * events, and the proxy will respect the result of this method.
      *
-     * @return whether or not the event is allowed to proceed
+     * @return whether the event is allowed to proceed
      */
     boolean isAllowed();
   }
@@ -89,7 +89,7 @@ public interface ResultedEvent<R extends ResultedEvent.Result> {
     private final boolean status;
     private final @Nullable Component reason;
 
-    protected ComponentResult(boolean status, @Nullable Component reason) {
+    private ComponentResult(boolean status, @Nullable Component reason) {
       this.status = status;
       this.reason = reason;
     }

@@ -179,9 +179,9 @@ public final class ConnectionManager {
 
     // Fire proxy close event to notify plugins of socket close. We block since plugins
     // should have a chance to be notified before the server stops accepting connections.
-    server.getEventManager().fire(new ListenerCloseEvent(oldBind, endpoint.getType())).join();
+    server.getEventManager().fire(new ListenerCloseEvent(oldBind, endpoint.type())).join();
 
-    Channel serverChannel = endpoint.getChannel();
+    Channel serverChannel = endpoint.channel();
 
     Preconditions.checkState(serverChannel != null, "Endpoint %s not registered", oldBind);
     LOGGER.info("Closing endpoint {}", serverChannel.localAddress());
@@ -200,18 +200,18 @@ public final class ConnectionManager {
 
       // Fire proxy close event to notify plugins of socket close. We block since plugins
       // should have a chance to be notified before the server stops accepting connections.
-      server.getEventManager().fire(new ListenerCloseEvent(address, endpoint.getType())).join();
+      server.getEventManager().fire(new ListenerCloseEvent(address, endpoint.type())).join();
 
       LOGGER.info("Closing endpoint {}", address);
       if (interrupt) {
         try {
-          endpoint.getChannel().close().sync();
+          endpoint.channel().close().sync();
         } catch (final InterruptedException e) {
           LOGGER.info("Interrupted whilst closing endpoint", e);
           Thread.currentThread().interrupt();
         }
       } else {
-        endpoint.getChannel().close().syncUninterruptibly();
+        endpoint.channel().close().syncUninterruptibly();
       }
     }
     this.endpoints.clear();

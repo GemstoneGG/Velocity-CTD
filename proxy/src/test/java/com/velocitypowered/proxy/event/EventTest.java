@@ -76,15 +76,9 @@ public class EventTest {
     final AtomicLong listener2Invoked = new AtomicLong();
     final AtomicLong listener3Invoked = new AtomicLong();
 
-    eventManager.register(FakePluginManager.PLUGIN_A, TestEvent.class, event -> {
-      listener1Invoked.set(System.nanoTime());
-    });
-    eventManager.register(FakePluginManager.PLUGIN_B, TestEvent.class, event -> {
-      listener2Invoked.set(System.nanoTime());
-    });
-    eventManager.register(FakePluginManager.PLUGIN_A, TestEvent.class, event -> {
-      listener3Invoked.set(System.nanoTime());
-    });
+    eventManager.register(FakePluginManager.PLUGIN_A, TestEvent.class, event -> listener1Invoked.set(System.nanoTime()));
+    eventManager.register(FakePluginManager.PLUGIN_B, TestEvent.class, event -> listener2Invoked.set(System.nanoTime()));
+    eventManager.register(FakePluginManager.PLUGIN_A, TestEvent.class, event -> listener3Invoked.set(System.nanoTime()));
 
     try {
       eventManager.fire(new TestEvent()).get();
@@ -106,12 +100,10 @@ public class EventTest {
     eventManager.register(FakePluginManager.PLUGIN_A, TestEvent.class, event ->
         listener1Invoked.set(System.nanoTime()));
     eventManager.register(FakePluginManager.PLUGIN_B, TestEvent.class,
-        (AwaitingEventExecutor<TestEvent>) event -> EventTask.withContinuation(continuation -> {
-          new Thread(() -> {
-            listener2Invoked.set(System.nanoTime());
-            continuation.resume();
-          }).start();
-        }));
+        (AwaitingEventExecutor<TestEvent>) event -> EventTask.withContinuation(continuation -> new Thread(() -> {
+          listener2Invoked.set(System.nanoTime());
+          continuation.resume();
+        }).start()));
     eventManager.register(FakePluginManager.PLUGIN_A, TestEvent.class, event ->
         listener3Invoked.set(System.nanoTime()));
 
@@ -289,13 +281,7 @@ public class EventTest {
     void resumeWithError(Exception exception);
   }
 
-  private static final class FancyContinuationImpl implements FancyContinuation {
-
-    private final Continuation continuation;
-
-    private FancyContinuationImpl(final Continuation continuation) {
-      this.continuation = continuation;
-    }
+  private record FancyContinuationImpl(Continuation continuation) implements FancyContinuation {
 
     @Override
     public void resume() {

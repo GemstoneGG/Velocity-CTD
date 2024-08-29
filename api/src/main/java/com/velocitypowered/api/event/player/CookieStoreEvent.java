@@ -74,7 +74,7 @@ public final class CookieStoreEvent implements ResultedEvent<CookieStoreEvent.Fo
   }
 
   /**
-   * A result determining whether or not to forward the cookie on.
+   * A result determining whether to forward the cookie on.
    */
   public static final class ForwardResult implements Result {
 

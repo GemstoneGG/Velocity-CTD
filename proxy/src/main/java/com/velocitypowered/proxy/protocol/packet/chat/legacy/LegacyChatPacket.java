@@ -44,7 +44,7 @@ public class LegacyChatPacket implements MinecraftPacket {
   /**
    * Creates a Chat packet.
    */
-  public LegacyChatPacket(String message, byte type, UUID sender) {
+  public LegacyChatPacket(@Nullable String message, byte type, @Nullable UUID sender) {
     this.message = message;
     this.type = type;
     this.sender = sender;
@@ -60,7 +60,7 @@ public class LegacyChatPacket implements MinecraftPacket {
     return message;
   }
 
-  public void setMessage(String message) {
+  public void setMessage(@Nullable String message) {
     this.message = message;
   }
 

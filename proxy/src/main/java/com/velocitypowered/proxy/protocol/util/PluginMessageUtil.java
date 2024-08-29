@@ -51,10 +51,10 @@ public final class PluginMessageUtil {
   }
 
   /**
-   * Determines whether or not this is a brand plugin message. This is shown on the client.
+   * Determines whether this is a brand plugin message. This is shown on the client.
    *
    * @param message the plugin message
-   * @return whether or not this is a brand plugin message
+   * @return whether this is a brand plugin message
    */
   public static boolean isMcBrand(PluginMessagePacket message) {
     checkNotNull(message, "message");
@@ -63,7 +63,7 @@ public final class PluginMessageUtil {
   }
 
   /**
-   * Determines whether or not this plugin message is being used to register plugin channels.
+   * Determines whether this plugin message is being used to register plugin channels.
    *
    * @param message the plugin message
    * @return whether we are registering plugin channels or not
@@ -75,7 +75,7 @@ public final class PluginMessageUtil {
   }
 
   /**
-   * Determines whether or not this plugin message is being used to unregister plugin channels.
+   * Determines whether this plugin message is being used to unregister plugin channels.
    *
    * @param message the plugin message
    * @return whether we are unregistering plugin channels or not
@@ -97,7 +97,7 @@ public final class PluginMessageUtil {
     checkArgument(isRegister(message) || isUnregister(message), "Unknown channel type %s",
         message.getChannel());
     if (!message.content().isReadable()) {
-      // If we try to split this, we will get an one-element array with the empty string, which
+      // If we try to split this, we will get a one-element array with the empty string, which
       // has caused issues with 1.13+ compatibility. Just return an empty list.
       return ImmutableList.of();
     }
@@ -186,23 +186,21 @@ public final class PluginMessageUtil {
     }
 
     // Before falling into the fallback, explicitly rewrite certain messages.
-    switch (name) {
-      case REGISTER_CHANNEL_LEGACY:
-        return REGISTER_CHANNEL;
-      case UNREGISTER_CHANNEL_LEGACY:
-        return UNREGISTER_CHANNEL;
-      case BRAND_CHANNEL_LEGACY:
-        return BRAND_CHANNEL;
-      case "BungeeCord":
+    return switch (name) {
+      case REGISTER_CHANNEL_LEGACY -> REGISTER_CHANNEL;
+      case UNREGISTER_CHANNEL_LEGACY -> UNREGISTER_CHANNEL;
+      case BRAND_CHANNEL_LEGACY -> BRAND_CHANNEL;
+      case "BungeeCord" ->
         // This is a special historical case we are compelled to support for the benefit of
         // BungeeQuack.
-        return "bungeecord:main";
-      default:
+        "bungeecord:main";
+      default -> {
+        String lower = name.toLowerCase(Locale.ROOT);
+        yield "legacy:" + INVALID_IDENTIFIER_REGEX.matcher(lower).replaceAll("");
         // This is very likely a legacy name, so transform it. Velocity uses the same scheme as
         // BungeeCord does to transform channels, but also removes clearly invalid characters as
         // well.
-        String lower = name.toLowerCase(Locale.ROOT);
-        return "legacy:" + INVALID_IDENTIFIER_REGEX.matcher(lower).replaceAll("");
-    }
+      }
+    };
   }
 }

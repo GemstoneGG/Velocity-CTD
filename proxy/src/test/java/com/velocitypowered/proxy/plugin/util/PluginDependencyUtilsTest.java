@@ -45,26 +45,26 @@ class PluginDependencyUtilsTest {
       new PluginDependency("circle", "", false));
 
   @Test
-  void sortCandidatesTrivial() throws Exception {
+  void sortCandidatesTrivial() {
     List<PluginDescription> descriptionList = new ArrayList<>();
     assertEquals(descriptionList, PluginDependencyUtils.sortCandidates(descriptionList));
   }
 
   @Test
-  void sortCandidatesSingleton() throws Exception {
+  void sortCandidatesSingleton() {
     List<PluginDescription> plugins = ImmutableList.of(NO_DEPENDENCY);
     assertEquals(plugins, PluginDependencyUtils.sortCandidates(plugins));
   }
 
   @Test
-  void sortCandidatesBasicDependency() throws Exception {
+  void sortCandidatesBasicDependency() {
     List<PluginDescription> plugins = ImmutableList.of(HAS_DEPENDENCY_1, NO_DEPENDENCY);
     List<PluginDescription> expected = ImmutableList.of(NO_DEPENDENCY, HAS_DEPENDENCY_1);
     assertEquals(expected, PluginDependencyUtils.sortCandidates(plugins));
   }
 
   @Test
-  void sortCandidatesNestedDependency() throws Exception {
+  void sortCandidatesNestedDependency() {
     List<PluginDescription> plugins = ImmutableList.of(HAS_DEPENDENCY_1, HAS_DEPENDENCY_2,
         NO_DEPENDENCY);
     List<PluginDescription> expected = ImmutableList.of(NO_DEPENDENCY, HAS_DEPENDENCY_1,
@@ -73,7 +73,7 @@ class PluginDependencyUtilsTest {
   }
 
   @Test
-  void sortCandidatesTypical() throws Exception {
+  void sortCandidatesTypical() {
     List<PluginDescription> plugins = ImmutableList.of(HAS_DEPENDENCY_2, NO_DEPENDENCY_2,
         HAS_DEPENDENCY_1, NO_DEPENDENCY);
     List<PluginDescription> expected = ImmutableList.of(NO_DEPENDENCY, HAS_DEPENDENCY_1,
@@ -82,7 +82,7 @@ class PluginDependencyUtilsTest {
   }
 
   @Test
-  void sortCandidatesMultiplePluginsDependentOnOne() throws Exception {
+  void sortCandidatesMultiplePluginsDependentOnOne() {
     List<PluginDescription> plugins = ImmutableList.of(HAS_DEPENDENCY_3, HAS_DEPENDENCY_1,
         NO_DEPENDENCY);
     List<PluginDescription> expected = ImmutableList.of(NO_DEPENDENCY, HAS_DEPENDENCY_1,
@@ -91,7 +91,7 @@ class PluginDependencyUtilsTest {
   }
 
   @Test
-  void sortCandidatesCircularDependency() throws Exception {
+  void sortCandidatesCircularDependency() {
     List<PluginDescription> descs = ImmutableList.of(CIRCULAR_DEPENDENCY_1, CIRCULAR_DEPENDENCY_2);
     assertThrows(IllegalStateException.class, () -> PluginDependencyUtils.sortCandidates(descs));
   }

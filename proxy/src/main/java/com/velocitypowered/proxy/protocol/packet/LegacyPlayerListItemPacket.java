@@ -269,7 +269,7 @@ public class LegacyPlayerListItemPacket implements MinecraftPacket {
       return this;
     }
 
-    public IdentifiedKey getPlayerKey() {
+    public @Nullable IdentifiedKey getPlayerKey() {
       return playerKey;
     }
   }

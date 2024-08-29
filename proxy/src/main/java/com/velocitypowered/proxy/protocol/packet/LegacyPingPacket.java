@@ -36,7 +36,7 @@ public class LegacyPingPacket implements MinecraftPacket {
     this.vhost = null;
   }
 
-  public LegacyPingPacket(LegacyMinecraftPingVersion version, InetSocketAddress vhost) {
+  public LegacyPingPacket(LegacyMinecraftPingVersion version, @Nullable InetSocketAddress vhost) {
     this.version = version;
     this.vhost = vhost;
   }

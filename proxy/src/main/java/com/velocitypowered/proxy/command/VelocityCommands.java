@@ -176,7 +176,7 @@ public final class VelocityCommands {
   }
 
   /**
-   * Returns whether the given node is an arguments node.
+   * Returns whether the given node is an argument's node.
    *
    * @param node the node to check
    * @return true if the node is an arguments node; false otherwise

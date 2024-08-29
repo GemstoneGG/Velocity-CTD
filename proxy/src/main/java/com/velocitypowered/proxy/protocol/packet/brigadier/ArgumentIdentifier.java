@@ -37,8 +37,8 @@ public class ArgumentIdentifier {
     Map<ProtocolVersion, Integer> temp = new HashMap<>();
 
     ProtocolVersion previous = null;
-    for (int i = 0; i < versions.length; i++) {
-      VersionSet current = Preconditions.checkNotNull(versions[i]);
+    for (VersionSet version : versions) {
+      VersionSet current = Preconditions.checkNotNull(version);
 
       Preconditions.checkArgument(
           current.getVersion().noLessThan(ProtocolVersion.MINECRAFT_1_19),

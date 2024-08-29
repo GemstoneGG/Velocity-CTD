@@ -97,7 +97,7 @@ public final class PluginMessageEvent implements ResultedEvent<PluginMessageEven
   }
 
   /**
-   * A result determining whether or not to forward this message on.
+   * A result determining whether to forward this message on.
    */
   public static final class ForwardResult implements ResultedEvent.Result {
 

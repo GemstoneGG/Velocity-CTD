@@ -38,7 +38,7 @@ public final class GameProfileRequestEvent {
    *
    * @param connection the connection connecting to the proxy
    * @param originalProfile the original {@link GameProfile} for the user
-   * @param onlineMode whether or not the user connected in online or offline mode
+   * @param onlineMode whether the user connected in online or offline mode
    */
   public GameProfileRequestEvent(InboundConnection connection, GameProfile originalProfile,
       boolean onlineMode) {

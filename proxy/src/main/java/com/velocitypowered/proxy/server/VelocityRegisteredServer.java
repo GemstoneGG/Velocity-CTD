@@ -117,7 +117,7 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
     CompletableFuture<ServerPing> pingFuture = new CompletableFuture<>();
     server.createBootstrap(loop).handler(new ChannelInitializer<>() {
       @Override
-      protected void initChannel(Channel ch) {
+      protected void initChannel(@NotNull Channel ch) {
         ch.pipeline().addLast(FRAME_DECODER, new MinecraftVarintFrameDecoder())
             .addLast(READ_TIMEOUT, new ReadTimeoutHandler(
                 pingOptions.getTimeout() == 0
@@ -177,11 +177,11 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
 
   /**
    * Sends a plugin message to the server through this connection. The message will be released
-   * afterwards.
+   * afterward.
    *
    * @param identifier the channel ID to use
    * @param data       the data
-   * @return whether or not the message was sent
+   * @return whether the message was sent
    */
   public boolean sendPluginMessage(ChannelIdentifier identifier, ByteBuf data) {
     for (final ConnectedPlayer player : players.values()) {

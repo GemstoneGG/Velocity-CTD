@@ -102,10 +102,10 @@ public class PlayerResourcePackStatusEvent {
   }
 
   /**
-   * Gets whether or not to override the kick resulting from
+   * Gets whether to override the kick resulting from
    * {@link ResourcePackInfo#getShouldForce()} being true.
    *
-   * @return whether or not to overwrite the result
+   * @return whether to overwrite the result
    */
   public boolean isOverwriteKick() {
     return overwriteKick;
@@ -118,7 +118,7 @@ public class PlayerResourcePackStatusEvent {
    * as the client or server will enforce this regardless. Cancelling the resulting
    * kick-events will not prevent the player from disconnecting from the proxy.
    *
-   * @param overwriteKick whether or not to cancel the kick
+   * @param overwriteKick whether to cancel the kick
    * @throws IllegalArgumentException if the player version is 1.17 or newer
    */
   public void setOverwriteKick(boolean overwriteKick) {

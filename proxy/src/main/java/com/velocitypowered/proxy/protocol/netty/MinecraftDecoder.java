@@ -27,6 +27,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.CorruptedFrameException;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Decodes Minecraft packets.
@@ -55,7 +56,7 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
   }
 
   @Override
-  public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+  public void channelRead(@NotNull ChannelHandlerContext ctx, @NotNull Object msg) throws Exception {
     if (msg instanceof ByteBuf buf) {
       tryDecode(ctx, buf);
     } else {

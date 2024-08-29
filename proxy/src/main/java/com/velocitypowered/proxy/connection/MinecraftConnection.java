@@ -347,9 +347,9 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
   }
 
   /**
-   * Determines whether or not the channel should continue reading data automatically.
+   * Determines whether the channel should continue reading data automatically.
    *
-   * @param autoReading whether or not we should read data automatically
+   * @param autoReading whether we should read data automatically
    */
   public void setAutoReading(boolean autoReading) {
     ensureInEventLoop();
@@ -360,7 +360,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
       // is turned back on, even though toggling autoreading on should handle things automatically.
       // We will issue an explicit read after turning on autoread.
       //
-      // Much thanks to @creeper123123321.
+      // Many thanks to @creeper123123321.
       channel.read();
     }
   }

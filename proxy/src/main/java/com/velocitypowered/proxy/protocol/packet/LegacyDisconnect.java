@@ -34,7 +34,7 @@ public record LegacyDisconnect(String reason) {
       .toString(LegacyComponentSerializer.SECTION_CHAR);
 
   /**
-   * Converts a modern server list ping response into an legacy disconnect packet.
+   * Converts a modern server list ping response into a legacy disconnect packet.
    *
    * @param response the server ping to convert
    * @param version  the requesting clients' version

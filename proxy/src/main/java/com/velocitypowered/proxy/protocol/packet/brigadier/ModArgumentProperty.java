@@ -28,21 +28,15 @@ import io.netty.buffer.Unpooled;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
-public class ModArgumentProperty implements ArgumentType<ByteBuf> {
-
-  private final ArgumentIdentifier identifier;
-  private final ByteBuf data;
+public record ModArgumentProperty(ArgumentIdentifier identifier, ByteBuf data) implements ArgumentType<ByteBuf> {
 
   public ModArgumentProperty(ArgumentIdentifier identifier, ByteBuf data) {
     this.identifier = identifier;
     this.data = Unpooled.unreleasableBuffer(data.asReadOnly());
   }
 
-  public ArgumentIdentifier getIdentifier() {
-    return identifier;
-  }
-
-  public ByteBuf getData() {
+  @Override
+  public ByteBuf data() {
     return data.slice();
   }
 

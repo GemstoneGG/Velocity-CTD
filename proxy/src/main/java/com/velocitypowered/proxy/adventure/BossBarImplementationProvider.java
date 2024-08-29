@@ -20,12 +20,13 @@ package com.velocitypowered.proxy.adventure;
 import com.google.auto.service.AutoService;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.bossbar.BossBarImplementation;
+import org.jetbrains.annotations.NotNull;
 
 @AutoService(BossBarImplementation.Provider.class)
 @SuppressWarnings("MissingJavadocType")
 public class BossBarImplementationProvider implements BossBarImplementation.Provider {
   @Override
-  public BossBarImplementation create(final BossBar bar) {
+  public @NotNull BossBarImplementation create(final @NotNull BossBar bar) {
     final VelocityBossBarImplementation impl = new VelocityBossBarImplementation(bar);
     bar.addListener(impl);
     return impl;

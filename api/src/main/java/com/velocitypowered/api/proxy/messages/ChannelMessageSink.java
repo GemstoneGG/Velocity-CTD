@@ -20,7 +20,7 @@ public interface ChannelMessageSink {
    *
    * @param identifier the channel identifier to send the message on
    * @param data the data to send
-   * @return whether or not the message could be sent
+   * @return whether the message could be sent
    */
   boolean sendPluginMessage(@NotNull ChannelIdentifier identifier, byte @NotNull[] data);
 

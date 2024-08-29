@@ -51,6 +51,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class ComponentHolder {
   private static final Logger logger = LogManager.getLogger(ComponentHolder.class);
@@ -85,9 +86,7 @@ public class ComponentHolder {
           json = deserialize(binaryTag).toString();
           component = ProtocolUtils.getJsonChatSerializer(version).deserialize(json);
         } catch (Exception ex) {
-          logger.error(
-              "Error converting binary component to JSON component! "
-              + "Binary: " + binaryTag + " JSON: " + json, ex);
+          logger.error("Error converting binary component to JSON component! Binary: {} JSON: {}", binaryTag, json, ex);
           throw ex;
         }
       }
@@ -111,8 +110,7 @@ public class ComponentHolder {
   }
 
   public static BinaryTag serialize(JsonElement json) {
-    if (json instanceof JsonPrimitive) {
-      JsonPrimitive jsonPrimitive = (JsonPrimitive) json;
+    if (json instanceof JsonPrimitive jsonPrimitive) {
 
       if (jsonPrimitive.isNumber()) {
         Number number = json.getAsNumber();
@@ -251,7 +249,7 @@ public class ComponentHolder {
           // the second compound tag will have an empty key mapped to "test2"
           // without this fix this would lead to an invalid json component:
           // [{"text":"test1"},{"":"test2"}]
-          jsonObject.add(key.isEmpty() ? "text" : key, deserialize(compound.get(key)));
+          jsonObject.add(key.isEmpty() ? "text" : key, deserialize(Objects.requireNonNull(compound.get(key))));
         });
 
         return jsonObject;

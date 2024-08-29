@@ -66,7 +66,7 @@ public class ArgumentPropertyRegistry {
     classToId.put(klazz, identifier);
   }
 
-  private static <T> void empty(ArgumentIdentifier identifier) {
+  private static void empty(ArgumentIdentifier identifier) {
     empty(identifier, EMPTY);
   }
 
@@ -107,14 +107,14 @@ public class ArgumentPropertyRegistry {
       ProtocolVersion protocolVersion) {
     if (type instanceof PassthroughProperty) {
       PassthroughProperty property = (PassthroughProperty) type;
-      writeIdentifier(buf, property.getIdentifier(), protocolVersion);
-      if (property.getResult() != null) {
-        property.getSerializer().serialize(property.getResult(), buf, protocolVersion);
+      writeIdentifier(buf, property.identifier(), protocolVersion);
+      if (property.result() != null) {
+        property.serializer().serialize(property.result(), buf, protocolVersion);
       }
     } else if (type instanceof ModArgumentProperty) {
       ModArgumentProperty property = (ModArgumentProperty) type;
-      writeIdentifier(buf, property.getIdentifier(), protocolVersion);
-      buf.writeBytes(property.getData());
+      writeIdentifier(buf, property.identifier(), protocolVersion);
+      buf.writeBytes(property.data());
     } else {
       ArgumentPropertySerializer serializer = byClass.get(type.getClass());
       ArgumentIdentifier id = classToId.get(type.getClass());

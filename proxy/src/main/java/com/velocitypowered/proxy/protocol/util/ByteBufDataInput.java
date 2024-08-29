@@ -21,6 +21,7 @@ import com.google.common.io.ByteArrayDataInput;
 import io.netty.buffer.ByteBuf;
 import java.io.DataInputStream;
 import java.io.IOException;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A wrapper around {@link io.netty.buffer.ByteBuf} that implements the exception-free
@@ -45,12 +46,12 @@ public class ByteBufDataInput implements ByteArrayDataInput {
   }
 
   @Override
-  public void readFully(byte[] b) {
+  public void readFully(byte @NotNull [] b) {
     in.readBytes(b);
   }
 
   @Override
-  public void readFully(byte[] b, int off, int len) {
+  public void readFully(byte @NotNull [] b, int off, int len) {
     in.readBytes(b, off, len);
   }
 
@@ -116,7 +117,7 @@ public class ByteBufDataInput implements ByteArrayDataInput {
   }
 
   @Override
-  public String readUTF() {
+  public @NotNull String readUTF() {
     try {
       return DataInputStream.readUTF(this);
     } catch (IOException e) {

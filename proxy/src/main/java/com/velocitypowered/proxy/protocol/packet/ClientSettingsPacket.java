@@ -40,7 +40,7 @@ public class ClientSettingsPacket implements MinecraftPacket {
   public ClientSettingsPacket() {
   }
 
-  public ClientSettingsPacket(String locale, byte viewDistance, int chatVisibility, boolean chatColors,
+  public ClientSettingsPacket(@Nullable String locale, byte viewDistance, int chatVisibility, boolean chatColors,
                               short skinParts, int mainHand, boolean chatFilteringEnabled, boolean clientListingAllowed) {
     this.locale = locale;
     this.viewDistance = viewDistance;
@@ -58,7 +58,7 @@ public class ClientSettingsPacket implements MinecraftPacket {
     return locale;
   }
 
-  public void setLocale(String locale) {
+  public void setLocale(@Nullable String locale) {
     this.locale = locale;
   }
 

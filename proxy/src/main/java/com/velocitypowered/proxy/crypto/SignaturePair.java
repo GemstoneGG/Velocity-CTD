@@ -23,23 +23,7 @@ import java.util.UUID;
 /**
  * Represents a signer and a signature.
  */
-public class SignaturePair {
-
-  private final UUID signer;
-  private final byte[] signature;
-
-  public SignaturePair(UUID signer, byte[] signature) {
-    this.signer = signer;
-    this.signature = signature;
-  }
-
-  public byte[] getSignature() {
-    return signature;
-  }
-
-  public UUID getSigner() {
-    return signer;
-  }
+public record SignaturePair(UUID signer, byte[] signature) {
 
   @Override
   public String toString() {

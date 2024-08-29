@@ -31,7 +31,7 @@ import java.util.concurrent.CompletableFuture;
 public class RegistryKeyArgument implements ArgumentType<String> {
 
   private static final List<String> EXAMPLES = Arrays.asList("foo", "foo:bar", "012");
-  private String identifier;
+  private final String identifier;
 
   public RegistryKeyArgument(String identifier) {
     this.identifier = identifier;

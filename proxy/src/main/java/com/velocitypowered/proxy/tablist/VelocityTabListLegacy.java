@@ -98,7 +98,7 @@ public class VelocityTabListLegacy extends KeyedVelocityTabList {
           entries.put(uuid, (KeyedVelocityTabListEntry) TabListEntry.builder()
               .tabList(this)
               .profile(new GameProfile(uuid, item.getName(), ImmutableList.of()))
-              .latency(item.getLatency())
+              .latency()
               .build());
         }
         break;

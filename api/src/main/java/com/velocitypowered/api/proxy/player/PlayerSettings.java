@@ -37,9 +37,9 @@ public interface PlayerSettings {
   ChatMode getChatMode();
 
   /**
-   * Returns whether or not the client has chat colors disabled.
+   * Returns whether the client has chat colors disabled.
    *
-   * @return whether or not the client has chat colors disabled
+   * @return whether the client has chat colors disabled
    */
   boolean hasChatColors();
 
@@ -63,8 +63,8 @@ public interface PlayerSettings {
    * anonymous TabList mode.
    * This feature was introduced in 1.18.
    *
-   * @return whether or not the client explicitly allows listing. Always false on older clients.
-   * @sinceMinecraft 1.18
+   * @return whether the client explicitly allows listing. Always false on older clients.
+   * @since Minecraft 1.18
    */
   boolean isClientListingAllowed();
 

@@ -54,9 +54,9 @@ public interface ConnectionRequestBuilder {
   interface Result {
 
     /**
-     * Determines whether or not the connection request was successful.
+     * Determines whether the connection request was successful.
      *
-     * @return whether or not the request succeeded
+     * @return whether the request succeeded
      */
     default boolean isSuccessful() {
       return getStatus() == Status.SUCCESS;

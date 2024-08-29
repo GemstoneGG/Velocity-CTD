@@ -31,7 +31,7 @@ public class StatusResponsePacket implements MinecraftPacket {
   public StatusResponsePacket() {
   }
 
-  public StatusResponsePacket(CharSequence status) {
+  public StatusResponsePacket(@Nullable CharSequence status) {
     this.status = status;
   }
 

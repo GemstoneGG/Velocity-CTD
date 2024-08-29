@@ -64,7 +64,7 @@ public final class CookieRequestEvent implements ResultedEvent<CookieRequestEven
   }
 
   /**
-   * A result determining whether or not to forward the cookie request on.
+   * A result determining whether to forward the cookie request on.
    */
   public static final class ForwardResult implements Result {
 

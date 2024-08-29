@@ -26,6 +26,7 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
 import com.velocitypowered.proxy.util.except.QuietDecoderException;
 import io.netty.buffer.ByteBuf;
+import java.util.Objects;
 import java.util.UUID;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -63,7 +64,7 @@ public class ServerLoginPacket implements MinecraftPacket {
     return this.playerKey;
   }
 
-  public void setPlayerKey(IdentifiedKey playerKey) {
+  public void setPlayerKey(@Nullable IdentifiedKey playerKey) {
     this.playerKey = playerKey;
   }
 
@@ -131,7 +132,7 @@ public class ServerLoginPacket implements MinecraftPacket {
       }
 
       if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
-        ProtocolUtils.writeUuid(buf, this.holderUuid);
+        ProtocolUtils.writeUuid(buf, Objects.requireNonNull(this.holderUuid));
         return;
       }
 

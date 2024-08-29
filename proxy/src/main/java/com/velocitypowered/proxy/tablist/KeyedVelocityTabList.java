@@ -27,7 +27,6 @@ import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.LegacyPlayerListItemPacket;
-import com.velocitypowered.proxy.protocol.packet.chat.RemoteChatSession;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -190,10 +189,10 @@ public class KeyedVelocityTabList implements InternalTabList {
           entries.putIfAbsent(item.getUuid(), (KeyedVelocityTabListEntry) TabListEntry.builder()
               .tabList(this)
               .profile(new GameProfile(uuid, name, properties))
-              .displayName(item.getDisplayName())
-              .latency(item.getLatency())
-              .chatSession(new RemoteChatSession(null, item.getPlayerKey()))
-              .gameMode(item.getGameMode())
+              .displayName()
+              .latency()
+              .chatSession()
+              .gameMode()
               .build());
           break;
         }

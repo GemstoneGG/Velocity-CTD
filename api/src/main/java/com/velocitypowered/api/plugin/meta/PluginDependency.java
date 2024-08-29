@@ -30,7 +30,7 @@ public final class PluginDependency {
    *
    * @param id the plugin ID
    * @param version an optional version
-   * @param optional whether or not this dependency is optional
+   * @param optional whether this dependency is optional
    */
   public PluginDependency(String id, @Nullable String version, boolean optional) {
     this.id = checkNotNull(id, "id");

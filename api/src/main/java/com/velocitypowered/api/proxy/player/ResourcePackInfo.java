@@ -41,10 +41,10 @@ public interface ResourcePackInfo extends ResourcePackRequestLike {
   Component getPrompt();
 
   /**
-   * Gets whether or not the acceptance of the resource-pack is enforced.
+   * Gets whether the acceptance of the resource-pack is enforced.
    * See {@link Builder#setShouldForce(boolean)} for more information.
    *
-   * @return whether or not to force usage of this resource-pack
+   * @return whether to force usage of this resource-pack
    */
   boolean getShouldForce();
 
@@ -127,7 +127,7 @@ public interface ResourcePackInfo extends ResourcePackRequestLike {
      *  - If the player declines the resource pack or has previously declined a resource-pack
      *    the player will be disconnected from the network
      *
-     * @param shouldForce whether or not to force the client to accept the resource pack
+     * @param shouldForce whether to force the client to accept the resource pack
      */
     Builder setShouldForce(boolean shouldForce);
 
@@ -136,12 +136,12 @@ public interface ResourcePackInfo extends ResourcePackRequestLike {
      * Note: It is recommended to always set this hash.
      * If this hash is not set/ not present then the client will always download
      * the resource pack even if it may still be cached. By having this hash present,
-     * the client will check first whether or not a resource pack by this hash is cached
+     * the client will check first whether a resource pack by this hash is cached
      * before downloading.
      *
      * @param hash the SHA-1 hash of the resource-pack
      */
-    Builder setHash(@Nullable byte[] hash);
+    Builder setHash(byte @Nullable [] hash);
 
     /**
      * Sets a {@link Component} to display on the download prompt.

@@ -115,9 +115,7 @@ public class CommandManagerTests extends CommandTestSuite {
         .executes(context -> fail())
         .build();
 
-    assertThrows(IllegalArgumentException.class, () -> {
-      manager.metaBuilder("hello").hint(hintNode);
-    });
+    assertThrows(IllegalArgumentException.class, () -> manager.metaBuilder("hello").hint(hintNode));
   }
 
   @Test
@@ -130,9 +128,7 @@ public class CommandManagerTests extends CommandTestSuite {
         .redirect(targetNode)
         .build();
 
-    assertThrows(IllegalArgumentException.class, () -> {
-      manager.metaBuilder("hello").hint(hintNode);
-    });
+    assertThrows(IllegalArgumentException.class, () -> manager.metaBuilder("hello").hint(hintNode));
   }
 
   // Un-registration

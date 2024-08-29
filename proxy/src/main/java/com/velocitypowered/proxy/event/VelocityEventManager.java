@@ -133,27 +133,12 @@ public class VelocityEventManager implements EventManager {
 
   /**
    * Represents the registration of a single {@link EventHandler}.
+   *
+   * @param instance The instance of the {@link EventHandler} or the listener instance that was registered.
    */
-  static final class HandlerRegistration {
+  record HandlerRegistration(PluginContainer plugin, short order, Class<?> eventType, Object instance,
+                             EventHandler<Object> handler) {
 
-    final PluginContainer plugin;
-    final short order;
-    final Class<?> eventType;
-    final EventHandler<Object> handler;
-
-    /**
-     * The instance of the {@link EventHandler} or the listener instance that was registered.
-     */
-    final Object instance;
-
-    public HandlerRegistration(final PluginContainer plugin, final short order,
-        final Class<?> eventType, final Object instance, final EventHandler<Object> handler) {
-      this.plugin = plugin;
-      this.order = order;
-      this.eventType = eventType;
-      this.instance = instance;
-      this.handler = handler;
-    }
   }
 
   enum AsyncType {
@@ -167,13 +152,8 @@ public class VelocityEventManager implements EventManager {
     NEVER
   }
 
-  static final class HandlersCache {
+  record HandlersCache(HandlerRegistration[] handlers) {
 
-    final HandlerRegistration[] handlers;
-
-    HandlersCache(final HandlerRegistration[] handlers) {
-      this.handlers = handlers;
-    }
   }
 
   private @Nullable HandlersCache bakeHandlers(final Class<?> eventType) {

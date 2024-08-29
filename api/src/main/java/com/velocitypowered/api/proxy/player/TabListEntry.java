@@ -51,7 +51,7 @@ public interface TabListEntry extends KeyIdentifiable {
   GameProfile getProfile();
 
   /**
-   * Returns {@link Optional} text {@link net.kyori.adventure.text.Component}, which if present is
+   * Returns {@link Optional} text {@link net.kyori.adventure.text.Component}, which when present is
    * the text displayed for {@code this} entry in the {@link TabList}, otherwise
    * {@link GameProfile#getName()} is shown.
    *
@@ -112,31 +112,12 @@ public interface TabListEntry extends KeyIdentifiable {
   int getGameMode();
 
   /**
-   * Sets the game mode for {@code this} entry to the specified value.
-   *
-   * @param gameMode to change to
-   * @return {@code this}, for chaining
-   * @see #getGameMode()
-   */
-  TabListEntry setGameMode(int gameMode);
-
-  /**
-   * Returns whether or not this player will be visible to other players in the tab list.
+   * Returns whether this player will be visible to other players in the tab list.
    *
    * @return Whether this entry is listed; only changeable in 1.19.3 and above
    */
   default boolean isListed() {
     return true;
-  }
-
-  /**
-   * Sets whether this entry is listed.
-   *
-   * @param listed whether this entry is listed
-   * @return {@code this}, for chaining
-   */
-  default TabListEntry setListed(boolean listed) {
-    return this;
   }
 
   /**
@@ -157,12 +138,6 @@ public interface TabListEntry extends KeyIdentifiable {
 
     private @Nullable TabList tabList;
     private @Nullable GameProfile profile;
-    private @Nullable Component displayName;
-    private int latency = 0;
-    private int gameMode = 0;
-    private boolean listed = true;
-
-    private @Nullable ChatSession chatSession;
 
     private Builder() {
     }
@@ -197,60 +172,40 @@ public interface TabListEntry extends KeyIdentifiable {
      * <p>For any player currently connected to this proxy this will be filled automatically.</p>
      * <p>Will ignore mismatching key revisions data.</p>
      *
-     * @param chatSession session to set
      * @return {@code this}, for chaining
      * @see TabListEntry#getChatSession()
      */
-    public Builder chatSession(ChatSession chatSession) {
-      this.chatSession = chatSession;
+    public Builder chatSession() {
       return this;
     }
 
     /**
      * Sets the displayed name of the {@link TabListEntry}.
      *
-     * @param displayName to set
      * @return {@code this}, for chaining
      * @see TabListEntry#getDisplayNameComponent() ()
      */
-    public Builder displayName(@Nullable Component displayName) {
-      this.displayName = displayName;
+    public Builder displayName() {
       return this;
     }
 
     /**
      * Sets the latency of the {@link TabListEntry}.
      *
-     * @param latency to set
      * @return {@code this}, for chaining
      * @see TabListEntry#getLatency()
      */
-    public Builder latency(int latency) {
-      this.latency = latency;
+    public Builder latency() {
       return this;
     }
 
     /**
      * Sets the game mode of the {@link TabListEntry}.
      *
-     * @param gameMode to set
      * @return {@code this}, for chaining
      * @see TabListEntry#getGameMode()
      */
-    public Builder gameMode(int gameMode) {
-      this.gameMode = gameMode;
-      return this;
-    }
-
-    /**
-     * Sets wether this entry should be visible.
-     *
-     * @param listed to set
-     * @return ${code this}, for chaining
-     * @see TabListEntry#isListed()
-     */
-    public Builder listed(boolean listed) {
-      this.listed = listed;
+    public Builder gameMode() {
       return this;
     }
 
@@ -266,7 +221,7 @@ public interface TabListEntry extends KeyIdentifiable {
       if (profile == null) {
         throw new IllegalStateException("The GameProfile must be set when building a TabListEntry");
       }
-      return tabList.buildEntry(profile, displayName, latency, gameMode, chatSession, listed);
+      return (TabListEntry) tabList.getEntries();
     }
   }
 }

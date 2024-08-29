@@ -36,6 +36,7 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -49,6 +50,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.VisibleForTesting;
 
 /**
@@ -65,7 +67,7 @@ public class VelocityScheduler implements Scheduler {
       Multimaps.newSetMultimap(new IdentityHashMap<>(), HashSet::new));
 
   /**
-   * Initalizes the scheduler.
+   * Initializes the scheduler.
    *
    * @param pluginManager the Velocity plugin manager
    */
@@ -77,7 +79,7 @@ public class VelocityScheduler implements Scheduler {
   }
 
   @Override
-  public TaskBuilder buildTask(Object plugin, Runnable runnable) {
+  public TaskBuilder buildTask(@NotNull Object plugin, @NotNull Runnable runnable) {
     checkNotNull(plugin, "plugin");
     checkNotNull(runnable, "runnable");
     final Optional<PluginContainer> container = pluginManager.fromInstance(plugin);
@@ -86,7 +88,7 @@ public class VelocityScheduler implements Scheduler {
   }
 
   @Override
-  public TaskBuilder buildTask(Object plugin, Consumer<ScheduledTask> consumer) {
+  public TaskBuilder buildTask(@NotNull Object plugin, @NotNull Consumer<ScheduledTask> consumer) {
     checkNotNull(plugin, "plugin");
     checkNotNull(consumer, "consumer");
     final Optional<PluginContainer> container = pluginManager.fromInstance(plugin);
@@ -123,8 +125,7 @@ public class VelocityScheduler implements Scheduler {
     final Iterator<PluginContainer> pluginIterator = plugins.iterator();
     while (pluginIterator.hasNext()) {
       final PluginContainer container = pluginIterator.next();
-      if (container instanceof VelocityPluginContainer) {
-        final VelocityPluginContainer pluginContainer = (VelocityPluginContainer) container;
+      if (container instanceof VelocityPluginContainer pluginContainer) {
         if (pluginContainer.hasExecutorService()) {
           container.getExecutorService().shutdown();
         } else {
@@ -240,7 +241,7 @@ public class VelocityScheduler implements Scheduler {
     }
 
     @Override
-    public Object plugin() {
+    public @NotNull Object plugin() {
       //noinspection OptionalGetWithoutIsPresent
       return container.getInstance().get();
     }
@@ -312,7 +313,7 @@ public class VelocityScheduler implements Scheduler {
 
     public void awaitCompletion() {
       try {
-        future.get();
+        Objects.requireNonNull(future).get();
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
       } catch (ExecutionException e) {

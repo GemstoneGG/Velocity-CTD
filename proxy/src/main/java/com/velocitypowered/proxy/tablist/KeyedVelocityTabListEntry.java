@@ -97,13 +97,6 @@ public class KeyedVelocityTabListEntry implements TabListEntry {
     return gameMode;
   }
 
-  @Override
-  public TabListEntry setGameMode(int gameMode) {
-    this.gameMode = gameMode;
-    tabList.updateEntry(LegacyPlayerListItemPacket.UPDATE_GAMEMODE, this);
-    return this;
-  }
-
   void setGameModeInternal(int gameMode) {
     this.gameMode = gameMode;
   }

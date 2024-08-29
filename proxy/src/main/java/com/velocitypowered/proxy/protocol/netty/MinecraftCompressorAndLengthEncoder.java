@@ -80,8 +80,7 @@ public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<By
   }
 
   @Override
-  protected ByteBuf allocateBuffer(ChannelHandlerContext ctx, ByteBuf msg, boolean preferDirect)
-      throws Exception {
+  protected ByteBuf allocateBuffer(ChannelHandlerContext ctx, ByteBuf msg, boolean preferDirect) {
     int uncompressed = msg.readableBytes();
     if (uncompressed < threshold) {
       int finalBufferSize = uncompressed + 1;
@@ -97,7 +96,7 @@ public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<By
   }
 
   @Override
-  public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+  public void handlerRemoved(ChannelHandlerContext ctx) {
     compressor.close();
   }
 

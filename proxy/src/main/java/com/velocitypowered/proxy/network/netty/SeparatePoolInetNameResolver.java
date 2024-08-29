@@ -68,7 +68,7 @@ public final class SeparatePoolInetNameResolver extends InetNameResolver {
   }
 
   @Override
-  protected void doResolve(String inetHost, Promise<InetAddress> promise) throws Exception {
+  protected void doResolve(String inetHost, Promise<InetAddress> promise) {
     List<InetAddress> addresses = cache.getIfPresent(inetHost);
     if (addresses != null) {
       promise.trySuccess(addresses.get(0));
@@ -90,8 +90,7 @@ public final class SeparatePoolInetNameResolver extends InetNameResolver {
   }
 
   @Override
-  protected void doResolveAll(String inetHost, Promise<List<InetAddress>> promise)
-      throws Exception {
+  protected void doResolveAll(String inetHost, Promise<List<InetAddress>> promise) {
     List<InetAddress> addresses = cache.getIfPresent(inetHost);
     if (addresses != null) {
       promise.trySuccess(addresses);

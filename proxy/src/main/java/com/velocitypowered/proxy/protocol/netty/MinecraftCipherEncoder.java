@@ -49,7 +49,7 @@ public class MinecraftCipherEncoder extends MessageToMessageEncoder<ByteBuf> {
   }
 
   @Override
-  public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+  public void handlerRemoved(ChannelHandlerContext ctx) {
     cipher.close();
   }
 }

@@ -203,7 +203,7 @@ final class SuggestionsProvider<S> {
         return this.dispatcher.getCompletionSuggestions(parse);
       } catch (final Throwable e) {
         // Ugly, ugly swallowing of everything Throwable, because plugins are naughty.
-        LOGGER.error("Command node cannot provide suggestions for " + fullInput, e);
+        LOGGER.error("Command node cannot provide suggestions for {}", fullInput, e);
         return Suggestions.empty();
       }
     }
@@ -376,7 +376,7 @@ final class SuggestionsProvider<S> {
   }
 
   /**
-   * Sets a flag indicating whether or not alias suggestions shall be returned to the user.
+   * Sets a flag indicating whether alias suggestions shall be returned to the user.
    *
    * @param announceProxyCommands whether alias suggestions can be returned
    */

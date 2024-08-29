@@ -40,7 +40,7 @@ public final class KickedFromServerEvent implements
    * @param player the player affected
    * @param server the server the player disconnected from
    * @param originalReason the reason for being kicked, optional
-   * @param duringServerConnect whether or not the player was kicked during the connection process
+   * @param duringServerConnect whether the player was kicked during the connection process
    * @param result the initial result
    */
   public KickedFromServerEvent(Player player, RegisteredServer server,
@@ -91,18 +91,18 @@ public final class KickedFromServerEvent implements
   }
 
   /**
-   * Returns whether or not the player got kicked while connecting to another server.
+   * Returns whether the player got kicked while connecting to another server.
    *
-   * @return whether or not the player got kicked
+   * @return whether the player got kicked
    */
   public boolean kickedDuringServerConnect() {
     return duringServerConnect;
   }
 
   /**
-   * Returns whether or not the player got kicked while logging in.
+   * Returns whether the player got kicked while logging in.
    *
-   * @return whether or not the player got kicked
+   * @return whether the player got kicked
    * @deprecated {@link #kickedDuringServerConnect()} has a better name and reflects the actual
    *     result
    */

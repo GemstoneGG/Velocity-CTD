@@ -77,7 +77,7 @@ public class MinecraftCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
   }
 
   @Override
-  public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+  public void handlerRemoved(ChannelHandlerContext ctx) {
     compressor.close();
   }
 

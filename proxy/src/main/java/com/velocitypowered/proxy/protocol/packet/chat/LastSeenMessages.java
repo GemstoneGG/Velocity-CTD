@@ -26,8 +26,8 @@ public class LastSeenMessages {
 
   public static final int WINDOW_SIZE = 20;
   private static final int DIV_FLOOR = -Math.floorDiv(-WINDOW_SIZE, 8);
-  private int offset;
-  private BitSet acknowledged;
+  private final int offset;
+  private final BitSet acknowledged;
 
   public LastSeenMessages() {
     this.offset = 0;

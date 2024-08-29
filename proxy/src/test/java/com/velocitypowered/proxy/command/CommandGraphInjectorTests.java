@@ -37,7 +37,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests for injecting Velocity commnads into a server Brigadier command tree.
+ * Tests for injecting Velocity commands into a server Brigadier command tree.
  */
 public class CommandGraphInjectorTests extends CommandTestSuite {
 

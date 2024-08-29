@@ -24,6 +24,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A {@link ByteArrayDataOutput} equivalent to {@link ByteBufDataInput}.
@@ -39,7 +40,7 @@ public class ByteBufDataOutput extends OutputStream implements ByteArrayDataOutp
   }
 
   @Override
-  public byte[] toByteArray() {
+  public byte @NotNull [] toByteArray() {
     return ByteBufUtil.getBytes(buf);
   }
 
@@ -49,12 +50,12 @@ public class ByteBufDataOutput extends OutputStream implements ByteArrayDataOutp
   }
 
   @Override
-  public void write(byte[] b) {
+  public void write(byte @NotNull [] b) {
     buf.writeBytes(b);
   }
 
   @Override
-  public void write(byte[] b, int off, int len) {
+  public void write(byte @NotNull [] b, int off, int len) {
     buf.writeBytes(b, off, len);
   }
 
@@ -99,7 +100,7 @@ public class ByteBufDataOutput extends OutputStream implements ByteArrayDataOutp
   }
 
   @Override
-  public void writeBytes(String s) {
+  public void writeBytes(@NotNull String s) {
     buf.writeCharSequence(s, StandardCharsets.US_ASCII);
   }
 
@@ -111,7 +112,7 @@ public class ByteBufDataOutput extends OutputStream implements ByteArrayDataOutp
   }
 
   @Override
-  public void writeUTF(String s) {
+  public void writeUTF(@NotNull String s) {
     try {
       this.utf8out.writeUTF(s);
     } catch (IOException e) {
