@@ -27,7 +27,6 @@ import com.velocitypowered.natives.util.Natives;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
-import java.io.IOException;
 import java.util.Random;
 import java.util.function.Supplier;
 import java.util.zip.DataFormatException;
@@ -41,7 +40,7 @@ class VelocityCompressorTest {
   private static final byte[] TEST_DATA = new byte[1 << 14];
 
   @BeforeAll
-  static void checkNatives() throws IOException {
+  static void checkNatives() {
     Natives.compress.getLoadedVariant();
     new Random(1).nextBytes(TEST_DATA);
   }
