@@ -48,7 +48,7 @@ public class KeyedCommandHandler implements CommandHandler<KeyedPlayerCommandPac
       IdentifiedKey playerKey = player.getIdentifiedKey();
       if (result == CommandExecuteEvent.CommandResult.denied()) {
         if (server.getConfiguration().enforceChatSigning() && playerKey != null) {
-          if (packet.isUnsigned()
+          if (!packet.isUnsigned()
               && playerKey.getKeyRevision().noLessThan(IdentifiedKey.Revision.LINKED_V2)) {
             logger.fatal("A plugin tried to deny a command with signable component(s). "
                 + "This is not supported. "
@@ -68,10 +68,10 @@ public class KeyedCommandHandler implements CommandHandler<KeyedPlayerCommandPac
             .setTimestamp(packet.getTimestamp())
             .asPlayer(this.player);
 
-        if (!server.getConfiguration().enforceChatSigning() || (packet.isUnsigned() && commandToRun.equals(packet.getCommand()))) {
+        if (!server.getConfiguration().enforceChatSigning() || (!packet.isUnsigned() && commandToRun.equals(packet.getCommand()))) {
           return CompletableFuture.completedFuture(packet);
         } else {
-          if (packet.isUnsigned() && playerKey != null
+          if (!packet.isUnsigned() && playerKey != null
               && playerKey.getKeyRevision().noLessThan(IdentifiedKey.Revision.LINKED_V2)) {
             logger.fatal("A plugin tried to change a command with signed component(s). "
                 + "This is not supported. "
@@ -91,7 +91,7 @@ public class KeyedCommandHandler implements CommandHandler<KeyedPlayerCommandPac
             return packet;
           }
 
-          if (server.getConfiguration().enforceChatSigning() && packet.isUnsigned() && playerKey != null
+          if (server.getConfiguration().enforceChatSigning() && !packet.isUnsigned() && playerKey != null
               && playerKey.getKeyRevision().noLessThan(IdentifiedKey.Revision.LINKED_V2)) {
             logger.fatal("A plugin tried to change a command with signed component(s). "
                 + "This is not supported. "
