@@ -73,6 +73,29 @@ Velocity-CTD is licensed under the GPLv3 license.
 * `velocity.command.showall` [/showall]
 * `velocity.command.uptime` [/velocity uptime]
 
+## Velocity-CTD Queue Permissions
+* `queue.*` (Allows you to use all queue commands and bypass all known limitations).
+* `queue.bypass` or `queue.bypass.{SERVER}` (Allows you to bypass the queue for all
+  servers or a specific server).
+* `queue.joinfull` or `queue.joinfull.{SERVER}` (Allows you to join any
+  server or a specific server, regardless if it is full).
+* `queue.joinfullandbypass` or `queue.joinfullandbypass.{SERVER}` (Allows you to
+  bypass the queue for all servers or a specific server and allows you to join 
+  all servers or a specific server if it is full).
+* `queue.list` (Allows you to view the list of people queued for a specific server).
+* `queue.listqueues` (Allows you to view all possible queues and number of people queued).
+* `queue.pause` (Allows you to pause any specific server from queuing).
+* `queue.pause.bypass` or `queue.pause.bypass.{SERVER}` (Allows you to bypass queue pauses 
+  for all servers or a specific server).
+* `queue.priority.{WEIGHT/NAME}` (Sets the position you are in for a queue; weights
+  are defined by the configuration for customizability purposes. Weights don't require
+  you to define the priority via the configuration and are determined automatically).
+* `queue.remove` (Allows you to remove a player from any specific queue).
+* `queue.timeout.{SECONDS}` (Specifies the number of time a user has before they
+  are unqueued from a server when disconnecting; if you reach the position where
+  you can be sent and are offline, your queue position will reset, regardless of
+  your specified timeout).
+
 ## Building
 
 Velocity is built with [Gradle](https://gradle.org). We recommend using the

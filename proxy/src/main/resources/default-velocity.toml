@@ -143,6 +143,15 @@ try = [
 # Keep this false if you only have one fallback server.
 enable-dynamic-fallbacks = false
 
+[slash-servers]
+# Configure which servers have aliases to simplify the process of connecting to a specific server.
+"factions" = [
+    "faction", "factions"
+]
+"minigames" = [
+    "minigame", "minigames"
+]
+
 [forced-hosts]
 # Configure your forced hosts here.
 "lobby.example.com" = [
@@ -153,6 +162,16 @@ enable-dynamic-fallbacks = false
 ]
 "minigames.example.com" = [
     "minigames"
+]
+
+[server-protocols]
+# Specifies the protocol version a specific
+# server requires before joining.
+#
+# (Example provided below exclusively requires
+# you to be between the versions of 1.13 to 1.13.2).
+"minigames" = [
+    "1.13:393,401,404"
 ]
 
 [advanced]
