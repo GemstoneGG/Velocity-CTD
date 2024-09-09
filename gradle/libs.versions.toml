@@ -4,8 +4,8 @@ configurate4 = "4.1.2"
 flare = "2.0.1"
 log4j = "2.24.0"
 netty = "4.1.113.Final"
-json = "20230227"
-jedis = "4.4.3"
+json = "20231013"
+jedis = "5.1.5"
 
 [plugins]
 indra-publishing = "net.kyori.indra.publishing:3.1.3"
