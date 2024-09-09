@@ -31,8 +31,12 @@ import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import com.velocitypowered.proxy.VelocityServer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -116,7 +120,13 @@ public class GlistCommand {
   }
 
   private void sendTotalProxyCount(CommandSource target) {
-    final int online = server.getPlayerCount();
+    final int online;
+    if(server.getRedisManager().isEnabled()){
+      online = server.getRedisManager().getTotalPlayerCount();
+    }else{
+      online = server.getPlayerCount();
+    }
+
     final TranslatableComponent.Builder msg = Component.translatable()
             .key(online == 1
                   ? "velocity.command.glist-player-singular"
@@ -128,23 +138,19 @@ public class GlistCommand {
 
   private void sendServerPlayers(final CommandSource target,
                                  final RegisteredServer server, final boolean fromAll) {
-    final List<Player> onServer = ImmutableList.copyOf(server.getPlayersConnected());
-    if (onServer.isEmpty() && fromAll) {
+    List<String> usernames = new ArrayList<>();
+    if(this.server.getRedisManager().isEnabled()){
+      usernames = this.server.getRedisManager().getConnectedPlayerNames(server.getServerInfo().getName());
+    }else{
+      for(Player player : server.getPlayersConnected()){
+        usernames.add(player.getUsername());
+      }
+    }
+
+    if (usernames.isEmpty() && fromAll) {
       return;
     }
 
-    onServer.stream()
-            .map(Player::getUsername)
-            .reduce((a, b) -> a + ", " + b)
-            .ifPresent(playerList -> {
-              final TranslatableComponent.Builder builder = Component.translatable()
-                      .key("velocity.command.glist-server")
-                      .arguments(
-                              Component.text(server.getServerInfo().getName()),
-                              Component.text(onServer.size()),
-                              Component.text(playerList)
-                      );
-              target.sendMessage(builder.build());
-            });
+    PlistCommand.mapUsernames(target, usernames, server.getServerInfo());
   }
 }

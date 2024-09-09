@@ -16,6 +16,7 @@ import com.velocitypowered.api.proxy.messages.ChannelRegistrar;
 import com.velocitypowered.api.proxy.player.ResourcePackInfo;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
+import com.velocitypowered.api.redis.RedisManager;
 import com.velocitypowered.api.scheduler.Scheduler;
 import com.velocitypowered.api.util.ProxyVersion;
 import java.net.InetSocketAddress;
@@ -150,6 +151,13 @@ public interface ProxyServer extends Audience {
    * @return the plugin manager instance
    */
   PluginManager getPluginManager();
+
+  /**
+   * Gets the {@link RedisManager} instance.
+   *
+   * @return the redis manager instance
+   */
+  RedisManager getRedisManager();
 
   /**
    * Gets the {@link EventManager} instance.

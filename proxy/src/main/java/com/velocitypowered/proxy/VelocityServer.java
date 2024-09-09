@@ -38,19 +38,9 @@ import com.velocitypowered.api.util.Favicon;
 import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.api.util.ProxyVersion;
 import com.velocitypowered.proxy.command.VelocityCommandManager;
-import com.velocitypowered.proxy.command.builtin.AlertCommand;
-import com.velocitypowered.proxy.command.builtin.AlertRawCommand;
-import com.velocitypowered.proxy.command.builtin.CallbackCommand;
-import com.velocitypowered.proxy.command.builtin.FindCommand;
-import com.velocitypowered.proxy.command.builtin.GlistCommand;
-import com.velocitypowered.proxy.command.builtin.HubCommand;
-import com.velocitypowered.proxy.command.builtin.PingCommand;
-import com.velocitypowered.proxy.command.builtin.SendCommand;
-import com.velocitypowered.proxy.command.builtin.ServerCommand;
-import com.velocitypowered.proxy.command.builtin.ShowAllCommand;
-import com.velocitypowered.proxy.command.builtin.ShutdownCommand;
-import com.velocitypowered.proxy.command.builtin.VelocityCommand;
+import com.velocitypowered.proxy.command.builtin.*;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
+import com.velocitypowered.proxy.config.VelocityRedisConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.connection.player.resourcepack.VelocityResourcePackInfo;
 import com.velocitypowered.proxy.connection.util.ServerListPingHandler;
@@ -62,6 +52,7 @@ import com.velocitypowered.proxy.plugin.VelocityPluginManager;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.util.FaviconSerializer;
 import com.velocitypowered.proxy.protocol.util.GameProfileSerializer;
+import com.velocitypowered.proxy.redis.RedisManagerImpl;
 import com.velocitypowered.proxy.scheduler.VelocityScheduler;
 import com.velocitypowered.proxy.server.ServerMap;
 import com.velocitypowered.proxy.util.AddressUtil;
@@ -159,6 +150,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private final ConnectionManager cm;
   private final ProxyOptions options;
   private @MonotonicNonNull VelocityConfiguration configuration;
+  private VelocityRedisConfiguration redisConfiguration;
   private @MonotonicNonNull KeyPair serverKeyPair;
   private final ServerMap servers;
   private final VelocityCommandManager commandManager;
@@ -175,6 +167,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private final VelocityChannelRegistrar channelRegistrar = new VelocityChannelRegistrar();
   private final ServerListPingHandler serverListPingHandler;
   private final Key translationRegistryKey = Key.key("velocity", "translations");
+
+  private RedisManagerImpl redisManagerImpl;
 
   VelocityServer(final ProxyOptions options) {
     pluginManager = new VelocityPluginManager(this);
@@ -195,6 +189,10 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   @Override
   public VelocityConfiguration getConfiguration() {
     return this.configuration;
+  }
+
+  public VelocityRedisConfiguration getRedisConfiguration() {
+    return this.redisConfiguration;
   }
 
   @Override
@@ -236,6 +234,10 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     cm.logChannelInformation();
 
     this.doStartupConfigLoad();
+    this.doStartupRedisConfigLoad();
+
+    redisManagerImpl = new RedisManagerImpl(this);
+
 
     // Initialize commands first
     commandManager.register(VelocityCommand.create(this));
@@ -395,6 +397,25 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     }
   }
 
+  private void doStartupRedisConfigLoad() {
+    try {
+      Path configPath = Path.of("velocity-redis.toml");
+      redisConfiguration = VelocityRedisConfiguration.read(configPath);
+
+      if (!configuration.validate()) {
+        logger.error("Your redis configuration is invalid. Velocity will not start up until the errors "
+                + "are resolved.");
+        LogManager.shutdown();
+        System.exit(1);
+      }
+
+    } catch (Exception e) {
+      logger.error("Unable to read/load/save your default-velocity-redis.toml. The server will shut down.", e);
+      LogManager.shutdown();
+      System.exit(1);
+    }
+  }
+
   private void loadPlugins() {
     logger.info("Loading plugins...");
 
@@ -430,6 +451,11 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     }
 
     logger.info("Loaded {} plugins", pluginManager.getPlugins().size());
+  }
+
+  @Override
+  public RedisManagerImpl getRedisManager(){
+    return redisManagerImpl;
   }
 
   public Bootstrap createBootstrap(@Nullable EventLoopGroup group) {
@@ -584,6 +610,10 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
     if (!commandManager.hasCommand("glist")) {
       new GlistCommand(this).register(configuration.isGlistEnabled());
+    }
+
+    if(!commandManager.hasCommand("plist")){
+      new PlistCommand(this).register(getRedisConfiguration().isPlistEnabled());
     }
 
     if (!commandManager.hasCommand("ping")) {

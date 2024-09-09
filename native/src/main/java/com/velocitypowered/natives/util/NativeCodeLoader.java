@@ -29,7 +29,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class NativeCodeLoader<T> implements Supplier<T> {
 
-  private final Variant<T> selected;
+  private final Variant<T>  selected;
 
   NativeCodeLoader(List<Variant<T>> variants) {
     this.selected = getVariant(variants);
