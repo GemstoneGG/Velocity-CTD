@@ -19,7 +19,6 @@ package com.velocitypowered.proxy.command.builtin;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 
-import com.google.common.collect.ImmutableList;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -31,12 +30,9 @@ import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import com.velocitypowered.proxy.VelocityServer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -121,9 +117,9 @@ public class GlistCommand {
 
   private void sendTotalProxyCount(CommandSource target) {
     final int online;
-    if(server.getRedisManager().isEnabled()){
+    if (server.getRedisManager().isEnabled()) {
       online = server.getRedisManager().getTotalPlayerCount();
-    }else{
+    } else {
       online = server.getPlayerCount();
     }
 
@@ -139,10 +135,10 @@ public class GlistCommand {
   private void sendServerPlayers(final CommandSource target,
                                  final RegisteredServer server, final boolean fromAll) {
     List<String> usernames = new ArrayList<>();
-    if(this.server.getRedisManager().isEnabled()){
+    if (this.server.getRedisManager().isEnabled()) {
       usernames = this.server.getRedisManager().getConnectedPlayerNames(server.getServerInfo().getName());
-    }else{
-      for(Player player : server.getPlayersConnected()){
+    } else {
+      for (Player player : server.getPlayersConnected()) {
         usernames.add(player.getUsername());
       }
     }

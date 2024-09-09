@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2018-2024 Velocity Contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.velocitypowered.proxy.redis;
 
 import com.google.gson.Gson;
@@ -6,153 +23,178 @@ import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.redis.RedisManager;
 import com.velocitypowered.proxy.VelocityServer;
-import redis.clients.jedis.*;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import redis.clients.jedis.DefaultJedisClientConfig;
+import redis.clients.jedis.DefaultRedisCredentials;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
 
+/**
+ * Velocity's Redis manager.
+ */
 public class RedisManagerImpl implements RedisManager {
-    private JedisPool jedisPool;
-    private final Gson gson = new Gson();
+  private JedisPool jedisPool;
+  private final Gson gson = new Gson();
 
-    private final boolean enabled;
+  private final boolean enabled;
 
-    private final VelocityServer velocityServer;
+  private final VelocityServer velocityServer;
 
-    public RedisManagerImpl(VelocityServer server){
-        this.velocityServer = server;
-        this.enabled = server.getRedisConfiguration().isUseRedis();
-        if(!enabled) return;
+  /**
+   * Implements the Velocity {@code redis} manager.
+   */
+  public RedisManagerImpl(VelocityServer server) {
+    this.velocityServer = server;
+    this.enabled = server.getRedisConfiguration().useRedis();
 
-        DefaultJedisClientConfig config = DefaultJedisClientConfig.builder()
-                .credentials(new DefaultRedisCredentials(server.getRedisConfiguration().getUsername(),
-                        server.getRedisConfiguration().getPassword())).build();
+    if (!enabled) {
+      return;
+    }
+    DefaultJedisClientConfig config = DefaultJedisClientConfig.builder()
+        .credentials(new DefaultRedisCredentials(server.getRedisConfiguration().username(),
+            server.getRedisConfiguration().password())).build();
 
-        HostAndPort address = new HostAndPort(server.getRedisConfiguration().getHost(),
-                server.getRedisConfiguration().getPort());
-        JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
-        jedisPoolConfig.setMaxTotal(server.getRedisConfiguration().getMaximumRedisConnections());
-        jedisPoolConfig.setBlockWhenExhausted(false);
-        jedisPool = new JedisPool(jedisPoolConfig, address, config);
+    HostAndPort address = new HostAndPort(server.getRedisConfiguration().host(),
+        server.getRedisConfiguration().port());
+    JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
+    jedisPoolConfig.setMaxTotal(server.getRedisConfiguration().maximumRedisConnections());
+    jedisPoolConfig.setBlockWhenExhausted(false);
+    jedisPool = new JedisPool(jedisPoolConfig, address, config);
+  }
+
+  @Override
+  public void send(Object object) {
+    if (!enabled) {
+      return;
     }
 
-    @Override
-    public void send(Object object){
-        if(!enabled) return;
+    try (Jedis jedis = jedisPool.getResource()) {
+      jedis.publish("velocity_redis_channel", gson.toJson(object));
+    } catch (Exception e) {
+      System.out.println("Something went wrong trying to sent a message through redis.");
+      e.printStackTrace();
+    }
+  }
 
-        try(Jedis jedis = jedisPool.getResource()) {
-            jedis.publish("velocity_redis_channel", gson.toJson(object));
-        }catch(Exception e){
-            System.out.println("Something went wrong trying to sent a message through redis.");
-            e.printStackTrace();
-        }
+  @Override
+  public void send(Object object, String channel) {
+    if (!enabled) {
+      return;
     }
 
-    @Override
-    public void send(Object object, String channel){
-        if(!enabled) return;
+    try (Jedis jedis = jedisPool.getResource()) {
+      jedis.publish(channel, gson.toJson(object));
+    } catch (Exception e) {
+      System.out.println("Something went wrong trying to sent a message through redis.");
+      e.printStackTrace();
+    }
+  }
 
-        try(Jedis jedis = jedisPool.getResource()) {
-            jedis.publish(channel, gson.toJson(object));
-        }catch(Exception e){
-            System.out.println("Something went wrong trying to sent a message through redis.");
-            e.printStackTrace();
-        }
+  @Override
+  public void savePlayer(Player player) {
+    if (!enabled) {
+      return;
     }
 
-    @Override
-    public void savePlayer(Player player) {
-        if(!enabled) return;
-
-        ServerConnection connection = player.getCurrentServer().orElse(null);
-        if(connection == null) return;
-        String playerKey = "player:" + player.getUniqueId().toString();
-
-        try(Jedis jedis = jedisPool.getResource()){
-            jedis.set(playerKey, player.getUsername());
-            jedis.sadd("server:" + connection.getServerInfo().getName(), player.getUniqueId().toString());
-        }
+    ServerConnection connection = player.getCurrentServer().orElse(null);
+    if (connection == null) {
+      return;
     }
 
-    @Override
-    public void removePlayer(Player player) {
-        if(!enabled) return;
+    String playerKey = "player:" + player.getUniqueId().toString();
 
-        ServerConnection connection = player.getCurrentServer().orElse(null);
-        if(connection == null) return;
+    try (Jedis jedis = jedisPool.getResource()) {
+      jedis.set(playerKey, player.getUsername());
+      jedis.sadd("server:" + connection.getServerInfo().getName(), player.getUniqueId().toString());
+    }
+  }
 
-        String playerKey = "player:" + player.getUniqueId().toString();
-
-        try(Jedis jedis = jedisPool.getResource()){
-            jedis.del(playerKey);
-            jedis.srem("server:" + connection.getServerInfo().getName(), player.getUniqueId().toString());
-        }
+  @Override
+  public void removePlayer(Player player) {
+    if (!enabled) {
+      return;
     }
 
-    @Override
-    public int getPlayerCount(String server){
-        if(!enabled){
-            RegisteredServer registeredServer = velocityServer.getServer(server).orElse(null);
-            if(registeredServer != null){
-                return registeredServer.getPlayersConnected().size();
-            }
-            return 0;
-        }
-
-        int amount;
-        try(Jedis jedis = jedisPool.getResource()){
-            amount = (int)jedis.scard("server:" + server);
-        }
-        return amount;
+    ServerConnection connection = player.getCurrentServer().orElse(null);
+    if (connection == null) {
+      return;
     }
 
-    @Override
-    public int getTotalPlayerCount() {
-        if(!enabled){
-            return velocityServer.getPlayerCount();
-        }
+    String playerKey = "player:" + player.getUniqueId().toString();
 
-        int count = 0;
-        try(Jedis jedis = jedisPool.getResource()){
-            Set<String> serverKeys = jedis.keys("server:*");
+    try (Jedis jedis = jedisPool.getResource()) {
+      jedis.del(playerKey);
+      jedis.srem("server:" + connection.getServerInfo().getName(), player.getUniqueId().toString());
+    }
+  }
 
-            for(String serverKey : serverKeys){
-                count += (int) jedis.scard(serverKey);
-            }
-        }
-        return count;
+  @Override
+  public int getPlayerCount(String server) {
+    if (!enabled) {
+      RegisteredServer registeredServer = velocityServer.getServer(server).orElse(null);
+      if (registeredServer != null) {
+        return registeredServer.getPlayersConnected().size();
+      }
+      return 0;
     }
 
-    @Override
-    public boolean isEnabled() {
-        return enabled;
+    int amount;
+
+    try (Jedis jedis = jedisPool.getResource()) {
+      amount = (int) jedis.scard("server:" + server);
+    }
+    return amount;
+  }
+
+  @Override
+  public int getTotalPlayerCount() {
+    if (!enabled) {
+      return velocityServer.getPlayerCount();
     }
 
-    @Override
-    public List<String> getConnectedPlayerNames(String name) {
-        List<String> allUsernames = new ArrayList<>();
+    int count = 0;
 
-        // Get all server keys
-        try(Jedis jedis = jedisPool.getResource()) {
-            Set<String> serverKeys = jedis.keys("server:*");
+    try (Jedis jedis = jedisPool.getResource()) {
+      Set<String> serverKeys = jedis.keys("server:*");
 
-            // Iterate through each server key
-            for (String serverKey : serverKeys) {
-                // Get all player UUIDs connected to this server
-                Set<String> playerUUIDs = jedis.smembers(serverKey);
+      for (String serverKey : serverKeys) {
+        count += (int) jedis.scard(serverKey);
+      }
+    }
+    return count;
+  }
 
-                // Retrieve and add the username for each UUID
-                for (String uuid : playerUUIDs) {
-                    String username = jedis.get("player:" + uuid);
-                    if (username != null) {
-                        allUsernames.add(username);
-                    }
-                }
-            }
+  @Override
+  public boolean isEnabled() {
+    return enabled;
+  }
 
+  @Override
+  public List<String> getConnectedPlayerNames(String name) {
+    List<String> allUsernames = new ArrayList<>();
+
+    // Get all server keys
+    try (Jedis jedis = jedisPool.getResource()) {
+      Set<String> serverKeys = jedis.keys("server:*");
+
+      // Iterate through each server key
+      for (String serverKey : serverKeys) {
+        // Get all player UUIDs connected to this server
+        Set<String> playerUuids = jedis.smembers(serverKey);
+
+        // Retrieve and add the username for each UUID
+        for (String uuid : playerUuids) {
+          String username = jedis.get("player:" + uuid);
+          if (username != null) {
+            allUsernames.add(username);
+          }
         }
-        return allUsernames;
+      }
     }
-
+    return allUsernames;
+  }
 }

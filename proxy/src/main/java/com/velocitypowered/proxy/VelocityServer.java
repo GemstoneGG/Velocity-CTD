@@ -38,7 +38,19 @@ import com.velocitypowered.api.util.Favicon;
 import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.api.util.ProxyVersion;
 import com.velocitypowered.proxy.command.VelocityCommandManager;
-import com.velocitypowered.proxy.command.builtin.*;
+import com.velocitypowered.proxy.command.builtin.AlertCommand;
+import com.velocitypowered.proxy.command.builtin.AlertRawCommand;
+import com.velocitypowered.proxy.command.builtin.CallbackCommand;
+import com.velocitypowered.proxy.command.builtin.FindCommand;
+import com.velocitypowered.proxy.command.builtin.GlistCommand;
+import com.velocitypowered.proxy.command.builtin.HubCommand;
+import com.velocitypowered.proxy.command.builtin.PingCommand;
+import com.velocitypowered.proxy.command.builtin.PlistCommand;
+import com.velocitypowered.proxy.command.builtin.SendCommand;
+import com.velocitypowered.proxy.command.builtin.ServerCommand;
+import com.velocitypowered.proxy.command.builtin.ShowAllCommand;
+import com.velocitypowered.proxy.command.builtin.ShutdownCommand;
+import com.velocitypowered.proxy.command.builtin.VelocityCommand;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.config.VelocityRedisConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -454,7 +466,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   }
 
   @Override
-  public RedisManagerImpl getRedisManager(){
+  public RedisManagerImpl getRedisManager() {
     return redisManagerImpl;
   }
 
@@ -612,8 +624,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       new GlistCommand(this).register(configuration.isGlistEnabled());
     }
 
-    if(!commandManager.hasCommand("plist")){
-      new PlistCommand(this).register(getRedisConfiguration().isPlistEnabled());
+    if (!commandManager.hasCommand("plist")) {
+      new PlistCommand(this).register(getRedisConfiguration().plistEnabled());
     }
 
     if (!commandManager.hasCommand("ping")) {
