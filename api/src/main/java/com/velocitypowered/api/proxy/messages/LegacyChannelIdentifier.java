@@ -36,6 +36,11 @@ public final class LegacyChannelIdentifier implements ChannelIdentifier {
   }
 
   @Override
+  public String toString() {
+    return name + " (legacy)";
+  }
+
+  @Override
   public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;

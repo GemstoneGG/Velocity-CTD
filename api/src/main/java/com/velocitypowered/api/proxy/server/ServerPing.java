@@ -415,7 +415,7 @@ public final class ServerPing {
       }
       Players players = (Players) o;
       return online == players.online && max == players.max
-              && Objects.equals(sample, players.sample);
+          && Objects.equals(sample, players.sample);
     }
 
     @Override

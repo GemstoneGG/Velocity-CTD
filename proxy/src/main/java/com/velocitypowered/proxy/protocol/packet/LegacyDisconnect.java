@@ -25,7 +25,6 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
-
 /**
  * Represents a legacy disconnect packet that contains a reason for disconnection.
  * This class is used to convert modern server ping responses into the legacy format,

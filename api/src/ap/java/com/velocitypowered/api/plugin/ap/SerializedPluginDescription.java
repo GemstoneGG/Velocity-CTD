@@ -164,7 +164,7 @@ public final class SerializedPluginDescription {
       }
       Dependency that = (Dependency) o;
       return optional == that.optional
-              && Objects.equals(id, that.id);
+          && Objects.equals(id, that.id);
     }
 
     @Override
