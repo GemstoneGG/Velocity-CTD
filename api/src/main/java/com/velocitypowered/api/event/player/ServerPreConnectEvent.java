@@ -133,7 +133,7 @@ public final class ServerPreConnectEvent implements
     @Override
     public String toString() {
       if (server != null) {
-        return "allowed: connect to " + server.getServerInfo().name();
+        return "allowed: connect to " + server.getServerInfo().getName();
       }
       return "denied";
     }

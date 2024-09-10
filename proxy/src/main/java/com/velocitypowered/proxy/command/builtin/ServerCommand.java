@@ -66,7 +66,7 @@ public final class ServerCommand {
                 .requires(commandSource -> {
                   boolean flag = false;
                   for (final RegisteredServer sv : server.getAllServers()) {
-                    final String serverName = sv.getServerInfo().name();
+                    final String serverName = sv.getServerInfo().getName();
                     if (commandSource.getPermissionValue("velocity.command.server." + serverName) != Tristate.FALSE) {
                       flag = true;
                       break;
@@ -79,7 +79,7 @@ public final class ServerCommand {
                       ? StringArgumentType.getString(ctx, SERVER_ARG)
                       : "";
               for (final RegisteredServer sv : server.getAllServers()) {
-                final String serverName = sv.getServerInfo().name();
+                final String serverName = sv.getServerInfo().getName();
                 if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
                   if (ctx.getSource().getPermissionValue("velocity.command.server." + serverName) != Tristate.FALSE) {
                     builder.suggest(serverName);
@@ -119,7 +119,7 @@ public final class ServerCommand {
                                               final ProxyServer server) {
     final String currentServer = executor.getCurrentServer()
         .map(ServerConnection::getServerInfo)
-        .map(ServerInfo::name)
+        .map(ServerInfo::getName)
         .orElse("<unknown>");
     executor.sendMessage(Component.translatable(
         "velocity.command.server-current-server",
@@ -136,7 +136,7 @@ public final class ServerCommand {
     // Filter servers based on player permissions
     final List<RegisteredServer> accessibleServers = servers.stream()
         .filter(rs -> executor.getPermissionValue("velocity.command.server."
-            + rs.getServerInfo().name()) != Tristate.FALSE)
+            + rs.getServerInfo().getName()) != Tristate.FALSE)
         .toList();
 
     if (accessibleServers.isEmpty()) {
@@ -164,7 +164,7 @@ public final class ServerCommand {
                                               final RegisteredServer server) {
     final ServerInfo serverInfo = server.getServerInfo();
     final TextComponent.Builder serverTextComponent = Component.text()
-            .content(serverInfo.name());
+            .content(serverInfo.getName());
 
     final int connectedPlayers = server.getPlayersConnected().size();
     final TranslatableComponent.Builder playersTextComponent = Component.translatable();
@@ -174,7 +174,7 @@ public final class ServerCommand {
       playersTextComponent.key("velocity.command.server-tooltip-players-online");
     }
     playersTextComponent.arguments(Component.text(connectedPlayers));
-    if (serverInfo.name().equals(currentPlayerServer)) {
+    if (serverInfo.getName().equals(currentPlayerServer)) {
       serverTextComponent.color(NamedTextColor.GREEN)
           .hoverEvent(
               showText(
@@ -185,7 +185,7 @@ public final class ServerCommand {
           );
     } else {
       serverTextComponent.color(NamedTextColor.GRAY)
-          .clickEvent(ClickEvent.runCommand("/server " + serverInfo.name()))
+          .clickEvent(ClickEvent.runCommand("/server " + serverInfo.getName()))
           .hoverEvent(
               showText(
                   Component.empty()

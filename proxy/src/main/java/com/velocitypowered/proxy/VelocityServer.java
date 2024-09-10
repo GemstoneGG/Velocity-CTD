@@ -525,7 +525,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         for (Player player : rs.get().getPlayersConnected()) {
           if (!(player instanceof ConnectedPlayer)) {
             throw new IllegalStateException("ConnectedPlayer not found for player " + player
-                + " in server " + rs.get().getServerInfo().name());
+                + " in server " + rs.get().getServerInfo().getName());
           }
           evacuate.add((ConnectedPlayer) player);
         }
@@ -670,7 +670,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     });
 
     newConfigServers.forEach(serverInfo -> {
-      if (getServer(serverInfo.name()).isEmpty()) {
+      if (getServer(serverInfo.getName()).isEmpty()) {
         registerServer(serverInfo);
       }
     });
@@ -879,7 +879,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   public Collection<RegisteredServer> matchServer(String partialName) {
     Objects.requireNonNull(partialName);
 
-    return getAllServers().stream().filter(s -> s.getServerInfo().name()
+    return getAllServers().stream().filter(s -> s.getServerInfo().getName()
             .regionMatches(true, 0, partialName, 0, partialName.length()))
         .collect(Collectors.toList());
   }

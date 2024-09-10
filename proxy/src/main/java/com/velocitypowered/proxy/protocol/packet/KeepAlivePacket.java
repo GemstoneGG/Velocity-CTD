@@ -25,7 +25,7 @@ import io.netty.buffer.ByteBuf;
 
 /**
  * Represents a KeepAlive packet in Minecraft. This packet is used to ensure that the connection
- * between the client and the server is still active by sending a randomly generated ID that
+ * between the client and the server are still active by sending a randomly generated ID that
  * the client must respond to.
  */
 public class KeepAlivePacket implements MinecraftPacket {

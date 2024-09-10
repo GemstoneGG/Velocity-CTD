@@ -103,7 +103,7 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     // switches.
     server.createBootstrap(proxyPlayer.getConnection().eventLoop())
         .handler(server.getBackendChannelInitializer())
-        .connect(registeredServer.getServerInfo().address())
+        .connect(registeredServer.getServerInfo().getAddress())
         .addListener((ChannelFutureListener) future -> {
           if (future.isSuccess()) {
             connection = new MinecraftConnection(future.channel(), server);
@@ -145,7 +145,7 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
   private String createLegacyForwardingAddress() {
     return PlayerDataForwarding.createLegacyForwardingAddress(
       proxyPlayer.getVirtualHost().orElseGet(() ->
-        registeredServer.getServerInfo().address()).getHostString(),
+        registeredServer.getServerInfo().getAddress()).getHostString(),
       getPlayerRemoteAddressAsString(),
       proxyPlayer.getGameProfile()
     );
@@ -154,7 +154,7 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
   private String createBungeeGuardForwardingAddress(byte[] forwardingSecret) {
     return PlayerDataForwarding.createBungeeGuardForwardingAddress(
       proxyPlayer.getVirtualHost().orElseGet(() ->
-        registeredServer.getServerInfo().address()).getHostString(),
+        registeredServer.getServerInfo().getAddress()).getHostString(),
       getPlayerRemoteAddressAsString(),
       proxyPlayer.getGameProfile(),
       forwardingSecret
@@ -163,12 +163,12 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
 
   private void startHandshake() {
     final MinecraftConnection mc = ensureConnected();
-    PlayerInfoForwarding forwardingMode = server.getConfiguration().getServerForwardingMode(registeredServer.getServerInfo().name());
+    PlayerInfoForwarding forwardingMode = server.getConfiguration().getServerForwardingMode(registeredServer.getServerInfo().getName());
 
     // Initiate the handshake.
     ProtocolVersion protocolVersion = proxyPlayer.getConnection().getProtocolVersion();
     String playerVhost = proxyPlayer.getVirtualHost()
-                .orElseGet(() -> registeredServer.getServerInfo().address())
+                .orElseGet(() -> registeredServer.getServerInfo().getAddress())
                 .getHostString();
 
     HandshakePacket handshake = new HandshakePacket();
@@ -189,7 +189,7 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     }
 
     handshake.setPort(proxyPlayer.getVirtualHost()
-            .orElseGet(() -> registeredServer.getServerInfo().address())
+            .orElseGet(() -> registeredServer.getServerInfo().getAddress())
             .getPort());
     mc.delayedWrite(handshake);
 
@@ -256,7 +256,7 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
   @Override
   public String toString() {
     return "[server connection] " + proxyPlayer.getGameProfile().getName() + " -> "
-        + registeredServer.getServerInfo().name();
+        + registeredServer.getServerInfo().getName();
   }
 
   @Override

@@ -200,7 +200,7 @@ public enum InformationUtils {
   public static JsonObject collectServerInfo(RegisteredServer server) {
     JsonObject info = new JsonObject();
     info.addProperty("currentPlayers", server.getPlayersConnected().size());
-    InetSocketAddress iaddr = server.getServerInfo().address();
+    InetSocketAddress iaddr = server.getServerInfo().getAddress();
     if (iaddr.isUnresolved()) {
       // Greetings form Netty 4aa10db9
       info.addProperty("host", iaddr.getHostString());

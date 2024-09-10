@@ -113,7 +113,7 @@ public class FindCommand {
 
     context.getSource().sendMessage(
         Component.translatable("velocity.command.find.message", NamedTextColor.YELLOW,
-            Component.text(p.getUsername()), Component.text(server.getServerInfo().name()))
+            Component.text(p.getUsername()), Component.text(server.getServerInfo().getName()))
     );
     return Command.SINGLE_SUCCESS;
   }

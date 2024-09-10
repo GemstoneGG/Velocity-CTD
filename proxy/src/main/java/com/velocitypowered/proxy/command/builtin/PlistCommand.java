@@ -74,7 +74,7 @@ public class PlistCommand {
     List<String> usernames = new ArrayList<>();
 
     if (this.server.getRedisManager().isEnabled()) {
-      usernames = this.server.getRedisManager().getConnectedPlayerNames(serverConnection.getServerInfo().name());
+      usernames = this.server.getRedisManager().getConnectedPlayerNames(serverConnection.getServerInfo().getName());
     } else {
       for (Player player : serverConnection.getServer().getPlayersConnected()) {
         usernames.add(player.getUsername());
@@ -95,7 +95,7 @@ public class PlistCommand {
             final TranslatableComponent.Builder builder = Component.translatable()
                 .key("velocity.command.glist-server")
                 .arguments(
-                    Component.text(serverInfo.name()),
+                    Component.text(serverInfo.getName()),
                     Component.text(usernames.size()),
                     Component.text(playerList)
                 );

@@ -310,7 +310,7 @@ public final class VelocityCommand {
       final Collection<RegisteredServer> allServers = Set.copyOf(server.getAllServers());
       final JsonObject servers = new JsonObject();
       for (final RegisteredServer iter : allServers) {
-        servers.add(iter.getServerInfo().name(),
+        servers.add(iter.getServerInfo().getName(),
             InformationUtils.collectServerInfo(iter));
       }
       final JsonArray connectOrder = new JsonArray();

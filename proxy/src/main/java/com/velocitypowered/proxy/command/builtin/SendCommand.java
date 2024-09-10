@@ -83,7 +83,7 @@ public class SendCommand {
 
           if (argument.isEmpty() || argument.startsWith("+")) {
             for (final RegisteredServer server : server.getAllServers()) {
-              final String serverName = server.getServerInfo().name();
+              final String serverName = server.getServerInfo().getName();
 
               if (serverName.regionMatches(true, 0, argument, 1, argument.length() - 1)) {
                 builder.suggest("+" + serverName);
@@ -101,9 +101,9 @@ public class SendCommand {
               ? context.getArgument(SERVER_ARG, String.class)
               : "";
           for (final RegisteredServer server : server.getAllServers()) {
-            final String serverName = server.getServerInfo().name();
+            final String serverName = server.getServerInfo().getName();
             if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
-              builder.suggest(server.getServerInfo().name());
+              builder.suggest(server.getServerInfo().getName());
             }
           }
           return builder.buildFuture();
@@ -156,7 +156,7 @@ public class SendCommand {
       context.getSource().sendMessage(Component.translatable(globalCount == 1
               ? "velocity.command.send-all-singular" : "velocity.command.send-all-plural",
           Component.text(globalCount),
-          Component.text(targetServer.getServerInfo().name())));
+          Component.text(targetServer.getServerInfo().getName())));
       return Command.SINGLE_SUCCESS;
     }
 
@@ -174,8 +174,8 @@ public class SendCommand {
         }
         context.getSource().sendMessage(Component.translatable(players.size() == 1
                 ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural",
-            Component.text(players.size()), Component.text(connectedServer.get().getServerInfo().name()),
-            Component.text(targetServer.getServerInfo().name())));
+            Component.text(players.size()), Component.text(connectedServer.get().getServerInfo().getName()),
+            Component.text(targetServer.getServerInfo().getName())));
         return Command.SINGLE_SUCCESS;
       }
       return 0;
@@ -208,21 +208,21 @@ public class SendCommand {
   private void sendPlayer(CommandContext<CommandSource> context, Player player0, RegisteredServer targetServer) {
     if (player0.getCurrentServer().isPresent() && player0.getCurrentServer().get().getServer().equals(targetServer)) {
       context.getSource().sendMessage(Component.translatable("velocity.command.send-player-none",
-              Component.text(player0.getUsername()), Component.text(targetServer.getServerInfo().name())));
+              Component.text(player0.getUsername()), Component.text(targetServer.getServerInfo().getName())));
     } else {
       player0.createConnectionRequest(targetServer).fireAndForget();
       context.getSource().sendMessage(Component.translatable("velocity.command.send-player",
-              Component.text(player0.getUsername()), Component.text(targetServer.getServerInfo().name())));
+              Component.text(player0.getUsername()), Component.text(targetServer.getServerInfo().getName())));
     }
   }
 
   private void sendPlayersFromServer(CommandContext<CommandSource> context, RegisteredServer server, RegisteredServer targetServer) {
     final int playerSize = server.getPlayersConnected().size();
-    final String name = server.getServerInfo().name();
+    final String name = server.getServerInfo().getName();
 
     if (playerSize == 0) {
       context.getSource().sendMessage(Component.translatable("velocity.command.send-server-none",
-              Component.text(name), Component.text(targetServer.getServerInfo().name())));
+              Component.text(name), Component.text(targetServer.getServerInfo().getName())));
       return;
     }
     for (Player targetPlayer : server.getPlayersConnected()) {
@@ -231,7 +231,7 @@ public class SendCommand {
     context.getSource().sendMessage(Component.translatable(playerSize == 1
                     ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural",
             Component.text(playerSize), Component.text(name),
-            Component.text(targetServer.getServerInfo().name())));
+            Component.text(targetServer.getServerInfo().getName())));
   }
 
   private ServerResult findServer(String serverName) {
@@ -242,7 +242,7 @@ public class SendCommand {
     boolean multipleMatches = false;
 
     for (RegisteredServer server : servers) {
-      final String lowerName = server.getServerInfo().name().toLowerCase();
+      final String lowerName = server.getServerInfo().getName().toLowerCase();
 
       if (lowerName.equals(lowerServerName)) {
         bestMatch = Optional.of(server);

@@ -64,7 +64,7 @@ public class ShowAllCommand {
               ? context.getArgument("server", String.class)
               : "";
           for (final RegisteredServer s : server.getAllServers()) {
-            final String serverName = s.getServerInfo().name();
+            final String serverName = s.getServerInfo().getName();
             if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
               builder.suggest(serverName);
             }
@@ -98,7 +98,7 @@ public class ShowAllCommand {
     final Component header = Component.translatable(connectedPlayers == 0 ? "velocity.command.showall.header-none"
                 : (connectedPlayers == 1 ? "velocity.command.showall.header-singular"
                 : "velocity.command.showall.header-plural"), NamedTextColor.YELLOW)
-        .arguments(Component.text(connectedPlayers), Component.text(server.getServerInfo().name()));
+        .arguments(Component.text(connectedPlayers), Component.text(server.getServerInfo().getName()));
 
     context.getSource().sendMessage(header);
 

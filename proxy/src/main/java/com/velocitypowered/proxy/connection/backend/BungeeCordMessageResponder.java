@@ -112,7 +112,7 @@ public class BungeeCordMessageResponder {
         proxy.getServer(target).ifPresent(rs -> {
           int playersOnServer = rs.getPlayersConnected().size();
           out.writeUTF("PlayerCount");
-          out.writeUTF(rs.getServerInfo().name());
+          out.writeUTF(rs.getServerInfo().getName());
           out.writeInt(playersOnServer);
         });
       }
@@ -142,7 +142,7 @@ public class BungeeCordMessageResponder {
       } else {
         proxy.getServer(target).ifPresent(info -> {
           out.writeUTF("PlayerList");
-          out.writeUTF(info.getServerInfo().name());
+          out.writeUTF(info.getServerInfo().getName());
 
           final StringJoiner joiner = new StringJoiner(", ");
           for (Player online : info.getPlayersConnected()) {
@@ -163,7 +163,7 @@ public class BungeeCordMessageResponder {
   private void processGetServers() {
     StringJoiner joiner = new StringJoiner(", ");
     for (RegisteredServer server : proxy.getAllServers()) {
-      joiner.add(server.getServerInfo().name());
+      joiner.add(server.getServerInfo().getName());
     }
 
     ByteBuf buf = Unpooled.buffer();
@@ -200,7 +200,7 @@ public class BungeeCordMessageResponder {
     ByteBuf buf = Unpooled.buffer();
     try (ByteBufDataOutput out = new ByteBufDataOutput(buf)) {
       out.writeUTF("GetServer");
-      out.writeUTF(player.ensureAndGetCurrentServer().getServerInfo().name());
+      out.writeUTF(player.ensureAndGetCurrentServer().getServerInfo().getName());
     }
 
     sendResponseOnConnection(buf);
@@ -248,9 +248,9 @@ public class BungeeCordMessageResponder {
       ByteBuf buf = Unpooled.buffer();
       try (ByteBufDataOutput out = new ByteBufDataOutput(buf)) {
         out.writeUTF("ServerIP");
-        out.writeUTF(info.getServerInfo().name());
-        out.writeUTF(info.getServerInfo().address().getHostString());
-        out.writeShort(info.getServerInfo().address().getPort());
+        out.writeUTF(info.getServerInfo().getName());
+        out.writeUTF(info.getServerInfo().getAddress().getHostString());
+        out.writeShort(info.getServerInfo().getAddress().getPort());
       }
 
       sendResponseOnConnection(buf);

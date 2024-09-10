@@ -114,7 +114,7 @@ public class RedisManagerImpl implements RedisManager {
 
     try (Jedis jedis = jedisPool.getResource()) {
       jedis.set(playerKey, player.getUsername());
-      jedis.sadd("server:" + connection.getServerInfo().name(), player.getUniqueId().toString());
+      jedis.sadd("server:" + connection.getServerInfo().getName(), player.getUniqueId().toString());
     }
   }
 
@@ -133,7 +133,7 @@ public class RedisManagerImpl implements RedisManager {
 
     try (Jedis jedis = jedisPool.getResource()) {
       jedis.del(playerKey);
-      jedis.srem("server:" + connection.getServerInfo().name(), player.getUniqueId().toString());
+      jedis.srem("server:" + connection.getServerInfo().getName(), player.getUniqueId().toString());
     }
   }
 
