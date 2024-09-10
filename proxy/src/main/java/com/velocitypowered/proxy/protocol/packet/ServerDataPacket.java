@@ -95,11 +95,11 @@ public class ServerDataPacket implements MinecraftPacket {
     buf.writeBoolean(hasFavicon);
     if (hasFavicon) {
       if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_19_4)) {
-        String cutIconBase64 = favicon.base64Url().substring("data:image/png;base64,".length());
+        String cutIconBase64 = favicon.getBase64Url().substring("data:image/png;base64,".length());
         byte[] iconBytes = Base64.getDecoder().decode(cutIconBase64.getBytes(StandardCharsets.UTF_8));
         ProtocolUtils.writeByteArray(buf, iconBytes);
       } else {
-        ProtocolUtils.writeString(buf, favicon.base64Url());
+        ProtocolUtils.writeString(buf, favicon.getBase64Url());
       }
     }
 

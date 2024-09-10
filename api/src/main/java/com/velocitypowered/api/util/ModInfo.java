@@ -70,16 +70,23 @@ public final class ModInfo {
   /**
    * Represents a mod to send to the client.
    */
-  public record Mod(@SerializedName("modid") String id, String version) {
+  public static final class Mod {
+
+    @SerializedName("modid")
+    private final String id;
+    private final String version;
 
     public Mod(String id, String version) {
       this.id = Preconditions.checkNotNull(id, "id");
       this.version = Preconditions.checkNotNull(version, "version");
     }
 
-    @Override
-    public String id() {
+    public String getId() {
       return id;
+    }
+
+    public String getVersion() {
+      return version;
     }
 
     @Override
@@ -100,6 +107,11 @@ public final class ModInfo {
       }
       Mod mod = (Mod) o;
       return id.equals(mod.id) && version.equals(mod.version);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(id, version);
     }
   }
 }

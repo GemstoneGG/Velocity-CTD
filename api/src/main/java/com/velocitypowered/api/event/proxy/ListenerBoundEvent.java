@@ -14,11 +14,22 @@ import java.net.InetSocketAddress;
 /**
  * This event is fired by the proxy after a listener starts accepting connections.
  */
-public record ListenerBoundEvent(InetSocketAddress address, ListenerType listenerType) {
+public final class ListenerBoundEvent {
+
+  private final InetSocketAddress address;
+  private final ListenerType listenerType;
 
   public ListenerBoundEvent(InetSocketAddress address, ListenerType listenerType) {
     this.address = Preconditions.checkNotNull(address, "address");
     this.listenerType = Preconditions.checkNotNull(listenerType, "listenerType");
+  }
+
+  public InetSocketAddress getAddress() {
+    return address;
+  }
+
+  public ListenerType getListenerType() {
+    return listenerType;
   }
 
   @Override

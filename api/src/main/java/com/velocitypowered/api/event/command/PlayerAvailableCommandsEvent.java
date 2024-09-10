@@ -22,7 +22,10 @@ import com.velocitypowered.api.proxy.Player;
  */
 @AwaitingEvent
 @Beta
-public record PlayerAvailableCommandsEvent(Player player, RootCommandNode<?> rootNode) {
+public class PlayerAvailableCommandsEvent {
+
+  private final Player player;
+  private final RootCommandNode<?> rootNode;
 
   /**
    * Constructs an available commands event.
@@ -34,5 +37,13 @@ public record PlayerAvailableCommandsEvent(Player player, RootCommandNode<?> roo
       RootCommandNode<?> rootNode) {
     this.player = checkNotNull(player, "player");
     this.rootNode = checkNotNull(rootNode, "rootNode");
+  }
+
+  public Player getPlayer() {
+    return player;
+  }
+
+  public RootCommandNode<?> getRootNode() {
+    return rootNode;
   }
 }

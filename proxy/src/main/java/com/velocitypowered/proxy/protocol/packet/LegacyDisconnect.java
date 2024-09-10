@@ -57,18 +57,18 @@ public record LegacyDisconnect(String reason) {
         new LegacyDisconnect(String.join(LEGACY_COLOR_CODE,
             cleanSectionSymbol(getFirstLine(PlainTextComponentSerializer.plainText().serialize(
                 response.getDescriptionComponent()))),
-            Integer.toString(players.online()),
-            Integer.toString(players.max())));
+            Integer.toString(players.getOnline()),
+            Integer.toString(players.getMax())));
       case MINECRAFT_1_4, MINECRAFT_1_6 ->
         // Minecraft 1.4-1.6 provide support for more fields, and additionally support color codes.
         new LegacyDisconnect(String.join("\0",
             LEGACY_COLOR_CODE + "1",
-            Integer.toString(response.getVersion().protocol()),
-            response.getVersion().name(),
+            Integer.toString(response.getVersion().getProtocol()),
+            response.getVersion().getName(),
             getFirstLine(LegacyComponentSerializer.legacySection().serialize(response
                 .getDescriptionComponent())),
-            Integer.toString(players.online()),
-            Integer.toString(players.max())
+            Integer.toString(players.getOnline()),
+            Integer.toString(players.getMax())
         ));
       default -> throw new IllegalArgumentException("Unknown version " + version);
     };

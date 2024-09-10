@@ -55,8 +55,8 @@ public final class ProxyVersion {
     }
     ProxyVersion that = (ProxyVersion) o;
     return Objects.equals(name, that.name)
-            && Objects.equals(vendor, that.vendor)
-            && Objects.equals(version, that.version);
+        && Objects.equals(vendor, that.vendor)
+        && Objects.equals(version, that.version);
   }
 
   @Override

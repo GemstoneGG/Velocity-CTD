@@ -775,7 +775,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     server.getEventManager().fire(new TabCompleteEvent(player, request.getCommand(), offers))
         .thenAcceptAsync(e -> {
           response.getOffers().clear();
-          for (String s : e.suggestions()) {
+          for (String s : e.getSuggestions()) {
             response.getOffers().add(new Offer(s));
           }
           player.getConnection().write(response);

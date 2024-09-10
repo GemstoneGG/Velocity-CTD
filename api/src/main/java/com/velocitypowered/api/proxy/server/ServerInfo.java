@@ -21,14 +21,6 @@ public final class ServerInfo implements Comparable<ServerInfo> {
   private final String name;
   private final InetSocketAddress address;
 
-  public final String getName() {
-    return name;
-  }
-
-  public final InetSocketAddress getAddress() {
-    return address;
-  }
-
   /**
    * Creates a new ServerInfo object.
    *
@@ -40,6 +32,14 @@ public final class ServerInfo implements Comparable<ServerInfo> {
     this.address = Preconditions.checkNotNull(address, "address");
   }
 
+  public String getName() {
+    return name;
+  }
+
+  public InetSocketAddress getAddress() {
+    return address;
+  }
+
   @Override
   public String toString() {
     return "ServerInfo{"
@@ -49,7 +49,7 @@ public final class ServerInfo implements Comparable<ServerInfo> {
   }
 
   @Override
-  public final boolean equals(@Nullable Object o) {
+  public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }
@@ -58,11 +58,11 @@ public final class ServerInfo implements Comparable<ServerInfo> {
     }
     ServerInfo that = (ServerInfo) o;
     return Objects.equals(name, that.name)
-            && Objects.equals(address, that.address);
+        && Objects.equals(address, that.address);
   }
 
   @Override
-  public final int hashCode() {
+  public int hashCode() {
     return Objects.hash(name, address);
   }
 

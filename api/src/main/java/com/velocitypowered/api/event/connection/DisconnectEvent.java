@@ -25,12 +25,22 @@ import com.velocitypowered.api.proxy.Player;
  * </p>
  */
 @AwaitingEvent
-public record DisconnectEvent(Player player,
-    com.velocitypowered.api.event.connection.DisconnectEvent.LoginStatus loginStatus) {
+public final class DisconnectEvent {
+
+  private final Player player;
+  private final LoginStatus loginStatus;
 
   public DisconnectEvent(Player player, LoginStatus loginStatus) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.loginStatus = Preconditions.checkNotNull(loginStatus, "loginStatus");
+  }
+
+  public Player getPlayer() {
+    return player;
+  }
+
+  public LoginStatus getLoginStatus() {
+    return loginStatus;
   }
 
   @Override

@@ -136,7 +136,41 @@ public final class SerializedPluginDescription {
   /**
    * Represents a dependency.
    */
-  public record Dependency(String id, boolean optional) {
+  public static final class Dependency {
+
+    private final String id;
+    private final boolean optional;
+
+    public Dependency(String id, boolean optional) {
+      this.id = id;
+      this.optional = optional;
+    }
+
+    public String getId() {
+      return id;
+    }
+
+    public boolean isOptional() {
+      return optional;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      Dependency that = (Dependency) o;
+      return optional == that.optional
+              && Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(id, optional);
+    }
 
     @Override
     public String toString() {

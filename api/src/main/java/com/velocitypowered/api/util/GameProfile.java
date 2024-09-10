@@ -181,7 +181,11 @@ public final class GameProfile {
   /**
    * Represents a Mojang profile property. Just like {@link GameProfile}, this class is immutable.
    */
-  public record Property(String name, String value, String signature) {
+  public static final class Property {
+
+    private final String name;
+    private final String value;
+    private final String signature;
 
     /**
      * Creates a profile property entry.
@@ -194,6 +198,18 @@ public final class GameProfile {
       this.name = Preconditions.checkNotNull(name, "name");
       this.value = Preconditions.checkNotNull(value, "value");
       this.signature = Preconditions.checkNotNull(signature, "signature");
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public String getValue() {
+      return value;
+    }
+
+    public String getSignature() {
+      return signature;
     }
 
     @Override

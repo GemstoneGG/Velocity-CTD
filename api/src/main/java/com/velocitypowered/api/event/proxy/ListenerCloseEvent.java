@@ -14,11 +14,22 @@ import java.net.InetSocketAddress;
 /**
  * This event is fired by the proxy before the proxy stops accepting connections.
  */
-public record ListenerCloseEvent(InetSocketAddress address, ListenerType listenerType) {
+public final class ListenerCloseEvent {
+
+  private final InetSocketAddress address;
+  private final ListenerType listenerType;
 
   public ListenerCloseEvent(InetSocketAddress address, ListenerType listenerType) {
     this.address = Preconditions.checkNotNull(address, "address");
     this.listenerType = Preconditions.checkNotNull(listenerType, "listenerType");
+  }
+
+  public InetSocketAddress getAddress() {
+    return address;
+  }
+
+  public ListenerType getListenerType() {
+    return listenerType;
   }
 
   @Override
