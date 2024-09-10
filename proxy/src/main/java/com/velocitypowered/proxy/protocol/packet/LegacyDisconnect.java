@@ -25,7 +25,12 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
-@SuppressWarnings("checkstyle:MissingJavadocType")
+
+/**
+ * Represents a legacy disconnect packet that contains a reason for disconnection.
+ * This class is used to convert modern server ping responses into the legacy format,
+ * which is compatible with older Minecraft versions.
+ */
 public record LegacyDisconnect(String reason) {
 
   private static final ServerPing.Players FAKE_PLAYERS = new ServerPing.Players(0, 0,
@@ -52,18 +57,18 @@ public record LegacyDisconnect(String reason) {
         new LegacyDisconnect(String.join(LEGACY_COLOR_CODE,
             cleanSectionSymbol(getFirstLine(PlainTextComponentSerializer.plainText().serialize(
                 response.getDescriptionComponent()))),
-            Integer.toString(players.getOnline()),
-            Integer.toString(players.getMax())));
+            Integer.toString(players.online()),
+            Integer.toString(players.max())));
       case MINECRAFT_1_4, MINECRAFT_1_6 ->
         // Minecraft 1.4-1.6 provide support for more fields, and additionally support color codes.
         new LegacyDisconnect(String.join("\0",
             LEGACY_COLOR_CODE + "1",
-            Integer.toString(response.getVersion().getProtocol()),
-            response.getVersion().getName(),
+            Integer.toString(response.getVersion().protocol()),
+            response.getVersion().name(),
             getFirstLine(LegacyComponentSerializer.legacySection().serialize(response
                 .getDescriptionComponent())),
-            Integer.toString(players.getOnline()),
-            Integer.toString(players.getMax())
+            Integer.toString(players.online()),
+            Integer.toString(players.max())
         ));
       default -> throw new IllegalArgumentException("Unknown version " + version);
     };

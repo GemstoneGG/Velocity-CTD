@@ -75,9 +75,9 @@ public class HubCommand {
       return 0;
     }
 
-    if (server.getConfiguration().getAttemptConnectionOrder().contains(registeredServer.getServerInfo().getName())) {
+    if (server.getConfiguration().getAttemptConnectionOrder().contains(registeredServer.getServerInfo().name())) {
       player.sendMessage(Component.translatable("velocity.command.hub.fallback-already-connected")
-          .arguments(Component.text(registeredServer.getServerInfo().getName())));
+          .arguments(Component.text(registeredServer.getServerInfo().name())));
       return 0;
     }
 
@@ -94,11 +94,11 @@ public class HubCommand {
 
       if (translationExists("velocity.command.hub.fallback-connecting", player)) {
         player.sendMessage(Component.translatable("velocity.command.hub.fallback-connecting")
-            .arguments(Component.text(serverToTry.getServerInfo().getName())));
+            .arguments(Component.text(serverToTry.getServerInfo().name())));
       }
 
       TranslatableComponent fallbackMessage = Component.translatable("velocity.error.connecting-server-error")
-          .arguments(Component.text(serverToTry.getServerInfo().getName()));
+          .arguments(Component.text(serverToTry.getServerInfo().name()));
       player.createConnectionRequest(serverToTry).connect().whenComplete((result, throwable) -> {
         if (result == null || throwable != null) {
           player.sendMessage(fallbackMessage);
@@ -111,7 +111,7 @@ public class HubCommand {
 
         if (translationExists("velocity.command.hub.fallback-connected", player)) {
           player.sendMessage(Component.translatable("velocity.command.hub.fallback-connected")
-              .arguments(Component.text(serverToTry.getServerInfo().getName())));
+              .arguments(Component.text(serverToTry.getServerInfo().name())));
         }
       });
       return Command.SINGLE_SUCCESS;

@@ -16,7 +16,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Fired when a player has finished the login process, and we need to choose the first server
- * to connect to. Velocity will wait on this event to finish firing before initiating the connection
+ * to connect to. Velocity will wait on this event to finish firing before initiating the connection,
  * but you should try to limit the work done in this event. Failures will be handled by
  * {@link KickedFromServerEvent} as normal.
  */

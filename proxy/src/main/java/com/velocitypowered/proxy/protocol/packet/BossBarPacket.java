@@ -29,6 +29,10 @@ import java.util.UUID;
 import net.kyori.adventure.bossbar.BossBar;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+/**
+ * Represents a packet used to manage boss bars.
+ * This packet can add, remove, or update a boss bar.
+ */
 public class BossBarPacket implements MinecraftPacket {
 
   private static final Enum2IntMap<BossBar.Color> COLORS_TO_PROTOCOL =
@@ -70,6 +74,14 @@ public class BossBarPacket implements MinecraftPacket {
   private int overlay;
   private short flags;
 
+  /**
+   * Creates a packet to add a new boss bar.
+   *
+   * @param id    the UUID of the boss bar
+   * @param bar   the {@link BossBar} instance
+   * @param name  the {@link ComponentHolder} containing the boss bar's name
+   * @return a {@link BossBarPacket} to add a boss bar
+   */
   public static BossBarPacket createAddPacket(
       final UUID id,
       final BossBar bar,
@@ -86,13 +98,27 @@ public class BossBarPacket implements MinecraftPacket {
     return packet;
   }
 
-  public static BossBarPacket createRemovePacket(final UUID id, final BossBar bar) {
+  /**
+   * Creates a packet to remove an existing boss bar.
+   *
+   * @param id  the UUID of the boss bar to remove
+   * @param ignoredBar the {@link BossBar} instance
+   * @return a {@link BossBarPacket} to remove a boss bar
+   */
+  public static BossBarPacket createRemovePacket(final UUID id, final BossBar ignoredBar) {
     final BossBarPacket packet = new BossBarPacket();
     packet.setUuid(id);
     packet.setAction(REMOVE);
     return packet;
   }
 
+  /**
+   * Creates a packet to update the progress (percentage) of the boss bar.
+   *
+   * @param id  the UUID of the boss bar
+   * @param bar the {@link BossBar} instance
+   * @return a {@link BossBarPacket} to update the boss bar's progress
+   */
   public static BossBarPacket createUpdateProgressPacket(final UUID id, final BossBar bar) {
     final BossBarPacket packet = new BossBarPacket();
     packet.setUuid(id);
@@ -101,9 +127,17 @@ public class BossBarPacket implements MinecraftPacket {
     return packet;
   }
 
+  /**
+   * Creates a packet to update the name of the boss bar.
+   *
+   * @param id    the UUID of the boss bar
+   * @param ignoredBar   the {@link BossBar} instance
+   * @param name  the {@link ComponentHolder} containing the boss bar's new name
+   * @return a {@link BossBarPacket} to update the boss bar's name
+   */
   public static BossBarPacket createUpdateNamePacket(
       final UUID id,
-      final BossBar bar,
+      final BossBar ignoredBar,
       final ComponentHolder name
   ) {
     final BossBarPacket packet = new BossBarPacket();
@@ -113,6 +147,13 @@ public class BossBarPacket implements MinecraftPacket {
     return packet;
   }
 
+  /**
+   * Creates a packet to update the style (color and overlay) of the boss bar.
+   *
+   * @param id  the UUID of the boss bar
+   * @param bar the {@link BossBar} instance
+   * @return a {@link BossBarPacket} to update the boss bar's style
+   */
   public static BossBarPacket createUpdateStylePacket(final UUID id, final BossBar bar) {
     final BossBarPacket packet = new BossBarPacket();
     packet.setUuid(id);
@@ -122,6 +163,13 @@ public class BossBarPacket implements MinecraftPacket {
     return packet;
   }
 
+  /**
+   * Creates a packet to update the properties of the boss bar.
+   *
+   * @param id  the UUID of the boss bar
+   * @param bar the {@link BossBar} instance
+   * @return a {@link BossBarPacket} to update the boss bar's properties
+   */
   public static BossBarPacket createUpdatePropertiesPacket(final UUID id, final BossBar bar) {
     final BossBarPacket packet = new BossBarPacket();
     packet.setUuid(id);
@@ -130,6 +178,12 @@ public class BossBarPacket implements MinecraftPacket {
     return packet;
   }
 
+  /**
+   * Retrieves the UUID of the boss bar.
+   *
+   * @return the UUID of the boss bar
+   * @throws IllegalStateException if the UUID has not been set
+   */
   public UUID getUuid() {
     if (uuid == null) {
       throw new IllegalStateException("No boss bar UUID specified");

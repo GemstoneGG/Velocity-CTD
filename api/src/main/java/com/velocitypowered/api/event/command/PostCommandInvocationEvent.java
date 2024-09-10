@@ -21,18 +21,14 @@ import org.jetbrains.annotations.NotNull;
  *
  * @since 3.3.0
  */
-public final class PostCommandInvocationEvent {
-
-  private final CommandSource commandSource;
-  private final String command;
-  private final CommandResult result;
+public record PostCommandInvocationEvent(CommandSource commandSource, String command, CommandResult result) {
 
   /**
    * Constructs a PostCommandInvocationEvent.
    *
    * @param commandSource the source executing the command
-   * @param command the command being executed without first slash
-   * @param result the result of this command
+   * @param command       the command being executed without first slash
+   * @param result        the result of this command
    */
   public PostCommandInvocationEvent(
           final @NotNull CommandSource commandSource,
@@ -49,7 +45,8 @@ public final class PostCommandInvocationEvent {
    *
    * @return the source
    */
-  public @NotNull CommandSource getCommandSource() {
+  @Override
+  public @NotNull CommandSource commandSource() {
     return commandSource;
   }
 
@@ -59,7 +56,8 @@ public final class PostCommandInvocationEvent {
    * @return the original command
    * @see CommandExecuteEvent#getCommand()
    */
-  public @NotNull String getCommand() {
+  @Override
+  public @NotNull String command() {
     return command;
   }
 
@@ -68,7 +66,8 @@ public final class PostCommandInvocationEvent {
    *
    * @return the execution result
    */
-  public @NotNull CommandResult getResult() {
+  @Override
+  public @NotNull CommandResult result() {
     return result;
   }
 

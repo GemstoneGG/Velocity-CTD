@@ -76,10 +76,4 @@ public record VelocityRedisConfiguration(boolean useRedis, String host, int port
           redisId, proxyId, proxyEnabled, proxyIdsEnabled, plistEnabled);
     }
   }
-
-  @Override
-  public boolean useRedis() {
-    System.out.println("is enabled: " + useRedis);
-    return useRedis;
-  }
 }

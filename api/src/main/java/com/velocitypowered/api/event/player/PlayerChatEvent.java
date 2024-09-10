@@ -73,7 +73,7 @@ public final class PlayerChatEvent implements ResultedEvent<PlayerChatEvent.Chat
     private static final ChatResult ALLOWED = new ChatResult(true, null);
     private static final ChatResult DENIED = new ChatResult(false, null);
 
-    private @Nullable String message;
+    private final @Nullable String message;
     private final boolean status;
 
     private ChatResult(boolean status, @Nullable String message) {

@@ -69,9 +69,9 @@ public class JavaPluginLoader implements PluginLoader {
     }
 
     for (SerializedPluginDescription.Dependency dependency : pd.getDependencies()) {
-      if (!SerializedPluginDescription.ID_PATTERN.matcher(dependency.getId()).matches()) {
+      if (!SerializedPluginDescription.ID_PATTERN.matcher(dependency.id()).matches()) {
         throw new InvalidPluginException(
-            "Dependency ID '" + dependency.getId() + "' for plugin '" + pd.getId() + "' is invalid."
+            "Dependency ID '" + dependency.id() + "' for plugin '" + pd.getId() + "' is invalid."
         );
       }
     }
@@ -205,9 +205,9 @@ public class JavaPluginLoader implements PluginLoader {
   private static PluginDependency toDependencyMeta(
       SerializedPluginDescription.Dependency dependency) {
     return new PluginDependency(
-        dependency.getId(),
+        dependency.id(),
         null, // TODO Implement version matching in dependency annotation
-        dependency.isOptional()
+        dependency.optional()
     );
   }
 }

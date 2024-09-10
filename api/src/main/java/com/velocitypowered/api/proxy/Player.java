@@ -407,7 +407,7 @@ public interface Player extends
    * and will not perform any actions.</b>
    */
   @Override
-  default void playSound(@NotNull Sound sound, Sound.Emitter emitter) {
+  default void playSound(@NotNull Sound sound, Sound.@NotNull Emitter emitter) {
   }
 
   /**
@@ -446,7 +446,7 @@ public interface Player extends
    * @param data the data of the cookie
    * @throws IllegalArgumentException if the player is from a version lower than 1.20.5
    * @since 3.3.0
-   * @sinceMinecraft 1.20.5
+   * @since Minecraft 1.20.5
    */
   void storeCookie(Key key, byte[] data);
 
@@ -459,7 +459,7 @@ public interface Player extends
    * @param key the identifier of the cookie
    * @throws IllegalArgumentException if the player is from a version lower than 1.20.5
    * @since 3.3.0
-   * @sinceMinecraft 1.20.5
+   * @since Minecraft 1.20.5
    */
   void requestCookie(Key key);
 
@@ -471,7 +471,7 @@ public interface Player extends
    * @param links an ordered list of {@link ServerLink}s to send to the player
    * @throws IllegalArgumentException if the player is from a version lower than 1.21
    * @since 3.3.0
-   * @sinceMinecraft 1.21
+   * @since Minecraft 1.21
    */
   void setServerLinks(@NotNull List<ServerLink> links);
 }

@@ -24,9 +24,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * displayed to a remote client that sends a Server List Ping packet, and is automatically displayed
  * in the Minecraft client.
  */
-public final class Favicon {
-
-  private final String base64Url;
+public record Favicon(String base64Url) {
 
   /**
    * Directly create a favicon using its Base64 URL directly. You are generally better served by the
@@ -43,7 +41,8 @@ public final class Favicon {
    *
    * @return a URL representing this favicon
    */
-  public String getBase64Url() {
+  @Override
+  public String base64Url() {
     return base64Url;
   }
 
@@ -57,11 +56,6 @@ public final class Favicon {
     }
     Favicon favicon = (Favicon) o;
     return Objects.equals(base64Url, favicon.base64Url);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(base64Url);
   }
 
   @Override

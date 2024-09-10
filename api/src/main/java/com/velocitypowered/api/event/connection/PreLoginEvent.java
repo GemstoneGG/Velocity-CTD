@@ -77,7 +77,7 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
    * up to 1.20.1 it is optional and from 1.20.2 it will always be available.</p>
    *
    * @return the uuid
-   * @sinceMinecraft 1.19.3
+   * @since Minecraft 1.19.3
    */
   public @Nullable UUID getUniqueId() {
     return uuid;

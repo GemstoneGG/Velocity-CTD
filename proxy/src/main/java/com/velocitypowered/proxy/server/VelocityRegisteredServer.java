@@ -129,7 +129,7 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
 
         ch.pipeline().addLast(HANDLER, new MinecraftConnection(ch, server));
       }
-    }).connect(serverInfo.getAddress()).addListener((ChannelFutureListener) future -> {
+    }).connect(serverInfo.address()).addListener((ChannelFutureListener) future -> {
       if (future.isSuccess()) {
         MinecraftConnection conn = future.channel().pipeline().get(MinecraftConnection.class);
         PingSessionHandler handler = new PingSessionHandler(pingFuture,

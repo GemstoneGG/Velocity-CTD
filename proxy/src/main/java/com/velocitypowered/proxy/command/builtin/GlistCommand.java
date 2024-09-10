@@ -70,7 +70,7 @@ public class GlistCommand {
               ? context.getArgument(SERVER_ARG, String.class)
               : "";
           for (RegisteredServer server : server.getAllServers()) {
-            final String serverName = server.getServerInfo().getName();
+            final String serverName = server.getServerInfo().name();
             if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
               builder.suggest(serverName);
             }
@@ -136,7 +136,7 @@ public class GlistCommand {
                                  final RegisteredServer server, final boolean fromAll) {
     List<String> usernames = new ArrayList<>();
     if (this.server.getRedisManager().isEnabled()) {
-      usernames = this.server.getRedisManager().getConnectedPlayerNames(server.getServerInfo().getName());
+      usernames = this.server.getRedisManager().getConnectedPlayerNames(server.getServerInfo().name());
     } else {
       for (Player player : server.getPlayersConnected()) {
         usernames.add(player.getUsername());

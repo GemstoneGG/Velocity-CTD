@@ -26,7 +26,6 @@ import com.velocitypowered.api.proxy.Player;
  *
  * <li>{@link RawCommand}, useful for bolting on external command frameworks
  * to Velocity.
- *
  * </ul>
  */
 public sealed interface Command permits BrigadierCommand, InvocableCommand {

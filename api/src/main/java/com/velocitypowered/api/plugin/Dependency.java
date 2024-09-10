@@ -27,7 +27,7 @@ public @interface Dependency {
   String id();
 
   /**
-   * Whether or not the dependency is not required to enable this plugin. By default this is
+   * Whether the dependency is not required to enable this plugin. By default, this is
    * {@code false}, meaning that the dependency is required to enable this plugin.
    *
    * @return true if the dependency is not required for the plugin to work

@@ -60,7 +60,6 @@ public class PlistCommand {
     server.getCommandManager().register(new BrigadierCommand(rootNode));
   }
 
-
   private void sendServerPlayers(final CommandSource target) {
     if (!(target instanceof Player p)) {
       return;
@@ -75,7 +74,7 @@ public class PlistCommand {
     List<String> usernames = new ArrayList<>();
 
     if (this.server.getRedisManager().isEnabled()) {
-      usernames = this.server.getRedisManager().getConnectedPlayerNames(serverConnection.getServerInfo().getName());
+      usernames = this.server.getRedisManager().getConnectedPlayerNames(serverConnection.getServerInfo().name());
     } else {
       for (Player player : serverConnection.getServer().getPlayersConnected()) {
         usernames.add(player.getUsername());
@@ -89,7 +88,6 @@ public class PlistCommand {
     mapUsernames(target, usernames, serverConnection.getServerInfo());
   }
 
-
   static void mapUsernames(CommandSource target, List<String> usernames, ServerInfo serverInfo) {
     usernames.stream()
           .reduce((a, b) -> a + ", " + b)
@@ -97,7 +95,7 @@ public class PlistCommand {
             final TranslatableComponent.Builder builder = Component.translatable()
                 .key("velocity.command.glist-server")
                 .arguments(
-                    Component.text(serverInfo.getName()),
+                    Component.text(serverInfo.name()),
                     Component.text(usernames.size()),
                     Component.text(playerList)
                 );

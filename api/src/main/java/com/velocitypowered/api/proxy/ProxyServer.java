@@ -155,7 +155,7 @@ public interface ProxyServer extends Audience {
   /**
    * Gets the {@link RedisManager} instance.
    *
-   * @return the redis manager instance
+   * @return the Redis manager instance
    */
   RedisManager getRedisManager();
 

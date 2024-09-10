@@ -45,7 +45,7 @@ class VelocitySchedulerTest {
   }
 
   @Test
-  void cancelWorks() throws Exception {
+  void cancelWorks() {
     VelocityScheduler scheduler = new VelocityScheduler(new FakePluginManager());
     AtomicInteger i = new AtomicInteger(3);
     ScheduledTask task = scheduler.buildTask(FakePluginManager.PLUGIN_A, i::decrementAndGet)

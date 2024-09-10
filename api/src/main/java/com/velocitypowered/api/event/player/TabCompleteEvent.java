@@ -22,17 +22,13 @@ import java.util.List;
  * the tab complete results.
  */
 @AwaitingEvent
-public class TabCompleteEvent {
-  private final Player player;
-  private final String partialMessage;
-  private final List<String> suggestions;
-
+public record TabCompleteEvent(Player player, String partialMessage, List<String> suggestions) {
   /**
    * Constructs a new TabCompleteEvent instance.
    *
-   * @param player the player
+   * @param player         the player
    * @param partialMessage the partial message
-   * @param suggestions the initial list of suggestions
+   * @param suggestions    the initial list of suggestions
    */
   public TabCompleteEvent(Player player, String partialMessage, List<String> suggestions) {
     this.player = checkNotNull(player, "player");
@@ -45,7 +41,8 @@ public class TabCompleteEvent {
    *
    * @return the requesting player
    */
-  public Player getPlayer() {
+  @Override
+  public Player player() {
     return player;
   }
 
@@ -54,7 +51,8 @@ public class TabCompleteEvent {
    *
    * @return the partial message
    */
-  public String getPartialMessage() {
+  @Override
+  public String partialMessage() {
     return partialMessage;
   }
 
@@ -63,7 +61,8 @@ public class TabCompleteEvent {
    *
    * @return the suggestions
    */
-  public List<String> getSuggestions() {
+  @Override
+  public List<String> suggestions() {
     return suggestions;
   }
 

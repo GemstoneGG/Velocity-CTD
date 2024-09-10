@@ -160,7 +160,7 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
           resultFuture.complete(ConnectionRequestResults.successful(serverConn.getServer()));
         }, smc.eventLoop()).exceptionally(exc -> {
           logger.error("Unable to switch to new server {} for {}",
-              serverConn.getServerInfo().getName(),
+              serverConn.getServerInfo().name(),
               player.getUsername(), exc);
           player.disconnect(ConnectionMessages.INTERNAL_SERVER_CONNECTION_ERROR);
           resultFuture.completeExceptionally(exc);

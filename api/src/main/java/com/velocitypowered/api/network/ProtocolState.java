@@ -41,7 +41,7 @@ public enum ProtocolState {
    * will send his client brand and the respective plugin messages
    * if it is a modded client.</p>
    *
-   * @sinceMinecraft 1.20.2
+   * @since Minecraft 1.20.2
    */
   CONFIGURATION,
   /**

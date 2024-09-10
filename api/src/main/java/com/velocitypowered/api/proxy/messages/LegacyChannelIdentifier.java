@@ -15,24 +15,17 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 /**
  * Represents a legacy channel identifier (for Minecraft 1.12 and below). For modern 1.13 plugin
  * messages, please see {@link MinecraftChannelIdentifier}. This class is immutable and safe for
- * multi-threaded use.
+ * multithreaded use.
  */
-public final class LegacyChannelIdentifier implements ChannelIdentifier {
-
-  private final String name;
+public record LegacyChannelIdentifier(String name) implements ChannelIdentifier {
 
   /**
    * Creates a new legacy channel identifier.
    *
    * @param name the name for the channel
    */
-  public LegacyChannelIdentifier(String name) {
+  public LegacyChannelIdentifier {
     Preconditions.checkArgument(!Strings.isNullOrEmpty(name), "provided name is empty");
-    this.name = name;
-  }
-
-  public String getName() {
-    return name;
   }
 
   @Override
@@ -53,12 +46,7 @@ public final class LegacyChannelIdentifier implements ChannelIdentifier {
   }
 
   @Override
-  public int hashCode() {
-    return Objects.hash(name);
-  }
-
-  @Override
   public String getId() {
-    return this.getName();
+    return this.name();
   }
 }

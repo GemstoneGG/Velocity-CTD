@@ -96,7 +96,7 @@ public interface ProxyConfig {
   /**
    * Get forced servers mapped to a given virtual host.
    *
-   * @return list of server names
+   * @return mapped list of server names
    */
   Map<String, List<String>> getForcedHosts();
 

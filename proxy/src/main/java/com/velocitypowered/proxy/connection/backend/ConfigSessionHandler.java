@@ -345,7 +345,7 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
   }
 
   private void switchFailure(Throwable cause) {
-    logger.error("Unable to switch to new server {} for {}", serverConn.getServerInfo().getName(),
+    logger.error("Unable to switch to new server {} for {}", serverConn.getServerInfo().name(),
         serverConn.getPlayer().getUsername(), cause);
     serverConn.getPlayer().disconnect(ConnectionMessages.INTERNAL_SERVER_CONNECTION_ERROR);
     resultFuture.completeExceptionally(cause);

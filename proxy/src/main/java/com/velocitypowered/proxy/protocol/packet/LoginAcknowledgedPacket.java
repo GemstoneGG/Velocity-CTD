@@ -23,6 +23,9 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
 
+/**
+ * Represents a packet that acknowledges the completion of the login process.
+ */
 public class LoginAcknowledgedPacket implements MinecraftPacket {
 
   @Override

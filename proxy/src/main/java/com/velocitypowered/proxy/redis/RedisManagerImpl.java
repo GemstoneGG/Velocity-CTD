@@ -26,6 +26,8 @@ import com.velocitypowered.proxy.VelocityServer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.DefaultRedisCredentials;
 import redis.clients.jedis.HostAndPort;
@@ -37,6 +39,9 @@ import redis.clients.jedis.JedisPoolConfig;
  * Velocity's Redis manager.
  */
 public class RedisManagerImpl implements RedisManager {
+
+  private static final Logger logger = LoggerFactory.getLogger(RedisManagerImpl.class);
+
   private JedisPool jedisPool;
   private final Gson gson = new Gson();
 
@@ -48,12 +53,14 @@ public class RedisManagerImpl implements RedisManager {
    * Implements the Velocity {@code redis} manager.
    */
   public RedisManagerImpl(VelocityServer server) {
+
     this.velocityServer = server;
     this.enabled = server.getRedisConfiguration().useRedis();
 
     if (!enabled) {
       return;
     }
+
     DefaultJedisClientConfig config = DefaultJedisClientConfig.builder()
         .credentials(new DefaultRedisCredentials(server.getRedisConfiguration().username(),
             server.getRedisConfiguration().password())).build();
@@ -75,8 +82,7 @@ public class RedisManagerImpl implements RedisManager {
     try (Jedis jedis = jedisPool.getResource()) {
       jedis.publish("velocity_redis_channel", gson.toJson(object));
     } catch (Exception e) {
-      System.out.println("Something went wrong trying to sent a message through redis.");
-      e.printStackTrace();
+      logger.error("Something went wrong while trying to send a message through Redis.", e);
     }
   }
 
@@ -89,8 +95,7 @@ public class RedisManagerImpl implements RedisManager {
     try (Jedis jedis = jedisPool.getResource()) {
       jedis.publish(channel, gson.toJson(object));
     } catch (Exception e) {
-      System.out.println("Something went wrong trying to sent a message through redis.");
-      e.printStackTrace();
+      logger.error("Something went wrong while trying to send a message through Redis.", e);
     }
   }
 
@@ -109,7 +114,7 @@ public class RedisManagerImpl implements RedisManager {
 
     try (Jedis jedis = jedisPool.getResource()) {
       jedis.set(playerKey, player.getUsername());
-      jedis.sadd("server:" + connection.getServerInfo().getName(), player.getUniqueId().toString());
+      jedis.sadd("server:" + connection.getServerInfo().name(), player.getUniqueId().toString());
     }
   }
 
@@ -128,7 +133,7 @@ public class RedisManagerImpl implements RedisManager {
 
     try (Jedis jedis = jedisPool.getResource()) {
       jedis.del(playerKey);
-      jedis.srem("server:" + connection.getServerInfo().getName(), player.getUniqueId().toString());
+      jedis.srem("server:" + connection.getServerInfo().name(), player.getUniqueId().toString());
     }
   }
 

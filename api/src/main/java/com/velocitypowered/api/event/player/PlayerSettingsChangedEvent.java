@@ -17,22 +17,11 @@ import com.velocitypowered.api.proxy.player.PlayerSettings;
  * and typically will be fired multiple times per connection. Velocity will not wait on this event
  * to finish firing.
  */
-public final class PlayerSettingsChangedEvent {
-
-  private final Player player;
-  private final PlayerSettings playerSettings;
+public record PlayerSettingsChangedEvent(Player player, PlayerSettings playerSettings) {
 
   public PlayerSettingsChangedEvent(Player player, PlayerSettings playerSettings) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.playerSettings = Preconditions.checkNotNull(playerSettings, "playerSettings");
-  }
-
-  public Player getPlayer() {
-    return player;
-  }
-
-  public PlayerSettings getPlayerSettings() {
-    return playerSettings;
   }
 
   @Override

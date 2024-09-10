@@ -22,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
  * @param player The player who is about to finish the configuration phase.
  * @param server The server that has (re-)configured the player.
  * @since 3.3.0
- * @sinceMinecraft 1.20.2
+ * @since Minecraft 1.20.2
  */
 @AwaitingEvent
 public record PlayerFinishConfigurationEvent(@NotNull Player player, @NotNull ServerConnection server) {

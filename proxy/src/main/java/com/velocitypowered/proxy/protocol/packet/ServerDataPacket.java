@@ -24,10 +24,14 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
 import io.netty.buffer.ByteBuf;
-import org.jetbrains.annotations.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import org.jetbrains.annotations.Nullable;
 
+/**
+ * Represents the server data packet sent from the server to the client, which contains information
+ * such as the server description, favicon, and secure chat enforcement status.
+ */
 public class ServerDataPacket implements MinecraftPacket {
 
   private @Nullable ComponentHolder description;
@@ -37,6 +41,13 @@ public class ServerDataPacket implements MinecraftPacket {
   public ServerDataPacket() {
   }
 
+  /**
+   * Constructs a new {@code ServerDataPacket} with the given server description, favicon, and secure chat enforcement status.
+   *
+   * @param description the server description (may be null)
+   * @param favicon the server favicon (may be null)
+   * @param secureChatEnforced whether secure chat is enforced (for versions 1.19.1 to 1.20.5)
+   */
   public ServerDataPacket(@Nullable ComponentHolder description, @Nullable Favicon favicon,
                           boolean secureChatEnforced) {
     this.description = description;
@@ -84,11 +95,11 @@ public class ServerDataPacket implements MinecraftPacket {
     buf.writeBoolean(hasFavicon);
     if (hasFavicon) {
       if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_19_4)) {
-        String cutIconBase64 = favicon.getBase64Url().substring("data:image/png;base64,".length());
+        String cutIconBase64 = favicon.base64Url().substring("data:image/png;base64,".length());
         byte[] iconBytes = Base64.getDecoder().decode(cutIconBase64.getBytes(StandardCharsets.UTF_8));
         ProtocolUtils.writeByteArray(buf, iconBytes);
       } else {
-        ProtocolUtils.writeString(buf, favicon.getBase64Url());
+        ProtocolUtils.writeString(buf, favicon.base64Url());
       }
     }
 

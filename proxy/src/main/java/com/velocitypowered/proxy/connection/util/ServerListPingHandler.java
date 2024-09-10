@@ -75,9 +75,9 @@ public class ServerListPingHandler {
     return raw.replaceAll("\\{protocol-min}", minVersionIntroducedIn)
         .replaceAll("\\{protocol-max}", ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())
         .replaceAll("\\{protocol}", version.getVersionIntroducedIn())
-        .replaceAll("\\{proxy-brand}", this.server.getVersion().getName())
-        .replaceAll("\\{proxy-version}", this.server.getVersion().getVersion())
-        .replaceAll("\\{proxy-vendor}", this.server.getVersion().getVendor());
+        .replaceAll("\\{proxy-brand}", this.server.getVersion().name())
+        .replaceAll("\\{proxy-version}", this.server.getVersion().version())
+        .replaceAll("\\{proxy-vendor}", this.server.getVersion().vendor());
   }
 
   private CompletableFuture<ServerPing> attemptPingPassthrough(VelocityInboundConnection connection,

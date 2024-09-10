@@ -5,7 +5,7 @@ config-version = "1.0"
 # This will fully unregister all permissions, commands, and this feature as a whole.
 queue-system-enabled = false
 
-# Whether the "/server", "/queue," and "/joinqueue" usages should be replaced.
+# Whether the "/server", "/queue," and "/joinqueue" outputs should be replaced.
 #
 # Example: The generic "/server" output returns "/server <server>" for usage, instead.
 replace-server-output = false
@@ -21,7 +21,7 @@ no-queue-servers = [
 ]
 
 # Whether user should be capable of entering multiple queues at once.
-multiple-queues = true
+multiple-queues = false
 
 # Determines which server should be prioritized for action bars and placeholders.
 # Options: "first" or "last"
@@ -61,4 +61,9 @@ prevent-paused-queue-joining = false
 
 # Whether users should be automatically sent
 # back to a server when it returns online.
+#
+# This feature only applies when enabled.
+# By default, the user is re-added to the
+# queue and must wait the duration before being
+# re-sent to their previous destination.
 send-all-users-back-when-online = false

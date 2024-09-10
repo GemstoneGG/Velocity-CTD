@@ -29,6 +29,9 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+/**
+ * Represents a packet sent by the client when a tab-completion request is initiated.
+ */
 public class TabCompleteRequestPacket implements MinecraftPacket {
 
   private static final int VANILLA_MAX_TAB_COMPLETE_LEN = 2048;
@@ -39,6 +42,12 @@ public class TabCompleteRequestPacket implements MinecraftPacket {
   private boolean hasPosition;
   private long position;
 
+  /**
+   * Gets the command string to be completed.
+   *
+   * @return the command string
+   * @throws IllegalStateException if the command is not set
+   */
   public String getCommand() {
     if (command == null) {
       throw new IllegalStateException("Command is not specified");
@@ -112,6 +121,14 @@ public class TabCompleteRequestPacket implements MinecraftPacket {
     }
   }
 
+  /**
+   * Encodes the packet data into the provided {@link ByteBuf}.
+   *
+   * @param buf the buffer to write to
+   * @param direction the direction of the packet (client to server or server to client)
+   * @param version the protocol version in use
+   * @throws IllegalStateException if the command is not specified
+   */
   @Override
   public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
     if (command == null) {

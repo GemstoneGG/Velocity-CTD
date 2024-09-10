@@ -17,7 +17,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Represents a Minecraft 1.13+ channel identifier. This class is immutable and safe for
- * multi-threaded use.
+ * multithreaded use.
  */
 public final class MinecraftChannelIdentifier implements ChannelIdentifier {
 
@@ -64,7 +64,7 @@ public final class MinecraftChannelIdentifier implements ChannelIdentifier {
   }
 
   /**
-   * Creates an channel identifier from the specified Minecraft identifier.
+   * Creates a channel identifier from the specified Minecraft identifier.
    *
    * @param identifier the Minecraft identifier
    * @return a new channel identifier
@@ -83,7 +83,7 @@ public final class MinecraftChannelIdentifier implements ChannelIdentifier {
   }
 
   /**
-   * Creates an channel identifier from the specified Minecraft identifier.
+   * Creates a channel identifier from the specified Minecraft identifier.
    *
    * @param key the Minecraft key to use
    * @return a new channel identifier

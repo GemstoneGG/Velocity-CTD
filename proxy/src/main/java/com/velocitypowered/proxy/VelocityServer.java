@@ -238,7 +238,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   @EnsuresNonNull({"serverKeyPair", "servers", "pluginManager", "eventManager", "scheduler",
       "console", "cm", "configuration"})
   void start() {
-    logger.info("Booting up {} {}...", getVersion().getName(), getVersion().getVersion());
+    logger.info("Booting up {} {}...", getVersion().name(), getVersion().version());
     console.setupStreams();
 
     serverKeyPair = EncryptionUtils.createRsaKeyPair(1024);
@@ -246,6 +246,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     cm.logChannelInformation();
 
     this.doStartupConfigLoad();
+
     this.doStartupRedisConfigLoad();
 
     redisManagerImpl = new RedisManagerImpl(this);
@@ -416,7 +417,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
       if (!configuration.validate()) {
         logger.error("Your redis configuration is invalid. Velocity will not start up until the errors "
-                + "are resolved.");
+            + "are resolved.");
         LogManager.shutdown();
         System.exit(1);
       }
@@ -524,7 +525,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         for (Player player : rs.get().getPlayersConnected()) {
           if (!(player instanceof ConnectedPlayer)) {
             throw new IllegalStateException("ConnectedPlayer not found for player " + player
-                + " in server " + rs.get().getServerInfo().getName());
+                + " in server " + rs.get().getServerInfo().name());
           }
           evacuate.add((ConnectedPlayer) player);
         }
@@ -669,7 +670,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     });
 
     newConfigServers.forEach(serverInfo -> {
-      if (getServer(serverInfo.getName()).isEmpty()) {
+      if (getServer(serverInfo.name()).isEmpty()) {
         registerServer(serverInfo);
       }
     });
@@ -878,7 +879,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   public Collection<RegisteredServer> matchServer(String partialName) {
     Objects.requireNonNull(partialName);
 
-    return getAllServers().stream().filter(s -> s.getServerInfo().getName()
+    return getAllServers().stream().filter(s -> s.getServerInfo().name()
             .regionMatches(true, 0, partialName, 0, partialName.length()))
         .collect(Collectors.toList());
   }

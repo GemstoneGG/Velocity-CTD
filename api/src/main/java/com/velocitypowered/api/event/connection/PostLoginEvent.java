@@ -19,16 +19,10 @@ import com.velocitypowered.api.proxy.Player;
  * that fires during the login process.
  */
 @AwaitingEvent
-public final class PostLoginEvent {
-
-  private final Player player;
+public record PostLoginEvent(Player player) {
 
   public PostLoginEvent(Player player) {
     this.player = Preconditions.checkNotNull(player, "player");
-  }
-
-  public Player getPlayer() {
-    return player;
   }
 
   @Override

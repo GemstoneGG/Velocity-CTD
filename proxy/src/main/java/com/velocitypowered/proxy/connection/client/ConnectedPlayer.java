@@ -581,7 +581,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   @Override
   public ConnectionRequestBuilder createConnectionRequest(RegisteredServer server) {
     if (this.connectedServer != null) {
-      if (this.connectedServer.getServerInfo().getAddress().equals(server.getServerInfo().getAddress())) {
+      if (this.connectedServer.getServerInfo().address().equals(server.getServerInfo().address())) {
         return new ConnectionRequestBuilderImpl(this.connectedServer.getServer(), this.connectedServer);
       }
     }
@@ -691,12 +691,12 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     Component friendlyError;
     if (connectedServer != null && connectedServer.getServerInfo().equals(server.getServerInfo())) {
       friendlyError = Component.translatable("velocity.error.connected-server-error",
-          Component.text(server.getServerInfo().getName()));
+          Component.text(server.getServerInfo().name()));
     } else {
-      logger.error("{}: unable to connect to server {}", this, server.getServerInfo().getName(),
+      logger.error("{}: unable to connect to server {}", this, server.getServerInfo().name(),
           wrapped);
       friendlyError = Component.translatable("velocity.error.connecting-server-error",
-          Component.text(server.getServerInfo().getName()));
+          Component.text(server.getServerInfo().name()));
     }
     handleConnectionException(server, null, friendlyError.color(NamedTextColor.RED), safe);
   }
@@ -718,18 +718,18 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     Component disconnectReason = disconnect.getReason().getComponent();
     String plainTextReason = PASS_THRU_TRANSLATE.serialize(disconnectReason);
     if (connectedServer != null && connectedServer.getServerInfo().equals(server.getServerInfo())) {
-      logger.info("{}: kicked from server {}: {}", this, server.getServerInfo().getName(),
+      logger.info("{}: kicked from server {}: {}", this, server.getServerInfo().name(),
           plainTextReason);
       handleConnectionException(server, disconnectReason,
           Component.translatable("velocity.error.moved-to-new-server", NamedTextColor.RED,
-              Component.text(server.getServerInfo().getName()),
+              Component.text(server.getServerInfo().name()),
               disconnectReason), safe);
     } else {
       logger.error("{}: disconnected while connecting to {}: {}", this,
-          server.getServerInfo().getName(), plainTextReason);
+          server.getServerInfo().name(), plainTextReason);
       handleConnectionException(server, disconnectReason,
           Component.translatable("velocity.error.cant-connect", NamedTextColor.RED,
-              Component.text(server.getServerInfo().getName()),
+              Component.text(server.getServerInfo().name()),
               disconnectReason), safe);
     }
   }
@@ -802,7 +802,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                 // Impossible/nonsensical cases
                 case ALREADY_CONNECTED:
                   logger.error("{}: already connected to {}", this,
-                      status.getAttemptedConnection().getServerInfo().getName());
+                      status.getAttemptedConnection().getServerInfo().name());
                   break;
                 case CONNECTION_IN_PROGRESS:
                   // Fatal case
@@ -909,7 +909,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
             }
           }
 
-          emptiestServer.ifPresent(registeredServer -> attemptedServers.add(registeredServer.getServerInfo().getName()));
+          emptiestServer.ifPresent(registeredServer -> attemptedServers.add(registeredServer.getServerInfo().name()));
           tryIndex = index;
           return emptiestServer;
         }
@@ -932,7 +932,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   private static boolean hasSameName(RegisteredServer server, String name) {
-    return server.getServerInfo().getName().equalsIgnoreCase(name);
+    return server.getServerInfo().name().equalsIgnoreCase(name);
   }
 
   /**
@@ -1432,7 +1432,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
         }
 
         if (connection.getState() == StateRegistry.LOGIN && previousServer == null) {
-          logger.error("Terminating send to {} as {} isn't connected yet.", toConnect.getServerInfo().getName(), getGameProfile().getName());
+          logger.error("Terminating send to {} as {} isn't connected yet.", toConnect.getServerInfo().name(), getGameProfile().getName());
           return completedFuture(
                 plainResult(ConnectionRequestBuilder.Status.CONNECTION_CANCELLED, toConnect));
         }

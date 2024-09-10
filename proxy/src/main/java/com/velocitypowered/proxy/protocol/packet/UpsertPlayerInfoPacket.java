@@ -34,6 +34,9 @@ import java.util.List;
 import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Represents the packet for updating or inserting player information.
+ */
 public class UpsertPlayerInfoPacket implements MinecraftPacket {
 
   private final EnumSet<Action> actions;
@@ -133,12 +136,22 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
     return handler.handle(this);
   }
 
+  /**
+   * Reads a fixed bit set from the buffer.
+   *
+   * @param buf the buffer to read from
+   * @param param0 the size of the bit set
+   * @return the bit set read from the buffer
+   */
   public BitSet readFixedBitSet(ByteBuf buf, int param0) {
     byte[] var0 = new byte[-Math.floorDiv(-param0, 8)];
     buf.readBytes(var0);
     return BitSet.valueOf(var0);
   }
 
+  /**
+   * Represents the possible actions in the player info packet.
+   */
   public enum Action {
     ADD_PLAYER((ignored, buf, info) -> { // read
       info.profile = new GameProfile(
@@ -209,6 +222,9 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
     }
   }
 
+  /**
+   * Represents an entry in the player info packet.
+   */
   public static class Entry {
 
     private final UUID profileId;
@@ -281,15 +297,15 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
 
     @Override
     public String toString() {
-      return "Entry{" +
-          "profileId=" + profileId +
-          ", profile=" + profile +
-          ", listed=" + listed +
-          ", latency=" + latency +
-          ", gameMode=" + gameMode +
-          ", displayName=" + displayName +
-          ", chatSession=" + chatSession +
-          '}';
+      return "Entry{"
+          + "profileId=" + profileId
+          + ", profile=" + profile
+          + ", listed=" + listed
+          + ", latency=" + latency
+          + ", gameMode=" + gameMode
+          + ", displayName=" + displayName
+          + ", chatSession=" + chatSession
+          + '}';
     }
   }
 }

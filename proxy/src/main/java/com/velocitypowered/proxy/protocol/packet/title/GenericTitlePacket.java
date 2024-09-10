@@ -23,8 +23,21 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
 import io.netty.buffer.ByteBuf;
 
+/**
+ * The {@code GenericTitlePacket} class serves as the base class for all title-related packets
+ * in Minecraft. This class provides common functionality and properties for handling title, subtitle,
+ * action bar, and timing-related packets.
+ *
+ * <p>Subclasses of {@code GenericTitlePacket} implement specific behavior for different types of title
+ * packets, such as titles, subtitles, and action bars.</p>
+ */
 public abstract class GenericTitlePacket implements MinecraftPacket {
 
+  /**
+   * The {@code ActionType} enum represents the different actions that can be performed with a title packet.
+   * Each action corresponds to a specific type of title operation, such as setting a title or subtitle,
+   * updating timing information, or resetting and hiding titles.
+   */
   public enum ActionType {
     SET_TITLE(0),
     SET_SUBTITLE(1),

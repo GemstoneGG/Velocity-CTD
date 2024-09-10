@@ -133,7 +133,7 @@ public final class ServerPreConnectEvent implements
     @Override
     public String toString() {
       if (server != null) {
-        return "allowed: connect to " + server.getServerInfo().getName();
+        return "allowed: connect to " + server.getServerInfo().name();
       }
       return "denied";
     }
@@ -143,7 +143,7 @@ public final class ServerPreConnectEvent implements
      * is used, then {@link ConnectionRequestBuilder#connect()}'s result will have the status
      * {@link Status#CONNECTION_CANCELLED}.
      *
-     * @return a result to deny conneections
+     * @return a result to deny connections
      */
     public static ServerResult denied() {
       return DENIED;

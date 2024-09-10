@@ -27,16 +27,6 @@ proxy-id = "Proxy-1"
 [commands]
 # Users often prefer to outright unregister the command instead of setting
 # the command's permission to false for users, as console overrides that priviledge.
-# We particularly exclude raw /velocity {ALL}, callback, and shutdown
-# to maintain functionality or because (for example) "/velocity uptime" does not
-# overlap with any other known commands in Velocity and should never be of concern.
-#
-# If you have aliases that override any of the commands on this list, those
-# plugin-based aliases (such as one overriding "/plist") will override that
-# or any other command, regardless if the command is set to "true" below.
-#
-# The values below are if you have no overrides for stated
-# commands and wish to fully strip them from your Redis proxy.
 proxy-enabled = true
 proxyids-enabled = true
 plist-enabled = true

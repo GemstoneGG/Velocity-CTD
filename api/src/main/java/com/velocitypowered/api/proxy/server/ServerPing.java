@@ -121,7 +121,7 @@ public final class ServerPing {
     if (players != null) {
       builder.onlinePlayers = players.online;
       builder.maximumPlayers = players.max;
-      builder.samplePlayers.addAll(players.getSample());
+      builder.samplePlayers.addAll(players.sample());
     } else {
       builder.nullOutPlayers = true;
     }
@@ -311,28 +311,17 @@ public final class ServerPing {
    * list as an incompatible version, but the client will still permit the user
    * to connect to the server anyway.
    */
-  public static final class Version {
-
-    private final int protocol;
-    private final String name;
+  public record Version(int protocol, String name) {
 
     /**
      * Creates a new instance.
      *
      * @param protocol the protocol version as an integer
-     * @param name a friendly name for the protocol version
+     * @param name     a friendly name for the protocol version
      */
     public Version(int protocol, String name) {
       this.protocol = protocol;
       this.name = Preconditions.checkNotNull(name, "name");
-    }
-
-    public int getProtocol() {
-      return protocol;
-    }
-
-    public String getName() {
-      return name;
     }
 
     @Override
@@ -342,40 +331,19 @@ public final class ServerPing {
           + ", name='" + name + '\''
           + '}';
     }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      Version version = (Version) o;
-      return protocol == version.protocol && Objects.equals(name, version.name);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(protocol, name);
-    }
   }
 
   /**
    * Represents what the players the server purports to have online, its maximum capacity,
    * and a sample of players on the server.
    */
-  public static final class Players {
-
-    private final int online;
-    private final int max;
-    private final List<SamplePlayer> sample;
+  public record Players(int online, int max, List<SamplePlayer> sample) {
 
     /**
      * Creates a new instance.
      *
      * @param online the number of online players
-     * @param max the maximum number of players
+     * @param max    the maximum number of players
      * @param sample a sample of players on the server
      */
     public Players(int online, int max, List<SamplePlayer> sample) {
@@ -384,15 +352,8 @@ public final class ServerPing {
       this.sample = ImmutableList.copyOf(sample);
     }
 
-    public int getOnline() {
-      return online;
-    }
-
-    public int getMax() {
-      return max;
-    }
-
-    public List<SamplePlayer> getSample() {
+    @Override
+    public List<SamplePlayer> sample() {
       return sample == null ? ImmutableList.of() : sample;
     }
 
@@ -404,46 +365,12 @@ public final class ServerPing {
           + ", sample=" + sample
           + '}';
     }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      Players players = (Players) o;
-      return online == players.online && max == players.max
-          && Objects.equals(sample, players.sample);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(online, max, sample);
-    }
   }
 
   /**
    * A player returned in the sample field of the server ping players field.
    */
-  public static final class SamplePlayer {
-
-    private final String name;
-    private final UUID id;
-
-    public SamplePlayer(String name, UUID id) {
-      this.name = name;
-      this.id = id;
-    }
-
-    public String getName() {
-      return name;
-    }
-
-    public UUID getId() {
-      return id;
-    }
+  public record SamplePlayer(String name, UUID id) {
 
     @Override
     public String toString() {
@@ -451,23 +378,6 @@ public final class ServerPing {
           + "name='" + name + '\''
           + ", id=" + id
           + '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      SamplePlayer that = (SamplePlayer) o;
-      return Objects.equals(name, that.name) && Objects.equals(id, that.id);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(name, id);
     }
   }
 }

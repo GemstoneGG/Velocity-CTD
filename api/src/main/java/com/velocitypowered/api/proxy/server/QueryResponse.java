@@ -55,7 +55,7 @@ public final class QueryResponse {
   }
 
   /**
-   * Get hostname which will be used to reply to the query. By default it is {@link
+   * Get hostname which will be used to reply to the query. By default, it is {@link
    * ProxyConfig#getMotd()} in plain text without colour codes.
    *
    * @return hostname
@@ -65,7 +65,7 @@ public final class QueryResponse {
   }
 
   /**
-   * Get game version which will be used to reply to the query. By default supported Minecraft
+   * Get game version which will be used to reply to the query. By default, supported Minecraft
    * versions range is sent.
    *
    * @return game version
@@ -237,8 +237,8 @@ public final class QueryResponse {
     private int maxPlayers;
     private int proxyPort;
 
-    private List<String> players = new ArrayList<>();
-    private List<PluginInformation> plugins = new ArrayList<>();
+    private final List<String> players = new ArrayList<>();
+    private final List<PluginInformation> plugins = new ArrayList<>();
 
     private Builder() {
     }

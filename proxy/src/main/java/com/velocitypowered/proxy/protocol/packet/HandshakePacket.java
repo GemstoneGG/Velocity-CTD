@@ -26,6 +26,12 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
 
+/**
+ * Represents a handshake packet in Minecraft, which is used during the initial connection process.
+ * This packet contains information such as the protocol version, server address, port, and the intent
+ * of the handshake (e.g., login or status request). This packet is crucial for establishing a connection
+ * between the client and the server.
+ */
 public class HandshakePacket implements MinecraftPacket {
 
   // This size was chosen to ensure Forge clients can still connect even with very long hostnames.

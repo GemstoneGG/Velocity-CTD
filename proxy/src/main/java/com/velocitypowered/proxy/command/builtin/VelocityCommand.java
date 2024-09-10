@@ -189,22 +189,22 @@ public final class VelocityCommand {
       final ProxyVersion version = server.getVersion();
 
       final Component velocity = Component.text()
-          .content(version.getName() + " ")
+          .content(version.name() + " ")
           .decoration(TextDecoration.BOLD, true)
           .color(VELOCITY_COLOR)
           .append(Component.text()
-                  .content(version.getVersion())
+                  .content(version.version())
                   .decoration(TextDecoration.BOLD, false))
           .build();
       final Component copyright = Component
           .translatable("velocity.command.version-copyright",
-              Component.text(version.getVendor()),
-                  Component.text(version.getName()),
+              Component.text(version.vendor()),
+                  Component.text(version.name()),
                   Component.text(LocalDate.now().getYear()));
       source.sendMessage(velocity);
       source.sendMessage(copyright);
 
-      if (version.getName().equals("Velocity")) {
+      if (version.name().equals("Velocity")) {
         final TextComponent embellishment = Component.text()
             .append(Component.text()
                 .content("discord.gg/beer")
@@ -310,7 +310,7 @@ public final class VelocityCommand {
       final Collection<RegisteredServer> allServers = Set.copyOf(server.getAllServers());
       final JsonObject servers = new JsonObject();
       for (final RegisteredServer iter : allServers) {
-        servers.add(iter.getServerInfo().getName(),
+        servers.add(iter.getServerInfo().name(),
             InformationUtils.collectServerInfo(iter));
       }
       final JsonArray connectOrder = new JsonArray();

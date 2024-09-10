@@ -49,8 +49,7 @@ public interface KeySigned {
    *
    * @return an RSA signature
    */
-  @Nullable
-  byte[] getSignature();
+  byte @Nullable [] getSignature();
 
   /**
    * Validates the signature, expiry temporal and key against the

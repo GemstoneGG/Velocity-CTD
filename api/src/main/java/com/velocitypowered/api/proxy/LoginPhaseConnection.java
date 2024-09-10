@@ -12,7 +12,7 @@ import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Represents a connextion that is in the login phase. This is most useful in conjunction
+ * Represents a connection that is in the login phase. This is most useful in conjunction
  * for login plugin messages.
  */
 public interface LoginPhaseConnection extends InboundConnection, KeyIdentifiable {
