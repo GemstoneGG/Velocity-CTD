@@ -22,6 +22,10 @@ import io.netty.buffer.ByteBuf;
 import java.util.Arrays;
 import java.util.BitSet;
 
+/**
+ * Represents a collection of the last seen messages by a player or client.
+ * This class tracks the recent chat messages that the player has viewed.
+ */
 public class LastSeenMessages {
 
   public static final int WINDOW_SIZE = 20;
@@ -39,6 +43,12 @@ public class LastSeenMessages {
     this.acknowledged = acknowledged;
   }
 
+  /**
+   * Constructs a new {@link LastSeenMessages} instance by decoding data from the provided
+   * {@link ByteBuf}.
+   *
+   * @param buf the buffer containing the serialized last seen messages data
+   */
   public LastSeenMessages(ByteBuf buf) {
     this.offset = ProtocolUtils.readVarInt(buf);
 
@@ -66,9 +76,9 @@ public class LastSeenMessages {
 
   @Override
   public String toString() {
-    return "LastSeenMessages{" +
-            "offset=" + offset +
-            ", acknowledged=" + acknowledged +
-            '}';
+    return "LastSeenMessages{"
+            + "offset=" + offset
+            + ", acknowledged=" + acknowledged
+            + '}';
   }
 }

@@ -25,6 +25,10 @@ import com.google.gson.internal.LazilyParsedNumber;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import net.kyori.adventure.nbt.BinaryTag;
 import net.kyori.adventure.nbt.BinaryTagIO;
 import net.kyori.adventure.nbt.BinaryTagType;
@@ -48,11 +52,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
+/**
+ * Represents a holder for components used in chat or other text-based data in the Minecraft
+ * protocol.
+ * This class supports various formats including JSON and NBT (Named Binary Tag) for storing and
+ * transmitting text components.
+ */
 public class ComponentHolder {
   private static final Logger logger = LogManager.getLogger(ComponentHolder.class);
   public static final int DEFAULT_MAX_STRING_SIZE = 262143;
@@ -77,6 +82,14 @@ public class ComponentHolder {
     this.binaryTag = binaryTag;
   }
 
+  /**
+   * Retrieves the {@link Component} stored in this {@link ComponentHolder}.
+   * If the component is not yet initialized, it will attempt to deserialize it from either
+   * the JSON or NBT representation, depending on which is available.
+   *
+   * @return the {@link Component} stored in this holder
+   * @throws IllegalStateException if both the JSON and binary representations fail to deserialize
+   */
   public Component getComponent() {
     if (component == null) {
       if (json != null) {
@@ -87,7 +100,8 @@ public class ComponentHolder {
           json = deserialize(binaryTag).toString();
           component = ProtocolUtils.getJsonChatSerializer(version).deserialize(json);
         } catch (Exception ex) {
-          logger.error("Error converting binary component to JSON component! Binary: {} JSON: {}", binaryTag, json, ex);
+          logger.error("Error converting binary component to JSON component! Binary: {} JSON: {}",
+              binaryTag, json, ex);
           throw ex;
         }
       }
@@ -95,6 +109,13 @@ public class ComponentHolder {
     return component;
   }
 
+  /**
+   * Retrieves the JSON representation of the {@link Component} stored in this
+   * {@link ComponentHolder}.
+   * If the JSON string is not yet initialized, it will serialize the component into a JSON string.
+   *
+   * @return the JSON string representing the {@link Component}
+   */
   public String getJson() {
     if (json == null) {
       json = ProtocolUtils.getJsonChatSerializer(version).serialize(getComponent());
@@ -102,6 +123,14 @@ public class ComponentHolder {
     return json;
   }
 
+  /**
+   * Retrieves the NBT (Named Binary Tag) representation of the {@link Component} stored in this
+   * {@link ComponentHolder}.
+   * If the NBT tag is not yet initialized, it will serialize the component into an NBT
+   * representation.
+   *
+   * @return the {@link BinaryTag} representing the {@link Component}
+   */
   public BinaryTag getBinaryTag() {
     if (binaryTag == null) {
       // TODO: replace this with adventure-text-serializer-nbt
@@ -110,6 +139,16 @@ public class ComponentHolder {
     return binaryTag;
   }
 
+  /**
+   * Serializes a {@link JsonElement} into a {@link BinaryTag} format.
+   * This method converts JSON primitives (numbers, strings, booleans) and complex structures
+   * (arrays, objects)
+   * into their corresponding NBT representations.
+   *
+   * @param json the {@link JsonElement} to be serialized into a {@link BinaryTag}
+   * @return the {@link BinaryTag} representing the serialized JSON element
+   * @throws IllegalArgumentException if the JSON element is of an unsupported or unknown type
+   */
   public static BinaryTag serialize(JsonElement json) {
     if (json instanceof JsonPrimitive jsonPrimitive) {
 
@@ -167,37 +206,36 @@ public class ComponentHolder {
         }
       }
 
-      switch (listType.id()) {
-        case 1://BinaryTagTypes.BYTE:
-          byte[] bytes = new byte[jsonArray.size()];
-          for (int i = 0; i < bytes.length; i++) {
-            bytes[i] = (Byte) jsonArray.get(i).getAsNumber();
-          }
+      byte id = listType.id();
+      if (id == 1) { // BinaryTagTypes.BYTE:
+        byte[] bytes = new byte[jsonArray.size()];
+        for (int i = 0; i < bytes.length; i++) {
+          bytes[i] = (Byte) jsonArray.get(i).getAsNumber();
+        }
 
-          return ByteArrayBinaryTag.byteArrayBinaryTag(bytes);
-        case 3://BinaryTagTypes.INT:
-          int[] ints = new int[jsonArray.size()];
-          for (int i = 0; i < ints.length; i++) {
-            ints[i] = (Integer) jsonArray.get(i).getAsNumber();
-          }
+        return ByteArrayBinaryTag.byteArrayBinaryTag(bytes);
+      } else if (id == 3) { // BinaryTagTypes.INT:
+        int[] ints = new int[jsonArray.size()];
+        for (int i = 0; i < ints.length; i++) {
+          ints[i] = (Integer) jsonArray.get(i).getAsNumber();
+        }
 
-          return IntArrayBinaryTag.intArrayBinaryTag(ints);
-        case 4://BinaryTagTypes.LONG:
-          long[] longs = new long[jsonArray.size()];
-          for (int i = 0; i < longs.length; i++) {
-            longs[i] = (Long) jsonArray.get(i).getAsNumber();
-          }
+        return IntArrayBinaryTag.intArrayBinaryTag(ints);
+      } else if (id == 4) { // BinaryTagTypes.LONG:
+        long[] longs = new long[jsonArray.size()];
+        for (int i = 0; i < longs.length; i++) {
+          longs[i] = (Long) jsonArray.get(i).getAsNumber();
+        }
 
-          return LongArrayBinaryTag.longArrayBinaryTag(longs);
-        case 10://BinaryTagTypes.COMPOUND:
-          tagItems.replaceAll(tag -> {
-            if (tag.type() == BinaryTagTypes.COMPOUND) {
-              return tag;
-            } else {
-              return CompoundBinaryTag.builder().put("", tag).build();
-            }
-          });
-          break;
+        return LongArrayBinaryTag.longArrayBinaryTag(longs);
+      } else if (id == 10) { // BinaryTagTypes.COMPOUND:
+        tagItems.replaceAll(tag -> {
+          if (tag.type() == BinaryTagTypes.COMPOUND) {
+            return tag;
+          } else {
+            return CompoundBinaryTag.builder().put("", tag).build();
+          }
+        });
       }
 
       return ListBinaryTag.listBinaryTag(listType, tagItems);
@@ -206,21 +244,30 @@ public class ComponentHolder {
     return EndBinaryTag.endBinaryTag();
   }
 
+  /**
+   * Deserializes a {@link BinaryTag} into a {@link JsonElement}.
+   * This method converts NBT (Named Binary Tag) data into its corresponding JSON representation,
+   * including handling of primitive types, arrays, and compound structures.
+   *
+   * @param tag the {@link BinaryTag} to be deserialized into a {@link JsonElement}
+   * @return the {@link JsonElement} representing the deserialized NBT data
+   * @throws IllegalArgumentException if the NBT tag type is unsupported or unknown
+   */
   public static JsonElement deserialize(BinaryTag tag) {
     switch (tag.type().id()) {
-      case 1://BinaryTagTypes.BYTE:
+      case 1: // BinaryTagTypes.BYTE:
         return new JsonPrimitive(((ByteBinaryTag) tag).value());
-      case 2://BinaryTagTypes.SHORT:
+      case 2: // BinaryTagTypes.SHORT:
         return new JsonPrimitive(((ShortBinaryTag) tag).value());
-      case 3://BinaryTagTypes.INT:
+      case 3: // BinaryTagTypes.INT:
         return new JsonPrimitive(((IntBinaryTag) tag).value());
-      case 4://BinaryTagTypes.LONG:
+      case 4: // BinaryTagTypes.LONG:
         return new JsonPrimitive(((LongBinaryTag) tag).value());
-      case 5://BinaryTagTypes.FLOAT:
+      case 5: // BinaryTagTypes.FLOAT:
         return new JsonPrimitive(((FloatBinaryTag) tag).value());
-      case 6://BinaryTagTypes.DOUBLE:
+      case 6: // BinaryTagTypes.DOUBLE:
         return new JsonPrimitive(((DoubleBinaryTag) tag).value());
-      case 7://BinaryTagTypes.BYTE_ARRAY:
+      case 7: // BinaryTagTypes.BYTE_ARRAY:
         byte[] byteArray = ((ByteArrayBinaryTag) tag).value();
 
         JsonArray jsonByteArray = new JsonArray(byteArray.length);
@@ -229,9 +276,9 @@ public class ComponentHolder {
         }
 
         return jsonByteArray;
-      case 8://BinaryTagTypes.STRING:
+      case 8: // BinaryTagTypes.STRING:
         return new JsonPrimitive(((StringBinaryTag) tag).value());
-      case 9://BinaryTagTypes.LIST:
+      case 9: // BinaryTagTypes.LIST:
         ListBinaryTag items = (ListBinaryTag) tag;
         JsonArray jsonList = new JsonArray(items.size());
 
@@ -240,7 +287,7 @@ public class ComponentHolder {
         }
 
         return jsonList;
-      case 10://BinaryTagTypes.COMPOUND:
+      case 10: // BinaryTagTypes.COMPOUND:
         CompoundBinaryTag compound = (CompoundBinaryTag) tag;
         JsonObject jsonObject = new JsonObject();
 
@@ -250,7 +297,8 @@ public class ComponentHolder {
           // the second compound tag will have an empty key mapped to "test2"
           // without this fix this would lead to an invalid json component:
           // [{"text":"test1"},{"":"test2"}]
-          jsonObject.add(key.isEmpty() ? "text" : key, deserialize(Objects.requireNonNull(compound.get(key))));
+          jsonObject.add(key.isEmpty() ? "text" : key,
+              deserialize(Objects.requireNonNull(compound.get(key))));
         });
 
         return jsonObject;
@@ -277,6 +325,19 @@ public class ComponentHolder {
     }
   }
 
+  /**
+   * Reads a {@link ComponentHolder} from the provided {@link ByteBuf} using the specified
+   * {@link ProtocolVersion}.
+   * This method deserializes a component from either its binary (NBT) or JSON representation,
+   * depending on the protocol version.
+   * - For Minecraft versions 1.20.3 and later, it reads a binary tag.
+   * - For Minecraft versions 1.13 and later, it reads a JSON string with a size limit.
+   * - For earlier versions, it reads a standard JSON string.
+   *
+   * @param buf the {@link ByteBuf} containing the serialized component data
+   * @param version the {@link ProtocolVersion} indicating how the component should be deserialized
+   * @return a {@link ComponentHolder} containing the deserialized component
+   */
   public static ComponentHolder read(ByteBuf buf, ProtocolVersion version) {
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       return new ComponentHolder(version,
@@ -288,6 +349,15 @@ public class ComponentHolder {
     }
   }
 
+  /**
+   * Writes the {@link ComponentHolder}'s data to the provided {@link ByteBuf}.
+   * This method serializes the component into either its binary (NBT) or JSON representation
+   * based on the protocol version.
+   * - For Minecraft versions 1.20.3 and later, it writes the component as a binary tag (NBT).
+   * - For earlier versions, it writes the component as a JSON string.
+   *
+   * @param buf the {@link ByteBuf} where the component data will be written
+   */
   public void write(ByteBuf buf) {
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       ProtocolUtils.writeBinaryTag(buf, version, getBinaryTag());
