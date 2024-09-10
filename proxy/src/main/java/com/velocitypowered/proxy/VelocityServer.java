@@ -238,7 +238,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   @EnsuresNonNull({"serverKeyPair", "servers", "pluginManager", "eventManager", "scheduler",
       "console", "cm", "configuration"})
   void start() {
-    logger.info("Booting up {} {}...", getVersion().name(), getVersion().version());
+    logger.info("Booting up {} {}...", getVersion().getName(), getVersion().getVersion());
     console.setupStreams();
 
     serverKeyPair = EncryptionUtils.createRsaKeyPair(1024);

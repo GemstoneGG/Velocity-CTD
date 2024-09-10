@@ -212,7 +212,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
 
       final HttpRequest httpRequest = HttpRequest.newBuilder()
               .setHeader("User-Agent",
-                      server.getVersion().name() + "/" + server.getVersion().version())
+                      server.getVersion().getName() + "/" + server.getVersion().getVersion())
               .uri(URI.create(url))
               .build();
       final HttpClient httpClient = server.createHttpClient();

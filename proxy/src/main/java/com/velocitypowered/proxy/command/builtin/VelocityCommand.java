@@ -189,22 +189,22 @@ public final class VelocityCommand {
       final ProxyVersion version = server.getVersion();
 
       final Component velocity = Component.text()
-          .content(version.name() + " ")
+          .content(version.getName() + " ")
           .decoration(TextDecoration.BOLD, true)
           .color(VELOCITY_COLOR)
           .append(Component.text()
-                  .content(version.version())
+                  .content(version.getVersion())
                   .decoration(TextDecoration.BOLD, false))
           .build();
       final Component copyright = Component
           .translatable("velocity.command.version-copyright",
-              Component.text(version.vendor()),
-                  Component.text(version.name()),
+              Component.text(version.getVendor()),
+                  Component.text(version.getName()),
                   Component.text(LocalDate.now().getYear()));
       source.sendMessage(velocity);
       source.sendMessage(copyright);
 
-      if (version.name().equals("Velocity")) {
+      if (version.getName().equals("Velocity")) {
         final TextComponent embellishment = Component.text()
             .append(Component.text()
                 .content("discord.gg/beer")
