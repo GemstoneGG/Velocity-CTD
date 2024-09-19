@@ -7,6 +7,7 @@
 
 package com.velocitypowered.api.redis;
 
+import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.Player;
 import java.util.List;
 
@@ -35,7 +36,7 @@ public interface RedisManager {
    *
    * @param player the player whose information will be saved
    */
-  void savePlayer(Player player);
+  void savePlayer(Player player, RegisteredServer server);
 
   /**
    * Removes the given player information from Redis.

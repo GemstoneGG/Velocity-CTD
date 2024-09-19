@@ -7,8 +7,8 @@ plugins {
 subprojects {
     apply<JavaLibraryPlugin>()
 
-    apply(plugin = "velocity-checkstyle")
-    apply(plugin = "velocity-spotless")
+//    apply(plugin = "velocity-checkstyle")
+//    apply(plugin = "velocity-spotless")
 
     java {
         toolchain {

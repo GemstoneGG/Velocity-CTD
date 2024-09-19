@@ -53,6 +53,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -131,18 +132,17 @@ public final class VelocityCommand {
 
   private record Uptime(VelocityServer server) implements Command<CommandSource> {
 
-    private static final Instant startTime = Instant.now();
 
     @Override
     public int run(final CommandContext<CommandSource> context) {
       final CommandSource source = context.getSource();
 
-      Duration uptime = Duration.between(startTime, Instant.now());
+      long timeInSeconds = (System.currentTimeMillis() - server.getStartTime()) / 1000;
+      int days = (int) TimeUnit.SECONDS.toDays(timeInSeconds);
+      long hours = TimeUnit.SECONDS.toHours(timeInSeconds) - (days * 24L);
+      long minutes = TimeUnit.SECONDS.toMinutes(timeInSeconds) - (TimeUnit.SECONDS.toHours(timeInSeconds)* 60);
+      long seconds = TimeUnit.SECONDS.toSeconds(timeInSeconds) - (TimeUnit.SECONDS.toMinutes(timeInSeconds) *60);
 
-      long days = uptime.toDays();
-      long hours = uptime.toHoursPart();
-      long minutes = uptime.toMinutesPart();
-      long seconds = uptime.toSecondsPart();
 
       source.sendMessage(Component.translatable("velocity.command.uptime",
           NamedTextColor.GREEN,

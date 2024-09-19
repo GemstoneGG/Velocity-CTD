@@ -777,7 +777,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       // Make sure we clear the current connected server as the connection is invalid.
       VelocityServerConnection previousConnection = connectedServer;
       if (kickedFromCurrent) {
-        server.getRedisManager().removePlayer(this);
         connectedServer = null;
       }
 
@@ -941,7 +940,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @param serverConnection the new server connection
    */
   public void setConnectedServer(@Nullable VelocityServerConnection serverConnection) {
-    server.getRedisManager().savePlayer(this);
     this.connectedServer = serverConnection;
     this.tryIndex = 0; // reset since we got connected to a server
 
@@ -980,7 +978,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       connectionInFlight.disconnect();
     }
     if (connectedServer != null) {
-      server.getRedisManager().removePlayer(this);
       connectedServer.disconnect();
     }
 

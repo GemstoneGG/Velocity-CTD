@@ -27,7 +27,7 @@ import java.nio.file.Path;
  * Velocity's Redis configuration.
  */
 public record VelocityRedisConfiguration(boolean useRedis, String host, int port, String username, String password,
-    boolean useSsl, int maximumRedisConnections, String redisId, String proxyId,
+    boolean useSsl, int maximumRedisConnections, String redisId, String proxyId, String masterProxyId,
     boolean proxyEnabled, boolean proxyIdsEnabled, boolean plistEnabled) {
 
   /**
@@ -67,13 +67,14 @@ public record VelocityRedisConfiguration(boolean useRedis, String host, int port
       final int maximumRedisConnections = config.get("maximum-redis-connections");
       final String redisId = config.get("redis-id");
       final String proxyId = config.get("proxy-id");
+      final String masterProxyId = config.get("master-proxy-id");
 
       final boolean proxyEnabled = commandsConfig.get("proxy-enabled");
       final boolean proxyIdsEnabled = commandsConfig.get("proxyids-enabled");
       final boolean plistEnabled = commandsConfig.get("plist-enabled");
 
       return new VelocityRedisConfiguration(useRedis, host, port, username, password, useSsl, maximumRedisConnections,
-          redisId, proxyId, proxyEnabled, proxyIdsEnabled, plistEnabled);
+          redisId, proxyId, masterProxyId, proxyEnabled, proxyIdsEnabled, plistEnabled);
     }
   }
 }

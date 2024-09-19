@@ -122,6 +122,12 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
             return;
           }
 
+
+          System.out.println("saving player to redis");
+          server.getRedisManager().savePlayer(player, serverConn.getServer());
+
+
+
           // Change the client to use the ClientPlaySessionHandler if required.
           ClientPlaySessionHandler playHandler;
           if (player.getConnection()
@@ -166,6 +172,7 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
           resultFuture.completeExceptionally(exc);
           return null;
         });
+
 
     return true;
   }

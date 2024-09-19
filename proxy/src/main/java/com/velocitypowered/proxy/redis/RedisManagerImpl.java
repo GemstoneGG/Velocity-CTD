@@ -17,23 +17,20 @@
 
 package com.velocitypowered.proxy.redis;
 
+
 import com.google.gson.Gson;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.redis.RedisManager;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.queue.pubsub.MainPubSub;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import redis.clients.jedis.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import redis.clients.jedis.DefaultJedisClientConfig;
-import redis.clients.jedis.DefaultRedisCredentials;
-import redis.clients.jedis.HostAndPort;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
 
 /**
  * Velocity's Redis manager.
@@ -71,6 +68,12 @@ public class RedisManagerImpl implements RedisManager {
     jedisPoolConfig.setMaxTotal(server.getRedisConfiguration().maximumRedisConnections());
     jedisPoolConfig.setBlockWhenExhausted(false);
     jedisPool = new JedisPool(jedisPoolConfig, address, config);
+
+    new Thread(()->{
+      try(Jedis jedis = jedisPool.getResource()){
+        jedis.subscribe(new MainPubSub(server), "queue_channel");
+      }
+    }).start();
   }
 
   @Override
@@ -100,21 +103,19 @@ public class RedisManagerImpl implements RedisManager {
   }
 
   @Override
-  public void savePlayer(Player player) {
+  public void savePlayer(Player player, RegisteredServer server) {
     if (!enabled) {
       return;
     }
 
-    ServerConnection connection = player.getCurrentServer().orElse(null);
-    if (connection == null) {
-      return;
-    }
 
     String playerKey = "player:" + player.getUniqueId().toString();
 
     try (Jedis jedis = jedisPool.getResource()) {
       jedis.set(playerKey, player.getUsername());
-      jedis.sadd("server:" + connection.getServerInfo().getName(), player.getUniqueId().toString());
+      System.out.println("setting: " + playerKey + " to: " + player.getUsername());
+      jedis.sadd("server:" + server.getServerInfo().getName(), player.getUniqueId().toString());
+      System.out.println(jedis.scard("server:" + server.getServerInfo().getName()));
     }
   }
 
@@ -201,5 +202,10 @@ public class RedisManagerImpl implements RedisManager {
       }
     }
     return allUsernames;
+  }
+
+
+  public Gson getGson() {
+    return gson;
   }
 }

@@ -16,6 +16,7 @@ import com.velocitypowered.api.proxy.messages.ChannelRegistrar;
 import com.velocitypowered.api.proxy.player.ResourcePackInfo;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
+import com.velocitypowered.api.queue.QueueManager;
 import com.velocitypowered.api.redis.RedisManager;
 import com.velocitypowered.api.scheduler.Scheduler;
 import com.velocitypowered.api.util.ProxyVersion;
@@ -158,6 +159,9 @@ public interface ProxyServer extends Audience {
    * @return the Redis manager instance
    */
   RedisManager getRedisManager();
+
+
+  QueueManager getQueueManager();
 
   /**
    * Gets the {@link EventManager} instance.

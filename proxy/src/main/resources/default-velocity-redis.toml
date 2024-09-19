@@ -24,6 +24,9 @@ redis-id = "master"
 # Identifier used to indicate which proxy is which and where a user is connected.
 proxy-id = "Proxy-1"
 
+# Identifier used to indicate which proxy handles the queue system.
+master-proxy-id = "Proxy-1"
+
 [commands]
 # Users often prefer to outright unregister the command instead of setting
 # the command's permission to false for users, as console overrides that priviledge.

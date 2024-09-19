@@ -90,7 +90,7 @@ public class GlistCommand {
     final CommandSource source = context.getSource();
     sendTotalProxyCount(source);
     source.sendMessage(
-        Component.translatable("velocity.command.glist-view-all", NamedTextColor.YELLOW));
+        Component.translatable("redis.command.plist-view-proxy", NamedTextColor.YELLOW));
     return 1;
   }
 

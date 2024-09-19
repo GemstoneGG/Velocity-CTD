@@ -54,6 +54,7 @@ public class PlistCommand {
         .requires(source ->
             source.getPermissionValue("velocity.command.plist") == Tristate.TRUE)
         .executes(commandContext -> {
+          System.out.println(commandContext);
           sendServerPlayers(commandContext.getSource());
           return 1;
         });
@@ -62,10 +63,12 @@ public class PlistCommand {
 
   private void sendServerPlayers(final CommandSource target) {
     if (!(target instanceof Player p)) {
+      System.out.println("returning cause not a player");
       return;
     }
 
     ServerConnection serverConnection = p.getCurrentServer().orElse(null);
+    System.out.println("Server conn: " + serverConnection);
 
     if (serverConnection == null) {
       return;
@@ -75,6 +78,7 @@ public class PlistCommand {
 
     if (this.server.getRedisManager().isEnabled()) {
       usernames = this.server.getRedisManager().getConnectedPlayerNames(serverConnection.getServerInfo().getName());
+      System.out.println("usernames: " + usernames);
     } else {
       for (Player player : serverConnection.getServer().getPlayersConnected()) {
         usernames.add(player.getUsername());
@@ -99,6 +103,7 @@ public class PlistCommand {
                     Component.text(usernames.size()),
                     Component.text(playerList)
                 );
+            target.sendMessage(Component.text("There are currently " + usernames.size() + " players connected to your server"));
             target.sendMessage(builder.build());
           });
   }

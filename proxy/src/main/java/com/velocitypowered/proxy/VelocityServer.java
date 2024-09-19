@@ -34,6 +34,7 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.player.ResourcePackInfo;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
+import com.velocitypowered.api.queue.QueueManager;
 import com.velocitypowered.api.util.Favicon;
 import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.api.util.ProxyVersion;
@@ -52,6 +53,7 @@ import com.velocitypowered.proxy.command.builtin.ShowAllCommand;
 import com.velocitypowered.proxy.command.builtin.ShutdownCommand;
 import com.velocitypowered.proxy.command.builtin.VelocityCommand;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
+import com.velocitypowered.proxy.config.VelocityQueueConfiguration;
 import com.velocitypowered.proxy.config.VelocityRedisConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.connection.player.resourcepack.VelocityResourcePackInfo;
@@ -64,6 +66,7 @@ import com.velocitypowered.proxy.plugin.VelocityPluginManager;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.util.FaviconSerializer;
 import com.velocitypowered.proxy.protocol.util.GameProfileSerializer;
+import com.velocitypowered.proxy.queue.QueueManagerImpl;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
 import com.velocitypowered.proxy.scheduler.VelocityScheduler;
 import com.velocitypowered.proxy.server.ServerMap;
@@ -80,6 +83,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
@@ -163,6 +167,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private final ProxyOptions options;
   private @MonotonicNonNull VelocityConfiguration configuration;
   private VelocityRedisConfiguration redisConfiguration;
+  private VelocityQueueConfiguration queueConfiguration;
   private @MonotonicNonNull KeyPair serverKeyPair;
   private final ServerMap servers;
   private final VelocityCommandManager commandManager;
@@ -181,8 +186,12 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private final Key translationRegistryKey = Key.key("velocity", "translations");
 
   private RedisManagerImpl redisManagerImpl;
+  private QueueManagerImpl queueManagerImpl;
+
+  private final long startTime;
 
   VelocityServer(final ProxyOptions options) {
+    startTime = System.currentTimeMillis();
     pluginManager = new VelocityPluginManager(this);
     eventManager = new VelocityEventManager(pluginManager);
     commandManager = new VelocityCommandManager(eventManager);
@@ -206,6 +215,15 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   public VelocityRedisConfiguration getRedisConfiguration() {
     return this.redisConfiguration;
   }
+
+  public VelocityQueueConfiguration getQueueConfiguration() {
+    return this.queueConfiguration;
+  }
+
+  public long getStartTime(){
+    return startTime;
+  }
+
 
   @Override
   public ProxyVersion getVersion() {
@@ -248,8 +266,10 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     this.doStartupConfigLoad();
 
     this.doStartupRedisConfigLoad();
+    this.doStartupQueueConfigLoad();
 
     redisManagerImpl = new RedisManagerImpl(this);
+    queueManagerImpl = new QueueManagerImpl(this);
 
 
     // Initialize commands first
@@ -305,7 +325,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   }
 
   private void registerTranslations(boolean log) {
-    final String defaultFile = "messages.properties";
+    final String[] messageFiles = {"messages.properties", "queue-messages.properties", "redis-messages.properties"};
     final TranslationRegistry translationRegistry = new VelocityTranslationRegistry(TranslationRegistry.create(this.translationRegistryKey));
     translationRegistry.defaultLocale(Locale.US);
     try {
@@ -334,48 +354,29 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
             });
           }
 
-          Optional<Path> optionalPath;
-          try (Stream<Path> defaultFiles = Files.walk(path)) {
-            optionalPath = defaultFiles.filter(temp -> temp.toString().endsWith(defaultFile)).findFirst();
-          }
+          for (String messageFile : messageFiles) {
+            File foundFile = new File("lang", messageFile);
 
-          if (optionalPath.isEmpty()) {
-            logger.error("Encountered an error when attempting to read default translations)");
-            return;
-          }
+            try (final BufferedReader defaultReader = Files.newBufferedReader(foundFile.toPath(), StandardCharsets.UTF_8)) {
+              final ResourceBundle defaultBundle = new PropertyResourceBundle(defaultReader);
+              final Set<String> defaultKeys = defaultBundle.keySet();
 
-          try (final BufferedReader defaultReader = Files.newBufferedReader(optionalPath.get(), StandardCharsets.UTF_8)) {
-            final ResourceBundle defaultBundle = new PropertyResourceBundle(defaultReader);
-            final Set<String> defaultKeys = defaultBundle.keySet();
+              final Locale locale = Locale.US;
 
-            try (final Stream<Path> langFiles = Files.walk(langPath)) {
-              langFiles.filter(Files::isRegularFile).forEach(file -> {
-                final String filename = com.google.common.io.Files
-                    .getNameWithoutExtension(file.getFileName().toString());
-                final String localeName = filename.replace("messages_", "")
-                    .replace("messages", "")
-                    .replace('_', '-');
-                final Locale locale = localeName.isBlank()
-                    ? Locale.US
-                    : Locale.forLanguageTag(localeName);
-
-                try (final BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-                  final ResourceBundle bundle = new PropertyResourceBundle(reader);
-
-                  translationRegistry.registerAll(locale, defaultKeys, (key) -> {
-                    final String format = bundle.containsKey(key) ? bundle.getString(key) : defaultBundle.getString(key);
-                    final String escapedFormat = format.replace("'", "''");
-
-                    return new MessageFormat(escapedFormat, locale);
-                  });
-
-                  ClosestLocaleMatcher.INSTANCE.registerKnown(locale);
-                } catch (Exception e) {
-                  logger.error("Could not read language file: {}", filename, e);
+              translationRegistry.registerAll(locale, defaultKeys, (key) -> {
+                // Avoid registering duplicate keys
+                if (translationRegistry.contains(key)) {
+                  return null;
                 }
+
+                // Check if the key exists in the bundle or fallback to default bundle
+                String format = defaultBundle.getString(key);
+
+                final String escapedFormat = format.replace("'", "''");
+                return new MessageFormat(escapedFormat, locale);
               });
-            } catch (Exception e) {
-              logger.error("Failed to read directory: {}", path.toString(), e);
+
+              ClosestLocaleMatcher.INSTANCE.registerKnown(locale);
             }
           }
         } catch (Exception e) {
@@ -388,6 +389,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     }
     GlobalTranslator.translator().addSource(translationRegistry);
   }
+
 
   @SuppressFBWarnings("DM_EXIT")
   private void doStartupConfigLoad() {
@@ -429,6 +431,26 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     }
   }
 
+  private void doStartupQueueConfigLoad() {
+    try {
+      Path configPath = Path.of("velocity-queue.toml");
+      queueConfiguration = VelocityQueueConfiguration.read(configPath);
+
+      if (!configuration.validate()) {
+        logger.error("Your queue configuration is invalid. Velocity will not start up until the errors "
+                + "are resolved.");
+        LogManager.shutdown();
+        System.exit(1);
+      }
+
+    } catch (Exception e) {
+      logger.error("Unable to read/load/save your default-velocity-queue.toml. The server will shut down.", e);
+      LogManager.shutdown();
+      System.exit(1);
+    }
+  }
+
+
   private void loadPlugins() {
     logger.info("Loading plugins...");
 
@@ -469,6 +491,11 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   @Override
   public RedisManagerImpl getRedisManager() {
     return redisManagerImpl;
+  }
+
+  @Override
+  public QueueManager getQueueManager() {
+    return queueManagerImpl;
   }
 
   public Bootstrap createBootstrap(@Nullable EventLoopGroup group) {
