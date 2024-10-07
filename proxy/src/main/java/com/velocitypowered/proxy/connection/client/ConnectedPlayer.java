@@ -157,6 +157,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    */
   private final MinecraftConnection connection;
   private final @Nullable InetSocketAddress virtualHost;
+  private final @Nullable String rawVirtualHost;
   private GameProfile profile;
   private PermissionFunction permissionFunction;
   private int tryIndex = 0;
@@ -195,12 +196,13 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private final List<String> attemptedServers;
 
   ConnectedPlayer(final VelocityServer server, final GameProfile profile, final MinecraftConnection connection,
-                  @Nullable final InetSocketAddress virtualHost, final boolean onlineMode,
+                  @Nullable final InetSocketAddress virtualHost, @Nullable final String rawVirtualHost, final boolean onlineMode,
                   @Nullable final IdentifiedKey playerKey) {
     this.server = server;
     this.profile = profile;
     this.connection = connection;
     this.virtualHost = virtualHost;
+    this.rawVirtualHost = rawVirtualHost;
     this.permissionFunction = PermissionFunction.ALWAYS_UNDEFINED;
     this.connectionPhase = connection.getType().getInitialClientPhase();
     this.onlineMode = onlineMode;
@@ -363,6 +365,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   @Override
   public Optional<InetSocketAddress> getVirtualHost() {
     return Optional.ofNullable(virtualHost);
+  }
+
+  @Override
+  public Optional<String> getRawVirtualHost() {
+    return Optional.ofNullable(rawVirtualHost);
   }
 
   void setPermissionFunction(final PermissionFunction permissionFunction) {
