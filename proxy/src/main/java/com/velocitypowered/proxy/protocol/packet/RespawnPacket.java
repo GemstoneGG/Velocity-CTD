@@ -45,6 +45,7 @@ public class RespawnPacket implements MinecraftPacket {
   private CompoundBinaryTag currentDimensionData; // 1.16.2+
   private @Nullable Pair<String, Long> lastDeathPosition; // 1.19+
   private int portalCooldown; // 1.20+
+  private int seaLevel; // 1.21.2+
 
   public RespawnPacket() {
   }
@@ -63,11 +64,13 @@ public class RespawnPacket implements MinecraftPacket {
    * @param currentDimensionData data about the current dimension (for 1.16.2+)
    * @param lastDeathPosition optional last death position (for 1.19+)
    * @param portalCooldown the cooldown for portal usage (for 1.20+)
+   * @param seaLevel a determinable spawn point for a user (for 1.21.2+)
    */
   public RespawnPacket(final int dimension, final long partialHashedSeed, final short difficulty, final short gamemode,
                        final String levelType, final byte dataToKeep, final DimensionInfo dimensionInfo,
                        final short previousGamemode, final CompoundBinaryTag currentDimensionData,
-                       @Nullable final Pair<String, Long> lastDeathPosition, final int portalCooldown) {
+                       @Nullable final Pair<String, Long> lastDeathPosition, final int portalCooldown,
+                       final int seaLevel) {
     this.dimension = dimension;
     this.partialHashedSeed = partialHashedSeed;
     this.difficulty = difficulty;
@@ -79,6 +82,7 @@ public class RespawnPacket implements MinecraftPacket {
     this.currentDimensionData = currentDimensionData;
     this.lastDeathPosition = lastDeathPosition;
     this.portalCooldown = portalCooldown;
+    this.seaLevel = seaLevel;
   }
 
   /**
@@ -91,7 +95,8 @@ public class RespawnPacket implements MinecraftPacket {
     return new RespawnPacket(joinGame.getDimension(), joinGame.getPartialHashedSeed(),
         joinGame.getDifficulty(), joinGame.getGamemode(), joinGame.getLevelType(),
         (byte) 0, joinGame.getDimensionInfo(), joinGame.getPreviousGamemode(),
-        joinGame.getCurrentDimensionData(), joinGame.getLastDeathPosition(), joinGame.getPortalCooldown());
+        joinGame.getCurrentDimensionData(), joinGame.getLastDeathPosition(),
+        joinGame.getPortalCooldown(), joinGame.getSeaLevel());
   }
 
   public int getDimension() {
@@ -166,6 +171,14 @@ public class RespawnPacket implements MinecraftPacket {
     this.portalCooldown = portalCooldown;
   }
 
+  public int getSeaLevel() {
+    return seaLevel;
+  }
+
+  public void setSeaLevel(int seaLevel) {
+    this.seaLevel = seaLevel;
+  }
+
   @Override
   public String toString() {
     return "Respawn{"
@@ -180,6 +193,7 @@ public class RespawnPacket implements MinecraftPacket {
         + ", previousGamemode=" + previousGamemode
         + ", dimensionData=" + currentDimensionData
         + ", portalCooldown=" + portalCooldown
+        + ", seaLevel=" + seaLevel
         + '}';
   }
 
@@ -228,6 +242,9 @@ public class RespawnPacket implements MinecraftPacket {
     }
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20)) {
       this.portalCooldown = ProtocolUtils.readVarInt(buf);
+    }
+    if (version.noLessThan(ProtocolVersion.MINECRAFT_1_21_2)) {
+      this.seaLevel = ProtocolUtils.readVarInt(buf);
     }
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
       this.dataToKeep = buf.readByte();
@@ -285,6 +302,10 @@ public class RespawnPacket implements MinecraftPacket {
 
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20)) {
       ProtocolUtils.writeVarInt(buf, portalCooldown);
+    }
+
+    if (version.noLessThan(ProtocolVersion.MINECRAFT_1_12_1)) {
+      ProtocolUtils.writeVarInt(buf, seaLevel);
     }
 
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
