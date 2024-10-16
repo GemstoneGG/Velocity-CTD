@@ -1,5 +1,5 @@
 
-FROM amazoncorretto:17.0.12-alpine3.18
+FROM amazoncorretto:17.0.13-alpine3.18
 
 # Install required dependencies
 RUN apk add --no-cache bash alpine-sdk cmake openssl-dev openssl
