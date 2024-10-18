@@ -1,0 +1,35 @@
+# Config version. Do not change this
+config-version = "1.0"
+
+# Should Redis be used to communicate between multiple Velocity proxies?
+use-redis = false
+
+# What address, port, and other credentials should be used to link all Velocity functions to Redis?
+# Leave the username blank if you do not have a defined username for your Redis database.
+host = "127.0.0.1"
+port = 6379
+username = ""
+password = ""
+use-ssl = false
+
+# Maximum number of maintained connections to the Redis server.
+#
+# We encourage leaving this at "10," as having an absurd number
+# of connections to your Redis instance will massively depreciate performance.
+maximum-redis-connections = 10
+
+# Identifier used to identify the name of your Redis instance in the backend.
+redis-id = "master"
+
+# Identifier used to indicate which proxy is which and where a user is connected.
+proxy-id = "Proxy-1"
+
+# Identifier used to indicate which proxy handles the queue system.
+master-proxy-id = "Proxy-1"
+
+[commands]
+# Users often prefer to outright unregister the command instead of setting
+# the command's permission to false for users, as console overrides that priviledge.
+proxy-enabled = true
+proxyids-enabled = true
+plist-enabled = true

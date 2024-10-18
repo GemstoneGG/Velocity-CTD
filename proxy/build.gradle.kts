@@ -65,7 +65,7 @@ tasks {
         exclude("it/unimi/dsi/fastutil/ints/*Priority*")
         exclude("it/unimi/dsi/fastutil/ints/*BigList*")
 
-        // Try to exclude everything BUT Object2Int{LinkedOpen,Open,CustomOpen}HashMap
+        // Try to exclude everything BUT Object2Int{LinkedOpen, Open, CustomOpen}HashMap
         exclude("it/unimi/dsi/fastutil/objects/*ObjectArray*")
         exclude("it/unimi/dsi/fastutil/objects/*ObjectAVL*")
         exclude("it/unimi/dsi/fastutil/objects/*Object*Big*")
@@ -123,6 +123,8 @@ dependencies {
     implementation(variantOf(libs.netty.transport.native.kqueue) { classifier("osx-x86_64") })
     implementation(variantOf(libs.netty.transport.native.kqueue) { classifier("osx-aarch_64") })
 
+    implementation(libs.json)
+    implementation(libs.jedis)
     implementation(libs.jopt)
     implementation(libs.terminalconsoleappender)
     runtimeOnly(libs.jline)

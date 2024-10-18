@@ -122,6 +122,9 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
             return;
           }
 
+          // Ensure the client is properly transitioned to its destination.
+          server.getRedisManager().savePlayer(player, serverConn.getServer());
+
           // Change the client to use the ClientPlaySessionHandler if required.
           ClientPlaySessionHandler playHandler;
           if (player.getConnection()

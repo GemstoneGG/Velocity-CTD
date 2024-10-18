@@ -148,6 +148,15 @@ enable-dynamic-fallbacks = false
 # populated server.
 enable-most-populated-fallbacks = false
 
+[slash-servers]
+# Configure which servers have aliases to simplify the process of connecting to a specific server.
+"factions" = [
+    "faction", "factions"
+]
+"minigames" = [
+    "minigame", "minigames"
+]
+
 [forced-hosts]
 # Configure your forced hosts here.
 "lobby.example.com" = [

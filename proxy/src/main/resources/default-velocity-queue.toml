@@ -1,0 +1,69 @@
+# Config version. Do not change this
+config-version = "1.0"
+
+# Whether the queue system is active or not.
+# This will fully unregister all permissions, commands, and this feature as a whole.
+queue-system-enabled = false
+
+# Whether the "/server", "/queue," and "/joinqueue" outputs should be replaced.
+#
+# Example: The generic "/server" output returns "/server <server>" for usage, instead.
+replace-server-output = false
+
+# The list of aliases that should not be activated for the queue system.
+disabled-queue-aliases = [
+    "joinqueue"
+]
+
+# The list of servers that should not have the queue system enabled.
+no-queue-servers = [
+    "lobby"
+]
+
+# Whether the user should be capable of entering multiple queues at once.
+multiple-queues = false
+
+# Determines which server should be prioritized for action bars and placeholders.
+# Options: "first" or "last"
+multiple-server-messaging-selection = "last"
+
+# How long the queue system should wait before sending each user to a server (in seconds).
+send-delay = 1.0
+
+# How long the queue system should wait before updating or sending a new action bar,
+# chat message, or title/subtitle.
+message-delay = 1.0
+
+# The number tries should a user be sent to a server before it removes the user from a queue.
+max-send-retries = 10
+
+# Whether the player should be removed from their previous queue
+# when switching servers.
+remove-player-on-server-switch = false
+
+# Whether the kick message or indicator should be shown when you
+# have failed to queue and join a specific server.
+velocity-kick-reason = true
+
+# Reasons the user should be removed from the queue when kicked from their previous server.
+kick-reasons-blacklist = [
+    "banned", "blacklisted"
+]
+
+# Amount of time before a server is changed from the status of "restarting" to "offline."
+offline-delay = 120.0
+
+# Amount of time before a user can be sent to a server, after coming back online.
+return-online-send-delay = 0.0
+
+# Whether users can enter a queue that is paused.
+prevent-paused-queue-joining = false
+
+# Whether users should be automatically sent
+# back to a server when it returns online.
+#
+# This feature only applies when enabled.
+# By default, the user is re-added to the
+# queue and must wait the duration before being
+# re-sent to their previous destination.
+send-all-users-back-when-online = false
