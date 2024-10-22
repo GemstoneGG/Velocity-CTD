@@ -304,7 +304,7 @@ public class RespawnPacket implements MinecraftPacket {
       ProtocolUtils.writeVarInt(buf, portalCooldown);
     }
 
-    if (version.noLessThan(ProtocolVersion.MINECRAFT_1_12_1)) {
+    if (version.noLessThan(ProtocolVersion.MINECRAFT_1_21_2)) {
       ProtocolUtils.writeVarInt(buf, seaLevel);
     }
 
