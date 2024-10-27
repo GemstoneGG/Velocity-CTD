@@ -36,7 +36,7 @@ import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 /**
- * Implements the Velocity default {@code /glist} command.
+ * Implements the Velocity default {@code /plist} command.
  */
 public class PlistCommand {
 
