@@ -117,6 +117,7 @@ glist-enabled = true
 send-enabled = true
 
 # Velocity-CTD Command Registration
+plist-enabled = true
 alert-enabled = true
 alertraw-enabled = true
 find-enabled = true
@@ -279,3 +280,30 @@ map = "Velocity"
 
 # Whether plugins should be shown in query response by default or not.
 show-plugins = false
+
+[redis]
+# Should Redis be used to communicate between multiple Velocity proxies?
+enabled = false
+
+# What address, port, and other credentials should be used to link all Velocity functions to Redis?
+# Leave the username blank if you do not have a defined username for your Redis database.
+host = "127.0.0.1"
+port = 6379
+username = ""
+password = ""
+use-ssl = false
+
+# Maximum number of maintained connections to the Redis server.
+#
+# We encourage leaving this at "10," as having an absurd number
+# of connections to your Redis instance will massively depreciate performance.
+max-concurrent-connections = 10
+
+# The ID of this proxy (only needed for multi-proxy setups - leave blank otherwise)
+proxy-id = ""
+
+# How often to send a ping over the Redis.
+ping-interval-ms = 30000
+
+# How long until a proxy is marked as being timed out if we don't see a ping from it.
+other-proxy-timeout-ms = 90000

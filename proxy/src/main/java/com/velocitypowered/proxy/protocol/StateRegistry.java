@@ -852,7 +852,7 @@ public enum StateRegistry {
             throw new IllegalArgumentException(
                 "Can not register class "
                     + clazz.getSimpleName()
-                    + " with id "
+                    + " with proxyId "
                     + current.id
                     + " for "
                     + registry.version
@@ -889,7 +889,7 @@ public enum StateRegistry {
       }
 
       /**
-       * Attempts to create a packet from the specified {@code id}.
+       * Attempts to create a packet from the specified {@code proxyId}.
        *
        * @param id the packet ID
        * @return the packet instance, or {@code null} if the ID is not registered
@@ -913,7 +913,7 @@ public enum StateRegistry {
         final int id = this.packetClassToId.getInt(packet.getClass());
         if (id == Integer.MIN_VALUE) {
           throw new IllegalArgumentException(String.format(
-              "Unable to find id for packet of type %s in %s protocol %s phase %s",
+              "Unable to find proxyId for packet of type %s in %s protocol %s phase %s",
               packet.getClass().getName(), PacketRegistry.this.direction,
               this.version, PacketRegistry.this.registry
           ));
@@ -922,7 +922,7 @@ public enum StateRegistry {
       }
 
       /**
-       * Checks if the registry contains a packet with the specified {@code id}.
+       * Checks if the registry contains a packet with the specified {@code proxyId}.
        *
        * @param packet the packet to check
        * @return {@code true} if the packet is registered, {@code false} otherwise
@@ -955,7 +955,7 @@ public enum StateRegistry {
     @Override
     public String toString() {
       return "PacketMapping{"
-          + "id="
+          + "proxyId="
           + id
           + ", protocolVersion="
           + protocolVersion

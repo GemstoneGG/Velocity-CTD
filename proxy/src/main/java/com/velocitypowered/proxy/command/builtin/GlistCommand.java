@@ -32,10 +32,17 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.event.HoverEventSource;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 /**
@@ -45,9 +52,9 @@ public class GlistCommand {
 
   private static final String SERVER_ARG = "server";
 
-  private final ProxyServer server;
+  private final VelocityServer server;
 
-  public GlistCommand(final ProxyServer server) {
+  public GlistCommand(VelocityServer server) {
     this.server = server;
   }
 
@@ -123,7 +130,14 @@ public class GlistCommand {
   }
 
   private void sendTotalProxyCount(final CommandSource target) {
-    final int online = server.getPlayerCount();
+    final int online;
+
+    if (server.getMultiProxyHandler().isEnabled()) {
+      online = server.getMultiProxyHandler().getTotalPlayerCount();
+    } else {
+      online = server.getPlayerCount();
+    }
+
     final TranslatableComponent.Builder msg = Component.translatable()
             .key(online == 1
                   ? "velocity.command.glist-player-singular"
@@ -140,18 +154,39 @@ public class GlistCommand {
       return;
     }
 
-    onServer.stream()
-        .map(Player::getUsername)
-        .reduce((a, b) -> a + ", " + b)
-        .ifPresent(playerList -> {
-          final TranslatableComponent.Builder builder = Component.translatable()
-              .key("velocity.command.glist-server")
-              .arguments(
-                  Component.text(server.getServerInfo().getName()),
-                  Component.text(onServer.size()),
-                  Component.text(playerList)
-              );
-          target.sendMessage(builder.build());
-        });
+    List<Component> players = new ArrayList<>();
+    MultiProxyHandler multiProxyHandler = this.server.getMultiProxyHandler();
+
+    if (multiProxyHandler.isEnabled()) {
+      for (String proxyId: multiProxyHandler.getAllProxyIds()) {
+        for (MultiProxyHandler.RemotePlayerInfo player: multiProxyHandler.getPlayers(proxyId)) {
+          if (!player.serverName.equals(server.getServerInfo().getName())) {
+            continue;
+          }
+
+          Component hover = Component.translatable("velocity.command.glist.proxy-other")
+              .arguments(Component.text(proxyId));
+          players.add(Component.text(player.name).hoverEvent(HoverEvent.showText(hover)));
+        }
+      }
+    }
+
+    for (Player player: onServer) {
+      Component hover = Component.translatable("velocity.command.glist.proxy-self");
+      players.add(Component.text(player.getUsername()).hoverEvent(HoverEvent.showText(hover)));
+    }
+
+    players.stream()
+            .reduce((a, b) -> a.append(Component.text(", ")).append(b))
+            .ifPresent(playerList -> {
+              final TranslatableComponent.Builder builder = Component.translatable()
+                      .key("velocity.command.glist-server")
+                      .arguments(
+                              Component.text(server.getServerInfo().getName()),
+                              Component.text(onServer.size()),
+                              playerList
+                      );
+              target.sendMessage(builder.build());
+            });
   }
 }

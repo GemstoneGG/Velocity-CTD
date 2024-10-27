@@ -118,7 +118,7 @@ public class VelocityPluginDescription implements PluginDescription {
   @Override
   public String toString() {
     return "VelocityPluginDescription{"
-        + "id='" + id + '\''
+        + "proxyId='" + id + '\''
         + ", name='" + name + '\''
         + ", version='" + version + '\''
         + ", description='" + description + '\''

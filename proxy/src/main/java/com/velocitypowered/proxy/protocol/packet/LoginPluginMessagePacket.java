@@ -72,7 +72,7 @@ public class LoginPluginMessagePacket extends DeferredByteBufHolder implements M
   @Override
   public String toString() {
     return "LoginPluginMessage{"
-        + "id=" + id
+        + "proxyId=" + id
         + ", channel='" + channel + '\''
         + ", data=" + super.toString()
         + '}';

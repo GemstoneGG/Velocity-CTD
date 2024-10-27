@@ -89,6 +89,8 @@ public final class VelocityConfiguration implements ProxyConfig {
   private final Query query;
   private final Metrics metrics;
   @Expose
+  private final Redis redis;
+  @Expose
   private boolean enablePlayerAddressLogging = true;
   private net.kyori.adventure.text.@MonotonicNonNull Component motdAsComponent;
   private @Nullable Favicon favicon;
@@ -112,13 +114,14 @@ public final class VelocityConfiguration implements ProxyConfig {
   private String minimumVersion = "1.7.2";
 
   private VelocityConfiguration(final Servers servers, final ForcedHosts forcedHosts, final Commands commands,
-      final Advanced advanced, final Query query, final Metrics metrics) {
+      final Advanced advanced, final Query query, final Metrics metrics, final Redis redis) {
     this.servers = servers;
     this.forcedHosts = forcedHosts;
     this.commands = commands;
     this.advanced = advanced;
     this.query = query;
     this.metrics = metrics;
+    this.redis = redis;
   }
 
   private VelocityConfiguration(final String bind, final String motd, final int showMaxPlayers, final boolean onlineMode,
@@ -129,7 +132,8 @@ public final class VelocityConfiguration implements ProxyConfig {
       final Commands commands, final Advanced advanced, final Query query, final Metrics metrics, final boolean forceKeyAuthentication,
       final boolean logPlayerConnections, final boolean logPlayerDisconnections,
       final boolean logOfflineConnections, final boolean disableForge, final boolean enforceChatSigning,
-      final boolean translateHeaderFooter, final boolean logMinimumVersion, final String minimumVersion) {
+      final boolean translateHeaderFooter, final boolean logMinimumVersion, final String minimumVersion,
+      final Redis redis) {
     this.bind = bind;
     this.motd = motd;
     this.showMaxPlayers = showMaxPlayers;
@@ -156,6 +160,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     this.translateHeaderFooter = translateHeaderFooter;
     this.logMinimumVersion = logMinimumVersion;
     this.minimumVersion = minimumVersion;
+    this.redis = redis;
   }
 
   /**
@@ -421,6 +426,10 @@ public final class VelocityConfiguration implements ProxyConfig {
     return commands.isGlistEnabled();
   }
 
+  public boolean isPlistEnabled() {
+    return commands.isPlistEnabled();
+  }
+
   public boolean isHubEnabled() {
     return commands.isHubEnabled();
   }
@@ -522,6 +531,10 @@ public final class VelocityConfiguration implements ProxyConfig {
     return forceKeyAuthentication;
   }
 
+  public Redis getRedis() {
+    return redis;
+  }
+
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
@@ -537,6 +550,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         .add("commands", commands)
         .add("advanced", advanced)
         .add("query", query)
+        .add("redis", redis)
         .add("favicon", favicon)
         .add("enablePlayerAddressLogging", enablePlayerAddressLogging)
         .add("forceKeyAuthentication", forceKeyAuthentication)
@@ -624,6 +638,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       final CommentedConfig advancedConfig = config.get("advanced");
       final CommentedConfig queryConfig = config.get("query");
       final CommentedConfig metricsConfig = config.get("metrics");
+      final CommentedConfig redisConfig = config.get("redis");
       final PlayerInfoForwarding forwardingMode = config.getEnumOrElse(
               "player-info-forwarding-mode", PlayerInfoForwarding.NONE);
       final PingPassthroughMode pingPassthroughMode = config.getEnumOrElse("ping-passthrough",
@@ -688,7 +703,8 @@ public final class VelocityConfiguration implements ProxyConfig {
               enforceChatSigning,
               translateHeaderFooter,
               logMinimumVersion,
-              minimumVersion
+              minimumVersion,
+              new Redis(redisConfig)
       );
     }
   }
@@ -923,6 +939,8 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private boolean glistCommand = true;
     @Expose
+    private boolean plistCommand = true;
+    @Expose
     private boolean hubCommand = true;
     @Expose
     private boolean pingCommand = true;
@@ -941,6 +959,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.alertRawCommand = config.getOrElse("alertraw-enabled", true);
         this.findCommand = config.getOrElse("find-enabled", true);
         this.glistCommand = config.getOrElse("glist-enabled", true);
+        this.plistCommand = config.getOrElse("plist-enabled", true);
         this.hubCommand = config.getOrElse("hub-enabled", true);
         this.pingCommand = config.getOrElse("ping-enabled", true);
         this.sendCommand = config.getOrElse("send-enabled", true);
@@ -968,6 +987,10 @@ public final class VelocityConfiguration implements ProxyConfig {
       return glistCommand;
     }
 
+    public boolean isPlistEnabled() {
+      return plistCommand;
+    }
+
     public boolean isHubEnabled() {
       return hubCommand;
     }
@@ -992,6 +1015,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", alertRawCommand=" + alertRawCommand
           + ", findCommand=" + findCommand
           + ", glistCommand=" + glistCommand
+          + ", plistCommand=" + plistCommand
           + ", hubCommand=" + hubCommand
           + ", pingCommand=" + pingCommand
           + ", sendCommand=" + sendCommand
@@ -1239,6 +1263,110 @@ public final class VelocityConfiguration implements ProxyConfig {
 
     public boolean isEnabled() {
       return enabled;
+    }
+  }
+
+  public static class Redis {
+    @Expose
+    private boolean enabled;
+    @Expose
+    private String host;
+    @Expose
+    private int port;
+    @Expose
+    private @Nullable String username;
+    @Expose
+    private String password;
+    @Expose
+    private boolean useSsl;
+    @Expose
+    private int maxConcurrentConnections;
+    @Expose
+    private @Nullable String proxyId;
+    @Expose
+    private long pingIntervalMs;
+    @Expose
+    private long otherProxyTimeoutMs;
+
+    private Redis(CommentedConfig config) {
+      if (config == null) {
+        return;
+      }
+
+      this.enabled = config.getOrElse("enabled", false);
+      this.host = config.getOrElse("host", "127.0.0.1");
+      this.port = config.getOrElse("port", 6379);
+      this.username = config.getOrElse("username", "");
+
+      if (this.username.isEmpty()) {
+        this.username = null;
+      }
+
+      this.password = config.get("password");
+      this.useSsl = config.getOrElse("use-ssl", true);
+      this.maxConcurrentConnections = config.getOrElse("max-concurrent-connections", 10);
+
+      this.proxyId = config.get("proxy-proxyId");
+
+      if (this.proxyId == null || this.proxyId.isEmpty()) {
+        this.proxyId = null;
+      }
+
+      this.pingIntervalMs = config.getLongOrElse("ping-interval-ms", 30000);
+      this.otherProxyTimeoutMs = config.getLongOrElse("other-proxy-timeout-ms", 90000);
+    }
+
+    public boolean isEnabled() {
+      return enabled;
+    }
+
+    public String getHost() {
+      return host;
+    }
+
+    public int getPort() {
+      return port;
+    }
+
+    public String getUsername() {
+      return username;
+    }
+
+    public String getPassword() {
+      return password;
+    }
+
+    public boolean isUseSsl() {
+      return useSsl;
+    }
+
+    public int getMaxConcurrentConnections() {
+      return maxConcurrentConnections;
+    }
+
+    public @Nullable String getProxyId() {
+      return proxyId;
+    }
+
+    public long getPingIntervalMs() {
+      return pingIntervalMs;
+    }
+
+    public long getOtherProxyTimeoutMs() {
+      return otherProxyTimeoutMs;
+    }
+
+    @Override
+    public String toString() {
+      return "Redis{"
+          + "enabled=" + enabled
+          + ", host=" + host
+          + ", port=" + port
+          + ", username=" + username
+          // password excluded for security
+          + ", useSsl" + useSsl
+          + ", maxConcurrentConnections" + maxConcurrentConnections
+          + '}';
     }
   }
 }

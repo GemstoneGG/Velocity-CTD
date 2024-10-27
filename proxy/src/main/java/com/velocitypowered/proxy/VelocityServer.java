@@ -39,18 +39,7 @@ import com.velocitypowered.api.util.Favicon;
 import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.api.util.ProxyVersion;
 import com.velocitypowered.proxy.command.VelocityCommandManager;
-import com.velocitypowered.proxy.command.builtin.AlertCommand;
-import com.velocitypowered.proxy.command.builtin.AlertRawCommand;
-import com.velocitypowered.proxy.command.builtin.CallbackCommand;
-import com.velocitypowered.proxy.command.builtin.FindCommand;
-import com.velocitypowered.proxy.command.builtin.GlistCommand;
-import com.velocitypowered.proxy.command.builtin.HubCommand;
-import com.velocitypowered.proxy.command.builtin.PingCommand;
-import com.velocitypowered.proxy.command.builtin.SendCommand;
-import com.velocitypowered.proxy.command.builtin.ServerCommand;
-import com.velocitypowered.proxy.command.builtin.ShowAllCommand;
-import com.velocitypowered.proxy.command.builtin.ShutdownCommand;
-import com.velocitypowered.proxy.command.builtin.VelocityCommand;
+import com.velocitypowered.proxy.command.builtin.*;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.connection.player.resourcepack.VelocityResourcePackInfo;
@@ -66,6 +55,8 @@ import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.util.FaviconSerializer;
 import com.velocitypowered.proxy.protocol.util.GameProfileSerializer;
+import com.velocitypowered.proxy.redis.RedisManagerImpl;
+import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import com.velocitypowered.proxy.scheduler.VelocityScheduler;
 import com.velocitypowered.proxy.server.ServerMap;
 import com.velocitypowered.proxy.util.AddressUtil;
@@ -183,6 +174,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private final ServerListPingHandler serverListPingHandler;
   private final long startTime;
   private final Key translationRegistryKey = Key.key("velocity", "translations");
+  private final RedisManagerImpl redisManager;
+  private final MultiProxyHandler multiProxyHandler;
 
   VelocityServer(final ProxyOptions options) {
     pluginManager = new VelocityPluginManager(this);
@@ -194,11 +187,21 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     servers = new ServerMap(this);
     startTime = System.currentTimeMillis();
     serverListPingHandler = new ServerListPingHandler(this);
+    redisManager = new RedisManagerImpl(this);
+    multiProxyHandler = new MultiProxyHandler(this);
     this.options = options;
   }
 
   public KeyPair getServerKeyPair() {
     return serverKeyPair;
+  }
+
+  public RedisManagerImpl getRedisManager() {
+    return redisManager;
+  }
+
+  public MultiProxyHandler getMultiProxyHandler() {
+    return multiProxyHandler;
   }
 
   @Override
@@ -640,6 +643,10 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       new GlistCommand(this).register(configuration.isGlistEnabled());
     }
 
+    if (!commandManager.hasCommand("plist")) {
+      new PlistCommand(this).register(configuration.isPlistEnabled());
+    }
+
     if (!commandManager.hasCommand("ping")) {
       new PingCommand(this).register(configuration.isPingEnabled());
     }
@@ -731,6 +738,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       // Shutdown the connection manager, this should be
       // done first to refuse new connections
       cm.shutdown();
+      multiProxyHandler.shutdown();
 
       ImmutableList<ConnectedPlayer> players = ImmutableList.copyOf(connectionsByUuid.values());
       for (ConnectedPlayer player : players) {

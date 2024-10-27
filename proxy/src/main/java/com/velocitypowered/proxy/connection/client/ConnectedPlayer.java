@@ -228,6 +228,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     for (final VelocityBossBarImplementation bar : this.bossBars) {
       bar.viewerDisconnected(this);
     }
+
+    this.server.getMultiProxyHandler().onPlayerLeave(this);
   }
 
   public List<String> getAttemptedServers() {

@@ -108,7 +108,7 @@ public class ResourcePackRequestPacket implements MinecraftPacket {
   public void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       if (id == null) {
-        throw new IllegalStateException("Resource pack id not set yet!");
+        throw new IllegalStateException("Resource pack proxyId not set yet!");
       }
       ProtocolUtils.writeUuid(buf, id);
     }

@@ -71,7 +71,7 @@ public class LoginPluginResponsePacket extends DeferredByteBufHolder implements 
   @Override
   public String toString() {
     return "LoginPluginResponse{"
-        + "id=" + id
+        + "proxyId=" + id
         + ", success=" + success
         + ", data=" + super.toString()
         + '}';
