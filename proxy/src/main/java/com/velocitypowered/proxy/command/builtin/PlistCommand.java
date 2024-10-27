@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2020-2024 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ public class PlistCommand {
 
   private final VelocityServer server;
 
-  public PlistCommand(VelocityServer server) {
+  public PlistCommand(final VelocityServer server) {
     this.server = server;
   }
 
@@ -129,7 +129,7 @@ public class PlistCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private void sendTotalProxyCount(CommandSource target, final int online) {
+  private void sendTotalProxyCount(final CommandSource target, final int online) {
     final TranslatableComponent.Builder msg = Component.translatable()
             .key(online == 1
                   ? "velocity.command.plist-player-singular"
@@ -143,17 +143,17 @@ public class PlistCommand {
                                  final List<MultiProxyHandler.RemotePlayerInfo> onServer,
                                  final String serverName) {
     onServer.stream()
-            .map(it -> it.name)
-            .reduce((a, b) -> a + ", " + b)
-            .ifPresent(playerList -> {
-              final TranslatableComponent.Builder builder = Component.translatable()
-                      .key("velocity.command.plist-server")
-                      .arguments(
-                              Component.text(serverName),
-                              Component.text(onServer.size()),
-                              Component.text(playerList)
-                      );
-              target.sendMessage(builder.build());
-            });
+        .map(it -> it.name)
+        .reduce((a, b) -> a + ", " + b)
+        .ifPresent(playerList -> {
+          final TranslatableComponent.Builder builder = Component.translatable()
+              .key("velocity.command.plist-server")
+              .arguments(
+                  Component.text(serverName),
+                  Component.text(onServer.size()),
+                  Component.text(playerList)
+              );
+          target.sendMessage(builder.build());
+        });
   }
 }

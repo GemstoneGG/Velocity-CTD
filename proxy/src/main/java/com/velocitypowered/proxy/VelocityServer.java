@@ -623,6 +623,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     unregisterCommand("alertraw");
     unregisterCommand("find");
     unregisterCommand("glist");
+    unregisterCommand("plist");
     unregisterCommand("ping");
     unregisterCommand("send");
     unregisterCommand("showall");

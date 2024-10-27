@@ -30,8 +30,12 @@ dependencies, useful performance improvements, and more.
 ## Additional Features/Removals
 
 * Utilization of newer dependencies for virtually any dependency that can
-  easily and fairly be upgraded, to maintain the highest level of performance.
-* Implementation of non-invasive multi-forwarding system that allows you
+  easily and fairly be upgraded to maintain the highest level of performance.
+* Implementation of full-fledged Redis database support to fully replace
+  plugins like RedisBungee in attempts to maintain a stabler Redis experience.
+g* Implementation of a highly dynamic and efficient queue system that is
+  simplified in nature and intended to stably maintain thousands of players.
+* Implementation of a non-invasive multi-forwarding system that allows you
   to use a different forwarding method for specific servers on the backend.
 * Configurable `/alert` command sends messages across your entire network.
 * Configurable `/alertraw` command to send non-prefixed messages across your
@@ -86,6 +90,49 @@ dependencies, useful performance improvements, and more.
   on the proxy).
 * `velocity.command.uptime` [/velocity uptime] (Displays how long the proxy has been
   online for, from immediate runtime).
+
+## Velocity-CTD Redis Permissions
+* `redis.command.proxy` [/proxy] (Shows the proxy you are connected to
+  or the proxy another user is connected to).
+* `redis.command.proxyids` [/proxyids] (Shows all available proxies
+  with their according proxy IDs).
+* `redis.command.plist` [/plist] (Shows all users connected
+  to a specific proxy or a specific server on that proxy).
+
+## Velocity-CTD Queue Commands
+* `/queue` [Aliases: `/server` & `/joinqueue`]
+* `/leavequeue`
+
+## Administrative Commands
+* `/queueadmin listqueues`
+* `/queueadmin pause {SERVER}`
+* `/queueadmin unpause {SERVER}`
+* `/queueadmin add {PLAYER} {SERVER}`
+* `/queueadmin addall {SERVER_FROM} {SERVER_TO}`
+* `/queueadmin remove {PLAYER} {SERVER}` (Not including server name
+  removes the user from all queues if multiple queuing is enabled).
+* `/queueadmin removeall {SERVER}`
+
+## Velocity-CTD Queue Permissions
+* `queue.*` (Allows you to use all queue commands and bypass all known limitations).
+* `queue.bypass` or `queue.bypass.{SERVER}` (Allows you to bypass the queue for all
+  servers or a specific server).
+* `queue.joinfull` or `queue.joinfull.{SERVER}` (Allows you to join any
+  server or a specific server, regardless if it is full).
+* `queue.joinfullandbypass` or `queue.joinfullandbypass.{SERVER}` (Allows you to
+  bypass the queue for all servers or a specific server and allows you to join
+  all servers or a specific server if it is full).
+* `queue.list` (Allows you to view the list of people queued for a specific server).
+* `queue.listqueues` (Allows you to view all possible queues and number of people queued).
+* `queue.pause` (Allows you to pause any specific server from queuing).
+* `queue.pause.bypass` or `queue.pause.bypass.{SERVER}` (Allows you to bypass queue pauses
+  for all servers or a specific server).
+* `queue.priority.{ALL/SERVER}.{WEIGHT}` (Sets the position you are in for the/a queue).
+* `queue.remove` (Allows you to remove a player from any specific queue).
+* `queue.timeout.{SECONDS}` (Specifies the amount of time a user has before they
+  are unqueued from a server when disconnecting; if you reach the position where
+  you can be sent and are offline, your queue position will reset, regardless of
+  your specified timeout).
 
 ## Building
 

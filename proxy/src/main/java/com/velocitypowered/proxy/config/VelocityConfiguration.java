@@ -1281,21 +1281,21 @@ public final class VelocityConfiguration implements ProxyConfig {
    * <p>
    * The {@code Redis} configuration class includes options for:
    * <ul>
-   *     <li>Basic connection parameters, such as {@code host} and {@code port},
-   *         which specify the target Redis server.</li>
-   *     <li>Authentication details, including {@code username} and {@code password},
-   *         which are optional depending on the server's security configuration.</li>
-   *     <li>SSL support through {@code useSsl} for secure connections, especially
-   *         recommended for public or cloud-hosted Redis servers.</li>
-   *     <li>Connection management settings, such as {@code maxConcurrentConnections},
-   *         that control the number of parallel connections allowed.</li>
-   *     <li>Health check intervals via {@code pingIntervalMs} and timeout settings
-   *         for identifying unresponsive Redis connections or proxies.</li>
+   * <li>Basic connection parameters, such as {@code host} and {@code port},
+   * which specify the target Redis server.</li>
+   * <li>Authentication details, including {@code username} and {@code password},
+   * which are optional depending on the server's security configuration.</li>
+   * <li>SSL support through {@code useSsl} for secure connections, especially
+   * recommended for public or cloud-hosted Redis servers.</li>
+   * <li>Connection management settings, such as {@code maxConcurrentConnections},
+   * that control the number of parallel connections allowed.</li>
+   * <li>Health check intervals via {@code pingIntervalMs} and timeout settings
+   * for identifying unresponsive Redis connections or proxies.</li>
    * </ul>
    * Example usage might include using Redis to synchronize player data, manage
    * distributed cache, or coordinate proxy configurations in a multi-instance environment.
    */
-  public static class Redis {
+  public static final class Redis {
     @Expose
     private boolean enabled;
     @Expose
@@ -1317,7 +1317,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private long otherProxyTimeoutMs;
 
-    private Redis(CommentedConfig config) {
+    private Redis(final CommentedConfig config) {
       if (config == null) {
         return;
       }

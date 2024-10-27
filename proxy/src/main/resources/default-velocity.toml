@@ -117,12 +117,12 @@ glist-enabled = true
 send-enabled = true
 
 # Velocity-CTD Command Registration
-plist-enabled = true
 alert-enabled = true
 alertraw-enabled = true
 find-enabled = true
 hub-enabled = true
 ping-enabled = true
+plist-enabled = true
 showall-enabled = true
 
 [servers]

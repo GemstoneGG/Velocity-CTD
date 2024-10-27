@@ -173,16 +173,16 @@ public class GlistCommand {
     }
 
     players.stream()
-            .reduce((a, b) -> a.append(Component.text(", ")).append(b))
-            .ifPresent(playerList -> {
-              final TranslatableComponent.Builder builder = Component.translatable()
-                      .key("velocity.command.glist-server")
-                      .arguments(
-                              Component.text(server.getServerInfo().getName()),
-                              Component.text(onServer.size()),
-                              playerList
-                      );
-              target.sendMessage(builder.build());
-            });
+        .reduce((a, b) -> a.append(Component.text(", ")).append(b))
+        .ifPresent(playerList -> {
+          final TranslatableComponent.Builder builder = Component.translatable()
+              .key("velocity.command.glist-server")
+              .arguments(
+                  Component.text(server.getServerInfo().getName()),
+                  Component.text(onServer.size()),
+                  playerList
+              );
+          target.sendMessage(builder.build());
+        });
   }
 }
