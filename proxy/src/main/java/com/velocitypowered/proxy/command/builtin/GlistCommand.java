@@ -29,20 +29,16 @@ import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.Player;
-import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
-
+import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.event.HoverEventSource;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 /**
@@ -54,7 +50,7 @@ public class GlistCommand {
 
   private final VelocityServer server;
 
-  public GlistCommand(VelocityServer server) {
+  public GlistCommand(final VelocityServer server) {
     this.server = server;
   }
 
@@ -158,8 +154,8 @@ public class GlistCommand {
     MultiProxyHandler multiProxyHandler = this.server.getMultiProxyHandler();
 
     if (multiProxyHandler.isEnabled()) {
-      for (String proxyId: multiProxyHandler.getAllProxyIds()) {
-        for (MultiProxyHandler.RemotePlayerInfo player: multiProxyHandler.getPlayers(proxyId)) {
+      for (String proxyId : multiProxyHandler.getAllProxyIds()) {
+        for (MultiProxyHandler.RemotePlayerInfo player : multiProxyHandler.getPlayers(proxyId)) {
           if (!player.serverName.equals(server.getServerInfo().getName())) {
             continue;
           }
@@ -171,7 +167,7 @@ public class GlistCommand {
       }
     }
 
-    for (Player player: onServer) {
+    for (Player player : onServer) {
       Component hover = Component.translatable("velocity.command.glist.proxy-self");
       players.add(Component.text(player.getUsername()).hoverEvent(HoverEvent.showText(hover)));
     }

@@ -1266,6 +1266,35 @@ public final class VelocityConfiguration implements ProxyConfig {
     }
   }
 
+  /**
+   * Redis configuration settings for the Velocity proxy.
+   *
+   * <p>
+   * This class provides the configuration options required to establish a connection
+   * to a Redis server.
+   * It supports settings for connection details (host, port),
+   * authentication, SSL usage, and connection management parameters.
+   * These settings
+   * enable the Velocity proxy to leverage Redis for features such as data caching,
+   * synchronization across multiple instances, and custom proxy functionalities.
+   *
+   * <p>
+   * The {@code Redis} configuration class includes options for:
+   * <ul>
+   *     <li>Basic connection parameters, such as {@code host} and {@code port},
+   *         which specify the target Redis server.</li>
+   *     <li>Authentication details, including {@code username} and {@code password},
+   *         which are optional depending on the server's security configuration.</li>
+   *     <li>SSL support through {@code useSsl} for secure connections, especially
+   *         recommended for public or cloud-hosted Redis servers.</li>
+   *     <li>Connection management settings, such as {@code maxConcurrentConnections},
+   *         that control the number of parallel connections allowed.</li>
+   *     <li>Health check intervals via {@code pingIntervalMs} and timeout settings
+   *         for identifying unresponsive Redis connections or proxies.</li>
+   * </ul>
+   * Example usage might include using Redis to synchronize player data, manage
+   * distributed cache, or coordinate proxy configurations in a multi-instance environment.
+   */
   public static class Redis {
     @Expose
     private boolean enabled;
