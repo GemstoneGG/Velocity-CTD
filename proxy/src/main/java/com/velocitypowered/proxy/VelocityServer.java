@@ -190,9 +190,9 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private final ServerListPingHandler serverListPingHandler;
   private final long startTime;
   private final Key translationRegistryKey = Key.key("velocity", "translations");
-  private final RedisManagerImpl redisManager;
-  private final MultiProxyHandler multiProxyHandler;
-  private final QueueManagerImpl queueManager;
+  private RedisManagerImpl redisManager;
+  private MultiProxyHandler multiProxyHandler;
+  private QueueManagerImpl queueManager;
 
   VelocityServer(final ProxyOptions options) {
     pluginManager = new VelocityPluginManager(this);
@@ -204,9 +204,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     servers = new ServerMap(this);
     startTime = System.currentTimeMillis();
     serverListPingHandler = new ServerListPingHandler(this);
-    redisManager = new RedisManagerImpl(this);
-    multiProxyHandler = new MultiProxyHandler(this);
-    queueManager = new QueueManagerImpl(this);
     this.options = options;
   }
 
@@ -358,6 +355,10 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     } else {
       logger.warn("debug environment, metrics is disabled!");
     }
+
+    redisManager = new RedisManagerImpl(this);
+    multiProxyHandler = new MultiProxyHandler(this);
+    queueManager = new QueueManagerImpl(this);
   }
 
   private void unregisterTranslations() {

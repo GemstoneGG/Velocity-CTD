@@ -1428,9 +1428,9 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private String multipleServerMessagingSelection;
     @Expose
-    private float sendDelay;
+    private double sendDelay;
     @Expose
-    private float messageDelay;
+    private double messageDelay;
     @Expose
     private int maxSendRetries;
     @Expose
@@ -1440,7 +1440,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private List<Pattern> kickReasonsBlacklist;
     @Expose
-    private float returnOnlineSendDelay;
+    private double returnOnlineSendDelay;
     @Expose
     private boolean allowPausedQueueJoining;
     @Expose
@@ -1456,8 +1456,8 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.noQueueServers = config.getOrElse("no-queue-servers", List.of());
       this.allowMultiQueue = config.getOrElse("allow-multi-queue", false);
       this.multipleServerMessagingSelection = config.getOrElse("multiple-server-messaging-selection", "last");
-      this.sendDelay = config.getOrElse("send-delay", 1.0f);
-      this.messageDelay = config.getOrElse("message-delay", 1.0f);
+      this.sendDelay = config.getOrElse("send-delay", 1.0);
+      this.messageDelay = config.getOrElse("message-delay", 1.0);
       this.maxSendRetries = config.getOrElse("max-send-retries", 5);
       this.removePlayerOnServerSwitch = config.getOrElse("remove-player-on-server-switch", true);
       this.forwardKickReason = config.getOrElse("forward-kick-reason", true);
@@ -1473,7 +1473,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         }
       }
 
-      this.returnOnlineSendDelay = config.getOrElse("return-online-send-delay", 0.0f);
+      this.returnOnlineSendDelay = config.getOrElse("return-online-send-delay", 0.0);
       this.allowPausedQueueJoining = config.getOrElse("allow-paused-queue-joining", false);
       this.sendAllUsersWhenBackOnline = config.getOrElse("send-all-users-when-back-online", false);
     }
@@ -1490,7 +1490,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       return allowPausedQueueJoining;
     }
 
-    public float getReturnOnlineSendDelay() {
+    public double getReturnOnlineSendDelay() {
       return returnOnlineSendDelay;
     }
 
@@ -1510,11 +1510,11 @@ public final class VelocityConfiguration implements ProxyConfig {
       return maxSendRetries;
     }
 
-    public float getMessageDelay() {
+    public double getMessageDelay() {
       return messageDelay;
     }
 
-    public float getSendDelay() {
+    public double getSendDelay() {
       return sendDelay;
     }
 
