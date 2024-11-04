@@ -45,6 +45,7 @@ import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintFrameDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintLengthEncoder;
 import com.velocitypowered.proxy.protocol.util.ByteBufDataOutput;
+import com.velocitypowered.proxy.queue.ServerQueueStatus;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -72,10 +73,22 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
   private final @Nullable VelocityServer server;
   private final ServerInfo serverInfo;
   private final Map<UUID, ConnectedPlayer> players = new ConcurrentHashMap<>();
+  private final ServerQueueStatus queueStatus;
 
+  /**
+   * Constructs a {@link VelocityRegisteredServer} instance.
+   *
+   * @param server the proxy server
+   * @param serverInfo info on this server
+   */
   public VelocityRegisteredServer(@Nullable final VelocityServer server, final ServerInfo serverInfo) {
     this.server = server;
     this.serverInfo = Preconditions.checkNotNull(serverInfo, "serverInfo");
+    this.queueStatus = this.server == null ? null : new ServerQueueStatus(this, this.server);
+  }
+
+  public ServerQueueStatus getQueueStatus() {
+    return queueStatus;
   }
 
   @Override

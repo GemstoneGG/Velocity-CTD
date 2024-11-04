@@ -45,8 +45,11 @@ import com.velocitypowered.proxy.command.builtin.CallbackCommand;
 import com.velocitypowered.proxy.command.builtin.FindCommand;
 import com.velocitypowered.proxy.command.builtin.GlistCommand;
 import com.velocitypowered.proxy.command.builtin.HubCommand;
+import com.velocitypowered.proxy.command.builtin.LeaveQueueCommand;
 import com.velocitypowered.proxy.command.builtin.PingCommand;
 import com.velocitypowered.proxy.command.builtin.PlistCommand;
+import com.velocitypowered.proxy.command.builtin.QueueAdminCommand;
+import com.velocitypowered.proxy.command.builtin.QueueCommand;
 import com.velocitypowered.proxy.command.builtin.SendCommand;
 import com.velocitypowered.proxy.command.builtin.ServerCommand;
 import com.velocitypowered.proxy.command.builtin.ShowAllCommand;
@@ -67,6 +70,7 @@ import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.util.FaviconSerializer;
 import com.velocitypowered.proxy.protocol.util.GameProfileSerializer;
+import com.velocitypowered.proxy.queue.QueueManagerImpl;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
 import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import com.velocitypowered.proxy.scheduler.VelocityScheduler;
@@ -188,6 +192,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private final Key translationRegistryKey = Key.key("velocity", "translations");
   private final RedisManagerImpl redisManager;
   private final MultiProxyHandler multiProxyHandler;
+  private final QueueManagerImpl queueManager;
 
   VelocityServer(final ProxyOptions options) {
     pluginManager = new VelocityPluginManager(this);
@@ -201,6 +206,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     serverListPingHandler = new ServerListPingHandler(this);
     redisManager = new RedisManagerImpl(this);
     multiProxyHandler = new MultiProxyHandler(this);
+    queueManager = new QueueManagerImpl(this);
     this.options = options;
   }
 
@@ -214,6 +220,10 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
   public MultiProxyHandler getMultiProxyHandler() {
     return multiProxyHandler;
+  }
+
+  public QueueManagerImpl getQueueManager() {
+    return queueManager;
   }
 
   @Override
@@ -670,6 +680,18 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
     if (!commandManager.hasCommand("showall")) {
       new ShowAllCommand(this).register(configuration.isShowAllEnabled());
+    }
+
+    if (!commandManager.hasCommand("queueadmin")) {
+      new QueueAdminCommand(this).register(configuration.getQueue().isEnabled());
+    }
+
+    if (!commandManager.hasCommand("leavequeue")) {
+      new LeaveQueueCommand(this).register(configuration.getQueue().isEnabled());
+    }
+
+    if (!commandManager.hasCommand("queue")) {
+      new QueueCommand(this).register(configuration.getQueue().isEnabled());
     }
 
     final BrigadierCommand serverCommand = ServerCommand.create(this, configuration.isServerEnabled());

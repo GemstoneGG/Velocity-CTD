@@ -307,3 +307,57 @@ ping-interval-ms = 30000
 
 # How long until a proxy is marked as being timed out if we don't see a ping from it.
 other-proxy-timeout-ms = 90000
+
+[queue]
+# Whether the queue system is active or not. This will fully unregister all permissions, commands, and this feature as
+# a whole.
+enabled = false
+
+# The list of aliases for the `/queue` command.
+queue-aliases = [
+    "joinqueue",
+    "server"
+]
+
+# The list of servers that should not have the queue system enabled.
+no-queue-servers = [
+    "lobby"
+]
+
+# Whether the user should be capable of entering multiple queues at once.
+allow-multi-queue = false
+
+# Determines which server should be prioritized for action bars and placeholders.
+# Options: "first" or "last"
+multiple-server-messaging-selection = "last"
+
+# How long the queue system should wait before sending each user to a server (in seconds).
+send-delay = 1.0
+
+# How long the queue system should wait before updating or sending a new action bar, chat message, or title/subtitle.
+message-delay = 1.0
+
+# The number tries should a user be sent to a server before it removes the user from a queue.
+max-send-retries = 5
+
+# Whether the player should be removed from their previous queue when switching servers.
+remove-player-on-server-switch = true
+
+# Whether the kick message or indicator should be shown when you have failed to queue and join a specific server.
+forward-kick-reason = true
+
+# Regexes for reasons the user should be removed from the queue when kicked from their previous server.
+kick-reasons-blacklist = [
+    "banned", "blacklisted"
+]
+
+# Amount of time before a user can be sent to a server, after coming back online.
+return-online-send-delay = 0.0
+
+# Whether users can enter a queue that is paused.
+allow-paused-queue-joining = false
+
+# Whether users should be automatically sent back to a server when it returns online. This feature only applies when
+# enabled. By default, the user is re-added to the queue and must wait the duration before being re-sent to their
+# previous destination.
+send-all-users-back-when-online = false

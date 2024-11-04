@@ -41,12 +41,15 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -91,6 +94,8 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Expose
   private final Redis redis;
   @Expose
+  private final Queue queue;
+  @Expose
   private boolean enablePlayerAddressLogging = true;
   private net.kyori.adventure.text.@MonotonicNonNull Component motdAsComponent;
   private @Nullable Favicon favicon;
@@ -114,7 +119,7 @@ public final class VelocityConfiguration implements ProxyConfig {
   private String minimumVersion = "1.7.2";
 
   private VelocityConfiguration(final Servers servers, final ForcedHosts forcedHosts, final Commands commands,
-      final Advanced advanced, final Query query, final Metrics metrics, final Redis redis) {
+      final Advanced advanced, final Query query, final Metrics metrics, final Redis redis, final Queue queue) {
     this.servers = servers;
     this.forcedHosts = forcedHosts;
     this.commands = commands;
@@ -122,6 +127,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     this.query = query;
     this.metrics = metrics;
     this.redis = redis;
+    this.queue = queue;
   }
 
   private VelocityConfiguration(final String bind, final String motd, final int showMaxPlayers, final boolean onlineMode,
@@ -133,7 +139,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       final boolean logPlayerConnections, final boolean logPlayerDisconnections,
       final boolean logOfflineConnections, final boolean disableForge, final boolean enforceChatSigning,
       final boolean translateHeaderFooter, final boolean logMinimumVersion, final String minimumVersion,
-      final Redis redis) {
+      final Redis redis, final Queue queue) {
     this.bind = bind;
     this.motd = motd;
     this.showMaxPlayers = showMaxPlayers;
@@ -161,6 +167,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     this.logMinimumVersion = logMinimumVersion;
     this.minimumVersion = minimumVersion;
     this.redis = redis;
+    this.queue = queue;
   }
 
   /**
@@ -535,6 +542,10 @@ public final class VelocityConfiguration implements ProxyConfig {
     return redis;
   }
 
+  public Queue getQueue() {
+    return queue;
+  }
+
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
@@ -551,6 +562,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         .add("advanced", advanced)
         .add("query", query)
         .add("redis", redis)
+        .add("queue", queue)
         .add("favicon", favicon)
         .add("enablePlayerAddressLogging", enablePlayerAddressLogging)
         .add("forceKeyAuthentication", forceKeyAuthentication)
@@ -639,6 +651,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       final CommentedConfig queryConfig = config.get("query");
       final CommentedConfig metricsConfig = config.get("metrics");
       final CommentedConfig redisConfig = config.get("redis");
+      final CommentedConfig queueConfig = config.get("queue");
       final PlayerInfoForwarding forwardingMode = config.getEnumOrElse(
               "player-info-forwarding-mode", PlayerInfoForwarding.NONE);
       final PingPassthroughMode pingPassthroughMode = config.getEnumOrElse("ping-passthrough",
@@ -704,7 +717,8 @@ public final class VelocityConfiguration implements ProxyConfig {
               translateHeaderFooter,
               logMinimumVersion,
               minimumVersion,
-              new Redis(redisConfig)
+              new Redis(redisConfig),
+              new Queue(queueConfig)
       );
     }
   }
@@ -1396,6 +1410,148 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", useSsl" + useSsl
           + ", maxConcurrentConnections" + maxConcurrentConnections
           + '}';
+    }
+  }
+
+  /**
+   * Queue configuration data.
+   */
+  public static final class Queue {
+    @Expose
+    private boolean enabled;
+    @Expose
+    private List<String> queueAliases;
+    @Expose
+    private List<String> noQueueServers;
+    @Expose
+    private boolean allowMultiQueue;
+    @Expose
+    private String multipleServerMessagingSelection;
+    @Expose
+    private float sendDelay;
+    @Expose
+    private float messageDelay;
+    @Expose
+    private int maxSendRetries;
+    @Expose
+    private boolean removePlayerOnServerSwitch;
+    @Expose
+    private boolean forwardKickReason;
+    @Expose
+    private List<Pattern> kickReasonsBlacklist;
+    @Expose
+    private float returnOnlineSendDelay;
+    @Expose
+    private boolean allowPausedQueueJoining;
+    @Expose
+    private boolean sendAllUsersWhenBackOnline;
+
+    private Queue(final CommentedConfig config) {
+      if (config == null) {
+        return;
+      }
+
+      this.enabled = config.getOrElse("enabled", false);
+      this.queueAliases = config.getOrElse("queue-aliases", List.of("joinqueue", "queue", "server"));
+      this.noQueueServers = config.getOrElse("no-queue-servers", List.of());
+      this.allowMultiQueue = config.getOrElse("allow-multi-queue", false);
+      this.multipleServerMessagingSelection = config.getOrElse("multiple-server-messaging-selection", "last");
+      this.sendDelay = config.getOrElse("send-delay", 1.0f);
+      this.messageDelay = config.getOrElse("message-delay", 1.0f);
+      this.maxSendRetries = config.getOrElse("max-send-retries", 5);
+      this.removePlayerOnServerSwitch = config.getOrElse("remove-player-on-server-switch", true);
+      this.forwardKickReason = config.getOrElse("forward-kick-reason", true);
+
+      List<String> kickReasonBlacklistPatterns = config.getOrElse("kick-reasons-blacklist", List.of("banned", "blacklisted"));
+      this.kickReasonsBlacklist = new ArrayList<>(kickReasonBlacklistPatterns.size());
+
+      for (String pattern : kickReasonBlacklistPatterns) {
+        try {
+          this.kickReasonsBlacklist.add(Pattern.compile(pattern));
+        } catch (PatternSyntaxException e) {
+          logger.error("invalid regex in `kick-reasons-blacklist`", e);
+        }
+      }
+
+      this.returnOnlineSendDelay = config.getOrElse("return-online-send-delay", 0.0f);
+      this.allowPausedQueueJoining = config.getOrElse("allow-paused-queue-joining", false);
+      this.sendAllUsersWhenBackOnline = config.getOrElse("send-all-users-when-back-online", false);
+    }
+
+    public boolean isEnabled() {
+      return enabled;
+    }
+
+    public boolean isSendAllUsersWhenBackOnline() {
+      return sendAllUsersWhenBackOnline;
+    }
+
+    public boolean isAllowPausedQueueJoining() {
+      return allowPausedQueueJoining;
+    }
+
+    public float getReturnOnlineSendDelay() {
+      return returnOnlineSendDelay;
+    }
+
+    public List<Pattern> getKickReasonsBlacklist() {
+      return kickReasonsBlacklist;
+    }
+
+    public boolean isForwardKickReason() {
+      return forwardKickReason;
+    }
+
+    public boolean isRemovePlayerOnServerSwitch() {
+      return removePlayerOnServerSwitch;
+    }
+
+    public int getMaxSendRetries() {
+      return maxSendRetries;
+    }
+
+    public float getMessageDelay() {
+      return messageDelay;
+    }
+
+    public float getSendDelay() {
+      return sendDelay;
+    }
+
+    public String getMultipleServerMessagingSelection() {
+      return multipleServerMessagingSelection;
+    }
+
+    public boolean isAllowMultiQueue() {
+      return allowMultiQueue;
+    }
+
+    public List<String> getNoQueueServers() {
+      return noQueueServers;
+    }
+
+    public List<String> getQueueAliases() {
+      return queueAliases;
+    }
+
+    @Override
+    public String toString() {
+      return "Queue{"
+              + "enabled=" + enabled
+              + ", sendAllUsersWhenBackOnline=" + sendAllUsersWhenBackOnline
+              + ", allowPausedQueueJoining=" + allowPausedQueueJoining
+              + ", returnOnlineSendDelay=" + returnOnlineSendDelay
+              + ", kickReasonsBlacklist=" + kickReasonsBlacklist
+              + ", forwardKickReason=" + forwardKickReason
+              + ", removePlayerOnServerSwitch=" + removePlayerOnServerSwitch
+              + ", maxSendRetries=" + maxSendRetries
+              + ", messageDelay=" + messageDelay
+              + ", sendDelay=" + sendDelay
+              + ", multipleServerMessagingSelection=" + multipleServerMessagingSelection
+              + ", allowMultiQueue=" + allowMultiQueue
+              + ", noQueueServers=" + noQueueServers
+              + ", queueAliases=" + queueAliases
+              + '}';
     }
   }
 }
