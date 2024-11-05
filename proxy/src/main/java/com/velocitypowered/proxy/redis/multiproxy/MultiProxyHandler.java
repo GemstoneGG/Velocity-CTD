@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import net.kyori.adventure.text.Component;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -146,6 +147,14 @@ public class MultiProxyHandler {
         return;
       }
 
+      // This handles the edge case if a player joins two proxies at once, once the player info broadcast is received
+      // we disconnect them from the local proxy.
+      for (Player player : this.server.getAllPlayers()) {
+        if (player.getUniqueId().equals(it.uuid())) {
+          player.disconnect(Component.translatable("velocity.error.already-connected-proxy.remote"));
+        }
+      }
+
       proxy.players.add(new RemotePlayerInfo(it));
     });
 
@@ -250,12 +259,26 @@ public class MultiProxyHandler {
    *
    * @param player the {@link ConnectedPlayer} that joined
    */
-  public void onPlayerJoin(ConnectedPlayer player) {
+  public boolean onPlayerJoin(ConnectedPlayer player) {
     if (shuttingDown) {
-      return;
+      return false;
+    }
+
+    // check for dupe connections on foreign proxies and disconnect.
+    for (String proxyId : this.getAllProxyIds()) {
+      if (proxyId.equals(this.config.getProxyId())) {
+        continue;
+      }
+
+      for (RemotePlayerInfo playerInfo : this.getPlayers(proxyId)) {
+        if (playerInfo.uuid.equals(player.getUniqueId())) {
+          return true;
+        }
+      }
     }
 
     this.server.getRedisManager().send(new PlayerJoinUpdate(this.config.getProxyId(), player.getUniqueId(), player.getUsername()));
+    return false;
   }
 
   /**

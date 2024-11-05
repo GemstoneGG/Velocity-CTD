@@ -270,7 +270,10 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
           return;
         }
 
-        this.server.getMultiProxyHandler().onPlayerJoin(player);
+        if (this.server.getMultiProxyHandler().onPlayerJoin(player)) {
+          player.disconnect0(Component.translatable("velocity.error.already-connected-proxy.remote"), true);
+          return;
+        }
 
         ServerLoginSuccessPacket success = new ServerLoginSuccessPacket();
         success.setUsername(player.getUsername());
