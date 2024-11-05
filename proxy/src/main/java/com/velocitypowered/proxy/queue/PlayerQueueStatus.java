@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.queue;
 
+import com.velocitypowered.api.proxy.ConnectionRequestBuilder;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.concurrent.CompletableFuture;
@@ -26,17 +27,22 @@ import java.util.concurrent.CompletableFuture;
  */
 public class PlayerQueueStatus {
   public final ConnectedPlayer player;
-  public VelocityRegisteredServer target = null;
+  public final VelocityRegisteredServer target;
+  public final CompletableFuture<ConnectionRequestBuilder.Result> future;
   public int connectionAttempts = 0;
   public boolean waitingForConnection = false;
 
-  public PlayerQueueStatus(ConnectedPlayer player) {
+  /**
+   * Constructs a new {@link PlayerQueueStatus} instance.
+   *
+   * @param player the player who is queueing
+   * @param target the target server
+   * @param future a future that will be resolved when the player connects. If {@code null}, Velocity's default connection error handling will be used
+   */
+  public PlayerQueueStatus(ConnectedPlayer player, VelocityRegisteredServer target, CompletableFuture<ConnectionRequestBuilder.Result> future) {
     this.player = player;
-  }
-
-  public void dequeue() {
-    target = null;
-    connectionAttempts = 0;
+    this.target = target;
+    this.future = future;
   }
 
   /**
@@ -46,12 +52,28 @@ public class PlayerQueueStatus {
    */
   public CompletableFuture<Boolean> send() {
     waitingForConnection = true;
-    return player.createConnectionRequest(target)
-        .connectWithIndication()
-        .whenComplete((success, error) -> waitingForConnection = false);
-  }
 
-  public void queue(VelocityRegisteredServer target) {
-    this.target = target;
+    if (future == null) {
+      return player.createConnectionRequest(target)
+          .connectWithIndication()
+          .whenComplete((success, error) -> waitingForConnection = false);
+    } else {
+      CompletableFuture<Boolean> returnedFuture = new CompletableFuture<>();
+      player.createConnectionRequest(target)
+          .connect()
+          .whenComplete((result, error) -> {
+            if (error != null) {
+              this.future.completeExceptionally(error);
+              returnedFuture.complete(false);
+            } else {
+              this.future.complete(result);
+              returnedFuture.complete(result.isSuccessful());
+            }
+
+            waitingForConnection = false;
+          });
+
+      return returnedFuture;
+    }
   }
 }

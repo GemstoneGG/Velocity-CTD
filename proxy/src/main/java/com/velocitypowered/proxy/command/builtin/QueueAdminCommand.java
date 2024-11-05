@@ -39,6 +39,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 /**
  * Implements the {@code /queueadmin} command.
@@ -227,7 +228,17 @@ public class QueueAdminCommand {
       return -1;
     }
 
-    server.getQueueStatus().queue(player);
+    if (server.getQueueStatus().isQueued(player)) {
+      player.sendMessage(Component.translatable("velocity.queue.error.already-queued.other")
+          .arguments(
+              Component.text(player.getUsername()),
+              Component.text(server.getServerInfo().getName())
+          )
+      );
+      return -1;
+    }
+
+    server.getQueueStatus().queueWithIndication(player);
     ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.added")
         .arguments(Component.text(server.getServerInfo().getName())));
 
@@ -249,8 +260,18 @@ public class QueueAdminCommand {
 
     Collection<Player> players = from.getPlayersConnected();
 
+    if (players.isEmpty()) {
+      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.addall-no-players-queued", NamedTextColor.RED)
+          .arguments(
+              Component.text(from.getServerInfo().getName()),
+              Component.text(to.getServerInfo().getName())
+          )
+      );
+      return -1;
+    }
+
     for (Player player : players) {
-      to.getQueueStatus().queue(player);
+      to.getQueueStatus().queueWithIndication(player);
     }
 
     ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.addedall-player" + (players.size() == 1 ? "" : "s"))
@@ -280,9 +301,20 @@ public class QueueAdminCommand {
       servers = List.of(serverOptional.get());
     }
 
+    boolean removedAny = false;
+
     for (RegisteredServer server : servers) {
       VelocityRegisteredServer registeredServer = (VelocityRegisteredServer) server;
-      registeredServer.getQueueStatus().dequeue(player);
+      if (registeredServer.getQueueStatus().dequeue(player)) {
+        removedAny = true;
+      }
+    }
+
+    if (!removedAny) {
+      player.sendMessage(Component.translatable("velocity.queue.error.not-in-queue.other")
+          .arguments(Component.text(player.getUsername()))
+      );
+      return -1;
     }
 
     ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.removed").arguments(

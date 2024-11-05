@@ -361,3 +361,7 @@ allow-paused-queue-joining = false
 # enabled. By default, the user is re-added to the queue and must wait the duration before being re-sent to their
 # previous destination.
 send-all-users-back-when-online = false
+
+# If true, players that are sent via the BungeeCord Messaging channels are queued if the server has queueing enabled.
+# If false, they will bypass the queue and be sent directly to the backend.
+override-bungee-messaging = true

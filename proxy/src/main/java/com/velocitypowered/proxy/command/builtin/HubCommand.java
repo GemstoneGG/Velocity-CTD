@@ -99,7 +99,7 @@ public class HubCommand {
 
       TranslatableComponent fallbackMessage = Component.translatable("velocity.error.connecting-server-error")
           .arguments(Component.text(serverToTry.getServerInfo().getName()));
-      player.createConnectionRequest(serverToTry).connect().whenComplete((result, throwable) -> {
+      ((VelocityRegisteredServer) serverToTry).getQueueStatus().queue(player).whenComplete((result, throwable) -> {
         if (result == null || throwable != null) {
           player.sendMessage(fallbackMessage);
           return;

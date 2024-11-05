@@ -109,23 +109,40 @@ public class PlistCommand {
     return 1;
   }
 
-  private int serverCount(final CommandContext<CommandSource> context) {
-    final CommandSource source = context.getSource();
+  private List<MultiProxyHandler.RemotePlayerInfo> getProxyPlayers(final CommandContext<CommandSource> context) {
     final String proxyName = getString(context, PROXY_ARG);
     final List<MultiProxyHandler.RemotePlayerInfo> proxyPlayers = server.getMultiProxyHandler().getPlayers(proxyName);
 
+    if (proxyPlayers == null) {
+      context.getSource().sendMessage(Component.translatable("velocity.command.no-such-proxy", NamedTextColor.RED)
+          .arguments(Component.text(proxyName))
+      );
+    }
+
+    return proxyPlayers;
+  }
+
+  private int serverCount(final CommandContext<CommandSource> context) {
+    final List<MultiProxyHandler.RemotePlayerInfo> proxyPlayers = getProxyPlayers(context);
+
+    if (proxyPlayers == null) {
+      return -1;
+    }
+
     final String serverName = getString(context, SERVER_ARG);
     proxyPlayers.removeIf(it -> !it.serverName.equals(serverName));
-    sendServerPlayers(source, proxyPlayers, serverName);
+    sendServerPlayers(context.getSource(), proxyPlayers, serverName);
     return Command.SINGLE_SUCCESS;
   }
 
   private int proxyCount(final CommandContext<CommandSource> context) {
-    final CommandSource source = context.getSource();
-    final String proxyName = getString(context, PROXY_ARG);
-    final List<MultiProxyHandler.RemotePlayerInfo> proxyPlayers = server.getMultiProxyHandler().getPlayers(proxyName);
+    final List<MultiProxyHandler.RemotePlayerInfo> proxyPlayers = getProxyPlayers(context);
 
-    sendTotalProxyCount(source, proxyPlayers.size());
+    if (proxyPlayers == null) {
+      return -1;
+    }
+
+    sendTotalProxyCount(context.getSource(), proxyPlayers.size());
     return Command.SINGLE_SUCCESS;
   }
 

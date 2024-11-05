@@ -1445,6 +1445,8 @@ public final class VelocityConfiguration implements ProxyConfig {
     private boolean allowPausedQueueJoining;
     @Expose
     private boolean sendAllUsersWhenBackOnline;
+    @Expose
+    private boolean overrideBungeeMessaging;
 
     private Queue(final CommentedConfig config) {
       if (config == null) {
@@ -1476,6 +1478,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.returnOnlineSendDelay = config.getOrElse("return-online-send-delay", 0.0);
       this.allowPausedQueueJoining = config.getOrElse("allow-paused-queue-joining", false);
       this.sendAllUsersWhenBackOnline = config.getOrElse("send-all-users-when-back-online", false);
+      this.overrideBungeeMessaging = config.getOrElse("override-bungee-messaging", true);
     }
 
     public boolean isEnabled() {
@@ -1534,6 +1537,10 @@ public final class VelocityConfiguration implements ProxyConfig {
       return queueAliases;
     }
 
+    public boolean shouldOverrideBungeeMessaging() {
+      return overrideBungeeMessaging;
+    }
+
     @Override
     public String toString() {
       return "Queue{"
@@ -1551,6 +1558,7 @@ public final class VelocityConfiguration implements ProxyConfig {
               + ", allowMultiQueue=" + allowMultiQueue
               + ", noQueueServers=" + noQueueServers
               + ", queueAliases=" + queueAliases
+              + ", overrideBungeeMessaging" + overrideBungeeMessaging
               + '}';
     }
   }

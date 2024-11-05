@@ -25,6 +25,7 @@ import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
@@ -53,7 +54,20 @@ public class QueueCommand {
         .literalArgumentBuilder("queue")
         .requires(source -> source.getPermissionValue("velocity.queue") == Tristate.TRUE)
         .then(BrigadierCommand.requiredArgumentBuilder("server", StringArgumentType.word())
-            .suggests(QueueAdminCommand.suggestServer(server, "server"))
+            .suggests((ctx, builder) -> {
+              final String argument = ctx.getArguments().containsKey("server")
+                  ? StringArgumentType.getString(ctx, "server")
+                  : "";
+              for (final RegisteredServer sv : server.getAllServers()) {
+                final String serverName = sv.getServerInfo().getName();
+                if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
+                  if (ctx.getSource().getPermissionValue("velocity.command.server." + serverName) != Tristate.FALSE) {
+                    builder.suggest(serverName);
+                  }
+                }
+              }
+              return builder.buildFuture();
+            })
             .executes(this::queue)
         );
 
@@ -81,7 +95,7 @@ public class QueueCommand {
         return -1;
       }
 
-      if (server.getQueueStatus().queue(player)) {
+      if (server.getQueueStatus().queueWithIndication(player)) {
         player.sendMessage(Component.translatable("velocity.queue.command.queued")
             .arguments(Component.text(server.getServerInfo().getName())));
         return Command.SINGLE_SUCCESS;

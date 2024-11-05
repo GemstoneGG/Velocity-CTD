@@ -72,20 +72,29 @@ public class BungeeCordMessageResponder {
         .equals(message.getChannel());
   }
 
-  private void processConnect(final ByteBufDataInput in) {
+  private void processConnect(final ByteBufDataInput in, final boolean queue) {
     String serverName = in.readUTF();
-    proxy.getServer(serverName).ifPresent(server -> player.createConnectionRequest(server)
-        .fireAndForget());
+    proxy.getServer(serverName).ifPresent(server -> {
+      if (queue) {
+        ((VelocityRegisteredServer) server).getQueueStatus().queueWithIndication(player);
+      } else {
+        player.createConnectionRequest(server).fireAndForget();
+      }
+    });
   }
 
-  private void processConnectOther(final ByteBufDataInput in) {
+  private void processConnectOther(final ByteBufDataInput in, final boolean queue) {
     String playerName = in.readUTF();
     String serverName = in.readUTF();
 
     Optional<Player> referencedPlayer = proxy.getPlayer(playerName);
     Optional<RegisteredServer> referencedServer = proxy.getServer(serverName);
     if (referencedPlayer.isPresent() && referencedServer.isPresent()) {
-      referencedPlayer.get().createConnectionRequest(referencedServer.get()).fireAndForget();
+      if (queue) {
+        ((VelocityRegisteredServer) referencedServer.get()).getQueueStatus().queueWithIndication(referencedPlayer.get());
+      } else {
+        referencedPlayer.get().createConnectionRequest(referencedServer.get()).fireAndForget();
+      }
     }
   }
 
@@ -341,11 +350,23 @@ public class BungeeCordMessageResponder {
       case "Forward":
         this.processForwardToServer(in);
         break;
+      case "ConnectDirect":
+        this.processConnect(in, false);
+        break;
+      case "ConnectQueue":
+        this.processConnect(in, true);
+        break;
       case "Connect":
-        this.processConnect(in);
+        this.processConnect(in, proxy.getConfiguration().getQueue().shouldOverrideBungeeMessaging());
+        break;
+      case "ConnectOtherDirect":
+        this.processConnectOther(in, false);
+        break;
+      case "ConnectOtherQueue":
+        this.processConnectOther(in, true);
         break;
       case "ConnectOther":
-        this.processConnectOther(in);
+        this.processConnectOther(in, proxy.getConfiguration().getQueue().shouldOverrideBungeeMessaging());
         break;
       case "IP":
         this.processIp(in);

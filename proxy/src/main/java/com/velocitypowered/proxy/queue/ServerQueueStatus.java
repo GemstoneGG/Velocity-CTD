@@ -17,12 +17,15 @@
 
 package com.velocitypowered.proxy.queue;
 
+import com.velocitypowered.api.proxy.ConnectionRequestBuilder;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
+import com.velocitypowered.proxy.connection.util.ConnectionRequestResults;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Deque;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -68,7 +71,6 @@ public class ServerQueueStatus {
         if (!queueStatus.waitingForConnection) {
           queueStatus.send().thenAccept(success -> {
             queueStatus.connectionAttempts++;
-
             boolean shouldDequeue = success;
 
             if (queueStatus.connectionAttempts > config.getMaxSendRetries()) {
@@ -81,7 +83,6 @@ public class ServerQueueStatus {
 
             if (shouldDequeue) {
               // if we succeed, or if we exceed the connection attempt limit, remove the player from queue
-              queueStatus.dequeue();
               queue.removeFirst();
             }
           });
@@ -102,7 +103,8 @@ public class ServerQueueStatus {
       Component actionBar;
 
       if (queueStatus.waitingForConnection) {
-        actionBar = Component.translatable("velocity.queue.player-status.connecting", NamedTextColor.YELLOW);
+        actionBar = Component.translatable("velocity.queue.player-status.connecting", NamedTextColor.YELLOW)
+            .arguments(Component.text(queueStatus.target.getServerInfo().getName()));
       } else if (paused) {
         actionBar = Component.translatable("velocity.queue.player-status.paused", NamedTextColor.YELLOW);
       } else if (online) {
@@ -110,13 +112,15 @@ public class ServerQueueStatus {
             .arguments(
                 Component.text(position),
                 Component.text(queue.size()),
+                Component.text(queueStatus.target.getServerInfo().getName()),
                 calculateEta(position)
             );
       } else {
         actionBar = Component.translatable("velocity.queue.player-status.offline", NamedTextColor.YELLOW)
             .arguments(
                 Component.text(position),
-                Component.text(queue.size())
+                Component.text(queue.size()),
+                Component.text(queueStatus.target.getServerInfo().getName())
             );
       }
 
@@ -147,19 +151,49 @@ public class ServerQueueStatus {
   }
 
   /**
-   * Queues a player onto this server.
+   * Queues a player onto this server and uses Velocity standard error handling if the connection fails.
    *
-   * @param player the player to queue
-   * @return if the player queued successfully
+   * @param player the player to connect
+   * @return whether the player queued successfully
    */
-  public boolean queue(Player player) {
+  public boolean queueWithIndication(Player player) {
+    if (!config.isEnabled()) {
+      player.createConnectionRequest(server).fireAndForget();
+      return true;
+    }
+
     if (!config.isAllowPausedQueueJoining() && paused) {
       return false;
     }
 
     ConnectedPlayer connectedPlayer = (ConnectedPlayer) player;
-    this.queue.add(new PlayerQueueStatus(connectedPlayer));
+
+    this.queue.add(new PlayerQueueStatus(connectedPlayer, this.server, null));
     return true;
+  }
+
+  /**
+   * Queues a player onto this server.
+   *
+   * @param player the player to queue
+   * @return a future that will complete once the player connects
+   */
+  public CompletableFuture<ConnectionRequestBuilder.Result> queue(Player player) {
+    if (!config.isEnabled()) {
+      return player.createConnectionRequest(server).connect();
+    }
+
+    if (!config.isAllowPausedQueueJoining() && paused) {
+      ConnectionRequestBuilder.Result result =
+          ConnectionRequestResults.plainResult(ConnectionRequestBuilder.Status.CONNECTION_CANCELLED, server);
+      return CompletableFuture.completedFuture(result);
+    }
+
+    ConnectedPlayer connectedPlayer = (ConnectedPlayer) player;
+
+    CompletableFuture<ConnectionRequestBuilder.Result> future = new CompletableFuture<>();
+    this.queue.add(new PlayerQueueStatus(connectedPlayer, this.server, future));
+    return future;
   }
 
   /**

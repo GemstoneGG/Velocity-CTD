@@ -149,6 +149,7 @@ public class GlistCommand {
     if (onServer.isEmpty() && fromAll) {
       return;
     }
+    int totalPlayers = onServer.size();
 
     List<Component> players = new ArrayList<>();
     MultiProxyHandler multiProxyHandler = this.server.getMultiProxyHandler();
@@ -163,6 +164,7 @@ public class GlistCommand {
           Component hover = Component.translatable("velocity.command.glist.proxy-other")
               .arguments(Component.text(proxyId));
           players.add(Component.text(player.name).hoverEvent(HoverEvent.showText(hover)));
+          totalPlayers += 1;
         }
       }
     }
@@ -172,6 +174,7 @@ public class GlistCommand {
       players.add(Component.text(player.getUsername()).hoverEvent(HoverEvent.showText(hover)));
     }
 
+    int finalTotalPlayers = totalPlayers;
     players.stream()
         .reduce((a, b) -> a.append(Component.text(", ")).append(b))
         .ifPresent(playerList -> {
@@ -179,7 +182,7 @@ public class GlistCommand {
               .key("velocity.command.glist-server")
               .arguments(
                   Component.text(server.getServerInfo().getName()),
-                  Component.text(onServer.size()),
+                  Component.text(finalTotalPlayers),
                   playerList
               );
           target.sendMessage(builder.build());

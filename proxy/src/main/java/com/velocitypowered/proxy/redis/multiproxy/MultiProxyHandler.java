@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.redis.multiproxy;
 
+import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -24,6 +25,8 @@ import com.velocitypowered.proxy.redis.RedisManagerImpl;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -280,8 +283,15 @@ public class MultiProxyHandler {
     return playerCount;
   }
 
+  /**
+   * Returns the set of all proxy IDs known to this proxy.
+   *
+   * @return the set of all proxy IDs
+   */
   public Set<String> getAllProxyIds() {
-    return this.seenProxies.keySet();
+    Set<String> foreignProxies = new HashSet<>(this.seenProxies.keySet());
+    foreignProxies.add(this.config.getProxyId());
+    return foreignProxies;
   }
 
   /**
@@ -292,12 +302,27 @@ public class MultiProxyHandler {
    *         or {@code null} if the proxy ID is unknown
    */
   public List<RemotePlayerInfo> getPlayers(String proxyId) {
+    if (proxyId.equals(this.config.getProxyId())) {
+      Collection<Player> players = this.server.getAllPlayers();
+      List<RemotePlayerInfo> playerInfos = new ArrayList<>(players.size());
+
+      for (Player player : players) {
+        RemotePlayerInfo playerInfo = new RemotePlayerInfo(player.getUniqueId(), player.getUsername());
+        player.getCurrentServer()
+            .ifPresent(serverConnection -> playerInfo.serverName = serverConnection.getServerInfo().getName());
+
+        playerInfos.add(playerInfo);
+      }
+
+      return playerInfos;
+    }
+
     OtherProxy proxy = this.seenProxies.get(proxyId);
 
     if (proxy == null) {
       return null;
     }
 
-    return proxy.players;
+    return new ArrayList<>(proxy.players);
   }
 }
