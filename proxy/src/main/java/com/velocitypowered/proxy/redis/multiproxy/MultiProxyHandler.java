@@ -81,7 +81,7 @@ public class MultiProxyHandler {
      * @param uuid the player's unique identifier
      * @param name the player's name
      */
-    public RemotePlayerInfo(UUID uuid, String name) {
+    public RemotePlayerInfo(final UUID uuid, final String name) {
       this.uuid = uuid;
       this.name = name;
     }
@@ -91,7 +91,7 @@ public class MultiProxyHandler {
      *
      * @param update the {@link PlayerJoinUpdate} containing the player's UUID and name
      */
-    public RemotePlayerInfo(PlayerJoinUpdate update) {
+    public RemotePlayerInfo(final PlayerJoinUpdate update) {
       this(update.uuid(), update.name());
     }
   }
@@ -120,7 +120,7 @@ public class MultiProxyHandler {
    *
    * @param server the {@link VelocityServer} instance to access server configuration and features
    */
-  public MultiProxyHandler(VelocityServer server) {
+  public MultiProxyHandler(final VelocityServer server) {
     this.server = server;
     this.config = this.server.getConfiguration().getRedis();
 
@@ -202,7 +202,7 @@ public class MultiProxyHandler {
     this.lastPingSent = Instant.now();
   }
 
-  private OtherProxy handleAndGetProxyFromPacket(String proxyId) {
+  private OtherProxy handleAndGetProxyFromPacket(final String proxyId) {
     if (proxyId.equals(this.config.getProxyId())) {
       return null;
     }
@@ -245,7 +245,7 @@ public class MultiProxyHandler {
    *
    * @param player the {@link ConnectedPlayer} that left
    */
-  public void onPlayerLeave(ConnectedPlayer player) {
+  public void onPlayerLeave(final ConnectedPlayer player) {
     if (shuttingDown) {
       return;
     }
@@ -259,7 +259,7 @@ public class MultiProxyHandler {
    *
    * @param player the {@link ConnectedPlayer} that joined
    */
-  public boolean onPlayerJoin(ConnectedPlayer player) {
+  public boolean onPlayerJoin(final ConnectedPlayer player) {
     if (shuttingDown) {
       return false;
     }
@@ -324,7 +324,7 @@ public class MultiProxyHandler {
    * @return a {@link List} of {@link RemotePlayerInfo} representing the players on the specified proxy,
    *         or {@code null} if the proxy ID is unknown
    */
-  public List<RemotePlayerInfo> getPlayers(String proxyId) {
+  public List<RemotePlayerInfo> getPlayers(final String proxyId) {
     if (proxyId.equals(this.config.getProxyId())) {
       Collection<Player> players = this.server.getAllPlayers();
       List<RemotePlayerInfo> playerInfos = new ArrayList<>(players.size());

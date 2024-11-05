@@ -1371,7 +1371,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       return port;
     }
 
-    public String getUsername() {
+    public @Nullable String getUsername() {
       return username;
     }
 
