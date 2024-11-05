@@ -33,7 +33,6 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.queue.ServerQueueStatus;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

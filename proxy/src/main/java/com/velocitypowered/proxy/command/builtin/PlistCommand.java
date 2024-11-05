@@ -32,7 +32,6 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import java.util.List;
 import java.util.Objects;
-
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
