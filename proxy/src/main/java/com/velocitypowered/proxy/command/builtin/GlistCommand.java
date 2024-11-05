@@ -157,7 +157,7 @@ public class GlistCommand {
     if (multiProxyHandler.isEnabled()) {
       for (String proxyId : multiProxyHandler.getAllProxyIds()) {
         for (MultiProxyHandler.RemotePlayerInfo player : multiProxyHandler.getPlayers(proxyId)) {
-          if (!player.serverName.equals(server.getServerInfo().getName())) {
+          if (player.serverName == null || !player.serverName.equals(server.getServerInfo().getName())) {
             continue;
           }
 

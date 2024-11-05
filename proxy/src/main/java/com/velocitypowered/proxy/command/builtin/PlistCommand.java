@@ -114,7 +114,7 @@ public class PlistCommand {
     final List<MultiProxyHandler.RemotePlayerInfo> proxyPlayers = server.getMultiProxyHandler().getPlayers(proxyName);
 
     if (proxyPlayers == null) {
-      context.getSource().sendMessage(Component.translatable("velocity.command.no-such-proxy", NamedTextColor.RED)
+      context.getSource().sendMessage(Component.translatable("velocity.command.proxy-does-not-exist", NamedTextColor.RED)
           .arguments(Component.text(proxyName))
       );
     }

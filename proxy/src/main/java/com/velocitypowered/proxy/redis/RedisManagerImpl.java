@@ -167,11 +167,15 @@ public class RedisManagerImpl {
       try {
         instance = gson.fromJson(obj, registration.clazz);
       } catch (JsonSyntaxException e) {
-        logger.error("Received invalid JSON on channel {} for packet clazz {}", channel, registration.clazz, e);
+        logger.error("received invalid JSON on channel {} for packet class {}", channel, registration.clazz, e);
         return;
       }
 
-      registration.consumer.accept(instance);
+      try {
+        registration.consumer.accept(instance);
+      } catch (Throwable th) {
+        logger.error("packet handler for packet class {} threw", registration.clazz, th);
+      }
     }
 
     private record ChannelRegistration<T>(Class<T> clazz, Consumer<T> consumer) {}

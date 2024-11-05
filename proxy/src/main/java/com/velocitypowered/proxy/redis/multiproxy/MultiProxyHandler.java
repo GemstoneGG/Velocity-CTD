@@ -313,7 +313,11 @@ public class MultiProxyHandler {
    */
   public Set<String> getAllProxyIds() {
     Set<String> foreignProxies = new HashSet<>(this.seenProxies.keySet());
-    foreignProxies.add(this.config.getProxyId());
+
+    if (this.config.getProxyId() != null) {
+      foreignProxies.add(this.config.getProxyId());
+    }
+
     return foreignProxies;
   }
 
