@@ -104,7 +104,7 @@ public class PlistCommand {
 
   private int totalCount(final CommandContext<CommandSource> context) {
     final CommandSource source = context.getSource();
-    sendTotalProxyCount(source, this.server.getPlayerCount());
+    sendTotalProxyCount(source, this.server.getMultiProxyHandler().getOwnProxyId(), this.server.getPlayerCount());
     source.sendMessage(
         Component.translatable("velocity.command.plist-view-proxy", NamedTextColor.YELLOW));
     return 1;
@@ -137,6 +137,11 @@ public class PlistCommand {
     }
 
     sendServerPlayers(context.getSource(), proxyPlayers, serverName);
+
+    if (Objects.equals(serverName, "all")) {
+      sendTotalProxyCount(context.getSource(), context.getArgument(PROXY_ARG, String.class), proxyPlayers.size());
+    }
+
     return Command.SINGLE_SUCCESS;
   }
 
@@ -147,17 +152,20 @@ public class PlistCommand {
       return -1;
     }
 
-    sendTotalProxyCount(context.getSource(), proxyPlayers.size());
+    sendTotalProxyCount(context.getSource(), getString(context, PROXY_ARG), proxyPlayers.size());
     return Command.SINGLE_SUCCESS;
   }
 
-  private void sendTotalProxyCount(final CommandSource target, final int online) {
+  private void sendTotalProxyCount(final CommandSource target, final String proxyId, final int online) {
     final TranslatableComponent.Builder msg = Component.translatable()
             .key(online == 1
                   ? "velocity.command.plist-player-singular"
                   : "velocity.command.plist-player-plural"
             ).color(NamedTextColor.YELLOW)
-            .arguments(Component.text(Integer.toString(online)));
+            .arguments(
+                Component.text(Integer.toString(online)),
+                Component.text(proxyId)
+            );
     target.sendMessage(msg.build());
   }
 
