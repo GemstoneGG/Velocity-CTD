@@ -30,9 +30,8 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * Represents an argument type for registry keys.
- * <p>
- * This class handles parsing and validating registry key arguments.
- * </p>
+ *
+ * <p>This class handles parsing and validating registry key arguments.</p>
  */
 public class RegistryKeyArgument implements ArgumentType<String> {
 

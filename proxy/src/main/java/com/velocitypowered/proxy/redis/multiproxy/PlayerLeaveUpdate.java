@@ -23,10 +23,8 @@ import java.util.UUID;
 /**
  * Represents a packet sent when a player leaves a proxy in a multi-proxy setup.
  *
- * <p>
- * This packet informs other proxies in the network that a player has disconnected
- * and includes the player’s unique identifier (UUID) and the ID of the proxy they left.
- * </p>
+ * <p>This packet informs other proxies in the network that a player has disconnected
+ * and includes the player’s unique identifier (UUID) and the ID of the proxy they left.</p>
  *
  * @param proxyId the identifier of the proxy the player left
  * @param uuid the unique identifier of the player

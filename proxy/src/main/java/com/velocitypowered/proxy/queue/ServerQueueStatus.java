@@ -46,7 +46,7 @@ public class ServerQueueStatus {
    * @param server the backend server
    * @param velocityServer the proxy server
    */
-  public ServerQueueStatus(VelocityRegisteredServer server, VelocityServer velocityServer) {
+  public ServerQueueStatus(final VelocityRegisteredServer server, final VelocityServer velocityServer) {
     this.server = server;
     this.config = velocityServer.getConfiguration().getQueue();
   }
@@ -136,7 +136,7 @@ public class ServerQueueStatus {
     server.ping().whenComplete((result, th) -> online = th == null);
   }
 
-  private Component calculateEta(int position) {
+  private Component calculateEta(final int position) {
     int etaSeconds = (int) config.getSendDelay() * position;
     return QueueTimeFormatter.format(etaSeconds);
   }
@@ -146,7 +146,7 @@ public class ServerQueueStatus {
    *
    * @param paused whether this queue is paused
    */
-  public void setPaused(boolean paused) {
+  public void setPaused(final boolean paused) {
     this.paused = paused;
   }
 
@@ -156,7 +156,7 @@ public class ServerQueueStatus {
    * @param player the player to connect
    * @return whether the player queued successfully
    */
-  public boolean queueWithIndication(Player player) {
+  public boolean queueWithIndication(final Player player) {
     if (!config.isEnabled()) {
       player.createConnectionRequest(server).fireAndForget();
       return true;
@@ -178,7 +178,7 @@ public class ServerQueueStatus {
    * @param player the player to queue
    * @return a future that will complete once the player connects
    */
-  public CompletableFuture<ConnectionRequestBuilder.Result> queue(Player player) {
+  public CompletableFuture<ConnectionRequestBuilder.Result> queue(final Player player) {
     if (!config.isEnabled()) {
       return player.createConnectionRequest(server).connect();
     }
@@ -202,7 +202,7 @@ public class ServerQueueStatus {
    * @param player the player to remove
    * @return whether the player was dequeued
    */
-  public boolean dequeue(Player player) {
+  public boolean dequeue(final Player player) {
     return this.queue.removeIf(queueStatus -> queueStatus.player.equals(player));
   }
 
@@ -229,7 +229,7 @@ public class ServerQueueStatus {
    *
    * @param component the component to send as a message
    */
-  public void broadcast(Component component) {
+  public void broadcast(final Component component) {
     for (PlayerQueueStatus status : queue) {
       status.player.sendMessage(component);
     }
@@ -241,7 +241,7 @@ public class ServerQueueStatus {
    * @param player the player to check
    * @return whether they are queued
    */
-  public boolean isQueued(Player player) {
+  public boolean isQueued(final Player player) {
     for (PlayerQueueStatus queueStatus : queue) {
       if (queueStatus.player.equals(player)) {
         return true;

@@ -33,7 +33,7 @@ dependencies, useful performance improvements, and more.
   easily and fairly be upgraded to maintain the highest level of performance.
 * Implementation of full-fledged Redis database support to fully replace
   plugins like RedisBungee in attempts to maintain a stabler Redis experience.
-g* Implementation of a highly dynamic and efficient queue system that is
+* Implementation of a highly dynamic and efficient queue system that is
   simplified in nature and intended to stably maintain thousands of players.
 * Implementation of a non-invasive multi-forwarding system that allows you
   to use a different forwarding method for specific servers on the backend.

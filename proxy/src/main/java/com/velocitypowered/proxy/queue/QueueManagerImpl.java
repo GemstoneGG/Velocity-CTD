@@ -37,7 +37,7 @@ public class QueueManagerImpl {
    *
    * @param server the proxy server
    */
-  public QueueManagerImpl(VelocityServer server) {
+  public QueueManagerImpl(final VelocityServer server) {
     this.server = server;
     config = server.getConfiguration().getQueue();
 
@@ -61,7 +61,7 @@ public class QueueManagerImpl {
         .schedule();
   }
 
-  private void tickAll(Consumer<ServerQueueStatus> consumer) {
+  private void tickAll(final Consumer<ServerQueueStatus> consumer) {
     for (RegisteredServer serverApi : this.server.getAllServers()) {
       VelocityRegisteredServer server = (VelocityRegisteredServer) serverApi;
       ServerQueueStatus queueStatus = server.getQueueStatus();

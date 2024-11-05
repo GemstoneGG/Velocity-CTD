@@ -28,10 +28,9 @@ import net.kyori.adventure.text.Component;
 
 /**
  * A concrete implementation of {@link ChatBuilderV2} that uses keys to build chat components.
- * <p>
- * The {@code KeyedChatBuilder} class extends the functionality of {@link ChatBuilderV2} by allowing
- * chat components to be built using specific keys, enabling dynamic message construction.
- * </p>
+ *
+ * <p>The {@code KeyedChatBuilder} class extends the functionality of {@link ChatBuilderV2} by allowing
+ * chat components to be built using specific keys, enabling dynamic message construction.</p>
  */
 public class KeyedChatBuilder extends ChatBuilderV2 {
 

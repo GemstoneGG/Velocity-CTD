@@ -23,9 +23,8 @@ import io.netty.buffer.ByteBuf;
 
 /**
  * Serializer for registry ID arguments.
- * <p>
- * Handles serialization and deserialization of integer-based registry ID arguments.
- * </p>
+ *
+ * <p>Handles serialization and deserialization of integer-based registry ID arguments.</p>
  */
 public class RegistryIdArgumentSerializer implements ArgumentPropertySerializer<Integer> {
 

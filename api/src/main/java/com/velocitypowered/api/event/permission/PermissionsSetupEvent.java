@@ -21,11 +21,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *
  * <p>This event is only called once per subject, on initialisation.</p>
  *
- * <p>
- *   Velocity will wait for this event to finish firing before proceeding further with server
- *   startup (for the console command source) and logins (for players) but it is strongly
- *   recommended to minimize the amount of work that must be done in this event.
- * </p>
+ * <p>Velocity will wait for this event to finish firing before proceeding further with server
+ * startup (for the console command source) and logins (for players) but it is strongly
+ * recommended to minimize the amount of work that must be done in this event.</p>
  */
 @AwaitingEvent
 public final class PermissionsSetupEvent {

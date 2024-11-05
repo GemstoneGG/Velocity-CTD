@@ -67,7 +67,7 @@ public class LeaveQueueCommand {
     );
   }
 
-  private int leaveAllQueues(CommandContext<CommandSource> ctx) {
+  private int leaveAllQueues(final CommandContext<CommandSource> ctx) {
     if (ctx.getSource() instanceof Player player) {
       for (RegisteredServer server : this.server.getAllServers()) {
         VelocityRegisteredServer registeredServer = (VelocityRegisteredServer) server;
@@ -82,7 +82,7 @@ public class LeaveQueueCommand {
     }
   }
 
-  private int leaveQueue(CommandContext<CommandSource> ctx) {
+  private int leaveQueue(final CommandContext<CommandSource> ctx) {
     VelocityRegisteredServer server = QueueAdminCommand.getServer(this.server, ctx, "server");
 
     if (server == null) {

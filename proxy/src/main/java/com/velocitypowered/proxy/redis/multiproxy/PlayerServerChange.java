@@ -24,11 +24,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 /**
  * Represents a packet sent when a player switches servers within a proxy in a multi-proxy setup.
  *
- * <p>
- * This packet notifies other proxies in the network about the server change for a player, including
+ * <p>This packet notifies other proxies in the network about the server change for a player, including
  * the player's unique identifier (UUID), the ID of the proxy, and the name of the server the player joined.
- * The {@code server} field may be {@code null} if the server information is unavailable.
- * </p>
+ * The {@code server} field may be {@code null} if the server information is unavailable.</p>
  *
  * @param proxyId the identifier of the proxy where the server change occurred
  * @param uuid the unique identifier of the player

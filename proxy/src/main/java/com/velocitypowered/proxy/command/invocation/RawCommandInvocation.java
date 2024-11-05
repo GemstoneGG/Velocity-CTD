@@ -37,11 +37,9 @@ public final class RawCommandInvocation extends AbstractCommandInvocation<String
   /**
    * Factory class for creating instances of {@link RawCommand.Invocation}.
    *
-   * <p>
-   * This class implements the {@link CommandInvocationFactory} interface and provides
+   * <p>This class implements the {@link CommandInvocationFactory} interface and provides
    * a method to create new {@link RawCommand.Invocation} instances. It is responsible
-   * for reading the command alias and arguments from the parsed command nodes and arguments.
-   * </p>
+   * for reading the command alias and arguments from the parsed command nodes and arguments.</p>
    */
   public static class Factory implements CommandInvocationFactory<RawCommand.Invocation> {
 

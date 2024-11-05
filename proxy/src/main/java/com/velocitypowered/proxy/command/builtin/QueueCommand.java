@@ -81,7 +81,7 @@ public class QueueCommand {
     );
   }
 
-  private int queue(CommandContext<CommandSource> ctx) {
+  private int queue(final CommandContext<CommandSource> ctx) {
     VelocityRegisteredServer server = QueueAdminCommand.getServer(this.server, ctx, "server");
 
     if (server == null) {

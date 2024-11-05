@@ -18,11 +18,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * This event is fired once the player has successfully connected to the target server and the
  * connection to the previous server has been de-established.
  *
- * <p>
- *   <strong>Note</strong>: For historical reasons, Velocity does wait on this event to finish
- *   firing before continuing the server connection process. This behavior is
- *   <strong>deprecated</strong> and likely to be removed in Polymer.
- * </p>
+ * <p><strong>Note</strong>: For historical reasons, Velocity does wait on this event to finish
+ * firing before continuing the server connection process. This behavior is
+ * <strong>deprecated</strong> and likely to be removed in Polymer.</p>
  */
 @AwaitingEvent
 public final class ServerConnectedEvent {

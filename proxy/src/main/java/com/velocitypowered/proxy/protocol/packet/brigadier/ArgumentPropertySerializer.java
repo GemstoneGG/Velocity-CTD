@@ -24,11 +24,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 /**
  * The {@code ArgumentPropertySerializer} interface defines a contract for serializing and
  * deserializing argument properties to and from a specific format.
- * <p>
- * This interface allows implementations to convert argument properties into a serialized form,
+ *
+ * <p>This interface allows implementations to convert argument properties into a serialized form,
  * which can later be deserialized and restored to their original form. This is particularly useful
- * for persisting command argument configurations or sending them across a network.
- * </p>
+ * for persisting command argument configurations or sending them across a network.</p>
  */
 public interface ArgumentPropertySerializer<T> {
 

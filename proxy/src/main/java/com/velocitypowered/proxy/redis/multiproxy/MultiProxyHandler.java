@@ -61,7 +61,7 @@ public class MultiProxyHandler {
 
     public OtherProxy() {
       this.lastSeenPing = Instant.now();
-      this.status = ProxyStatus.Healthy;
+      this.status = ProxyStatus.HEALTHY;
     }
   }
 
@@ -98,12 +98,12 @@ public class MultiProxyHandler {
 
   /**
    * Enumeration representing the status of a proxy in a multi-proxy setup.
-   * A proxy can be {@link #Healthy}, {@link #TimedOut}, or {@link #Shutdown}.
+   * A proxy can be {@link #HEALTHY}, {@link #TIMED_OUT}, or {@link #SHUTDOWN}.
    */
   public enum ProxyStatus {
-    Healthy,
-    TimedOut,
-    Shutdown,
+    HEALTHY,
+    TIMED_OUT,
+    SHUTDOWN,
   }
 
   /**
@@ -112,11 +112,9 @@ public class MultiProxyHandler {
    * Configures Redis-based communication for handling
    * player actions and proxy status across a network of proxies.
    *
-   * <p>
-   * If Redis support is disabled in the configuration, the handler exits early.
+   * <p>If Redis support is disabled in the configuration, the handler exits early.
    * Otherwise, it sets up the required Redis listeners and initiates communication
-   * between proxy instances.
-   * </p>
+   * between proxy instances.</p>
    *
    * @param server the {@link VelocityServer} instance to access server configuration and features
    */
@@ -189,7 +187,7 @@ public class MultiProxyHandler {
         return;
       }
 
-      proxy.status = ProxyStatus.Shutdown;
+      proxy.status = ProxyStatus.SHUTDOWN;
     });
 
     Thread tickThread = new Thread(this::tick);
@@ -209,7 +207,7 @@ public class MultiProxyHandler {
 
     OtherProxy proxy = this.seenProxies.computeIfAbsent(proxyId, key -> new OtherProxy());
     proxy.lastSeenPing = Instant.now();
-    proxy.status = ProxyStatus.Healthy;
+    proxy.status = ProxyStatus.HEALTHY;
     return proxy;
   }
 
@@ -234,7 +232,7 @@ public class MultiProxyHandler {
 
     for (OtherProxy proxy : this.seenProxies.values()) {
       if (proxy.lastSeenPing.until(now, ChronoUnit.MILLIS) > this.config.getOtherProxyTimeoutMs()) {
-        proxy.status = ProxyStatus.TimedOut;
+        proxy.status = ProxyStatus.TIMED_OUT;
       }
     }
   }

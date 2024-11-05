@@ -1283,8 +1283,7 @@ public final class VelocityConfiguration implements ProxyConfig {
   /**
    * Redis configuration settings for the Velocity proxy.
    *
-   * <p>
-   * This class provides the configuration options required to establish a connection
+   * <p>This class provides the configuration options required to establish a connection
    * to a Redis server.
    * It supports settings for connection details (host, port),
    * authentication, SSL usage, and connection management parameters.
@@ -1292,8 +1291,7 @@ public final class VelocityConfiguration implements ProxyConfig {
    * enable the Velocity proxy to leverage Redis for features such as data caching,
    * synchronization across multiple instances, and custom proxy functionalities.
    *
-   * <p>
-   * The {@code Redis} configuration class includes options for:
+   * <p>The {@code Redis} configuration class includes options for:
    * <ul>
    * <li>Basic connection parameters, such as {@code host} and {@code port},
    * which specify the target Redis server.</li>
@@ -1544,22 +1542,22 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Override
     public String toString() {
       return "Queue{"
-              + "enabled=" + enabled
-              + ", sendAllUsersWhenBackOnline=" + sendAllUsersWhenBackOnline
-              + ", allowPausedQueueJoining=" + allowPausedQueueJoining
-              + ", returnOnlineSendDelay=" + returnOnlineSendDelay
-              + ", kickReasonsBlacklist=" + kickReasonsBlacklist
-              + ", forwardKickReason=" + forwardKickReason
-              + ", removePlayerOnServerSwitch=" + removePlayerOnServerSwitch
-              + ", maxSendRetries=" + maxSendRetries
-              + ", messageDelay=" + messageDelay
-              + ", sendDelay=" + sendDelay
-              + ", multipleServerMessagingSelection=" + multipleServerMessagingSelection
-              + ", allowMultiQueue=" + allowMultiQueue
-              + ", noQueueServers=" + noQueueServers
-              + ", queueAliases=" + queueAliases
-              + ", overrideBungeeMessaging" + overrideBungeeMessaging
-              + '}';
+          + "enabled=" + enabled
+          + ", sendAllUsersWhenBackOnline=" + sendAllUsersWhenBackOnline
+          + ", allowPausedQueueJoining=" + allowPausedQueueJoining
+          + ", returnOnlineSendDelay=" + returnOnlineSendDelay
+          + ", kickReasonsBlacklist=" + kickReasonsBlacklist
+          + ", forwardKickReason=" + forwardKickReason
+          + ", removePlayerOnServerSwitch=" + removePlayerOnServerSwitch
+          + ", maxSendRetries=" + maxSendRetries
+          + ", messageDelay=" + messageDelay
+          + ", sendDelay=" + sendDelay
+          + ", multipleServerMessagingSelection=" + multipleServerMessagingSelection
+          + ", allowMultiQueue=" + allowMultiQueue
+          + ", noQueueServers=" + noQueueServers
+          + ", queueAliases=" + queueAliases
+          + ", overrideBungeeMessaging" + overrideBungeeMessaging
+          + '}';
     }
   }
 }

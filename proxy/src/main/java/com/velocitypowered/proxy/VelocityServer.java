@@ -717,11 +717,9 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   /**
    * Reloads the list of servers based on the updated configuration.
    *
-   * <p>
-   * This is exclusively implemented within VelocityServer as it
+   * <p>This is exclusively implemented within VelocityServer as it
    * is not a function necessary and present for generic purposes
-   * within ServerCommand and is exclusive to reload's functionality.
-   * </p>
+   * within ServerCommand and is exclusive to reload's functionality.</p>
    */
   public void reloadServerList() {
     VelocityConfiguration config = getConfiguration();

@@ -23,11 +23,9 @@ import java.util.UUID;
 /**
  * Represents a packet sent when a player joins a proxy in a multi-proxy setup.
  *
- * <p>
- * This packet is used to inform other proxies in the network about the new player
+ * <p>This packet is used to inform other proxies in the network about the new player
  * and includes details such as the player's unique identifier (UUID), name, and
- * the ID of the proxy where the player joined.
- * </p>
+ * the ID of the proxy where the player joined.</p>
  *
  * @param proxyId the identifier of the proxy the player joined
  * @param uuid the unique identifier of the player

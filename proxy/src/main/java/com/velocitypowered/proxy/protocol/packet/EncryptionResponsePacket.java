@@ -34,10 +34,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * during the encryption handshake process. This packet contains the shared secret
  * and verify token that are used to establish secure communication between the client
  * and the server.
- * <p>
- * The packet structure varies depending on the Minecraft protocol version, with additional
- * fields such as a salt being present in versions 1.19 and above.
- * </p>
+ *
+ * <p>The packet structure varies depending on the Minecraft protocol version, with additional
+ * fields such as a salt being present in versions 1.19 and above.</p>
  */
 public class EncryptionResponsePacket implements MinecraftPacket {
 

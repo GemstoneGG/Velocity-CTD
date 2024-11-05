@@ -23,9 +23,8 @@ import io.netty.buffer.ByteBuf;
 
 /**
  * Represents a list of {@link RegistryKeyArgument} objects.
- * <p>
- * Used to manage and store multiple registry key arguments.
- * </p>
+ *
+ * <p>Used to manage and store multiple registry key arguments.</p>
  */
 public final class RegistryKeyArgumentList {
 

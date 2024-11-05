@@ -54,11 +54,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Represents a packet that contains the list of available commands, implementing {@link MinecraftPacket}.
- * <p>
- * The {@code AvailableCommandsPacket} is responsible for transmitting the set of commands
+ *
+ * <p>The {@code AvailableCommandsPacket} is responsible for transmitting the set of commands
  * that a player can execute. It provides the necessary information about available commands
- * within the current session or game state.
- * </p>
+ * within the current session or game state.</p>
  */
 public class AvailableCommandsPacket implements MinecraftPacket {
 

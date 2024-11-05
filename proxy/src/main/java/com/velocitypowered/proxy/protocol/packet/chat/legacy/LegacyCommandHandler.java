@@ -26,11 +26,10 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * A handler for processing legacy commands, implementing {@link CommandHandler}.
- * <p>
- * The {@code LegacyCommandHandler} processes and handles command packets that are sent
+ *
+ * <p>The {@code LegacyCommandHandler} processes and handles command packets that are sent
  * using {@link LegacyChatPacket}. It provides the necessary logic to support legacy
- * command formats and ensure compatibility with older Minecraft versions.
- * </p>
+ * command formats and ensure compatibility with older Minecraft versions.</p>
  */
 public class LegacyCommandHandler implements CommandHandler<LegacyChatPacket> {
 

@@ -23,11 +23,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * with the login process, but you should try to limit the work done in any event that fires during
  * the login process.
  *
- * <p>
- *   As of Velocity 3.1.0, you may cast the {@link InboundConnection} to a
- *   {@link com.velocitypowered.api.proxy.LoginPhaseConnection} to allow a
- *   proxy plugin to send login plugin messages to the client.
- * </p>
+ * <p>As of Velocity 3.1.0, you may cast the {@link InboundConnection} to a
+ * {@link com.velocitypowered.api.proxy.LoginPhaseConnection} to allow a
+ * proxy plugin to send login plugin messages to the client.</p>
  */
 @AwaitingEvent
 public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLoginComponentResult> {

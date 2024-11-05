@@ -138,10 +138,9 @@ public class ChatQueue {
    *     <li>To address this, we know that if the client has moved its 'last seen' window far enough, we can fill in the
    *     gap with dummy 'last seen', and it will never be checked.</li>
    * </ul>
-   * <p>
-   * Note that this is effectively unused for 1.20.5+ clients, as commands without any signature do not send 'last seen'
-   * updates.
-   * </p>
+   *
+   * <p>Note that this is effectively unused for 1.20.5+ clients, as commands without any signature do not send 'last seen'
+   * updates.</p>
    */
   public static final class ChatState {
     private static final int MINIMUM_DELAYED_ACK_COUNT = LastSeenMessages.WINDOW_SIZE;

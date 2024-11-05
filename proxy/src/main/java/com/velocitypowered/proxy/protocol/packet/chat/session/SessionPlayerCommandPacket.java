@@ -31,11 +31,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Represents a packet that handles player commands in a Minecraft session.
- * <p>
- * This packet contains information about the player's command, timestamp,
+ *
+ * <p>This packet contains information about the player's command, timestamp,
  * salt, argument signatures, and last seen messages for verification and
- * processing.
- * </p>
+ * processing.</p>
  */
 public class SessionPlayerCommandPacket implements MinecraftPacket {
 
@@ -94,11 +93,10 @@ public class SessionPlayerCommandPacket implements MinecraftPacket {
   /**
    * Returns a new instance of {@code SessionPlayerCommandPacket} with the specified
    * {@code LastSeenMessages}.
-   * <p>
-   * If {@code lastSeenMessages} is null, it creates an {@code UnsignedPlayerCommandPacket}
+   *
+   * <p>If {@code lastSeenMessages} is null, it creates an {@code UnsignedPlayerCommandPacket}
    * instead. Otherwise, it creates a new {@code SessionPlayerCommandPacket} with the
-   * provided {@code lastSeenMessages}.
-   * </p>
+   * provided {@code lastSeenMessages}.</p>
    *
    * @param lastSeenMessages the last seen messages to include in the packet, may be {@code null}
    * @return a new instance of {@code SessionPlayerCommandPacket} or {@code UnsignedPlayerCommandPacket}
@@ -120,10 +118,9 @@ public class SessionPlayerCommandPacket implements MinecraftPacket {
 
   /**
    * Represents a collection of argument signatures for commands.
-   * <p>
-   * This class is responsible for handling the encoding and decoding of
-   * argument signatures associated with a player command in a Minecraft session.
-   * </p>
+   *
+   * <p>This class is responsible for handling the encoding and decoding of
+   * argument signatures associated with a player command in a Minecraft session.</p>
    */
   public static class ArgumentSignatures {
 
@@ -136,10 +133,9 @@ public class SessionPlayerCommandPacket implements MinecraftPacket {
     /**
      * Constructs an {@code ArgumentSignatures} instance by decoding the signatures
      * from the provided {@code ByteBuf}.
-     * <p>
-     * This constructor reads the argument signatures from the buffer and ensures
-     * that the number of signatures does not exceed the allowed limit.
-     * </p>
+     *
+     * <p>This constructor reads the argument signatures from the buffer and ensures
+     * that the number of signatures does not exceed the allowed limit.</p>
      *
      * @param buf the {@code ByteBuf} to decode the argument signatures from
      * @throws QuietDecoderException if the number of argument signatures exceeds the allowed limit
@@ -163,10 +159,9 @@ public class SessionPlayerCommandPacket implements MinecraftPacket {
 
     /**
      * Encodes the argument signatures into the provided {@code ByteBuf}.
-     * <p>
-     * This method writes the number of argument signatures and each signature's
-     * details into the buffer for transmission.
-     * </p>
+     *
+     * <p>This method writes the number of argument signatures and each signature's
+     * details into the buffer for transmission.</p>
      *
      * @param buf the {@code ByteBuf} to encode the argument signatures into
      */
@@ -187,11 +182,10 @@ public class SessionPlayerCommandPacket implements MinecraftPacket {
 
   /**
    * Represents a single argument signature associated with a command.
-   * <p>
-   * This class is responsible for handling the encoding and decoding of
+   *
+   * <p>This class is responsible for handling the encoding and decoding of
    * individual argument signatures, which consist of a name and a signature
-   * (byte array).
-   * </p>
+   * (byte array).</p>
    */
   public static class ArgumentSignature {
 

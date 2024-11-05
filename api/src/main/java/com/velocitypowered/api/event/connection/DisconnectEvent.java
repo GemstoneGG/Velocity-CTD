@@ -17,12 +17,10 @@ import com.velocitypowered.api.proxy.Player;
  * Operations on the provided player, aside from basic data retrieval operations, may behave in
  * undefined ways.
  *
- * <p>
- * Velocity typically fires this event asynchronously and does not wait for a response. However,
+ * <p>Velocity typically fires this event asynchronously and does not wait for a response. However,
  * it will wait for all {@link DisconnectEvent}s for every player on the proxy to fire
  * successfully before the proxy shuts down. This event is the sole exception to the
- * {@link AwaitingEvent} contract.
- * </p>
+ * {@link AwaitingEvent} contract.</p>
  */
 @AwaitingEvent
 public final class DisconnectEvent {

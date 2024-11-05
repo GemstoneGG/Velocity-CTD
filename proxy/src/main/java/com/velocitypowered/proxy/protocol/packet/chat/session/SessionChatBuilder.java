@@ -28,11 +28,10 @@ import net.kyori.adventure.text.Component;
 
 /**
  * A concrete implementation of {@link ChatBuilderV2} for handling session-based chat messages.
- * <p>
- * The {@code SessionChatBuilder} is designed to build chat components that are specific to
+ *
+ * <p>The {@code SessionChatBuilder} is designed to build chat components that are specific to
  * a player's session, allowing customization and context-specific formatting of chat messages
- * within the current session.
- * </p>
+ * within the current session.</p>
  */
 public class SessionChatBuilder extends ChatBuilderV2 {
 

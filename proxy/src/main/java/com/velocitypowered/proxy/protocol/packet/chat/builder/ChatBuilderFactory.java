@@ -25,10 +25,9 @@ import java.util.function.Function;
 
 /**
  * Factory class for creating instances of chat builders.
- * <p>
- * The {@code ChatBuilderFactory} is responsible for providing various builder instances
- * used to construct chat-related components, such as messages, chat formats, or text components.
- * </p>
+ *
+ * <p>The {@code ChatBuilderFactory} is responsible for providing various builder instances
+ * used to construct chat-related components, such as messages, chat formats, or text components.</p>
  */
 public class ChatBuilderFactory {
 

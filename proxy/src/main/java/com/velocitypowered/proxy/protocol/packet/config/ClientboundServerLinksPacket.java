@@ -71,10 +71,9 @@ public class ClientboundServerLinksPacket implements MinecraftPacket {
 
   /**
    * Represents a link to a server with an ID, display name, and URL.
-   * <p>
-   * This record holds the server's identification number, a display name
-   * encapsulated in a {@code ComponentHolder}, and the server's URL as a string.
-   * </p>
+   *
+   * <p>This record holds the server's identification number, a display name
+   * encapsulated in a {@code ComponentHolder}, and the server's URL as a string.</p>
    *
    * @param id the unique identifier for the server
    * @param displayName the display name of the server, represented by a {@code ComponentHolder}

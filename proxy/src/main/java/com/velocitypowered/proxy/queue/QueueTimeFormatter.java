@@ -23,7 +23,7 @@ import net.kyori.adventure.text.Component;
  * Formats time values as components using the {@code velocity.queue.time} translations.
  */
 public class QueueTimeFormatter {
-  private static Component formatComponent(String name, int value) {
+  private static Component formatComponent(final String name, final int value) {
     String key = "velocity.queue.time." + name + (value == 1 ? "" : "s");
     return Component.translatable(key).arguments(Component.text(value));
   }

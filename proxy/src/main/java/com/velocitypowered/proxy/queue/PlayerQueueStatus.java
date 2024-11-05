@@ -39,7 +39,8 @@ public class PlayerQueueStatus {
    * @param target the target server
    * @param future a future that will be resolved when the player connects. If {@code null}, Velocity's default connection error handling will be used
    */
-  public PlayerQueueStatus(ConnectedPlayer player, VelocityRegisteredServer target, CompletableFuture<ConnectionRequestBuilder.Result> future) {
+  public PlayerQueueStatus(final ConnectedPlayer player, final VelocityRegisteredServer target,
+                           final CompletableFuture<ConnectionRequestBuilder.Result> future) {
     this.player = player;
     this.target = target;
     this.future = future;

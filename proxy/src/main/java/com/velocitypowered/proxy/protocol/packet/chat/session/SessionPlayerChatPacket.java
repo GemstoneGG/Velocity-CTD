@@ -27,11 +27,10 @@ import java.time.Instant;
 
 /**
  * Represents a player chat packet specific to a session, implementing {@link MinecraftPacket}.
- * <p>
- * The {@code SessionPlayerChatPacket} handles chat messages sent by a player during a session,
+ *
+ * <p>The {@code SessionPlayerChatPacket} handles chat messages sent by a player during a session,
  * and may include session-specific context, such as timestamps, message formatting, or other
- * relevant session data.
- * </p>
+ * relevant session data.</p>
  */
 public class SessionPlayerChatPacket implements MinecraftPacket {
 
@@ -110,10 +109,9 @@ public class SessionPlayerChatPacket implements MinecraftPacket {
 
   /**
    * Creates a new {@code SessionPlayerChatPacket} with the specified last seen messages.
-   * <p>
-   * This method constructs a new {@code SessionPlayerChatPacket} instance that retains the
-   * current packet's properties, while updating the last seen messages.
-   * </p>
+   *
+   * <p>This method constructs a new {@code SessionPlayerChatPacket} instance that retains the
+   * current packet's properties, while updating the last seen messages.</p>
    *
    * @param lastSeenMessages the last seen messages to associate with the new packet
    * @return a new {@code SessionPlayerChatPacket} with the updated last seen messages

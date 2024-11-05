@@ -32,11 +32,10 @@ import org.apache.logging.log4j.Logger;
 
 /**
  * A handler for processing session-based chat packets, implementing {@link ChatHandler}.
- * <p>
- * The {@code SessionChatHandler} processes and handles chat messages sent during a player's
+ *
+ * <p>The {@code SessionChatHandler} processes and handles chat messages sent during a player's
  * session using {@link SessionPlayerChatPacket}. It provides the logic for handling session-specific
- * chat messages, ensuring the correct context and formatting within the session.
- * </p>
+ * chat messages, ensuring the correct context and formatting within the session.</p>
  */
 public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> {
 

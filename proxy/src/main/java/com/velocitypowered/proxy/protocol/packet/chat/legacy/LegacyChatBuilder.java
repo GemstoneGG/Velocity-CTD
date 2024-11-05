@@ -27,11 +27,10 @@ import net.kyori.adventure.text.Component;
 
 /**
  * A concrete implementation of {@link ChatBuilderV2} for handling legacy chat formats.
- * <p>
- * The {@code LegacyChatBuilder} is designed to support and build chat components
+ *
+ * <p>The {@code LegacyChatBuilder} is designed to support and build chat components
  * using legacy chat formatting, such as the formats used in earlier versions of Minecraft.
- * It extends the functionality of {@link ChatBuilderV2} to cater to older chat systems.
- * </p>
+ * It extends the functionality of {@link ChatBuilderV2} to cater to older chat systems.</p>
  */
 public class LegacyChatBuilder extends ChatBuilderV2 {
 

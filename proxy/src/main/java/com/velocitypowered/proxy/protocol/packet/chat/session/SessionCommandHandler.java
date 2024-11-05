@@ -29,11 +29,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * A handler for processing session-based commands, implementing {@link CommandHandler}.
- * <p>
- * The {@code SessionCommandHandler} is responsible for handling commands that are specific
+ *
+ * <p>The {@code SessionCommandHandler} is responsible for handling commands that are specific
  * to a player's session, using {@link SessionPlayerCommandPacket}. It provides logic to
- * process commands that are tied to the context of the current session.
- * </p>
+ * process commands that are tied to the context of the current session.</p>
  */
 public class SessionCommandHandler implements CommandHandler<SessionPlayerCommandPacket> {
 

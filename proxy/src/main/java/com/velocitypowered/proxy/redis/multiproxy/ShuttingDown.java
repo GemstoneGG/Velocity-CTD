@@ -22,11 +22,9 @@ import com.velocitypowered.proxy.redis.RedisPacket;
 /**
  * Represents a packet sent when a proxy in a multi-proxy setup is shutting down.
  *
- * <p>
- * This packet notifies other proxies in the network that a specific proxy instance
+ * <p>This packet notifies other proxies in the network that a specific proxy instance
  * is shutting down, allowing them to handle the shutdown event accordingly, such as
- * updating the status of the proxy or re-balancing players.
- * </p>
+ * updating the status of the proxy or re-balancing players.</p>
  *
  * @param proxyId the identifier of the proxy that is shutting down
  */

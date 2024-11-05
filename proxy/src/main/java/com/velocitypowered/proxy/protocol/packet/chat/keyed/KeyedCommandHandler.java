@@ -28,11 +28,10 @@ import net.kyori.adventure.text.Component;
 
 /**
  * Handles keyed player commands by implementing {@link CommandHandler}.
- * <p>
- * The {@code KeyedCommandHandler} processes commands that are sent using
+ *
+ * <p>The {@code KeyedCommandHandler} processes commands that are sent using
  * {@link KeyedPlayerCommandPacket}. It provides the necessary logic for handling
- * and executing commands associated with specific keys.
- * </p>
+ * and executing commands associated with specific keys.</p>
  */
 public class KeyedCommandHandler implements CommandHandler<KeyedPlayerCommandPacket> {
 

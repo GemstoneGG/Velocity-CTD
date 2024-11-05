@@ -23,10 +23,9 @@ import io.netty.buffer.ByteBuf;
 
 /**
  * Serializer for {@link RegistryKeyArgument} objects.
- * <p>
- * This class handles the serialization and deserialization of {@code RegistryKeyArgument}
- * objects to and from a {@link ByteBuf} using the specified {@link ProtocolVersion}.
- * </p>
+ *
+ * <p>This class handles the serialization and deserialization of {@code RegistryKeyArgument}
+ * objects to and from a {@link ByteBuf} using the specified {@link ProtocolVersion}.</p>
  */
 public class RegistryKeyArgumentSerializer implements ArgumentPropertySerializer<RegistryKeyArgument> {
 

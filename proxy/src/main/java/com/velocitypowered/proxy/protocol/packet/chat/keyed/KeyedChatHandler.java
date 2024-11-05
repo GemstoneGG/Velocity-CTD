@@ -32,11 +32,10 @@ import org.apache.logging.log4j.Logger;
 
 /**
  * A handler for processing chat components based on specific keys.
- * <p>
- * The {@code KeyedChatHandler} class is responsible for managing chat interactions or
+ *
+ * <p>The {@code KeyedChatHandler} class is responsible for managing chat interactions or
  * messages that are identified by keys. It implements the required interface or class
- * to handle key-based chat processing.
- * </p>
+ * to handle key-based chat processing.</p>
  */
 public class KeyedChatHandler implements
     com.velocitypowered.proxy.protocol.packet.chat.ChatHandler<KeyedPlayerChatPacket> {
@@ -58,10 +57,9 @@ public class KeyedChatHandler implements
 
   /**
    * Logs an error and disconnects the player when a plugin attempts to cancel a signed chat message.
-   * <p>
-   * This method handles the invalid behavior of canceling signed chat messages, which is no longer allowed
-   * starting from Minecraft version 1.19.1.
-   * </p>
+   *
+   * <p>This method handles the invalid behavior of canceling signed chat messages, which is no longer allowed
+   * starting from Minecraft version 1.19.1.</p>
    *
    * @param logger the logger used to log the error
    * @param player the player to disconnect due to the illegal action
@@ -76,10 +74,9 @@ public class KeyedChatHandler implements
 
   /**
    * Logs an error and disconnects the player when a plugin attempts to modify a signed chat message.
-   * <p>
-   * This method handles the invalid behavior of modifying signed chat messages, which is no longer allowed
-   * starting from Minecraft version 1.19.1.
-   * </p>
+   *
+   * <p>This method handles the invalid behavior of modifying signed chat messages, which is no longer allowed
+   * starting from Minecraft version 1.19.1.</p>
    *
    * @param logger the logger used to log the error
    * @param player the player to disconnect due to the illegal action

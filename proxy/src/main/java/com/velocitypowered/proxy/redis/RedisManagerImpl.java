@@ -42,11 +42,10 @@ import redis.clients.jedis.exceptions.JedisException;
 /**
  * Manages Redis connectivity and communication within the Velocity proxy.
  *
- * <p>
- * This class sets up a Redis connection pool and provides methods to send
+ * <p>This class sets up a Redis connection pool and provides methods to send
  * and receive messages through a dedicated Redis channel, enabling multi-proxy
  * communication. It includes configuration management and error handling to
- * ensure reliable operation within the Velocity environment.
+ * ensure reliable operation within the Velocity environment.</p>
  */
 public class RedisManagerImpl {
   private static final String CHANNEL = "velocityredis";
@@ -63,7 +62,7 @@ public class RedisManagerImpl {
    *
    * @param velocityServer the instance of the Velocity server
    */
-  public RedisManagerImpl(VelocityServer velocityServer) {
+  public RedisManagerImpl(final VelocityServer velocityServer) {
     VelocityConfiguration.Redis redisConfig = velocityServer.getConfiguration().getRedis();
     this.pubSub = new VelocityPubSub();
 
@@ -72,7 +71,7 @@ public class RedisManagerImpl {
     }
   }
 
-  private void start(VelocityConfiguration.Redis redisConfig) {
+  private void start(final VelocityConfiguration.Redis redisConfig) {
     try {
       JedisClientConfig clientConfig = DefaultJedisClientConfig.builder()
           .ssl(redisConfig.isUseSsl())
@@ -105,7 +104,7 @@ public class RedisManagerImpl {
    *
    * @param packet the object to send
    */
-  public void send(RedisPacket packet) {
+  public void send(final RedisPacket packet) {
     if (this.jedisPool == null) {
       return;
     }
@@ -129,7 +128,7 @@ public class RedisManagerImpl {
    * @param consumer the handler to call
    * @param <T> the type of the message
    */
-  public <T> void listen(String id, Class<T> clazz, Consumer<T> consumer) {
+  public <T> void listen(final String id, final Class<T> clazz, final Consumer<T> consumer) {
     if (this.jedisPool == null) {
       return;
     }
@@ -140,16 +139,15 @@ public class RedisManagerImpl {
   /**
    * Manages subscriptions and incoming message handling on a Redis channel.
    *
-   * <p>
-   * This inner class extends {@link JedisPubSub} to implement a custom message
-   * handler that dispatches messages based on packet ID to registered listeners.
+   * <p>This inner class extends {@link JedisPubSub} to implement a custom message
+   * handler that dispatches messages based on packet ID to registered listeners.</p>
    */
   public static class VelocityPubSub extends JedisPubSub {
     private static final Logger logger = LoggerFactory.getLogger(VelocityPubSub.class);
     private final Map<String, ChannelRegistration<?>> listeners = new HashMap<>();
 
     @Override
-    public void onMessage(String channel, String message) {
+    public void onMessage(final String channel, final String message) {
       JsonObject obj = gson.fromJson(message, JsonObject.class);
       String packetId = obj.getAsJsonPrimitive("id").getAsString();
       JsonObject packetObj = obj.getAsJsonObject("obj");
@@ -163,7 +161,7 @@ public class RedisManagerImpl {
     }
 
     // second function for `T` parameter
-    private <T> void onMessage0(ChannelRegistration<T> registration, String channel, JsonObject obj) {
+    private <T> void onMessage0(final ChannelRegistration<T> registration, final String channel, final JsonObject obj) {
       T instance;
 
       try {
@@ -178,7 +176,7 @@ public class RedisManagerImpl {
 
     private record ChannelRegistration<T>(Class<T> clazz, Consumer<T> consumer) {}
 
-    private <T> void register(String id, Class<T> clazz, Consumer<T> consumer) {
+    private <T> void register(final String id, final Class<T> clazz, final Consumer<T> consumer) {
       this.listeners.put(id, new ChannelRegistration<>(clazz, consumer));
     }
   }
