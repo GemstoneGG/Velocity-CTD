@@ -145,12 +145,7 @@ public class GlistCommand {
 
   private void sendServerPlayers(final CommandSource target,
                                  final RegisteredServer server, final boolean fromAll) {
-    final List<Player> onServer = ImmutableList.copyOf(server.getPlayersConnected());
-    if (onServer.isEmpty() && fromAll) {
-      return;
-    }
-    int totalPlayers = onServer.size();
-
+    int totalPlayers = 0;
     List<Component> players = new ArrayList<>();
     MultiProxyHandler multiProxyHandler = this.server.getMultiProxyHandler();
 
@@ -161,17 +156,24 @@ public class GlistCommand {
             continue;
           }
 
-          Component hover = Component.translatable("velocity.command.glist.proxy-other")
-              .arguments(Component.text(proxyId));
+          String key = "velocity.command.glist.proxy-"
+              + (proxyId.equals(multiProxyHandler.getOwnProxyId()) ? "self" : "other");
+          Component hover = Component.translatable(key).arguments(Component.text(proxyId));
           players.add(Component.text(player.name).hoverEvent(HoverEvent.showText(hover)));
           totalPlayers += 1;
         }
       }
-    }
+    } else {
+      final List<Player> onServer = ImmutableList.copyOf(server.getPlayersConnected());
+      if (onServer.isEmpty() && fromAll) {
+        return;
+      }
+      totalPlayers = onServer.size();
 
-    for (Player player : onServer) {
-      Component hover = Component.translatable("velocity.command.glist.proxy-self");
-      players.add(Component.text(player.getUsername()).hoverEvent(HoverEvent.showText(hover)));
+      for (Player player : onServer) {
+        Component hover = Component.translatable("velocity.command.glist.proxy-self");
+        players.add(Component.text(player.getUsername()).hoverEvent(HoverEvent.showText(hover)));
+      }
     }
 
     int finalTotalPlayers = totalPlayers;

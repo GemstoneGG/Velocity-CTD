@@ -69,12 +69,21 @@ public class LeaveQueueCommand {
 
   private int leaveAllQueues(final CommandContext<CommandSource> ctx) {
     if (ctx.getSource() instanceof Player player) {
+      boolean leftAny = false;
+
       for (RegisteredServer server : this.server.getAllServers()) {
         VelocityRegisteredServer registeredServer = (VelocityRegisteredServer) server;
-        registeredServer.getQueueStatus().dequeue(player);
+        if (registeredServer.getQueueStatus().dequeue(player)) {
+          leftAny = true;
+        }
       }
 
-      player.sendMessage(Component.translatable("velocity.queue.command.left-queue.all"));
+      if (leftAny) {
+        player.sendMessage(Component.translatable("velocity.queue.command.left-queue.all"));
+      } else {
+        player.sendMessage(Component.translatable("velocity.queue.error.not-in-queue.all"));
+      }
+
       return Command.SINGLE_SUCCESS;
     } else {
       ctx.getSource().sendMessage(CommandMessages.PLAYERS_ONLY);

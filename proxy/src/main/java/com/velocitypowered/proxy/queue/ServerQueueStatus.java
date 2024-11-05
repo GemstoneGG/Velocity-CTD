@@ -142,6 +142,15 @@ public class ServerQueueStatus {
   }
 
   /**
+   * Returns whether this queue is paused.
+   *
+   * @return whether this queue is paused
+   */
+  public boolean isPaused() {
+    return paused;
+  }
+
+  /**
    * Sets whether this queue is paused.
    *
    * @param paused whether this queue is paused

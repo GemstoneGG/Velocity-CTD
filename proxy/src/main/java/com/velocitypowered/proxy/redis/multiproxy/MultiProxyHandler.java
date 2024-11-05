@@ -34,6 +34,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import net.kyori.adventure.text.Component;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -209,6 +210,15 @@ public class MultiProxyHandler {
     proxy.lastSeenPing = Instant.now();
     proxy.status = ProxyStatus.HEALTHY;
     return proxy;
+  }
+
+  /**
+   * Gets the ID of the local proxy.
+   *
+   * @return the ID of the local proxy, if one is defined.
+   */
+  public @Nullable String getOwnProxyId() {
+    return config.getProxyId();
   }
 
   /**

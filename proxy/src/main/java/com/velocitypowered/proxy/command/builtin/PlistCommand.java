@@ -31,6 +31,8 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import java.util.List;
+import java.util.Objects;
+
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -130,7 +132,11 @@ public class PlistCommand {
     }
 
     final String serverName = getString(context, SERVER_ARG);
-    proxyPlayers.removeIf(it -> !it.serverName.equals(serverName));
+
+    if (!Objects.equals(serverName, "all")) {
+      proxyPlayers.removeIf(it -> it.serverName == null || !it.serverName.equalsIgnoreCase(serverName));
+    }
+
     sendServerPlayers(context.getSource(), proxyPlayers, serverName);
     return Command.SINGLE_SUCCESS;
   }

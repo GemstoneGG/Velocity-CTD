@@ -33,6 +33,8 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.queue.ServerQueueStatus;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
+
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -190,9 +192,16 @@ public class QueueAdminCommand {
       return -1;
     }
 
+    Component serverName = Component.text(server.getServerInfo().getName());
+
+    if (server.getQueueStatus().isPaused()) {
+      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-paused")
+          .arguments(serverName));
+      return -1;
+    }
+
     server.getQueueStatus().setPaused(true);
 
-    Component serverName = Component.text(server.getServerInfo().getName());
     ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.pause").arguments(serverName));
     server.getQueueStatus().broadcast(Component.translatable("velocity.queue.command.paused").arguments(serverName));
 
@@ -206,9 +215,16 @@ public class QueueAdminCommand {
       return -1;
     }
 
+    Component serverName = Component.text(server.getServerInfo().getName());
+
+    if (!server.getQueueStatus().isPaused()) {
+      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.not-paused")
+          .arguments(serverName));
+      return -1;
+    }
+
     server.getQueueStatus().setPaused(false);
 
-    Component serverName = Component.text(server.getServerInfo().getName());
     ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.unpause").arguments(serverName));
     server.getQueueStatus().broadcast(Component.translatable("velocity.queue.command.unpaused").arguments(serverName));
 
@@ -240,7 +256,10 @@ public class QueueAdminCommand {
 
     server.getQueueStatus().queueWithIndication(player);
     ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.added")
-        .arguments(Component.text(server.getServerInfo().getName())));
+        .arguments(
+            Component.text(player.getUsername()),
+            Component.text(server.getServerInfo().getName())
+        ));
 
     return Command.SINGLE_SUCCESS;
   }
@@ -291,14 +310,20 @@ public class QueueAdminCommand {
       return -1;
     }
 
-    String serverName = ctx.getArgument("server", String.class);
-    Optional<RegisteredServer> serverOptional = this.server.getServer(serverName);
-    Collection<RegisteredServer> servers;
+    List<RegisteredServer> servers;
+    boolean serverWasPassed = false;
 
-    if (serverOptional.isEmpty()) {
-      servers = this.server.getAllServers();
+    if (ctx.getArguments().containsKey("server")) {
+      serverWasPassed = true;
+      VelocityRegisteredServer registeredServer = getServer(server, ctx, "server");
+
+      if (registeredServer == null) {
+        return -1;
+      }
+
+      servers = List.of(registeredServer);
     } else {
-      servers = List.of(serverOptional.get());
+      servers = new ArrayList<>(this.server.getAllServers());
     }
 
     boolean removedAny = false;
@@ -317,10 +342,17 @@ public class QueueAdminCommand {
       return -1;
     }
 
-    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.removed").arguments(
-        Component.text(player.getUsername()),
-        Component.text(serverOptional.isEmpty() ? "all servers" : serverOptional.get().getServerInfo().getName())
-    ));
+    if (serverWasPassed) {
+      ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.removed").arguments(
+          Component.text(player.getUsername()),
+          Component.text(servers.get(0).getServerInfo().getName())
+      ));
+    } else {
+      ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.removed.all").arguments(
+          Component.text(player.getUsername()),
+          Component.text(servers.get(0).getServerInfo().getName())
+      ));
+    }
 
     return Command.SINGLE_SUCCESS;
   }
@@ -340,13 +372,23 @@ public class QueueAdminCommand {
       return -1;
     }
 
+    int amountDequeued = 0;
+
     for (Player player : players) {
-      server.getQueueStatus().dequeue(player);
+      if (server.getQueueStatus().dequeue(player)) {
+        amountDequeued += 1;
+      }
     }
 
-    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.removedall-player" + (players.size() == 1 ? "" : "s"))
+    if (amountDequeued == 0) {
+      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.removeall-no-players-queued")
+          .arguments(Component.text(server.getServerInfo().getName())));
+      return -1;
+    }
+
+    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.removedall-player" + (amountDequeued == 1 ? "" : "s"))
         .arguments(
-            Component.text(players.size()),
+            Component.text(amountDequeued),
             Component.text(server.getServerInfo().getName())
         )
     );
