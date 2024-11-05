@@ -1347,7 +1347,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.useSsl = config.getOrElse("use-ssl", true);
       this.maxConcurrentConnections = config.getOrElse("max-concurrent-connections", 10);
 
-      this.proxyId = config.get("proxy-proxyId");
+      this.proxyId = config.get("proxy-id");
 
       if (this.proxyId == null || this.proxyId.isEmpty()) {
         this.proxyId = null;
