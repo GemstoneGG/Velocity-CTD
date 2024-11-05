@@ -201,8 +201,6 @@ public class MultiProxyHandler {
   }
 
   private OtherProxy handleAndGetProxyFromPacket(final String proxyId) {
-    System.out.println("proxy id: " + proxyId);
-    System.out.println("config proxy id: " + this.config.getProxyId());
     if (proxyId.equals(this.config.getProxyId())) {
       return null;
     }
