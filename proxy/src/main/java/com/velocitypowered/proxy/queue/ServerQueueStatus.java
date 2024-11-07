@@ -161,7 +161,7 @@ public class ServerQueueStatus {
       etaSeconds = (int) config.getSendDelay() * position - (int) timeSinceLastSend;
     }
 
-    return QueueTimeFormatter.format(Math.min(etaSeconds, 0));
+    return QueueTimeFormatter.format(Math.max(etaSeconds, 0));
   }
 
   /**
