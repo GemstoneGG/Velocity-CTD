@@ -27,6 +27,7 @@ import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.command.VelocityCommandUtils;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import net.kyori.adventure.text.Component;
@@ -54,7 +55,7 @@ public class LeaveQueueCommand {
         .requires(source -> source.getPermissionValue("velocity.queue.leave") == Tristate.TRUE)
         .then(BrigadierCommand
             .requiredArgumentBuilder("server", StringArgumentType.word())
-            .suggests(QueueAdminCommand.suggestServer(server, "server"))
+            .suggests(VelocityCommandUtils.suggestServer(server, "server", false))
             .executes(this::leaveQueue)
         )
         .executes(this::leaveAllQueues);
@@ -92,7 +93,7 @@ public class LeaveQueueCommand {
   }
 
   private int leaveQueue(final CommandContext<CommandSource> ctx) {
-    VelocityRegisteredServer server = QueueAdminCommand.getServer(this.server, ctx, "server");
+    VelocityRegisteredServer server = VelocityCommandUtils.getServer(this.server, ctx, "server", false);
 
     if (server == null) {
       return -1;

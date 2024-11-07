@@ -25,6 +25,7 @@ import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.ProxyServer;
+import com.velocitypowered.proxy.command.VelocityCommandUtils;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.util.ComponentUtils;
 import net.kyori.adventure.text.Component;
@@ -53,7 +54,7 @@ public class AlertRawCommand {
         .literalArgumentBuilder("alertraw")
         .requires(source ->
             source.getPermissionValue("velocity.command.alertraw") == Tristate.TRUE)
-        .executes(this::usage)
+        .executes(ctx -> VelocityCommandUtils.emitUsage(ctx, "alertraw"))
         .then(BrigadierCommand
             .requiredArgumentBuilder("message", StringArgumentType.greedyString())
             .executes(this::alert));
@@ -64,13 +65,6 @@ public class AlertRawCommand {
             .build(),
         command
     );
-  }
-
-  private int usage(final CommandContext<CommandSource> context) {
-    context.getSource().sendMessage(
-        Component.translatable("velocity.command.alertraw.usage", NamedTextColor.YELLOW)
-    );
-    return Command.SINGLE_SUCCESS;
   }
 
   private int alert(final CommandContext<CommandSource> context) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2024 Velocity Contributors
+ * Copyright (C) 2024 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,64 +17,40 @@
 
 package com.velocitypowered.proxy.queue;
 
-import com.velocitypowered.api.proxy.ConnectionRequestBuilder;
+import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.server.VelocityRegisteredServer;
-import java.util.concurrent.CompletableFuture;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import net.kyori.adventure.text.Component;
 
 /**
- * Stores the status of a single server queue entry for a specific player.
+ * The status of the queue for a single player.
  */
 public class PlayerQueueStatus {
-  public final ConnectedPlayer player;
-  public final VelocityRegisteredServer target;
-  public final CompletableFuture<ConnectionRequestBuilder.Result> future;
-  public int connectionAttempts = 0;
-  public boolean waitingForConnection = false;
+  private final ConnectedPlayer player;
+  private final VelocityServer server;
+  final Deque<ServerQueueEntry> queueEntries = new ArrayDeque<>();
 
-  /**
-   * Constructs a new {@link PlayerQueueStatus} instance.
-   *
-   * @param player the player who is queueing
-   * @param target the target server
-   * @param future a future that will be resolved when the player connects. If {@code null}, Velocity's default connection error handling will be used
-   */
-  public PlayerQueueStatus(final ConnectedPlayer player, final VelocityRegisteredServer target,
-                           final CompletableFuture<ConnectionRequestBuilder.Result> future) {
+  public PlayerQueueStatus(ConnectedPlayer player, VelocityServer server) {
     this.player = player;
-    this.target = target;
-    this.future = future;
+    this.server = server;
   }
 
   /**
-   * Executes this queue entry, sending the player to their target server.
-   *
-   * @return a future that will complete when the player has been sent successfully.
+   * Updates the actionbar message for this player.
    */
-  public CompletableFuture<Boolean> send() {
-    waitingForConnection = true;
-
-    if (future == null) {
-      return player.createConnectionRequest(target)
-          .connectWithIndication()
-          .whenComplete((success, error) -> waitingForConnection = false);
-    } else {
-      CompletableFuture<Boolean> returnedFuture = new CompletableFuture<>();
-      player.createConnectionRequest(target)
-          .connect()
-          .whenComplete((result, error) -> {
-            if (error != null) {
-              this.future.completeExceptionally(error);
-              returnedFuture.complete(false);
-            } else {
-              this.future.complete(result);
-              returnedFuture.complete(result.isSuccessful());
-            }
-
-            waitingForConnection = false;
-          });
-
-      return returnedFuture;
+  public void tickMessage() {
+    if (queueEntries.isEmpty()) {
+      return;
     }
+
+    ServerQueueEntry entry = switch (this.server.getConfiguration().getQueue().getMultipleServerMessagingSelection()) {
+      case "first" -> queueEntries.getFirst();
+      default -> queueEntries.getLast();
+    };
+
+    ServerQueueStatus queue = entry.target.getQueueStatus();
+    Component actionBar = queue.getActionBarComponent(entry);
+    this.player.sendActionBar(actionBar);
   }
 }

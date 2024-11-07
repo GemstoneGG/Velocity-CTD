@@ -125,6 +125,9 @@ ping-enabled = true
 plist-enabled = true
 showall-enabled = true
 
+# Whether to use the default `/server` output, or whether to override it with the `velocity.command.server.usage` key.
+override-server-command-usage = true
+
 [servers]
 # Configure your servers here. Each key represents the server's name, and the value
 # represents the IP address of the server to connect to.
@@ -313,10 +316,10 @@ other-proxy-timeout-ms = 90000
 # a whole.
 enabled = false
 
-# The list of aliases for the `/queue` command.
+# The list of aliases for the `/server` command when the queue system is enabled.
 queue-aliases = [
     "joinqueue",
-    "server"
+    "queue"
 ]
 
 # The list of servers that should not have the queue system enabled.

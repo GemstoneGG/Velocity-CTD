@@ -114,22 +114,22 @@ dependencies, useful performance improvements, and more.
 * `/queueadmin removeall {SERVER}`
 
 ## Velocity-CTD Queue Permissions
-* `queue.*` (Allows you to use all queue commands and bypass all known limitations).
-* `queue.bypass` or `queue.bypass.{SERVER}` (Allows you to bypass the queue for all
+* `velocity.queue.*` (Allows you to use all queue commands and bypass all known limitations).
+* `velocity.queue.bypass` or `velocity.queue.bypass.{SERVER}` (Allows you to bypass the queue for all
   servers or a specific server).
-* `queue.joinfull` or `queue.joinfull.{SERVER}` (Allows you to join any
+* `velocity.queue.joinfull` or `velocity.queue.joinfull.{SERVER}` (Allows you to join any
   server or a specific server, regardless if it is full).
-* `queue.joinfullandbypass` or `queue.joinfullandbypass.{SERVER}` (Allows you to
-  bypass the queue for all servers or a specific server and allows you to join
-  all servers or a specific server if it is full).
-* `queue.list` (Allows you to view the list of people queued for a specific server).
-* `queue.listqueues` (Allows you to view all possible queues and number of people queued).
-* `queue.pause` (Allows you to pause any specific server from queuing).
-* `queue.pause.bypass` or `queue.pause.bypass.{SERVER}` (Allows you to bypass queue pauses
+* `velocity.queue.list` (Allows you to view the list of people queued for a specific server).
+* `velocity.queue.listqueues` (Allows you to view all possible queues and number of people queued).
+* `velocity.queue.pause` (Allows you to pause any specific server from queuing).
+* `velocity.queue.pause.bypass` or `queue.pause.bypass.{SERVER}` (Allows you to bypass queue pauses
   for all servers or a specific server).
-* `queue.priority.{ALL/SERVER}.{WEIGHT}` (Sets the position you are in for the/a queue).
-* `queue.remove` (Allows you to remove a player from any specific queue).
-* `queue.timeout.{SECONDS}` (Specifies the amount of time a user has before they
+* `velocity.queue.priority.{ALL/SERVER}.{WEIGHT}` (Sets the position you are in for the/a queue).
+* `velocity.queue.remove` (Allows you to remove a player from any specific queue).
+* `velocity.queue.removeall` (Allows you to remove a player from all queues).
+* `velocity.queue.add` (Allows you to add a player to a queue).
+* `velocity.queue.addall` (Allows you to add all players from a specific server to a queue).
+* `velocity.queue.timeout.{SECONDS}` (Specifies the amount of time a user has before they
   are unqueued from a server when disconnecting; if you reach the position where
   you can be sent and are offline, your queue position will reset, regardless of
   your specified timeout).

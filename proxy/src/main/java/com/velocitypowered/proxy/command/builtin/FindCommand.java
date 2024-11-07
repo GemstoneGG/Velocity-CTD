@@ -29,6 +29,7 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import com.velocitypowered.proxy.command.VelocityCommandUtils;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import java.util.Optional;
 import net.kyori.adventure.text.Component;
@@ -57,7 +58,7 @@ public class FindCommand {
         .literalArgumentBuilder("find")
         .requires(source ->
           source.getPermissionValue("velocity.command.find") == Tristate.TRUE)
-        .executes(this::usage);
+        .executes(ctx -> VelocityCommandUtils.emitUsage(ctx, "find"));
     final RequiredArgumentBuilder<CommandSource, String> playerNode = BrigadierCommand
         .requiredArgumentBuilder("player", StringArgumentType.word())
         .suggests((context, builder) -> {
@@ -81,13 +82,6 @@ public class FindCommand {
             .build(),
         command
     );
-  }
-
-  private int usage(final CommandContext<CommandSource> context) {
-    context.getSource().sendMessage(
-        Component.translatable("velocity.command.find.usage", NamedTextColor.YELLOW)
-    );
-    return Command.SINGLE_SUCCESS;
   }
 
   private int find(final CommandContext<CommandSource> context) {

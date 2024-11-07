@@ -453,6 +453,10 @@ public final class VelocityConfiguration implements ProxyConfig {
     return commands.isShowAllEnabled();
   }
 
+  public boolean isOverrideServerCommandUsage() {
+    return commands.isOverrideServerCommandUsage();
+  }
+
   @Override
   public int getReadTimeout() {
     return advanced.getReadTimeout();
@@ -962,6 +966,8 @@ public final class VelocityConfiguration implements ProxyConfig {
     private boolean sendCommand = true;
     @Expose
     private boolean showAllCommand = true;
+    @Expose
+    private boolean overrideServerCommandUsage = false;
 
     private Commands() {
     }
@@ -978,6 +984,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.pingCommand = config.getOrElse("ping-enabled", true);
         this.sendCommand = config.getOrElse("send-enabled", true);
         this.showAllCommand = config.getOrElse("showall-enabled", true);
+        this.overrideServerCommandUsage = config.getOrElse("override-server-command-usage", false);
       }
     }
 
@@ -1021,6 +1028,10 @@ public final class VelocityConfiguration implements ProxyConfig {
       return showAllCommand;
     }
 
+    public boolean isOverrideServerCommandUsage() {
+      return overrideServerCommandUsage;
+    }
+
     @Override
     public String toString() {
       return "Commands{"
@@ -1034,6 +1045,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", pingCommand=" + pingCommand
           + ", sendCommand=" + sendCommand
           + ", showAllCommand=" + showAllCommand
+          + ", overrideServerCommandUsage=" + overrideServerCommandUsage
           + '}';
     }
   }

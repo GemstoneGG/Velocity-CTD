@@ -28,6 +28,7 @@ import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import com.velocitypowered.proxy.command.VelocityCommandUtils;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -57,7 +58,7 @@ public class ShowAllCommand {
         .literalArgumentBuilder("showall")
         .requires(source ->
             source.getPermissionValue("velocity.command.showall") == Tristate.TRUE)
-        .executes(this::usage);
+        .executes(ctx -> VelocityCommandUtils.emitUsage(ctx, "showall"));
     final RequiredArgumentBuilder<CommandSource, String> serverNode = BrigadierCommand
         .requiredArgumentBuilder("server", StringArgumentType.word())
         .suggests((context, builder) -> {
@@ -81,13 +82,6 @@ public class ShowAllCommand {
             .build(),
         command
     );
-  }
-
-  private int usage(final CommandContext<CommandSource> context) {
-    context.getSource().sendMessage(
-        Component.translatable("velocity.command.showall.usage", NamedTextColor.YELLOW)
-    );
-    return Command.SINGLE_SUCCESS;
   }
 
   private int find(final CommandContext<CommandSource> context) {

@@ -17,9 +17,11 @@
 
 package com.velocitypowered.proxy.queue;
 
+import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
+import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.concurrent.TimeUnit;
@@ -51,7 +53,7 @@ public class QueueManagerImpl {
         .schedule();
 
     server.getScheduler()
-        .buildTask(VelocityVirtualPlugin.INSTANCE, () -> tickAll(ServerQueueStatus::tickMessage))
+        .buildTask(VelocityVirtualPlugin.INSTANCE, this::tickMessage)
         .repeat((long) config.getMessageDelay() * 1000, TimeUnit.MILLISECONDS)
         .schedule();
 
@@ -66,6 +68,13 @@ public class QueueManagerImpl {
       VelocityRegisteredServer server = (VelocityRegisteredServer) serverApi;
       ServerQueueStatus queueStatus = server.getQueueStatus();
       consumer.accept(queueStatus);
+    }
+  }
+
+  private void tickMessage() {
+    for (Player playerApi : this.server.getAllPlayers()) {
+      ConnectedPlayer player = (ConnectedPlayer) playerApi;
+      player.getQueueStatus().tickMessage();
     }
   }
 }

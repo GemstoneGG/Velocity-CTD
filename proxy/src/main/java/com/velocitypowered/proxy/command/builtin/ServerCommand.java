@@ -30,8 +30,11 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
+import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.command.VelocityCommandUtils;
+import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.List;
-import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.TranslatableComponent;
@@ -45,74 +48,82 @@ public final class ServerCommand {
   private static final String SERVER_ARG = "server";
   public static final int MAX_SERVERS_TO_LIST = 50;
 
+  private final VelocityServer server;
+
+  public ServerCommand(VelocityServer server) {
+    this.server = server;
+  }
+
   /**
    * Registers or unregisters the command based on the configuration value.
    */
-  public static BrigadierCommand create(final ProxyServer server, final boolean isServerEnabled) {
+  public void register(final boolean isServerEnabled) {
     if (!isServerEnabled) {
-      return null;
+      return;
     }
 
     final LiteralCommandNode<CommandSource> node = BrigadierCommand
         .literalArgumentBuilder("server")
-        .requires(src -> src instanceof Player
-                && src.getPermissionValue("velocity.command.server") != Tristate.FALSE)
+        .requires(src -> src instanceof Player && src.getPermissionValue("velocity.command.server") != Tristate.FALSE)
         .executes(ctx -> {
+          if (server.getConfiguration().isOverrideServerCommandUsage()) {
+            return VelocityCommandUtils.emitUsage(ctx, "server");
+          }
+
           final Player player = (Player) ctx.getSource();
           outputServerInformation(player, server);
           return Command.SINGLE_SUCCESS;
         })
         .then(BrigadierCommand.requiredArgumentBuilder(SERVER_ARG, StringArgumentType.word())
-                .requires(commandSource -> {
-                  boolean flag = false;
-                  for (final RegisteredServer sv : server.getAllServers()) {
-                    final String serverName = sv.getServerInfo().getName();
-                    if (commandSource.getPermissionValue("velocity.command.server." + serverName) != Tristate.FALSE) {
-                      flag = true;
-                      break;
-                    }
-                  }
-                  return flag;
-                })
-            .suggests((ctx, builder) -> {
-              final String argument = ctx.getArguments().containsKey(SERVER_ARG)
-                      ? StringArgumentType.getString(ctx, SERVER_ARG)
-                      : "";
-              for (final RegisteredServer sv : server.getAllServers()) {
-                final String serverName = sv.getServerInfo().getName();
-                if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
-                  if (ctx.getSource().getPermissionValue("velocity.command.server." + serverName) != Tristate.FALSE) {
-                    builder.suggest(serverName);
-                  }
-                }
-              }
-              return builder.buildFuture();
-            })
+            .suggests(VelocityCommandUtils.suggestServer(server, SERVER_ARG, true))
             .executes(ctx -> {
               final Player player = (Player) ctx.getSource();
               // Trying to connect to a server.
-              final String serverName = StringArgumentType.getString(ctx, SERVER_ARG);
-              final Optional<RegisteredServer> toConnect = server.getServer(serverName);
-              if (toConnect.isEmpty()) {
-                player.sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
-                        .arguments(Component.text(serverName)));
+
+              final VelocityRegisteredServer registeredServer = VelocityCommandUtils.getServer(this.server, ctx, SERVER_ARG, true);
+
+              if (registeredServer == null) {
                 return -1;
               }
 
-              // Check if the player has permission to connect to the server
-              final String permission = "velocity.command.server." + serverName;
-              if (player.getPermissionValue(permission) == Tristate.FALSE) {
-                player.sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
-                        .arguments(Component.text(serverName)));
+              if (!registeredServer.getQueueStatus().hasQueue()) {
+                player.createConnectionRequest(registeredServer).fireAndForget();
+                return Command.SINGLE_SUCCESS;
+              }
+
+              if (registeredServer.getQueueStatus().isQueued(player)) {
+                player.sendMessage(Component.translatable("velocity.queue.error.already-queued")
+                    .arguments(Component.text(registeredServer.getServerInfo().getName())));
                 return -1;
               }
 
-              player.createConnectionRequest(toConnect.get()).fireAndForget();
-              return Command.SINGLE_SUCCESS;
+              if (registeredServer.getQueueStatus().queueWithIndication(player)) {
+                player.sendMessage(Component.translatable("velocity.queue.command.queued")
+                    .arguments(Component.text(registeredServer.getServerInfo().getName())));
+                return Command.SINGLE_SUCCESS;
+              } else {
+                player.sendMessage(Component.translatable("velocity.queue.error.paused")
+                    .arguments(Component.text(registeredServer.getServerInfo().getName())));
+                return -1;
+              }
             })
         ).build();
 
-    return new BrigadierCommand(node);
+    final BrigadierCommand command = new BrigadierCommand(node);
+    String[] aliases = new String[] {};
+
+    if (server.getConfiguration().getQueue().isEnabled()) {
+      // if queue feature is enabled, add aliases
+      aliases = server.getConfiguration().getQueue().getQueueAliases().toArray(new String[0]);
+    }
+
+    server.getCommandManager().register(
+        server.getCommandManager().metaBuilder(command)
+            .aliases(aliases)
+            .plugin(VelocityVirtualPlugin.INSTANCE)
+            .build(),
+        command
+    );
   }
 
   private static void outputServerInformation(final Player executor,

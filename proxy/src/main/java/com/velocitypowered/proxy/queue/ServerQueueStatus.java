@@ -25,6 +25,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import net.kyori.adventure.text.Component;
@@ -36,7 +37,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 public class ServerQueueStatus {
   private final VelocityRegisteredServer server;
   private final VelocityConfiguration.Queue config;
-  private final Deque<PlayerQueueStatus> queue = new ConcurrentLinkedDeque<>();
+  private final Deque<ServerQueueEntry> queue = new ConcurrentLinkedDeque<>();
   private boolean online = true;
   private boolean paused = false;
 
@@ -60,22 +61,22 @@ public class ServerQueueStatus {
     }
 
     while (true) {
-      PlayerQueueStatus queueStatus = queue.peekFirst();
+      ServerQueueEntry entry = queue.peekFirst();
 
-      if (queueStatus == null) {
+      if (entry == null) {
         return;
       }
 
-      if (queueStatus.player.isActive()) {
+      if (entry.player.isActive()) {
         // if the player is waiting for their send to finish, continue to the next player in queue
-        if (!queueStatus.waitingForConnection) {
-          queueStatus.send().thenAccept(success -> {
-            queueStatus.connectionAttempts++;
+        if (!entry.waitingForConnection) {
+          entry.send().thenAccept(success -> {
+            entry.connectionAttempts++;
             boolean shouldDequeue = success;
 
-            if (queueStatus.connectionAttempts > config.getMaxSendRetries()) {
-              queueStatus.player.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached").arguments(
-                  Component.text(queueStatus.target.getServerInfo().getName()),
+            if (entry.connectionAttempts > config.getMaxSendRetries()) {
+              entry.player.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached").arguments(
+                  Component.text(entry.target.getServerInfo().getName()),
                   Component.text(config.getMaxSendRetries())
               ));
               shouldDequeue = true;
@@ -84,48 +85,13 @@ public class ServerQueueStatus {
             if (shouldDequeue) {
               // if we succeed, or if we exceed the connection attempt limit, remove the player from queue
               queue.removeFirst();
+              entry.player.getQueueStatus().queueEntries.remove(entry);
             }
           });
 
           break;
         }
       }
-    }
-  }
-
-  /**
-   * Updates the actionbar for all players.
-   */
-  public void tickMessage() {
-    int position = 1;
-
-    for (PlayerQueueStatus queueStatus : queue) {
-      Component actionBar;
-
-      if (queueStatus.waitingForConnection) {
-        actionBar = Component.translatable("velocity.queue.player-status.connecting", NamedTextColor.YELLOW)
-            .arguments(Component.text(queueStatus.target.getServerInfo().getName()));
-      } else if (paused) {
-        actionBar = Component.translatable("velocity.queue.player-status.paused", NamedTextColor.YELLOW);
-      } else if (online) {
-        actionBar = Component.translatable("velocity.queue.player-status.online", NamedTextColor.YELLOW)
-            .arguments(
-                Component.text(position),
-                Component.text(queue.size()),
-                Component.text(queueStatus.target.getServerInfo().getName()),
-                calculateEta(position)
-            );
-      } else {
-        actionBar = Component.translatable("velocity.queue.player-status.offline", NamedTextColor.YELLOW)
-            .arguments(
-                Component.text(position),
-                Component.text(queue.size()),
-                Component.text(queueStatus.target.getServerInfo().getName())
-            );
-      }
-
-      queueStatus.player.sendActionBar(actionBar);
-      position += 1;
     }
   }
 
@@ -177,7 +143,9 @@ public class ServerQueueStatus {
 
     ConnectedPlayer connectedPlayer = (ConnectedPlayer) player;
 
-    this.queue.add(new PlayerQueueStatus(connectedPlayer, this.server, null));
+    ServerQueueEntry entry = new ServerQueueEntry(connectedPlayer, this.server, null);
+    this.queue.add(entry);
+    connectedPlayer.getQueueStatus().queueEntries.add(entry);
     return true;
   }
 
@@ -201,7 +169,10 @@ public class ServerQueueStatus {
     ConnectedPlayer connectedPlayer = (ConnectedPlayer) player;
 
     CompletableFuture<ConnectionRequestBuilder.Result> future = new CompletableFuture<>();
-    this.queue.add(new PlayerQueueStatus(connectedPlayer, this.server, future));
+    ServerQueueEntry entry = new ServerQueueEntry(connectedPlayer, this.server, future);
+    this.queue.add(entry);
+    connectedPlayer.getQueueStatus().queueEntries.add(entry);
+
     return future;
   }
 
@@ -212,7 +183,19 @@ public class ServerQueueStatus {
    * @return whether the player was dequeued
    */
   public boolean dequeue(final Player player) {
-    return this.queue.removeIf(queueStatus -> queueStatus.player.equals(player));
+    boolean removedAny = false;
+
+    for (Iterator<ServerQueueEntry> iterator = this.queue.iterator(); iterator.hasNext(); ) {
+      ServerQueueEntry entry = iterator.next();
+
+      if (entry.player.equals(player)) {
+        entry.player.getQueueStatus().queueEntries.add(entry);
+        iterator.remove();
+        removedAny = true;
+      }
+    }
+
+    return removedAny;
   }
 
   /**
@@ -239,7 +222,7 @@ public class ServerQueueStatus {
    * @param component the component to send as a message
    */
   public void broadcast(final Component component) {
-    for (PlayerQueueStatus status : queue) {
+    for (ServerQueueEntry status : queue) {
       status.player.sendMessage(component);
     }
   }
@@ -251,12 +234,74 @@ public class ServerQueueStatus {
    * @return whether they are queued
    */
   public boolean isQueued(final Player player) {
-    for (PlayerQueueStatus queueStatus : queue) {
+    for (ServerQueueEntry queueStatus : queue) {
       if (queueStatus.player.equals(player)) {
         return true;
       }
     }
 
     return false;
+  }
+
+  /**
+   * Returns whether this queue is active (not in the {@code no-queue-servers} list).
+   *
+   * @return whether this queue is active
+   */
+  public boolean hasQueue() {
+    return !config.getNoQueueServers().contains(this.server.getServerInfo().getName());
+  }
+
+  /**
+   * Returns the actionbar component for this server queue for the given entry.
+   *
+   * @param entry the entry to generate a component for
+   * @return the component to display to the player
+   */
+  public Component getActionBarComponent(ServerQueueEntry entry) {
+    int position = getQueuePosition(entry.player);
+
+    if (entry.waitingForConnection) {
+      return Component.translatable("velocity.queue.player-status.connecting", NamedTextColor.YELLOW)
+          .arguments(Component.text(entry.target.getServerInfo().getName()));
+    } else if (paused) {
+      return Component.translatable("velocity.queue.player-status.paused", NamedTextColor.YELLOW);
+    } else if (online) {
+      return Component.translatable("velocity.queue.player-status.online", NamedTextColor.YELLOW)
+          .arguments(
+              Component.text(position),
+              Component.text(queue.size()),
+              Component.text(entry.target.getServerInfo().getName()),
+              calculateEta(position)
+          );
+    } else {
+      return Component.translatable("velocity.queue.player-status.offline", NamedTextColor.YELLOW)
+          .arguments(
+              Component.text(position),
+              Component.text(queue.size()),
+              Component.text(entry.target.getServerInfo().getName())
+          );
+    }
+  }
+
+  /**
+   * Returns the position of the given player in the queue.
+   *
+   * @param player the player to check
+   * @return their position in queue, where {@code 0} is first
+   * @throws IllegalArgumentException if the player is not queued
+   */
+  int getQueuePosition(ConnectedPlayer player) {
+    int position = 0;
+
+    for (ServerQueueEntry entry : queue) {
+      if (entry.player.equals(player)) {
+        return position;
+      }
+
+      position += 1;
+    }
+
+    throw new IllegalArgumentException("player " + player.getUsername() + " is not in queue");
   }
 }

@@ -49,7 +49,6 @@ import com.velocitypowered.proxy.command.builtin.LeaveQueueCommand;
 import com.velocitypowered.proxy.command.builtin.PingCommand;
 import com.velocitypowered.proxy.command.builtin.PlistCommand;
 import com.velocitypowered.proxy.command.builtin.QueueAdminCommand;
-import com.velocitypowered.proxy.command.builtin.QueueCommand;
 import com.velocitypowered.proxy.command.builtin.SendCommand;
 import com.velocitypowered.proxy.command.builtin.ServerCommand;
 import com.velocitypowered.proxy.command.builtin.ShowAllCommand;
@@ -691,18 +690,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       new LeaveQueueCommand(this).register(configuration.getQueue().isEnabled());
     }
 
-    if (!commandManager.hasCommand("queue")) {
-      new QueueCommand(this).register(configuration.getQueue().isEnabled());
-    }
-
-    final BrigadierCommand serverCommand = ServerCommand.create(this, configuration.isServerEnabled());
-    if (serverCommand != null && !commandManager.hasCommand("server")) {
-      commandManager.register(
-          commandManager.metaBuilder(serverCommand)
-              .plugin(VelocityVirtualPlugin.INSTANCE)
-              .build(),
-          serverCommand
-      );
+    if (!commandManager.hasCommand("server")) {
+      new ServerCommand(this).register(configuration.isServerEnabled());
     }
 
     if (configuration.isHubEnabled() && !commandManager.hasCommand("hub")) {
