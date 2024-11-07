@@ -20,6 +20,7 @@ package com.velocitypowered.proxy.command;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.context.ParsedCommandNode;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
@@ -161,6 +162,11 @@ public class VelocityCommandUtils {
    */
   public static int emitUsage(CommandContext<CommandSource> ctx, String commandName) {
     String usedName = commandName;
+    ParsedCommandNode<?> node = ctx.getNodes().get(0);
+
+    if (node != null) {
+      usedName = node.getNode().getName();
+    }
 
     ctx.getSource().sendMessage(
         Component.translatable("velocity.command." + commandName + ".usage", NamedTextColor.YELLOW)

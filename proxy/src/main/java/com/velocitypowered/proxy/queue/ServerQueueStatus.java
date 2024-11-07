@@ -104,7 +104,7 @@ public class ServerQueueStatus {
       if (shouldDequeue) {
         // if we succeed, or if we exceed the connection attempt limit, remove the player from queue
         queue.removeFirst();
-        entry.player.getQueueStatus().queueEntries.remove(entry);
+        entry.player.getQueueStatus().queueEntries.removeIf(e -> e.player == entry.player);
       }
     });
   }
@@ -250,8 +250,8 @@ public class ServerQueueStatus {
     for (Iterator<ServerQueueEntry> iterator = this.queue.iterator(); iterator.hasNext(); ) {
       ServerQueueEntry entry = iterator.next();
 
-      if (entry.player.equals(player)) {
-        entry.player.getQueueStatus().queueEntries.add(entry);
+      if (entry.player == player) {
+        entry.player.getQueueStatus().queueEntries.removeIf(e -> e.player == entry.player);
         iterator.remove();
         removedAny = true;
       }
@@ -357,7 +357,7 @@ public class ServerQueueStatus {
     int position = 1;
 
     for (ServerQueueEntry entry : queue) {
-      if (entry.player.equals(player)) {
+      if (entry.player == player) {
         return position;
       }
 

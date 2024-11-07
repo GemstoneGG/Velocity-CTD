@@ -126,7 +126,7 @@ plist-enabled = true
 showall-enabled = true
 
 # Whether to use the default `/server` output, or whether to override it with the `velocity.command.server.usage` key.
-override-server-command-usage = true
+override-server-command-usage = false
 
 [servers]
 # Configure your servers here. Each key represents the server's name, and the value
