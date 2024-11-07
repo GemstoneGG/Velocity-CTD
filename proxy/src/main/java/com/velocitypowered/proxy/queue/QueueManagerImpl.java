@@ -19,13 +19,13 @@ package com.velocitypowered.proxy.queue;
 
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 /**
  * Manages the queue system.
@@ -33,6 +33,8 @@ import java.util.function.Consumer;
 public class QueueManagerImpl {
   private final VelocityServer server;
   private final VelocityConfiguration.Queue config;
+  private ScheduledTask tickMessageTaskHandle;
+  private ScheduledTask tickPingingBackendTaskHandle;
 
   /**
    * Constructs a {@link QueueManagerImpl}.
@@ -47,34 +49,50 @@ public class QueueManagerImpl {
       return;
     }
 
-    server.getScheduler()
-        .buildTask(VelocityVirtualPlugin.INSTANCE, () -> tickAll(ServerQueueStatus::tickSending))
-        .repeat((long) config.getSendDelay() * 1000, TimeUnit.MILLISECONDS)
-        .schedule();
+    this.schedulePingingBackend();
+    this.scheduleTickMessage();
+  }
 
-    server.getScheduler()
-        .buildTask(VelocityVirtualPlugin.INSTANCE, this::tickMessage)
+  private void scheduleTickMessage() {
+    if (this.tickMessageTaskHandle != null) {
+      this.tickMessageTaskHandle.cancel();
+    }
+
+    this.tickMessageTaskHandle = server.getScheduler()
+        .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+          for (Player playerApi : this.server.getAllPlayers()) {
+            ConnectedPlayer player = (ConnectedPlayer) playerApi;
+            player.getQueueStatus().tickMessage();
+          }
+        })
         .repeat((long) config.getMessageDelay() * 1000, TimeUnit.MILLISECONDS)
         .schedule();
+  }
 
-    server.getScheduler()
-        .buildTask(VelocityVirtualPlugin.INSTANCE, () -> tickAll(ServerQueueStatus::tickPingingBackend))
-        .repeat(1000, TimeUnit.MILLISECONDS)
+  private void schedulePingingBackend() {
+    if (this.tickPingingBackendTaskHandle != null) {
+      this.tickPingingBackendTaskHandle.cancel();
+    }
+
+    this.tickPingingBackendTaskHandle = server.getScheduler()
+        .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+          for (RegisteredServer serverApi : this.server.getAllServers()) {
+            VelocityRegisteredServer server = (VelocityRegisteredServer) serverApi;
+            ServerQueueStatus queueStatus = server.getQueueStatus();
+            queueStatus.tickPingingBackend();
+          }
+        })
+        .repeat((long) config.getBackendPingInterval() * 1000, TimeUnit.MILLISECONDS)
         .schedule();
   }
 
-  private void tickAll(final Consumer<ServerQueueStatus> consumer) {
+  /**
+   * Hook that is invoked to reload the server configuration.
+   */
+  public void reloadConfig() {
     for (RegisteredServer serverApi : this.server.getAllServers()) {
       VelocityRegisteredServer server = (VelocityRegisteredServer) serverApi;
-      ServerQueueStatus queueStatus = server.getQueueStatus();
-      consumer.accept(queueStatus);
-    }
-  }
-
-  private void tickMessage() {
-    for (Player playerApi : this.server.getAllPlayers()) {
-      ConnectedPlayer player = (ConnectedPlayer) playerApi;
-      player.getQueueStatus().tickMessage();
+      server.getQueueStatus().reloadConfig();
     }
   }
 }

@@ -340,6 +340,9 @@ send-delay = 1.0
 # How long the queue system should wait before updating or sending a new action bar, chat message, or title/subtitle.
 message-delay = 1.0
 
+# How often to ping backend servers to check if they're online.
+backend-ping-interval = 1.0
+
 # The number tries should a user be sent to a server before it removes the user from a queue.
 max-send-retries = 5
 

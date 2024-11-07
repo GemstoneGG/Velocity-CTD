@@ -55,6 +55,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Velocity's configuration.
@@ -542,11 +543,11 @@ public final class VelocityConfiguration implements ProxyConfig {
     return forceKeyAuthentication;
   }
 
-  public Redis getRedis() {
+  public @NotNull Redis getRedis() {
     return redis;
   }
 
-  public Queue getQueue() {
+  public @NotNull Queue getQueue() {
     return queue;
   }
 
@@ -1442,6 +1443,8 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private double messageDelay;
     @Expose
+    private double backendPingInterval;
+    @Expose
     private int maxSendRetries;
     @Expose
     private boolean removePlayerOnServerSwitch;
@@ -1470,6 +1473,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.multipleServerMessagingSelection = config.getOrElse("multiple-server-messaging-selection", "last");
       this.sendDelay = config.getOrElse("send-delay", 1.0);
       this.messageDelay = config.getOrElse("message-delay", 1.0);
+      this.backendPingInterval = config.getOrElse("backend-ping-interval", 1.0);
       this.maxSendRetries = config.getOrElse("max-send-retries", 5);
       this.removePlayerOnServerSwitch = config.getOrElse("remove-player-on-server-switch", true);
       this.forwardKickReason = config.getOrElse("forward-kick-reason", true);
@@ -1529,6 +1533,10 @@ public final class VelocityConfiguration implements ProxyConfig {
 
     public double getSendDelay() {
       return sendDelay;
+    }
+
+    public double getBackendPingInterval() {
+      return backendPingInterval;
     }
 
     public String getMultipleServerMessagingSelection() {

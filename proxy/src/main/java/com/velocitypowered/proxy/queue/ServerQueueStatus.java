@@ -19,27 +19,36 @@ package com.velocitypowered.proxy.queue;
 
 import com.velocitypowered.api.proxy.ConnectionRequestBuilder;
 import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults;
+import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 
 /**
  * Holds queue state for a single backend server.
  */
 public class ServerQueueStatus {
   private final VelocityRegisteredServer server;
-  private final VelocityConfiguration.Queue config;
+  private final VelocityServer velocityServer;
+  private VelocityConfiguration.@MonotonicNonNull Queue config;
   private final Deque<ServerQueueEntry> queue = new ConcurrentLinkedDeque<>();
+  private Instant lastSendTime = null;
   private boolean online = true;
   private boolean paused = false;
+  private ScheduledTask sendingTaskHandle = null;
 
   /**
    * Constructs a {@link ServerQueueStatus} instance.
@@ -49,14 +58,68 @@ public class ServerQueueStatus {
    */
   public ServerQueueStatus(final VelocityRegisteredServer server, final VelocityServer velocityServer) {
     this.server = server;
-    this.config = velocityServer.getConfiguration().getQueue();
+    this.velocityServer = velocityServer;
+    this.reloadConfig();
+  }
+
+  private void rescheduleTimerTask() {
+    if (this.sendingTaskHandle != null) {
+      this.sendingTaskHandle.cancel();
+      this.sendingTaskHandle = null;
+    }
+
+    this.sendingTaskHandle = this.velocityServer.getScheduler()
+        .buildTask(VelocityVirtualPlugin.INSTANCE, this::tickSending)
+        .repeat((long) this.config.getSendDelay() * 1000, TimeUnit.MILLISECONDS)
+        .schedule();
+  }
+
+  /**
+   * Called by {@link QueueManagerImpl} when the proxy config is reloaded.
+   */
+  void reloadConfig() {
+    this.config = this.velocityServer.getConfiguration().getQueue();
+    this.rescheduleTimerTask();
+  }
+
+  private void sendFirstInQueue() {
+    ServerQueueEntry entry = queue.peekFirst();
+
+    if (entry == null) {
+      throw new IllegalStateException("called sendFirstInQueue() with an empty queue");
+    }
+
+    entry.send().thenAccept(success -> {
+      entry.connectionAttempts++;
+      boolean shouldDequeue = success;
+
+      if (entry.connectionAttempts > config.getMaxSendRetries()) {
+        entry.player.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached").arguments(
+            Component.text(entry.target.getServerInfo().getName()),
+            Component.text(config.getMaxSendRetries())
+        ));
+        shouldDequeue = true;
+      }
+
+      if (shouldDequeue) {
+        // if we succeed, or if we exceed the connection attempt limit, remove the player from queue
+        queue.removeFirst();
+        entry.player.getQueueStatus().queueEntries.remove(entry);
+      }
+    });
   }
 
   /**
    * Sends the next player in queue, unless the queue is paused.
    */
-  public void tickSending() {
+  private void tickSending() {
     if (paused || !online) {
+      return;
+    }
+
+    // if there's nobody to send, cancel the task (it being missing will cause the next queue to be sent immediately).
+    if (queue.isEmpty()) {
+      sendingTaskHandle.cancel();
       return;
     }
 
@@ -70,25 +133,7 @@ public class ServerQueueStatus {
       if (entry.player.isActive()) {
         // if the player is waiting for their send to finish, continue to the next player in queue
         if (!entry.waitingForConnection) {
-          entry.send().thenAccept(success -> {
-            entry.connectionAttempts++;
-            boolean shouldDequeue = success;
-
-            if (entry.connectionAttempts > config.getMaxSendRetries()) {
-              entry.player.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached").arguments(
-                  Component.text(entry.target.getServerInfo().getName()),
-                  Component.text(config.getMaxSendRetries())
-              ));
-              shouldDequeue = true;
-            }
-
-            if (shouldDequeue) {
-              // if we succeed, or if we exceed the connection attempt limit, remove the player from queue
-              queue.removeFirst();
-              entry.player.getQueueStatus().queueEntries.remove(entry);
-            }
-          });
-
+          sendFirstInQueue();
           break;
         }
       }
@@ -102,9 +147,21 @@ public class ServerQueueStatus {
     server.ping().whenComplete((result, th) -> online = th == null);
   }
 
-  private Component calculateEta(final int position) {
-    int etaSeconds = (int) config.getSendDelay() * position;
-    return QueueTimeFormatter.format(etaSeconds);
+  private Component calculateEta(final ServerQueueEntry entry, final int position) {
+    int etaSeconds = 0;
+
+    // if we already tried to connect, force the ETA to be zero (so it doesn't go up and down).
+    if (entry.connectionAttempts == 0) {
+      // calculate the time since last send
+      Instant now = Instant.now();
+      long timeSinceLastSend = this.lastSendTime != null ? this.lastSendTime.until(now, ChronoUnit.SECONDS) : 0;
+      this.lastSendTime = now;
+
+      // subtract it from the eta
+      etaSeconds = (int) config.getSendDelay() * position - (int) timeSinceLastSend;
+    }
+
+    return QueueTimeFormatter.format(Math.min(etaSeconds, 0));
   }
 
   /**
@@ -172,6 +229,11 @@ public class ServerQueueStatus {
     ServerQueueEntry entry = new ServerQueueEntry(connectedPlayer, this.server, future);
     this.queue.add(entry);
     connectedPlayer.getQueueStatus().queueEntries.add(entry);
+
+    if (this.sendingTaskHandle == null) {
+      sendFirstInQueue();
+      this.rescheduleTimerTask();
+    }
 
     return future;
   }
@@ -272,7 +334,7 @@ public class ServerQueueStatus {
               Component.text(position),
               Component.text(queue.size()),
               Component.text(entry.target.getServerInfo().getName()),
-              calculateEta(position)
+              calculateEta(entry, position)
           );
     } else {
       return Component.translatable("velocity.queue.player-status.offline", NamedTextColor.YELLOW)
@@ -288,11 +350,11 @@ public class ServerQueueStatus {
    * Returns the position of the given player in the queue.
    *
    * @param player the player to check
-   * @return their position in queue, where {@code 0} is first
+   * @return their position in queue, where {@code 1} is first
    * @throws IllegalArgumentException if the player is not queued
    */
   int getQueuePosition(ConnectedPlayer player) {
-    int position = 0;
+    int position = 1;
 
     for (ServerQueueEntry entry : queue) {
       if (entry.player.equals(player)) {

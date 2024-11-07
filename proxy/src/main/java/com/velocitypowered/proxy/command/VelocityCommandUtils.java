@@ -160,8 +160,11 @@ public class VelocityCommandUtils {
    * @return {@code Command.SINGLE_SUCCESS} to allow using in expression-style {@code .executes} lambdas.
    */
   public static int emitUsage(CommandContext<CommandSource> ctx, String commandName) {
+    String usedName = commandName;
+
     ctx.getSource().sendMessage(
         Component.translatable("velocity.command." + commandName + ".usage", NamedTextColor.YELLOW)
+            .arguments(Component.text(usedName))
     );
     return Command.SINGLE_SUCCESS;
   }
