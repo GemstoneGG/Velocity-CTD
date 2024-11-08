@@ -123,7 +123,7 @@ public class QueueAdminCommand {
     );
   }
 
-  private int listQueues(CommandContext<CommandSource> ctx) {
+  private int listQueues(final CommandContext<CommandSource> ctx) {
     CommandSource source = ctx.getSource();
     source.sendMessage(Component.translatable("velocity.queue.command.listqueues.header"));
 
@@ -137,7 +137,7 @@ public class QueueAdminCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private int pause(CommandContext<CommandSource> ctx) {
+  private int pause(final CommandContext<CommandSource> ctx) {
     VelocityRegisteredServer server = VelocityCommandUtils.getServer(this.server, ctx, "server", false);
 
     if (server == null) {
@@ -160,7 +160,7 @@ public class QueueAdminCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private int unpause(CommandContext<CommandSource> ctx) {
+  private int unpause(final CommandContext<CommandSource> ctx) {
     VelocityRegisteredServer server = VelocityCommandUtils.getServer(this.server, ctx, "server", false);
 
     if (server == null) {
@@ -183,7 +183,7 @@ public class QueueAdminCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private int add(CommandContext<CommandSource> ctx) {
+  private int add(final CommandContext<CommandSource> ctx) {
     VelocityRegisteredServer server = VelocityCommandUtils.getServer(this.server, ctx, "server", false);
 
     if (server == null) {
@@ -216,7 +216,7 @@ public class QueueAdminCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private int addAll(CommandContext<CommandSource> ctx) {
+  private int addAll(final CommandContext<CommandSource> ctx) {
     VelocityRegisteredServer from = VelocityCommandUtils.getServer(this.server, ctx, "from", false);
 
     if (from == null) {
@@ -255,7 +255,7 @@ public class QueueAdminCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private int remove(CommandContext<CommandSource> ctx) {
+  private int remove(final CommandContext<CommandSource> ctx) {
     Player player = VelocityCommandUtils.getPlayer(this.server, ctx);
 
     if (player == null) {
@@ -309,7 +309,7 @@ public class QueueAdminCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private int removeAll(CommandContext<CommandSource> ctx) {
+  private int removeAll(final CommandContext<CommandSource> ctx) {
     VelocityRegisteredServer server = VelocityCommandUtils.getServer(this.server, ctx, "server", false);
 
     if (server == null) {
@@ -348,7 +348,7 @@ public class QueueAdminCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private CompletableFuture<Suggestions> suggestPlayer(CommandContext<CommandSource> ctx, SuggestionsBuilder builder) {
+  private CompletableFuture<Suggestions> suggestPlayer(final CommandContext<CommandSource> ctx, final SuggestionsBuilder builder) {
     final String argument = ctx.getArguments().containsKey("player")
         ? ctx.getArgument("player", String.class)
         : "";

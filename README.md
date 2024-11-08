@@ -47,6 +47,8 @@ dependencies, useful performance improvements, and more.
 * The `/send` supports sending users from `{SERVER_FROM}` to `{SERVER_TO}`.
 * Configurable `/showall` command that displays all users connected to a specific
   instance rather than flooding your chat with users connected everywhere.
+* Configurable `/velocity sudo` command to force users to execute a command on the
+  proxy or even server level.
 * Configurable `/velocity uptime` command to view how long your proxy has been online for.
 * Implementation of configurable `/server {SERVER}` access for tab completion and
   command execution.
@@ -88,19 +90,17 @@ dependencies, useful performance improvements, and more.
   connected to and not the latency of the backend server).
 * `velocity.command.showall` [/showall] (Shows all users connected to a specific server
   on the proxy).
+* `velocity.command.sudo` [/velocity sudo {PLAYER} {MESSAGE/COMMAND}] (Allows you to run
+  a message or a command for a player).
 * `velocity.command.uptime` [/velocity uptime] (Displays how long the proxy has been
   online for, from immediate runtime).
 
 ## Velocity-CTD Redis Permissions
-* `redis.command.proxy` [/proxy] (Shows the proxy you are connected to
-  or the proxy another user is connected to).
-* `redis.command.proxyids` [/proxyids] (Shows all available proxies
-  with their according proxy IDs).
 * `redis.command.plist` [/plist] (Shows all users connected
   to a specific proxy or a specific server on that proxy).
 
 ## Velocity-CTD Queue Commands
-* `/queue` [Aliases: `/server` & `/joinqueue`]
+* `/server` [Default Aliases: `/queue` & `/joinqueue`]
 * `/leavequeue`
 
 ## Administrative Commands
@@ -117,8 +117,6 @@ dependencies, useful performance improvements, and more.
 * `velocity.queue.*` (Allows you to use all queue commands and bypass all known limitations).
 * `velocity.queue.bypass` or `velocity.queue.bypass.{SERVER}` (Allows you to bypass the queue for all
   servers or a specific server).
-* `velocity.queue.joinfull` or `velocity.queue.joinfull.{SERVER}` (Allows you to join any
-  server or a specific server, regardless if it is full).
 * `velocity.queue.list` (Allows you to view the list of people queued for a specific server).
 * `velocity.queue.listqueues` (Allows you to view all possible queues and number of people queued).
 * `velocity.queue.pause` (Allows you to pause any specific server from queuing).

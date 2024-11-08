@@ -330,7 +330,7 @@ public class ServerQueueStatus {
    * @param entry the entry to generate a component for
    * @return the component to display to the player
    */
-  public Component getActionBarComponent(ServerQueueEntry entry) {
+  public Component getActionBarComponent(final ServerQueueEntry entry) {
     int position = getQueuePosition(entry.player);
 
     if (entry.waitingForConnection) {
@@ -363,7 +363,7 @@ public class ServerQueueStatus {
    * @return their position in queue, where {@code 1} is first
    * @throws IllegalArgumentException if the player is not queued
    */
-  int getQueuePosition(ConnectedPlayer player) {
+  int getQueuePosition(final ConnectedPlayer player) {
     int position = 1;
 
     for (ServerQueueEntry entry : queue) {

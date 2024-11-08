@@ -101,7 +101,7 @@ public class QueueManagerImpl {
    *
    * @param player the disconnecting player
    */
-  public void onPlayerLeave(ConnectedPlayer player) {
+  public void onPlayerLeave(final ConnectedPlayer player) {
     for (RegisteredServer serverApi : this.server.getAllServers()) {
       VelocityRegisteredServer server = (VelocityRegisteredServer) serverApi;
       server.getQueueStatus().dequeue(player);

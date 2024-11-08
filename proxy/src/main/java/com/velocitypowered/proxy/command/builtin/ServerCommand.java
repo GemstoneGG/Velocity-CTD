@@ -51,7 +51,7 @@ public final class ServerCommand {
 
   private final VelocityServer server;
 
-  public ServerCommand(VelocityServer server) {
+  public ServerCommand(final VelocityServer server) {
     this.server = server;
   }
 

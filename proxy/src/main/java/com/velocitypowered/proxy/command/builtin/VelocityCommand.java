@@ -20,6 +20,7 @@ package com.velocitypowered.proxy.command.builtin;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -34,6 +35,7 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.util.ProxyVersion;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.command.VelocityCommandUtils;
 import com.velocitypowered.proxy.util.InformationUtils;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -73,7 +75,7 @@ public final class VelocityCommand {
   private static final String USAGE = "/velocity <%s>";
 
   /**
-   * Creates a BrigadierCommand for various administrative tasks such as dump, heap, info, plugins, reload, and uptime.
+   * Creates a BrigadierCommand for various administrative tasks such as dump, heap, info, plugins, reload, sudo, and uptime.
    *
    * @param server the VelocityServer instance used for executing the commands.
    * @return the root BrigadierCommand containing all subcommands.
@@ -101,6 +103,27 @@ public final class VelocityCommand {
         .requires(source -> source.getPermissionValue("velocity.command.reload") == Tristate.TRUE)
         .executes(new Reload(server))
         .build();
+    final LiteralCommandNode<CommandSource> sudo = BrigadierCommand
+        .literalArgumentBuilder("sudo")
+        .requires(source -> source.getPermissionValue("velocity.command.sudo") == Tristate.TRUE)
+        .executes(ctx -> VelocityCommandUtils.emitUsage(ctx, "sudo"))
+        .then(BrigadierCommand.requiredArgumentBuilder("player", StringArgumentType.word())
+        .suggests((context, builder) -> {
+          final String argument = context.getArguments().containsKey("player")
+              ? context.getArgument("player", String.class)
+              : "";
+          server.getAllPlayers().forEach(player -> {
+            final String playerName = player.getUsername();
+            if (playerName.regionMatches(true, 0, argument, 0, argument.length())) {
+              builder.suggest(playerName);
+            }
+          });
+          return builder.buildFuture();
+        })
+        .executes(ctx -> VelocityCommandUtils.emitUsage(ctx, "sudo"))
+        .then(BrigadierCommand.requiredArgumentBuilder("message/command", StringArgumentType.greedyString())
+        .executes(new Sudo(server))))
+        .build();
     final LiteralCommandNode<CommandSource> uptime = BrigadierCommand
         .literalArgumentBuilder("uptime")
         .requires(source -> source.getPermissionValue("velocity.command.uptime") == Tristate.TRUE)
@@ -108,7 +131,7 @@ public final class VelocityCommand {
         .build();
 
     final List<LiteralCommandNode<CommandSource>> commands = List
-            .of(dump, heap, info, plugins, reload, uptime);
+            .of(dump, heap, info, plugins, reload, sudo, uptime);
     return new BrigadierCommand(
       commands.stream()
         .reduce(
@@ -152,6 +175,44 @@ public final class VelocityCommand {
           Component.text(minutes),
           Component.text(seconds)
       ));
+      return Command.SINGLE_SUCCESS;
+    }
+  }
+
+  private record Sudo(VelocityServer server) implements Command<CommandSource> {
+
+    @Override
+    public int run(final CommandContext<CommandSource> context) {
+      final CommandSource source = context.getSource();
+
+      final String playerName = context.getArgument("player", String.class);
+      final String messageOrCommand = context.getArgument("message/command", String.class);
+
+      server.getPlayer(playerName).ifPresentOrElse(player -> {
+        if (messageOrCommand.startsWith("/")) {
+          player.spoofChatInput(messageOrCommand);
+          source.sendMessage(Component.translatable(
+              "velocity.command.sudo.command-executed",
+              NamedTextColor.GREEN,
+              Component.text(playerName),
+              Component.text(messageOrCommand)
+          ));
+        } else {
+          player.spoofChatInput(messageOrCommand);
+          source.sendMessage(Component.translatable(
+              "velocity.command.sudo.message-sent",
+              NamedTextColor.GREEN,
+              Component.text(playerName),
+              Component.text(messageOrCommand)
+          ));
+        }
+      },
+          () -> source.sendMessage(Component.translatable(
+              "velocity.command.player-not-found",
+              NamedTextColor.RED,
+              Component.text(playerName)
+          ))
+      );
       return Command.SINGLE_SUCCESS;
     }
   }
@@ -261,7 +322,7 @@ public final class VelocityCommand {
       return Command.SINGLE_SUCCESS;
     }
 
-    private TextComponent componentForPlugin(PluginDescription description) {
+    private TextComponent componentForPlugin(final PluginDescription description) {
       final String pluginInfo = description.getName().orElse(description.getId())
           + description.getVersion().map(v -> " " + v).orElse("");
 
@@ -336,7 +397,7 @@ public final class VelocityCommand {
       final Path dumpPath = Path.of("velocity-dump-"
           + new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(new Date())
           + ".json");
-      try (final BufferedWriter bw = Files.newBufferedWriter(
+      try (BufferedWriter bw = Files.newBufferedWriter(
           dumpPath, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW)) {
         bw.write(InformationUtils.toHumanReadableString(dump));
 

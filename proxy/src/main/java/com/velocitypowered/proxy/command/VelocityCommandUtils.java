@@ -37,7 +37,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 /**
  * Utilities for Velocity builtin command implementations.
  */
-public class VelocityCommandUtils {
+public final class VelocityCommandUtils {
   private VelocityCommandUtils() {
     throw new UnsupportedOperationException("Cannot instantiate VelocityCommandUtils");
   }
@@ -49,7 +49,7 @@ public class VelocityCommandUtils {
    * @param ctx the command context
    * @return the found player, or {@code null} if the player couldn't be found
    */
-  public static Player getPlayer(VelocityServer server, CommandContext<CommandSource> ctx) {
+  public static Player getPlayer(final VelocityServer server, final CommandContext<CommandSource> ctx) {
     String playerName = ctx.getArgument("player", String.class);
     Optional<Player> playerOptional = server.getPlayer(playerName);
 
@@ -70,8 +70,8 @@ public class VelocityCommandUtils {
    * @param allowNonQueueable whether to suggest a server if the server has queueing disabled
    * @return a suggestion provider that completes a server name
    */
-  public static SuggestionProvider<CommandSource> suggestServer(VelocityServer server, String argName,
-                                                                boolean allowNonQueueable) {
+  public static SuggestionProvider<CommandSource> suggestServer(final VelocityServer server, final String argName,
+                                                                final boolean allowNonQueueable) {
     return (ctx, builder) -> {
       boolean allowNonQueueable0 = allowNonQueueable;
 
@@ -112,8 +112,8 @@ public class VelocityCommandUtils {
    * @param allowNonQueueable whether to return a servers if it can't be queued.
    * @return the found server, or {@code null} if one couldn't be found
    */
-  public static VelocityRegisteredServer getServer(VelocityServer server, CommandContext<CommandSource> ctx,
-                                                   String argName, boolean allowNonQueueable) {
+  public static VelocityRegisteredServer getServer(final VelocityServer server, final CommandContext<CommandSource> ctx,
+                                                   final String argName, final boolean allowNonQueueable) {
     String serverName = ctx.getArgument(argName, String.class);
     Optional<RegisteredServer> serverOptional = server.getServer(serverName);
 
@@ -148,7 +148,7 @@ public class VelocityCommandUtils {
    * @param source the command source to be checked
    * @return whether the command source has permission to join
    */
-  public static boolean checkServerPermissions(RegisteredServer server, CommandSource source) {
+  public static boolean checkServerPermissions(final RegisteredServer server, final CommandSource source) {
     String serverName = server.getServerInfo().getName();
     return source.getPermissionValue("velocity.command.server." + serverName) != Tristate.FALSE;
   }
@@ -160,17 +160,23 @@ public class VelocityCommandUtils {
    * @param commandName the command name
    * @return {@code Command.SINGLE_SUCCESS} to allow using in expression-style {@code .executes} lambdas.
    */
-  public static int emitUsage(CommandContext<CommandSource> ctx, String commandName) {
+  public static int emitUsage(final CommandContext<CommandSource> ctx, final String commandName) {
     String usedName = commandName;
     ParsedCommandNode<?> node = ctx.getNodes().get(0);
+    ParsedCommandNode<?> subNode = ctx.getNodes().size() > 1 ? ctx.getNodes().get(1) : null;
 
     if (node != null) {
       usedName = node.getNode().getName();
     }
 
+    String fullName = usedName;
+    if (subNode != null) {
+      fullName += " " + subNode.getNode().getName();
+    }
+
     ctx.getSource().sendMessage(
         Component.translatable("velocity.command." + commandName + ".usage", NamedTextColor.YELLOW)
-            .arguments(Component.text(usedName))
+            .arguments(Component.text(fullName))
     );
     return Command.SINGLE_SUCCESS;
   }

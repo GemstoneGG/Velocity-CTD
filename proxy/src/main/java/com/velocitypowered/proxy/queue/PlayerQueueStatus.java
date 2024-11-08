@@ -31,7 +31,7 @@ public class PlayerQueueStatus {
   private final VelocityServer server;
   final Deque<ServerQueueEntry> queueEntries = new ArrayDeque<>();
 
-  public PlayerQueueStatus(ConnectedPlayer player, VelocityServer server) {
+  public PlayerQueueStatus(final ConnectedPlayer player, final VelocityServer server) {
     this.player = player;
     this.server = server;
   }
