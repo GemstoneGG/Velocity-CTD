@@ -95,4 +95,16 @@ public class QueueManagerImpl {
       server.getQueueStatus().reloadConfig();
     }
   }
+
+  /**
+   * Hook that removes the player from all queues.
+   *
+   * @param player the disconnecting player
+   */
+  public void onPlayerLeave(ConnectedPlayer player) {
+    for (RegisteredServer serverApi : this.server.getAllServers()) {
+      VelocityRegisteredServer server = (VelocityRegisteredServer) serverApi;
+      server.getQueueStatus().dequeue(player);
+    }
+  }
 }

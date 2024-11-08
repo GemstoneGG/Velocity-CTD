@@ -65,7 +65,6 @@ public class ServerQueueStatus {
   private void rescheduleTimerTask() {
     if (this.sendingTaskHandle != null) {
       this.sendingTaskHandle.cancel();
-      this.sendingTaskHandle = null;
     }
 
     this.sendingTaskHandle = this.velocityServer.getScheduler()
@@ -120,6 +119,7 @@ public class ServerQueueStatus {
     // if there's nobody to send, cancel the task (it being missing will cause the next queue to be sent immediately).
     if (queue.isEmpty()) {
       sendingTaskHandle.cancel();
+      sendingTaskHandle = null;
       return;
     }
 
@@ -203,6 +203,12 @@ public class ServerQueueStatus {
     ServerQueueEntry entry = new ServerQueueEntry(connectedPlayer, this.server, null);
     this.queue.add(entry);
     connectedPlayer.getQueueStatus().queueEntries.add(entry);
+
+    if (this.sendingTaskHandle == null) {
+      sendFirstInQueue();
+      this.rescheduleTimerTask();
+    }
+
     return true;
   }
 

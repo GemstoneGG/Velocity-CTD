@@ -237,6 +237,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     }
 
     this.server.getMultiProxyHandler().onPlayerLeave(this);
+    this.server.getQueueManager().onPlayerLeave(this);
   }
 
   public List<String> getAttemptedServers() {
