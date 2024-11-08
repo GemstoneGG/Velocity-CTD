@@ -82,10 +82,15 @@ public class ServerQueueStatus {
   }
 
   private void sendFirstInQueue() {
+    lastSendTime = Instant.now();
     ServerQueueEntry entry = queue.peekFirst();
 
     if (entry == null) {
       throw new IllegalStateException("called sendFirstInQueue() with an empty queue");
+    }
+
+    if (entry.waitingForConnection) {
+      return;
     }
 
     entry.send().thenAccept(success -> {
@@ -155,7 +160,6 @@ public class ServerQueueStatus {
       // calculate the time since last send
       Instant now = Instant.now();
       long timeSinceLastSend = this.lastSendTime != null ? this.lastSendTime.until(now, ChronoUnit.SECONDS) : 0;
-      this.lastSendTime = now;
 
       // subtract it from the eta
       etaSeconds = (int) config.getSendDelay() * position - (int) timeSinceLastSend;
