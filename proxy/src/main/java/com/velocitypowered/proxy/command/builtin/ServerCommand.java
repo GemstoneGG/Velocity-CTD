@@ -35,6 +35,7 @@ import com.velocitypowered.proxy.command.VelocityCommandUtils;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.List;
+import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.TranslatableComponent;
@@ -78,11 +79,16 @@ public final class ServerCommand {
             .suggests(VelocityCommandUtils.suggestServer(server, SERVER_ARG, true))
             .executes(ctx -> {
               final Player player = (Player) ctx.getSource();
-              // Trying to connect to a server.
-
               final VelocityRegisteredServer registeredServer = VelocityCommandUtils.getServer(this.server, ctx, SERVER_ARG, true);
 
               if (registeredServer == null) {
+                return -1;
+              }
+
+              final Optional<ServerConnection> currentServer = player.getCurrentServer();
+
+              if (currentServer.isPresent() && currentServer.get().getServer() == registeredServer) {
+                player.sendMessage(Component.translatable("velocity.error.already-connected"));
                 return -1;
               }
 
