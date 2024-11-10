@@ -712,8 +712,9 @@ public final class VelocityConfiguration implements ProxyConfig {
       final CommentedConfig slashServersConfig = config.getOrElse("slash-servers", (CommentedConfig) null);
 
       final Map<String, List<String>> slashServers = new HashMap<>();
+
       if (slashServersConfig != null) {
-        for (UnmodifiableConfig.Entry entry : config.entrySet()) {
+        for (UnmodifiableConfig.Entry entry : slashServersConfig.entrySet()) {
           if (entry.getValue() instanceof String) {
             slashServers.put(entry.getKey().toLowerCase(Locale.ROOT), ImmutableList.of(entry.getValue()));
           } else if (entry.getValue() instanceof List) {
