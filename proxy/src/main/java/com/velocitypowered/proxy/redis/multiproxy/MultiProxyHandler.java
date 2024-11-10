@@ -208,14 +208,14 @@ public class MultiProxyHandler {
           try {
             if (this.server.reloadConfiguration()) {
               sendMessage(it.source(), Component.translatable("velocity.command.reload-success"));
-              logger.info("Reloaded Velocity configuration on remote request from {}", it.source().proxy());
+              logger.info("Reloaded Velocity configuration on remote request from {}.", it.source().proxy());
             } else {
               sendMessage(it.source(), Component.translatable("velocity.command.reload-failure"));
-              logger.error("Failed to reload Velocity configuration on remote request from {}", it.source().proxy());
+              logger.error("Failed to reload Velocity configuration on remote request from {}!", it.source().proxy());
             }
           } catch (Exception e) {
             sendMessage(it.source(), Component.translatable("velocity.command.reload-failure"));
-            logger.error("Failed to reload Velocity configuration on remote request from {}", it.source().proxy(), e);
+            logger.error("Failed to reload Velocity configuration on remote request from {}!", it.source().proxy(), e);
           }
         }
 
