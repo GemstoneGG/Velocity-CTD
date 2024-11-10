@@ -19,7 +19,6 @@ package com.velocitypowered.proxy.config;
 
 import com.electronwill.nightconfig.core.CommentedConfig;
 import com.electronwill.nightconfig.core.UnmodifiableConfig;
-import com.electronwill.nightconfig.core.concurrent.SynchronizedConfig;
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
@@ -710,12 +709,9 @@ public final class VelocityConfiguration implements ProxyConfig {
       final boolean logMinimumVersion = config.getOrElse(
               "log-minimum-version", false);
       final String minimumVersion = config.getOrElse("minimum-version", "1.7.2");
-
       final CommentedConfig slashServersConfig = config.getOrElse("slash-servers", (CommentedConfig) null);
+
       final Map<String, List<String>> slashServers = new HashMap<>();
-
-
-
       if (slashServersConfig != null) {
         for (UnmodifiableConfig.Entry entry : config.entrySet()) {
           if (entry.getValue() instanceof String) {
