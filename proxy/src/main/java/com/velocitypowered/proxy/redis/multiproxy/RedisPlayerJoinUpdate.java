@@ -18,7 +18,6 @@
 package com.velocitypowered.proxy.redis.multiproxy;
 
 import com.velocitypowered.proxy.redis.RedisPacket;
-import java.util.UUID;
 
 /**
  * Represents a packet sent when a player joins a proxy in a multi-proxy setup.
@@ -27,11 +26,9 @@ import java.util.UUID;
  * and includes details such as the player's unique identifier (UUID), name, and
  * the ID of the proxy where the player joined.</p>
  *
- * @param proxyId the identifier of the proxy the player joined
- * @param uuid the unique identifier of the player
- * @param name the name of the player
+ * @param player the joining player
  */
-public record RedisPlayerJoinUpdate(String proxyId, UUID uuid, String name) implements RedisPacket {
+public record RedisPlayerJoinUpdate(MultiProxyHandler.RemotePlayerInfo player) implements RedisPacket {
   public static final String ID = "player-join";
 
   @Override

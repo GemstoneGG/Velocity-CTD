@@ -91,15 +91,6 @@ public class MultiProxyHandler {
       this.uuid = uuid;
       this.name = name;
     }
-
-    /**
-     * Constructs a new {@code RemotePlayerInfo} based on a {@link RedisPlayerJoinUpdate} event.
-     *
-     * @param update the {@link RedisPlayerJoinUpdate} containing the player's UUID and name
-     */
-    public RemotePlayerInfo(final String proxyId, final RedisPlayerJoinUpdate update) {
-      this(proxyId, update.uuid(), update.name());
-    }
   }
 
   /**
@@ -137,29 +128,31 @@ public class MultiProxyHandler {
     redisManager.listen(RedisProxyIdAnnouncement.ID, RedisProxyIdAnnouncement.class, it -> {
       if (it.wantsReply()) {
         // if the proxy who sent this wants a reply, broadcast our own back.
-        redisManager.send(new RedisProxyIdAnnouncement(this.config.getProxyId(), false));
+        redisManager.send(new RedisProxyIdAnnouncement(this.config.getProxyId(), false, generateLocalPlayers()));
         this.lastPingSent = Instant.now();
       }
 
-      this.handleAndGetProxyFromPacket(it.proxyId());
-    });
-
-    redisManager.listen(RedisPlayerJoinUpdate.ID, RedisPlayerJoinUpdate.class, it -> {
       OtherProxy proxy = this.handleAndGetProxyFromPacket(it.proxyId());
 
       if (proxy == null) {
         return;
       }
 
-      // This handles the edge case if a player joins two proxies at once, once the player info broadcast is received
-      // we disconnect them from the local proxy.
-      for (Player player : this.server.getAllPlayers()) {
-        if (player.getUniqueId().equals(it.uuid())) {
-          player.disconnect(Component.translatable("velocity.error.already-connected-proxy.remote"));
+      if (it.players() != null) {
+        for (RemotePlayerInfo player : it.players()) {
+          this.handleRemoteJoin(proxy, player);
         }
       }
+    });
 
-      proxy.players.add(new RemotePlayerInfo(it.proxyId(), it));
+    redisManager.listen(RedisPlayerJoinUpdate.ID, RedisPlayerJoinUpdate.class, it -> {
+      OtherProxy proxy = this.handleAndGetProxyFromPacket(it.player().proxyId);
+
+      if (proxy == null) {
+        return;
+      }
+
+      this.handleRemoteJoin(proxy, it.player());
     });
 
     redisManager.listen(RedisPlayerLeaveUpdate.ID, RedisPlayerLeaveUpdate.class, it -> {
@@ -269,8 +262,35 @@ public class MultiProxyHandler {
     tickThread.start();
 
     // solicit the ID of all other proxies
-    redisManager.send(new RedisProxyIdAnnouncement(this.config.getProxyId(), true));
+    redisManager.send(new RedisProxyIdAnnouncement(this.config.getProxyId(), true, List.of()));
     this.lastPingSent = Instant.now();
+  }
+
+  private List<RemotePlayerInfo> generateLocalPlayers() {
+    Collection<Player> players = this.server.getAllPlayers();
+    List<RemotePlayerInfo> playerInfos = new ArrayList<>(players.size());
+
+    for (Player player : players) {
+      RemotePlayerInfo playerInfo = new RemotePlayerInfo(this.getOwnProxyId(), player.getUniqueId(), player.getUsername());
+      player.getCurrentServer()
+          .ifPresent(serverConnection -> playerInfo.serverName = serverConnection.getServerInfo().getName());
+
+      playerInfos.add(playerInfo);
+    }
+
+    return playerInfos;
+  }
+
+  private void handleRemoteJoin(OtherProxy proxy, RemotePlayerInfo player) {
+    // This handles the edge case if a player joins two proxies at once, once the player info broadcast is received
+    // we disconnect them from the local proxy.
+    for (Player localPlayer : this.server.getAllPlayers()) {
+      if (localPlayer.getUniqueId().equals(player.uuid)) {
+        localPlayer.disconnect(Component.translatable("velocity.error.already-connected-proxy.remote"));
+      }
+    }
+
+    proxy.players.add(player);
   }
 
   private OtherProxy handleAndGetProxyFromPacket(final String proxyId) {
@@ -309,7 +329,7 @@ public class MultiProxyHandler {
     RedisManagerImpl redisManager = this.server.getRedisManager();
 
     if (this.lastPingSent != null && this.lastPingSent.until(now, ChronoUnit.MILLIS) > this.config.getPingIntervalMs()) {
-      redisManager.send(new RedisProxyIdAnnouncement(this.config.getProxyId(), false));
+      redisManager.send(new RedisProxyIdAnnouncement(this.config.getProxyId(), false, null));
     }
 
     for (OtherProxy proxy : this.seenProxies.values()) {
@@ -346,7 +366,7 @@ public class MultiProxyHandler {
 
     // check for dupe connections on foreign proxies and disconnect.
     for (String proxyId : this.getAllProxyIds()) {
-      if (proxyId.equals(this.config.getProxyId())) {
+      if (proxyId.equals(this.getOwnProxyId())) {
         continue;
       }
 
@@ -357,7 +377,8 @@ public class MultiProxyHandler {
       }
     }
 
-    this.server.getRedisManager().send(new RedisPlayerJoinUpdate(this.config.getProxyId(), player.getUniqueId(), player.getUsername()));
+    this.server.getRedisManager().send(new RedisPlayerJoinUpdate(new RemotePlayerInfo(
+        this.config.getProxyId(), player.getUniqueId(), player.getUsername())));
     return false;
   }
 
@@ -410,18 +431,7 @@ public class MultiProxyHandler {
    */
   public List<RemotePlayerInfo> getPlayers(final String proxyId) {
     if (proxyId.equals(this.getOwnProxyId())) {
-      Collection<Player> players = this.server.getAllPlayers();
-      List<RemotePlayerInfo> playerInfos = new ArrayList<>(players.size());
-
-      for (Player player : players) {
-        RemotePlayerInfo playerInfo = new RemotePlayerInfo(proxyId, player.getUniqueId(), player.getUsername());
-        player.getCurrentServer()
-            .ifPresent(serverConnection -> playerInfo.serverName = serverConnection.getServerInfo().getName());
-
-        playerInfos.add(playerInfo);
-      }
-
-      return playerInfos;
+      return generateLocalPlayers();
     }
 
     OtherProxy proxy = this.seenProxies.get(proxyId);

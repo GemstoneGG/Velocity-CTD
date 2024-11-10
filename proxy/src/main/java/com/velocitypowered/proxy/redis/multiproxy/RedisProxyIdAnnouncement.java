@@ -18,14 +18,18 @@
 package com.velocitypowered.proxy.redis.multiproxy;
 
 import com.velocitypowered.proxy.redis.RedisPacket;
+import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Announcement of a proxy ID.
  *
  * @param proxyId the ID to announce.
  * @param wantsReply whether this proxy is soliciting a reply.
+ * @param players the players on this proxy
  */
-public record RedisProxyIdAnnouncement(String proxyId, boolean wantsReply) implements RedisPacket {
+public record RedisProxyIdAnnouncement(String proxyId, boolean wantsReply,
+                                       @Nullable List<MultiProxyHandler.RemotePlayerInfo> players) implements RedisPacket {
   public static final String ID = "id-announcement";
 
   @Override
