@@ -19,6 +19,7 @@ package com.velocitypowered.proxy.config;
 
 import com.electronwill.nightconfig.core.CommentedConfig;
 import com.electronwill.nightconfig.core.UnmodifiableConfig;
+import com.electronwill.nightconfig.core.concurrent.SynchronizedConfig;
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
@@ -709,7 +710,26 @@ public final class VelocityConfiguration implements ProxyConfig {
       final boolean logMinimumVersion = config.getOrElse(
               "log-minimum-version", false);
       final String minimumVersion = config.getOrElse("minimum-version", "1.7.2");
-      final Map<String, List<String>> slashServers = config.getOrElse("slash-servers", new HashMap<>());
+
+      final CommentedConfig slashServersConfig = config.getOrElse("slash-servers", (CommentedConfig) null);
+      final Map<String, List<String>> slashServers = new HashMap<>();
+
+
+
+      if (slashServersConfig != null) {
+        for (UnmodifiableConfig.Entry entry : config.entrySet()) {
+          if (entry.getValue() instanceof String) {
+            slashServers.put(entry.getKey().toLowerCase(Locale.ROOT), ImmutableList.of(entry.getValue()));
+          } else if (entry.getValue() instanceof List) {
+            @SuppressWarnings("unchecked")
+            List<String> value = ImmutableList.copyOf((List<String>) entry.getValue());
+            slashServers.put(entry.getKey().toLowerCase(Locale.ROOT), value);
+          } else {
+            throw new IllegalStateException(
+                "Invalid value of type " + entry.getValue().getClass() + " in slash servers!");
+          }
+        }
+      }
 
       // Throw an exception if the forwarding-secret file is empty and the proxy is using a
       // forwarding mode that requires it.
