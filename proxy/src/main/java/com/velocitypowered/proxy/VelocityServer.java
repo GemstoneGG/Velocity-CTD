@@ -306,9 +306,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
             .build(),
         shutdownCommand
     );
-    registerCommands();
-
-    registerTranslations(true);
 
     for (ServerInfo cliServer : options.getServers()) {
       servers.register(cliServer);
@@ -319,6 +316,9 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         servers.register(new ServerInfo(entry.getKey(), AddressUtil.parseAddress(entry.getValue())));
       }
     }
+
+    registerCommands();
+    registerTranslations(true);
 
     ipAttemptLimiter = Ratelimiters.createWithMilliseconds(configuration.getLoginRatelimit());
     loadPlugins();
