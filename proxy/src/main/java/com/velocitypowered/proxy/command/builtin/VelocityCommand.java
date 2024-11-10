@@ -235,8 +235,9 @@ public final class VelocityCommand {
               source.sendMessage(Component.translatable(
                   "velocity.command.sudo.executed-remotely",
                   NamedTextColor.GREEN,
+                  Component.text(proxyId),
                   Component.text(playerName),
-                  Component.text(proxyId)
+                  Component.text(messageOrCommand)
               ));
 
               multiProxyHandler.sudo(player, source, messageOrCommand);
