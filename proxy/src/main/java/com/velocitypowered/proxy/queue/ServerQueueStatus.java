@@ -230,6 +230,9 @@ public class ServerQueueStatus {
       this.rescheduleTimerTask();
     }
 
+    player.sendMessage(Component.translatable("velocity.queue.command.queued")
+        .arguments(Component.text(server.getServerInfo().getName())));
+
     return true;
   }
 

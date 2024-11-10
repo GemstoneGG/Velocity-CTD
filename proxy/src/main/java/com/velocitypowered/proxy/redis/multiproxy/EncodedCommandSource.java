@@ -112,4 +112,8 @@ public class EncodedCommandSource {
       default -> logger.warn("invalid target in encoded command source: {}", this.target);
     }
   }
+
+  public String proxy() {
+    return this.targetProxy;
+  }
 }

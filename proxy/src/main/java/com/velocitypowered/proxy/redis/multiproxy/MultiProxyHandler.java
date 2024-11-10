@@ -203,19 +203,19 @@ public class MultiProxyHandler {
 
       switch (it.type()) {
         case Reload -> {
-          logger.info("reloading configuration on remote request");
+          logger.info("Reloading Velocity configuration on remote request from {}...", it.source().proxy());
 
           try {
             if (this.server.reloadConfiguration()) {
               sendMessage(it.source(), Component.translatable("velocity.command.reload-success"));
-              logger.info("reloaded configuration on remote request");
+              logger.info("Reloaded Velocity configuration on remote request from {}", it.source().proxy());
             } else {
               sendMessage(it.source(), Component.translatable("velocity.command.reload-failure"));
-              logger.error("failed to reload configuration on remote request");
+              logger.error("Failed to reload Velocity configuration on remote request from {}", it.source().proxy());
             }
           } catch (Exception e) {
             sendMessage(it.source(), Component.translatable("velocity.command.reload-failure"));
-            logger.error("failed to reload configuration on remote request", e);
+            logger.error("Failed to reload Velocity configuration on remote request from {}", it.source().proxy(), e);
           }
         }
 
