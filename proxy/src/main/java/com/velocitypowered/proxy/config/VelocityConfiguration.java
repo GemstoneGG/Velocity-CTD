@@ -276,11 +276,9 @@ public final class VelocityConfiguration implements ProxyConfig {
         continue;
       }
 
-      for (String server : entry.getValue()) {
-        if (!servers.getServers().containsKey(server)) {
-          logger.error("Server '{}' for /server alias '{}' does not exist", server, entry.getKey());
-          valid = false;
-        }
+      if (!servers.getServers().containsKey(entry.getKey())) {
+        logger.error("Server '{}' does not exist (in /server aliases)", entry.getKey());
+        valid = false;
       }
     }
 
