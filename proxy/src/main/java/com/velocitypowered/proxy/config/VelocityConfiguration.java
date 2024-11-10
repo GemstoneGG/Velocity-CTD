@@ -50,6 +50,8 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
+
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -857,7 +859,7 @@ public final class VelocityConfiguration implements ProxyConfig {
               serverForwardingModes.put(name, mode);
             }
 
-            servers.put(name, address);
+            servers.put(cleanServerName(name), address);
           } else {
             if (!entry.getKey().equalsIgnoreCase("try")
                 && !entry.getKey().equalsIgnoreCase("enable-dynamic-fallbacks")
@@ -869,7 +871,10 @@ public final class VelocityConfiguration implements ProxyConfig {
         }
         this.servers = ImmutableMap.copyOf(servers);
         this.serverForwardingModes = ImmutableMap.copyOf(serverForwardingModes);
-        this.attemptConnectionOrder = config.getOrElse("try", attemptConnectionOrder);
+        this.attemptConnectionOrder = config.getOrElse("try", attemptConnectionOrder)
+            .stream()
+            .map(s -> s.toLowerCase(Locale.ROOT))
+            .toList();
         this.enableDynamicFallbacks = config.getOrElse("enable-dynamic-fallbacks", false);
         this.enableMostPopulatedFallbacks = config.getOrElse("enable-most-populated-fallbacks", false);
       }
@@ -923,7 +928,7 @@ public final class VelocityConfiguration implements ProxyConfig {
      * @return the cleaned server name
      */
     private String cleanServerName(final String name) {
-      return name.replace("\"", "");
+      return name.replace("\"", "").toLowerCase(Locale.ROOT);
     }
 
     @Override
