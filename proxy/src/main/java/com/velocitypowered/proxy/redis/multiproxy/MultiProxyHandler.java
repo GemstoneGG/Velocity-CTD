@@ -139,9 +139,7 @@ public class MultiProxyHandler {
       }
 
       if (it.players() != null) {
-        for (RemotePlayerInfo player : it.players()) {
-          this.handleRemoteJoin(proxy, player);
-        }
+        proxy.players = new ArrayList<>(it.players());
       }
     });
 
