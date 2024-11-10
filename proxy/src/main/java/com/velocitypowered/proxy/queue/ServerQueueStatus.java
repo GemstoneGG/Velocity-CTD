@@ -19,6 +19,7 @@ package com.velocitypowered.proxy.queue;
 
 import com.velocitypowered.api.proxy.ConnectionRequestBuilder;
 import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
@@ -30,6 +31,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Deque;
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.TimeUnit;
@@ -192,13 +194,28 @@ public class ServerQueueStatus {
    * @param player the player to connect
    * @return whether the player queued successfully
    */
-  public boolean queueWithIndication(final Player player) {
-    if (!config.isEnabled()) {
+  boolean queueWithIndication(final Player player) {
+    if (!config.isEnabled() || player.hasPermission("velocity.queue.bypass." + server.getServerInfo().getName())) {
       player.createConnectionRequest(server).fireAndForget();
       return true;
     }
 
-    if (!config.isAllowPausedQueueJoining() && paused) {
+    final Optional<ServerConnection> currentServer = player.getCurrentServer();
+
+    if (currentServer.isPresent() && currentServer.get().getServer() == server) {
+      player.sendMessage(Component.translatable("velocity.error.already-connected"));
+      return false;
+    }
+
+    if (isQueued(player)) {
+      player.sendMessage(Component.translatable("velocity.queue.error.already-queued")
+          .arguments(Component.text(server.getServerInfo().getName())));
+      return false;
+    }
+
+    if (!config.isAllowPausedQueueJoining() && paused && !player.hasPermission("velocity.queue.pause.bypass." + server.getServerInfo().getName())) {
+      player.sendMessage(Component.translatable("velocity.queue.error.paused")
+          .arguments(Component.text(server.getServerInfo().getName())));
       return false;
     }
 

@@ -21,18 +21,15 @@ import com.velocitypowered.proxy.redis.RedisPacket;
 import java.util.UUID;
 
 /**
- * Represents a packet sent when a player joins a proxy in a multi-proxy setup.
+ * Executes a command or sends a message as a target player on a remote proxy.
  *
- * <p>This packet is used to inform other proxies in the network about the new player
- * and includes details such as the player's unique identifier (UUID), name, and
- * the ID of the proxy where the player joined.</p>
- *
- * @param proxyId the identifier of the proxy the player joined
- * @param uuid the unique identifier of the player
- * @param name the name of the player
+ * @param targetProxy the target proxy ID
+ * @param playerUuid the UUID of the player to execute as
+ * @param replySource the encoded command source to send replies to
+ * @param message the message to force the target to send (will run a command if the message begins with a forward slash)
  */
-public record PlayerJoinUpdate(String proxyId, UUID uuid, String name) implements RedisPacket {
-  public static final String ID = "player-join";
+public record RedisSudo(String targetProxy, UUID playerUuid, EncodedCommandSource replySource, String message) implements RedisPacket {
+  public static final String ID = "sudo";
 
   @Override
   public String getId() {

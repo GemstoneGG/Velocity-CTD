@@ -18,15 +18,19 @@
 package com.velocitypowered.proxy.redis.multiproxy;
 
 import com.velocitypowered.proxy.redis.RedisPacket;
+import java.util.UUID;
 
 /**
- * Announcement of a proxy ID.
+ * Represents a packet sent when a player leaves a proxy in a multi-proxy setup.
  *
- * @param proxyId the ID to announce.
- * @param wantsReply whether this proxy is soliciting a reply.
+ * <p>This packet informs other proxies in the network that a player has disconnected
+ * and includes the player’s unique identifier (UUID) and the ID of the proxy they left.</p>
+ *
+ * @param proxyId the identifier of the proxy the player left
+ * @param uuid the unique identifier of the player
  */
-public record ProxyIdAnnouncement(String proxyId, boolean wantsReply) implements RedisPacket {
-  public static final String ID = "id-announcement";
+public record RedisPlayerLeaveUpdate(String proxyId, UUID uuid) implements RedisPacket {
+  public static final String ID = "player-leave";
 
   @Override
   public String getId() {

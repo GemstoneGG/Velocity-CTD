@@ -271,6 +271,12 @@ custom-brand-proxy = "Velocity"
 # Replaces what is returned as the server brand for the user's client.
 custom-brand-backend = "Paper"
 
+[slash-servers]
+# Defines `/<name>` aliases for servers - here `/faction` and `/factions` would both send you to the server named
+# `factions`, for example.
+factions = ["faction", "factions"]
+minigames = ["minigames", "arcade"]
+
 [query]
 # Whether to enable responding to GameSpy 4 query responses or not.
 enabled = false
@@ -321,6 +327,12 @@ queue-aliases = [
     "joinqueue",
     "queue"
 ]
+
+# The list of aliases for the `/leavequeue` command. The command will not be registered if this list is empty.
+leave-queue-aliases = ["leavequeue", "dequeue"]
+
+# The list of aliases for the `/queueadmin` command. The command will not be registered if this list is empty.
+queue-admin-aliases = ["queueadmin", "qadmin"]
 
 # The list of servers that should not have the queue system enabled.
 no-queue-servers = [

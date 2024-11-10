@@ -25,7 +25,8 @@ import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.Player;
-import com.velocitypowered.api.proxy.ProxyServer;
+import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import java.util.Optional;
 import net.kyori.adventure.text.Component;
@@ -36,9 +37,9 @@ import net.kyori.adventure.text.format.NamedTextColor;
  */
 public class PingCommand {
 
-  private final ProxyServer server;
+  private final VelocityServer server;
 
-  public PingCommand(final ProxyServer server) {
+  public PingCommand(final VelocityServer server) {
     this.server = server;
   }
 
@@ -55,23 +56,7 @@ public class PingCommand {
         .then(
             BrigadierCommand.requiredArgumentBuilder("player", StringArgumentType.word())
                 .requires(source -> source.getPermissionValue("velocity.command.ping.others") == Tristate.TRUE)
-                .suggests((context, builder) -> {
-                  CommandSource source = context.getSource();
-                  if (source.getPermissionValue("velocity.command.ping.others") != Tristate.TRUE) {
-                    return builder.buildFuture();
-                  }
-                  final String argument = context.getArguments().containsKey("player")
-                      ? context.getArgument("player", String.class)
-                      : "";
-
-                  for (final Player player : server.getAllPlayers()) {
-                    final String playerName = player.getUsername();
-                    if (playerName.regionMatches(true, 0, argument, 0, argument.length())) {
-                      builder.suggest(playerName);
-                    }
-                  }
-                  return builder.buildFuture();
-                })
+                .suggests((ctx, builder) -> VelocityCommands.suggestPlayer(server, ctx, builder, false))
                 .executes(context -> {
                   String player = context.getArgument("player", String.class);
                   Optional<Player> maybePlayer = server.getPlayer(player);

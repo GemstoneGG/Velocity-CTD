@@ -31,11 +31,10 @@ import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.command.VelocityCommandUtils;
+import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.List;
-import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.TranslatableComponent;
@@ -68,7 +67,7 @@ public final class ServerCommand {
         .requires(src -> src instanceof Player && src.getPermissionValue("velocity.command.server") != Tristate.FALSE)
         .executes(ctx -> {
           if (server.getConfiguration().isOverrideServerCommandUsage()) {
-            return VelocityCommandUtils.emitUsage(ctx, "server");
+            return VelocityCommands.emitUsage(ctx, "server");
           }
 
           final Player player = (Player) ctx.getSource();
@@ -76,42 +75,17 @@ public final class ServerCommand {
           return Command.SINGLE_SUCCESS;
         })
         .then(BrigadierCommand.requiredArgumentBuilder(SERVER_ARG, StringArgumentType.word())
-            .suggests(VelocityCommandUtils.suggestServer(server, SERVER_ARG, true))
+            .suggests(VelocityCommands.suggestServer(server, SERVER_ARG, true))
             .executes(ctx -> {
               final Player player = (Player) ctx.getSource();
-              final VelocityRegisteredServer registeredServer = VelocityCommandUtils.getServer(this.server, ctx, SERVER_ARG, true);
+              final VelocityRegisteredServer registeredServer = VelocityCommands.getServer(this.server, ctx, SERVER_ARG, true);
 
               if (registeredServer == null) {
                 return -1;
               }
 
-              final Optional<ServerConnection> currentServer = player.getCurrentServer();
-
-              if (currentServer.isPresent() && currentServer.get().getServer() == registeredServer) {
-                player.sendMessage(Component.translatable("velocity.error.already-connected"));
-                return -1;
-              }
-
-              if (!registeredServer.getQueueStatus().hasQueue()) {
-                player.createConnectionRequest(registeredServer).fireAndForget();
-                return Command.SINGLE_SUCCESS;
-              }
-
-              if (registeredServer.getQueueStatus().isQueued(player)) {
-                player.sendMessage(Component.translatable("velocity.queue.error.already-queued")
-                    .arguments(Component.text(registeredServer.getServerInfo().getName())));
-                return -1;
-              }
-
-              if (registeredServer.getQueueStatus().queueWithIndication(player)) {
-                player.sendMessage(Component.translatable("velocity.queue.command.queued")
-                    .arguments(Component.text(registeredServer.getServerInfo().getName())));
-                return Command.SINGLE_SUCCESS;
-              } else {
-                player.sendMessage(Component.translatable("velocity.queue.error.paused")
-                    .arguments(Component.text(registeredServer.getServerInfo().getName())));
-                return -1;
-              }
+              boolean success = server.getQueueManager().queueWithIndication(player, registeredServer);
+              return success ? Command.SINGLE_SUCCESS : -1;
             })
         ).build();
 
@@ -143,7 +117,7 @@ public final class ServerCommand {
         NamedTextColor.YELLOW,
         Component.text(currentServer)));
 
-    final List<RegisteredServer> servers = BuiltinCommandUtil.sortedServerList(server);
+    final List<RegisteredServer> servers = VelocityCommands.sortedServerList(server);
     if (servers.size() > MAX_SERVERS_TO_LIST) {
       executor.sendMessage(Component.translatable(
           "velocity.command.server-too-many", NamedTextColor.RED));

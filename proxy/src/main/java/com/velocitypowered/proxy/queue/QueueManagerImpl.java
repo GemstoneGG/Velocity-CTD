@@ -26,6 +26,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.concurrent.TimeUnit;
+import net.kyori.adventure.text.Component;
 
 /**
  * Manages the queue system.
@@ -105,6 +106,23 @@ public class QueueManagerImpl {
     for (RegisteredServer serverApi : this.server.getAllServers()) {
       VelocityRegisteredServer server = (VelocityRegisteredServer) serverApi;
       server.getQueueStatus().dequeue(player);
+    }
+  }
+
+  /**
+   * Queues the player onto a specific server.
+   *
+   * @param player the player to queue
+   * @param server the server to queue onto
+   * @return whether the player queued successfully
+   */
+  public boolean queueWithIndication(Player player, VelocityRegisteredServer server) {
+    if (server.getQueueStatus().queueWithIndication(player)) {
+      player.sendMessage(Component.translatable("velocity.queue.command.queued")
+          .arguments(Component.text(server.getServerInfo().getName())));
+      return true;
+    } else {
+      return false;
     }
   }
 }

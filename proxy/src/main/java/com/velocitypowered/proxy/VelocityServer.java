@@ -53,6 +53,7 @@ import com.velocitypowered.proxy.command.builtin.SendCommand;
 import com.velocitypowered.proxy.command.builtin.ServerCommand;
 import com.velocitypowered.proxy.command.builtin.ShowAllCommand;
 import com.velocitypowered.proxy.command.builtin.ShutdownCommand;
+import com.velocitypowered.proxy.command.builtin.SlashServerCommand;
 import com.velocitypowered.proxy.command.builtin.VelocityCommand;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -701,6 +702,12 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
               .aliases("lobby")
               .build(),
           new HubCommand(this).register(configuration.isHubEnabled()));
+    }
+
+    for (Map.Entry<String, List<String>> entry : configuration.getSlashServers().entrySet()) {
+      for (String alias : entry.getValue()) {
+        new SlashServerCommand(this, entry.getKey()).register(alias);
+      }
     }
   }
 

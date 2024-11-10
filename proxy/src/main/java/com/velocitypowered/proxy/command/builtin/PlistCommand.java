@@ -29,6 +29,7 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import java.util.List;
 import java.util.Objects;
@@ -65,17 +66,7 @@ public class PlistCommand {
         .executes(this::totalCount);
     final ArgumentCommandNode<CommandSource, String> serverNode = BrigadierCommand
         .requiredArgumentBuilder(PROXY_ARG, StringArgumentType.string())
-        .suggests((context, builder) -> {
-          final String argument = context.getArguments().containsKey(PROXY_ARG)
-              ? context.getArgument(PROXY_ARG, String.class)
-              : "";
-          for (String proxyId : server.getMultiProxyHandler().getAllProxyIds()) {
-            if (proxyId.regionMatches(true, 0, argument, 0, argument.length())) {
-              builder.suggest(proxyId);
-            }
-          }
-          return builder.buildFuture();
-        })
+        .suggests((ctx, builder) -> VelocityCommands.suggestProxy(server, ctx, builder))
         .executes(this::proxyCount)
         .then(
           BrigadierCommand.requiredArgumentBuilder(SERVER_ARG, StringArgumentType.string())

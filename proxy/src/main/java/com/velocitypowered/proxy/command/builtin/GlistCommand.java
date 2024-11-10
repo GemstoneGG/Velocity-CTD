@@ -31,6 +31,7 @@ import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import java.util.ArrayList;
@@ -108,7 +109,7 @@ public class GlistCommand {
     final CommandSource source = context.getSource();
     final String serverName = getString(context, SERVER_ARG);
     if (serverName.equalsIgnoreCase("all")) {
-      for (final RegisteredServer server : BuiltinCommandUtil.sortedServerList(server)) {
+      for (final RegisteredServer server : VelocityCommands.sortedServerList(server)) {
         sendServerPlayers(source, server, true);
       }
       sendTotalProxyCount(source);
