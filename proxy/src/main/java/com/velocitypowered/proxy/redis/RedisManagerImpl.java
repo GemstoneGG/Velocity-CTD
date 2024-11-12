@@ -133,6 +133,7 @@ public class RedisManagerImpl {
       return;
     }
 
+    System.out.println("registering id: " + id);
     this.pubSub.register(id, clazz, consumer);
   }
 

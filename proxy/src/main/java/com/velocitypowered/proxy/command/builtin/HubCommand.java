@@ -26,7 +26,9 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
+import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Locale;
 import net.kyori.adventure.text.Component;
@@ -99,6 +101,11 @@ public class HubCommand {
 
       TranslatableComponent fallbackMessage = Component.translatable("velocity.error.connecting-server-error")
           .arguments(Component.text(serverToTry.getServerInfo().getName()));
+
+      ((VelocityServer) this.server).getRedisManager().send(new RedisQueueSendRequest(
+              player.getUniqueId(),
+              velocityRegisteredServer.getServerInfo().getName()));
+
       ((VelocityRegisteredServer) serverToTry).getQueueStatus().queue(player.getUniqueId());
 
 

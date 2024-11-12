@@ -61,7 +61,7 @@ public class SlashServerCommand {
   private int send(CommandContext<CommandSource> ctx) {
     final Player player = (Player) ctx.getSource();
 
-    boolean success = this.proxyServer.getQueueManager().queueWithIndication(player, this.server);
-    return success ? Command.SINGLE_SUCCESS : -1;
+    this.proxyServer.getQueueManager().queue(player, this.server);
+    return Command.SINGLE_SUCCESS;
   }
 }

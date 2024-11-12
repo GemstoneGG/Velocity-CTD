@@ -210,17 +210,9 @@ public class QueueAdminCommand {
       return -1;
     }
 
-    if (server.getQueueStatus().isQueued(player)) {
-      player.sendMessage(Component.translatable("velocity.queue.error.already-queued.other")
-          .arguments(
-              Component.text(player.getUsername()),
-              Component.text(server.getServerInfo().getName())
-          )
-      );
-      return -1;
-    }
-
-    this.server.getQueueManager().queueWithIndication(player, server);
+    System.out.println("Queueing (in command): " + player.getUsername() + " to server: "
+            + server.getServerInfo().getName());
+    this.server.getQueueManager().queue(player, server);
     ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.added")
         .arguments(
             Component.text(player.getUsername()),
@@ -256,7 +248,7 @@ public class QueueAdminCommand {
     }
 
     for (Player player : players) {
-      server.getQueueManager().queueWithIndication(player, to);
+      server.getQueueManager().queue(player, to);
     }
 
     ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.addedall-player" + (players.size() == 1 ? "" : "s"))

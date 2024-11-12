@@ -28,7 +28,7 @@ import java.util.UUID;
  * @param serverName The name of the server which the player is being de-queued for.
  */
 public record RedisQueueLeaveRequest(UUID playerUuid, String serverName) implements RedisPacket {
-  public static final String ID = "redis-queue-add";
+  public static final String ID = "redis-queue-leave";
 
   @Override
   public String getId() {

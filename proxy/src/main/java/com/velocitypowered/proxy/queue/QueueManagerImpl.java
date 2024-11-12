@@ -26,16 +26,18 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueAddRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisQueueAlreadyJoinedRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueLeaveRequest;
-import com.velocitypowered.proxy.redis.multiproxy.RedisQueueMessageTickRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendStatusRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisSendActionBarRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import net.kyori.adventure.text.Component;
 
 /**
  * Manages the queue system.
@@ -62,6 +64,7 @@ public class QueueManagerImpl {
       return;
     }
 
+    System.out.println("Registering listeners");
     this.registerRedisListeners();
     this.schedulePingingBackend();
     this.scheduleTickMessage();
@@ -72,14 +75,22 @@ public class QueueManagerImpl {
 
     redisManager.listen(RedisQueueAddRequest.ID, RedisQueueAddRequest.class, it -> {
       if (!isMasterProxy()) {
+        System.out.println("Not master proxy");
         return;
       }
 
       ServerQueueStatus status = getQueue(it.serverName());
+      System.out.println("status: " + status);
       if (status == null) {
         throw new IllegalArgumentException("No queue found for server '" + it.serverName() + "'");
       }
 
+      if (status.isQueued(it.playerUuid())) {
+        redisManager.send(new RedisQueueAlreadyJoinedRequest(it.playerUuid(), it.serverName()));
+        return;
+      }
+
+      System.out.println("queueing: " + it.playerUuid());
       status.queue(it.playerUuid());
     });
 
@@ -101,10 +112,14 @@ public class QueueManagerImpl {
         RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
 
         if (foundServer == null) {
+          System.out.println("Sending status update for "
+                  + it.playerUuid() + " cause server does not exist");
           redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(), false,
                   it.playerUuid()));
         } else {
           player.createConnectionRequest(foundServer).connectWithIndication().thenAccept(result -> {
+            System.out.println("Sending status update for "
+                    + it.playerUuid() + " with result: " + result);
             redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(),
                     result, it.playerUuid()));
           });
@@ -119,14 +134,40 @@ public class QueueManagerImpl {
       }
 
       if (!it.successfulTransfer()) {
-        status.getEntry(it.playerUuid()).connectionAttempts += 1;
+        status.getEntry(it.playerUuid()).ifPresent(entry -> {
+          System.out.println("increasing connection attempt for: " + entry.player);
+          entry.connectionAttempts += 1;
+          entry.waitingForConnection = false;
+        });
       } else {
+        System.out.println("dequeueing " + it.playerUuid());
         status.dequeue(it.playerUuid());
       }
     });
 
-    redisManager.listen(RedisQueueMessageTickRequest.ID, RedisQueueMessageTickRequest.class, it -> {
-      tickMessageForAllPlayers();
+    redisManager.listen(RedisQueueAlreadyJoinedRequest.ID, RedisQueueAlreadyJoinedRequest.class, it -> {
+      ServerQueueStatus status = getQueue(it.serverName());
+      if (status == null) {
+        throw new IllegalArgumentException("No queue found for server '" + it.serverName() + "'");
+      }
+      server.getPlayer(it.uuid()).ifPresent(player -> {
+        player.sendMessage(Component.translatable("velocity.queue.error.already-queued.other")
+                .arguments(
+                        Component.text(player.getUsername()),
+                        Component.text(it.serverName())
+                )
+        );
+      });
+    });
+
+    redisManager.listen(RedisSendActionBarRequest.ID, RedisSendActionBarRequest.class, it -> {
+      Component component = it.component();
+
+      if (component != null) {
+        server.getPlayer(it.playerUuid()).ifPresent(player -> {
+          player.sendActionBar(component);
+        });
+      }
     });
   }
 
@@ -188,9 +229,7 @@ public class QueueManagerImpl {
     }
 
     this.tickMessageTaskHandle = server.getScheduler()
-        .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
-          server.getRedisManager().send(new RedisQueueMessageTickRequest());
-        })
+        .buildTask(VelocityVirtualPlugin.INSTANCE, this::tickMessageForAllPlayers)
         .repeat((long) config.getMessageDelay() * 1000, TimeUnit.MILLISECONDS)
         .schedule();
   }
@@ -227,13 +266,18 @@ public class QueueManagerImpl {
    * @param player the disconnecting player
    */
   public void onPlayerLeave(final ConnectedPlayer player) {
-    for (RegisteredServer serverApi : this.server.getAllServers()) {
-      VelocityRegisteredServer server = (VelocityRegisteredServer) serverApi;
-
-      this.server.getScheduler().buildTask(this.server, () -> {
-        getQueue(server.getServerInfo().getName()).dequeue(player.getUniqueId());
-      }).delay(getTimeoutInSeconds(player), TimeUnit.SECONDS);
-    }
+    System.out.println("timeout: " + getTimeoutInSeconds(player));
+    this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+      System.out.println("inside task");
+      this.server.getAllServers().forEach(server -> {
+        System.out.println("sending redis queue leave request for: "
+                + server.getServerInfo().getName());
+        this.server.getRedisManager().send(new RedisQueueLeaveRequest(player.getUniqueId(),
+                server.getServerInfo().getName()));
+      });
+    })
+            .delay(getTimeoutInSeconds(player), TimeUnit.SECONDS)
+            .schedule();
   }
 
   private int getTimeoutInSeconds(final ConnectedPlayer player) {
@@ -242,20 +286,20 @@ public class QueueManagerImpl {
         return i;
       }
     }
-    return 0;
+    return 1;
   }
 
   /**
-   * Queues the player onto a specific server.
+   * Queues the player into a specific server, without indication.
    *
-   * @param player the player to queue
-   * @param server the server to queue onto
-   * @return whether the player queued successfully
+   * @param player The player to queue
+   * @param server The server to queue into
    */
-  public boolean queueWithIndication(Player player, VelocityRegisteredServer server) {
-    return getQueue(server.getServerInfo().getName()).queueWithIndication(player);
+  public void queue(Player player, VelocityRegisteredServer server) {
+    System.out.println("sending add request to redis for: " + player.getUsername());
+    this.server.getRedisManager().send(new RedisQueueAddRequest(player.getUniqueId(),
+            server.getServerInfo().getName()));
   }
-
 
   /**
    * Updates the actionbar message for this player.
@@ -263,7 +307,8 @@ public class QueueManagerImpl {
   public void tickMessageForAllPlayers() {
     for (ServerQueueStatus status : this.serverQueues.values()) {
       status.getActivePlayers().forEach((entry, player) -> {
-        player.sendActionBar(status.getActionBarComponent(entry));
+        this.server.getRedisManager().send(new RedisSendActionBarRequest(player,
+                status.getActionBarComponent(entry)));
       });
     }
   }

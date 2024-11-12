@@ -230,6 +230,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     }
 
     this.server.getMultiProxyHandler().onPlayerLeave(this);
+    System.out.println("disconnected(), handling queue manager player leave");
     this.server.getQueueManager().onPlayerLeave(this);
   }
 

@@ -18,13 +18,17 @@
 package com.velocitypowered.proxy.redis.multiproxy;
 
 import com.velocitypowered.proxy.redis.RedisPacket;
+import java.util.UUID;
 
 /**
- * Represents a packet that indicates a request to send action bar messages to all players
- * that are connected to a queue.
+ * Represents a packet that will send a warning message to a player in case they've already.
+ * joined a queue they're intending to join
+ *
+ * @param uuid The UUID of the player.
+ * @param serverName The name of the server.
  */
-public record RedisQueueMessageTickRequest() implements RedisPacket {
-  public static final String ID = "redis-queue-message-tick";
+public record RedisQueueAlreadyJoinedRequest(UUID uuid, String serverName) implements RedisPacket {
+  public static final String ID = "redis-queue-already-joined";
 
   @Override
   public String getId() {

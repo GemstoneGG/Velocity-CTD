@@ -29,7 +29,6 @@ import java.util.UUID;
  */
 public record RedisQueueSendRequest(UUID playerUuid, String serverName) implements RedisPacket {
   public static final String ID = "redis-queue-send";
-  public static final UUID TRANSFER_ID = UUID.randomUUID();
 
   @Override
   public String getId() {

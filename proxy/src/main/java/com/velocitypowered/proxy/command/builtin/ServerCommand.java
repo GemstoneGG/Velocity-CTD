@@ -84,8 +84,10 @@ public final class ServerCommand {
                 return -1;
               }
 
-              boolean success = server.getQueueManager().queueWithIndication(player, registeredServer);
-              return success ? Command.SINGLE_SUCCESS : -1;
+              System.out.println("Queueing (In server command): " + player.getUsername() + " to: "
+                      + registeredServer.getServerInfo().getName());
+              server.getQueueManager().queue(player, registeredServer);
+              return Command.SINGLE_SUCCESS;
             })
         ).build();
 
