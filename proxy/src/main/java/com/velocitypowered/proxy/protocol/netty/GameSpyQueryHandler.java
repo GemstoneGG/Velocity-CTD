@@ -85,12 +85,21 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
   }
 
   private QueryResponse createInitialResponse() {
+
+    final int online;
+
+    if (server.getMultiProxyHandler().isEnabled()) {
+      online = server.getMultiProxyHandler().getTotalPlayerCount();
+    } else {
+      online = server.getPlayerCount();
+    }
+
     return QueryResponse.builder()
         .hostname(
             PlainTextComponentSerializer.plainText().serialize(server.getConfiguration().getMotd()))
         .gameVersion(ProtocolVersion.SUPPORTED_VERSION_STRING)
         .map(server.getConfiguration().getQueryMap())
-        .currentPlayers(server.getPlayerCount())
+        .currentPlayers(online)
         .maxPlayers(server.getConfiguration().getShowMaxPlayers())
         .proxyPort(server.getConfiguration().getBind().getPort())
         .proxyHost(server.getConfiguration().getBind().getHostString())

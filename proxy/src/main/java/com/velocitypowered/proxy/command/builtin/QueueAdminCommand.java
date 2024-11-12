@@ -142,7 +142,8 @@ public class QueueAdminCommand {
 
     for (RegisteredServer server : this.server.getAllServers()) {
       VelocityRegisteredServer registeredServer = (VelocityRegisteredServer) server;
-      ServerQueueStatus queueStatus = registeredServer.getQueueStatus();
+      ServerQueueStatus queueStatus = this.server.getQueueManager()
+              .getQueue(registeredServer.getServerInfo().getName());
 
       source.sendMessage(queueStatus.createListComponent());
     }
@@ -295,7 +296,7 @@ public class QueueAdminCommand {
 
     for (RegisteredServer server : servers) {
       VelocityRegisteredServer registeredServer = (VelocityRegisteredServer) server;
-      if (registeredServer.getQueueStatus().dequeue(player)) {
+      if (registeredServer.getQueueStatus().dequeue(player.getUniqueId())) {
         removedAny = true;
       }
     }
@@ -340,7 +341,7 @@ public class QueueAdminCommand {
     int amountDequeued = 0;
 
     for (Player player : players) {
-      if (server.getQueueStatus().dequeue(player)) {
+      if (server.getQueueStatus().dequeue(player.getUniqueId())) {
         amountDequeued += 1;
       }
     }

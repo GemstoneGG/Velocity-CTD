@@ -99,21 +99,9 @@ public class HubCommand {
 
       TranslatableComponent fallbackMessage = Component.translatable("velocity.error.connecting-server-error")
           .arguments(Component.text(serverToTry.getServerInfo().getName()));
-      ((VelocityRegisteredServer) serverToTry).getQueueStatus().queue(player).whenComplete((result, throwable) -> {
-        if (result == null || throwable != null) {
-          player.sendMessage(fallbackMessage);
-          return;
-        }
-        if (!result.isSuccessful()) {
-          player.sendMessage(result.getReasonComponent().orElse(fallbackMessage));
-          return;
-        }
+      ((VelocityRegisteredServer) serverToTry).getQueueStatus().queue(player.getUniqueId());
 
-        if (translationExists("velocity.command.hub.fallback-connected", player)) {
-          player.sendMessage(Component.translatable("velocity.command.hub.fallback-connected")
-              .arguments(Component.text(serverToTry.getServerInfo().getName())));
-        }
-      });
+
       return Command.SINGLE_SUCCESS;
     }
     return 0;

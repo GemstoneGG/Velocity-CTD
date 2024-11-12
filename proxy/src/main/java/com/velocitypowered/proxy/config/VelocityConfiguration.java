@@ -1507,6 +1507,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     private List<String> leaveQueueAliases;
     @Expose
     private List<String> queueAdminAliases;
+    private List<String> masterProxyIds;
 
     private Queue(final CommentedConfig config) {
       if (config == null) {
@@ -1542,6 +1543,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.overrideBungeeMessaging = config.getOrElse("override-bungee-messaging", true);
       this.leaveQueueAliases = config.getOrElse("leave-queue-aliases", new ArrayList<>());
       this.queueAdminAliases = config.getOrElse("queue-admin-aliases", new ArrayList<>());
+      this.masterProxyIds = config.getOrElse("master-proxy-ids", new ArrayList<>());
     }
 
     public boolean isEnabled() {
@@ -1616,6 +1618,10 @@ public final class VelocityConfiguration implements ProxyConfig {
       return queueAdminAliases;
     }
 
+    public List<String> getMasterProxyIds() {
+      return masterProxyIds;
+    }
+
     @Override
     public String toString() {
       return "Queue{"
@@ -1633,9 +1639,10 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", allowMultiQueue=" + allowMultiQueue
           + ", noQueueServers=" + noQueueServers
           + ", queueAliases=" + queueAliases
-          + ", overrideBungeeMessaging" + overrideBungeeMessaging
-          + ", leaveQueueAliases" + leaveQueueAliases
-          + ", queueAdminAliases" + queueAdminAliases
+          + ", overrideBungeeMessaging=" + overrideBungeeMessaging
+          + ", leaveQueueAliases=" + leaveQueueAliases
+          + ", queueAdminAliases=" + queueAdminAliases
+          + ", masterProxyIds=" + masterProxyIds
           + '}';
     }
   }

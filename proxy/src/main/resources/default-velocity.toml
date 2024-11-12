@@ -328,6 +328,12 @@ queue-aliases = [
     "queue"
 ]
 
+# The list of IDs of the proxy (in order of priority) that should handle and maintain the queue. only necessary in multi-proxy setup, leave blank otherwise.
+# Always attempts to use the first ID first, if the proxy isn't available, it'll use the next in the list.
+#
+# Needs to be a list of the "proxy-id"'s of the proxies connected to the network.
+master-proxy-ids = [""]
+
 # The list of aliases for the `/leavequeue` command. The command will not be registered if this list is empty.
 leave-queue-aliases = ["leavequeue", "dequeue"]
 

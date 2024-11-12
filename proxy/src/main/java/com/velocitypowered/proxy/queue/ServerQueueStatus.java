@@ -24,14 +24,17 @@ import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.connection.util.ConnectionRequestResults;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.TimeUnit;
@@ -58,7 +61,8 @@ public class ServerQueueStatus {
    * @param server the backend server
    * @param velocityServer the proxy server
    */
-  public ServerQueueStatus(final VelocityRegisteredServer server, final VelocityServer velocityServer) {
+  public ServerQueueStatus(final VelocityRegisteredServer server,
+                           final VelocityServer velocityServer) {
     this.server = server;
     this.velocityServer = velocityServer;
     this.reloadConfig();
@@ -95,24 +99,12 @@ public class ServerQueueStatus {
       return;
     }
 
-    entry.send().thenAccept(success -> {
-      entry.connectionAttempts++;
-      boolean shouldDequeue = success;
+    if (!velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
+      queue.removeFirst();
+      return;
+    }
 
-      if (entry.connectionAttempts > config.getMaxSendRetries()) {
-        entry.player.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached").arguments(
-            Component.text(entry.target.getServerInfo().getName()),
-            Component.text(config.getMaxSendRetries())
-        ));
-        shouldDequeue = true;
-      }
-
-      if (shouldDequeue) {
-        // if we succeed, or if we exceed the connection attempt limit, remove the player from queue
-        queue.removeFirst();
-        entry.player.getQueueStatus().queueEntries.removeIf(e -> e.player == entry.player);
-      }
-    });
+    entry.send();
   }
 
   /**
@@ -123,7 +115,8 @@ public class ServerQueueStatus {
       return;
     }
 
-    // if there's nobody to send, cancel the task (it being missing will cause the next queue to be sent immediately).
+    // if there's nobody to send, cancel the task (it being
+    // missing will cause the next queue to be sent immediately).
     if (queue.isEmpty()) {
       sendingTaskHandle.cancel();
       sendingTaskHandle = null;
@@ -137,7 +130,7 @@ public class ServerQueueStatus {
         return;
       }
 
-      if (entry.player.isActive()) {
+      if (velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
         // if the player is waiting for their send to finish, continue to the next player in queue
         if (!entry.waitingForConnection) {
           sendFirstInQueue();
@@ -161,7 +154,8 @@ public class ServerQueueStatus {
     if (entry.connectionAttempts == 0) {
       // calculate the time since last send
       Instant now = Instant.now();
-      long timeSinceLastSend = this.lastSendTime != null ? this.lastSendTime.until(now, ChronoUnit.SECONDS) : 0;
+      long timeSinceLastSend = this.lastSendTime != null
+              ? this.lastSendTime.until(now, ChronoUnit.SECONDS) : 0;
 
       // subtract it from the eta
       etaSeconds = (int) config.getSendDelay() * position - (int) timeSinceLastSend;
@@ -189,13 +183,15 @@ public class ServerQueueStatus {
   }
 
   /**
-   * Queues a player onto this server and uses Velocity standard error handling if the connection fails.
+   * Queues a player onto this server and uses Velocity standard error
+   * handling if the connection fails.
    *
    * @param player the player to connect
    * @return whether the player queued successfully
    */
   boolean queueWithIndication(final Player player) {
-    if (!config.isEnabled() || player.hasPermission("velocity.queue.bypass." + server.getServerInfo().getName())) {
+    if (!config.isEnabled() || player.hasPermission("velocity.queue.bypass."
+            + server.getServerInfo().getName())) {
       player.createConnectionRequest(server).fireAndForget();
       return true;
     }
@@ -213,7 +209,8 @@ public class ServerQueueStatus {
       return false;
     }
 
-    if (!config.isAllowPausedQueueJoining() && paused && !player.hasPermission("velocity.queue.pause.bypass." + server.getServerInfo().getName())) {
+    if (!config.isAllowPausedQueueJoining() && paused && !player
+            .hasPermission("velocity.queue.pause.bypass." + server.getServerInfo().getName())) {
       player.sendMessage(Component.translatable("velocity.queue.error.paused")
           .arguments(Component.text(server.getServerInfo().getName())));
       return false;
@@ -221,9 +218,9 @@ public class ServerQueueStatus {
 
     ConnectedPlayer connectedPlayer = (ConnectedPlayer) player;
 
-    ServerQueueEntry entry = new ServerQueueEntry(connectedPlayer, this.server, null);
+    ServerQueueEntry entry = new ServerQueueEntry(player.getUniqueId(),
+            this.server, this.velocityServer, null);
     this.queue.add(entry);
-    connectedPlayer.getQueueStatus().queueEntries.add(entry);
 
     if (this.sendingTaskHandle == null) {
       sendFirstInQueue();
@@ -239,33 +236,29 @@ public class ServerQueueStatus {
   /**
    * Queues a player onto this server.
    *
-   * @param player the player to queue
-   * @return a future that will complete once the player connects
+   * @param playerUuid the UUID of the player to queue
    */
-  public CompletableFuture<ConnectionRequestBuilder.Result> queue(final Player player) {
+  public void queue(final UUID playerUuid) {
     if (!config.isEnabled()) {
-      return player.createConnectionRequest(server).connect();
+      Player player = server.getPlayer(playerUuid);
+      if (player != null) {
+        player.createConnectionRequest(server).connect();
+      } else {
+        this.velocityServer.getRedisManager().send(new RedisQueueSendRequest(playerUuid,
+                server.getServerInfo().getName()));
+      }
+      return;
     }
-
-    if (!config.isAllowPausedQueueJoining() && paused) {
-      ConnectionRequestBuilder.Result result =
-          ConnectionRequestResults.plainResult(ConnectionRequestBuilder.Status.CONNECTION_CANCELLED, server);
-      return CompletableFuture.completedFuture(result);
-    }
-
-    ConnectedPlayer connectedPlayer = (ConnectedPlayer) player;
 
     CompletableFuture<ConnectionRequestBuilder.Result> future = new CompletableFuture<>();
-    ServerQueueEntry entry = new ServerQueueEntry(connectedPlayer, this.server, future);
+    ServerQueueEntry entry = new ServerQueueEntry(playerUuid, this.server, this.velocityServer,
+            future);
     this.queue.add(entry);
-    connectedPlayer.getQueueStatus().queueEntries.add(entry);
 
     if (this.sendingTaskHandle == null) {
       sendFirstInQueue();
       this.rescheduleTimerTask();
     }
-
-    return future;
   }
 
   /**
@@ -274,20 +267,35 @@ public class ServerQueueStatus {
    * @param player the player to remove
    * @return whether the player was dequeued
    */
-  public boolean dequeue(final Player player) {
+  public boolean dequeue(final UUID player) {
     boolean removedAny = false;
 
     for (Iterator<ServerQueueEntry> iterator = this.queue.iterator(); iterator.hasNext(); ) {
       ServerQueueEntry entry = iterator.next();
 
-      if (entry.player == player) {
-        entry.player.getQueueStatus().queueEntries.removeIf(e -> e.player == entry.player);
+      if (entry.player.equals(player)) {
         iterator.remove();
         removedAny = true;
       }
     }
 
     return removedAny;
+  }
+
+  /**
+   * Gets the {@link ServerQueueEntry} for the player.
+   *
+   * @param playerUuid The UUID of the player.
+   *
+   * @return The {@link ServerQueueEntry} for the player.
+   */
+  public ServerQueueEntry getEntry(UUID playerUuid) {
+    for (ServerQueueEntry entry : queue) {
+      if (entry.player.equals(playerUuid)) {
+        return entry;
+      }
+    }
+    return null;
   }
 
   /**
@@ -315,7 +323,8 @@ public class ServerQueueStatus {
    */
   public void broadcast(final Component component) {
     for (ServerQueueEntry status : queue) {
-      status.player.sendMessage(component);
+      this.velocityServer.getPlayer(status.player).ifPresent(player ->
+                player.sendMessage(component));
     }
   }
 
@@ -327,7 +336,7 @@ public class ServerQueueStatus {
    */
   public boolean isQueued(final Player player) {
     for (ServerQueueEntry queueStatus : queue) {
-      if (queueStatus.player.equals(player)) {
+      if (queueStatus.player.equals(player.getUniqueId())) {
         return true;
       }
     }
@@ -354,7 +363,8 @@ public class ServerQueueStatus {
     int position = getQueuePosition(entry.player);
 
     if (entry.waitingForConnection) {
-      return Component.translatable("velocity.queue.player-status.connecting", NamedTextColor.YELLOW)
+      return Component.translatable("velocity.queue.player-status.connecting",
+                      NamedTextColor.YELLOW)
           .arguments(Component.text(entry.target.getServerInfo().getName()));
     } else if (paused) {
       return Component.translatable("velocity.queue.player-status.paused", NamedTextColor.YELLOW);
@@ -383,7 +393,7 @@ public class ServerQueueStatus {
    * @return their position in queue, where {@code 1} is first
    * @throws IllegalArgumentException if the player is not queued
    */
-  int getQueuePosition(final ConnectedPlayer player) {
+  int getQueuePosition(final UUID player) {
     int position = 1;
 
     for (ServerQueueEntry entry : queue) {
@@ -394,6 +404,22 @@ public class ServerQueueStatus {
       position += 1;
     }
 
-    throw new IllegalArgumentException("player " + player.getUsername() + " is not in queue");
+    throw new IllegalArgumentException("player is not in queue");
+  }
+
+  /**
+   * Gets all the possible active player instances that are connected to this proxy.
+   *
+   * @return map of players that are connected to this proxy with its queue entry.
+   */
+  Map<ServerQueueEntry, Player> getActivePlayers() {
+    Map<ServerQueueEntry, Player> foundPlayers = new HashMap<>();
+
+    for (ServerQueueEntry entry : queue) {
+      this.velocityServer.getPlayer(entry.player).ifPresent(player ->
+              foundPlayers.put(entry, player));
+    }
+
+    return foundPlayers;
   }
 }

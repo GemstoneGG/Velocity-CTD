@@ -40,7 +40,7 @@ import org.bstats.json.JsonObjectBuilder;
  */
 public final class Metrics {
 
-  private MetricsBase metricsBase;
+  private final MetricsBase metricsBase;
 
   private Metrics(final Logger logger, final int serviceId, final boolean defaultEnabled) {
     File configFile = Path.of("plugins", "bStats", "config.txt").toFile();
@@ -48,18 +48,17 @@ public final class Metrics {
     try {
       config = new MetricsConfig(configFile, defaultEnabled);
     } catch (IOException e) {
-      logger.error("Failed to create bStats config", e);
-      return;
+      throw new RuntimeException(e);
     }
 
     metricsBase = new MetricsBase(
-        "server-implementation",
+      "server-implementation",
         config.getServerUUID(),
         serviceId,
         config.isEnabled(),
         this::appendPlatformData,
         jsonObjectBuilder -> { /* NOP */ },
-        null,
+      null,
         () -> true,
         logger::warn,
         logger::info,
@@ -103,7 +102,8 @@ public final class Metrics {
 
     private static final Logger logger = LogManager.getLogger(Metrics.class);
 
-    static void startMetrics(final VelocityServer server, final VelocityConfiguration.Metrics metricsConfig) {
+    static void startMetrics(final VelocityServer server,
+                             final VelocityConfiguration.Metrics metricsConfig) {
       Metrics metrics = new Metrics(logger, 4752, metricsConfig.isEnabled());
 
       metrics.addCustomChart(

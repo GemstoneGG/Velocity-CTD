@@ -83,7 +83,7 @@ public class LeaveQueueCommand {
 
       for (RegisteredServer server : this.server.getAllServers()) {
         VelocityRegisteredServer registeredServer = (VelocityRegisteredServer) server;
-        if (registeredServer.getQueueStatus().dequeue(player)) {
+        if (registeredServer.getQueueStatus().dequeue(player.getUniqueId())) {
           leftAny = true;
         }
       }
@@ -109,7 +109,7 @@ public class LeaveQueueCommand {
     }
 
     if (ctx.getSource() instanceof Player player) {
-      if (server.getQueueStatus().dequeue(player)) {
+      if (server.getQueueStatus().dequeue(player.getUniqueId())) {
         player.sendMessage(Component.translatable("velocity.queue.command.left-queue")
             .arguments(Component.text(server.getServerInfo().getName())));
         return Command.SINGLE_SUCCESS;

@@ -60,9 +60,19 @@ public class ServerListPingHandler {
     }
     VelocityConfiguration configuration = server.getConfiguration();
     String serverPingVersion = configuration.getFallbackVersionPing();
+
+
+    final int online;
+
+    if (server.getMultiProxyHandler().isEnabled()) {
+      online = server.getMultiProxyHandler().getTotalPlayerCount();
+    } else {
+      online = server.getPlayerCount();
+    }
+
     return new ServerPing(
         new ServerPing.Version(version.getProtocol(), formatVersionString(serverPingVersion, version)),
-        new ServerPing.Players(server.getPlayerCount(), configuration.getShowMaxPlayers(),
+        new ServerPing.Players(online, configuration.getShowMaxPlayers(),
             ImmutableList.of()),
         configuration.getMotd(),
         configuration.getFavicon().orElse(null),

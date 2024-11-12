@@ -90,7 +90,6 @@ import com.velocitypowered.proxy.protocol.packet.config.ClientboundServerLinksPa
 import com.velocitypowered.proxy.protocol.packet.config.StartUpdatePacket;
 import com.velocitypowered.proxy.protocol.packet.title.GenericTitlePacket;
 import com.velocitypowered.proxy.protocol.util.ByteBufDataOutput;
-import com.velocitypowered.proxy.queue.PlayerQueueStatus;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import com.velocitypowered.proxy.tablist.InternalTabList;
 import com.velocitypowered.proxy.tablist.KeyedVelocityTabList;
@@ -195,7 +194,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private final ChatQueue chatQueue;
   private final ChatBuilderFactory chatBuilderFactory;
   private final List<String> attemptedServers;
-  private final PlayerQueueStatus playerQueueStatus;
 
   ConnectedPlayer(final VelocityServer server, final GameProfile profile, final MinecraftConnection connection,
                   @Nullable final InetSocketAddress virtualHost, @Nullable final String rawVirtualHost, final boolean onlineMode,
@@ -221,11 +219,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     this.chatQueue = new ChatQueue(this);
     this.chatBuilderFactory = new ChatBuilderFactory(this.getProtocolVersion());
     this.resourcePackHandler = ResourcePackHandler.create(this, server);
-    this.playerQueueStatus = new PlayerQueueStatus(this, server);
-  }
-
-  public PlayerQueueStatus getQueueStatus() {
-    return playerQueueStatus;
   }
 
   /**

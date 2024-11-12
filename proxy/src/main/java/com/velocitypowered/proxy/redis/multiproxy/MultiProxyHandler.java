@@ -489,6 +489,31 @@ public class MultiProxyHandler {
   }
 
   /**
+   * Checks if the player is still connected to any proxy on the network.
+   *
+   * @param uuid The UUID of the player.
+   *
+   * @return Whether the player is connected to any proxy or not.
+   */
+  public boolean isPlayerOnline(UUID uuid) {
+    for (Player player : server.getAllPlayers()) {
+      if (player.getUniqueId().equals(uuid)) {
+        return true;
+      }
+    }
+
+    for (OtherProxy proxy : seenProxies.values()) {
+      for (RemotePlayerInfo info : proxy.players) {
+        if (info.uuid.equals(uuid)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Runs a command on a remote player.
    *
    * @param player the target player
