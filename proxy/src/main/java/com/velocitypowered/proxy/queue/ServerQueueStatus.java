@@ -24,8 +24,6 @@ import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -46,7 +44,6 @@ public class ServerQueueStatus {
   private final VelocityServer velocityServer;
   private VelocityConfiguration.@MonotonicNonNull Queue config;
   private final Deque<ServerQueueEntry> queue = new ConcurrentLinkedDeque<>();
-  private Instant lastSendTime = null;
   private boolean online = true;
   private boolean paused = false;
   private ScheduledTask sendingTaskHandle = null;
@@ -84,7 +81,7 @@ public class ServerQueueStatus {
   }
 
   private void sendFirstInQueue() {
-    lastSendTime = Instant.now();
+
     ServerQueueEntry entry = queue.peekFirst();
 
     if (entry == null) {
@@ -150,21 +147,10 @@ public class ServerQueueStatus {
     server.ping().whenComplete((result, th) -> online = th == null);
   }
 
-  private Component calculateEta(final ServerQueueEntry entry, final int position) {
-    int etaSeconds = 0;
+  private Component calculateEta(final int position) {
+    int delayInSeconds = (int) this.config.getSendDelay() * position;
 
-    // if we already tried to connect, force the ETA to be zero (so it doesn't go up and down).
-    if (entry.connectionAttempts == 0) {
-      // calculate the time since last send
-      Instant now = Instant.now();
-      long timeSinceLastSend = this.lastSendTime != null
-              ? this.lastSendTime.until(now, ChronoUnit.SECONDS) : 0;
-
-      // subtract it from the eta
-      etaSeconds = (int) config.getSendDelay() * position - (int) timeSinceLastSend;
-    }
-
-    return QueueTimeFormatter.format(Math.max(etaSeconds, 0));
+    return QueueTimeFormatter.format(Math.max(delayInSeconds, 0));
   }
 
   /**
@@ -326,7 +312,7 @@ public class ServerQueueStatus {
               Component.text(position),
               Component.text(queue.size()),
               Component.text(entry.target.getServerInfo().getName()),
-              calculateEta(entry, position)
+              calculateEta(position)
           );
     } else {
       return Component.translatable("velocity.queue.player-status.offline", NamedTextColor.YELLOW)
