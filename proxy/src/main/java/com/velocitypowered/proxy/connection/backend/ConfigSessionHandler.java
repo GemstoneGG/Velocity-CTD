@@ -54,6 +54,7 @@ import com.velocitypowered.proxy.protocol.packet.config.RegistrySyncPacket;
 import com.velocitypowered.proxy.protocol.packet.config.StartUpdatePacket;
 import com.velocitypowered.proxy.protocol.packet.config.TagsUpdatePacket;
 import com.velocitypowered.proxy.protocol.util.PluginMessageUtil;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.key.Key;
@@ -336,8 +337,8 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public void disconnected() {
-    final ConnectedPlayer player = serverConn.getPlayer();
-    player.teardown();
+    resultFuture.completeExceptionally(
+        new IOException("Unexpectedly disconnected from remote server"));
   }
 
   @Override

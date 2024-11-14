@@ -74,8 +74,6 @@ dependencies, useful performance improvements, and more.
 * Removal of all language files except `messages.properties` to preserve
   maintainability. PRs are welcome to reimplement all language files
   with our changes.
-* Fix for users with poor connections getting stuck in the configuration phase by
-  immediately removing them upon disconnection, using player teardown. (Issue: [#1251](https://github.com/PaperMC/Velocity/issues/1251))
 
 ## Velocity-CTD Permissions
 * `velocity.command.alert` [/alert] (Allows you to display public alerts
