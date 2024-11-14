@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.queue;
 
+import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 
 /**
@@ -31,30 +32,28 @@ public class QueueTimeFormatter {
   /**
    * Formats a number of seconds as a component.
    *
-   * @param seconds the number of seconds
+   * @param inputSeconds the number of seconds
    * @return the time formatted as a component
    */
-  public static Component format(int seconds) {
-    int minutes = seconds / 60;
-    seconds %= 60;
-    int hours = minutes / 60;
-    minutes %= 60;
-    int days = hours / 24;
-    hours %= 24;
+  public static Component format(int inputSeconds) {
+    int days = (int) TimeUnit.SECONDS.toDays(inputSeconds);
+    int hours = (int) (TimeUnit.SECONDS.toHours(inputSeconds) - (days * 24L));
+    int minutes = (int) (TimeUnit.SECONDS.toMinutes(inputSeconds)
+                - (TimeUnit.SECONDS.toHours(inputSeconds) * 60));
+
 
     Component output = Component.empty();
-
-    if (days == 0) {
+    if (days != 0) {
       output = output.append(formatComponent("day", days));
     }
-
-    if (hours == 0) {
+    if (hours != 0) {
       output = output.append(formatComponent("hour", hours));
     }
-
-    if (minutes == 0) {
+    if (minutes != 0) {
       output = output.append(formatComponent("minute", minutes));
     }
+    int seconds = (int) (TimeUnit.SECONDS.toSeconds(inputSeconds)
+            - (TimeUnit.SECONDS.toMinutes(inputSeconds) * 60));
 
     return output.append(formatComponent("second", seconds));
   }

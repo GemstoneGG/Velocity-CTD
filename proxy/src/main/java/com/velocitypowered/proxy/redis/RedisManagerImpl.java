@@ -21,11 +21,18 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
+import com.velocitypowered.proxy.redis.multiproxy.RedisGetPlayerPingRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisServerAlertRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisSwitchServerRequest;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,13 +76,48 @@ public class RedisManagerImpl {
     if (redisConfig.isEnabled()) {
       this.start(redisConfig);
     }
+
+    registerListeners(velocityServer);
+  }
+
+  private void registerListeners(VelocityServer proxy) {
+    listen(RedisServerAlertRequest.ID, RedisServerAlertRequest.class, it -> {
+      Component component = it.component();
+
+      if (component != null) {
+        for (RegisteredServer server : proxy.getAllServers()) {
+          server.sendMessage(component);
+        }
+        proxy.sendMessage(component);
+      }
+
+    });
+
+    listen(RedisGetPlayerPingRequest.ID, RedisGetPlayerPingRequest.class, it -> {
+      proxy.getPlayer(it.playerToCheck()).ifPresent(player -> {
+        Component component = Component.translatable("velocity.command.ping.other",
+                        NamedTextColor.GREEN)
+                        .arguments(Component.text(player.getUsername()),
+                                Component.text(player.getPing()));
+        send(new RedisSendMessageToUuidRequest(it.commandSender(), component));
+      });
+    });
+
+    listen(RedisSwitchServerRequest.ID, RedisSwitchServerRequest.class, it -> {
+      proxy.getPlayer(it.username()).ifPresent(player -> {
+        proxy.getServer(it.server()).ifPresent(server -> {
+          player.createConnectionRequest(server).connectWithIndication();
+        });
+      });
+    });
   }
 
   private void start(final VelocityConfiguration.Redis redisConfig) {
     try {
       JedisClientConfig clientConfig = DefaultJedisClientConfig.builder()
           .ssl(redisConfig.isUseSsl())
-          .credentials(new DefaultRedisCredentials(redisConfig.getUsername(), redisConfig.getPassword()))
+          .credentials(new DefaultRedisCredentials(redisConfig.getUsername(),
+                  redisConfig.getPassword()))
           .build();
 
       HostAndPort hostAndPort = new HostAndPort(redisConfig.getHost(), redisConfig.getPort());
@@ -133,7 +175,6 @@ public class RedisManagerImpl {
       return;
     }
 
-    System.out.println("registering id: " + id);
     this.pubSub.register(id, clazz, consumer);
   }
 
@@ -162,13 +203,15 @@ public class RedisManagerImpl {
     }
 
     // second function for `T` parameter
-    private <T> void onMessage0(final ChannelRegistration<T> registration, final String channel, final JsonObject obj) {
+    private <T> void onMessage0(final ChannelRegistration<T> registration, final String channel,
+                                final JsonObject obj) {
       T instance;
 
       try {
         instance = gson.fromJson(obj, registration.clazz);
       } catch (JsonSyntaxException e) {
-        logger.error("received invalid JSON on channel {} for packet class {}", channel, registration.clazz, e);
+        logger.error("received invalid JSON on channel {} for packet class {}", channel,
+                registration.clazz, e);
         return;
       }
 

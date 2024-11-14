@@ -24,7 +24,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
-import com.velocitypowered.api.proxy.ProxyServer;
+import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.util.ComponentUtils;
@@ -36,9 +36,9 @@ import net.kyori.adventure.text.format.NamedTextColor;
  */
 public class AlertRawCommand {
 
-  private final ProxyServer server;
+  private final VelocityServer server;
 
-  public AlertRawCommand(final ProxyServer server) {
+  public AlertRawCommand(final VelocityServer server) {
     this.server = server;
   }
 
@@ -76,8 +76,15 @@ public class AlertRawCommand {
       return 0;
     }
 
-    server.sendMessage(Component.translatable("velocity.command.alertraw.message", NamedTextColor.WHITE,
-            ComponentUtils.colorify(message)));
+    if (server.getMultiProxyHandler().isEnabled()) {
+      server.getMultiProxyHandler().alert(Component.translatable("velocity.command.alertraw.message", NamedTextColor.WHITE,
+              ComponentUtils.colorify(message)));
+    } else {
+      server.sendMessage(Component.translatable("velocity.command.alertraw.message", NamedTextColor.WHITE,
+              ComponentUtils.colorify(message)));
+    }
+
+
 
     return Command.SINGLE_SUCCESS;
   }

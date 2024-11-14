@@ -23,12 +23,10 @@ import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.Player;
-import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Locale;
 import net.kyori.adventure.text.Component;
@@ -40,9 +38,9 @@ import net.kyori.adventure.translation.GlobalTranslator;
  */
 public class HubCommand {
 
-  private final ProxyServer server;
+  private final VelocityServer server;
 
-  public HubCommand(final ProxyServer server) {
+  public HubCommand(final VelocityServer server) {
     this.server = server;
   }
 
@@ -99,12 +97,18 @@ public class HubCommand {
             .arguments(Component.text(serverToTry.getServerInfo().getName())));
       }
 
+      //TODO: Rootbeer, make sure you add the "Sending to hub now..." message here!
       TranslatableComponent fallbackMessage = Component.translatable("velocity.error.connecting-server-error")
           .arguments(Component.text(serverToTry.getServerInfo().getName()));
 
-      ((VelocityServer) this.server).getRedisManager().send(new RedisQueueSendRequest(
-              player.getUniqueId(),
-              velocityRegisteredServer.getServerInfo().getName()));
+      System.out.println("no queue servers: "
+              + this.server.getConfiguration().getQueue().getNoQueueServers());
+      System.out.println("server to try: " + serverToTry.getServerInfo().getName());
+      if (this.server.getConfiguration().getQueue().getNoQueueServers()
+              .contains(serverToTry.getServerInfo().getName()) || !server.getMultiProxyHandler().isEnabled()) {
+        player.createConnectionRequest(serverToTry).connectWithIndication();
+        return Command.SINGLE_SUCCESS;
+      }
 
       ((VelocityRegisteredServer) serverToTry).getQueueStatus().queue(player.getUniqueId());
 

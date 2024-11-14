@@ -29,6 +29,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import com.velocitypowered.proxy.redis.multiproxy.RedisQueueLeaveRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.List;
 import net.kyori.adventure.text.Component;
@@ -109,18 +110,13 @@ public class LeaveQueueCommand {
     }
 
     if (ctx.getSource() instanceof Player player) {
-      if (server.getQueueStatus().dequeue(player.getUniqueId())) {
-        player.sendMessage(Component.translatable("velocity.queue.command.left-queue")
-            .arguments(Component.text(server.getServerInfo().getName())));
-        return Command.SINGLE_SUCCESS;
-      } else {
-        player.sendMessage(Component.translatable("velocity.queue.error.not-in-queue")
-            .arguments(Component.text(server.getServerInfo().getName())));
-        return -1;
-      }
+      this.server.getRedisManager().send(new RedisQueueLeaveRequest(player.getUniqueId(),
+              server.getServerInfo().getName(), true));
     } else {
       ctx.getSource().sendMessage(CommandMessages.PLAYERS_ONLY);
       return -1;
     }
+
+    return Command.SINGLE_SUCCESS;
   }
 }

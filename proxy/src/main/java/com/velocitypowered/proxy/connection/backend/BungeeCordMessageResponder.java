@@ -116,13 +116,27 @@ public class BungeeCordMessageResponder {
       if (target.equals("ALL")) {
         out.writeUTF("PlayerCount");
         out.writeUTF("ALL");
-        out.writeInt(proxy.getPlayerCount());
+
+        int amount;
+        if (proxy.getMultiProxyHandler().isEnabled()) {
+          amount = proxy.getMultiProxyHandler().getTotalPlayerCount();
+        } else {
+          amount = proxy.getPlayerCount();
+        }
+        out.writeInt(amount);
       } else {
         proxy.getServer(target).ifPresent(rs -> {
-          int playersOnServer = rs.getPlayersConnected().size();
           out.writeUTF("PlayerCount");
           out.writeUTF(rs.getServerInfo().getName());
-          out.writeInt(playersOnServer);
+
+          int amount;
+          if (proxy.getMultiProxyHandler().isEnabled()) {
+            amount = proxy.getMultiProxyHandler().getTotalPlayerCount();
+          } else {
+            amount = proxy.getPlayerCount();
+          }
+
+          out.writeInt(amount);
         });
       }
     }

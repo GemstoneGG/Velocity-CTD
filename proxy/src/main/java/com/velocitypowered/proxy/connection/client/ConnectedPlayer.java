@@ -230,7 +230,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     }
 
     this.server.getMultiProxyHandler().onPlayerLeave(this);
-    System.out.println("disconnected(), handling queue manager player leave");
     this.server.getQueueManager().onPlayerLeave(this);
   }
 
@@ -873,8 +872,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private Optional<RegisteredServer> getNextServerToTry(@Nullable final RegisteredServer current) {
     if (serversToTry == null) {
       String virtualHostStr = getVirtualHost().map(InetSocketAddress::getHostString)
-          .orElse("")
-          .toLowerCase(Locale.ROOT);
+          .orElse("");
       serversToTry = server.getConfiguration().getForcedHosts().getOrDefault(virtualHostStr,
           Collections.emptyList());
     }

@@ -21,14 +21,13 @@ import com.velocitypowered.proxy.redis.RedisPacket;
 import java.util.UUID;
 
 /**
- * Represents a packet to remove a user from a queue of a server. This is only handled by the
- * master-proxy-id as defined in the default velocity config.
+ * This packet is used to indicate a request that a player wants to view someone's ping.
  *
- * @param playerUuid The UUID of the player that's being added to the queue.
- * @param serverName The name of the server which the player is being de-queued for.
+ * @param commandSender The UUID of the player that did /ping.
+ * @param playerToCheck The UUID of the player that needs to be checked.
  */
-public record RedisQueueLeaveRequest(UUID playerUuid, String serverName, boolean command) implements RedisPacket {
-  public static final String ID = "redis-queue-leave";
+public record RedisGetPlayerPingRequest(UUID commandSender, String playerToCheck) implements RedisPacket {
+  public static final String ID = "get-player-ping";
 
   @Override
   public String getId() {

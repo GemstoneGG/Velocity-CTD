@@ -21,14 +21,17 @@ import com.velocitypowered.proxy.redis.RedisPacket;
 import java.util.UUID;
 
 /**
- * Represents a packet to remove a user from a queue of a server. This is only handled by the
+ * Represents a packet to disable the "waiting for connection" state to ensure players
+ * be attempted to re-connect. This is only handled by the
  * master-proxy-id as defined in the default velocity config.
  *
  * @param playerUuid The UUID of the player that's being added to the queue.
  * @param serverName The name of the server which the player is being de-queued for.
  */
-public record RedisQueueLeaveRequest(UUID playerUuid, String serverName, boolean command) implements RedisPacket {
-  public static final String ID = "redis-queue-leave";
+public record RedisQueueDisableWaitingForConnectionRequest(UUID playerUuid, String serverName)
+        implements RedisPacket {
+  public static final String ID = "redis-queue-disable-waiting";
+
 
   @Override
   public String getId() {

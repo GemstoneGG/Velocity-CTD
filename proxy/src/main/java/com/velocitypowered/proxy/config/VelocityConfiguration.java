@@ -44,7 +44,6 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
@@ -714,11 +713,11 @@ public final class VelocityConfiguration implements ProxyConfig {
       if (slashServersConfig != null) {
         for (UnmodifiableConfig.Entry entry : slashServersConfig.entrySet()) {
           if (entry.getValue() instanceof String) {
-            slashServers.put(entry.getKey().toLowerCase(Locale.ROOT), ImmutableList.of(entry.getValue()));
+            slashServers.put(entry.getKey(), ImmutableList.of(entry.getValue()));
           } else if (entry.getValue() instanceof List) {
             @SuppressWarnings("unchecked")
             List<String> value = ImmutableList.copyOf((List<String>) entry.getValue());
-            slashServers.put(entry.getKey().toLowerCase(Locale.ROOT), value);
+            slashServers.put(entry.getKey(), value);
           } else {
             throw new IllegalStateException(
                 "Invalid value of type " + entry.getValue().getClass() + " in slash servers!");
@@ -871,7 +870,6 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.serverForwardingModes = ImmutableMap.copyOf(serverForwardingModes);
         this.attemptConnectionOrder = config.getOrElse("try", attemptConnectionOrder)
             .stream()
-            .map(s -> s.toLowerCase(Locale.ROOT))
             .toList();
         this.enableDynamicFallbacks = config.getOrElse("enable-dynamic-fallbacks", false);
         this.enableMostPopulatedFallbacks = config.getOrElse("enable-most-populated-fallbacks", false);
@@ -926,7 +924,7 @@ public final class VelocityConfiguration implements ProxyConfig {
      * @return the cleaned server name
      */
     private String cleanServerName(final String name) {
-      return name.replace("\"", "").toLowerCase(Locale.ROOT);
+      return name.replace("\"", "");
     }
 
     @Override
@@ -955,10 +953,10 @@ public final class VelocityConfiguration implements ProxyConfig {
         Map<String, List<String>> forcedHosts = new HashMap<>();
         for (UnmodifiableConfig.Entry entry : config.entrySet()) {
           if (entry.getValue() instanceof String) {
-            forcedHosts.put(entry.getKey().toLowerCase(Locale.ROOT),
+            forcedHosts.put(entry.getKey(),
                 ImmutableList.of(entry.getValue()));
           } else if (entry.getValue() instanceof List) {
-            forcedHosts.put(entry.getKey().toLowerCase(Locale.ROOT),
+            forcedHosts.put(entry.getKey(),
                 ImmutableList.copyOf((List<String>) entry.getValue()));
           } else {
             throw new IllegalStateException(

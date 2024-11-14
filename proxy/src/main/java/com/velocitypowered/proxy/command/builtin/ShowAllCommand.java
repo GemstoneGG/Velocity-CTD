@@ -26,10 +26,12 @@ import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.Player;
-import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
@@ -40,9 +42,9 @@ import net.kyori.adventure.text.format.NamedTextColor;
  */
 public class ShowAllCommand {
 
-  private final ProxyServer server;
+  private final VelocityServer server;
 
-  public ShowAllCommand(final ProxyServer server) {
+  public ShowAllCommand(final VelocityServer server) {
     this.server = server;
   }
 
@@ -85,6 +87,10 @@ public class ShowAllCommand {
   }
 
   private int find(final CommandContext<CommandSource> context) {
+    if (server.getMultiProxyHandler().isEnabled()) {
+      return findMultiProxy(context);
+    }
+
     final String serverName = context.getArgument("server", String.class);
     final Optional<RegisteredServer> maybeServer = server.getServer(serverName);
     if (maybeServer.isEmpty()) {
@@ -94,6 +100,7 @@ public class ShowAllCommand {
     }
 
     final RegisteredServer server = maybeServer.orElse(null);
+
     final int connectedPlayers = server.getPlayersConnected().size();
 
     final Component header = Component.translatable(connectedPlayers == 0 ? "velocity.command.showall.header-none"
@@ -112,6 +119,50 @@ public class ShowAllCommand {
       } else {
         final String playerList = server.getPlayersConnected().stream()
                 .map(Player::getUsername)
+                .collect(Collectors.joining(", "));
+        message = Component.translatable("velocity.command.showall.message", NamedTextColor.WHITE,
+                Component.text(playerList));
+      }
+      context.getSource().sendMessage(message);
+    }
+    return Command.SINGLE_SUCCESS;
+  }
+
+  private int findMultiProxy(final CommandContext<CommandSource> context) {
+    final String serverName = context.getArgument("server", String.class);
+    final Optional<RegisteredServer> maybeServer = server.getServer(serverName);
+    if (maybeServer.isEmpty()) {
+      final Component errorMessage = CommandMessages.PLAYER_NOT_FOUND.arguments(Component.text(serverName));
+      context.getSource().sendMessage(errorMessage);
+      return 0;
+    }
+
+    final RegisteredServer server = maybeServer.orElse(null);
+
+    int connectedPlayers = 0;
+    List<MultiProxyHandler.RemotePlayerInfo> list = this.server.getMultiProxyHandler().getAllPlayers();
+    for (MultiProxyHandler.RemotePlayerInfo info : list) {
+      if (info.serverName.equalsIgnoreCase(server.getServerInfo().getName())) {
+        connectedPlayers += 1;
+      }
+    }
+
+
+    final Component header = Component.translatable(connectedPlayers == 0 ? "velocity.command.showall.header-none"
+                    : (connectedPlayers == 1 ? "velocity.command.showall.header-singular"
+                    : "velocity.command.showall.header-plural"), NamedTextColor.YELLOW)
+            .arguments(Component.text(connectedPlayers), Component.text(server.getServerInfo().getName()));
+
+    context.getSource().sendMessage(header);
+
+    if (connectedPlayers > 0) {
+      final Component message;
+      if (connectedPlayers == 1) {
+        message = Component.translatable("velocity.command.showall.message", NamedTextColor.WHITE,
+                Component.text(list.get(0).name));
+      } else {
+        final String playerList = list.stream()
+                .map(MultiProxyHandler.RemotePlayerInfo::getUsername)
                 .collect(Collectors.joining(", "));
         message = Component.translatable("velocity.command.showall.message", NamedTextColor.WHITE,
                 Component.text(playerList));

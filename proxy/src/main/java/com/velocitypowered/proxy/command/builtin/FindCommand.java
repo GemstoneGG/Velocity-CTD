@@ -31,6 +31,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -61,7 +62,7 @@ public class FindCommand {
         .executes(ctx -> VelocityCommands.emitUsage(ctx, "find"));
     final RequiredArgumentBuilder<CommandSource, String> playerNode = BrigadierCommand
         .requiredArgumentBuilder("player", StringArgumentType.word())
-        .suggests((ctx, builder) -> VelocityCommands.suggestPlayer(server, ctx, builder, false))
+        .suggests((ctx, builder) -> VelocityCommands.suggestPlayer(server, ctx, builder, true))
         .executes(this::find);
     rootNode.then(playerNode);
     final BrigadierCommand command = new BrigadierCommand(rootNode);
@@ -74,6 +75,10 @@ public class FindCommand {
   }
 
   private int find(final CommandContext<CommandSource> context) {
+    if (server.getMultiProxyHandler().isEnabled()) {
+      return findMultiProxy(context);
+    }
+
     final String player = context.getArgument("player", String.class);
     final Optional<Player> maybePlayer = server.getPlayer(player);
     if (maybePlayer.isEmpty()) {
@@ -104,6 +109,42 @@ public class FindCommand {
     context.getSource().sendMessage(
         Component.translatable("velocity.command.find.message", NamedTextColor.YELLOW,
             Component.text(p.getUsername()), Component.text(server.getServerInfo().getName()))
+    );
+    return Command.SINGLE_SUCCESS;
+  }
+
+  private int findMultiProxy(final CommandContext<CommandSource> context) {
+    final String player = context.getArgument("player", String.class);
+    System.out.println("player: " + player);
+    if (!server.getMultiProxyHandler().isPlayerOnline(player)) {
+      System.out.println("player is not online");
+      context.getSource().sendMessage(
+              CommandMessages.PLAYER_NOT_FOUND.arguments(Component.text(player))
+      );
+      return 0;
+    }
+
+    MultiProxyHandler.RemotePlayerInfo info = server.getMultiProxyHandler().getPlayerInfo(player);
+
+    if (info.serverName == null) {
+      context.getSource().sendMessage(
+              Component.translatable("velocity.command.find.no-server", NamedTextColor.YELLOW)
+      );
+      return 0;
+    }
+
+    RegisteredServer server = this.server.getServer(info.serverName).orElse(null);
+    if (server == null) {
+      context.getSource().sendMessage(
+              Component.translatable("velocity.command.find.no-server", NamedTextColor.YELLOW)
+      );
+      return 0;
+    }
+
+    context.getSource().sendMessage(
+            Component.translatable("velocity.command.find.message", NamedTextColor.YELLOW,
+                    Component.text(info.name), Component.text(server.getServerInfo().getName()
+                            + " (" + info.proxyId + ")"))
     );
     return Command.SINGLE_SUCCESS;
   }

@@ -154,6 +154,11 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
             serverConn.ensureConnected().write(player.getClientSettingsPacket());
           }
 
+          if (server.getMultiProxyHandler().isEnabled()) {
+            server.getMultiProxyHandler().handleServerSwitch(player.getUniqueId(),
+                    serverConn.getServerInfo().getName());
+          }
+
           // We're done! :)
           server.getEventManager().fireAndForget(new ServerPostConnectEvent(player,
               previousServer));

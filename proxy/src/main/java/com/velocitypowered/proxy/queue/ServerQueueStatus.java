@@ -89,17 +89,14 @@ public class ServerQueueStatus {
     }
 
     if (entry.waitingForConnection) {
-      System.out.println("Returning cause waiting for connection");
       return;
     }
 
     if (!velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
-      System.out.println("isn't online, removing from queue");
       queue.removeFirst();
       return;
     }
 
-    System.out.println("Sending: " + entry.player);
     entry.send();
   }
 
@@ -116,7 +113,6 @@ public class ServerQueueStatus {
     // if there's nobody to send, cancel the task (it being
     // missing will cause the next queue to be sent immediately).
     if (queue.isEmpty()) {
-      System.out.println("queue is empty");
       sendingTaskHandle.cancel();
       sendingTaskHandle = null;
       return;
@@ -204,14 +200,12 @@ public class ServerQueueStatus {
    * @return whether the player was dequeued
    */
   public boolean dequeue(final UUID player) {
-    System.out.println("attempting to dequeue: " + player);
     boolean removedAny = false;
 
     for (Iterator<ServerQueueEntry> iterator = this.queue.iterator(); iterator.hasNext(); ) {
       ServerQueueEntry entry = iterator.next();
 
       if (entry.player.equals(player)) {
-        System.out.println("removing entry: " + player);
         iterator.remove();
         removedAny = true;
       }

@@ -91,6 +91,10 @@ public class MultiProxyHandler {
       this.uuid = uuid;
       this.name = name;
     }
+
+    public String getUsername() {
+      return this.name;
+    }
   }
 
   /**
@@ -352,6 +356,17 @@ public class MultiProxyHandler {
   }
 
   /**
+   * Handles server switching, updating the stored server connection.
+   *
+   * @param player The UUID of the player.
+   * @param serverName The name of the server the player is connecting to.
+   */
+  public void handleServerSwitch(UUID player, String serverName) {
+    this.server.getRedisManager().send(new RedisPlayerServerChange(getOwnProxyId(),
+            player, serverName));
+  }
+
+  /**
    * Handles the event when a player joins the proxy.
    * Sends a {@link RedisPlayerJoinUpdate} to notify other proxies in the multi-proxy setup.
    *
@@ -489,6 +504,38 @@ public class MultiProxyHandler {
   }
 
   /**
+   * Get the connected players information, if it exists.
+   * Can be quite resource extensive, so use with caution.
+   *
+   * @param uuid The UUID of the player to fetch.
+   * @return the {@link RemotePlayerInfo} of the player, or null.
+   */
+  public RemotePlayerInfo getPlayerInfo(UUID uuid) {
+    for (RemotePlayerInfo info : getAllPlayers()) {
+      if (info.uuid.equals(uuid)) {
+        return info;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Get the connected players information, if it exists.
+   * Can be quite resource extensive, so use with caution.
+   *
+   * @param username The username of the player to fetch.
+   * @return the {@link RemotePlayerInfo} of the player, or null.
+   */
+  public RemotePlayerInfo getPlayerInfo(String username) {
+    for (RemotePlayerInfo info : getAllPlayers()) {
+      if (info.name.equals(username)) {
+        return info;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Checks if the player is still connected to any proxy on the network.
    *
    * @param uuid The UUID of the player.
@@ -511,6 +558,40 @@ public class MultiProxyHandler {
     }
 
     return false;
+  }
+
+  /**
+   * Checks if the player is still connected to any proxy on the network.
+   *
+   * @param username The username of the player.
+   *
+   * @return Whether the player is connected to any proxy or not.
+   */
+  public boolean isPlayerOnline(String username) {
+    for (Player player : server.getAllPlayers()) {
+      if (player.getUsername().equalsIgnoreCase(username)) {
+        return true;
+      }
+    }
+
+    for (OtherProxy proxy : seenProxies.values()) {
+      for (RemotePlayerInfo info : proxy.players) {
+        if (info.name.equals(username)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Alerts all servers on every proxy.
+   *
+   * @param component The component to broadcast on all servers.
+   */
+  public void alert(Component component) {
+    server.getRedisManager().send(new RedisServerAlertRequest(component));
   }
 
   /**

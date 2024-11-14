@@ -84,8 +84,12 @@ public final class ServerCommand {
                 return -1;
               }
 
-              System.out.println("Queueing (In server command): " + player.getUsername() + " to: "
-                      + registeredServer.getServerInfo().getName());
+              if (this.server.getConfiguration().getQueue().getNoQueueServers()
+                      .contains(registeredServer.getServerInfo().getName()) || !server.getMultiProxyHandler().isEnabled()) {
+                player.createConnectionRequest(registeredServer).connectWithIndication();
+                return Command.SINGLE_SUCCESS;
+              }
+
               server.getQueueManager().queue(player, registeredServer);
               return Command.SINGLE_SUCCESS;
             })

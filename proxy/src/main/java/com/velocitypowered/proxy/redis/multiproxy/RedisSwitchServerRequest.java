@@ -18,17 +18,16 @@
 package com.velocitypowered.proxy.redis.multiproxy;
 
 import com.velocitypowered.proxy.redis.RedisPacket;
-import java.util.UUID;
 
 /**
- * Represents a packet to remove a user from a queue of a server. This is only handled by the
- * master-proxy-id as defined in the default velocity config.
+ * Constructs a packet to send to redis to get the corresponding proxy to send the player
+ * to a new server.
  *
- * @param playerUuid The UUID of the player that's being added to the queue.
- * @param serverName The name of the server which the player is being de-queued for.
+ * @param username The username of the player.
+ * @param server The server to send the player to.
  */
-public record RedisQueueLeaveRequest(UUID playerUuid, String serverName, boolean command) implements RedisPacket {
-  public static final String ID = "redis-queue-leave";
+public record RedisSwitchServerRequest(String username, String server) implements RedisPacket {
+  public static final String ID = "switch-server";
 
   @Override
   public String getId() {
