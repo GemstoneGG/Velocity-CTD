@@ -221,6 +221,11 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
       loginState = State.ACKNOWLEDGED;
       mcConnection.setActiveSessionHandler(StateRegistry.CONFIG, new ClientConfigSessionHandler(server, connectedPlayer));
 
+      if (!this.server.getConfiguration().getServerLinks().isEmpty()) {
+        if (connectedPlayer.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_21)) {
+          connectedPlayer.setServerLinks(this.server.getConfiguration().getServerLinks());
+        }
+      }
       server.getEventManager()
           .fire(new PostLoginEvent(connectedPlayer))
           .thenCompose(ignored -> connectToInitialServer(connectedPlayer))
@@ -260,6 +265,8 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
             DisconnectEvent.LoginStatus.CANCELLED_BY_USER_BEFORE_COMPLETE));
         return;
       }
+
+
 
       Optional<Component> reason = event.getResult().getReasonComponent();
       if (reason.isPresent()) {

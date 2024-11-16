@@ -139,7 +139,6 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.NotNull;
 
-
 /**
  * Represents a player that is connected to the proxy.
  */
@@ -1155,6 +1154,23 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
     connection.write(new ClientboundServerLinksPacket(List.copyOf(links).stream()
         .map(l -> new ClientboundServerLinksPacket.ServerLink(l, getProtocolVersion())).toList()));
+  }
+
+  @Override
+  public int getQueuePriority(String serverName) {
+    for (int i = 100; i > 0; i--) {
+      if (hasPermission("velocity.queue.priority." + serverName + "." + i)) {
+        return i;
+      }
+    }
+
+    for (int i = 100; i > 0; i--) {
+      if (hasPermission("velocity.queue.priority.all." + i)) {
+        return i;
+      }
+    }
+
+    return 0;
   }
 
   @Override

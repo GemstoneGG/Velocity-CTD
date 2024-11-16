@@ -18,19 +18,16 @@
 package com.velocitypowered.proxy.redis.multiproxy;
 
 import com.velocitypowered.proxy.redis.RedisPacket;
-import java.util.UUID;
 
 /**
- * Represents a packet to add a user to a queue of a server. This is only handled by the
- * master-proxy-id as defined in the default velocity config.
+ * Constructs a request to pause a queue.
  *
- * @param playerUuid The UUID of the player that's being added to the queue.
- * @param serverName The name of the server which the player is being queued for.
- * @param priority The priority at which the player will be added to the queue.
+ * @param server The name of the server.
+ * @param pause Whether to pause it or not.
  */
-public record RedisQueueAddRequest(UUID playerUuid, String serverName, int priority)
+public record RedisQueuePauseRequest(String server, boolean pause)
         implements RedisPacket {
-  public static final String ID = "redis-queue-add";
+  public static final String ID = "redis-queue-pause";
 
   @Override
   public String getId() {

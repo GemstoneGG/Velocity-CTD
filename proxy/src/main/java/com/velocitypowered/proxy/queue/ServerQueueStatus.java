@@ -61,6 +61,15 @@ public class ServerQueueStatus {
     this.reloadConfig();
   }
 
+  /**
+   * Stops the queue.
+   */
+  public void stop() {
+    if (sendingTaskHandle != null) {
+      sendingTaskHandle.cancel();
+    }
+  }
+
   private void rescheduleTimerTask() {
     if (this.sendingTaskHandle != null) {
       this.sendingTaskHandle.cancel();
@@ -171,8 +180,9 @@ public class ServerQueueStatus {
    * Queues a player onto this server.
    *
    * @param playerUuid the UUID of the player to queue
+   * @param priority The priority with which the player should be added.
    */
-  public void queue(final UUID playerUuid) {
+  public void queue(final UUID playerUuid, final int priority) {
     if (!config.isEnabled()) {
       Player player = server.getPlayer(playerUuid);
       if (player != null) {
@@ -184,13 +194,53 @@ public class ServerQueueStatus {
       return;
     }
 
-    ServerQueueEntry entry = new ServerQueueEntry(playerUuid, this.server, this.velocityServer);
-    this.queue.add(entry);
+    ServerQueueEntry entry = new ServerQueueEntry(playerUuid, this.server, this.velocityServer, priority);
+
+    System.out.println("priority: " + priority);
+
+    synchronized (queue) {
+      var iterator = queue.iterator();
+      boolean inserted = false;
+      int position = 0;
+
+      while (iterator.hasNext()) {
+        ServerQueueEntry currentEntry = iterator.next();
+
+        System.out.println("entry: " + currentEntry.player + " priority: " + currentEntry.priority);
+
+        if (currentEntry.priority < priority) {
+          insertAtPosition(entry, position);
+          inserted = true;
+          break;
+        }
+        position++;
+      }
+
+      if (!inserted) {
+        queue.addLast(entry);
+      }
+    }
 
     if (this.sendingTaskHandle == null) {
       sendFirstInQueue();
       this.rescheduleTimerTask();
     }
+  }
+
+  private void insertAtPosition(ServerQueueEntry newEntry, int position) {
+    var tempQueue = new ConcurrentLinkedDeque<ServerQueueEntry>();
+    int index = 0;
+
+    for (ServerQueueEntry entry : queue) {
+      if (index == position) {
+        tempQueue.add(newEntry);
+      }
+      tempQueue.add(entry);
+      index++;
+    }
+
+    queue.clear();
+    queue.addAll(tempQueue);
   }
 
   /**

@@ -101,16 +101,15 @@ public class HubCommand {
       TranslatableComponent fallbackMessage = Component.translatable("velocity.error.connecting-server-error")
           .arguments(Component.text(serverToTry.getServerInfo().getName()));
 
-      System.out.println("no queue servers: "
-              + this.server.getConfiguration().getQueue().getNoQueueServers());
-      System.out.println("server to try: " + serverToTry.getServerInfo().getName());
       if (this.server.getConfiguration().getQueue().getNoQueueServers()
-              .contains(serverToTry.getServerInfo().getName()) || !server.getMultiProxyHandler().isEnabled()) {
+              .contains(serverToTry.getServerInfo().getName()) || !server.getMultiProxyHandler().isEnabled()
+              || player.hasPermission("velocity.queue.bypass")) {
         player.createConnectionRequest(serverToTry).connectWithIndication();
         return Command.SINGLE_SUCCESS;
       }
 
-      ((VelocityRegisteredServer) serverToTry).getQueueStatus().queue(player.getUniqueId());
+      ((VelocityRegisteredServer) serverToTry).getQueueStatus().queue(player.getUniqueId(),
+              player.getQueuePriority(serverToTry.getServerInfo().getName()));
 
 
       return Command.SINGLE_SUCCESS;

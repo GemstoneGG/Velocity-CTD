@@ -92,7 +92,8 @@ public final class ServerCommand {
               }
 
               if (this.server.getConfiguration().getQueue().getNoQueueServers()
-                      .contains(registeredServer.getServerInfo().getName()) || !server.getMultiProxyHandler().isEnabled()) {
+                      .contains(registeredServer.getServerInfo().getName()) || !server.getMultiProxyHandler().isEnabled()
+                      || player.hasPermission("velocity.queue.bypass")) {
                 player.createConnectionRequest(registeredServer).connectWithIndication();
                 return Command.SINGLE_SUCCESS;
               }

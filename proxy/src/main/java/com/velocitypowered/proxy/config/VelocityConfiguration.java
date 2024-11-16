@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.gson.annotations.Expose;
 import com.velocitypowered.api.proxy.config.ProxyConfig;
 import com.velocitypowered.api.util.Favicon;
+import com.velocitypowered.api.util.ServerLink;
 import com.velocitypowered.proxy.config.migration.ConfigurationMigration;
 import com.velocitypowered.proxy.config.migration.ForwardingMigration;
 import com.velocitypowered.proxy.config.migration.KeyAuthenticationMigration;
@@ -121,6 +122,8 @@ public final class VelocityConfiguration implements ProxyConfig {
   private String minimumVersion = "1.7.2";
   @Expose
   private Map<String, List<String>> slashServers = new HashMap<>();
+  @Expose
+  private List<ServerLink> serverLinks = new ArrayList<>();
 
   private VelocityConfiguration(final Servers servers, final ForcedHosts forcedHosts, final Commands commands,
       final Advanced advanced, final Query query, final Metrics metrics, final Redis redis, final Queue queue) {
@@ -144,7 +147,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       final boolean logPlayerConnections, final boolean logPlayerDisconnections,
       final boolean logOfflineConnections, final boolean disableForge, final boolean enforceChatSigning,
       final boolean translateHeaderFooter, final boolean logMinimumVersion, final String minimumVersion,
-      final Redis redis, final Queue queue, final Map<String, List<String>> slashServers) {
+      final Redis redis, final Queue queue, final Map<String, List<String>> slashServers, List<ServerLink> serverLinks) {
     this.bind = bind;
     this.motd = motd;
     this.motdHover = motdHover;
@@ -175,6 +178,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     this.redis = redis;
     this.queue = queue;
     this.slashServers = slashServers;
+    this.serverLinks = serverLinks;
   }
 
   /**
@@ -582,6 +586,10 @@ public final class VelocityConfiguration implements ProxyConfig {
     return slashServers;
   }
 
+  public List<ServerLink> getServerLinks() {
+    return serverLinks;
+  }
+
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
@@ -691,6 +699,8 @@ public final class VelocityConfiguration implements ProxyConfig {
       final CommentedConfig metricsConfig = config.get("metrics");
       final CommentedConfig redisConfig = config.get("redis");
       final CommentedConfig queueConfig = config.get("queue");
+      final CommentedConfig serverLinksConfig = config.get("server-links");
+
       final PlayerInfoForwarding forwardingMode = config.getEnumOrElse(
               "player-info-forwarding-mode", PlayerInfoForwarding.NONE);
       final PingPassthroughMode pingPassthroughMode = config.getEnumOrElse("ping-passthrough",
@@ -739,6 +749,17 @@ public final class VelocityConfiguration implements ProxyConfig {
         }
       }
 
+      final List<ServerLink> links = new ArrayList<>();
+
+      if (serverLinksConfig != null) {
+        for (CommentedConfig.Entry entry : serverLinksConfig.entrySet()) {
+          CommentedConfig link = entry.getValue();
+          links.add(ServerLink.serverLink(MiniMessage.miniMessage().deserialize(link.get("label")),
+                  link.get("link")));
+
+        }
+      }
+
       // Throw an exception if the forwarding-secret file is empty and the proxy is using a
       // forwarding mode that requires it.
       if (forwardingSecret.length == 0
@@ -777,7 +798,8 @@ public final class VelocityConfiguration implements ProxyConfig {
               minimumVersion,
               new Redis(redisConfig),
               new Queue(queueConfig),
-              slashServers
+              slashServers,
+              links
       );
     }
   }

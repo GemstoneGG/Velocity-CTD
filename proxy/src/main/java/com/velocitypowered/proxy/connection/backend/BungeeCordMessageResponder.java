@@ -77,7 +77,11 @@ public class BungeeCordMessageResponder {
     String serverName = in.readUTF();
     proxy.getServer(serverName).ifPresent(server -> {
       if (queue) {
-        proxy.getQueueManager().queue(player, (VelocityRegisteredServer) server);
+        if (player.hasPermission("velocity.queue.bypass")) {
+          player.createConnectionRequest(server).connectWithIndication();
+        } else {
+          proxy.getQueueManager().queue(player, (VelocityRegisteredServer) server);
+        }
       } else {
         player.createConnectionRequest(server).fireAndForget();
       }
@@ -92,7 +96,11 @@ public class BungeeCordMessageResponder {
     Optional<RegisteredServer> referencedServer = proxy.getServer(serverName);
     if (referencedPlayer.isPresent() && referencedServer.isPresent()) {
       if (queue) {
-        proxy.getQueueManager().queue(player, (VelocityRegisteredServer) referencedServer.get());
+        if (referencedPlayer.get().hasPermission("velocity.queue.bypass")) {
+          proxy.getQueueManager().queue(player, (VelocityRegisteredServer) referencedServer.get());
+        } else {
+          referencedPlayer.get().createConnectionRequest(referencedServer.get()).fireAndForget();
+        }
       } else {
         referencedPlayer.get().createConnectionRequest(referencedServer.get()).fireAndForget();
       }

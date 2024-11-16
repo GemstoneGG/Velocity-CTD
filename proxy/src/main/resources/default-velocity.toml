@@ -398,3 +398,21 @@ send-all-users-back-when-online = false
 # If true, players that are sent via the BungeeCord Messaging channels are queued if the server has queueing enabled.
 # If false, they will bypass the queue and be sent directly to the backend.
 override-bungee-messaging = true
+
+
+[server-links]
+
+[server-links.1]
+link = "https://store.jackpotmc.com"
+label = "#FF0000Store"
+
+[server-links.2]
+link = "discord.gg/jackpotmc"
+label = "#00FF00Discord"
+
+
+[proxy-addresses]
+
+[proxy-addresses.1]
+proxy-id = "Proxy-1"
+

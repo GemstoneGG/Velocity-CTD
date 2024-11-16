@@ -19,21 +19,25 @@ package com.velocitypowered.proxy.redis.multiproxy;
 
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.builtin.VelocityCommand;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
+import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -78,6 +82,7 @@ public class MultiProxyHandler {
     public final String proxyId;
     public final UUID uuid;
     public final String name;
+    public final Map<String, Integer> queuePriority;
     public String serverName = null;
 
     /**
@@ -86,10 +91,11 @@ public class MultiProxyHandler {
      * @param uuid the player's unique identifier
      * @param name the player's name
      */
-    public RemotePlayerInfo(final String proxyId, final UUID uuid, final String name) {
+    public RemotePlayerInfo(final String proxyId, final UUID uuid, final String name, Map<String, Integer> queuePriority) {
       this.proxyId = proxyId;
       this.uuid = uuid;
       this.name = name;
+      this.queuePriority = queuePriority;
     }
 
     public String getUsername() {
@@ -128,6 +134,7 @@ public class MultiProxyHandler {
     }
 
     RedisManagerImpl redisManager = this.server.getRedisManager();
+
 
     redisManager.listen(RedisProxyIdAnnouncement.ID, RedisProxyIdAnnouncement.class, it -> {
       if (it.wantsReply()) {
@@ -189,6 +196,20 @@ public class MultiProxyHandler {
       }
 
       proxy.status = ProxyStatus.SHUTDOWN;
+      seenProxies.remove(it.proxyId());
+
+      if (this.server.getQueueManager().isMasterProxy()) {
+        this.server.getQueueManager().schedulePingingBackend();
+        this.server.getQueueManager().scheduleTickMessage();
+      }
+    });
+
+    redisManager.listen(RedisStartupRequest.ID, RedisStartupRequest.class, it -> {
+      this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+        if (!this.server.getQueueManager().isMasterProxy()) {
+          this.server.getQueueManager().clearQueue();
+        }
+      }).delay(3, TimeUnit.SECONDS).schedule();
     });
 
     redisManager.listen(RedisGenericReplyRequest.ID, RedisGenericReplyRequest.class, it -> {
@@ -265,6 +286,7 @@ public class MultiProxyHandler {
 
     // solicit the ID of all other proxies
     redisManager.send(new RedisProxyIdAnnouncement(this.config.getProxyId(), true, List.of()));
+    redisManager.send(new RedisStartupRequest(config.getProxyId()));
     this.lastPingSent = Instant.now();
   }
 
@@ -272,8 +294,18 @@ public class MultiProxyHandler {
     Collection<Player> players = this.server.getAllPlayers();
     List<RemotePlayerInfo> playerInfos = new ArrayList<>(players.size());
 
+
+
     for (Player player : players) {
-      RemotePlayerInfo playerInfo = new RemotePlayerInfo(this.getOwnProxyId(), player.getUniqueId(), player.getUsername());
+      Map<String, Integer> queuePriorities = new HashMap<>();
+
+      for (RegisteredServer s : this.server.getAllServers()) {
+        queuePriorities.put(s.getServerInfo().getName(), player.getQueuePriority(s.getServerInfo().getName()));
+      }
+      queuePriorities.put("all", player.getQueuePriority("all"));
+
+      RemotePlayerInfo playerInfo = new RemotePlayerInfo(this.getOwnProxyId(), player.getUniqueId(), player.getUsername(),
+              queuePriorities);
       player.getCurrentServer()
           .ifPresent(serverConnection -> playerInfo.serverName = serverConnection.getServerInfo().getName());
 
@@ -390,8 +422,16 @@ public class MultiProxyHandler {
       }
     }
 
+    Map<String, Integer> queuePriorities = new HashMap<>();
+
+    for (RegisteredServer s : this.server.getAllServers()) {
+      queuePriorities.put(s.getServerInfo().getName(), player.getQueuePriority(s.getServerInfo().getName()));
+    }
+    queuePriorities.put("all", player.getQueuePriority("all"));
+
     this.server.getRedisManager().send(new RedisPlayerJoinUpdate(new RemotePlayerInfo(
-        this.config.getProxyId(), player.getUniqueId(), player.getUsername())));
+        this.config.getProxyId(), player.getUniqueId(), player.getUsername(),
+            queuePriorities)));
     return false;
   }
 

@@ -80,20 +80,13 @@ public class LeaveQueueCommand {
 
   private int leaveAllQueues(final CommandContext<CommandSource> ctx) {
     if (ctx.getSource() instanceof Player player) {
-      boolean leftAny = false;
 
       for (RegisteredServer server : this.server.getAllServers()) {
-        VelocityRegisteredServer registeredServer = (VelocityRegisteredServer) server;
-        if (registeredServer.getQueueStatus().dequeue(player.getUniqueId())) {
-          leftAny = true;
-        }
+        this.server.getRedisManager().send(new RedisQueueLeaveRequest(player.getUniqueId(),
+                server.getServerInfo().getName(), false));
       }
 
-      if (leftAny) {
-        player.sendMessage(Component.translatable("velocity.queue.command.left-queue.all"));
-      } else {
-        player.sendMessage(Component.translatable("velocity.queue.error.not-in-queue.all"));
-      }
+      player.sendMessage(Component.translatable("velocity.queue.command.left-queue.all"));
 
       return Command.SINGLE_SUCCESS;
     } else {

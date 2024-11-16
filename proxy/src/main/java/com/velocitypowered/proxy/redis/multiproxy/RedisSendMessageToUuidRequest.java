@@ -36,7 +36,7 @@ public record RedisSendMessageToUuidRequest(UUID player, String componentJson)
 
   private static final Logger logger = LoggerFactory.getLogger(RedisSendMessage.class);
   private static final GsonComponentSerializer SERIALIZER = GsonComponentSerializer.gson();
-  public static final String ID = "send-message";
+  public static final String ID = "send-message-uuid";
 
   /**
    * Sends a message to a target. Encodes the given component as JSON text.

@@ -475,4 +475,17 @@ public interface Player extends
    * @since Minecraft 1.21
    */
   void setServerLinks(@NotNull List<ServerLink> links);
+
+
+  /**
+   * Gets the custom queue priority in case they have one.
+   * If player does not have custom queue priority for specified server,
+   * global priority is checked. If the player doesn't have a global priority
+   * either, 0 is returned.
+   *
+   * @param server The server to check priority for
+   *
+   * @return Custom queue priority of player, or 0.
+   */
+  int getQueuePriority(String server);
 }

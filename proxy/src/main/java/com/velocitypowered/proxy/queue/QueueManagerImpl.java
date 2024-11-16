@@ -29,12 +29,14 @@ import com.velocitypowered.proxy.redis.multiproxy.RedisQueueAddRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueAlreadyJoinedRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueDisableWaitingForConnectionRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueLeaveRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisQueuePauseRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendStatusRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendActionBarRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +55,8 @@ public class QueueManagerImpl {
   // Map of servers connected to its queue status.
   private final Map<String, ServerQueueStatus> serverQueues = new HashMap<>();
 
+  private boolean enabled;
+
   /**
    * Constructs a {@link QueueManagerImpl}.
    *
@@ -62,6 +66,7 @@ public class QueueManagerImpl {
     this.server = server;
     config = server.getConfiguration().getQueue();
 
+    enabled = config.isEnabled();
     if (!config.isEnabled()) {
       return;
     }
@@ -90,7 +95,7 @@ public class QueueManagerImpl {
         return;
       }
 
-      status.queue(it.playerUuid());
+      status.queue(it.playerUuid(), it.priority());
     });
 
     redisManager.listen(RedisQueueLeaveRequest.ID, RedisQueueLeaveRequest.class, it -> {
@@ -225,6 +230,13 @@ public class QueueManagerImpl {
         }
       });
     });
+
+    redisManager.listen(RedisQueuePauseRequest.ID, RedisQueuePauseRequest.class, it -> {
+      ServerQueueStatus status = getQueue(it.server());
+      if (status != null) {
+        status.setPaused(it.pause());
+      }
+    });
   }
 
   /**
@@ -252,34 +264,39 @@ public class QueueManagerImpl {
     List<String> masterProxies = this.server.getConfiguration().getQueue().getMasterProxyIds();
     List<String> activeProxies = new ArrayList<>(this.server.getMultiProxyHandler()
             .getAllProxyIds().stream().toList());
+    Collections.sort(activeProxies);
+
+    activeProxies.retainAll(masterProxies);
+
+
+    System.out.println("master proxies: " + masterProxies);
+    System.out.println("active proxies: " + activeProxies);
     String ownProxy = this.server.getMultiProxyHandler().getOwnProxyId();
+    System.out.println("own proxy: " + ownProxy);
 
-    int index = -1;
-
-    for (int i = 0; i < masterProxies.size(); i++) {
-      if (masterProxies.get(i).equalsIgnoreCase(ownProxy)) {
-        index = i;
-      }
-    }
+    String firstMasterProxy = null;
 
     for (String activeProxy : activeProxies) {
-      for (int j = 0; j < masterProxies.size(); j++) {
-        if (activeProxy.equalsIgnoreCase(ownProxy)) {
-          continue;
-        }
-
-        if (activeProxy.equalsIgnoreCase(masterProxies.get(j))) {
-          if (index > j) {
-            return false;
-          }
-        }
+      if (masterProxies.contains(activeProxy)) {
+        firstMasterProxy = activeProxy;
+        break;
       }
     }
 
-    return true;
+    if (firstMasterProxy != null && firstMasterProxy.equalsIgnoreCase(ownProxy)) {
+      int ownIndex = masterProxies.indexOf(ownProxy);
+      int firstIndex = masterProxies.indexOf(firstMasterProxy);
+
+      return ownIndex != -1 && ownIndex == firstIndex;
+    }
+
+    return false;
   }
 
-  private void scheduleTickMessage() {
+  /**
+   * Schedule the ticking message task for queues.
+   */
+  public void scheduleTickMessage() {
     if (this.tickMessageTaskHandle != null) {
       this.tickMessageTaskHandle.cancel();
     }
@@ -290,7 +307,10 @@ public class QueueManagerImpl {
         .schedule();
   }
 
-  private void schedulePingingBackend() {
+  /**
+   * Schedule the pinging the backend servers task for queues.
+   */
+  public void schedulePingingBackend() {
     if (this.tickPingingBackendTaskHandle != null) {
       this.tickPingingBackendTaskHandle.cancel();
     }
@@ -349,9 +369,13 @@ public class QueueManagerImpl {
    * @param server The server to queue into
    */
   public void queue(Player player, VelocityRegisteredServer server) {
+    if (!enabled || player.hasPermission("velocity.queue.bypass")) {
+      player.createConnectionRequest(server).connectWithIndication();
+      return;
+    }
     System.out.println("sending add request to redis for: " + player.getUsername());
     this.server.getRedisManager().send(new RedisQueueAddRequest(player.getUniqueId(),
-            server.getServerInfo().getName()));
+            server.getServerInfo().getName(), player.getQueuePriority(server.getServerInfo().getName())));
   }
 
   /**
@@ -363,6 +387,23 @@ public class QueueManagerImpl {
         this.server.getRedisManager().send(new RedisSendActionBarRequest(player,
                 status.getActionBarComponent(entry)));
       });
+    }
+  }
+
+  /**
+   * Clears all the queues.
+   */
+  public void clearQueue() {
+    for (ServerQueueStatus status : this.serverQueues.values()) {
+      status.stop();
+    }
+
+    if (tickMessageTaskHandle != null) {
+      tickMessageTaskHandle.cancel();
+    }
+
+    if (tickPingingBackendTaskHandle != null) {
+      tickPingingBackendTaskHandle.cancel();
     }
   }
 }
