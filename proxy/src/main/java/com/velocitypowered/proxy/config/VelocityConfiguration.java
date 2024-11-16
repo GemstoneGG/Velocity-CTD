@@ -68,6 +68,8 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Expose
   private String motd = "<aqua>A Velocity Server";
   @Expose
+  private List<String> motdHover = List.of("");
+  @Expose
   private int showMaxPlayers = 500;
   @Expose
   private boolean onlineMode = true;
@@ -132,7 +134,8 @@ public final class VelocityConfiguration implements ProxyConfig {
     this.queue = queue;
   }
 
-  private VelocityConfiguration(final String bind, final String motd, final int showMaxPlayers, final boolean onlineMode,
+  private VelocityConfiguration(final String bind, final String motd, final List<String> motdHover,
+                                final int showMaxPlayers, final boolean onlineMode,
       final boolean preventClientProxyConnections, final boolean announceForge,
       final PlayerInfoForwarding playerInfoForwardingMode, final byte[] forwardingSecret,
       final boolean onlineModeKickExistingPlayers, final PingPassthroughMode pingPassthrough,
@@ -144,6 +147,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       final Redis redis, final Queue queue, final Map<String, List<String>> slashServers) {
     this.bind = bind;
     this.motd = motd;
+    this.motdHover = motdHover;
     this.showMaxPlayers = showMaxPlayers;
     this.onlineMode = onlineMode;
     this.preventClientProxyConnections = preventClientProxyConnections;
@@ -357,6 +361,10 @@ public final class VelocityConfiguration implements ProxyConfig {
     return motdAsComponent;
   }
 
+  public List<String> getMotdHover() {
+    return this.motdHover;
+  }
+
   @Override
   public int getShowMaxPlayers() {
     return showMaxPlayers;
@@ -538,6 +546,10 @@ public final class VelocityConfiguration implements ProxyConfig {
     return advanced.getFallbackVersionPing();
   }
 
+  public boolean getAlwaysFallBackPing() {
+    return advanced.getAlwaysFallBackPing();
+  }
+
   public String getProxyBrandCustom() {
     return advanced.getProxyBrandCustom();
   }
@@ -575,6 +587,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     return MoreObjects.toStringHelper(this)
         .add("bind", bind)
         .add("motd", motd)
+        .add("motdHover", motdHover)
         .add("showMaxPlayers", showMaxPlayers)
         .add("onlineMode", onlineMode)
         .add("playerInfoForwardingMode", playerInfoForwardingMode)
@@ -667,6 +680,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
       final byte[] forwardingSecret = forwardingSecretString.getBytes(StandardCharsets.UTF_8);
       final String motd = config.getOrElse("motd", "<#09add3>A Velocity Server");
+      final List<String> motdHover = config.getOrElse("motd-hover", new ArrayList<>());
 
       // Read the rest of the config
       final CommentedConfig serversConfig = config.get("servers");
@@ -736,6 +750,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       return new VelocityConfiguration(
               bind,
               motd,
+              motdHover,
               maxPlayers,
               onlineMode,
               preventClientProxyConnections,
@@ -1127,6 +1142,8 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private String fallbackVersionPing = "{proxy-brand} {protocol-min}-{protocol-max}";
     @Expose
+    private boolean alwaysFallBackPing = true;
+    @Expose
     private String proxyBrandCustom = "Velocity";
     @Expose
     private String backendBrandCustom = "Paper";
@@ -1157,6 +1174,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.allowIllegalCharactersInChat = config.getOrElse("allow-illegal-characters-in-chat", false);
         this.serverBrand = config.getOrElse("server-brand", "{backend-brand} ({proxy-brand})");
         this.fallbackVersionPing = config.getOrElse("fallback-version-ping", "{proxy-brand} {protocol-min}-{protocol-max}");
+        this.alwaysFallBackPing = config.getOrElse("always-fallback-ping", false);
         this.proxyBrandCustom = config.getOrElse("custom-brand-proxy", "Velocity");
         this.backendBrandCustom = config.getOrElse("custom-brand-backend", "Paper");
       }
@@ -1229,6 +1247,11 @@ public final class VelocityConfiguration implements ProxyConfig {
     public String getFallbackVersionPing() {
       return this.fallbackVersionPing;
     }
+
+    public boolean getAlwaysFallBackPing() {
+      return this.alwaysFallBackPing;
+    }
+
 
     public String getProxyBrandCustom() {
       return this.proxyBrandCustom;

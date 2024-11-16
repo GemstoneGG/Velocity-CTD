@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import net.kyori.adventure.text.Component;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -399,8 +400,8 @@ public final class ServerPing {
     @Override
     public String toString() {
       return "Players{"
-          + "online=" + online
-          + ", max=" + max
+          + "online='" + online + "'"
+          + ", max='" + max + "'"
           + ", sample=" + sample
           + '}';
     }
@@ -414,7 +415,7 @@ public final class ServerPing {
         return false;
       }
       Players players = (Players) o;
-      return online == players.online && max == players.max
+      return Objects.equals(online, players.online) && Objects.equals(max, players.max)
           && Objects.equals(sample, players.sample);
     }
 
@@ -429,15 +430,15 @@ public final class ServerPing {
    */
   public static final class SamplePlayer {
 
-    private final String name;
+    private final Component name;
     private final UUID id;
 
-    public SamplePlayer(final String name, final UUID id) {
+    public SamplePlayer(final Component name, final UUID id) {
       this.name = name;
       this.id = id;
     }
 
-    public String getName() {
+    public Component getName() {
       return name;
     }
 
@@ -448,7 +449,7 @@ public final class ServerPing {
     @Override
     public String toString() {
       return "SamplePlayer{"
-          + "name='" + name + '\''
+          + "name=" + name
           + ", id=" + id
           + '}';
     }
@@ -462,12 +463,12 @@ public final class ServerPing {
         return false;
       }
       SamplePlayer that = (SamplePlayer) o;
-      return Objects.equals(name, that.name) && Objects.equals(id, that.id);
+      return Objects.equals(id, that.id);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(name, id);
+      return Objects.hash(id);
     }
   }
 }

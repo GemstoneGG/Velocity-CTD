@@ -131,6 +131,11 @@ public class SendCommand {
     );
   }
 
+  /**
+   * Handles registering the command in case of a Multi Proxy system.
+   *
+   * @param isSendEnabled Whether the command is enabled or not.
+   */
   public void registerMultiProxy(final boolean isSendEnabled) {
     if (!isSendEnabled) {
       return;

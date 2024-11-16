@@ -317,6 +317,10 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       }
     }
 
+    redisManager = new RedisManagerImpl(this);
+    multiProxyHandler = new MultiProxyHandler(this);
+    queueManager = new QueueManagerImpl(this);
+
     registerCommands();
     registerTranslations(true);
 
@@ -356,9 +360,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       logger.warn("debug environment, metrics is disabled!");
     }
 
-    redisManager = new RedisManagerImpl(this);
-    multiProxyHandler = new MultiProxyHandler(this);
-    queueManager = new QueueManagerImpl(this);
+
   }
 
   private void unregisterTranslations() {

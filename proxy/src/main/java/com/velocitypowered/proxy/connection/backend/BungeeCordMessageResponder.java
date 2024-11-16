@@ -31,6 +31,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
 import com.velocitypowered.proxy.protocol.util.ByteBufDataInput;
 import com.velocitypowered.proxy.protocol.util.ByteBufDataOutput;
+import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.netty.buffer.ByteBuf;
@@ -129,11 +130,15 @@ public class BungeeCordMessageResponder {
           out.writeUTF("PlayerCount");
           out.writeUTF(rs.getServerInfo().getName());
 
-          int amount;
+          int amount = 0;
           if (proxy.getMultiProxyHandler().isEnabled()) {
-            amount = proxy.getMultiProxyHandler().getTotalPlayerCount();
+            for (MultiProxyHandler.RemotePlayerInfo info : proxy.getMultiProxyHandler().getAllPlayers()) {
+              if (info.serverName.equalsIgnoreCase(rs.getServerInfo().getName())) {
+                amount++;
+              }
+            }
           } else {
-            amount = proxy.getPlayerCount();
+            amount = rs.getPlayersConnected().size();
           }
 
           out.writeInt(amount);

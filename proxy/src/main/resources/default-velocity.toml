@@ -8,6 +8,13 @@ bind = "0.0.0.0:25565"
 # their server list. Only MiniMessage format is accepted.
 motd = "<#ff3a4c>A Velocity Server"
 
+motd-hover = [
+    "<#084CFB>r<#175BFB>o<#266AFB>o<#357AFC>o<#4489FC>t<#5398FC>b<#62A7FC>e<#71B6FC>e<#80C5FC>e<#8FD5FD>e<#9EE4FD>e<#ADF3FD>r",
+    "<#084CFB>i<#2064FB>s<#377CFC>s<#4F94FC>s<#66ABFC>s<#7EC3FC>s<#95DBFD>s<#ADF3FD>s",
+    "<#FB0808>a<#EE2F31>a<#E1565A>a<#D47E83>a<#C7A5AB>a<#BACCD4>a<#ADF3FD>a",
+    "<#FB0808>d<#FA0D0D>e<#F81111>v<#F71616>e<#F51A1B>l<#F41F20>o<#F22324>p<#F12829>p<#EF2C2E>e<#EE3132>e<#EC3537>r<#EB3A3C>r<#E93E41>r<#E84345>r<#E6474A>r<#E54C4F>r<#E35053>r<#E25558>r<#E0595D>r<#DF5E62>r<#DD6266>r<#DC676B>r<#DA6B70>r<#D97074>r<#D77479>r<#D6797E>r<#D47E83>r<#D38287>r<#D1878C>r<#D08B91>r<#CE9095>r<#CD949A>r<#CB999F>r<#CA9DA3>r<#C8A2A8>r<#C7A6AD>r<#C5ABB2>r<#C4AFB6>r<#C2B4BB>r<#C1B8C0>r<#BFBDC4>r<#BEC1C9>r<#BCC6CE>r<#BBCAD3>r<#B9CFD7>r<#B8D3DC>r<#B6D8E1>r<#B5DCE5>r<#B3E1EA>r<#B2E5EF>r<#B0EAF4>r<#AFEEF8>r<#ADF3FD>r"
+]
+
 # What should we display for the maximum number of players? (Velocity does not support a cap
 # on the number of players online).
 show-max-players = 500
@@ -264,6 +271,8 @@ server-brand = "{backend-brand} ({proxy-brand})"
 # - "{proxy-vendor}":          Returns the group or association (vendor) of your proxy
 #                              that by default would display "Velocity Contributors."
 fallback-version-ping = "{proxy-brand} {protocol-min}-{protocol-max}"
+
+always-fallback-ping = true
 
 # Replaces what is returned for both the server brand and fallback version pinger.
 custom-brand-proxy = "Velocity"

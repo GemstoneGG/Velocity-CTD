@@ -84,6 +84,13 @@ public final class ServerCommand {
                 return -1;
               }
 
+              ServerConnection connection = player.getCurrentServer().orElse(null);
+              if (connection != null && connection.getServerInfo().getName()
+                      .equalsIgnoreCase(registeredServer.getServerInfo().getName())) {
+                player.sendMessage(Component.translatable("velocity.error.already-connected"));
+                return -1;
+              }
+
               if (this.server.getConfiguration().getQueue().getNoQueueServers()
                       .contains(registeredServer.getServerInfo().getName()) || !server.getMultiProxyHandler().isEnabled()) {
                 player.createConnectionRequest(registeredServer).connectWithIndication();

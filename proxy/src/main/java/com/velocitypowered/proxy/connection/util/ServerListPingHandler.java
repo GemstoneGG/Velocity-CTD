@@ -17,7 +17,6 @@
 
 package com.velocitypowered.proxy.connection.util;
 
-import com.google.common.collect.ImmutableList;
 import com.spotify.futures.CompletableFutures;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.server.PingOptions;
@@ -33,7 +32,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 /**
  * Common utilities for handling server list ping results.
@@ -54,13 +55,17 @@ public class ServerListPingHandler {
 
   private ServerPing constructLocalPing(ProtocolVersion version) {
     boolean fallback = displayFallbackPing(version);
+    VelocityConfiguration configuration = server.getConfiguration();
 
     if (version == ProtocolVersion.UNKNOWN || fallback) {
       version = ProtocolVersion.MAXIMUM_VERSION;
     }
-    VelocityConfiguration configuration = server.getConfiguration();
-    String serverPingVersion = configuration.getFallbackVersionPing();
 
+    if (configuration.getAlwaysFallBackPing()) {
+      version = ProtocolVersion.LEGACY;
+    }
+
+    String serverPingVersion = configuration.getFallbackVersionPing();
 
     final int online;
 
@@ -70,10 +75,16 @@ public class ServerListPingHandler {
       online = server.getPlayerCount();
     }
 
+    List<ServerPing.SamplePlayer> samplePlayers = new ArrayList<>();
+    for (String s : server.getConfiguration().getMotdHover()) {
+      samplePlayers.add(new ServerPing.SamplePlayer(
+              LegacyComponentSerializer.legacyAmpersand().deserialize(s),
+              UUID.randomUUID()));
+    }
+
     return new ServerPing(
         new ServerPing.Version(version.getProtocol(), formatVersionString(serverPingVersion, version)),
-        new ServerPing.Players(online, configuration.getShowMaxPlayers(),
-            ImmutableList.of()),
+        new ServerPing.Players(online, configuration.getShowMaxPlayers(), samplePlayers),
         configuration.getMotd(),
         configuration.getFavicon().orElse(null),
         configuration.isAnnounceForge() ? ModInfo.DEFAULT : null
@@ -90,11 +101,16 @@ public class ServerListPingHandler {
         .replaceAll("\\{proxy-brand}", this.server.getVersion().getName())
         .replaceAll("\\{proxy-brand-custom}", this.server.getConfiguration().getProxyBrandCustom())
         .replaceAll("\\{proxy-version}", this.server.getVersion().getVersion())
-        .replaceAll("\\{proxy-vendor}", this.server.getVersion().getVendor());
+        .replaceAll("\\{proxy-vendor}", this.server.getVersion().getVendor())
+        .replaceAll("\\{player-count}", this.server.getMultiProxyHandler().isEnabled()
+                ? String.valueOf(this.server.getMultiProxyHandler().getTotalPlayerCount())
+                : String.valueOf(this.server.getPlayerCount()))
+        .replaceAll("\\{max-players}", String.valueOf(this.server.getConfiguration().getShowMaxPlayers()));
   }
 
   private CompletableFuture<ServerPing> attemptPingPassthrough(final VelocityInboundConnection connection,
-      final PingPassthroughMode mode, final List<String> servers, final ProtocolVersion responseProtocolVersion) {
+                                                               final PingPassthroughMode mode, final List<String> servers,
+                                                               final ProtocolVersion responseProtocolVersion) {
     ServerPing fallback = constructLocalPing(connection.getProtocolVersion());
     List<CompletableFuture<ServerPing>> pings = new ArrayList<>();
     for (String s : servers) {
@@ -136,6 +152,7 @@ public class ServerListPingHandler {
               return fallback.asBuilder().mods(modInfo.get()).build();
             }
           }
+
           return fallback;
         });
       case DESCRIPTION:

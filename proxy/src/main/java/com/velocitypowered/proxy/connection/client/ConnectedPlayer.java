@@ -139,6 +139,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.NotNull;
 
+
 /**
  * Represents a player that is connected to the proxy.
  */
@@ -870,11 +871,13 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @return the next server to try
    */
   private Optional<RegisteredServer> getNextServerToTry(@Nullable final RegisteredServer current) {
+    List<String> forcedHosts = new ArrayList<>();
     if (serversToTry == null) {
       String virtualHostStr = getVirtualHost().map(InetSocketAddress::getHostString)
           .orElse("");
-      serversToTry = server.getConfiguration().getForcedHosts().getOrDefault(virtualHostStr,
+      forcedHosts = server.getConfiguration().getForcedHosts().getOrDefault(virtualHostStr,
           Collections.emptyList());
+      serversToTry = forcedHosts;
     }
 
     if (serversToTry.isEmpty()) {
@@ -923,6 +926,9 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
           selectedServer.ifPresent(registeredServer -> attemptedServers.add(registeredServer.getServerInfo().getName()));
           tryIndex = index;
+
+          RegisteredServer s = selectedServer.orElse(null);
+
           return selectedServer;
         }
         serversToTry = connOrder;
@@ -940,6 +946,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       tryIndex = i;
       return server.getServer(toTryName);
     }
+
     return Optional.empty();
   }
 

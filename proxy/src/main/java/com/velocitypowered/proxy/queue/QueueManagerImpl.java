@@ -219,6 +219,10 @@ public class QueueManagerImpl {
         System.out.println("setting waiting for connection to false");
         entry.waitingForConnection = false;
         entry.connectionAttempts += 1;
+
+        if (entry.connectionAttempts == this.server.getConfiguration().getQueue().getMaxSendRetries()) {
+          this.server.getRedisManager().send(new RedisQueueLeaveRequest(it.playerUuid(), it.serverName(), false));
+        }
       });
     });
   }
