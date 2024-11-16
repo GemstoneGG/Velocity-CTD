@@ -986,14 +986,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     return mc;
   }
 
-  /**
-   * Disconnects any ongoing or established connections. This
-   * method ensures that any connection currently in flight or any
-   * connected server is properly disconnected to clean up resources and
-   * prevent potential memory leaks and is made public to "fix" the ongoing
-   * unexpected disconnection error for some users, on top of making it easily accessible.
-   */
-  public void teardown() {
+  void teardown() {
     if (connectionInFlight != null) {
       connectionInFlight.disconnect();
     }
