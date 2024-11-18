@@ -859,6 +859,9 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @return the next server to try
    */
   public Optional<RegisteredServer> getNextServerToTry() {
+    if (this.server.getMultiProxyHandler().getTransferringServers().containsKey(getUniqueId())) {
+      return this.server.getServer(this.server.getMultiProxyHandler().getTransferringServers().get(getUniqueId()));
+    }
     return this.getNextServerToTry(null);
   }
 

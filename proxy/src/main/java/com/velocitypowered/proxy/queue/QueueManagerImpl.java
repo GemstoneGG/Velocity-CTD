@@ -25,6 +25,8 @@ import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
+import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
+import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetQueuedServerRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueAddRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueAlreadyJoinedRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueDisableWaitingForConnectionRequest;
@@ -55,7 +57,7 @@ public class QueueManagerImpl {
   // Map of servers connected to its queue status.
   private final Map<String, ServerQueueStatus> serverQueues = new HashMap<>();
 
-  private boolean enabled;
+  private final boolean enabled;
 
   /**
    * Constructs a {@link QueueManagerImpl}.
@@ -81,7 +83,6 @@ public class QueueManagerImpl {
 
     redisManager.listen(RedisQueueAddRequest.ID, RedisQueueAddRequest.class, it -> {
       if (!isMasterProxy()) {
-        System.out.println("Not master proxy");
         return;
       }
 
@@ -95,7 +96,15 @@ public class QueueManagerImpl {
         return;
       }
 
+      redisManager.send(new RedisPlayerSetQueuedServerRequest(it.playerUuid(), it.serverName()));
       status.queue(it.playerUuid(), it.priority());
+    });
+
+    redisManager.listen(RedisPlayerSetQueuedServerRequest.ID, RedisPlayerSetQueuedServerRequest.class, it -> {
+      MultiProxyHandler.RemotePlayerInfo info = this.server.getMultiProxyHandler().getPlayerInfo(it.player());
+      if (info != null) {
+        info.setQueuedServer(it.server());
+      }
     });
 
     redisManager.listen(RedisQueueLeaveRequest.ID, RedisQueueLeaveRequest.class, it -> {
@@ -110,6 +119,7 @@ public class QueueManagerImpl {
 
       boolean wasQueued = status.isQueued(it.playerUuid());
       status.dequeue(it.playerUuid());
+      redisManager.send(new RedisPlayerSetQueuedServerRequest(it.playerUuid(), null));
 
       if (it.command()) {
         if (wasQueued) {
@@ -130,19 +140,13 @@ public class QueueManagerImpl {
         RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
 
         if (foundServer == null) {
-          System.out.println("Sending status update for "
-                  + it.playerUuid() + " cause server does not exist");
           redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(), false,
                   it.playerUuid()));
         } else {
-          System.out.println("Creating connection request");
           player.createConnectionRequest(foundServer).connectWithIndication().thenAccept(result -> {
-            System.out.println("Sending status update for "
-                    + it.playerUuid() + " with result: " + result);
             redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(),
                     result, it.playerUuid()));
           }).exceptionally(ex -> {
-            System.out.println("Sending status update in exception");
             redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(),
                     false, it.playerUuid()));
             return null;
@@ -162,7 +166,6 @@ public class QueueManagerImpl {
       }
 
       if (!it.successfulTransfer()) {
-        System.out.println("sending disable waiting for connection request");
         redisManager.send(new RedisQueueDisableWaitingForConnectionRequest(it.playerUuid(),
                 it.serverName()));
       } else {
@@ -213,15 +216,12 @@ public class QueueManagerImpl {
 
       ServerQueueStatus queue = getQueue(it.serverName());
 
-      System.out.println("queue: " + queue);
       if (queue == null) {
         return;
       }
 
-      System.out.println("getting entry");
 
       queue.getEntry(it.playerUuid()).ifPresent(entry -> {
-        System.out.println("setting waiting for connection to false");
         entry.waitingForConnection = false;
         entry.connectionAttempts += 1;
 
@@ -269,10 +269,7 @@ public class QueueManagerImpl {
     activeProxies.retainAll(masterProxies);
 
 
-    System.out.println("master proxies: " + masterProxies);
-    System.out.println("active proxies: " + activeProxies);
     String ownProxy = this.server.getMultiProxyHandler().getOwnProxyId();
-    System.out.println("own proxy: " + ownProxy);
 
     String firstMasterProxy = null;
 
@@ -373,7 +370,6 @@ public class QueueManagerImpl {
       player.createConnectionRequest(server).connectWithIndication();
       return;
     }
-    System.out.println("sending add request to redis for: " + player.getUsername());
     this.server.getRedisManager().send(new RedisQueueAddRequest(player.getUniqueId(),
             server.getServerInfo().getName(), player.getQueuePriority(server.getServerInfo().getName())));
   }
@@ -395,6 +391,7 @@ public class QueueManagerImpl {
    */
   public void clearQueue() {
     for (ServerQueueStatus status : this.serverQueues.values()) {
+
       status.stop();
     }
 
@@ -405,5 +402,18 @@ public class QueueManagerImpl {
     if (tickPingingBackendTaskHandle != null) {
       tickPingingBackendTaskHandle.cancel();
     }
+  }
+
+  public boolean isEnabled() {
+    return this.enabled;
+  }
+
+  /**
+   * Return all the queues.
+   *
+   * @return All the queues.
+   */
+  public List<ServerQueueStatus> getAll() {
+    return this.serverQueues.values().stream().toList();
   }
 }

@@ -54,7 +54,9 @@ import com.velocitypowered.proxy.command.builtin.ServerCommand;
 import com.velocitypowered.proxy.command.builtin.ShowAllCommand;
 import com.velocitypowered.proxy.command.builtin.ShutdownCommand;
 import com.velocitypowered.proxy.command.builtin.SlashServerCommand;
+import com.velocitypowered.proxy.command.builtin.TransferCommand;
 import com.velocitypowered.proxy.command.builtin.VelocityCommand;
+import com.velocitypowered.proxy.config.ProxyAddress;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.connection.player.resourcepack.VelocityResourcePackInfo;
@@ -73,6 +75,7 @@ import com.velocitypowered.proxy.protocol.util.GameProfileSerializer;
 import com.velocitypowered.proxy.queue.QueueManagerImpl;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
 import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
+import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetTransferringRequest;
 import com.velocitypowered.proxy.scheduler.VelocityScheduler;
 import com.velocitypowered.proxy.server.ServerMap;
 import com.velocitypowered.proxy.util.AddressUtil;
@@ -125,6 +128,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.translation.GlobalTranslator;
 import net.kyori.adventure.translation.TranslationRegistry;
 import net.kyori.adventure.translation.Translator;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bstats.MetricsBase;
@@ -643,6 +647,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     unregisterCommand("showall");
     unregisterCommand("hub");
     unregisterCommand("lobby");
+    unregisterCommand("transfer");
   }
 
   private void unregisterCommand(final String command) {
@@ -664,6 +669,10 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
     if (!commandManager.hasCommand("find")) {
       new FindCommand(this).register(configuration.isFindEnabled());
+    }
+
+    if (!commandManager.hasCommand("transfer")) {
+      new TransferCommand(this).register(configuration.isTransferEnabled());
     }
 
     if (!commandManager.hasCommand("glist")) {
@@ -774,8 +783,43 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       multiProxyHandler.shutdown();
 
       ImmutableList<ConnectedPlayer> players = ImmutableList.copyOf(connectionsByUuid.values());
-      for (ConnectedPlayer player : players) {
-        player.disconnect(reason);
+
+      if (!getConfiguration().isAcceptTransfers()) {
+        for (ConnectedPlayer player : players) {
+          player.disconnect(reason);
+        }
+      } else {
+        ProxyAddress chosen = getProxyAddressToUse();
+
+        if (chosen == null) {
+          for (ConnectedPlayer player : players) {
+            player.disconnect(reason);
+          }
+          return;
+        }
+
+        for (ConnectedPlayer player : players) {
+          if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
+            String connectedServer = player.getConnectedServer() != null ? player.getConnectedServer().getServerInfo().getName() : null;
+            getRedisManager().send(new RedisPlayerSetTransferringRequest(player.getUniqueId(), true,
+                    connectedServer));
+          }
+        }
+
+        try {
+          logger.log(Level.INFO, "Transferring all players to new proxy...");
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+
+        for (ConnectedPlayer player : players) {
+          if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
+            player.transferToHost(new InetSocketAddress(chosen.ip(), chosen.port()));
+          } else {
+            player.disconnect(reason);
+          }
+        }
       }
 
       try {
@@ -845,6 +889,43 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   public void shutdown() {
     shutdown(true);
   }
+
+  private ProxyAddress getProxyAddressToUse() {
+    final String filter = getConfiguration().getDynamicProxyFilter();
+    final List<ProxyAddress> addresses = new ArrayList<>(getConfiguration().getProxyAddresses().stream().toList());
+    addresses.removeIf(address -> getMultiProxyHandler().getOwnProxyId().equalsIgnoreCase(address.proxyId()));
+
+    switch (filter) {
+      case "MOST_EMPTY" -> {
+        addresses.sort((o1, o2) -> {
+          int connectedSize1 = getMultiProxyHandler().getAllPlayers().stream().filter(i ->
+                  i.proxyId.equalsIgnoreCase(o1.proxyId())).toList().size();
+
+          int connectedSize2 = getMultiProxyHandler().getAllPlayers().stream().filter(i ->
+                  i.proxyId.equalsIgnoreCase(o2.proxyId())).toList().size();
+
+          return Long.compare(connectedSize1, connectedSize2);
+        });
+      }
+      case "LEAST_EMPTY" -> {
+        addresses.sort((o1, o2) -> {
+          int connectedSize1 = getMultiProxyHandler().getAllPlayers().stream().filter(i ->
+                  i.proxyId.equalsIgnoreCase(o1.proxyId())).toList().size();
+
+          int connectedSize2 = getMultiProxyHandler().getAllPlayers().stream().filter(i ->
+                  i.proxyId.equalsIgnoreCase(o2.proxyId())).toList().size();
+
+          return Long.compare(connectedSize2, connectedSize1);
+        });
+      }
+      default -> {
+
+      }
+    }
+
+    return addresses.get(0);
+  }
+
 
   @Override
   public void closeListeners() {

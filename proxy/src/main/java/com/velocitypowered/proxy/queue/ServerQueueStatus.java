@@ -22,6 +22,7 @@ import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetQueuedServerRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Deque;
@@ -65,6 +66,9 @@ public class ServerQueueStatus {
    * Stops the queue.
    */
   public void stop() {
+    for (ServerQueueEntry entry : this.queue) {
+      this.velocityServer.getRedisManager().send(new RedisPlayerSetQueuedServerRequest(entry.player, null));
+    }
     if (sendingTaskHandle != null) {
       sendingTaskHandle.cancel();
     }
@@ -102,6 +106,8 @@ public class ServerQueueStatus {
     }
 
     if (!velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
+      this.velocityServer.getRedisManager().send(new RedisPlayerSetQueuedServerRequest(entry.player, null));
+
       queue.removeFirst();
       return;
     }
@@ -114,8 +120,6 @@ public class ServerQueueStatus {
    */
   private void tickSending() {
     if (paused || !online) {
-      System.out.println("paused: " + paused);
-      System.out.println("online: " + online);
       return;
     }
 
@@ -152,7 +156,13 @@ public class ServerQueueStatus {
     server.ping().whenComplete((result, th) -> online = th == null);
   }
 
-  private Component calculateEta(final int position) {
+  /**
+   * Generate the ETA component.
+   *
+   * @param position pos in queue.
+   * @return ETA component.
+   */
+  public Component calculateEta(final int position) {
     int delayInSeconds = (int) this.config.getSendDelay() * position;
 
     return QueueTimeFormatter.format(Math.max(delayInSeconds, 0));
@@ -196,8 +206,6 @@ public class ServerQueueStatus {
 
     ServerQueueEntry entry = new ServerQueueEntry(playerUuid, this.server, this.velocityServer, priority);
 
-    System.out.println("priority: " + priority);
-
     synchronized (queue) {
       var iterator = queue.iterator();
       boolean inserted = false;
@@ -205,8 +213,6 @@ public class ServerQueueStatus {
 
       while (iterator.hasNext()) {
         ServerQueueEntry currentEntry = iterator.next();
-
-        System.out.println("entry: " + currentEntry.player + " priority: " + currentEntry.priority);
 
         if (currentEntry.priority < priority) {
           insertAtPosition(entry, position);
@@ -375,18 +381,18 @@ public class ServerQueueStatus {
    * @return their position in queue, where {@code 1} is first
    * @throws IllegalArgumentException if the player is not queued
    */
-  int getQueuePosition(final UUID player) {
+  public int getQueuePosition(final UUID player) {
     int position = 1;
 
     for (ServerQueueEntry entry : queue) {
-      if (entry.player == player) {
+      if (entry.player.equals(player)) {
         return position;
       }
 
       position += 1;
     }
 
-    throw new IllegalArgumentException("player is not in queue");
+    return -1;
   }
 
   /**
@@ -402,5 +408,18 @@ public class ServerQueueStatus {
     }
 
     return foundPlayers;
+  }
+
+  /**
+   * Return the name of the server for this queue.
+   *
+   * @return The name of the server for this queue.
+   */
+  public String getServerName() {
+    return this.server.getServerInfo().getName();
+  }
+
+  public int getSize() {
+    return this.queue.size();
   }
 }

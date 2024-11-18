@@ -124,6 +124,10 @@ public final class VelocityConfiguration implements ProxyConfig {
   private Map<String, List<String>> slashServers = new HashMap<>();
   @Expose
   private List<ServerLink> serverLinks = new ArrayList<>();
+  @Expose
+  private List<ProxyAddress> proxyAddresses = new ArrayList<>();
+  @Expose
+  private String dynamicProxyFilter;
 
   private VelocityConfiguration(final Servers servers, final ForcedHosts forcedHosts, final Commands commands,
       final Advanced advanced, final Query query, final Metrics metrics, final Redis redis, final Queue queue) {
@@ -147,7 +151,8 @@ public final class VelocityConfiguration implements ProxyConfig {
       final boolean logPlayerConnections, final boolean logPlayerDisconnections,
       final boolean logOfflineConnections, final boolean disableForge, final boolean enforceChatSigning,
       final boolean translateHeaderFooter, final boolean logMinimumVersion, final String minimumVersion,
-      final Redis redis, final Queue queue, final Map<String, List<String>> slashServers, List<ServerLink> serverLinks) {
+      final Redis redis, final Queue queue, final Map<String, List<String>> slashServers, List<ServerLink> serverLinks,
+                                List<ProxyAddress> proxyAddresses, String dynamicProxyFilter) {
     this.bind = bind;
     this.motd = motd;
     this.motdHover = motdHover;
@@ -179,6 +184,8 @@ public final class VelocityConfiguration implements ProxyConfig {
     this.queue = queue;
     this.slashServers = slashServers;
     this.serverLinks = serverLinks;
+    this.proxyAddresses = proxyAddresses;
+    this.dynamicProxyFilter = dynamicProxyFilter;
   }
 
   /**
@@ -457,6 +464,10 @@ public final class VelocityConfiguration implements ProxyConfig {
     return commands.isFindEnabled();
   }
 
+  public boolean isTransferEnabled() {
+    return commands.isTransferEnabled();
+  }
+
   public boolean isGlistEnabled() {
     return commands.isGlistEnabled();
   }
@@ -590,6 +601,14 @@ public final class VelocityConfiguration implements ProxyConfig {
     return serverLinks;
   }
 
+  public List<ProxyAddress> getProxyAddresses() {
+    return proxyAddresses;
+  }
+
+  public String getDynamicProxyFilter() {
+    return this.dynamicProxyFilter;
+  }
+
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
@@ -700,6 +719,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       final CommentedConfig redisConfig = config.get("redis");
       final CommentedConfig queueConfig = config.get("queue");
       final CommentedConfig serverLinksConfig = config.get("server-links");
+      final CommentedConfig proxyAddressesConfig = config.get("proxy-addresses");
 
       final PlayerInfoForwarding forwardingMode = config.getEnumOrElse(
               "player-info-forwarding-mode", PlayerInfoForwarding.NONE);
@@ -760,6 +780,19 @@ public final class VelocityConfiguration implements ProxyConfig {
         }
       }
 
+      final List<ProxyAddress> addresses = new ArrayList<>();
+      String filter = "MOST_EMPTY";
+
+      if (proxyAddressesConfig != null) {
+        filter = proxyAddressesConfig.getOrElse("dynamic-proxy-filter", "MOST_EMPTY");
+        for (CommentedConfig.Entry entry : proxyAddressesConfig.entrySet()) {
+          CommentedConfig link = entry.getValue();
+          addresses.add(new ProxyAddress(link.get("proxy-id"),
+                  link.get("ip"),
+                  link.get("port")));
+        }
+      }
+
       // Throw an exception if the forwarding-secret file is empty and the proxy is using a
       // forwarding mode that requires it.
       if (forwardingSecret.length == 0
@@ -799,7 +832,9 @@ public final class VelocityConfiguration implements ProxyConfig {
               new Redis(redisConfig),
               new Queue(queueConfig),
               slashServers,
-              links
+              links,
+              addresses,
+              filter
       );
     }
   }
@@ -1047,6 +1082,8 @@ public final class VelocityConfiguration implements ProxyConfig {
     private boolean showAllCommand = true;
     @Expose
     private boolean overrideServerCommandUsage = false;
+    @Expose
+    private boolean transferEnabled = true;
 
     private Commands() {
     }
@@ -1064,6 +1101,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.sendCommand = config.getOrElse("send-enabled", true);
         this.showAllCommand = config.getOrElse("showall-enabled", true);
         this.overrideServerCommandUsage = config.getOrElse("override-server-command-usage", false);
+        this.transferEnabled = config.getOrElse("transfer-enabled", true);
       }
     }
 
@@ -1109,6 +1147,10 @@ public final class VelocityConfiguration implements ProxyConfig {
 
     public boolean isOverrideServerCommandUsage() {
       return overrideServerCommandUsage;
+    }
+
+    public boolean isTransferEnabled() {
+      return transferEnabled;
     }
 
     @Override

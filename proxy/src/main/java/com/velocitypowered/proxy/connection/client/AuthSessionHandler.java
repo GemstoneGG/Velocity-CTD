@@ -44,6 +44,8 @@ import com.velocitypowered.proxy.protocol.packet.LoginAcknowledgedPacket;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccessPacket;
 import com.velocitypowered.proxy.protocol.packet.ServerboundCookieResponsePacket;
 import com.velocitypowered.proxy.protocol.packet.SetCompressionPacket;
+import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
+import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetTransferringRequest;
 import io.netty.buffer.ByteBuf;
 import java.util.Objects;
 import java.util.Optional;
@@ -277,10 +279,13 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
           return;
         }
 
-        if (this.server.getMultiProxyHandler().onPlayerJoin(player)) {
+        MultiProxyHandler.RemotePlayerInfo info = this.server.getMultiProxyHandler().getPlayerInfo(player.getUniqueId());
+        if (this.server.getMultiProxyHandler().onPlayerJoin(player) && info != null && !info.beingTransferred) {
           player.disconnect0(Component.translatable("velocity.error.already-connected-proxy.remote"), true);
           return;
         }
+
+
 
         ServerLoginSuccessPacket success = new ServerLoginSuccessPacket();
         success.setUsername(player.getUsername());
@@ -295,6 +300,8 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
           server.getEventManager().fire(new PostLoginEvent(player)).thenCompose((ignored) -> connectToInitialServer(player)).exceptionally((ex) -> {
             logger.error("Exception while connecting {} to initial server", player, ex);
             return null;
+          }).thenRun(() -> {
+            this.server.getRedisManager().send(new RedisPlayerSetTransferringRequest(player.getUniqueId(), false, null));
           });
         }
       }

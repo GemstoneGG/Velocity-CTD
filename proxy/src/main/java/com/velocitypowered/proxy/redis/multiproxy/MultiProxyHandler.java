@@ -25,6 +25,7 @@ import com.velocitypowered.proxy.command.builtin.VelocityCommand;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import com.velocitypowered.proxy.queue.ServerQueueStatus;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -56,6 +57,7 @@ public class MultiProxyHandler {
   private final Map<String, OtherProxy> seenProxies = new ConcurrentHashMap<>();
   private final VelocityConfiguration.Redis config;
   private boolean shuttingDown = false;
+  private final Map<UUID, String> transferringServers = new HashMap<>();
 
   /**
    * Represents another proxy instance in a multi-proxy setup.
@@ -84,6 +86,8 @@ public class MultiProxyHandler {
     public final String name;
     public final Map<String, Integer> queuePriority;
     public String serverName = null;
+    private String queuedServer = null;
+    public boolean beingTransferred = false;
 
     /**
      * Constructs a new {@code RemotePlayerInfo} with the specified UUID and name.
@@ -101,6 +105,15 @@ public class MultiProxyHandler {
     public String getUsername() {
       return this.name;
     }
+
+    public void setQueuedServer(String server) {
+      this.queuedServer = server;
+    }
+
+    public String getQueuedServer() {
+      return this.queuedServer;
+    }
+
   }
 
   /**
@@ -290,6 +303,10 @@ public class MultiProxyHandler {
     this.lastPingSent = Instant.now();
   }
 
+  public Map<UUID, String> getTransferringServers() {
+    return transferringServers;
+  }
+
   private List<RemotePlayerInfo> generateLocalPlayers() {
     Collection<Player> players = this.server.getAllPlayers();
     List<RemotePlayerInfo> playerInfos = new ArrayList<>(players.size());
@@ -309,6 +326,17 @@ public class MultiProxyHandler {
       player.getCurrentServer()
           .ifPresent(serverConnection -> playerInfo.serverName = serverConnection.getServerInfo().getName());
 
+      if (this.server.getQueueManager().isEnabled()) {
+        String queuedServer = null;
+        for (ServerQueueStatus status : this.server.getQueueManager().getAll()) {
+          if (status.isQueued(player.getUniqueId())) {
+            queuedServer = status.getServerName();
+          }
+        }
+
+        playerInfo.setQueuedServer(queuedServer);
+      }
+
       playerInfos.add(playerInfo);
     }
 
@@ -319,7 +347,7 @@ public class MultiProxyHandler {
     // This handles the edge case if a player joins two proxies at once, once the player info broadcast is received
     // we disconnect them from the local proxy.
     for (Player localPlayer : this.server.getAllPlayers()) {
-      if (localPlayer.getUniqueId().equals(player.uuid)) {
+      if (localPlayer.getUniqueId().equals(player.uuid) && !player.beingTransferred) {
         localPlayer.disconnect(Component.translatable("velocity.error.already-connected-proxy.remote"));
       }
     }

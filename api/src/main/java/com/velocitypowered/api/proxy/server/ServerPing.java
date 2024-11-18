@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -430,16 +431,25 @@ public final class ServerPing {
    */
   public static final class SamplePlayer {
 
-    private final Component name;
+    private final String name;
     private final UUID id;
 
     public SamplePlayer(final Component name, final UUID id) {
+      this.name = LegacyComponentSerializer.builder().hexCharacter('#').build().serialize(name);
+      this.id = id;
+    }
+
+    public SamplePlayer(final String name, final UUID id) {
       this.name = name;
       this.id = id;
     }
 
-    public Component getName() {
-      return name;
+    public String getName() {
+      return this.name;
+    }
+
+    public Component getComponentName() {
+      return LegacyComponentSerializer.legacyAmpersand().deserialize(name);
     }
 
     public UUID getId() {

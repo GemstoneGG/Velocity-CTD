@@ -54,7 +54,6 @@ public class ServerQueueEntry {
   public void send() {
     waitingForConnection = true;
 
-    System.out.println("Sending queued player now (" + player + ")");
     proxy.getRedisManager().send(new RedisQueueSendRequest(player,
             target.getServerInfo().getName()));
   }

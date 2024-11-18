@@ -21,15 +21,22 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
+import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
+import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
+import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import com.velocitypowered.proxy.redis.multiproxy.RedisGetPlayerPingRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetTransferringRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisServerAlertRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSwitchServerRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisTransferCommandRequest;
+import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -85,12 +92,8 @@ public class RedisManagerImpl {
       Component component = it.component();
 
       if (component != null) {
-        for (RegisteredServer server : proxy.getAllServers()) {
-          server.sendMessage(component);
-        }
         proxy.sendMessage(component);
       }
-
     });
 
     listen(RedisGetPlayerPingRequest.ID, RedisGetPlayerPingRequest.class, it -> {
@@ -109,6 +112,38 @@ public class RedisManagerImpl {
           player.createConnectionRequest(server).connectWithIndication();
         });
       });
+    });
+
+    listen(RedisPlayerSetTransferringRequest.ID, RedisPlayerSetTransferringRequest.class, it -> {
+      MultiProxyHandler.RemotePlayerInfo info = proxy.getMultiProxyHandler().getPlayerInfo(it.uuid());
+      if (info != null) {
+        info.beingTransferred = it.transferring();
+      }
+
+      if (!it.transferring()) {
+        proxy.getMultiProxyHandler().getTransferringServers().remove(it.uuid());
+      } else {
+        proxy.getMultiProxyHandler().getTransferringServers().put(it.uuid(), it.currentlyConnectedServer());
+      }
+    });
+
+    listen(RedisTransferCommandRequest.ID, RedisTransferCommandRequest.class, it -> {
+      ConnectedPlayer connectedPlayer = (ConnectedPlayer) proxy.getPlayer(it.player()).orElse(null);
+      if (connectedPlayer == null) {
+        return;
+      }
+
+      if (connectedPlayer.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
+        String connectedServer = connectedPlayer.getConnectedServer() != null ? connectedPlayer.getConnectedServer().getServerInfo().getName() : null;
+        send(new RedisPlayerSetTransferringRequest(connectedPlayer.getUniqueId(), true,
+                connectedServer));
+      }
+
+      proxy.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+        if (connectedPlayer.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
+          connectedPlayer.transferToHost(new InetSocketAddress(it.ip(), it.port()));
+        }
+      }).delay(1, TimeUnit.SECONDS).schedule();
     });
   }
 

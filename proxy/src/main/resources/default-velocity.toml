@@ -131,6 +131,7 @@ hub-enabled = true
 ping-enabled = true
 plist-enabled = true
 showall-enabled = true
+transfer-enabled = true
 
 # Whether to use the default `/server` output, or whether to override it with the `velocity.command.server.usage` key.
 override-server-command-usage = false
@@ -413,6 +414,17 @@ label = "#00FF00Discord"
 
 [proxy-addresses]
 
+# Options: MOST_EMPTY, LEAST_EMPTY, FIRST_FOUND
+dynamic-proxy-filter = "MOST_EMPTY"
+
 [proxy-addresses.1]
 proxy-id = "Proxy-1"
+ip = "148.113.189.229"
+port = 25565
+
+[proxy-addresses.2]
+proxy-id = "Proxy-2"
+ip = "148.113.189.229"
+port = 25566
+
 
