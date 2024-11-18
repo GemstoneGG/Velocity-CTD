@@ -45,6 +45,7 @@ import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintFrameDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintLengthEncoder;
 import com.velocitypowered.proxy.protocol.util.ByteBufDataOutput;
+import com.velocitypowered.proxy.queue.QueueManagerRedisImpl;
 import com.velocitypowered.proxy.queue.ServerQueueStatus;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -215,7 +216,7 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
 
 
   /**
-   * Gets the queue status from the {@link com.velocitypowered.proxy.queue.QueueManagerImpl}
+   * Gets the queue status from the {@link QueueManagerRedisImpl}
    * directly, to make it work with the old system automatically.
    *
    * @return The queue status of the server

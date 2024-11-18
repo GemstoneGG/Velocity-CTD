@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.queue;
 
+import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
@@ -54,7 +55,34 @@ public class ServerQueueEntry {
   public void send() {
     waitingForConnection = true;
 
-    proxy.getRedisManager().send(new RedisQueueSendRequest(player,
-            target.getServerInfo().getName()));
+    if (proxy.getMultiProxyHandler().isEnabled()) {
+      proxy.getRedisManager().send(new RedisQueueSendRequest(player,
+          target.getServerInfo().getName()));
+    } else {
+      proxy.getPlayer(player).ifPresent(p -> {
+        RegisteredServer foundServer = this.proxy.getServer(target.getServerInfo().getName()).orElse(null);
+
+        if (foundServer == null) {
+          waitingForConnection = false;
+          connectionAttempts += 1;
+
+          if (connectionAttempts == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
+            proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player);
+          }
+        } else {
+          p.createConnectionRequest(foundServer).connectWithIndication().thenAccept(result -> {
+            proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player);
+          }).exceptionally(ex -> {
+            waitingForConnection = false;
+            connectionAttempts += 1;
+
+            if (connectionAttempts == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
+              proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player);
+            }
+            return null;
+          });
+        }
+      });
+    }
   }
 }

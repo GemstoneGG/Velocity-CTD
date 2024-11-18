@@ -121,9 +121,13 @@ public class RedisManagerImpl {
       }
 
       if (!it.transferring()) {
+        System.out.println("Removing: " + it.uuid() + " from transferring servers");
         proxy.getMultiProxyHandler().getTransferringServers().remove(it.uuid());
       } else {
         proxy.getMultiProxyHandler().getTransferringServers().put(it.uuid(), it.currentlyConnectedServer());
+        proxy.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+          proxy.getMultiProxyHandler().getTransferringServers().remove(it.uuid());
+        }).delay(10, TimeUnit.SECONDS).schedule();
       }
     });
 
@@ -211,6 +215,10 @@ public class RedisManagerImpl {
     }
 
     this.pubSub.register(id, clazz, consumer);
+  }
+
+  public boolean isEnabled() {
+    return jedisPool != null;
   }
 
   /**

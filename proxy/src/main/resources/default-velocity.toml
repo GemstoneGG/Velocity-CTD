@@ -333,7 +333,7 @@ other-proxy-timeout-ms = 90000
 enabled = false
 
 # The list of aliases for the `/server` command when the queue system is enabled.
-queue-aliases = [
+server-aliases = [
     "joinqueue",
     "queue"
 ]

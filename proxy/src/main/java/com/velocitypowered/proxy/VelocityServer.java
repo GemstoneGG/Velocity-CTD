@@ -72,7 +72,9 @@ import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.util.FaviconSerializer;
 import com.velocitypowered.proxy.protocol.util.GameProfileSerializer;
-import com.velocitypowered.proxy.queue.QueueManagerImpl;
+import com.velocitypowered.proxy.queue.QueueManager;
+import com.velocitypowered.proxy.queue.QueueManagerNoRedisImpl;
+import com.velocitypowered.proxy.queue.QueueManagerRedisImpl;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
 import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetTransferringRequest;
@@ -196,7 +198,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private final Key translationRegistryKey = Key.key("velocity", "translations");
   private RedisManagerImpl redisManager;
   private MultiProxyHandler multiProxyHandler;
-  private QueueManagerImpl queueManager;
+  private QueueManager queueManager;
 
   VelocityServer(final ProxyOptions options) {
     pluginManager = new VelocityPluginManager(this);
@@ -223,7 +225,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     return multiProxyHandler;
   }
 
-  public QueueManagerImpl getQueueManager() {
+  public QueueManager getQueueManager() {
     return queueManager;
   }
 
@@ -321,9 +323,14 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       }
     }
 
+
     redisManager = new RedisManagerImpl(this);
     multiProxyHandler = new MultiProxyHandler(this);
-    queueManager = new QueueManagerImpl(this);
+    if (getConfiguration().getRedis().isEnabled()) {
+      queueManager = new QueueManagerRedisImpl(this);
+    } else {
+      queueManager = new QueueManagerNoRedisImpl(this);
+    }
 
     registerCommands();
     registerTranslations(true);

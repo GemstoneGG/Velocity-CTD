@@ -1559,7 +1559,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private boolean enabled;
     @Expose
-    private List<String> queueAliases;
+    private List<String> serverAliases;
     @Expose
     private List<String> noQueueServers;
     @Expose
@@ -1600,7 +1600,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
 
       this.enabled = config.getOrElse("enabled", false);
-      this.queueAliases = config.getOrElse("queue-aliases", List.of("joinqueue", "queue", "server"));
+      this.serverAliases = config.getOrElse("server-aliases", List.of("joinqueue", "queue", "server"));
       this.noQueueServers = config.getOrElse("no-queue-servers", List.of());
       this.allowMultiQueue = config.getOrElse("allow-multi-queue", false);
       this.multipleServerMessagingSelection = config.getOrElse("multiple-server-messaging-selection", "last");
@@ -1687,8 +1687,8 @@ public final class VelocityConfiguration implements ProxyConfig {
       return noQueueServers;
     }
 
-    public List<String> getQueueAliases() {
-      return queueAliases;
+    public List<String> getServerAliases() {
+      return serverAliases;
     }
 
     public boolean shouldOverrideBungeeMessaging() {
@@ -1723,7 +1723,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", multipleServerMessagingSelection=" + multipleServerMessagingSelection
           + ", allowMultiQueue=" + allowMultiQueue
           + ", noQueueServers=" + noQueueServers
-          + ", queueAliases=" + queueAliases
+          + ", queueAliases=" + serverAliases
           + ", overrideBungeeMessaging=" + overrideBungeeMessaging
           + ", leaveQueueAliases=" + leaveQueueAliases
           + ", queueAdminAliases=" + queueAdminAliases

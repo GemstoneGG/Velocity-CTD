@@ -263,6 +263,11 @@ public class SendCommand {
 
       final Optional<ServerConnection> connectedServer = source.getCurrentServer();
       if (connectedServer.isPresent()) {
+        if (maybeServer.get().getServerInfo().getName().equalsIgnoreCase(connectedServer.get().getServerInfo().getName())) {
+          context.getSource().sendMessage(Component.translatable("velocity.command.send-same-server"));
+          return -1;
+        }
+
         final Collection<Player> players = connectedServer.get().getServer().getPlayersConnected();
         for (final Player p : players) {
           p.createConnectionRequest(maybeServer.get()).fireAndForget();
@@ -302,6 +307,12 @@ public class SendCommand {
 
   private void sendPlayer(final CommandContext<CommandSource> context, final Player player0,
                           final RegisteredServer targetServer) {
+    ServerConnection cur = player0.getCurrentServer().orElse(null);
+    if (cur != null && cur.getServerInfo().getName().equalsIgnoreCase(targetServer.getServerInfo().getName())) {
+      context.getSource().sendMessage(Component.translatable("velocity.command.send-same-server"));
+      return;
+    }
+
     if (player0.getCurrentServer().isPresent() && player0.getCurrentServer().get().getServer().equals(targetServer)) {
       context.getSource().sendMessage(Component.translatable("velocity.command.send-player-none",
               Component.text(player0.getUsername()), Component.text(targetServer.getServerInfo().getName())));
@@ -314,6 +325,12 @@ public class SendCommand {
 
   private void sendPlayersFromServer(final CommandContext<CommandSource> context, final RegisteredServer server,
                                      final RegisteredServer targetServer) {
+
+    if (server.getServerInfo().getName().equalsIgnoreCase(targetServer.getServerInfo().getName())) {
+      context.getSource().sendMessage(Component.translatable("velocity.command.send-same-server"));
+      return;
+    }
+
     final int playerSize = server.getPlayersConnected().size();
     final String name = server.getServerInfo().getName();
 
@@ -378,6 +395,10 @@ public class SendCommand {
 
       final Optional<ServerConnection> connectedServer = source.getCurrentServer();
       if (connectedServer.isPresent()) {
+        if (maybeServer.get().getServerInfo().getName().equalsIgnoreCase(connectedServer.get().getServerInfo().getName())) {
+          context.getSource().sendMessage(Component.translatable("velocity.command.send-same-server"));
+          return -1;
+        }
         int amountDone = 0;
         List<MultiProxyHandler.RemotePlayerInfo> list = this.server.getMultiProxyHandler().getAllPlayers();
         for (final MultiProxyHandler.RemotePlayerInfo p : list) {
@@ -439,6 +460,11 @@ public class SendCommand {
   private void sendPlayersFromServerMultiProxy(final CommandContext<CommandSource> context, final RegisteredServer server,
       final RegisteredServer targetServer) {
     final String name = server.getServerInfo().getName();
+
+    if (name.equalsIgnoreCase(targetServer.getServerInfo().getName())) {
+      context.getSource().sendMessage(Component.translatable("velocity.command.send-same-server"));
+      return;
+    }
 
     int amountDone = 0;
     List<MultiProxyHandler.RemotePlayerInfo> list = this.server.getMultiProxyHandler().getAllPlayers();

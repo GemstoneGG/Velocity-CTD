@@ -300,8 +300,6 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
           server.getEventManager().fire(new PostLoginEvent(player)).thenCompose((ignored) -> connectToInitialServer(player)).exceptionally((ex) -> {
             logger.error("Exception while connecting {} to initial server", player, ex);
             return null;
-          }).thenRun(() -> {
-            this.server.getRedisManager().send(new RedisPlayerSetTransferringRequest(player.getUniqueId(), false, null));
           });
         }
       }
@@ -325,6 +323,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         return;
       }
       player.createConnectionRequest(toTry.get()).fireAndForget();
+      this.server.getRedisManager().send(new RedisPlayerSetTransferringRequest(player.getUniqueId(), false, null));
     }, mcConnection.eventLoop());
   }
 

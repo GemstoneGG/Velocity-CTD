@@ -19,9 +19,7 @@ package com.velocitypowered.proxy.queue;
 
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
-import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
@@ -39,43 +37,23 @@ import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 
 /**
- * Manages the queue system.
+ * Manages the queue system with redis.
  */
-public class QueueManagerImpl {
-  private final VelocityServer server;
-  private final VelocityConfiguration.Queue config;
-  private ScheduledTask tickMessageTaskHandle;
-  private ScheduledTask tickPingingBackendTaskHandle;
-
-  // Map of servers connected to its queue status.
-  private final Map<String, ServerQueueStatus> serverQueues = new HashMap<>();
-
-  private final boolean enabled;
+public class QueueManagerRedisImpl extends QueueManager {
 
   /**
-   * Constructs a {@link QueueManagerImpl}.
+   * Constructs a {@link QueueManagerRedisImpl}.
    *
    * @param server the proxy server
    */
-  public QueueManagerImpl(final VelocityServer server) {
-    this.server = server;
-    config = server.getConfiguration().getQueue();
-
-    enabled = config.isEnabled();
-    if (!config.isEnabled()) {
-      return;
-    }
-
+  public QueueManagerRedisImpl(final VelocityServer server) {
+    super(server);
     this.registerRedisListeners();
-    this.schedulePingingBackend();
-    this.scheduleTickMessage();
   }
 
   private void registerRedisListeners() {
@@ -240,26 +218,11 @@ public class QueueManagerImpl {
   }
 
   /**
-   * Gets the queue of a server, or creates it if it doesn't exist.
-   *
-   * @param server The server to get the queue of
-   *
-   * @return The queue of the server.
-   */
-  public ServerQueueStatus getQueue(String server) {
-    RegisteredServer registeredServer = this.server.getServer(server).orElse(null);
-    if (registeredServer == null) {
-      return null;
-    }
-    return serverQueues.computeIfAbsent(server, status ->
-            new ServerQueueStatus((VelocityRegisteredServer) registeredServer, this.server));
-  }
-
-  /**
    * Checks whether the current proxy is the current master-proxy or not.
    *
    * @return whether the current proxy is the current master-proxy or not.
    */
+  @Override
   public boolean isMasterProxy() {
     List<String> masterProxies = this.server.getConfiguration().getQueue().getMasterProxyIds();
     List<String> activeProxies = new ArrayList<>(this.server.getMultiProxyHandler()
@@ -290,54 +253,13 @@ public class QueueManagerImpl {
     return false;
   }
 
-  /**
-   * Schedule the ticking message task for queues.
-   */
-  public void scheduleTickMessage() {
-    if (this.tickMessageTaskHandle != null) {
-      this.tickMessageTaskHandle.cancel();
-    }
-
-    this.tickMessageTaskHandle = server.getScheduler()
-        .buildTask(VelocityVirtualPlugin.INSTANCE, this::tickMessageForAllPlayers)
-        .repeat((long) config.getMessageDelay() * 1000, TimeUnit.MILLISECONDS)
-        .schedule();
-  }
-
-  /**
-   * Schedule the pinging the backend servers task for queues.
-   */
-  public void schedulePingingBackend() {
-    if (this.tickPingingBackendTaskHandle != null) {
-      this.tickPingingBackendTaskHandle.cancel();
-    }
-
-    this.tickPingingBackendTaskHandle = server.getScheduler()
-        .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
-          for (RegisteredServer serverApi : this.server.getAllServers()) {
-            VelocityRegisteredServer server = (VelocityRegisteredServer) serverApi;
-            ServerQueueStatus queueStatus = getQueue(server.getServerInfo().getName());
-            queueStatus.tickPingingBackend();
-          }
-        })
-        .repeat((long) config.getBackendPingInterval() * 1000, TimeUnit.MILLISECONDS)
-        .schedule();
-  }
-
-  /**
-   * Hook that is invoked to reload the server configuration.
-   */
-  public void reloadConfig() {
-    for (ServerQueueStatus server : this.serverQueues.values()) {
-      server.reloadConfig();
-    }
-  }
 
   /**
    * Hook that removes the player from all queues.
    *
    * @param player the disconnecting player
    */
+  @Override
   public void onPlayerLeave(final ConnectedPlayer player) {
     this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
       this.server.getAllServers().forEach(server -> {
@@ -350,23 +272,15 @@ public class QueueManagerImpl {
             .schedule();
   }
 
-  private int getTimeoutInSeconds(final ConnectedPlayer player) {
-    for (int i = 86400; i > 0; i--) {
-      if (player.hasPermission("velocity.queue.timeout." + i)) {
-        return i;
-      }
-    }
-    return 1;
-  }
-
   /**
    * Queues the player into a specific server, without indication.
    *
    * @param player The player to queue
    * @param server The server to queue into
    */
+  @Override
   public void queue(Player player, VelocityRegisteredServer server) {
-    if (!enabled || player.hasPermission("velocity.queue.bypass")) {
+    if (!isEnabled() || player.hasPermission("velocity.queue.bypass")) {
       player.createConnectionRequest(server).connectWithIndication();
       return;
     }
@@ -377,6 +291,7 @@ public class QueueManagerImpl {
   /**
    * Updates the actionbar message for this player.
    */
+  @Override
   public void tickMessageForAllPlayers() {
     for (ServerQueueStatus status : this.serverQueues.values()) {
       status.getActivePlayers().forEach((entry, player) -> {
@@ -386,34 +301,4 @@ public class QueueManagerImpl {
     }
   }
 
-  /**
-   * Clears all the queues.
-   */
-  public void clearQueue() {
-    for (ServerQueueStatus status : this.serverQueues.values()) {
-
-      status.stop();
-    }
-
-    if (tickMessageTaskHandle != null) {
-      tickMessageTaskHandle.cancel();
-    }
-
-    if (tickPingingBackendTaskHandle != null) {
-      tickPingingBackendTaskHandle.cancel();
-    }
-  }
-
-  public boolean isEnabled() {
-    return this.enabled;
-  }
-
-  /**
-   * Return all the queues.
-   *
-   * @return All the queues.
-   */
-  public List<ServerQueueStatus> getAll() {
-    return this.serverQueues.values().stream().toList();
-  }
 }

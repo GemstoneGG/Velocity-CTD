@@ -107,8 +107,28 @@ public class PingCommand {
               .arguments(Component.text(ping))
       );
     } else {
-      if (context.getSource() instanceof Player p) {
-        this.server.getRedisManager().send(new RedisGetPlayerPingRequest(p.getUniqueId(), username));
+      if (server.getMultiProxyHandler().isEnabled()) {
+        if (context.getSource() instanceof Player p) {
+          if (this.server.getMultiProxyHandler().isPlayerOnline(username)) {
+            context.getSource().sendMessage(Component.translatable("velocity.command.ping.invalid-player")
+                .arguments(Component.text(username)));
+            return -1;
+          }
+
+          this.server.getRedisManager().send(new RedisGetPlayerPingRequest(p.getUniqueId(), username));
+        }
+      } else {
+        if (player == null) {
+          context.getSource().sendMessage(Component.translatable("velocity.command.ping.invalid-player")
+              .arguments(Component.text(username)));
+          return -1;
+        }
+
+        Component component = Component.translatable("velocity.command.ping.other",
+                NamedTextColor.GREEN)
+            .arguments(Component.text(player.getUsername()),
+                Component.text(player.getPing()));
+        context.getSource().sendMessage(component);
       }
     }
     return Command.SINGLE_SUCCESS;

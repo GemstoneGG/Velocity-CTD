@@ -41,6 +41,7 @@ import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 
+
 /**
  * Implements Velocity's {@code /server} command.
  */
@@ -92,7 +93,7 @@ public final class ServerCommand {
               }
 
               if (this.server.getConfiguration().getQueue().getNoQueueServers()
-                      .contains(registeredServer.getServerInfo().getName()) || !server.getMultiProxyHandler().isEnabled()
+                      .contains(registeredServer.getServerInfo().getName()) || !server.getQueueManager().isEnabled()
                       || player.hasPermission("velocity.queue.bypass")) {
                 player.createConnectionRequest(registeredServer).connectWithIndication();
                 return Command.SINGLE_SUCCESS;
@@ -108,7 +109,7 @@ public final class ServerCommand {
 
     if (server.getConfiguration().getQueue().isEnabled()) {
       // if queue feature is enabled, add aliases
-      aliases = server.getConfiguration().getQueue().getQueueAliases().toArray(new String[0]);
+      aliases = server.getConfiguration().getQueue().getServerAliases().toArray(new String[0]);
     }
 
     server.getCommandManager().register(

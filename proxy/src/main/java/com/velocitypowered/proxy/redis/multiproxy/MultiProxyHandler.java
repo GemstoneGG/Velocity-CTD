@@ -617,8 +617,8 @@ public class MultiProxyHandler {
       }
     }
 
-    for (OtherProxy proxy : seenProxies.values()) {
-      for (RemotePlayerInfo info : proxy.players) {
+    for (OtherProxy proxy : seenProxies.values().stream().toList()) {
+      for (RemotePlayerInfo info : proxy.players.stream().toList()) {
         if (info.uuid.equals(uuid)) {
           return true;
         }

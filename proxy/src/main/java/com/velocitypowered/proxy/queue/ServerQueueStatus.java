@@ -27,7 +27,6 @@ import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -86,7 +85,7 @@ public class ServerQueueStatus {
   }
 
   /**
-   * Called by {@link QueueManagerImpl} when the proxy config is reloaded.
+   * Called by {@link QueueManagerRedisImpl} when the proxy config is reloaded.
    */
   void reloadConfig() {
     this.config = this.velocityServer.getConfiguration().getQueue();
@@ -105,13 +104,22 @@ public class ServerQueueStatus {
       return;
     }
 
-    if (!velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
-      this.velocityServer.getRedisManager().send(new RedisPlayerSetQueuedServerRequest(entry.player, null));
+    if (velocityServer.getMultiProxyHandler().isEnabled()) {
+      if (!velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
+        this.velocityServer.getRedisManager().send(new RedisPlayerSetQueuedServerRequest(entry.player, null));
 
-      queue.removeFirst();
-      return;
+        System.out.println("removing x2");
+        queue.removeFirst();
+        return;
+      }
+    } else {
+      if (velocityServer.getPlayer(entry.player).orElse(null) == null) {
+        System.out.println("removing x1");
+        queue.removeFirst();
+      }
     }
 
+    System.out.println("Sending first in queue");
     entry.send();
   }
 
@@ -139,11 +147,21 @@ public class ServerQueueStatus {
       }
 
 
-      if (velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
-        // if the player is waiting for their send to finish, continue to the next player in queue
-        if (!entry.waitingForConnection) {
-          sendFirstInQueue();
-          break;
+      if (velocityServer.getMultiProxyHandler().isEnabled()) {
+        if (velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
+          // if the player is waiting for their send to finish, continue to the next player in queue
+          if (!entry.waitingForConnection) {
+            sendFirstInQueue();
+            break;
+          }
+        }
+      } else {
+        if (velocityServer.getPlayer(entry.player).orElse(null) != null) {
+          // if the player is waiting for their send to finish, continue to the next player in queue
+          if (!entry.waitingForConnection) {
+            sendFirstInQueue();
+            break;
+          }
         }
       }
     }
@@ -198,8 +216,10 @@ public class ServerQueueStatus {
       if (player != null) {
         player.createConnectionRequest(server).connect();
       } else {
-        this.velocityServer.getRedisManager().send(new RedisQueueSendRequest(playerUuid,
-                server.getServerInfo().getName()));
+        if (this.velocityServer.getMultiProxyHandler().isEnabled()) {
+          this.velocityServer.getRedisManager().send(new RedisQueueSendRequest(playerUuid,
+              server.getServerInfo().getName()));
+        }
       }
       return;
     }
@@ -253,21 +273,9 @@ public class ServerQueueStatus {
    * Removes a player from this queue.
    *
    * @param player the player to remove
-   * @return whether the player was dequeued
    */
-  public boolean dequeue(final UUID player) {
-    boolean removedAny = false;
-
-    for (Iterator<ServerQueueEntry> iterator = this.queue.iterator(); iterator.hasNext(); ) {
-      ServerQueueEntry entry = iterator.next();
-
-      if (entry.player.equals(player)) {
-        iterator.remove();
-        removedAny = true;
-      }
-    }
-
-    return removedAny;
+  public void dequeue(final UUID player) {
+    this.queue.removeIf(entry -> entry.player.equals(player));
   }
 
   /**
