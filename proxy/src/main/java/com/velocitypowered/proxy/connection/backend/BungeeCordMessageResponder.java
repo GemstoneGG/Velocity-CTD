@@ -219,7 +219,7 @@ public class BungeeCordMessageResponder {
       return;
     }
     int position = -1;
-    if (info.getQueuedServer() != null) {
+    if (info != null && info.getQueuedServer() != null) {
       ServerQueueStatus status = proxy.getQueueManager().getQueue(info.getQueuedServer());
       if (status != null && status.isQueued(playerUuid)) {
         position = status.getQueuePosition(playerUuid);
@@ -250,7 +250,7 @@ public class BungeeCordMessageResponder {
       return;
     }
     int position = -1;
-    if (info.getQueuedServer() != null) {
+    if (info != null && info.getQueuedServer() != null) {
       ServerQueueStatus status = proxy.getQueueManager().getQueue(info.getQueuedServer());
       if (status != null && status.isQueued(playerUuid)) {
         position = status.getSize();
@@ -281,7 +281,7 @@ public class BungeeCordMessageResponder {
       return;
     }
     boolean paused = false;
-    if (info.getQueuedServer() != null) {
+    if (info != null && info.getQueuedServer() != null) {
       ServerQueueStatus status = proxy.getQueueManager().getQueue(info.getQueuedServer());
       if (status != null && status.isQueued(playerUuid)) {
         paused = status.isPaused();
