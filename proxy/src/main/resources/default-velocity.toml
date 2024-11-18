@@ -153,12 +153,9 @@ try = [
 
 # Sends you to the least populated fallback server, instead of the first available fallback server.
 # Keep this false if you only have one fallback server.
-enable-dynamic-fallbacks = false
-
-# Instead, sends the user to the most populated fallback server, rather than the least populated fallback server.
-# Requires enable-dynamic-fallbacks as true to function. Keep this false if you want users to be sent to the least
-# populated server.
-enable-most-populated-fallbacks = false
+#
+# Options: FIRST_AVAILABLE, LEAST_POPULATED, MOST_POPULATED
+dynamic-fallbacks-filter = "FIRST_AVAILABLE"
 
 # The list of aliases for the `/server` command when the queue system is enabled.
 server-aliases = [

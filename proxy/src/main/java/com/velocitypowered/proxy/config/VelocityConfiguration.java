@@ -573,12 +573,8 @@ public final class VelocityConfiguration implements ProxyConfig {
     return advanced.getBackendBrandCustom();
   }
 
-  public boolean isEnableDynamicFallbacks() {
-    return servers.isEnableDynamicFallbacks();
-  }
-
-  public boolean isEnableMostPopulatedFallbacks() {
-    return servers.isEnableMostPopulatedFallbacks();
+  public String getDynamicFallbackFilter() {
+    return servers.getDynamicFallbackFilter();
   }
 
   public boolean isForceKeyAuthentication() {
@@ -905,8 +901,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     private List<String> attemptConnectionOrder = ImmutableList.of("lobby");
     private Map<String, PlayerInfoForwarding> serverForwardingModes = ImmutableMap.of();
 
-    private boolean enableDynamicFallbacks = false;
-    private boolean enableMostPopulatedFallbacks = false;
+    private String dynamicFallbackFilter;
     @Expose
     private List<String> serverAliases;
 
@@ -938,7 +933,8 @@ public final class VelocityConfiguration implements ProxyConfig {
           } else {
             if (!entry.getKey().equalsIgnoreCase("try")
                 && !entry.getKey().equalsIgnoreCase("enable-dynamic-fallbacks")
-                && !entry.getKey().equalsIgnoreCase("enable-most-populated-fallbacks")) {
+                && !entry.getKey().equalsIgnoreCase("enable-most-populated-fallbacks")
+                && !entry.getKey().equalsIgnoreCase("server-aliases")) {
               throw new IllegalArgumentException(
                   "Server entry " + entry.getKey() + " is not a string!");
             }
@@ -949,8 +945,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.attemptConnectionOrder = config.getOrElse("try", attemptConnectionOrder)
             .stream()
             .toList();
-        this.enableDynamicFallbacks = config.getOrElse("enable-dynamic-fallbacks", false);
-        this.enableMostPopulatedFallbacks = config.getOrElse("enable-most-populated-fallbacks", false);
+        this.dynamicFallbackFilter = config.getOrElse("dynamic-fallbacks-filter", "FIRST_AVAILABLE");
         this.serverAliases = config.getOrElse("server-aliases", List.of("joinqueue", "queue", "server"));
       }
     }
@@ -977,14 +972,9 @@ public final class VelocityConfiguration implements ProxyConfig {
       return attemptConnectionOrder;
     }
 
-    public boolean isEnableDynamicFallbacks() {
-      return enableDynamicFallbacks;
+    public String getDynamicFallbackFilter() {
+      return dynamicFallbackFilter;
     }
-
-    public boolean isEnableMostPopulatedFallbacks() {
-      return enableMostPopulatedFallbacks;
-    }
-
 
 
     public void setAttemptConnectionOrder(final List<String> attemptConnectionOrder) {
