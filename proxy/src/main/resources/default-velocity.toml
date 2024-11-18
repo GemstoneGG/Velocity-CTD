@@ -160,6 +160,12 @@ enable-dynamic-fallbacks = false
 # populated server.
 enable-most-populated-fallbacks = false
 
+# The list of aliases for the `/server` command when the queue system is enabled.
+server-aliases = [
+    "joinqueue",
+    "queue"
+]
+
 [forced-hosts]
 # Configure your forced hosts here.
 "lobby.example.com" = [
@@ -332,11 +338,7 @@ other-proxy-timeout-ms = 90000
 # a whole.
 enabled = false
 
-# The list of aliases for the `/server` command when the queue system is enabled.
-server-aliases = [
-    "joinqueue",
-    "queue"
-]
+
 
 # The list of IDs of the proxy (in order of priority) that should handle and maintain the queue. only necessary in multi-proxy setup, leave blank otherwise.
 # Always attempts to use the first ID first, if the proxy isn't available, it'll use the next in the list.

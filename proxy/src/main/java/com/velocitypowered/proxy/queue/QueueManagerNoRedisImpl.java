@@ -122,7 +122,6 @@ public class QueueManagerNoRedisImpl extends QueueManager {
    */
   public void queue(Player player, VelocityRegisteredServer server) {
     if (!isEnabled() || player.hasPermission("velocity.queue.bypass")) {
-      System.out.println("Auto connecting cause of perm or is enabled false" + " (is enabled:)" + isEnabled());
       player.createConnectionRequest(server).connectWithIndication();
       return;
     }

@@ -107,19 +107,15 @@ public class ServerQueueStatus {
     if (velocityServer.getMultiProxyHandler().isEnabled()) {
       if (!velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
         this.velocityServer.getRedisManager().send(new RedisPlayerSetQueuedServerRequest(entry.player, null));
-
-        System.out.println("removing x2");
         queue.removeFirst();
         return;
       }
     } else {
       if (velocityServer.getPlayer(entry.player).orElse(null) == null) {
-        System.out.println("removing x1");
         queue.removeFirst();
       }
     }
 
-    System.out.println("Sending first in queue");
     entry.send();
   }
 

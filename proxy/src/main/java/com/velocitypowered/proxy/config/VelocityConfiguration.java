@@ -891,6 +891,10 @@ public final class VelocityConfiguration implements ProxyConfig {
     return minimumVersion;
   }
 
+  public List<String> getServerAliases() {
+    return this.servers.getServerAliases();
+  }
+
   private static final class Servers {
 
     private Map<String, String> servers = ImmutableMap.of(
@@ -903,6 +907,8 @@ public final class VelocityConfiguration implements ProxyConfig {
 
     private boolean enableDynamicFallbacks = false;
     private boolean enableMostPopulatedFallbacks = false;
+    @Expose
+    private List<String> serverAliases;
 
     private Servers() {
     }
@@ -945,6 +951,7 @@ public final class VelocityConfiguration implements ProxyConfig {
             .toList();
         this.enableDynamicFallbacks = config.getOrElse("enable-dynamic-fallbacks", false);
         this.enableMostPopulatedFallbacks = config.getOrElse("enable-most-populated-fallbacks", false);
+        this.serverAliases = config.getOrElse("server-aliases", List.of("joinqueue", "queue", "server"));
       }
     }
 
@@ -952,6 +959,10 @@ public final class VelocityConfiguration implements ProxyConfig {
         final Map<String, PlayerInfoForwarding> serverForwardingModes) {
       this.servers = servers;
       this.attemptConnectionOrder = attemptConnectionOrder;
+    }
+
+    public List<String> getServerAliases() {
+      return serverAliases;
     }
 
     private Map<String, String> getServers() {
@@ -973,6 +984,8 @@ public final class VelocityConfiguration implements ProxyConfig {
     public boolean isEnableMostPopulatedFallbacks() {
       return enableMostPopulatedFallbacks;
     }
+
+
 
     public void setAttemptConnectionOrder(final List<String> attemptConnectionOrder) {
       this.attemptConnectionOrder = attemptConnectionOrder;
@@ -1559,8 +1572,6 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private boolean enabled;
     @Expose
-    private List<String> serverAliases;
-    @Expose
     private List<String> noQueueServers;
     @Expose
     private boolean allowMultiQueue;
@@ -1600,7 +1611,6 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
 
       this.enabled = config.getOrElse("enabled", false);
-      this.serverAliases = config.getOrElse("server-aliases", List.of("joinqueue", "queue", "server"));
       this.noQueueServers = config.getOrElse("no-queue-servers", List.of());
       this.allowMultiQueue = config.getOrElse("allow-multi-queue", false);
       this.multipleServerMessagingSelection = config.getOrElse("multiple-server-messaging-selection", "last");
@@ -1687,9 +1697,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       return noQueueServers;
     }
 
-    public List<String> getServerAliases() {
-      return serverAliases;
-    }
+
 
     public boolean shouldOverrideBungeeMessaging() {
       return overrideBungeeMessaging;
@@ -1723,7 +1731,6 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", multipleServerMessagingSelection=" + multipleServerMessagingSelection
           + ", allowMultiQueue=" + allowMultiQueue
           + ", noQueueServers=" + noQueueServers
-          + ", queueAliases=" + serverAliases
           + ", overrideBungeeMessaging=" + overrideBungeeMessaging
           + ", leaveQueueAliases=" + leaveQueueAliases
           + ", queueAdminAliases=" + queueAdminAliases

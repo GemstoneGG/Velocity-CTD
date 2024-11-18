@@ -109,7 +109,7 @@ public final class ServerCommand {
 
     if (server.getConfiguration().getQueue().isEnabled()) {
       // if queue feature is enabled, add aliases
-      aliases = server.getConfiguration().getQueue().getServerAliases().toArray(new String[0]);
+      aliases = server.getConfiguration().getServerAliases().toArray(new String[0]);
     }
 
     server.getCommandManager().register(
