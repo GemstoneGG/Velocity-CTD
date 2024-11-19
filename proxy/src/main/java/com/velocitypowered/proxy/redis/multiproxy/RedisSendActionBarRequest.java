@@ -29,8 +29,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * @param playerUuid The UUID of the player.
  * @param componentJson The actionbar message to send.
  */
-public record RedisSendActionBarRequest(UUID playerUuid, String componentJson)
-        implements RedisPacket {
+public record RedisSendActionBarRequest(UUID playerUuid, String componentJson) implements RedisPacket {
   public static final String ID = "redis-send-actionbar-request";
   private static final GsonComponentSerializer SERIALIZER = GsonComponentSerializer.gson();
 

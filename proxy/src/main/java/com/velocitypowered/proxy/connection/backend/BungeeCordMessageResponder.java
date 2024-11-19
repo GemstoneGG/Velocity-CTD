@@ -163,7 +163,7 @@ public class BungeeCordMessageResponder {
     }
   }
 
-  private void processPing(ByteBufDataInput in) {
+  private void processPing(final ByteBufDataInput in) {
     UUID playerUuid = UUID.fromString(in.readUTF());
 
     ByteBuf buf = Unpooled.buffer();
@@ -184,7 +184,7 @@ public class BungeeCordMessageResponder {
     }
   }
 
-  private void queuedServer(ByteBufDataInput in) {
+  private void queuedServer(final ByteBufDataInput in) {
     UUID playerUuid = UUID.fromString(in.readUTF());
 
     ByteBuf buf = Unpooled.buffer();
@@ -208,7 +208,7 @@ public class BungeeCordMessageResponder {
     }
   }
 
-  private void queuedPosition(ByteBufDataInput in) {
+  private void queuedPosition(final ByteBufDataInput in) {
     UUID playerUuid = UUID.fromString(in.readUTF());
 
     ByteBuf buf = Unpooled.buffer();
@@ -218,6 +218,7 @@ public class BungeeCordMessageResponder {
     if (!proxy.getQueueManager().isMasterProxy()) {
       return;
     }
+
     int position = -1;
     if (info != null && info.getQueuedServer() != null) {
       ServerQueueStatus status = proxy.getQueueManager().getQueue(info.getQueuedServer());
@@ -239,7 +240,7 @@ public class BungeeCordMessageResponder {
     }
   }
 
-  private void queuedMaxPosition(ByteBufDataInput in) {
+  private void queuedMaxPosition(final ByteBufDataInput in) {
     UUID playerUuid = UUID.fromString(in.readUTF());
 
     ByteBuf buf = Unpooled.buffer();
@@ -249,6 +250,7 @@ public class BungeeCordMessageResponder {
     if (!proxy.getQueueManager().isMasterProxy()) {
       return;
     }
+
     int position = -1;
     if (info != null && info.getQueuedServer() != null) {
       ServerQueueStatus status = proxy.getQueueManager().getQueue(info.getQueuedServer());
@@ -270,7 +272,7 @@ public class BungeeCordMessageResponder {
     }
   }
 
-  private void queuedPaused(ByteBufDataInput in) {
+  private void queuedPaused(final ByteBufDataInput in) {
     UUID playerUuid = UUID.fromString(in.readUTF());
 
     ByteBuf buf = Unpooled.buffer();
@@ -280,6 +282,7 @@ public class BungeeCordMessageResponder {
     if (!proxy.getQueueManager().isMasterProxy()) {
       return;
     }
+
     boolean paused = false;
     if (info != null && info.getQueuedServer() != null) {
       ServerQueueStatus status = proxy.getQueueManager().getQueue(info.getQueuedServer());
@@ -300,7 +303,6 @@ public class BungeeCordMessageResponder {
       buf.release();
     }
   }
-
 
   private void processPlayerList(final ByteBufDataInput in) {
     ByteBuf buf = Unpooled.buffer();
@@ -597,7 +599,4 @@ public class BungeeCordMessageResponder {
 
     return true;
   }
-
-
-
 }

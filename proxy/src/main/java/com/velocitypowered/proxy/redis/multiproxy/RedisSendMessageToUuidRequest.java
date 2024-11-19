@@ -31,9 +31,7 @@ import org.slf4j.LoggerFactory;
  * @param player the UUID of the target
  * @param componentJson the message to send, encoded as JSON
  */
-public record RedisSendMessageToUuidRequest(UUID player, String componentJson)
-        implements RedisPacket {
-
+public record RedisSendMessageToUuidRequest(UUID player, String componentJson) implements RedisPacket {
   private static final Logger logger = LoggerFactory.getLogger(RedisSendMessage.class);
   private static final GsonComponentSerializer SERIALIZER = GsonComponentSerializer.gson();
   public static final String ID = "send-message-uuid";
@@ -44,7 +42,7 @@ public record RedisSendMessageToUuidRequest(UUID player, String componentJson)
    * @param target the target
    * @param component the message to send
    */
-  public RedisSendMessageToUuidRequest(UUID target, Component component) {
+  public RedisSendMessageToUuidRequest(final UUID target, final Component component) {
     this(target, SERIALIZER.serialize(component));
   }
 

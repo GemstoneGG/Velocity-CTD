@@ -25,8 +25,7 @@ import com.velocitypowered.proxy.redis.RedisPacket;
  * @param server The name of the server.
  * @param pause Whether to pause it or not.
  */
-public record RedisQueuePauseRequest(String server, boolean pause)
-        implements RedisPacket {
+public record RedisQueuePauseRequest(String server, boolean pause) implements RedisPacket {
   public static final String ID = "redis-queue-pause";
 
   @Override

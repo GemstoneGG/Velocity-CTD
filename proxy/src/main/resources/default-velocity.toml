@@ -8,11 +8,10 @@ bind = "0.0.0.0:25565"
 # their server list. Only MiniMessage format is accepted.
 motd = "<#ff3a4c>A Velocity Server"
 
+# What should it look like when you hover over the player count? This is
+# displayed when hovering over the player count/max players' tooltip.
 motd-hover = [
-    "<#084CFB>r<#175BFB>o<#266AFB>o<#357AFC>o<#4489FC>t<#5398FC>b<#62A7FC>e<#71B6FC>e<#80C5FC>e<#8FD5FD>e<#9EE4FD>e<#ADF3FD>r",
-    "<#084CFB>i<#2064FB>s<#377CFC>s<#4F94FC>s<#66ABFC>s<#7EC3FC>s<#95DBFD>s<#ADF3FD>s",
-    "<#FB0808>a<#EE2F31>a<#E1565A>a<#D47E83>a<#C7A5AB>a<#BACCD4>a<#ADF3FD>a",
-    "<#FB0808>d<#FA0D0D>e<#F81111>v<#F71616>e<#F51A1B>l<#F41F20>o<#F22324>p<#F12829>p<#EF2C2E>e<#EE3132>e<#EC3537>r<#EB3A3C>r<#E93E41>r<#E84345>r<#E6474A>r<#E54C4F>r<#E35053>r<#E25558>r<#E0595D>r<#DF5E62>r<#DD6266>r<#DC676B>r<#DA6B70>r<#D97074>r<#D77479>r<#D6797E>r<#D47E83>r<#D38287>r<#D1878C>r<#D08B91>r<#CE9095>r<#CD949A>r<#CB999F>r<#CA9DA3>r<#C8A2A8>r<#C7A6AD>r<#C5ABB2>r<#C4AFB6>r<#C2B4BB>r<#C1B8C0>r<#BFBDC4>r<#BEC1C9>r<#BCC6CE>r<#BBCAD3>r<#B9CFD7>r<#B8D3DC>r<#B6D8E1>r<#B5DCE5>r<#B3E1EA>r<#B2E5EF>r<#B0EAF4>r<#AFEEF8>r<#ADF3FD>r"
+    "<#ff3a4c>A Velocity Tooltip"
 ]
 
 # What should we display for the maximum number of players? (Velocity does not support a cap
@@ -133,7 +132,7 @@ plist-enabled = true
 showall-enabled = true
 transfer-enabled = true
 
-# Whether to use the default `/server` output, or whether to override it with the `velocity.command.server.usage` key.
+# Whether to use the default "/server" output, or whether to override it with the "velocity.command.server.usage" key.
 override-server-command-usage = false
 
 [servers]
@@ -151,13 +150,18 @@ try = [
     "lobby"
 ]
 
-# Sends you to the least populated fallback server, instead of the first available fallback server.
-# Keep this false if you only have one fallback server.
-#
-# Options: FIRST_AVAILABLE, LEAST_POPULATED, MOST_POPULATED
+# Sends you to the first available fallback server, the least populated
+# fallback server, or the most populated fallback server.
+# Available options:
+# - "FIRST_AVAILABLE":    Acts like regular Velocity and sends the player to
+#                         the first available server on the fallbacks list.
+# - "LEAST_POPULATED":    Sends the player to the fallback server
+#                         with the least number of players.
+# - "MOST_POPULATED":     Sends the player to the fallback server
+#                         with the most number of players.
 dynamic-fallbacks-filter = "FIRST_AVAILABLE"
 
-# The list of aliases for the `/server` command when the queue system is enabled.
+# The list of aliases for the "/server" command when the queue system is enabled.
 server-aliases = [
     "joinqueue",
     "queue"
@@ -274,9 +278,16 @@ server-brand = "{backend-brand} ({proxy-brand})"
 #                              would be shown with this specific assignment.
 # - "{proxy-vendor}":          Returns the group or association (vendor) of your proxy
 #                              that by default would display "Velocity Contributors."
+# - "{player-count}":          Returns the total number of players connected to
+#                              the proxy or to all available proxies on Redis.
+# - "{max-players}":           Returns the total number of players that displays
+#                              to the proxy or to all available proxies on Redis.
 fallback-version-ping = "{proxy-brand} {protocol-min}-{protocol-max}"
 
-always-fallback-ping = true
+# Instead of "fallback-version-ping" exclusively returning when the
+# user is on an unsupported version, it is returned regardless of their
+# version and can be used to customize the player count/max line freely.
+always-fallback-ping = false
 
 # Replaces what is returned for both the server brand and fallback version pinger.
 custom-brand-proxy = "Velocity"
@@ -285,10 +296,16 @@ custom-brand-proxy = "Velocity"
 custom-brand-backend = "Paper"
 
 [slash-servers]
-# Defines `/<name>` aliases for servers - here `/faction` and `/factions` would both send you to the server named
-# `factions`, for example.
-factions = ["faction", "factions"]
-minigames = ["minigames", "arcade"]
+# Defines "/<name>" aliases for servers - here "/faction" and "/factions" would both send you to the server named
+# "factions", for example.
+factions = [
+    "faction",
+    "factions"
+]
+minigames = [
+    "minigames",
+    "arcade"
+]
 
 [query]
 # Whether to enable responding to GameSpy 4 query responses or not.
@@ -321,18 +338,18 @@ use-ssl = false
 # of connections to your Redis instance will massively depreciate performance.
 max-concurrent-connections = 10
 
-# The ID of this proxy (only needed for multi-proxy setups - leave blank otherwise)
+# The ID of this proxy and is only needed for multi-proxy setups.
+# Leave blank if you do not use Redis and is left blank by
+# default to ensure a qualitative proxy ID is assigned.
 proxy-id = ""
 
-# How often to send a ping over the Redis.
+# How often to send a ping through Redis.
 ping-interval-ms = 30000
 
 [queue]
-# Whether the queue system is active or not. This will fully unregister all permissions, commands, and this feature as
-# a whole.
+# Whether the queue system is enabled. This will fully unregister
+# all permissions, commands, and this feature as a whole.
 enabled = false
-
-
 
 # The list of IDs of the proxy (in order of priority) that should handle and maintain the queue. only necessary in multi-proxy setup, leave blank otherwise.
 # Always attempts to use the first ID first, if the proxy isn't available, it'll use the next in the list.
@@ -340,10 +357,10 @@ enabled = false
 # Needs to be a list of the "proxy-id"'s of the proxies connected to the network.
 master-proxy-ids = [""]
 
-# The list of aliases for the `/leavequeue` command. The command will not be registered if this list is empty.
+# The list of aliases for the "/leavequeue" command. The command will not be registered if this list is empty.
 leave-queue-aliases = ["leavequeue", "dequeue"]
 
-# The list of aliases for the `/queueadmin` command. The command will not be registered if this list is empty.
+# The list of aliases for the "/queueadmin" command. The command will not be registered if this list is empty.
 queue-admin-aliases = ["queueadmin", "qadmin"]
 
 # The list of servers that should not have the queue system enabled.
@@ -354,8 +371,13 @@ no-queue-servers = [
 # Whether the user should be capable of entering multiple queues at once.
 allow-multi-queue = false
 
-# Determines which server should be prioritized for action bars and placeholders.
-# Options: "first" or "last"
+# Determines which server should be prioritized for action bars
+# and placeholders when the "multi-queue" option is enabled.
+# Available options:
+# - "first":         Returns the first server you connected
+#                    to from the queue list.
+# - "last":          Returns the last server you connected
+#                    to from the queue list.
 multiple-server-messaging-selection = "last"
 
 # How long the queue system should wait before sending each user to a server (in seconds).
@@ -368,7 +390,7 @@ message-delay = 1.0
 backend-ping-interval = 1.0
 
 # The number tries should a user be sent to a server before it removes the user from a queue.
-max-send-retries = 5
+max-send-retries = 10
 
 # Whether the player should be removed from their previous queue when switching servers.
 remove-player-on-server-switch = true
@@ -379,40 +401,49 @@ forward-kick-reason = true
 # Whether users can enter a queue that is paused.
 allow-paused-queue-joining = false
 
-# Whether users should be automatically sent back to a server when it returns online. This feature only applies when
-# enabled. By default, the user is re-added to the queue and must wait the duration before being re-sent to their
-# previous destination.
+# Whether users should be automatically added back to the queue of their previously connected server.
+# By default, the user is re-added to the queue and must wait their queue duration before being
+# re-sent to their previous destination.
 queue-on-shutdown = true
 
 # If true, players that are sent via the BungeeCord Messaging channels are queued if the server has queueing enabled.
 # If false, they will bypass the queue and be sent directly to the backend.
 override-bungee-messaging = true
 
-
 [server-links]
+# This allows you to implement server links into the escape menu that
+# ensures users on versions 1.21 and above can easily find relevant
+# information about your Velocity network.
 
-[server-links.1]
-link = "https://store.jackpotmc.com"
-label = "#FF0000Store"
-
-[server-links.2]
-link = "discord.gg/jackpotmc"
-label = "#00FF00Discord"
-
+[server-links.GitHub]
+link = "https://github.com/GemstoneGG/Velocity-CTD"
+label = "<#ff3a4c>GitHub"
 
 [proxy-addresses]
+# Proxy addresses are specified to ensure that the player
+# can be transferred using the "/transfer" command
+# and requires Redis to be activated for use.
 
-# Options: MOST_EMPTY, LEAST_EMPTY, FIRST_FOUND
+# This allows you to specify whether you would like your players
+# to be sent to no fallback proxy, the most empty fallback proxy,
+# the least empty fallback proxy, or the first found fallback proxy.
+# Available options:
+# - "FIRST_FOUND":        Sends the player to the first available
+#                         proxy from the "master-proxy-ids" list.
+# - "MOST_EMPTY":         Sends the player to the fallback proxy
+#                         with the least number of players.
+# - "LEAST_EMPTY":        Sends the player to the fallback proxy
+#                         with the most number of players.
+# - "NONE":               Fully kicks the player from the entirety
+#                         of the network and is not sent anywhere.
 dynamic-proxy-filter = "MOST_EMPTY"
 
-[proxy-addresses.1]
+[proxy-addresses.Proxy-1]
 proxy-id = "Proxy-1"
 ip = "148.113.189.229"
 port = 25565
 
-[proxy-addresses.2]
+[proxy-addresses.Proxy-2]
 proxy-id = "Proxy-2"
 ip = "148.113.189.229"
 port = 25566
-
-

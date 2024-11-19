@@ -41,7 +41,7 @@ public class ServerQueueEntry {
    * @param target the target server
    */
   public ServerQueueEntry(final UUID player, final VelocityRegisteredServer target,
-                          VelocityServer proxy, int priority) {
+                          final VelocityServer proxy, final int priority) {
     this.player = player;
     this.target = target;
     this.proxy = proxy;

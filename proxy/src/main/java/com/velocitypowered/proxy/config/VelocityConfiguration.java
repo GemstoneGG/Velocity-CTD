@@ -266,17 +266,20 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
     }
 
-    for (Map.Entry<String, List<String>> entry : forcedHosts.getForcedHosts().entrySet()) {
-      if (entry.getValue().isEmpty()) {
-        logger.error("Forced host '{}' does not contain any servers", entry.getKey());
-        valid = false;
-        continue;
-      }
-
-      for (String server : entry.getValue()) {
-        if (!servers.getServers().containsKey(server)) {
-          logger.error("Server '{}' for forced host '{}' does not exist", server, entry.getKey());
+    final Map<String, List<String>> configuredForcedHosts = forcedHosts.getForcedHosts();
+    if (!configuredForcedHosts.isEmpty()) {
+      for (Map.Entry<String, List<String>> entry : configuredForcedHosts.entrySet()) {
+        if (entry.getValue().isEmpty()) {
+          logger.error("Forced host '{}' does not contain any servers", entry.getKey());
           valid = false;
+          continue;
+        }
+
+        for (String server : entry.getValue()) {
+          if (!servers.getServers().containsKey(server)) {
+            logger.error("Server '{}' for forced host '{}' does not exist", server, entry.getKey());
+            valid = false;
+          }
         }
       }
     }
@@ -1017,11 +1020,7 @@ public final class VelocityConfiguration implements ProxyConfig {
 
   private static final class ForcedHosts {
 
-    private Map<String, List<String>> forcedHosts = ImmutableMap.of(
-        "lobby.example.com", ImmutableList.of("lobby"),
-        "factions.example.com", ImmutableList.of("factions"),
-        "minigames.example.com", ImmutableList.of("minigames")
-    );
+    private Map<String, List<String>> forcedHosts = ImmutableMap.of();
 
     private ForcedHosts() {
     }
@@ -1600,7 +1599,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.sendDelay = config.getOrElse("send-delay", 1.0);
       this.messageDelay = config.getOrElse("message-delay", 1.0);
       this.backendPingInterval = config.getOrElse("backend-ping-interval", 1.0);
-      this.maxSendRetries = config.getOrElse("max-send-retries", 5);
+      this.maxSendRetries = config.getOrElse("max-send-retries", 10);
       this.removePlayerOnServerSwitch = config.getOrElse("remove-player-on-server-switch", true);
       this.forwardKickReason = config.getOrElse("forward-kick-reason", true);
       this.allowPausedQueueJoining = config.getOrElse("allow-paused-queue-joining", false);

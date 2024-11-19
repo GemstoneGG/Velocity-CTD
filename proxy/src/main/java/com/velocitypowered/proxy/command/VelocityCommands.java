@@ -382,7 +382,6 @@ public final class VelocityCommands {
       return null;
     }
 
-
     if (!allowNonQueueable && !registeredServer.getQueueStatus().hasQueue()) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.server-has-no-queue")
           .arguments(Component.text(serverName)));

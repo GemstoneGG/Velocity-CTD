@@ -104,7 +104,6 @@ public final class VelocityCommand {
         .literalArgumentBuilder("reload")
         .requires(source -> source.getPermissionValue("velocity.command.reload") == Tristate.TRUE)
         .executes(new Reload(server));
-
     final LiteralCommandNode<CommandSource> sudo = BrigadierCommand
         .literalArgumentBuilder("sudo")
         .requires(source -> source.getPermissionValue("velocity.command.sudo") == Tristate.TRUE)
@@ -115,7 +114,6 @@ public final class VelocityCommand {
         .then(BrigadierCommand.requiredArgumentBuilder("message/command", StringArgumentType.greedyString())
         .executes(new Sudo(server))))
         .build();
-
     LiteralArgumentBuilder<CommandSource> uptime = BrigadierCommand
         .literalArgumentBuilder("uptime")
         .requires(source -> source.getPermissionValue("velocity.command.uptime") == Tristate.TRUE)

@@ -28,10 +28,8 @@ import java.util.UUID;
  * @param playerUuid The UUID of the player that's being added to the queue.
  * @param serverName The name of the server which the player is being de-queued for.
  */
-public record RedisQueueDisableWaitingForConnectionRequest(UUID playerUuid, String serverName)
-        implements RedisPacket {
+public record RedisQueueDisableWaitingForConnectionRequest(UUID playerUuid, String serverName) implements RedisPacket {
   public static final String ID = "redis-queue-disable-waiting";
-
 
   @Override
   public String getId() {

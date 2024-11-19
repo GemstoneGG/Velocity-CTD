@@ -67,7 +67,6 @@ public class ServerListPingHandler {
     String serverPingVersion = configuration.getFallbackVersionPing();
 
     final int online;
-
     if (server.getMultiProxyHandler().isEnabled()) {
       online = server.getMultiProxyHandler().getTotalPlayerCount();
     } else {
@@ -102,8 +101,8 @@ public class ServerListPingHandler {
         .replaceAll("\\{proxy-version}", this.server.getVersion().getVersion())
         .replaceAll("\\{proxy-vendor}", this.server.getVersion().getVendor())
         .replaceAll("\\{player-count}", this.server.getMultiProxyHandler().isEnabled()
-                ? String.valueOf(this.server.getMultiProxyHandler().getTotalPlayerCount())
-                : String.valueOf(this.server.getPlayerCount()))
+            ? String.valueOf(this.server.getMultiProxyHandler().getTotalPlayerCount())
+            : String.valueOf(this.server.getPlayerCount()))
         .replaceAll("\\{max-players}", String.valueOf(this.server.getConfiguration().getShowMaxPlayers()));
   }
 
@@ -151,7 +150,6 @@ public class ServerListPingHandler {
               return fallback.asBuilder().mods(modInfo.get()).build();
             }
           }
-
           return fallback;
         });
       case DESCRIPTION:

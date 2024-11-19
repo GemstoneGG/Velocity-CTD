@@ -30,7 +30,6 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Locale;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.translation.GlobalTranslator;
 
 /**
@@ -97,10 +96,6 @@ public class HubCommand {
             .arguments(Component.text(serverToTry.getServerInfo().getName())));
       }
 
-      //TODO: Rootbeer, make sure you add the "Sending to hub now..." message here!
-      TranslatableComponent fallbackMessage = Component.translatable("velocity.error.connecting-server-error")
-          .arguments(Component.text(serverToTry.getServerInfo().getName()));
-
       if (this.server.getConfiguration().getQueue().getNoQueueServers()
               .contains(serverToTry.getServerInfo().getName()) || !server.getMultiProxyHandler().isEnabled()
               || player.hasPermission("velocity.queue.bypass")) {
@@ -109,8 +104,7 @@ public class HubCommand {
       }
 
       ((VelocityRegisteredServer) serverToTry).getQueueStatus().queue(player.getUniqueId(),
-              player.getQueuePriority(serverToTry.getServerInfo().getName()));
-
+          player.getQueuePriority(serverToTry.getServerInfo().getName()));
 
       return Command.SINGLE_SUCCESS;
     }

@@ -323,7 +323,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       }
     }
 
-
     redisManager = new RedisManagerImpl(this);
     multiProxyHandler = new MultiProxyHandler(this);
     if (getConfiguration().getRedis().isEnabled()) {
@@ -333,6 +332,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     }
 
     registerCommands();
+
     registerTranslations(true);
 
     ipAttemptLimiter = Ratelimiters.createWithMilliseconds(configuration.getLoginRatelimit());
@@ -370,8 +370,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     } else {
       logger.warn("debug environment, metrics is disabled!");
     }
-
-
   }
 
   private void unregisterTranslations() {
@@ -797,7 +795,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         }
       } else {
         ProxyAddress chosen = getProxyAddressToUse();
-
         if (chosen == null) {
           for (ConnectedPlayer player : players) {
             player.disconnect(reason);
@@ -900,31 +897,27 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private ProxyAddress getProxyAddressToUse() {
     final String filter = getConfiguration().getDynamicProxyFilter();
     final List<ProxyAddress> addresses = new ArrayList<>(getConfiguration().getProxyAddresses().stream().toList());
-    addresses.removeIf(address -> getMultiProxyHandler().getOwnProxyId().equalsIgnoreCase(address.proxyId()));
+    addresses.removeIf(address -> Objects.requireNonNull(getMultiProxyHandler().getOwnProxyId()).equalsIgnoreCase(address.proxyId()));
 
     switch (filter) {
-      case "MOST_EMPTY" -> {
-        addresses.sort((o1, o2) -> {
-          int connectedSize1 = getMultiProxyHandler().getAllPlayers().stream().filter(i ->
-                  i.proxyId.equalsIgnoreCase(o1.proxyId())).toList().size();
+      case "MOST_EMPTY" -> addresses.sort((o1, o2) -> {
+        int connectedSize1 = getMultiProxyHandler().getAllPlayers().stream().filter(i ->
+            i.proxyId.equalsIgnoreCase(o1.proxyId())).toList().size();
 
-          int connectedSize2 = getMultiProxyHandler().getAllPlayers().stream().filter(i ->
-                  i.proxyId.equalsIgnoreCase(o2.proxyId())).toList().size();
+        int connectedSize2 = getMultiProxyHandler().getAllPlayers().stream().filter(i ->
+            i.proxyId.equalsIgnoreCase(o2.proxyId())).toList().size();
 
-          return Long.compare(connectedSize1, connectedSize2);
-        });
-      }
-      case "LEAST_EMPTY" -> {
-        addresses.sort((o1, o2) -> {
-          int connectedSize1 = getMultiProxyHandler().getAllPlayers().stream().filter(i ->
-                  i.proxyId.equalsIgnoreCase(o1.proxyId())).toList().size();
+        return Long.compare(connectedSize1, connectedSize2);
+      });
+      case "LEAST_EMPTY" -> addresses.sort((o1, o2) -> {
+        int connectedSize1 = getMultiProxyHandler().getAllPlayers().stream().filter(i ->
+            i.proxyId.equalsIgnoreCase(o1.proxyId())).toList().size();
 
-          int connectedSize2 = getMultiProxyHandler().getAllPlayers().stream().filter(i ->
-                  i.proxyId.equalsIgnoreCase(o2.proxyId())).toList().size();
+        int connectedSize2 = getMultiProxyHandler().getAllPlayers().stream().filter(i ->
+            i.proxyId.equalsIgnoreCase(o2.proxyId())).toList().size();
 
-          return Long.compare(connectedSize2, connectedSize1);
-        });
-      }
+        return Long.compare(connectedSize2, connectedSize1);
+      });
       case "NONE" -> {
         return null;
       }
@@ -935,7 +928,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
     return addresses.get(0);
   }
-
 
   @Override
   public void closeListeners() {

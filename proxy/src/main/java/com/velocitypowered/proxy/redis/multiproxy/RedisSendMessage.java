@@ -41,7 +41,7 @@ public record RedisSendMessage(EncodedCommandSource target, String componentJson
    * @param target the target
    * @param component the message to send
    */
-  public RedisSendMessage(EncodedCommandSource target, Component component) {
+  public RedisSendMessage(final EncodedCommandSource target, final Component component) {
     this(target, SERIALIZER.serialize(component));
   }
 

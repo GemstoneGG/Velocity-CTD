@@ -119,7 +119,6 @@ public class QueueManagerRedisImpl extends QueueManager {
                   .arguments(Component.text(it.serverName()))));
         }
       }
-
     });
 
     redisManager.listen(RedisQueueSendRequest.ID, RedisQueueSendRequest.class, it -> {
@@ -190,9 +189,7 @@ public class QueueManagerRedisImpl extends QueueManager {
       Component component = it.component();
 
       if (component != null) {
-        server.getPlayer(it.playerUuid()).ifPresent(player -> {
-          player.sendActionBar(component);
-        });
+        server.getPlayer(it.playerUuid()).ifPresent(player -> player.sendActionBar(component));
       }
     });
 
@@ -201,9 +198,7 @@ public class QueueManagerRedisImpl extends QueueManager {
         Component component = it.component();
 
         if (component != null) {
-          server.getPlayer(it.player()).ifPresent(player -> {
-            player.sendMessage(component);
-          });
+          server.getPlayer(it.player()).ifPresent(player -> player.sendMessage(component));
         }
       });
 
@@ -273,7 +268,6 @@ public class QueueManagerRedisImpl extends QueueManager {
     return false;
   }
 
-
   /**
    * Hook that removes the player from all queues.
    *
@@ -281,13 +275,10 @@ public class QueueManagerRedisImpl extends QueueManager {
    */
   @Override
   public void onPlayerLeave(final ConnectedPlayer player) {
-    this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
-      this.server.getAllServers().forEach(server -> {
-        this.server.getRedisManager().send(new RedisQueueLeaveRequest(player.getUniqueId(),
-                server.getServerInfo().getName(),
-                false));
-      });
-    })
+    this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> this.server.getAllServers().forEach(server
+        -> this.server.getRedisManager().send(new RedisQueueLeaveRequest(player.getUniqueId(),
+            server.getServerInfo().getName(),
+            false))))
             .delay(getTimeoutInSeconds(player), TimeUnit.SECONDS)
             .schedule();
   }
@@ -299,7 +290,7 @@ public class QueueManagerRedisImpl extends QueueManager {
    * @param server The server to queue into
    */
   @Override
-  public void queue(Player player, VelocityRegisteredServer server) {
+  public void queue(final Player player, final VelocityRegisteredServer server) {
     if (!isEnabled() || player.hasPermission("velocity.queue.bypass")) {
       player.createConnectionRequest(server).connectWithIndication();
       return;
@@ -332,7 +323,7 @@ public class QueueManagerRedisImpl extends QueueManager {
   }
 
   @Override
-  public void removeFromAll(ConnectedPlayer player) {
+  public void removeFromAll(final ConnectedPlayer player) {
     for (ServerQueueStatus status : this.getAll()) {
       if (status.isQueued(player.getUniqueId())) {
         this.server.getRedisManager().send(new RedisQueueLeaveRequest(player.getUniqueId(), status.getServerName(),
@@ -340,5 +331,4 @@ public class QueueManagerRedisImpl extends QueueManager {
       }
     }
   }
-
 }

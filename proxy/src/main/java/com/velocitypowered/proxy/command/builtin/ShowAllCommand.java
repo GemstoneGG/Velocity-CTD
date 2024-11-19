@@ -100,7 +100,6 @@ public class ShowAllCommand {
     }
 
     final RegisteredServer server = maybeServer.orElse(null);
-
     final int connectedPlayers = server.getPlayersConnected().size();
 
     final Component header = Component.translatable(connectedPlayers == 0 ? "velocity.command.showall.header-none"
@@ -138,7 +137,6 @@ public class ShowAllCommand {
     }
 
     final RegisteredServer server = maybeServer.orElse(null);
-
     int connectedPlayers = 0;
     List<MultiProxyHandler.RemotePlayerInfo> list = this.server.getMultiProxyHandler().getAllPlayers();
     for (MultiProxyHandler.RemotePlayerInfo info : list) {

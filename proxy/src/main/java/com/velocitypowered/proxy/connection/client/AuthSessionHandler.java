@@ -268,8 +268,6 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         return;
       }
 
-
-
       Optional<Component> reason = event.getResult().getReasonComponent();
       if (reason.isPresent()) {
         player.disconnect0(reason.get(), true);
@@ -284,8 +282,6 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
           player.disconnect0(Component.translatable("velocity.error.already-connected-proxy.remote"), true);
           return;
         }
-
-
 
         ServerLoginSuccessPacket success = new ServerLoginSuccessPacket();
         success.setUsername(player.getUsername());

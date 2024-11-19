@@ -158,14 +158,11 @@ public class TransferCommand {
       }
     }
 
-
-
     if (address == null) {
       context.getSource().sendMessage(Component.translatable("velocity.command.error.transfer.invalid-proxy")
               .arguments(Component.text(proxyId)));
       return -1;
     }
-
 
     if (player.equalsIgnoreCase("all")) {
       context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.all")

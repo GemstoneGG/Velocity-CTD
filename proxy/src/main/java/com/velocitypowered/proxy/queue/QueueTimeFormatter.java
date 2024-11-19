@@ -35,7 +35,7 @@ public class QueueTimeFormatter {
    * @param inputSeconds the number of seconds
    * @return the time formatted as a component
    */
-  public static Component format(int inputSeconds) {
+  public static Component format(final int inputSeconds) {
     int days = (int) TimeUnit.SECONDS.toDays(inputSeconds);
     int hours = (int) (TimeUnit.SECONDS.toHours(inputSeconds) - (days * 24L));
     int minutes = (int) (TimeUnit.SECONDS.toMinutes(inputSeconds)

@@ -35,7 +35,7 @@ public class EncodedCommandSource {
   private final String target;
   private final String targetProxy;
 
-  private EncodedCommandSource(String target, String targetProxy) {
+  private EncodedCommandSource(final String target, final String targetProxy) {
     this.target = target;
     this.targetProxy = targetProxy;
   }
@@ -47,7 +47,7 @@ public class EncodedCommandSource {
    * @param proxyId the ID of this proxy
    * @return a {@link EncodedCommandSource} that replies to the given source
    */
-  public static EncodedCommandSource from(CommandSource source, String proxyId) {
+  public static EncodedCommandSource from(final CommandSource source, final String proxyId) {
     String target;
 
     if (source instanceof ConsoleCommandSource) {
@@ -68,7 +68,7 @@ public class EncodedCommandSource {
    * @param proxyId the ID of the target proxy
    * @return an {@link EncodedCommandSource} that sends a message globally on the target proxy.
    */
-  public static EncodedCommandSource global(String proxyId) {
+  public static EncodedCommandSource global(final String proxyId) {
     return new EncodedCommandSource("#all", proxyId);
   }
 
@@ -77,7 +77,7 @@ public class EncodedCommandSource {
    *
    * @return the encoded command source corresponding to the remote server console.
    */
-  public static EncodedCommandSource console(String targetProxy) {
+  public static EncodedCommandSource console(final String targetProxy) {
     return new EncodedCommandSource("#console", targetProxy);
   }
 
@@ -87,7 +87,7 @@ public class EncodedCommandSource {
    * @param server the proxy server
    * @param component the component to send
    */
-  public void sendMessage(VelocityServer server, Component component) {
+  public void sendMessage(final VelocityServer server, final Component component) {
     if (!Objects.equals(server.getMultiProxyHandler().getOwnProxyId(), this.targetProxy)) {
       return;
     }

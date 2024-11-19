@@ -84,8 +84,6 @@ public class AlertRawCommand {
               ComponentUtils.colorify(message)));
     }
 
-
-
     return Command.SINGLE_SUCCESS;
   }
 }

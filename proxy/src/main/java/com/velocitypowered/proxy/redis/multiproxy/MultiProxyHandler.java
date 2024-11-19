@@ -132,7 +132,6 @@ public class MultiProxyHandler {
     this.server = server;
     this.config = this.server.getConfiguration().getRedis();
 
-
     this.enabled = config.isEnabled() && config.getProxyId() != null;
 
     if (!this.isEnabled()) {
@@ -209,13 +208,12 @@ public class MultiProxyHandler {
       }
     });
 
-    redisManager.listen(RedisStartupRequest.ID, RedisStartupRequest.class, it -> {
-      this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
-        if (!this.server.getQueueManager().isMasterProxy()) {
-          this.server.getQueueManager().clearQueue();
-        }
-      }).delay(3, TimeUnit.SECONDS).schedule();
-    });
+    redisManager.listen(RedisStartupRequest.ID, RedisStartupRequest.class, it
+        -> this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+          if (!this.server.getQueueManager().isMasterProxy()) {
+            this.server.getQueueManager().clearQueue();
+          }
+        }).delay(3, TimeUnit.SECONDS).schedule());
 
     redisManager.listen(RedisGenericReplyRequest.ID, RedisGenericReplyRequest.class, it -> {
       if (!it.targetProxy().equals(this.getOwnProxyId())) {
@@ -303,8 +301,6 @@ public class MultiProxyHandler {
     Collection<Player> players = this.server.getAllPlayers();
     List<RemotePlayerInfo> playerInfos = new ArrayList<>(players.size());
 
-
-
     for (Player player : players) {
       Map<String, Integer> queuePriorities = new HashMap<>();
 
@@ -335,8 +331,8 @@ public class MultiProxyHandler {
     return playerInfos;
   }
 
-  private void handleRemoteJoin(OtherProxy proxy, RemotePlayerInfo player) {
-    // This handles the edge case if a player joins two proxies at once, once the player info broadcast is received
+  private void handleRemoteJoin(final OtherProxy proxy, final RemotePlayerInfo player) {
+    // This handles the edge case if a player joins two proxies at once, once the player info broadcast is received,
     // we disconnect them from the local proxy.
     for (Player localPlayer : this.server.getAllPlayers()) {
       if (localPlayer.getUniqueId().equals(player.uuid) && !player.beingTransferred) {
@@ -405,7 +401,7 @@ public class MultiProxyHandler {
    * @param player The UUID of the player.
    * @param serverName The name of the server the player is connecting to.
    */
-  public void handleServerSwitch(UUID player, String serverName) {
+  public void handleServerSwitch(final UUID player, final String serverName) {
     this.server.getRedisManager().send(new RedisPlayerServerChange(getOwnProxyId(),
             player, serverName));
   }
@@ -514,7 +510,7 @@ public class MultiProxyHandler {
    * @param proxyId the ID of the remote proxy
    * @param source the source to send replies back to
    */
-  public void requestReload(String proxyId, @Nullable CommandSource source) {
+  public void requestReload(final String proxyId, @Nullable final CommandSource source) {
     this.server.getRedisManager().send(new RedisGenericReplyRequest(
         RedisGenericReplyRequest.Type.Reload, proxyId, EncodedCommandSource.from(source, this.getOwnProxyId())));
   }
@@ -525,7 +521,7 @@ public class MultiProxyHandler {
    * @param proxyId the ID of the remote proxy
    * @param source the source to send replies back to
    */
-  public void requestUptime(String proxyId, CommandSource source) {
+  public void requestUptime(final String proxyId, final CommandSource source) {
     this.server.getRedisManager().send(new RedisGenericReplyRequest(
         RedisGenericReplyRequest.Type.Uptime, proxyId, EncodedCommandSource.from(source, this.getOwnProxyId())));
   }
@@ -536,7 +532,7 @@ public class MultiProxyHandler {
    * @param target the target of the message
    * @param component the message to send
    */
-  public void sendMessage(EncodedCommandSource target, Component component) {
+  public void sendMessage(final EncodedCommandSource target, final Component component) {
     this.server.getRedisManager().send(new RedisSendMessage(target, component));
   }
 
@@ -556,13 +552,13 @@ public class MultiProxyHandler {
   }
 
   /**
-   * Get the connected players information, if it exists.
+   * Get the connected players information if it exists.
    * Can be quite resource extensive, so use with caution.
    *
    * @param uuid The UUID of the player to fetch.
    * @return the {@link RemotePlayerInfo} of the player, or null.
    */
-  public RemotePlayerInfo getPlayerInfo(UUID uuid) {
+  public RemotePlayerInfo getPlayerInfo(final UUID uuid) {
     for (RemotePlayerInfo info : getAllPlayers()) {
       if (info.uuid.equals(uuid)) {
         return info;
@@ -572,13 +568,13 @@ public class MultiProxyHandler {
   }
 
   /**
-   * Get the connected players information, if it exists.
+   * Get the connected players information if it exists.
    * Can be quite resource extensive, so use with caution.
    *
    * @param username The username of the player to fetch.
    * @return the {@link RemotePlayerInfo} of the player, or null.
    */
-  public RemotePlayerInfo getPlayerInfo(String username) {
+  public RemotePlayerInfo getPlayerInfo(final String username) {
     for (RemotePlayerInfo info : getAllPlayers()) {
       if (info.name.equals(username)) {
         return info;
@@ -594,7 +590,7 @@ public class MultiProxyHandler {
    *
    * @return Whether the player is connected to any proxy or not.
    */
-  public boolean isPlayerOnline(UUID uuid) {
+  public boolean isPlayerOnline(final UUID uuid) {
     for (Player player : server.getAllPlayers()) {
       if (player.getUniqueId().equals(uuid)) {
         return true;
@@ -619,7 +615,7 @@ public class MultiProxyHandler {
    *
    * @return Whether the player is connected to any proxy or not.
    */
-  public boolean isPlayerOnline(String username) {
+  public boolean isPlayerOnline(final String username) {
     for (Player player : server.getAllPlayers()) {
       if (player.getUsername().equalsIgnoreCase(username)) {
         return true;
@@ -642,7 +638,7 @@ public class MultiProxyHandler {
    *
    * @param component The component to broadcast on all servers.
    */
-  public void alert(Component component) {
+  public void alert(final Component component) {
     server.getRedisManager().send(new RedisServerAlertRequest(component));
   }
 
@@ -652,7 +648,7 @@ public class MultiProxyHandler {
    * @param player the target player
    * @param source where to send feedback to
    */
-  public void sudo(RemotePlayerInfo player, CommandSource source, String message) {
+  public void sudo(final RemotePlayerInfo player, final CommandSource source, final String message) {
     this.server.getRedisManager().send(new RedisSudo(player.proxyId, player.uuid, EncodedCommandSource.from(source, this.getOwnProxyId()), message));
   }
 }

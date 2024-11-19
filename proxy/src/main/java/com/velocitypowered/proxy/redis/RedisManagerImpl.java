@@ -87,7 +87,7 @@ public class RedisManagerImpl {
     registerListeners(velocityServer);
   }
 
-  private void registerListeners(VelocityServer proxy) {
+  private void registerListeners(final VelocityServer proxy) {
     listen(RedisServerAlertRequest.ID, RedisServerAlertRequest.class, it -> {
       Component component = it.component();
 
@@ -264,7 +264,8 @@ public class RedisManagerImpl {
       }
     }
 
-    private record ChannelRegistration<T>(Class<T> clazz, Consumer<T> consumer) {}
+    private record ChannelRegistration<T>(Class<T> clazz, Consumer<T> consumer) {
+    }
 
     private <T> void register(final String id, final Class<T> clazz, final Consumer<T> consumer) {
       this.listeners.put(id, new ChannelRegistration<>(clazz, consumer));

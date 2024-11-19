@@ -189,7 +189,6 @@ public class QueueAdminCommand {
 
   private int pause(final CommandContext<CommandSource> ctx) {
     VelocityRegisteredServer server = VelocityCommands.getServer(this.server, ctx, "server", false);
-
     if (server == null) {
       return -1;
     }
@@ -216,7 +215,6 @@ public class QueueAdminCommand {
 
   private int unpause(final CommandContext<CommandSource> ctx) {
     VelocityRegisteredServer server = VelocityCommands.getServer(this.server, ctx, "server", false);
-
     if (server == null) {
       return -1;
     }
@@ -301,13 +299,11 @@ public class QueueAdminCommand {
 
   private int addAll(final CommandContext<CommandSource> ctx) {
     VelocityRegisteredServer from = VelocityCommands.getServer(this.server, ctx, "from", true);
-
     if (from == null) {
       return -1;
     }
 
     VelocityRegisteredServer to = VelocityCommands.getServer(this.server, ctx, "to", false);
-
     if (to == null) {
       return -1;
     }
@@ -403,7 +399,6 @@ public class QueueAdminCommand {
     List<RegisteredServer> servers;
     if (ctx.getArguments().containsKey("server")) {
       VelocityRegisteredServer registeredServer = VelocityCommands.getServer(server, ctx, "server", false);
-
       if (registeredServer == null) {
         return -1;
       }
@@ -477,7 +472,6 @@ public class QueueAdminCommand {
 
   private int removeAll(final CommandContext<CommandSource> ctx) {
     VelocityRegisteredServer server = VelocityCommands.getServer(this.server, ctx, "server", true);
-
     if (server == null) {
       return -1;
     }

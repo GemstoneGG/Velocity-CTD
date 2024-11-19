@@ -249,7 +249,7 @@ public class ServerQueueStatus {
     }
   }
 
-  private void insertAtPosition(ServerQueueEntry newEntry, int position) {
+  private void insertAtPosition(final ServerQueueEntry newEntry, final int position) {
     var tempQueue = new ConcurrentLinkedDeque<ServerQueueEntry>();
     int index = 0;
 
@@ -281,7 +281,7 @@ public class ServerQueueStatus {
    *
    * @return The {@link ServerQueueEntry} for the player.
    */
-  public Optional<ServerQueueEntry> getEntry(UUID playerUuid) {
+  public Optional<ServerQueueEntry> getEntry(final UUID playerUuid) {
     for (ServerQueueEntry entry : queue) {
       if (entry.player.equals(playerUuid)) {
         return Optional.of(entry);

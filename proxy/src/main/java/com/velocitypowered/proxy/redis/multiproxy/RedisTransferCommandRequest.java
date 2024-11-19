@@ -27,8 +27,7 @@ import com.velocitypowered.proxy.redis.RedisPacket;
  * @param ip The ip of the new proxy.
  * @param port The port of the new proxy.
  */
-public record RedisTransferCommandRequest(String player, String proxyId, String ip, int port)
-        implements RedisPacket {
+public record RedisTransferCommandRequest(String player, String proxyId, String ip, int port) implements RedisPacket {
   public static final String ID = "transfer-command-request";
 
   @Override

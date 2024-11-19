@@ -44,9 +44,13 @@ dependencies, useful performance improvements, and more.
 * `/hub` with `/lobby` alias that sends you to the/a fallback server,
   which synchronizes with the activation and deactivation of dynamic fallbacks.
 * Configurable `/ping` command that displays your and other users' ping.
+* Configurable `/plist` command that displays the total users on your proxy
+  or from a defined proxy scope.
 * The `/send` supports sending users from `{SERVER_FROM}` to `{SERVER_TO}`.
 * Configurable `/showall` command that displays all users connected to a specific
   instance rather than flooding your chat with users connected everywhere.
+* Configurable `/transfer` command that allows you to move a player, "current" players,
+  a specific server, or all players from one proxy to another.
 * Configurable `/velocity sudo` command to force users to execute a command on the
   proxy or even server level.
 * Configurable `/velocity uptime` command to view how long your proxy has been online for.
@@ -72,8 +76,9 @@ dependencies, useful performance improvements, and more.
   messages, alongside `/velocity reload`able translations, alongside `/velocity reload`able
   server additions/removals inside the `velocity.toml`.
 * Removal of all language files except `messages.properties` to preserve
-  maintainability. PRs are welcome to reimplement all language files
+  maintainability. PRs (Pull Requests) are welcome to reimplement all language files
   with our changes.
+* And much, much more... Try it out and see what we have to offer for yourself!
 
 ## Velocity-CTD Permissions
 * `velocity.command.alert` [/alert] (Allows you to display public alerts
@@ -86,49 +91,51 @@ dependencies, useful performance improvements, and more.
   your fallback server(s), depending on your setup).
 * `velocity.command.ping` [/ping] (Returns your latency of the proxy you are currently
   connected to and not the latency of the backend server).
+* `velocity.command.plist` [/plist] (Returns the total users on your proxy
+  or from a defined proxy scope).
 * `velocity.command.showall` [/showall] (Shows all users connected to a specific server
   on the proxy).
-* `velocity.command.sudo` [/velocity sudo {PLAYER} {MESSAGE/COMMAND}] (Allows you to run
-  a message or a command for a player).
+* `velocity.command.sudo` [/velocity sudo] (Allows you to run a message or a command
+  for a player).
+* `velocity.command.transfer` [/transfer] (Allows you to transfer a player, "current" players,
+  a specific server, or all players from one proxy to another.)
 * `velocity.command.uptime` [/velocity uptime] (Displays how long the proxy has been
   online for, from immediate runtime).
 
-## Velocity-CTD Redis Permissions
-* `redis.command.plist` [/plist] (Shows all users connected
-  to a specific proxy or a specific server on that proxy).
-
 ## Velocity-CTD Queue Commands
 * `/server` [Default Aliases: `/queue` & `/joinqueue`]
-* `/leavequeue`
+* `/leavequeue` [Default Alias: `/dequeue`]
 
 ## Administrative Commands
-* `/queueadmin listqueues`
-* `/queueadmin pause {SERVER}`
-* `/queueadmin unpause {SERVER}`
 * `/queueadmin add {PLAYER} {SERVER}`
 * `/queueadmin addall {SERVER_FROM} {SERVER_TO}`
+* `/queueadmin list`
+* `/queueadmin listqueues`
+* `/queueadmin pause {SERVER}`
 * `/queueadmin remove {PLAYER} {SERVER}` (Not including server name
   removes the user from all queues if multiple queuing is enabled).
 * `/queueadmin removeall {SERVER}`
+* `/queueadmin unpause {SERVER}`
 
 ## Velocity-CTD Queue Permissions
-* `velocity.queue.*` (Allows you to use all queue commands and bypass all known limitations).
 * `velocity.queue.bypass` or `velocity.queue.bypass.{SERVER}` (Allows you to bypass the queue for all
   servers or a specific server).
-* `velocity.queue.list` (Allows you to view the list of people queued for a specific server).
-* `velocity.queue.listqueues` (Allows you to view all possible queues and number of people queued).
-* `velocity.queue.pause` (Allows you to pause any specific server from queuing).
-* `velocity.queue.pause.bypass` or `queue.pause.bypass.{SERVER}` (Allows you to bypass queue pauses
-  for all servers or a specific server).
+* `velocity.queue.leave` (Allows you to leave the queue you are in or all queues you are in).
 * `velocity.queue.priority.{ALL/SERVER}.{WEIGHT}` (Sets the position you are in for the/a queue).
-* `velocity.queue.remove` (Allows you to remove a player from any specific queue).
-* `velocity.queue.removeall` (Allows you to remove a player from all queues).
-* `velocity.queue.add` (Allows you to add a player to a queue).
-* `velocity.queue.addall` (Allows you to add all players from a specific server to a queue).
 * `velocity.queue.timeout.{SECONDS}` (Specifies the amount of time a user has before they
   are unqueued from a server when disconnecting; if you reach the position where
   you can be sent and are offline, your queue position will reset, regardless of
   your specified timeout).
+
+## Velocity-CTD Queue Administrative Permissions
+* `velocity.queue.admin.add` (Allows you to add a player to a queue).
+* `velocity.queue.admin.addall` (Allows you to add all players from a specific server to a queue).
+* `velocity.queue.admin.list` (Allows you to view the list of people queued for a specific server or all servers).
+* `velocity.queue.admin.listqueues` (Allows you to view all possible queues and number of people queued).
+* `velocity.queue.admin.pause` (Allows you to pause any specific server from queuing).
+* `velocity.queue.admin.remove` (Allows you to remove a player from any specific queue).
+* `velocity.queue.admin.removeall` (Allows you to remove a player from all queues).
+* `velocity.queue.admin.unpause` (Allows you to unpause any specific server for queuing).
 
 ## Building
 

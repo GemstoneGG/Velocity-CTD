@@ -214,7 +214,6 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
     return this.getPlayersConnected();
   }
 
-
   /**
    * Gets the queue status from the {@link QueueManagerRedisImpl}
    * directly, to make it work with the old system automatically.
@@ -222,6 +221,6 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
    * @return The queue status of the server
    */
   public ServerQueueStatus getQueueStatus() {
-    return this.server.getQueueManager().getQueue(serverInfo.getName());
+    return requireNonNull(this.server).getQueueManager().getQueue(serverInfo.getName());
   }
 }

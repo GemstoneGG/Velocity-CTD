@@ -30,8 +30,7 @@ import java.util.UUID;
  * @param id A unique ID linked to the status, so the other proxy can reply to the same message.
  */
 public record RedisQueueSendStatusRequest(UUID playerUuid, String serverName,
-                                          boolean successfulTransfer, UUID id)
-        implements RedisPacket {
+                                          boolean successfulTransfer, UUID id) implements RedisPacket {
   public static final String ID = "redis-queue-send-status";
 
   @Override

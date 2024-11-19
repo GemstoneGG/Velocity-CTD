@@ -71,8 +71,7 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
         .thenCompose(ping -> server.getEventManager().fire(new ProxyPingEvent(inbound, ping)))
         .thenAcceptAsync(event -> {
           if (event.getResult().isAllowed()) {
-            connection.closeWith(LegacyDisconnect.fromServerPing(event.getPing(),
-                    packet.getVersion()));
+            connection.closeWith(LegacyDisconnect.fromServerPing(event.getPing(), packet.getVersion()));
           } else {
             connection.close();
           }
@@ -104,8 +103,7 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
               if (event.getResult().isAllowed()) {
                 final StringBuilder json = new StringBuilder();
                 VelocityServer.getPingGsonInstance(connection.getProtocolVersion())
-                        .toJson(event.getPing(),
-                                json);
+                        .toJson(event.getPing(), json);
 
                 connection.write(new StatusResponsePacket(json));
               } else {

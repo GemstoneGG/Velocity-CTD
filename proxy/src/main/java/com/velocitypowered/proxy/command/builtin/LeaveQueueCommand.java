@@ -135,8 +135,8 @@ public class LeaveQueueCommand {
     if (!this.server.getMultiProxyHandler().isEnabled()) {
       return leaveQueueNoRedis(ctx);
     }
-    VelocityRegisteredServer server = VelocityCommands.getServer(this.server, ctx, "server", false);
 
+    VelocityRegisteredServer server = VelocityCommands.getServer(this.server, ctx, "server", false);
     if (server == null) {
       return -1;
     }

@@ -49,7 +49,7 @@ public class QueueManagerNoRedisImpl extends QueueManager {
    * @param server The server to get the queue of
    * @return The queue of the server.
    */
-  public ServerQueueStatus getQueue(String server) {
+  public ServerQueueStatus getQueue(final String server) {
     RegisteredServer registeredServer = this.server.getServer(server).orElse(null);
     if (registeredServer == null) {
       return null;
@@ -66,7 +66,6 @@ public class QueueManagerNoRedisImpl extends QueueManager {
   public boolean isMasterProxy() {
     return true;
   }
-
 
   /**
    * Hook that removes the player from all queues.
@@ -90,7 +89,7 @@ public class QueueManagerNoRedisImpl extends QueueManager {
    * @param serverName The server of which to remove the player from the queue.
    * @param command Whether this method was triggered by a player doing a command or not.
    */
-  public void dequeue(UUID player, String serverName, boolean command) {
+  public void dequeue(final UUID player, final String serverName, final boolean command) {
     ServerQueueStatus status = getQueue(serverName);
     if (status == null) {
       throw new IllegalArgumentException("No queue found for server '" + serverName + "'");
@@ -114,15 +113,13 @@ public class QueueManagerNoRedisImpl extends QueueManager {
     }
   }
 
-
-
   /**
    * Queues the player into a specific server, without indication.
    *
    * @param player The player to queue
    * @param server The server to queue into
    */
-  public void queue(Player player, VelocityRegisteredServer server) {
+  public void queue(final Player player, final VelocityRegisteredServer server) {
     if (!isEnabled() || player.hasPermission("velocity.queue.bypass")) {
       player.createConnectionRequest(server).connectWithIndication();
       return;
@@ -186,7 +183,6 @@ public class QueueManagerNoRedisImpl extends QueueManager {
         temp.put(p, status);
 
       }
-
     }
 
     for (Player player : temp.keySet()) {
@@ -199,10 +195,9 @@ public class QueueManagerNoRedisImpl extends QueueManager {
   }
 
   @Override
-  public void removeFromAll(ConnectedPlayer player) {
+  public void removeFromAll(final ConnectedPlayer player) {
     for (ServerQueueStatus status : this.serverQueues.values()) {
       status.dequeue(player.getUniqueId());
     }
   }
-
 }

@@ -953,7 +953,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       tryIndex = i;
       return server.getServer(toTryName);
     }
-
     return Optional.empty();
   }
 
@@ -1549,8 +1548,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
             }
           }
         }
-
-
       }, connection.eventLoop()).thenApply(Result::isSuccessful);
     }
 

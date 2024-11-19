@@ -47,7 +47,7 @@ public abstract class QueueManager {
    *
    * @param server The proxy.
   */
-  public QueueManager(VelocityServer server) {
+  public QueueManager(final VelocityServer server) {
     this.server = server;
     this.config = server.getConfiguration().getQueue();
     this.enabled = config.isEnabled();
@@ -66,7 +66,7 @@ public abstract class QueueManager {
    * @param server The name of the server to get the queue from.
    * @return The queue for the server.
    */
-  public ServerQueueStatus getQueue(String server) {
+  public ServerQueueStatus getQueue(final String server) {
     RegisteredServer registeredServer = this.server.getServer(server).orElse(null);
     if (registeredServer == null) {
       return null;
@@ -124,8 +124,7 @@ public abstract class QueueManager {
    *
    * @param player The player that left.
    */
-  public abstract void onPlayerLeave(final ConnectedPlayer player);
-
+  public abstract void onPlayerLeave(ConnectedPlayer player);
 
   /**
    * Gets the timeout in seconds at which the player will be removed from a queue
@@ -201,7 +200,6 @@ public abstract class QueueManager {
   public boolean isEnabled() {
     return enabled;
   }
-
 
   /**
    * Remove a player from all queues.

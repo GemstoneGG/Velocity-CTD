@@ -40,7 +40,7 @@ public record RedisServerAlertRequest(String componentJson) implements RedisPack
    *
    * @param component the message to send
    */
-  public RedisServerAlertRequest(Component component) {
+  public RedisServerAlertRequest(final Component component) {
     this(SERIALIZER.serialize(component));
   }
 

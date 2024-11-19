@@ -41,7 +41,6 @@ import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 
-
 /**
  * Implements Velocity's {@code /server} command.
  */
