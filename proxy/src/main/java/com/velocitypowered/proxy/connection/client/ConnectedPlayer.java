@@ -65,6 +65,7 @@ import com.velocitypowered.proxy.connection.player.bundle.BundleDelimiterHandler
 import com.velocitypowered.proxy.connection.player.resourcepack.VelocityResourcePackInfo;
 import com.velocitypowered.proxy.connection.player.resourcepack.handler.ResourcePackHandler;
 import com.velocitypowered.proxy.connection.util.ConnectionMessages;
+import com.velocitypowered.proxy.connection.util.ConnectionRequestResults;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults.Impl;
 import com.velocitypowered.proxy.connection.util.VelocityInboundConnection;
 import com.velocitypowered.proxy.protocol.StateRegistry;
@@ -177,6 +178,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private @MonotonicNonNull List<String> serversToTry = null;
   private final ResourcePackHandler resourcePackHandler;
   private final BundleDelimiterHandler bundleHandler = new BundleDelimiterHandler(this);
+  private boolean connectionInProgress;
 
   @SuppressWarnings("UnstableApiUsage")
   private final @NotNull Pointers pointers =
@@ -1506,6 +1508,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
     @Override
     public CompletableFuture<Result> connect() {
+      if (connectionInProgress) {
+        return completedFuture(ConnectionRequestResults.plainResult(Status.CONNECTION_CANCELLED, toConnect));
+      }
+
+      connectionInProgress = true;
       return this.internalConnect().whenCompleteAsync((status, throwable) -> {
         if (status != null && !status.isSuccessful()) {
           if (!status.isSafe()) {
@@ -1516,11 +1523,18 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
             server.getQueueManager().removeFromAll(get());
           }
         }
+
+        connectionInProgress = false;
       }, connection.eventLoop()).thenApply(x -> x);
     }
 
     @Override
     public CompletableFuture<Boolean> connectWithIndication() {
+      if (connectionInProgress) {
+        return completedFuture(false);
+      }
+
+      connectionInProgress = true;
       return internalConnect().whenCompleteAsync((status, throwable) -> {
         if (throwable != null) {
           // TODO: The exception handling from this is not very good. Find a better way.
@@ -1548,6 +1562,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
             }
           }
         }
+
+        connectionInProgress = false;
       }, connection.eventLoop()).thenApply(Result::isSuccessful);
     }
 
