@@ -29,6 +29,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import com.velocitypowered.proxy.queue.ServerQueueStatus;
 import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueLeaveRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
@@ -82,6 +83,10 @@ public class LeaveQueueCommand {
   private int leaveAllQueues(final CommandContext<CommandSource> ctx) {
     if (ctx.getSource() instanceof Player player) {
 
+      if (!this.server.getMultiProxyHandler().isEnabled()) {
+        return leaveAllQueuesNoRedis(ctx);
+      }
+
       MultiProxyHandler.RemotePlayerInfo info = this.server.getMultiProxyHandler().getPlayerInfo(player.getUniqueId());
       if (info != null && info.getQueuedServer() == null) {
         ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.not-in-queue.all"));
@@ -102,7 +107,34 @@ public class LeaveQueueCommand {
     }
   }
 
+  private int leaveAllQueuesNoRedis(final CommandContext<CommandSource> ctx) {
+    if (ctx.getSource() instanceof Player p) {
+      int amountDone = 0;
+      for (RegisteredServer server : this.server.getAllServers()) {
+        ServerQueueStatus status = this.server.getQueueManager().getQueue(server.getServerInfo().getName());
+        if (!status.isQueued(p.getUniqueId())) {
+          continue;
+        }
+
+        status.dequeue(p.getUniqueId());
+        amountDone++;
+      }
+
+      if (amountDone == 0) {
+        p.sendMessage(Component.translatable("velocity.queue.error.not-in-queue.all"));
+        return -1;
+      }
+
+      p.sendMessage(Component.translatable("velocity.queue.command.left-queue.all"));
+
+    }
+    return Command.SINGLE_SUCCESS;
+  }
+
   private int leaveQueue(final CommandContext<CommandSource> ctx) {
+    if (!this.server.getMultiProxyHandler().isEnabled()) {
+      return leaveQueueNoRedis(ctx);
+    }
     VelocityRegisteredServer server = VelocityCommands.getServer(this.server, ctx, "server", false);
 
     if (server == null) {
@@ -112,6 +144,36 @@ public class LeaveQueueCommand {
     if (ctx.getSource() instanceof Player player) {
       this.server.getRedisManager().send(new RedisQueueLeaveRequest(player.getUniqueId(),
               server.getServerInfo().getName(), true));
+    } else {
+      ctx.getSource().sendMessage(CommandMessages.PLAYERS_ONLY);
+      return -1;
+    }
+
+    return Command.SINGLE_SUCCESS;
+  }
+
+  private int leaveQueueNoRedis(final CommandContext<CommandSource> ctx) {
+    VelocityRegisteredServer server = VelocityCommands.getServer(this.server, ctx, "server", false);
+    if (server == null) {
+      return -1;
+    }
+
+    if (ctx.getSource() instanceof Player player) {
+      ServerQueueStatus status = this.server.getQueueManager().getQueue(server.getServerInfo().getName());
+      if (status == null) {
+        return -1;
+      }
+
+      if (status.isQueued(player.getUniqueId())) {
+        status.dequeue(player.getUniqueId());
+        player.sendMessage(
+            Component.translatable("velocity.queue.command.left-queue")
+                .arguments(Component.text(server.getServerInfo().getName())));
+      } else {
+        player.sendMessage(
+            Component.translatable("velocity.queue.error.not-in-queue")
+                .arguments(Component.text(server.getServerInfo().getName())));
+      }
     } else {
       ctx.getSource().sendMessage(CommandMessages.PLAYERS_ONLY);
       return -1;

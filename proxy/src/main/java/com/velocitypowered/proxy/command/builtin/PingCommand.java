@@ -109,7 +109,7 @@ public class PingCommand {
     } else {
       if (server.getMultiProxyHandler().isEnabled()) {
         if (context.getSource() instanceof Player p) {
-          if (this.server.getMultiProxyHandler().isPlayerOnline(username)) {
+          if (!this.server.getMultiProxyHandler().isPlayerOnline(username)) {
             context.getSource().sendMessage(Component.translatable("velocity.command.ping.invalid-player")
                 .arguments(Component.text(username)));
             return -1;

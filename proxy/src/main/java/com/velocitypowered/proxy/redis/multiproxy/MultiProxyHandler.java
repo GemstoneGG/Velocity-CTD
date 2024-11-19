@@ -59,6 +59,8 @@ public class MultiProxyHandler {
   private boolean shuttingDown = false;
   private final Map<UUID, String> transferringServers = new HashMap<>();
 
+  private boolean enabled;
+
   /**
    * Represents another proxy instance in a multi-proxy setup.
    * Tracks the last time a ping was received from the proxy, its status, and the list of
@@ -66,12 +68,10 @@ public class MultiProxyHandler {
    */
   public static final class OtherProxy {
     public Instant lastSeenPing;
-    public ProxyStatus status;
     public List<RemotePlayerInfo> players = new ArrayList<>();
 
     public OtherProxy() {
       this.lastSeenPing = Instant.now();
-      this.status = ProxyStatus.HEALTHY;
     }
   }
 
@@ -117,16 +117,6 @@ public class MultiProxyHandler {
   }
 
   /**
-   * Enumeration representing the status of a proxy in a multi-proxy setup.
-   * A proxy can be {@link #HEALTHY}, {@link #TIMED_OUT}, or {@link #SHUTDOWN}.
-   */
-  public enum ProxyStatus {
-    HEALTHY,
-    TIMED_OUT,
-    SHUTDOWN,
-  }
-
-  /**
    * Initializes the {@code MultiProxyHandler} to manage multi-proxy functionality
    * within the Velocity server.
    * Configures Redis-based communication for handling
@@ -141,6 +131,9 @@ public class MultiProxyHandler {
   public MultiProxyHandler(final VelocityServer server) {
     this.server = server;
     this.config = this.server.getConfiguration().getRedis();
+
+
+    this.enabled = config.isEnabled() && config.getProxyId() != null;
 
     if (!this.isEnabled()) {
       return;
@@ -208,7 +201,6 @@ public class MultiProxyHandler {
         return;
       }
 
-      proxy.status = ProxyStatus.SHUTDOWN;
       seenProxies.remove(it.proxyId());
 
       if (this.server.getQueueManager().isMasterProxy()) {
@@ -362,7 +354,6 @@ public class MultiProxyHandler {
 
     OtherProxy proxy = this.seenProxies.computeIfAbsent(proxyId, key -> new OtherProxy());
     proxy.lastSeenPing = Instant.now();
-    proxy.status = ProxyStatus.HEALTHY;
     return proxy;
   }
 
@@ -382,8 +373,7 @@ public class MultiProxyHandler {
    * @return {@code true} if the multi-proxy setup is enabled; {@code false} otherwise
    */
   public boolean isEnabled() {
-    VelocityConfiguration.Redis config = this.server.getConfiguration().getRedis();
-    return config.isEnabled() && config.getProxyId() != null;
+    return enabled;
   }
 
   private void tick() {
@@ -392,12 +382,6 @@ public class MultiProxyHandler {
 
     if (this.lastPingSent != null && this.lastPingSent.until(now, ChronoUnit.MILLIS) > this.config.getPingIntervalMs()) {
       redisManager.send(new RedisProxyIdAnnouncement(this.config.getProxyId(), false, null));
-    }
-
-    for (OtherProxy proxy : this.seenProxies.values()) {
-      if (proxy.lastSeenPing.until(now, ChronoUnit.MILLIS) > this.config.getOtherProxyTimeoutMs()) {
-        proxy.status = ProxyStatus.TIMED_OUT;
-      }
     }
   }
 

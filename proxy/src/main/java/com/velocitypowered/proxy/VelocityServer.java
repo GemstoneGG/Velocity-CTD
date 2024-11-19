@@ -925,6 +925,9 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
           return Long.compare(connectedSize2, connectedSize1);
         });
       }
+      case "NONE" -> {
+        return null;
+      }
       default -> {
 
       }

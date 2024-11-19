@@ -151,7 +151,7 @@ public class TransferCommand {
         return -1;
       }
 
-      if (this.server.getPlayer(player).isEmpty()) {
+      if (this.server.getPlayer(player).isEmpty() && !player.equalsIgnoreCase("all")) {
         context.getSource().sendMessage(Component.translatable("velocity.command.error.transfer.invalid-player")
             .arguments(Component.text(player)));
         return -1;
@@ -198,6 +198,13 @@ public class TransferCommand {
 
       if (this.server.getMultiProxyHandler().isEnabled()) {
         this.server.getRedisManager().send(new RedisTransferCommandRequest(player, proxyId, address.ip(), address.port()));
+      } else {
+        this.server.getPlayer(player).ifPresent(p -> {
+          ConnectedPlayer connectedPlayer = (ConnectedPlayer) p;
+          if (connectedPlayer.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
+            connectedPlayer.transferToHost(new InetSocketAddress(address.ip(), address.port()));
+          }
+        });
       }
     }
 

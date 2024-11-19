@@ -23,10 +23,12 @@ import com.mojang.brigadier.context.CommandContext;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
+import net.kyori.adventure.text.Component;
 
 /**
  * Implements {@code /<server_name>} aliases.
@@ -60,6 +62,17 @@ public class SlashServerCommand {
 
   private int send(CommandContext<CommandSource> ctx) {
     final Player player = (Player) ctx.getSource();
+
+    if (this.proxyServer.getConfiguration().getQueue().getNoQueueServers().contains(this.server.getServerInfo().getName())) {
+      player.createConnectionRequest(this.server).connectWithIndication();
+      return Command.SINGLE_SUCCESS;
+    }
+
+    ServerConnection conn = player.getCurrentServer().orElse(null);
+    if (conn != null && conn.getServerInfo().getName().equalsIgnoreCase(server.getServerInfo().getName())) {
+      player.sendMessage(Component.translatable("velocity.command.slashserver.already-connected"));
+      return Command.SINGLE_SUCCESS;
+    }
 
     this.proxyServer.getQueueManager().queue(player, this.server);
     return Command.SINGLE_SUCCESS;

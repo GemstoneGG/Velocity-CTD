@@ -48,8 +48,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -782,6 +780,10 @@ public final class VelocityConfiguration implements ProxyConfig {
       if (proxyAddressesConfig != null) {
         filter = proxyAddressesConfig.getOrElse("dynamic-proxy-filter", "MOST_EMPTY");
         for (CommentedConfig.Entry entry : proxyAddressesConfig.entrySet()) {
+          if (entry.getKey().equalsIgnoreCase("dynamic-proxy-filter")) {
+            continue;
+          }
+
           CommentedConfig link = entry.getValue();
           addresses.add(new ProxyAddress(link.get("proxy-id"),
                   link.get("ip"),
@@ -913,7 +915,9 @@ public final class VelocityConfiguration implements ProxyConfig {
         Map<String, String> servers = new HashMap<>();
         Map<String, PlayerInfoForwarding> serverForwardingModes = new HashMap<>();
         for (UnmodifiableConfig.Entry entry : config.entrySet()) {
-          if (entry.getValue() instanceof String) {
+          if (entry.getKey().equalsIgnoreCase("dynamic-fallbacks-filter")) {
+            continue;
+          } else if (entry.getValue() instanceof String) {
             servers.put(cleanServerName(entry.getKey()), entry.getValue());
           } else if (entry.getValue() instanceof UnmodifiableConfig) {
             UnmodifiableConfig unmodifiableConfig = entry.getValue();
@@ -932,8 +936,7 @@ public final class VelocityConfiguration implements ProxyConfig {
             servers.put(cleanServerName(name), address);
           } else {
             if (!entry.getKey().equalsIgnoreCase("try")
-                && !entry.getKey().equalsIgnoreCase("enable-dynamic-fallbacks")
-                && !entry.getKey().equalsIgnoreCase("enable-most-populated-fallbacks")
+                && !entry.getKey().equalsIgnoreCase("dynamic-fallbacks-filter")
                 && !entry.getKey().equalsIgnoreCase("server-aliases")) {
               throw new IllegalArgumentException(
                   "Server entry " + entry.getKey() + " is not a string!");
@@ -1470,8 +1473,6 @@ public final class VelocityConfiguration implements ProxyConfig {
     private @Nullable String proxyId;
     @Expose
     private long pingIntervalMs;
-    @Expose
-    private long otherProxyTimeoutMs;
 
     private Redis(final CommentedConfig config) {
       if (config == null) {
@@ -1498,7 +1499,6 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
 
       this.pingIntervalMs = config.getLongOrElse("ping-interval-ms", 30000);
-      this.otherProxyTimeoutMs = config.getLongOrElse("other-proxy-timeout-ms", 90000);
     }
 
     public boolean isEnabled() {
@@ -1537,9 +1537,6 @@ public final class VelocityConfiguration implements ProxyConfig {
       return pingIntervalMs;
     }
 
-    public long getOtherProxyTimeoutMs() {
-      return otherProxyTimeoutMs;
-    }
 
     @Override
     public String toString() {
@@ -1580,13 +1577,9 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private boolean forwardKickReason;
     @Expose
-    private List<Pattern> kickReasonsBlacklist;
-    @Expose
-    private double returnOnlineSendDelay;
-    @Expose
     private boolean allowPausedQueueJoining;
     @Expose
-    private boolean sendAllUsersWhenBackOnline;
+    private boolean queueOnShutdown;
     @Expose
     private boolean overrideBungeeMessaging;
     @Expose
@@ -1610,21 +1603,8 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.maxSendRetries = config.getOrElse("max-send-retries", 5);
       this.removePlayerOnServerSwitch = config.getOrElse("remove-player-on-server-switch", true);
       this.forwardKickReason = config.getOrElse("forward-kick-reason", true);
-
-      List<String> kickReasonBlacklistPatterns = config.getOrElse("kick-reasons-blacklist", List.of("banned", "blacklisted"));
-      this.kickReasonsBlacklist = new ArrayList<>(kickReasonBlacklistPatterns.size());
-
-      for (String pattern : kickReasonBlacklistPatterns) {
-        try {
-          this.kickReasonsBlacklist.add(Pattern.compile(pattern));
-        } catch (PatternSyntaxException e) {
-          logger.error("invalid regex in `kick-reasons-blacklist`", e);
-        }
-      }
-
-      this.returnOnlineSendDelay = config.getOrElse("return-online-send-delay", 0.0);
       this.allowPausedQueueJoining = config.getOrElse("allow-paused-queue-joining", false);
-      this.sendAllUsersWhenBackOnline = config.getOrElse("send-all-users-when-back-online", false);
+      this.queueOnShutdown = config.getOrElse("queue-on-shutdown", true);
       this.overrideBungeeMessaging = config.getOrElse("override-bungee-messaging", true);
       this.leaveQueueAliases = config.getOrElse("leave-queue-aliases", new ArrayList<>());
       this.queueAdminAliases = config.getOrElse("queue-admin-aliases", new ArrayList<>());
@@ -1635,20 +1615,12 @@ public final class VelocityConfiguration implements ProxyConfig {
       return enabled;
     }
 
-    public boolean isSendAllUsersWhenBackOnline() {
-      return sendAllUsersWhenBackOnline;
+    public boolean isQueueOnShutdown() {
+      return queueOnShutdown;
     }
 
     public boolean isAllowPausedQueueJoining() {
       return allowPausedQueueJoining;
-    }
-
-    public double getReturnOnlineSendDelay() {
-      return returnOnlineSendDelay;
-    }
-
-    public List<Pattern> getKickReasonsBlacklist() {
-      return kickReasonsBlacklist;
     }
 
     public boolean isForwardKickReason() {
@@ -1709,10 +1681,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     public String toString() {
       return "Queue{"
           + "enabled=" + enabled
-          + ", sendAllUsersWhenBackOnline=" + sendAllUsersWhenBackOnline
           + ", allowPausedQueueJoining=" + allowPausedQueueJoining
-          + ", returnOnlineSendDelay=" + returnOnlineSendDelay
-          + ", kickReasonsBlacklist=" + kickReasonsBlacklist
           + ", forwardKickReason=" + forwardKickReason
           + ", removePlayerOnServerSwitch=" + removePlayerOnServerSwitch
           + ", maxSendRetries=" + maxSendRetries

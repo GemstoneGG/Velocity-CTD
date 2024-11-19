@@ -23,6 +23,8 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
@@ -125,10 +127,26 @@ public class QueueManagerNoRedisImpl extends QueueManager {
       player.createConnectionRequest(server).connectWithIndication();
       return;
     }
+
+    if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
+      for (ServerQueueStatus status : this.serverQueues.values()) {
+        if (status.isQueued(player.getUniqueId())) {
+          player.sendMessage(Component.translatable("velocity.queue.error.multi-queue"));
+          return;
+        }
+      }
+    }
+
     String serverName = server.getServerInfo().getName();
     ServerQueueStatus status = getQueue(serverName);
     if (status == null) {
       throw new IllegalArgumentException("No queue found for server '" + serverName + "'");
+    }
+
+    if (status.isPaused() && this.server.getConfiguration().getQueue().isAllowPausedQueueJoining()) {
+      player.sendMessage(Component.translatable("velocity.queue.error.paused")
+              .arguments(Component.text(serverName)));
+      return;
     }
 
     if (status.isQueued(player.getUniqueId())) {
@@ -148,12 +166,42 @@ public class QueueManagerNoRedisImpl extends QueueManager {
    * Updates the actionbar message for this player.
    */
   public void tickMessageForAllPlayers() {
+    Map<Player, ServerQueueStatus> temp = new HashMap<>();
+    String filter = this.config.getMultipleServerMessagingSelection();
+
     for (ServerQueueStatus status : this.serverQueues.values()) {
-      status.getActivePlayers().forEach((entry, player) -> {
-        server.getPlayer(player).ifPresent(p -> {
-          p.sendActionBar(status.getActionBarComponent(entry));
-        });
-      });
+      Map<ServerQueueEntry, UUID> map = status.getActivePlayers();
+      for (ServerQueueEntry entry : map.keySet()) {
+        UUID player = map.get(entry);
+
+        Player p = server.getPlayer(player).orElse(null);
+        if (p == null) {
+          return;
+        }
+
+        if (filter.equalsIgnoreCase("first") && temp.containsKey(p)) {
+          continue;
+        }
+
+        temp.put(p, status);
+
+      }
+
+    }
+
+    for (Player player : temp.keySet()) {
+      ServerQueueStatus status = temp.get(player);
+      ServerQueueEntry entry = status.getEntry(player.getUniqueId()).orElse(null);
+      if (entry != null) {
+        player.sendActionBar(temp.get(player).getActionBarComponent(entry));
+      }
+    }
+  }
+
+  @Override
+  public void removeFromAll(ConnectedPlayer player) {
+    for (ServerQueueStatus status : this.serverQueues.values()) {
+      status.dequeue(player.getUniqueId());
     }
   }
 

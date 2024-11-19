@@ -27,8 +27,10 @@ import java.util.UUID;
  * @param playerUuid The UUID of the player that's being added to the queue.
  * @param serverName The name of the server which the player is being queued for.
  * @param priority The priority at which the player will be added to the queue.
+ * @param alreadyQueuedMessage Whether to show the already queued message or not.
  */
-public record RedisQueueAddRequest(UUID playerUuid, String serverName, int priority)
+public record RedisQueueAddRequest(UUID playerUuid, String serverName, int priority,
+                                   boolean alreadyQueuedMessage)
         implements RedisPacket {
   public static final String ID = "redis-queue-add";
 

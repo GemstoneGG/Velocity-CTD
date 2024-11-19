@@ -833,6 +833,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                   if (requestedMessage != Component.empty()) {
                     sendMessage(requestedMessage);
                   }
+
+                  if (this.server.getConfiguration().getQueue().isQueueOnShutdown()) {
+                    this.server.getQueueManager().getQueue(originalEvent.getServer().getServerInfo().getName()).queue(getUniqueId(),
+                        getQueuePriority(originalEvent.getServer().getServerInfo().getName()));
+                  }
                   break;
                 default:
                   // The only remaining value is successful (no need to do anything!)
@@ -1024,6 +1029,15 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   public CompletableFuture<Void> getTeardownFuture() {
     return teardownFuture;
+  }
+
+  /**
+   * Get instance of itself.
+   *
+   * @return Itself.
+   */
+  public ConnectedPlayer get() {
+    return this;
   }
 
   @Override
@@ -1498,6 +1512,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           if (!status.isSafe()) {
             handleConnectionException(status.getAttemptedConnection(), throwable, false);
           }
+        } else if (status != null && status.isSuccessful() && status.isSafe()) {
+          if (server.getConfiguration().getQueue().isRemovePlayerOnServerSwitch()) {
+            server.getQueueManager().removeFromAll(get());
+          }
         }
       }, connection.eventLoop()).thenApply(x -> x);
     }
@@ -1526,8 +1544,13 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           }
           default -> {
             // The only remaining value is successful (no need to do anything!)
+            if (server.getConfiguration().getQueue().isRemovePlayerOnServerSwitch()) {
+              server.getQueueManager().removeFromAll(get());
+            }
           }
         }
+
+
       }, connection.eventLoop()).thenApply(Result::isSuccessful);
     }
 
