@@ -96,7 +96,7 @@ public class QueueManagerNoRedisImpl extends QueueManager {
     }
 
     boolean wasQueued = status.isQueued(player);
-    status.dequeue(player);
+    status.dequeue(player, false);
 
     if (command) {
       if (wasQueued) {
@@ -140,7 +140,7 @@ public class QueueManagerNoRedisImpl extends QueueManager {
       throw new IllegalArgumentException("No queue found for server '" + serverName + "'");
     }
 
-    if (status.isPaused() && this.server.getConfiguration().getQueue().isAllowPausedQueueJoining()) {
+    if (status.isPaused() && !this.server.getConfiguration().getQueue().isAllowPausedQueueJoining()) {
       player.sendMessage(Component.translatable("velocity.queue.error.paused")
               .arguments(Component.text(serverName)));
       return;
@@ -197,7 +197,7 @@ public class QueueManagerNoRedisImpl extends QueueManager {
   @Override
   public void removeFromAll(final ConnectedPlayer player) {
     for (ServerQueueStatus status : this.serverQueues.values()) {
-      status.dequeue(player.getUniqueId());
+      status.dequeue(player.getUniqueId(), false);
     }
   }
 }

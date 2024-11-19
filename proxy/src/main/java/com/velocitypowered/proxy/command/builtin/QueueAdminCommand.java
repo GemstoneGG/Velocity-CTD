@@ -32,6 +32,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import com.velocitypowered.proxy.queue.ServerQueueEntry;
 import com.velocitypowered.proxy.queue.ServerQueueStatus;
 import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueAddRequest;
@@ -43,6 +44,7 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 /**
@@ -75,13 +77,44 @@ public class QueueAdminCommand {
             .executes(this::listQueues)
             .build();
 
-    final LiteralCommandNode<CommandSource> pause = BrigadierCommand.literalArgumentBuilder("pause")
-            .requires(source -> source.getPermissionValue("velocity.queue.admin.pause") == Tristate.TRUE)
-            .executes(ctx -> VelocityCommands.emitUsage(ctx, "queueadmin.pause"))
+    final LiteralCommandNode<CommandSource> list = BrigadierCommand.literalArgumentBuilder("list")
+            .requires(source -> source.getPermissionValue("velocity.queue.admin.list") == Tristate.TRUE)
+            .executes(ctx -> VelocityCommands.emitUsage(ctx, "queueadmin.list"))
             .then(BrigadierCommand.requiredArgumentBuilder("server", StringArgumentType.word())
-                    .suggests(VelocityCommands.suggestServer(server, "server", false))
-                    .executes(this::pause))
+                .suggests((ctx, builder) -> {
+                  final String argument = ctx.getArguments().containsKey("server")
+                      ? ctx.getArgument("server", String.class)
+                      : "";
+
+                  if ("all".regionMatches(true, 0, argument, 0, argument.length())) {
+                    builder.suggest("all");
+                  }
+                  if ("current".regionMatches(true, 0, argument, 0, argument.length())) {
+                    builder.suggest("current");
+                  }
+
+                  for (RegisteredServer s : server.getAllServers()) {
+                    if (this.server.getConfiguration().getQueue().getNoQueueServers().contains(s.getServerInfo().getName())) {
+                      continue;
+                    }
+
+                    if (s.getServerInfo().getName().regionMatches(true, 0, argument, 0, argument.length())) {
+                      builder.suggest(s.getServerInfo().getName());
+                    }
+                  }
+
+                  return builder.buildFuture();
+                })
+                .executes(this::list))
             .build();
+
+    final LiteralCommandNode<CommandSource> pause = BrigadierCommand.literalArgumentBuilder("pause")
+        .requires(source -> source.getPermissionValue("velocity.queue.admin.pause") == Tristate.TRUE)
+        .executes(ctx -> VelocityCommands.emitUsage(ctx, "queueadmin.pause"))
+        .then(BrigadierCommand.requiredArgumentBuilder("server", StringArgumentType.word())
+            .suggests(VelocityCommands.suggestServer(server, "server", false))
+            .executes(this::pause))
+        .build();
 
     final LiteralCommandNode<CommandSource> unpause = BrigadierCommand.literalArgumentBuilder("unpause")
             .requires(source -> source.getPermissionValue("velocity.queue.admin.unpause") == Tristate.TRUE)
@@ -139,7 +172,7 @@ public class QueueAdminCommand {
             .build();
 
     final List<LiteralCommandNode<CommandSource>> commands = List
-            .of(listQueues, pause, unpause, add, addall, remove, removeall);
+            .of(listQueues, list, pause, unpause, add, addall, remove, removeall);
     BrigadierCommand command = new BrigadierCommand(
             commands.stream()
                     .reduce(
@@ -177,6 +210,10 @@ public class QueueAdminCommand {
     source.sendMessage(Component.translatable("velocity.queue.command.listqueues.header"));
 
     for (RegisteredServer server : this.server.getAllServers()) {
+      if (this.server.getConfiguration().getQueue().getNoQueueServers().contains(server.getServerInfo().getName())) {
+        continue;
+      }
+
       VelocityRegisteredServer registeredServer = (VelocityRegisteredServer) server;
       ServerQueueStatus queueStatus = this.server.getQueueManager()
               .getQueue(registeredServer.getServerInfo().getName());
@@ -185,6 +222,143 @@ public class QueueAdminCommand {
     }
 
     return Command.SINGLE_SUCCESS;
+  }
+
+  private int list(final CommandContext<CommandSource> ctx) {
+    String serverName = ctx.getArgument("server", String.class);
+    VelocityRegisteredServer server = (VelocityRegisteredServer) this.server.getServer(ctx
+        .getArgument("server", String.class)).orElse(null);
+
+    if (serverName.equalsIgnoreCase("current")) {
+      if (!(ctx.getSource() instanceof Player p)) {
+        ctx.getSource().sendMessage(Component.translatable("velocity.command.players-only"));
+        return -1;
+      }
+      ServerConnection connection = p.getCurrentServer().orElse(null);
+      if (connection == null) {
+        ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.list.current-not-connected"));
+        return -1;
+      }
+      server = (VelocityRegisteredServer) this.server.getServer(connection.getServerInfo().getName()).orElse(null);
+    }
+
+    if (serverName.equalsIgnoreCase("all")) {
+      int amount = 0;
+      if (this.server.getMultiProxyHandler().isEnabled()) {
+        for (MultiProxyHandler.RemotePlayerInfo info :
+            this.server.getMultiProxyHandler().getAllPlayers()) {
+          if (info.getQueuedServer() != null) {
+            amount++;
+          }
+        }
+      } else {
+        for (ServerQueueStatus status : this.server.getQueueManager().getAll()) {
+          amount += status.getSize();
+        }
+      }
+
+      if (amount == 1) {
+        ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.list.global")
+            .arguments(Component.text(amount)));
+      } else {
+        ctx.getSource().sendMessage(Component.translatable(
+            "velocity.queue.command.list.global-plural")
+            .arguments(Component.text(amount)));
+      }
+
+      for (RegisteredServer s : this.server.getAllServers()) {
+        if (this.server.getConfiguration().getQueue().getNoQueueServers().contains(s.getServerInfo().getName())) {
+          continue;
+        }
+
+        VelocityRegisteredServer velocityRegisteredServer = (VelocityRegisteredServer) s;
+        List<Component> players = new ArrayList<>();
+
+        if (this.server.getMultiProxyHandler().isEnabled()) {
+          for (MultiProxyHandler.RemotePlayerInfo info : this.server.getMultiProxyHandler().getAllPlayers()) {
+            if (info.getQueuedServer() != null && info.getQueuedServer().equalsIgnoreCase(s.getServerInfo().getName())) {
+              players.add(Component.text(info.getUsername()));
+            }
+          }
+        } else {
+          for (ServerQueueEntry entry : velocityRegisteredServer.getQueueStatus().getAllEntries()) {
+            this.server.getPlayer(entry.player).ifPresent(player -> players.add(Component.text(player.getUsername())));
+          }
+        }
+
+        players.stream()
+            .reduce((a, b) -> a.append(Component.text(", ")).append(b))
+            .ifPresent(playerList -> {
+              final TranslatableComponent.Builder builder = Component.translatable()
+                  .key("velocity.queue.command.list.server")
+                  .arguments(
+                      Component.text(s.getServerInfo().getName()),
+                      Component.text(players.size()),
+                      playerList
+                  );
+              ctx.getSource().sendMessage(builder.build());
+            });
+
+
+      }
+      return -1;
+    } else if (server == null) {
+      ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.list.invalid-server")
+          .arguments(Component.text(serverName)));
+      return -1;
+    }
+
+    List<Component> players = new ArrayList<>();
+
+    if (this.server.getConfiguration().getQueue().getNoQueueServers().contains(server.getServerInfo().getName())) {
+      String newName = serverName;
+
+      if (serverName.equalsIgnoreCase("current")) {
+        ServerConnection conn = ((Player) ctx.getSource()).getCurrentServer().orElse(null);
+        if (conn != null) {
+          newName = conn.getServerInfo().getName();
+        }
+      }
+
+      ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.list.disabled-queue")
+          .arguments(Component.text(newName)));
+      return -1;
+    }
+
+    if (this.server.getMultiProxyHandler().isEnabled()) {
+      for (MultiProxyHandler.RemotePlayerInfo info : this.server.getMultiProxyHandler().getAllPlayers()) {
+        if (info.getQueuedServer() != null && info.getQueuedServer().equalsIgnoreCase(server.getServerInfo().getName())) {
+          players.add(Component.text(info.getUsername()));
+        }
+      }
+    } else {
+      for (ServerQueueEntry entry : server.getQueueStatus().getAllEntries()) {
+        this.server.getPlayer(entry.player).ifPresent(player -> players.add(Component.text(player.getUsername())));
+      }
+    }
+
+    VelocityRegisteredServer finalServer = server;
+    players.stream()
+        .reduce((a, b) -> a.append(Component.text(", ")).append(b))
+        .ifPresentOrElse(playerList -> {
+          final TranslatableComponent.Builder builder = Component.translatable()
+              .key("velocity.queue.command.list.server")
+              .arguments(
+                  Component.text(finalServer.getServerInfo().getName()),
+                  Component.text(players.size()),
+                  playerList
+              );
+          ctx.getSource().sendMessage(builder.build());
+        }, () -> {
+          if (players.isEmpty()) {
+            ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.list.empty")
+                .arguments(Component.text(finalServer.getServerInfo().getName())));
+          }
+        });
+
+    return Command.SINGLE_SUCCESS;
+
+
   }
 
   private int pause(final CommandContext<CommandSource> ctx) {
@@ -251,6 +425,8 @@ public class QueueAdminCommand {
 
     if (this.server.getMultiProxyHandler().isEnabled()) {
       if (!this.server.getMultiProxyHandler().isPlayerOnline(playerName)) {
+        ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.invalid-player")
+            .arguments(Component.text(playerName)));
         return -1;
       }
       MultiProxyHandler.RemotePlayerInfo info = this.server.getMultiProxyHandler().getPlayerInfo(playerName);
@@ -265,6 +441,8 @@ public class QueueAdminCommand {
     } else {
       Player p = this.server.getPlayer(playerName).orElse(null);
       if (p == null) {
+        ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.invalid-player")
+            .arguments(Component.text(playerName)));
         return -1;
       }
 
@@ -388,10 +566,14 @@ public class QueueAdminCommand {
 
     if (this.server.getMultiProxyHandler().isEnabled()) {
       if (!this.server.getMultiProxyHandler().isPlayerOnline(playerName)) {
+        ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.invalid-player")
+            .arguments(Component.text(playerName)));
         return -1;
       }
     } else {
       if (this.server.getPlayer(playerName).isEmpty()) {
+        ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.invalid-player")
+            .arguments(Component.text(playerName)));
         return -1;
       }
     }
@@ -451,7 +633,7 @@ public class QueueAdminCommand {
 
         if (velocityRegisteredServer.getQueueStatus().isQueued(player.getUniqueId())) {
           amountDone++;
-          velocityRegisteredServer.getQueueStatus().dequeue(player.getUniqueId());
+          velocityRegisteredServer.getQueueStatus().dequeue(player.getUniqueId(), false);
         }
       }
 
@@ -497,7 +679,7 @@ public class QueueAdminCommand {
       for (Player player : this.server.getAllPlayers()) {
         if (server.getQueueStatus().isQueued(player.getUniqueId())) {
           amount++;
-          server.getQueueStatus().dequeue(player.getUniqueId());
+          server.getQueueStatus().dequeue(player.getUniqueId(), false);
         }
       }
     }

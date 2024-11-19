@@ -67,19 +67,19 @@ public class ServerQueueEntry {
           connectionAttempts += 1;
 
           if (connectionAttempts == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
-            proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player);
+            proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, true);
           }
         } else {
           if (this.proxy.getConfiguration().getQueue().isForwardKickReason()) {
             p.createConnectionRequest(foundServer).connectWithIndication().thenAccept(result -> {
               if (result) {
-                proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player);
+                proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, false);
               } else {
                 waitingForConnection = false;
                 connectionAttempts += 1;
 
                 if (connectionAttempts == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
-                  proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player);
+                  proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, true);
                 }
               }
             }).exceptionally(ex -> {
@@ -87,20 +87,20 @@ public class ServerQueueEntry {
               connectionAttempts += 1;
 
               if (connectionAttempts == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
-                proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player);
+                proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, true);
               }
               return null;
             });
           } else {
             p.createConnectionRequest(foundServer).connect().thenAccept(result -> {
               if (result.isSuccessful()) {
-                proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player);
+                proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, false);
               } else {
                 waitingForConnection = false;
                 connectionAttempts += 1;
 
                 if (connectionAttempts == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
-                  proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player);
+                  proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, true);
                 }
               }
             }).exceptionally(ex -> {
@@ -108,7 +108,7 @@ public class ServerQueueEntry {
               connectionAttempts += 1;
 
               if (connectionAttempts == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
-                proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player);
+                proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, true);
               }
               return null;
             });

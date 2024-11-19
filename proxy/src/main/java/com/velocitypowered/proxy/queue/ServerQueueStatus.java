@@ -24,9 +24,11 @@ import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetQueuedServerRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -130,8 +132,8 @@ public class ServerQueueStatus {
     // if there's nobody to send, cancel the task (it being
     // missing will cause the next queue to be sent immediately).
     if (queue.isEmpty()) {
-      sendingTaskHandle.cancel();
-      sendingTaskHandle = null;
+      //sendingTaskHandle.cancel();
+      //sendingTaskHandle = null;
       return;
     }
 
@@ -270,7 +272,24 @@ public class ServerQueueStatus {
    *
    * @param player the player to remove
    */
-  public void dequeue(final UUID player) {
+  public void dequeue(final UUID player, boolean maxRetriesReached) {
+    this.velocityServer.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+      if (maxRetriesReached) {
+        if (this.velocityServer.getMultiProxyHandler().isEnabled()) {
+          this.velocityServer.getRedisManager().send(new RedisSendMessageToUuidRequest(player,
+              Component.translatable("velocity.queue.error.max-send-retries-reached")
+                  .arguments(Component.text(getServerName()),
+                      Component.text(this.velocityServer.getConfiguration().getQueue().getMaxSendRetries()))));
+        } else {
+          this.velocityServer.getPlayer(player).ifPresent(p -> {
+            p.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached")
+                .arguments(Component.text(getServerName()),
+                    Component.text(this.velocityServer.getConfiguration().getQueue().getMaxSendRetries())));
+          });
+        }
+      }
+    }).delay(1, TimeUnit.SECONDS).schedule();
+
     this.queue.removeIf(entry -> entry.player.equals(player));
   }
 
@@ -425,5 +444,14 @@ public class ServerQueueStatus {
 
   public int getSize() {
     return this.queue.size();
+  }
+
+  /**
+   * Return all the queue entries.
+   *
+   * @return The queue entries of this queue.
+   */
+  public List<ServerQueueEntry> getAllEntries() {
+    return this.queue.stream().toList();
   }
 }

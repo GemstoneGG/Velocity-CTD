@@ -1525,7 +1525,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
         }
 
         connectionInProgress = false;
-      }, connection.eventLoop()).thenApply(x -> x);
+      }, connection.eventLoop())
+          .exceptionally((ex) -> {
+            connectionInProgress = false;
+            return null;
+          }).thenApply(x -> x);
     }
 
     @Override
@@ -1564,7 +1568,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
         }
 
         connectionInProgress = false;
-      }, connection.eventLoop()).thenApply(Result::isSuccessful);
+      }, connection.eventLoop())
+          .exceptionally((ex) -> {
+            connectionInProgress = false;
+            return null;
+          }).thenApply(Result::isSuccessful);
     }
 
     @Override

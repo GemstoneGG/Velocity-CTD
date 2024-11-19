@@ -26,6 +26,8 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.proxy.ServerConnection;
+import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.config.ProxyAddress;
@@ -35,6 +37,8 @@ import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetTransferringRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisTransferCommandRequest;
 import java.net.InetSocketAddress;
+import java.util.Collection;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -78,7 +82,23 @@ public class TransferCommand {
                               ? ctx.getArgument("player", String.class)
                               : "";
 
-                      builder.suggest("all");
+                      if ("all".regionMatches(true, 0, argument, 0, argument.length())) {
+                        builder.suggest("all");
+                      }
+                      if ("current".regionMatches(true, 0, argument, 0, argument.length())
+                          && ctx.getSource() instanceof Player) {
+                        builder.suggest("current");
+                      }
+
+                      if (argument.isEmpty() || argument.startsWith("+")) {
+                        for (final RegisteredServer server : server.getAllServers()) {
+                          final String serverName = server.getServerInfo().getName();
+
+                          if (serverName.regionMatches(true, 0, argument, 1, argument.length() - 1)) {
+                            builder.suggest("+" + serverName);
+                          }
+                        }
+                      }
 
                       if (server.getMultiProxyHandler().isEnabled()) {
                         for (MultiProxyHandler.RemotePlayerInfo info : server.getMultiProxyHandler().getAllPlayers()) {
@@ -129,29 +149,26 @@ public class TransferCommand {
     final String player = context.getArgument("player", String.class);
     final String proxyId = context.getArgument("proxy-id", String.class);
 
-    ProxyAddress address = this.server.getConfiguration().getProxyAddresses().stream()
-        .filter(proxy -> proxy.proxyId().equalsIgnoreCase(proxyId)).findFirst().orElse(null);
+    ProxyAddress add = null;
+    for (ProxyAddress a : this.server.getConfiguration().getProxyAddresses()) {
+      if (a.proxyId().equalsIgnoreCase(proxyId)) {
+        add = a;
+      }
+    }
+
+    ProxyAddress address = add;
 
     if (this.server.getMultiProxyHandler().isEnabled()) {
-      if (!this.server.getMultiProxyHandler().getAllProxyIds().contains(proxyId)) {
-        context.getSource().sendMessage(Component.translatable("velocity.command.error.transfer.invalid-proxy")
-            .arguments(Component.text(proxyId)));
-        return -1;
-      }
-
-      if (!this.server.getMultiProxyHandler().isPlayerOnline(player) && !player.equalsIgnoreCase("all")) {
+      if (!this.server.getMultiProxyHandler().isPlayerOnline(player) && !player.equalsIgnoreCase("all")
+          && !player.equalsIgnoreCase("current") && !player.startsWith("+")) {
         context.getSource().sendMessage(Component.translatable("velocity.command.error.transfer.invalid-player")
             .arguments(Component.text(player)));
         return -1;
       }
-    } else {
-      if (address == null) {
-        context.getSource().sendMessage(Component.translatable("velocity.command.error.transfer.invalid-proxy")
-            .arguments(Component.text(proxyId)));
-        return -1;
-      }
 
-      if (this.server.getPlayer(player).isEmpty() && !player.equalsIgnoreCase("all")) {
+    } else {
+      if (this.server.getPlayer(player).isEmpty() && !player.equalsIgnoreCase("all") && !player.equalsIgnoreCase("current")
+          && !player.startsWith("+")) {
         context.getSource().sendMessage(Component.translatable("velocity.command.error.transfer.invalid-player")
             .arguments(Component.text(player)));
         return -1;
@@ -189,6 +206,79 @@ public class TransferCommand {
           }
         }
       }).delay(1, TimeUnit.SECONDS).schedule();
+    } else if (player.startsWith("+")) {
+      RegisteredServer foundServer = findServer(player.substring(1)).orElse(null);
+      if (foundServer == null) {
+        context.getSource().sendMessage(Component.translatable("velocity.command.error.transfer.invalid-server")
+            .arguments(Component.text(player)));
+        return -1;
+      }
+
+      context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.server")
+          .arguments(Component.text(foundServer.getServerInfo().getName()), Component.text(proxyId)));
+
+      if (this.server.getMultiProxyHandler().isEnabled()) {
+        for (Player p : foundServer.getPlayersConnected()) {
+          ConnectedPlayer connectedPlayer = (ConnectedPlayer) p;
+
+          if (p.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
+            String connectedServer = connectedPlayer.getConnectedServer() != null
+                ? connectedPlayer.getConnectedServer().getServerInfo().getName() : null;
+            this.server.getRedisManager().send(new RedisPlayerSetTransferringRequest(connectedPlayer.getUniqueId(), true,
+                connectedServer));
+          }
+        }
+      }
+
+      this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+        for (Player p : foundServer.getPlayersConnected()) {
+          ConnectedPlayer connectedPlayer = (ConnectedPlayer) p;
+          if (connectedPlayer.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
+            connectedPlayer.transferToHost(new InetSocketAddress(address.ip(), address.port()));
+          }
+        }
+      }).delay(1, TimeUnit.SECONDS).schedule();
+
+    } else if (player.equalsIgnoreCase("current")) {
+      if (!(context.getSource() instanceof Player sender)) {
+        context.getSource().sendMessage(Component.translatable("velocity.command.players-only"));
+        return -1;
+      }
+
+      ServerConnection foundServerConn = sender.getCurrentServer().orElse(null);
+      if (foundServerConn == null) {
+        context.getSource().sendMessage(Component.translatable("velocity.command.error.transfer.invalid-server")
+            .arguments(Component.text(player)));
+        return -1;
+      }
+
+      RegisteredServer foundServer = this.server.getServer(foundServerConn.getServerInfo().getName()).orElse(null);
+
+      context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.server")
+          .arguments(Component.text(foundServer.getServerInfo().getName()), Component.text(proxyId)));
+
+      if (this.server.getMultiProxyHandler().isEnabled()) {
+        for (Player p : foundServer.getPlayersConnected()) {
+          ConnectedPlayer connectedPlayer = (ConnectedPlayer) p;
+
+          if (p.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
+            String connectedServer = connectedPlayer.getConnectedServer() != null
+                ? connectedPlayer.getConnectedServer().getServerInfo().getName() : null;
+            this.server.getRedisManager().send(new RedisPlayerSetTransferringRequest(connectedPlayer.getUniqueId(), true,
+                connectedServer));
+          }
+        }
+      }
+
+      this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+        for (Player p : foundServer.getPlayersConnected()) {
+          ConnectedPlayer connectedPlayer = (ConnectedPlayer) p;
+          if (connectedPlayer.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
+            connectedPlayer.transferToHost(new InetSocketAddress(address.ip(), address.port()));
+          }
+        }
+      }).delay(1, TimeUnit.SECONDS).schedule();
+
     } else {
       context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.player")
               .arguments(Component.text(player), Component.text(proxyId)));
@@ -213,5 +303,32 @@ public class TransferCommand {
         Component.translatable("velocity.command.transfer.usage", NamedTextColor.YELLOW)
     );
     return Command.SINGLE_SUCCESS;
+  }
+
+
+  private Optional<RegisteredServer> findServer(final String serverName) {
+    final Collection<RegisteredServer> servers = server.getAllServers();
+    final String lowerServerName = serverName.toLowerCase();
+
+    Optional<RegisteredServer> bestMatch = Optional.empty();
+
+    for (RegisteredServer server : servers) {
+      final String lowerName = server.getServerInfo().getName().toLowerCase();
+
+      if (lowerName.equals(lowerServerName)) {
+        bestMatch = Optional.of(server);
+        break;
+      }
+
+      if (lowerName.contains(lowerServerName)) {
+        if (bestMatch.isPresent()) {
+          break;
+        }
+
+        bestMatch = Optional.of(server);
+      }
+    }
+
+    return bestMatch;
   }
 }

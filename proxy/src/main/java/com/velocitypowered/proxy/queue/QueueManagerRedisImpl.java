@@ -69,7 +69,7 @@ public class QueueManagerRedisImpl extends QueueManager {
         throw new IllegalArgumentException("No queue found for server '" + it.serverName() + "'");
       }
 
-      if (status.isPaused() && this.server.getConfiguration().getQueue().isAllowPausedQueueJoining()) {
+      if (status.isPaused() && !this.server.getConfiguration().getQueue().isAllowPausedQueueJoining()) {
         this.server.getRedisManager().send(new RedisSendMessageToUuidRequest(it.playerUuid(),
             Component.translatable("velocity.queue.error.paused")
                 .arguments(Component.text(it.serverName()))));
@@ -105,7 +105,7 @@ public class QueueManagerRedisImpl extends QueueManager {
       }
 
       boolean wasQueued = status.isQueued(it.playerUuid());
-      status.dequeue(it.playerUuid());
+      status.dequeue(it.playerUuid(), false);
       redisManager.send(new RedisPlayerSetQueuedServerRequest(it.playerUuid(), null));
 
       if (it.command()) {

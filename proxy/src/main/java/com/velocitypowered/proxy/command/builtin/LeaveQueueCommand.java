@@ -116,7 +116,7 @@ public class LeaveQueueCommand {
           continue;
         }
 
-        status.dequeue(p.getUniqueId());
+        status.dequeue(p.getUniqueId(), false);
         amountDone++;
       }
 
@@ -165,7 +165,7 @@ public class LeaveQueueCommand {
       }
 
       if (status.isQueued(player.getUniqueId())) {
-        status.dequeue(player.getUniqueId());
+        status.dequeue(player.getUniqueId(), false);
         player.sendMessage(
             Component.translatable("velocity.queue.command.left-queue")
                 .arguments(Component.text(server.getServerInfo().getName())));

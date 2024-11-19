@@ -107,10 +107,22 @@ public final class VelocityCommand {
     final LiteralCommandNode<CommandSource> sudo = BrigadierCommand
         .literalArgumentBuilder("sudo")
         .requires(source -> source.getPermissionValue("velocity.command.sudo") == Tristate.TRUE)
-        .executes(ctx -> VelocityCommands.emitUsage(ctx, "sudo"))
+        .executes(ctx -> {
+          ctx.getSource().sendMessage(
+              Component.translatable("velocity.command.sudo.usage", NamedTextColor.YELLOW)
+                  .arguments(Component.text("velocity sudo"))
+          );
+          return Command.SINGLE_SUCCESS;
+        })
         .then(BrigadierCommand.requiredArgumentBuilder("player", StringArgumentType.word())
         .suggests((ctx, builder) -> VelocityCommands.suggestPlayer(server, ctx, builder, true))
-        .executes(ctx -> VelocityCommands.emitUsage(ctx, "sudo"))
+        .executes(ctx -> {
+          ctx.getSource().sendMessage(
+              Component.translatable("velocity.command.sudo.usage", NamedTextColor.YELLOW)
+                  .arguments(Component.text("velocity sudo"))
+          );
+          return Command.SINGLE_SUCCESS;
+        })
         .then(BrigadierCommand.requiredArgumentBuilder("message/command", StringArgumentType.greedyString())
         .executes(new Sudo(server))))
         .build();
