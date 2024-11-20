@@ -132,8 +132,6 @@ public class ServerQueueStatus {
     // if there's nobody to send, cancel the task (it being
     // missing will cause the next queue to be sent immediately).
     if (queue.isEmpty()) {
-      //sendingTaskHandle.cancel();
-      //sendingTaskHandle = null;
       return;
     }
 
