@@ -646,7 +646,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       }
     }
 
-
     return true;
   }
 
