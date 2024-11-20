@@ -637,6 +637,16 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     this.configuration = newConfiguration;
     eventManager.fireAndForget(new ProxyReloadEvent());
     queueManager.reloadConfig();
+
+    if (!this.getConfiguration().getServerLinks().isEmpty()) {
+      for (Player player : this.getAllPlayers()) {
+        if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_21)) {
+          player.setServerLinks(getConfiguration().getServerLinks());
+        }
+      }
+    }
+
+
     return true;
   }
 

@@ -257,9 +257,16 @@ public class MultiProxyHandler {
       }
 
       server.getPlayer(it.playerUuid()).ifPresentOrElse(player -> {
-        player.spoofChatInput(it.message());
 
         if (it.message().startsWith("/")) {
+          String[] split = it.message().split(" ");
+          String command = split[0].substring(1);
+          if (this.server.getCommandManager().hasCommand(command)) {
+            this.server.getCommandManager().executeAsync(player, it.message().substring(1));
+          } else {
+            player.spoofChatInput(it.message());
+          }
+
           it.replySource().sendMessage(server, Component.translatable(
               "velocity.command.sudo.command-executed",
               NamedTextColor.GREEN,
@@ -267,6 +274,7 @@ public class MultiProxyHandler {
               Component.text(it.message())
           ));
         } else {
+          player.spoofChatInput(it.message());
           it.replySource().sendMessage(server, Component.translatable(
               "velocity.command.sudo.message-sent",
               NamedTextColor.GREEN,

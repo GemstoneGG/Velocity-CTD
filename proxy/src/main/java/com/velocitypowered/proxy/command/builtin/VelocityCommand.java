@@ -259,7 +259,15 @@ public final class VelocityCommand {
 
       server.getPlayer(playerName).ifPresentOrElse(player -> {
         if (messageOrCommand.startsWith("/")) {
-          player.spoofChatInput(messageOrCommand);
+          String[] split = messageOrCommand.split(" ");
+          String command = split[0].substring(1);
+          System.out.println("command: " + command);
+          if (this.server.getCommandManager().hasCommand(command)) {
+            System.out.println("has command, executing now");
+            this.server.getCommandManager().executeAsync(player, messageOrCommand.substring(1));
+          } else {
+            player.spoofChatInput(messageOrCommand);
+          }
           source.sendMessage(Component.translatable(
               "velocity.command.sudo.command-executed",
               NamedTextColor.GREEN,
