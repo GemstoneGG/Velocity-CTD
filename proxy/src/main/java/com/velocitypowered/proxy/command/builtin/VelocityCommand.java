@@ -355,7 +355,6 @@ public final class VelocityCommand {
             ));
             player.spoofChatInput(messageOrCommand);
           }
-
         } else {
           player.spoofChatInput(messageOrCommand);
           source.sendMessage(Component.translatable(
