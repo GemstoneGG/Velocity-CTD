@@ -89,6 +89,7 @@ public class QueueAdminCommand {
                   if ("all".regionMatches(true, 0, argument, 0, argument.length())) {
                     builder.suggest("all");
                   }
+
                   if ("current".regionMatches(true, 0, argument, 0, argument.length())) {
                     builder.suggest("current");
                   }
@@ -299,11 +300,10 @@ public class QueueAdminCommand {
               ctx.getSource().sendMessage(builder.build());
             });
 
-
       }
       return -1;
     } else if (server == null) {
-      ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.list.invalid-server")
+      ctx.getSource().sendMessage(Component.translatable("velocity.command.server-does-not-exist")
           .arguments(Component.text(serverName)));
       return -1;
     }
@@ -357,8 +357,6 @@ public class QueueAdminCommand {
         });
 
     return Command.SINGLE_SUCCESS;
-
-
   }
 
   private int pause(final CommandContext<CommandSource> ctx) {
@@ -421,11 +419,9 @@ public class QueueAdminCommand {
       return -1;
     }
 
-
-
     if (this.server.getMultiProxyHandler().isEnabled()) {
       if (!this.server.getMultiProxyHandler().isPlayerOnline(playerName)) {
-        ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.invalid-player")
+        ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
             .arguments(Component.text(playerName)));
         return -1;
       }
@@ -441,7 +437,7 @@ public class QueueAdminCommand {
     } else {
       Player p = this.server.getPlayer(playerName).orElse(null);
       if (p == null) {
-        ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.invalid-player")
+        ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
             .arguments(Component.text(playerName)));
         return -1;
       }
@@ -566,13 +562,13 @@ public class QueueAdminCommand {
 
     if (this.server.getMultiProxyHandler().isEnabled()) {
       if (!this.server.getMultiProxyHandler().isPlayerOnline(playerName)) {
-        ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.invalid-player")
+        ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
             .arguments(Component.text(playerName)));
         return -1;
       }
     } else {
       if (this.server.getPlayer(playerName).isEmpty()) {
-        ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.invalid-player")
+        ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
             .arguments(Component.text(playerName)));
         return -1;
       }

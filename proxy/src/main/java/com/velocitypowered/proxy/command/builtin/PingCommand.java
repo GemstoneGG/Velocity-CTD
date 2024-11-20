@@ -110,7 +110,7 @@ public class PingCommand {
       if (server.getMultiProxyHandler().isEnabled()) {
         if (context.getSource() instanceof Player p) {
           if (!this.server.getMultiProxyHandler().isPlayerOnline(username)) {
-            context.getSource().sendMessage(Component.translatable("velocity.command.ping.invalid-player")
+            context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
                 .arguments(Component.text(username)));
             return -1;
           }
@@ -119,7 +119,7 @@ public class PingCommand {
         }
       } else {
         if (player == null) {
-          context.getSource().sendMessage(Component.translatable("velocity.command.ping.invalid-player")
+          context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
               .arguments(Component.text(username)));
           return -1;
         }

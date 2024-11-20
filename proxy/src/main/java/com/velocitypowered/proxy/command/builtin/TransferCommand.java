@@ -161,15 +161,14 @@ public class TransferCommand {
     if (this.server.getMultiProxyHandler().isEnabled()) {
       if (!this.server.getMultiProxyHandler().isPlayerOnline(player) && !player.equalsIgnoreCase("all")
           && !player.equalsIgnoreCase("current") && !player.startsWith("+")) {
-        context.getSource().sendMessage(Component.translatable("velocity.command.error.transfer.invalid-player")
+        context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
             .arguments(Component.text(player)));
         return -1;
       }
-
     } else {
       if (this.server.getPlayer(player).isEmpty() && !player.equalsIgnoreCase("all") && !player.equalsIgnoreCase("current")
           && !player.startsWith("+")) {
-        context.getSource().sendMessage(Component.translatable("velocity.command.error.transfer.invalid-player")
+        context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
             .arguments(Component.text(player)));
         return -1;
       }
@@ -209,7 +208,7 @@ public class TransferCommand {
     } else if (player.startsWith("+")) {
       RegisteredServer foundServer = findServer(player.substring(1)).orElse(null);
       if (foundServer == null) {
-        context.getSource().sendMessage(Component.translatable("velocity.command.error.transfer.invalid-server")
+        context.getSource().sendMessage(Component.translatable("velocity.command.server-does-not-exist")
             .arguments(Component.text(player)));
         return -1;
       }
@@ -247,7 +246,7 @@ public class TransferCommand {
 
       ServerConnection foundServerConn = sender.getCurrentServer().orElse(null);
       if (foundServerConn == null) {
-        context.getSource().sendMessage(Component.translatable("velocity.command.error.transfer.invalid-server")
+        context.getSource().sendMessage(Component.translatable("velocity.command.server-does-not-exist")
             .arguments(Component.text(player)));
         return -1;
       }
@@ -278,7 +277,6 @@ public class TransferCommand {
           }
         }
       }).delay(1, TimeUnit.SECONDS).schedule();
-
     } else {
       context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.player")
               .arguments(Component.text(player), Component.text(proxyId)));
@@ -304,7 +302,6 @@ public class TransferCommand {
     );
     return Command.SINGLE_SUCCESS;
   }
-
 
   private Optional<RegisteredServer> findServer(final String serverName) {
     final Collection<RegisteredServer> servers = server.getAllServers();

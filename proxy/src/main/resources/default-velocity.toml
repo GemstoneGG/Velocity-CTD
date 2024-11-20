@@ -11,7 +11,8 @@ motd = "<#ff3a4c>A Velocity Server"
 # What should it look like when you hover over the player count? This is
 # displayed when hovering over the player count/max players' tooltip.
 motd-hover = [
-    "<#ff3a4c>A Velocity Tooltip"
+    "<#ff3a4c>A Velocity Tooltip",
+    "<#09add3>that shows more information!"
 ]
 
 # What should we display for the maximum number of players? (Velocity does not support a cap
@@ -419,10 +420,14 @@ override-bungee-messaging = true
 link = "https://github.com/GemstoneGG/Velocity-CTD"
 label = "<#ff3a4c>GitHub"
 
+[server-links.Discord]
+link = "https://discord.gg/beer"
+label = "<#09add3>Discord"
+
 [proxy-addresses]
 # Proxy addresses are specified to ensure that the player
-# can be transferred using the "/transfer" command
-# and requires Redis to be activated for use.
+# can be transferred using the "/transfer" command and
+# does not require Redis to be activated for use.
 
 # This allows you to specify whether you would like your players
 # to be sent to no fallback proxy, the most empty fallback proxy,
@@ -440,10 +445,10 @@ dynamic-proxy-filter = "MOST_EMPTY"
 
 [proxy-addresses.Proxy-1]
 proxy-id = "Proxy-1"
-ip = "148.113.189.229"
+ip = "127.0.0.1"
 port = 25565
 
 [proxy-addresses.Proxy-2]
 proxy-id = "Proxy-2"
-ip = "148.113.189.229"
+ip = "127.0.0.1"
 port = 25566
