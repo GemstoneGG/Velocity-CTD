@@ -356,13 +356,21 @@ enabled = false
 # Always attempts to use the first ID first, if the proxy isn't available, it'll use the next in the list.
 #
 # Needs to be a list of the "proxy-id"'s of the proxies connected to the network.
-master-proxy-ids = [""]
+master-proxy-ids = [
+    ""
+]
 
 # The list of aliases for the "/leavequeue" command. The command will not be registered if this list is empty.
-leave-queue-aliases = ["leavequeue", "dequeue"]
+leave-queue-aliases = [
+    "leavequeue",
+    "dequeue"
+]
 
 # The list of aliases for the "/queueadmin" command. The command will not be registered if this list is empty.
-queue-admin-aliases = ["queueadmin", "qadmin"]
+queue-admin-aliases = [
+    "queueadmin",
+    "qadmin"
+]
 
 # The list of servers that should not have the queue system enabled.
 no-queue-servers = [
