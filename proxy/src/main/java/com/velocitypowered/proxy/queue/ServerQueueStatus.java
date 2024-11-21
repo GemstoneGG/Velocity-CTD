@@ -82,7 +82,7 @@ public class ServerQueueStatus {
 
     this.sendingTaskHandle = this.velocityServer.getScheduler()
         .buildTask(VelocityVirtualPlugin.INSTANCE, this::tickSending)
-        .repeat((long) this.config.getSendDelay() * 1000, TimeUnit.MILLISECONDS)
+        .repeat((int) (this.config.getSendDelay() * 1000), TimeUnit.MILLISECONDS)
         .schedule();
   }
 

@@ -144,6 +144,8 @@ factions = "127.0.0.1:30067"
 minigames = "127.0.0.1:30068"
 
 # If you need a different forwarding mode, specify as shown:
+#
+# To remove this line, either remove the line or comment it out.
 modern = { address = "127.0.0.1:30068", forwarding-mode = "MODERN" }
 
 # In what order, we should try servers when a player logs in or is kicked from a server.
@@ -341,7 +343,9 @@ max-concurrent-connections = 10
 
 # The ID of this proxy and is only needed for multi-proxy setups.
 # Leave blank if you do not use Redis and is left blank by
-# default to ensure a qualitative proxy ID is assigned.
+# default to ensure you assign a qualitative proxy ID.
+#
+# Your server will not start if this is blank and Redis is on.
 proxy-id = ""
 
 # How often to send a ping through Redis.
