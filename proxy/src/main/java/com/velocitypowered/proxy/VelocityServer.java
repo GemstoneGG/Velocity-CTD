@@ -911,19 +911,19 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     switch (filter) {
       case "MOST_EMPTY" -> addresses.sort((o1, o2) -> {
         int connectedSize1 = getMultiProxyHandler().getAllPlayers().stream().filter(i ->
-            i.proxyId.equalsIgnoreCase(o1.proxyId())).toList().size();
+            i.getProxyId().equalsIgnoreCase(o1.proxyId())).toList().size();
 
         int connectedSize2 = getMultiProxyHandler().getAllPlayers().stream().filter(i ->
-            i.proxyId.equalsIgnoreCase(o2.proxyId())).toList().size();
+            i.getProxyId().equalsIgnoreCase(o2.proxyId())).toList().size();
 
         return Long.compare(connectedSize1, connectedSize2);
       });
       case "LEAST_EMPTY" -> addresses.sort((o1, o2) -> {
         int connectedSize1 = getMultiProxyHandler().getAllPlayers().stream().filter(i ->
-            i.proxyId.equalsIgnoreCase(o1.proxyId())).toList().size();
+            i.getProxyId().equalsIgnoreCase(o1.proxyId())).toList().size();
 
         int connectedSize2 = getMultiProxyHandler().getAllPlayers().stream().filter(i ->
-            i.proxyId.equalsIgnoreCase(o2.proxyId())).toList().size();
+            i.getProxyId().equalsIgnoreCase(o2.proxyId())).toList().size();
 
         return Long.compare(connectedSize2, connectedSize1);
       });

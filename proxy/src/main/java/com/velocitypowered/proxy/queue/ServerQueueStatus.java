@@ -48,6 +48,7 @@ public class ServerQueueStatus {
   private final Deque<ServerQueueEntry> queue = new ConcurrentLinkedDeque<>();
   private boolean online = true;
   private boolean paused = false;
+  private boolean full = false;
   private ScheduledTask sendingTaskHandle = null;
 
   /**
@@ -99,7 +100,7 @@ public class ServerQueueStatus {
     ServerQueueEntry entry = queue.peekFirst();
 
     if (entry == null) {
-      throw new IllegalStateException("called sendFirstInQueue() with an empty queue");
+      return;
     }
 
     if (entry.waitingForConnection) {
@@ -167,7 +168,21 @@ public class ServerQueueStatus {
    * Pings the backend to update the online flag.
    */
   public void tickPingingBackend() {
-    server.ping().whenComplete((result, th) -> online = th == null);
+    server.ping().whenComplete((result, th) -> {
+      if (!online && th == null) {
+        for (ServerQueueEntry entry : queue) {
+          if (entry.priority == -1) {
+            entry.send();
+          }
+        }
+      }
+      online = th == null;
+
+      if (online) {
+        final int maxPlayers = this.velocityServer.getConfiguration().getPlayerCaps().get(server.getServerInfo().getName());
+        full = server.getPlayerCount() == maxPlayers;
+      }
+    });
   }
 
   /**
@@ -385,6 +400,8 @@ public class ServerQueueStatus {
               Component.text(entry.target.getServerInfo().getName()),
               calculateEta(position)
           );
+    } else if (full) {
+      return Component.translatable("velocity.queue.player-status.full", NamedTextColor.YELLOW);
     } else {
       return Component.translatable("velocity.queue.player-status.offline", NamedTextColor.YELLOW)
           .arguments(

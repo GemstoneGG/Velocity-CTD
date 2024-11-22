@@ -153,14 +153,14 @@ public class GlistCommand {
     if (multiProxyHandler.isEnabled()) {
       for (String proxyId : multiProxyHandler.getAllProxyIds()) {
         for (MultiProxyHandler.RemotePlayerInfo player : multiProxyHandler.getPlayers(proxyId)) {
-          if (player.serverName == null || !player.serverName.equals(server.getServerInfo().getName())) {
+          if (player.getServerName() == null || !player.getServerName().equals(server.getServerInfo().getName())) {
             continue;
           }
 
           String key = "velocity.command.glist.proxy-"
               + (proxyId.equals(multiProxyHandler.getOwnProxyId()) ? "self" : "other");
           Component hover = Component.translatable(key).arguments(Component.text(proxyId));
-          players.add(Component.text(player.name).hoverEvent(HoverEvent.showText(hover)));
+          players.add(Component.text(player.getName()).hoverEvent(HoverEvent.showText(hover)));
           totalPlayers += 1;
         }
       }

@@ -124,14 +124,14 @@ public class FindCommand {
 
     MultiProxyHandler.RemotePlayerInfo info = server.getMultiProxyHandler().getPlayerInfo(player);
 
-    if (info.serverName == null) {
+    if (info.getServerName() == null) {
       context.getSource().sendMessage(
               Component.translatable("velocity.command.find.no-server", NamedTextColor.YELLOW)
       );
       return 0;
     }
 
-    RegisteredServer server = this.server.getServer(info.serverName).orElse(null);
+    RegisteredServer server = this.server.getServer(info.getServerName()).orElse(null);
     if (server == null) {
       context.getSource().sendMessage(
               Component.translatable("velocity.command.find.no-server", NamedTextColor.YELLOW)
@@ -141,8 +141,8 @@ public class FindCommand {
 
     context.getSource().sendMessage(
             Component.translatable("velocity.command.find.message", NamedTextColor.YELLOW,
-                    Component.text(info.name), Component.text(server.getServerInfo().getName()
-                            + " (" + info.proxyId + ")"))
+                    Component.text(info.getName()), Component.text(server.getServerInfo().getName()
+                            + " (" + info.getProxyId() + ")"))
     );
     return Command.SINGLE_SUCCESS;
   }

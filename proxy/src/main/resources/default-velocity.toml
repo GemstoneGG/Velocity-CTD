@@ -381,6 +381,16 @@ no-queue-servers = [
     "lobby"
 ]
 
+# If the disconnect reason contains any part of this filter, it will remove the player from the queue immediately
+banned-reason = [
+    "banned"
+]
+
+# If the disconnect reason contains any part of this filter, it will act like the queue is paused, until the player
+whitelisted-reason = [
+    "whitelisted"
+]
+
 # Whether the user should be capable of entering multiple queues at once.
 allow-multi-queue = false
 
@@ -422,6 +432,10 @@ queue-on-shutdown = true
 # If true, players that are sent via the BungeeCord Messaging channels are queued if the server has queueing enabled.
 # If false, they will bypass the queue and be sent directly to the backend.
 override-bungee-messaging = true
+
+[playercaps]
+lifesteal = 300
+hub = 300
 
 [server-links]
 # This allows you to implement server links into the escape menu that

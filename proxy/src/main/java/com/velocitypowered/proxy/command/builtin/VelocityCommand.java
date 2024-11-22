@@ -127,8 +127,8 @@ public final class VelocityCommand {
 
           if (server.getMultiProxyHandler().isEnabled()) {
             for (MultiProxyHandler.RemotePlayerInfo i : server.getMultiProxyHandler().getAllPlayers()) {
-              if (i.name.regionMatches(true, 0, argument, 0, argument.length())) {
-                builder.suggest(i.name);
+              if (i.getName().regionMatches(true, 0, argument, 0, argument.length())) {
+                builder.suggest(i.getName());
               }
             }
 
@@ -281,7 +281,7 @@ public final class VelocityCommand {
             }
           } else {
             for (MultiProxyHandler.RemotePlayerInfo player : multiProxyHandler.getPlayers(proxyId)) {
-              if (player.name.equalsIgnoreCase(playerName)) {
+              if (player.getName().equalsIgnoreCase(playerName)) {
                 source.sendMessage(Component.translatable(
                     "velocity.command.sudo.executed-remotely",
                     NamedTextColor.GREEN,

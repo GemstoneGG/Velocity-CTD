@@ -117,7 +117,7 @@ public class RedisManagerImpl {
     listen(RedisPlayerSetTransferringRequest.ID, RedisPlayerSetTransferringRequest.class, it -> {
       MultiProxyHandler.RemotePlayerInfo info = proxy.getMultiProxyHandler().getPlayerInfo(it.uuid());
       if (info != null) {
-        info.beingTransferred = it.transferring();
+        info.setBeingTransferred(it.transferring());
       }
 
       if (!it.transferring()) {

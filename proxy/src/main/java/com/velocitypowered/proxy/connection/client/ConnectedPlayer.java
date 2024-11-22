@@ -1558,6 +1558,14 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                     .orElse(ConnectionMessages.INTERNAL_SERVER_CONNECTION_ERROR);
             handleConnectionException(toConnect,
                     DisconnectPacket.create(reason, getProtocolVersion(), connection.getState()), status.isSafe());
+
+            if (server.getQueueManager().isEnabled()) {
+              for (String r : server.getConfiguration().getQueue().getBannedReason()) {
+                if (reason.contains(Component.text(r))) {
+                  server.getQueueManager().removeFromAll(get());
+                }
+              }
+            }
           }
           default -> {
             // The only remaining value is successful (no need to do anything!)

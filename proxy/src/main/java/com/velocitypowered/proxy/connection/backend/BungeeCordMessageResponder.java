@@ -143,7 +143,7 @@ public class BungeeCordMessageResponder {
           int amount = 0;
           if (proxy.getMultiProxyHandler().isEnabled()) {
             for (MultiProxyHandler.RemotePlayerInfo info : proxy.getMultiProxyHandler().getAllPlayers()) {
-              if (info.serverName != null && info.serverName.equalsIgnoreCase(rs.getServerInfo().getName())) {
+              if (info.getServerName() != null && info.getServerName().equalsIgnoreCase(rs.getServerInfo().getName())) {
                 amount++;
               }
             }

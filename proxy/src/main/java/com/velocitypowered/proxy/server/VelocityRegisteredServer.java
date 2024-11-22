@@ -96,6 +96,10 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
     return ImmutableList.copyOf(players.values());
   }
 
+  public int getPlayerCount() {
+    return this.players.size();
+  }
+
   public ConnectedPlayer getPlayer(final UUID uuid) {
     return players.get(uuid);
   }

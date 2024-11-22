@@ -124,7 +124,7 @@ public class PlistCommand {
     final String serverName = getString(context, SERVER_ARG);
 
     if (!Objects.equals(serverName, "all")) {
-      proxyPlayers.removeIf(it -> it.serverName == null || !it.serverName.equalsIgnoreCase(serverName));
+      proxyPlayers.removeIf(it -> it.getServerName() == null || !it.getServerName().equalsIgnoreCase(serverName));
     }
 
     sendServerPlayers(context.getSource(), proxyPlayers, serverName);
@@ -164,7 +164,7 @@ public class PlistCommand {
                                  final List<MultiProxyHandler.RemotePlayerInfo> onServer,
                                  final String serverName) {
     onServer.stream()
-        .map(it -> it.name)
+        .map(MultiProxyHandler.RemotePlayerInfo::getName)
         .reduce((a, b) -> a + ", " + b)
         .ifPresent(playerList -> {
           final TranslatableComponent.Builder builder = Component.translatable()

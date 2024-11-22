@@ -140,7 +140,7 @@ public class ShowAllCommand {
     int connectedPlayers = 0;
     List<MultiProxyHandler.RemotePlayerInfo> list = this.server.getMultiProxyHandler().getAllPlayers();
     for (MultiProxyHandler.RemotePlayerInfo info : list) {
-      if (info.serverName.equalsIgnoreCase(server.getServerInfo().getName())) {
+      if (info.getServerName().equalsIgnoreCase(server.getServerInfo().getName())) {
         connectedPlayers += 1;
       }
     }
@@ -157,7 +157,7 @@ public class ShowAllCommand {
       final Component message;
       if (connectedPlayers == 1) {
         message = Component.translatable("velocity.command.showall.message", NamedTextColor.WHITE,
-                Component.text(list.get(0).name));
+                Component.text(list.get(0).getName()));
       } else {
         final String playerList = list.stream()
                 .map(MultiProxyHandler.RemotePlayerInfo::getUsername)

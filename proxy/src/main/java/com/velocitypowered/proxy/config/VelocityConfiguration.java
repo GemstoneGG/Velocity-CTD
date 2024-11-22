@@ -126,6 +126,8 @@ public final class VelocityConfiguration implements ProxyConfig {
   private List<ProxyAddress> proxyAddresses = new ArrayList<>();
   @Expose
   private String dynamicProxyFilter;
+  @Expose
+  private Map<String, Integer> playerCaps;
 
   private VelocityConfiguration(final Servers servers, final ForcedHosts forcedHosts, final Commands commands,
       final Advanced advanced, final Query query, final Metrics metrics, final Redis redis, final Queue queue) {
@@ -150,7 +152,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       final boolean logOfflineConnections, final boolean disableForge, final boolean enforceChatSigning,
       final boolean translateHeaderFooter, final boolean logMinimumVersion, final String minimumVersion,
       final Redis redis, final Queue queue, final Map<String, List<String>> slashServers, List<ServerLink> serverLinks,
-                                List<ProxyAddress> proxyAddresses, String dynamicProxyFilter) {
+                                List<ProxyAddress> proxyAddresses, String dynamicProxyFilter, Map<String, Integer> playerCaps) {
     this.bind = bind;
     this.motd = motd;
     this.motdHover = motdHover;
@@ -184,6 +186,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     this.serverLinks = serverLinks;
     this.proxyAddresses = proxyAddresses;
     this.dynamicProxyFilter = dynamicProxyFilter;
+    this.playerCaps = playerCaps;
   }
 
   /**
@@ -606,6 +609,10 @@ public final class VelocityConfiguration implements ProxyConfig {
     return this.dynamicProxyFilter;
   }
 
+  public Map<String, Integer> getPlayerCaps() {
+    return this.playerCaps;
+  }
+
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
@@ -636,6 +643,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         .add("logMinimumVersion", logMinimumVersion)
         .add("minimumVersion", minimumVersion)
         .add("slashServers", slashServers)
+        .add("playerCaps", playerCaps)
         .toString();
   }
 
@@ -717,6 +725,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       final CommentedConfig queueConfig = config.get("queue");
       final CommentedConfig serverLinksConfig = config.get("server-links");
       final CommentedConfig proxyAddressesConfig = config.get("proxy-addresses");
+      final CommentedConfig playerCapsConfig = config.get("playercaps");
 
       final PlayerInfoForwarding forwardingMode = config.getEnumOrElse(
               "player-info-forwarding-mode", PlayerInfoForwarding.NONE);
@@ -794,6 +803,14 @@ public final class VelocityConfiguration implements ProxyConfig {
         }
       }
 
+      final Map<String, Integer> playerCaps = new HashMap<>();
+
+      if (playerCapsConfig != null) {
+        for (CommentedConfig.Entry entry : playerCapsConfig.entrySet()) {
+          playerCaps.put(entry.getKey(), entry.getValue());
+        }
+      }
+
       // Throw an exception if the forwarding-secret file is empty and the proxy is using a
       // forwarding mode that requires it.
       if (forwardingSecret.length == 0
@@ -835,7 +852,8 @@ public final class VelocityConfiguration implements ProxyConfig {
               slashServers,
               links,
               addresses,
-              filter
+              filter,
+              playerCaps
       );
     }
   }
@@ -1586,6 +1604,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private List<String> queueAdminAliases;
     private List<String> masterProxyIds;
+    private List<String> bannedReason;
 
     private Queue(final CommentedConfig config) {
       if (config == null) {
@@ -1608,6 +1627,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.leaveQueueAliases = config.getOrElse("leave-queue-aliases", new ArrayList<>());
       this.queueAdminAliases = config.getOrElse("queue-admin-aliases", new ArrayList<>());
       this.masterProxyIds = config.getOrElse("master-proxy-ids", new ArrayList<>());
+      this.bannedReason = config.getOrElse("banned-reason", new ArrayList<>());
     }
 
     public boolean isEnabled() {
@@ -1620,6 +1640,10 @@ public final class VelocityConfiguration implements ProxyConfig {
 
     public boolean isAllowPausedQueueJoining() {
       return allowPausedQueueJoining;
+    }
+
+    public List<String> getBannedReason() {
+      return this.bannedReason;
     }
 
     public boolean isForwardKickReason() {

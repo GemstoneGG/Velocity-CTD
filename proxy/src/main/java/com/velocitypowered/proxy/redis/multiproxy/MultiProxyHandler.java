@@ -18,30 +18,23 @@
 package com.velocitypowered.proxy.redis.multiproxy;
 
 import com.velocitypowered.api.command.CommandSource;
-import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.builtin.VelocityCommand;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
-import com.velocitypowered.proxy.queue.ServerQueueStatus;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,27 +46,14 @@ public class MultiProxyHandler {
   private static final Logger logger = LoggerFactory.getLogger(MultiProxyHandler.class);
 
   private final VelocityServer server;
-  private @MonotonicNonNull Instant lastPingSent = null;
-  private final Map<String, OtherProxy> seenProxies = new ConcurrentHashMap<>();
   private final VelocityConfiguration.Redis config;
   private boolean shuttingDown = false;
   private final Map<UUID, String> transferringServers = new HashMap<>();
 
-  private boolean enabled;
+  // All the players currently connected on ALL proxies, including own proxy.
+  private final List<RemotePlayerInfo> allPlayers = new CopyOnWriteArrayList<>();
 
-  /**
-   * Represents another proxy instance in a multi-proxy setup.
-   * Tracks the last time a ping was received from the proxy, its status, and the list of
-   * players connected to this proxy.
-   */
-  public static final class OtherProxy {
-    public Instant lastSeenPing;
-    public List<RemotePlayerInfo> players = new ArrayList<>();
-
-    public OtherProxy() {
-      this.lastSeenPing = Instant.now();
-    }
-  }
+  private final boolean enabled;
 
   /**
    * Stores information about a remote player connected to a different proxy.
@@ -81,13 +61,13 @@ public class MultiProxyHandler {
    * within the multi-proxy network.
    */
   public static final class RemotePlayerInfo {
-    public final String proxyId;
-    public final UUID uuid;
-    public final String name;
-    public final Map<String, Integer> queuePriority;
-    public String serverName = null;
+    private final String proxyId;
+    private final UUID uuid;
+    private final String name;
+    private final Map<String, Integer> queuePriority;
+    private String serverName = null;
     private String queuedServer = null;
-    public boolean beingTransferred = false;
+    private boolean beingTransferred = false;
 
     /**
      * Constructs a new {@code RemotePlayerInfo} with the specified UUID and name.
@@ -102,6 +82,26 @@ public class MultiProxyHandler {
       this.queuePriority = queuePriority;
     }
 
+    public UUID getUuid() {
+      return uuid;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public Map<String, Integer> getQueuePriority() {
+      return queuePriority;
+    }
+
+    public String getServerName() {
+      return serverName;
+    }
+
+    public boolean isBeingTransferred() {
+      return beingTransferred;
+    }
+
     public String getUsername() {
       return this.name;
     }
@@ -114,6 +114,17 @@ public class MultiProxyHandler {
       return this.queuedServer;
     }
 
+    public String getProxyId() {
+      return this.proxyId;
+    }
+
+    public void setServerName(String serverName) {
+      this.serverName = serverName;
+    }
+
+    public void setBeingTransferred(boolean beingTransferred) {
+      this.beingTransferred = beingTransferred;
+    }
   }
 
   /**
@@ -140,53 +151,16 @@ public class MultiProxyHandler {
 
     RedisManagerImpl redisManager = this.server.getRedisManager();
 
-
-    redisManager.listen(RedisProxyIdAnnouncement.ID, RedisProxyIdAnnouncement.class, it -> {
-      if (it.wantsReply()) {
-        // if the proxy who sent this wants a reply, broadcast our own back.
-        redisManager.send(new RedisProxyIdAnnouncement(this.config.getProxyId(), false, generateLocalPlayers()));
-        this.lastPingSent = Instant.now();
-      }
-
-      OtherProxy proxy = this.handleAndGetProxyFromPacket(it.proxyId());
-
-      if (proxy == null) {
-        return;
-      }
-
-      if (it.players() != null) {
-        proxy.players = new ArrayList<>(it.players());
-      }
-    });
-
     redisManager.listen(RedisPlayerJoinUpdate.ID, RedisPlayerJoinUpdate.class, it -> {
-      OtherProxy proxy = this.handleAndGetProxyFromPacket(it.player().proxyId);
-
-      if (proxy == null) {
-        return;
-      }
-
-      this.handleRemoteJoin(proxy, it.player());
+      this.handleJoin(it.player());
     });
 
     redisManager.listen(RedisPlayerLeaveUpdate.ID, RedisPlayerLeaveUpdate.class, it -> {
-      OtherProxy proxy = this.handleAndGetProxyFromPacket(it.proxyId());
-
-      if (proxy == null) {
-        return;
-      }
-
-      proxy.players.removeIf(player -> player.uuid.equals(it.uuid()));
+      this.handleLeave(it.uuid());
     });
 
     redisManager.listen(RedisPlayerServerChange.ID, RedisPlayerServerChange.class, it -> {
-      OtherProxy proxy = this.handleAndGetProxyFromPacket(it.proxyId());
-
-      if (proxy == null) {
-        return;
-      }
-
-      for (RemotePlayerInfo player : proxy.players) {
+      for (RemotePlayerInfo player : allPlayers) {
         if (it.uuid().equals(player.uuid)) {
           player.serverName = it.server();
         }
@@ -194,13 +168,7 @@ public class MultiProxyHandler {
     });
 
     redisManager.listen(RedisShuttingDownAnnouncement.ID, RedisShuttingDownAnnouncement.class, it -> {
-      OtherProxy proxy = this.handleAndGetProxyFromPacket(it.proxyId());
-
-      if (proxy == null) {
-        return;
-      }
-
-      seenProxies.remove(it.proxyId());
+      handleShutdown(it.proxyId());
 
       if (this.server.getQueueManager().isMasterProxy()) {
         this.server.getQueueManager().schedulePingingBackend();
@@ -290,75 +258,36 @@ public class MultiProxyHandler {
       );
     });
 
-    Thread tickThread = new Thread(this::tick);
-    tickThread.setName("Velocity Multi-Proxy Tick Thread");
-    tickThread.setDaemon(true);
-    tickThread.start();
-
-    // solicit the ID of all other proxies
-    redisManager.send(new RedisProxyIdAnnouncement(this.config.getProxyId(), true, List.of()));
     redisManager.send(new RedisStartupRequest(config.getProxyId()));
-    this.lastPingSent = Instant.now();
   }
+
+
 
   public Map<UUID, String> getTransferringServers() {
     return transferringServers;
   }
 
-  private List<RemotePlayerInfo> generateLocalPlayers() {
-    Collection<Player> players = this.server.getAllPlayers();
-    List<RemotePlayerInfo> playerInfos = new ArrayList<>(players.size());
-
-    for (Player player : players) {
-      Map<String, Integer> queuePriorities = new HashMap<>();
-
-      for (RegisteredServer s : this.server.getAllServers()) {
-        queuePriorities.put(s.getServerInfo().getName(), player.getQueuePriority(s.getServerInfo().getName()));
-      }
-      queuePriorities.put("all", player.getQueuePriority("all"));
-
-      RemotePlayerInfo playerInfo = new RemotePlayerInfo(this.getOwnProxyId(), player.getUniqueId(), player.getUsername(),
-              queuePriorities);
-      player.getCurrentServer()
-          .ifPresent(serverConnection -> playerInfo.serverName = serverConnection.getServerInfo().getName());
-
-      if (this.server.getQueueManager().isEnabled()) {
-        String queuedServer = null;
-        for (ServerQueueStatus status : this.server.getQueueManager().getAll()) {
-          if (status.isQueued(player.getUniqueId())) {
-            queuedServer = status.getServerName();
-          }
-        }
-
-        playerInfo.setQueuedServer(queuedServer);
-      }
-
-      playerInfos.add(playerInfo);
-    }
-
-    return playerInfos;
+  private void handleShutdown(String proxyId) {
+    allPlayers.removeIf(info -> info.proxyId.equalsIgnoreCase(proxyId));
   }
 
-  private void handleRemoteJoin(final OtherProxy proxy, final RemotePlayerInfo player) {
+
+  private void handleLeave(final UUID player) {
+    allPlayers.removeIf(info -> info.uuid.equals(player));
+  }
+
+  private void handleJoin(final RemotePlayerInfo player) {
     // This handles the edge case if a player joins two proxies at once, once the player info broadcast is received,
     // we disconnect them from the local proxy.
-    for (Player localPlayer : this.server.getAllPlayers()) {
-      if (localPlayer.getUniqueId().equals(player.uuid) && !player.beingTransferred) {
-        localPlayer.disconnect(Component.translatable("velocity.error.already-connected-proxy.remote"));
+    for (RemotePlayerInfo info : this.allPlayers) {
+      if (info.uuid.equals(player.uuid)) {
+        this.server.getPlayer(info.uuid).ifPresent(p -> {
+          p.disconnect(Component.translatable("velocity.error.already-connected-proxy.remote"));
+        });
       }
     }
 
-    proxy.players.add(player);
-  }
-
-  private OtherProxy handleAndGetProxyFromPacket(final String proxyId) {
-    if (proxyId.equals(this.config.getProxyId())) {
-      return null;
-    }
-
-    OtherProxy proxy = this.seenProxies.computeIfAbsent(proxyId, key -> new OtherProxy());
-    proxy.lastSeenPing = Instant.now();
-    return proxy;
+    allPlayers.add(player);
   }
 
   /**
@@ -380,14 +309,6 @@ public class MultiProxyHandler {
     return enabled;
   }
 
-  private void tick() {
-    Instant now = Instant.now();
-    RedisManagerImpl redisManager = this.server.getRedisManager();
-
-    if (this.lastPingSent != null && this.lastPingSent.until(now, ChronoUnit.MILLIS) > this.config.getPingIntervalMs()) {
-      redisManager.send(new RedisProxyIdAnnouncement(this.config.getProxyId(), false, null));
-    }
-  }
 
   /**
    * Handles the event when a player leaves the proxy.
@@ -467,13 +388,7 @@ public class MultiProxyHandler {
    * @return the combined player count from this proxy and all other known proxies
    */
   public int getTotalPlayerCount() {
-    int playerCount = this.server.getPlayerCount();
-
-    for (OtherProxy proxy : this.seenProxies.values()) {
-      playerCount += proxy.players.size();
-    }
-
-    return playerCount;
+    return allPlayers.size();
   }
 
   /**
@@ -482,13 +397,9 @@ public class MultiProxyHandler {
    * @return the set of all proxy IDs
    */
   public Set<String> getAllProxyIds() {
-    Set<String> foreignProxies = new HashSet<>(this.seenProxies.keySet());
-
-    if (this.config.getProxyId() != null) {
-      foreignProxies.add(this.config.getProxyId());
-    }
-
-    return foreignProxies;
+    return allPlayers.stream()
+        .map(RemotePlayerInfo::getProxyId)
+        .collect(Collectors.toSet());
   }
 
   /**
@@ -499,17 +410,9 @@ public class MultiProxyHandler {
    *         or {@code null} if the proxy ID is unknown
    */
   public List<RemotePlayerInfo> getPlayers(final String proxyId) {
-    if (proxyId.equals(this.getOwnProxyId())) {
-      return generateLocalPlayers();
-    }
-
-    OtherProxy proxy = this.seenProxies.get(proxyId);
-
-    if (proxy == null) {
-      return null;
-    }
-
-    return new ArrayList<>(proxy.players);
+    return allPlayers.stream()
+        .filter(info -> info.getProxyId().equalsIgnoreCase(proxyId))
+        .toList();
   }
 
   /**
@@ -550,13 +453,7 @@ public class MultiProxyHandler {
    * @return the list of all known remote players
    */
   public List<RemotePlayerInfo> getAllPlayers() {
-    List<RemotePlayerInfo> players = new ArrayList<>();
-
-    for (String proxyId : getAllProxyIds()) {
-      players.addAll(getPlayers(proxyId));
-    }
-
-    return players;
+    return allPlayers;
   }
 
   /**
@@ -599,21 +496,7 @@ public class MultiProxyHandler {
    * @return Whether the player is connected to any proxy or not.
    */
   public boolean isPlayerOnline(final UUID uuid) {
-    for (Player player : server.getAllPlayers()) {
-      if (player.getUniqueId().equals(uuid)) {
-        return true;
-      }
-    }
-
-    for (OtherProxy proxy : seenProxies.values().stream().toList()) {
-      for (RemotePlayerInfo info : proxy.players.stream().toList()) {
-        if (info.uuid.equals(uuid)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
+    return allPlayers.stream().anyMatch(info -> info.uuid.equals(uuid));
   }
 
   /**
@@ -624,21 +507,8 @@ public class MultiProxyHandler {
    * @return Whether the player is connected to any proxy or not.
    */
   public boolean isPlayerOnline(final String username) {
-    for (Player player : server.getAllPlayers()) {
-      if (player.getUsername().equalsIgnoreCase(username)) {
-        return true;
-      }
-    }
+    return allPlayers.stream().anyMatch(info -> info.getUsername().equals(username));
 
-    for (OtherProxy proxy : seenProxies.values()) {
-      for (RemotePlayerInfo info : proxy.players) {
-        if (info.name.equals(username)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
   }
 
   /**
