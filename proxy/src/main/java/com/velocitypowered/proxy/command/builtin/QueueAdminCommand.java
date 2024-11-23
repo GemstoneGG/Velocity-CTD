@@ -368,19 +368,26 @@ public class QueueAdminCommand {
     Component serverName = Component.text(server.getServerInfo().getName());
 
     if (server.getQueueStatus().isPaused()) {
-      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-paused")
-          .arguments(serverName));
-      return -1;
-    }
+      if (this.server.getMultiProxyHandler().isEnabled()) {
+        this.server.getRedisManager().send(new RedisQueuePauseRequest(server.getServerInfo().getName(), false));
+      } else {
+        server.getQueueStatus().setPaused(false);
+      }
 
-    if (this.server.getMultiProxyHandler().isEnabled()) {
-      this.server.getRedisManager().send(new RedisQueuePauseRequest(server.getServerInfo().getName(), true));
+      ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.unpause").arguments(serverName));
+      server.getQueueStatus().broadcast(Component.translatable("velocity.queue.command.unpaused").arguments(serverName));
+      return Command.SINGLE_SUCCESS;
     } else {
-      server.getQueueStatus().setPaused(true);
-    }
 
-    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.pause").arguments(serverName));
-    server.getQueueStatus().broadcast(Component.translatable("velocity.queue.command.paused").arguments(serverName));
+      if (this.server.getMultiProxyHandler().isEnabled()) {
+        this.server.getRedisManager().send(new RedisQueuePauseRequest(server.getServerInfo().getName(), true));
+      } else {
+        server.getQueueStatus().setPaused(true);
+      }
+
+      ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.pause").arguments(serverName));
+      server.getQueueStatus().broadcast(Component.translatable("velocity.queue.command.paused").arguments(serverName));
+    }
 
     return Command.SINGLE_SUCCESS;
   }

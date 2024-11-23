@@ -25,14 +25,13 @@ import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -49,6 +48,7 @@ public class MultiProxyHandler {
   private final VelocityConfiguration.Redis config;
   private boolean shuttingDown = false;
   private final Map<UUID, String> transferringServers = new HashMap<>();
+  private final List<String> proxyIds = new ArrayList<>();
 
   // All the players currently connected on ALL proxies, including own proxy.
   private final List<RemotePlayerInfo> allPlayers = new CopyOnWriteArrayList<>();
@@ -94,7 +94,15 @@ public class MultiProxyHandler {
       return queuePriority;
     }
 
+    /**
+     * Returns the server the player is currently connected to, or null.
+     *
+     * @return The server the player is currently connected to, or null.
+     */
     public String getServerName() {
+      if (serverName == null) {
+        return "";
+      }
       return serverName;
     }
 
@@ -169,6 +177,7 @@ public class MultiProxyHandler {
 
     redisManager.listen(RedisShuttingDownAnnouncement.ID, RedisShuttingDownAnnouncement.class, it -> {
       handleShutdown(it.proxyId());
+      proxyIds.remove(it.proxyId());
 
       if (this.server.getQueueManager().isMasterProxy()) {
         this.server.getQueueManager().schedulePingingBackend();
@@ -176,12 +185,28 @@ public class MultiProxyHandler {
       }
     });
 
-    redisManager.listen(RedisStartupRequest.ID, RedisStartupRequest.class, it
-        -> this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
-          if (!this.server.getQueueManager().isMasterProxy()) {
-            this.server.getQueueManager().clearQueue();
-          }
-        }).delay(3, TimeUnit.SECONDS).schedule());
+    redisManager.listen(RedisStartupRequest.ID, RedisStartupRequest.class, it -> {
+      this.server.getRedisManager().send(new RedisStartupFillPlayersRequest(
+          this.server.getMultiProxyHandler().getAllPlayers(),
+          it.proxyId()
+      ));
+
+      this.proxyIds.add(it.proxyId());
+
+      this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+        if (!this.server.getQueueManager().isMasterProxy()) {
+          this.server.getQueueManager().clearQueue();
+        }
+      }).delay(3, TimeUnit.SECONDS).schedule();
+    });
+
+    redisManager.listen(RedisStartupFillPlayersRequest.ID, RedisStartupFillPlayersRequest.class, it -> {
+      for (RemotePlayerInfo info : it.players()) {
+        this.server.getMultiProxyHandler().getAllPlayers().removeIf(i -> i.getUuid().equals(info.getUuid()));
+      }
+
+      this.server.getMultiProxyHandler().getAllPlayers().addAll(it.players());
+    });
 
     redisManager.listen(RedisGenericReplyRequest.ID, RedisGenericReplyRequest.class, it -> {
       if (!it.targetProxy().equals(this.getOwnProxyId())) {
@@ -394,12 +419,10 @@ public class MultiProxyHandler {
   /**
    * Returns the set of all proxy IDs known to this proxy.
    *
-   * @return the set of all proxy IDs
+   * @return the list of all proxy IDs
    */
-  public Set<String> getAllProxyIds() {
-    return allPlayers.stream()
-        .map(RemotePlayerInfo::getProxyId)
-        .collect(Collectors.toSet());
+  public List<String> getAllProxyIds() {
+    return proxyIds;
   }
 
   /**

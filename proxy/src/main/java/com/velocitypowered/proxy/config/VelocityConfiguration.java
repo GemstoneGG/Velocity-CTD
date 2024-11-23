@@ -1488,8 +1488,6 @@ public final class VelocityConfiguration implements ProxyConfig {
     private int maxConcurrentConnections;
     @Expose
     private @Nullable String proxyId;
-    @Expose
-    private long pingIntervalMs;
 
     private Redis(final CommentedConfig config) {
       if (config == null) {
@@ -1514,8 +1512,6 @@ public final class VelocityConfiguration implements ProxyConfig {
       if (this.proxyId == null || this.proxyId.isEmpty()) {
         this.proxyId = null;
       }
-
-      this.pingIntervalMs = config.getLongOrElse("ping-interval-ms", 30000);
     }
 
     public boolean isEnabled() {
@@ -1548,10 +1544,6 @@ public final class VelocityConfiguration implements ProxyConfig {
 
     public @Nullable String getProxyId() {
       return proxyId;
-    }
-
-    public long getPingIntervalMs() {
-      return pingIntervalMs;
     }
 
 

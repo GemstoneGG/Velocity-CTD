@@ -18,19 +18,18 @@
 package com.velocitypowered.proxy.redis.multiproxy;
 
 import com.velocitypowered.proxy.redis.RedisPacket;
-import java.util.UUID;
+import java.util.List;
 
 /**
- * Constructs a redis packet that transfers a player to another proxy.
+ * Constructs a packet to update the currently available players when a proxy
+ * starts up after redis has been running for a while.
  *
- * @param requester The UUID of the sender of the command.
- * @param player The username of the player.
- * @param proxyId The proxy id to send the player to.
- * @param ip The ip of the new proxy.
- * @param port The port of the new proxy.
+ * @param players A list of players to update the proxy on.
+ * @param proxyIdToUpdate The proxy that just started up.
  */
-public record RedisTransferCommandRequest(UUID requester, String player, String proxyId, String ip, int port) implements RedisPacket {
-  public static final String ID = "transfer-command-request";
+public record RedisStartupFillPlayersRequest(List<MultiProxyHandler.RemotePlayerInfo> players, String proxyIdToUpdate)
+    implements RedisPacket {
+  public static final String ID = "redis-startup-fill-players";
 
   @Override
   public String getId() {

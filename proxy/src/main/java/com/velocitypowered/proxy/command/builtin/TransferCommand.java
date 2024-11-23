@@ -39,6 +39,7 @@ import com.velocitypowered.proxy.redis.multiproxy.RedisTransferCommandRequest;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -282,12 +283,19 @@ public class TransferCommand {
               .arguments(Component.text(player), Component.text(proxyId)));
 
       if (this.server.getMultiProxyHandler().isEnabled()) {
-        this.server.getRedisManager().send(new RedisTransferCommandRequest(player, proxyId, address.ip(), address.port()));
+        UUID sender = null;
+        if (context.getSource() instanceof Player p) {
+          sender = p.getUniqueId();
+        }
+        this.server.getRedisManager().send(new RedisTransferCommandRequest(sender, player, proxyId, address.ip(), address.port()));
       } else {
         this.server.getPlayer(player).ifPresent(p -> {
           ConnectedPlayer connectedPlayer = (ConnectedPlayer) p;
           if (connectedPlayer.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
             connectedPlayer.transferToHost(new InetSocketAddress(address.ip(), address.port()));
+          } else {
+            context.getSource().sendMessage(Component.translatable("velocity.command.transfer.invalid-version")
+                .arguments(Component.text(connectedPlayer.getUsername())));
           }
         });
       }

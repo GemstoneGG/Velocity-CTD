@@ -289,6 +289,15 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
     this.doStartupConfigLoad();
 
+    if (getConfiguration().getRedis().getProxyId() == null && getConfiguration().getRedis().isEnabled()) {
+      throw new IllegalArgumentException("'proxy-id' cannot be null when redis is enabled!");
+    }
+
+    if ((getConfiguration().getQueue().getMasterProxyIds() == null
+        || getConfiguration().getQueue().getMasterProxyIds().isEmpty()) && getConfiguration().getQueue().isEnabled()) {
+      throw new IllegalArgumentException("'master-proxy-ids' cannot be empty when queues is enabled!");
+    }
+
     // Initialize commands first
     final BrigadierCommand velocityParentCommand = VelocityCommand.create(this);
     commandManager.register(
@@ -794,7 +803,9 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       // Shutdown the connection manager, this should be
       // done first to refuse new connections
       cm.shutdown();
-      multiProxyHandler.shutdown();
+      if (multiProxyHandler != null) {
+        multiProxyHandler.shutdown();
+      }
 
       ImmutableList<ConnectedPlayer> players = ImmutableList.copyOf(connectionsByUuid.values());
 
@@ -907,6 +918,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     final String filter = getConfiguration().getDynamicProxyFilter();
     final List<ProxyAddress> addresses = new ArrayList<>(getConfiguration().getProxyAddresses().stream().toList());
     addresses.removeIf(address -> Objects.requireNonNull(getMultiProxyHandler().getOwnProxyId()).equalsIgnoreCase(address.proxyId()));
+
 
     switch (filter) {
       case "MOST_EMPTY" -> addresses.sort((o1, o2) -> {

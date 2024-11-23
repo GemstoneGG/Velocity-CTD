@@ -130,6 +130,7 @@ public class QueueManagerRedisImpl extends QueueManager {
                   it.playerUuid()));
         } else {
           if (this.server.getConfiguration().getQueue().isForwardKickReason()) {
+            System.out.println("creating connection request");
             player.createConnectionRequest(foundServer).connectWithIndication().thenAccept(result -> {
               redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(),
                   result, it.playerUuid()));
@@ -262,9 +263,11 @@ public class QueueManagerRedisImpl extends QueueManager {
       int ownIndex = masterProxies.indexOf(ownProxy);
       int firstIndex = masterProxies.indexOf(firstMasterProxy);
 
+      System.out.println("master proxy: " + (ownIndex != -1 && ownIndex == firstIndex));
       return ownIndex != -1 && ownIndex == firstIndex;
     }
 
+    System.out.println("Is NOT master proxy");
     return false;
   }
 

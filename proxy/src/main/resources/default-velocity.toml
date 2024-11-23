@@ -348,8 +348,6 @@ max-concurrent-connections = 10
 # Your server will not start if this is blank and Redis is on.
 proxy-id = ""
 
-# How often to send a ping through Redis.
-ping-interval-ms = 30000
 
 [queue]
 # Whether the queue system is enabled. This will fully unregister

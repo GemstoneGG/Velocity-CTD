@@ -100,15 +100,18 @@ public class ServerQueueStatus {
     ServerQueueEntry entry = queue.peekFirst();
 
     if (entry == null) {
+      System.out.println("returning cus entry is null");
       return;
     }
 
     if (entry.waitingForConnection) {
+      System.out.println("returning cus waiting for connection");
       return;
     }
 
     if (velocityServer.getMultiProxyHandler().isEnabled()) {
       if (!velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
+        System.out.println("player is not online anymore");
         this.velocityServer.getRedisManager().send(new RedisPlayerSetQueuedServerRequest(entry.player, null));
         queue.removeFirst();
         return;
