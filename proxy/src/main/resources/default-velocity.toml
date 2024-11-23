@@ -431,11 +431,11 @@ queue-on-shutdown = true
 # If false, they will bypass the queue and be sent directly to the backend.
 override-bungee-messaging = true
 
+[playercaps]
 # This allows you to define the maximum amount of players that can be on any
 # of the defined servers below. This player cap is artifical, meaning it
 # only exists to ensure players are not removed when they reach the front
 # of the queue.
-[playercaps]
 factions = 300
 minigames = 300
 
