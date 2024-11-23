@@ -286,13 +286,11 @@ public class MultiProxyHandler {
     redisManager.send(new RedisStartupRequest(config.getProxyId()));
   }
 
-
-
   public Map<UUID, String> getTransferringServers() {
     return transferringServers;
   }
 
-  private void handleShutdown(String proxyId) {
+  private void handleShutdown(final String proxyId) {
     allPlayers.removeIf(info -> info.proxyId.equalsIgnoreCase(proxyId));
   }
 
