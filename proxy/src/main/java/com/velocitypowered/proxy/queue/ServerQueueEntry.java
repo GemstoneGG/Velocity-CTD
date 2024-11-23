@@ -53,7 +53,6 @@ public class ServerQueueEntry {
    *
    */
   public void send() {
-    System.out.println("sending now");
     waitingForConnection = true;
 
     if (proxy.getMultiProxyHandler().isEnabled()) {
