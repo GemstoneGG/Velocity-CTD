@@ -84,7 +84,7 @@ public class QueueManagerRedisImpl extends QueueManager {
       }
 
       redisManager.send(new RedisPlayerSetQueuedServerRequest(it.playerUuid(), it.serverName()));
-      status.queue(it.playerUuid(), it.priority());
+      status.queue(it.playerUuid(), it.priority(), it.fullBypass());
     });
 
     redisManager.listen(RedisPlayerSetQueuedServerRequest.ID, RedisPlayerSetQueuedServerRequest.class, it -> {
@@ -220,6 +220,11 @@ public class QueueManagerRedisImpl extends QueueManager {
 
         if (entry.connectionAttempts == this.server.getConfiguration().getQueue().getMaxSendRetries()) {
           this.server.getRedisManager().send(new RedisQueueLeaveRequest(it.playerUuid(), it.serverName(), false));
+          this.server.getRedisManager().send(new RedisSendMessageToUuidRequest(it.playerUuid(),
+              Component.translatable("velocity.queue.error.max-send-retries-reached")
+                  .arguments(Component.text(it.serverName()),
+                      Component.text(this.server.getConfiguration().getQueue()
+                          .getMaxSendRetries()))));
         }
       });
     });
@@ -261,6 +266,7 @@ public class QueueManagerRedisImpl extends QueueManager {
     if (firstMasterProxy != null && firstMasterProxy.equalsIgnoreCase(ownProxy)) {
       int ownIndex = masterProxies.indexOf(ownProxy);
       int firstIndex = masterProxies.indexOf(firstMasterProxy);
+
 
       return ownIndex != -1 && ownIndex == firstIndex;
     }
@@ -306,7 +312,8 @@ public class QueueManagerRedisImpl extends QueueManager {
     }
 
     this.server.getRedisManager().send(new RedisQueueAddRequest(player.getUniqueId(),
-            server.getServerInfo().getName(), player.getQueuePriority(server.getServerInfo().getName()), true));
+            server.getServerInfo().getName(), player.getQueuePriority(server.getServerInfo().getName()), true,
+        player.hasPermission("velocity.queue.full.bypass")));
   }
 
   /**

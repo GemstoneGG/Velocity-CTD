@@ -384,10 +384,6 @@ banned-reason = [
     "banned"
 ]
 
-# If the disconnect reason contains any part of this filter, it will act like the queue is paused, until the player
-whitelisted-reason = [
-    "whitelisted"
-]
 
 # Whether the user should be capable of entering multiple queues at once.
 allow-multi-queue = false

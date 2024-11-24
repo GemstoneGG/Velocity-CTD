@@ -33,6 +33,7 @@ public class ServerQueueEntry {
   public int connectionAttempts = 0;
   public boolean waitingForConnection = false;
   public int priority;
+  public boolean fullBypass;
 
   /**
    * Constructs a new {@link ServerQueueEntry} instance.
@@ -41,11 +42,13 @@ public class ServerQueueEntry {
    * @param target the target server
    */
   public ServerQueueEntry(final UUID player, final VelocityRegisteredServer target,
-                          final VelocityServer proxy, final int priority) {
+                          final VelocityServer proxy, final int priority,
+                          final boolean fullBypass) {
     this.player = player;
     this.target = target;
     this.proxy = proxy;
     this.priority = priority;
+    this.fullBypass = fullBypass;
   }
 
   /**

@@ -18,15 +18,14 @@
 package com.velocitypowered.proxy.redis.multiproxy;
 
 import com.velocitypowered.proxy.redis.RedisPacket;
-import java.util.UUID;
 
 /**
  * This packet is used to indicate a request that a player wants to view someone's ping.
  *
- * @param commandSender The UUID of the player that did /ping.
+ * @param commandSender The command source of the player that did /ping.
  * @param playerToCheck The UUID of the player that needs to be checked.
  */
-public record RedisGetPlayerPingRequest(UUID commandSender, String playerToCheck) implements RedisPacket {
+public record RedisGetPlayerPingRequest(EncodedCommandSource commandSender, String playerToCheck) implements RedisPacket {
   public static final String ID = "get-player-ping";
 
   @Override

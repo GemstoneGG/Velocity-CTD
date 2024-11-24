@@ -130,35 +130,29 @@ public class ServerQueueStatus {
       return;
     }
 
-    // if there's nobody to send, cancel the task (it being
-    // missing will cause the next queue to be sent immediately).
     if (queue.isEmpty()) {
       return;
     }
 
-    while (true) {
-      ServerQueueEntry entry = queue.peekFirst();
-
-      if (entry == null) {
-        return;
-      }
+    ServerQueueEntry entry = queue.peekFirst();
 
 
-      if (velocityServer.getMultiProxyHandler().isEnabled()) {
-        if (velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
-          // if the player is waiting for their send to finish, continue to the next player in queue
-          if (!entry.waitingForConnection) {
-            sendFirstInQueue();
-            break;
-          }
+    if (entry == null || full && !entry.fullBypass) {
+      return;
+    }
+
+    if (velocityServer.getMultiProxyHandler().isEnabled()) {
+      if (velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
+        // if the player is waiting for their send to finish, continue to the next player in queue
+        if (!entry.waitingForConnection) {
+          sendFirstInQueue();
         }
-      } else {
-        if (velocityServer.getPlayer(entry.player).orElse(null) != null) {
-          // if the player is waiting for their send to finish, continue to the next player in queue
-          if (!entry.waitingForConnection) {
-            sendFirstInQueue();
-            break;
-          }
+      }
+    } else {
+      if (velocityServer.getPlayer(entry.player).orElse(null) != null) {
+        // if the player is waiting for their send to finish, continue to the next player in queue
+        if (!entry.waitingForConnection) {
+          sendFirstInQueue();
         }
       }
     }
@@ -180,7 +174,14 @@ public class ServerQueueStatus {
 
       if (online) {
         final int maxPlayers = this.velocityServer.getConfiguration().getPlayerCaps().get(server.getServerInfo().getName());
-        full = server.getPlayerCount() == maxPlayers;
+        long playerCount;
+        if (this.velocityServer.getMultiProxyHandler().isEnabled()) {
+          playerCount = this.velocityServer.getMultiProxyHandler().getAllPlayers().stream().filter(info -> info.getServerName() != null
+              && info.getServerName().equalsIgnoreCase(server.getServerInfo().getName())).count();
+        } else {
+          playerCount = server.getPlayerCount();
+        }
+        full = playerCount >= maxPlayers;
       }
     });
   }
@@ -215,13 +216,14 @@ public class ServerQueueStatus {
     this.paused = paused;
   }
 
+
   /**
    * Queues a player onto this server.
    *
    * @param playerUuid the UUID of the player to queue
    * @param priority The priority with which the player should be added.
    */
-  public void queue(final UUID playerUuid, final int priority) {
+  public void queue(final UUID playerUuid, final int priority, boolean fullBypass) {
     if (!config.isEnabled()) {
       Player player = server.getPlayer(playerUuid);
       if (player != null) {
@@ -235,7 +237,7 @@ public class ServerQueueStatus {
       return;
     }
 
-    ServerQueueEntry entry = new ServerQueueEntry(playerUuid, this.server, this.velocityServer, priority);
+    ServerQueueEntry entry = new ServerQueueEntry(playerUuid, this.server, this.velocityServer, priority, fullBypass);
 
     synchronized (queue) {
       var iterator = queue.iterator();
@@ -259,7 +261,7 @@ public class ServerQueueStatus {
     }
 
     if (this.sendingTaskHandle == null) {
-      sendFirstInQueue();
+      //sendFirstInQueue();
       this.rescheduleTimerTask();
     }
   }
@@ -385,8 +387,15 @@ public class ServerQueueStatus {
    */
   public Component getActionBarComponent(final ServerQueueEntry entry) {
     int position = getQueuePosition(entry.player);
-
-    if (entry.waitingForConnection) {
+    if (full && !entry.fullBypass) {
+      return Component.translatable("velocity.queue.player-status.full", NamedTextColor.YELLOW)
+          .arguments(
+              Component.text(position),
+              Component.text(queue.size()),
+              Component.text(entry.target.getServerInfo().getName()),
+              calculateEta(position)
+          );
+    } else if (entry.waitingForConnection) {
       return Component.translatable("velocity.queue.player-status.connecting",
                       NamedTextColor.YELLOW)
           .arguments(Component.text(entry.target.getServerInfo().getName()));
@@ -400,8 +409,6 @@ public class ServerQueueStatus {
               Component.text(entry.target.getServerInfo().getName()),
               calculateEta(position)
           );
-    } else if (full) {
-      return Component.translatable("velocity.queue.player-status.full", NamedTextColor.YELLOW);
     } else {
       return Component.translatable("velocity.queue.player-status.offline", NamedTextColor.YELLOW)
           .arguments(

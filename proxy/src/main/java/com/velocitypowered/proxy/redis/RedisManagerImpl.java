@@ -29,12 +29,15 @@ import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import com.velocitypowered.proxy.redis.multiproxy.RedisGetPlayerPingRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetTransferringRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessage;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisServerAlertRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSwitchServerRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisTransferCommandRequest;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -102,7 +105,8 @@ public class RedisManagerImpl {
                         NamedTextColor.GREEN)
                         .arguments(Component.text(player.getUsername()),
                                 Component.text(player.getPing()));
-        send(new RedisSendMessageToUuidRequest(it.commandSender(), component));
+
+        send(new RedisSendMessage(it.commandSender(), component));
       });
     });
 
@@ -151,6 +155,60 @@ public class RedisManagerImpl {
         }
       }).delay(1, TimeUnit.SECONDS).schedule();
     });
+  }
+
+  /**
+   * Adds a proxy ID to the cache.
+   *
+   * @param id The ID of the proxy.
+   */
+  public void addProxyId(String id) {
+    if (this.jedisPool == null) {
+      return;
+    }
+
+    try (Jedis jedis = this.jedisPool.getResource()) {
+      jedis.sadd("PROXY_IDS", id);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  /**
+   * Removes a proxy ID from the cache.
+   *
+   * @param id The ID of the proxy.
+   */
+  public void removeProxyId(String id) {
+    if (this.jedisPool == null) {
+      return;
+    }
+
+    try (Jedis jedis = this.jedisPool.getResource()) {
+      jedis.srem("PROXY_IDS", id);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  /**
+   * Gets all proxy ids from the cache.
+   *
+   * @return all the proxy ids.
+   */
+  public List<String> getProxyIds() {
+    if (this.jedisPool == null) {
+      return new ArrayList<>();
+    }
+
+
+    try (Jedis jedis = this.jedisPool.getResource()) {
+      return new ArrayList<>(jedis.smembers("PROXY_IDS").stream().toList());
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+
+    return new ArrayList<>();
   }
 
   private void start(final VelocityConfiguration.Redis redisConfig) {

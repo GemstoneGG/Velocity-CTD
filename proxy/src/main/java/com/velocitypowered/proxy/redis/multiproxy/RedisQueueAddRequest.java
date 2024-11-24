@@ -30,7 +30,8 @@ import java.util.UUID;
  * @param alreadyQueuedMessage Whether to show the already queued message or not.
  */
 public record RedisQueueAddRequest(UUID playerUuid, String serverName, int priority,
-                                   boolean alreadyQueuedMessage) implements RedisPacket {
+                                   boolean alreadyQueuedMessage,
+                                   boolean fullBypass) implements RedisPacket {
   public static final String ID = "redis-queue-add";
 
   @Override

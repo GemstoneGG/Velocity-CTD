@@ -838,7 +838,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
                   if (this.server.getConfiguration().getQueue().isQueueOnShutdown()) {
                     this.server.getQueueManager().getQueue(originalEvent.getServer().getServerInfo().getName()).queue(getUniqueId(),
-                        getQueuePriority(originalEvent.getServer().getServerInfo().getName()));
+                        getQueuePriority(originalEvent.getServer().getServerInfo().getName()),
+                        hasPermission("velocity.queue.full.bypass"));
                   }
                   break;
                 default:
@@ -1521,6 +1522,18 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
         } else if (status != null && status.isSuccessful() && status.isSafe()) {
           if (server.getConfiguration().getQueue().isRemovePlayerOnServerSwitch()) {
             server.getQueueManager().removeFromAll(get());
+          }
+        }
+
+        // broken NPE warning?? Optionals can't be "null"??
+        final Component reason = status.getReasonComponent()
+            .orElse(ConnectionMessages.INTERNAL_SERVER_CONNECTION_ERROR);
+
+        if (server.getQueueManager().isEnabled()) {
+          for (String r : server.getConfiguration().getQueue().getBannedReason()) {
+            if (reason.contains(Component.text(r))) {
+              server.getQueueManager().removeFromAll(get());
+            }
           }
         }
 

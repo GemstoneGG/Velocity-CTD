@@ -28,6 +28,7 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import com.velocitypowered.proxy.redis.multiproxy.EncodedCommandSource;
 import com.velocitypowered.proxy.redis.multiproxy.RedisGetPlayerPingRequest;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -108,15 +109,16 @@ public class PingCommand {
       );
     } else {
       if (server.getMultiProxyHandler().isEnabled()) {
-        if (context.getSource() instanceof Player p) {
-          if (!this.server.getMultiProxyHandler().isPlayerOnline(username)) {
-            context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-                .arguments(Component.text(username)));
-            return -1;
-          }
-
-          this.server.getRedisManager().send(new RedisGetPlayerPingRequest(p.getUniqueId(), username));
+        if (!this.server.getMultiProxyHandler().isPlayerOnline(username)) {
+          context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
+              .arguments(Component.text(username)));
+          return -1;
         }
+
+        this.server.getRedisManager().send(new RedisGetPlayerPingRequest(EncodedCommandSource.from(
+            context.getSource(),
+            this.server.getConfiguration().getRedis().getProxyId()),
+            username));
       } else {
         if (player == null) {
           context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")

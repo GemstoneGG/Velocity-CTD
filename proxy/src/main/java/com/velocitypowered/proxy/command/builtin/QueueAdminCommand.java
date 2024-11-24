@@ -440,7 +440,8 @@ public class QueueAdminCommand {
       }
 
       this.server.getRedisManager().send(new RedisQueueAddRequest(info.getUuid(), server.getServerInfo().getName(),
-          info.getQueuePriority().getOrDefault(server.getServerInfo().getName(), 0), true));
+          info.getQueuePriority().getOrDefault(server.getServerInfo().getName(), 0), true,
+          info.isFullQueueBypass()));
     } else {
       Player p = this.server.getPlayer(playerName).orElse(null);
       if (p == null) {
@@ -465,7 +466,8 @@ public class QueueAdminCommand {
         return -1;
       }
 
-      server.getQueueStatus().queue(p.getUniqueId(), p.getQueuePriority(server.getServerInfo().getName()));
+      server.getQueueStatus().queue(p.getUniqueId(), p.getQueuePriority(server.getServerInfo().getName()),
+          p.hasPermission("velocity.queue.full.bypass"));
 
     }
 
@@ -521,7 +523,8 @@ public class QueueAdminCommand {
 
       for (MultiProxyHandler.RemotePlayerInfo info : connected) {
         this.server.getRedisManager().send(new RedisQueueAddRequest(info.getUuid(), to.getServerInfo().getName(),
-            info.getQueuePriority().getOrDefault(to.getServerInfo().getName(), 0), false));
+            info.getQueuePriority().getOrDefault(to.getServerInfo().getName(), 0), false,
+            info.isFullQueueBypass()));
       }
 
       connectedSize = connected.size();
@@ -549,7 +552,8 @@ public class QueueAdminCommand {
         if (to.getQueueStatus().isQueued(player.getUniqueId())) {
           continue;
         }
-        to.getQueueStatus().queue(player.getUniqueId(), player.getQueuePriority(to.getServerInfo().getName()));
+        to.getQueueStatus().queue(player.getUniqueId(), player.getQueuePriority(to.getServerInfo().getName()),
+            player.hasPermission("velocity.queue.full.bypass"));
       }
       connectedSize = connected.size();
     }
