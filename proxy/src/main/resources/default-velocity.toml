@@ -348,7 +348,6 @@ max-concurrent-connections = 10
 # Your server will not start if this is blank and Redis is on.
 proxy-id = ""
 
-
 [queue]
 # Whether the queue system is enabled. This will fully unregister
 # all permissions, commands, and this feature as a whole.
@@ -379,7 +378,7 @@ no-queue-servers = [
     "lobby"
 ]
 
-# If the disconnect reason contains any part of this filter, it will remove the player from the queue immediately
+# If the disconnect reason contains any part of this filter, it will remove the player from the queue immediately.
 banned-reason = [
     "banned"
 ]
@@ -428,8 +427,12 @@ queue-on-shutdown = true
 override-bungee-messaging = true
 
 [playercaps]
-lifesteal = 300
-hub = 300
+# This allows you to define the maximum amount of players that can be on any
+# of the defined servers below. This player cap is artifical, meaning it
+# only exists to ensure players are not removed when they reach the front
+# of the queue.
+factions = 300
+minigames = 300
 
 [server-links]
 # This allows you to implement server links into the escape menu that
