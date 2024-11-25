@@ -127,6 +127,7 @@ import net.kyori.adventure.resource.ResourcePackInfoLike;
 import net.kyori.adventure.resource.ResourcePackRequest;
 import net.kyori.adventure.resource.ResourcePackRequestLike;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
@@ -1572,9 +1573,12 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
             handleConnectionException(toConnect,
                     DisconnectPacket.create(reason, getProtocolVersion(), connection.getState()), status.isSafe());
 
+
+
+            TextComponent textComponent = (TextComponent) reason;
             if (server.getQueueManager().isEnabled()) {
               for (String r : server.getConfiguration().getQueue().getBannedReason()) {
-                if (reason.contains(Component.text(r))) {
+                if (containsString(textComponent, r)) {
                   server.getQueueManager().removeFromAll(get());
                 }
               }
@@ -1600,5 +1604,21 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     public void fireAndForget() {
       connectWithIndication();
     }
+  }
+
+
+  private static boolean containsString(TextComponent component, String searchString) {
+    if (component.content().contains(searchString)) {
+      return true;
+    }
+    // Recursively check children components
+    for (Component child : component.children()) {
+      if (child instanceof TextComponent textChild) {
+        if (containsString(textChild, searchString)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }

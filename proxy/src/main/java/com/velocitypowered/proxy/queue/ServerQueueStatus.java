@@ -114,9 +114,7 @@ public class ServerQueueStatus {
         return;
       }
     } else {
-      if (velocityServer.getPlayer(entry.player).orElse(null) == null) {
-        queue.removeFirst();
-      }
+      queue.removeFirst();
     }
 
     entry.send();
@@ -143,17 +141,11 @@ public class ServerQueueStatus {
 
     if (velocityServer.getMultiProxyHandler().isEnabled()) {
       if (velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
-        // if the player is waiting for their send to finish, continue to the next player in queue
-        if (!entry.waitingForConnection) {
-          sendFirstInQueue();
-        }
+        sendFirstInQueue();
       }
     } else {
       if (velocityServer.getPlayer(entry.player).orElse(null) != null) {
-        // if the player is waiting for their send to finish, continue to the next player in queue
-        if (!entry.waitingForConnection) {
-          sendFirstInQueue();
-        }
+        sendFirstInQueue();
       }
     }
   }
