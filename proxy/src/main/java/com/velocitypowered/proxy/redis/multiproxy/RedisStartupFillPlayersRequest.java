@@ -27,8 +27,7 @@ import java.util.List;
  * @param players A list of players to update the proxy on.
  * @param proxyIdToUpdate The proxy that just started up.
  */
-public record RedisStartupFillPlayersRequest(List<MultiProxyHandler.RemotePlayerInfo> players, String proxyIdToUpdate)
-    implements RedisPacket {
+public record RedisStartupFillPlayersRequest(List<MultiProxyHandler.RemotePlayerInfo> players, String proxyIdToUpdate) implements RedisPacket {
   public static final String ID = "redis-startup-fill-players";
 
   @Override

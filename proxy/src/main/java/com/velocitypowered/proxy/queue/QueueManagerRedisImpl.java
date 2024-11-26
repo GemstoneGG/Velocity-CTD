@@ -267,7 +267,6 @@ public class QueueManagerRedisImpl extends QueueManager {
       int ownIndex = masterProxies.indexOf(ownProxy);
       int firstIndex = masterProxies.indexOf(firstMasterProxy);
 
-
       return ownIndex != -1 && ownIndex == firstIndex;
     }
 

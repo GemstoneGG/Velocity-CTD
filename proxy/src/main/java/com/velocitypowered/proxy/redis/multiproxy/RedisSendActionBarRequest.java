@@ -39,7 +39,7 @@ public record RedisSendActionBarRequest(UUID playerUuid, String componentJson) i
    * @param target the target
    * @param component the message to send
    */
-  public RedisSendActionBarRequest(UUID target, Component component) {
+  public RedisSendActionBarRequest(final UUID target, final Component component) {
     this(target, SERIALIZER.serialize(component));
   }
 

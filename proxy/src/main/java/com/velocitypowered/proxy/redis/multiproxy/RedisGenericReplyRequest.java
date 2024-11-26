@@ -35,7 +35,7 @@ public record RedisGenericReplyRequest(Type type, String targetProxy, EncodedCom
   }
 
   enum Type {
-    Reload,
-    Uptime
+    RELOAD,
+    UPTIME
   }
 }

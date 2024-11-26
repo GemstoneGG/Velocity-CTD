@@ -383,7 +383,6 @@ banned-reason = [
     "banned"
 ]
 
-
 # Whether the user should be capable of entering multiple queues at once.
 allow-multi-queue = false
 

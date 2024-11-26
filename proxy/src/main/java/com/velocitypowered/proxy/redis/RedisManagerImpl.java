@@ -162,7 +162,7 @@ public class RedisManagerImpl {
    *
    * @param id The ID of the proxy.
    */
-  public void addProxyId(String id) {
+  public void addProxyId(final String id) {
     if (this.jedisPool == null) {
       return;
     }
@@ -179,7 +179,7 @@ public class RedisManagerImpl {
    *
    * @param id The ID of the proxy.
    */
-  public void removeProxyId(String id) {
+  public void removeProxyId(final String id) {
     if (this.jedisPool == null) {
       return;
     }
