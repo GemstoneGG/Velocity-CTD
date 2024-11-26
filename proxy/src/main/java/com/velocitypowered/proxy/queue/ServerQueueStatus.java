@@ -99,17 +99,16 @@ public class ServerQueueStatus {
 
     ServerQueueEntry entry = queue.peekFirst();
 
+    // empty queue
     if (entry == null) {
+      System.out.println("Queue for " + getServerName() + " is empty");
       return;
     }
 
-    if (entry.waitingForConnection) {
-      return;
-    }
-
+    // check if they're online
     if (velocityServer.getMultiProxyHandler().isEnabled()) {
       if (!velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
-        this.velocityServer.getRedisManager().send(new RedisPlayerSetQueuedServerRequest(entry.player, null));
+        System.out.println("(" + getServerName() + ") Player " + entry.player + " is no longer online, removing from queue...");
         queue.removeFirst();
         return;
       }
@@ -117,6 +116,14 @@ public class ServerQueueStatus {
       queue.removeFirst();
     }
 
+    // check if an entry is being sent (this will set to false automatically
+    // whether it was successful or not)
+    if (entry.waitingForConnection) {
+      System.out.println("(" + getServerName() + ") Returning because (" + entry.player + ") is still waiting for connection!");
+      return;
+    }
+
+    System.out.println("(" + getServerName() + ") Sending entry " + entry.player);
     entry.send();
   }
 

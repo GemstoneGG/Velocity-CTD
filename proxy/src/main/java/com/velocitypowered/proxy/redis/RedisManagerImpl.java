@@ -213,16 +213,19 @@ public class RedisManagerImpl {
 
   private void start(final VelocityConfiguration.Redis redisConfig) {
     try {
-      JedisClientConfig clientConfig = DefaultJedisClientConfig.builder()
-          .ssl(redisConfig.isUseSsl())
-          .credentials(new DefaultRedisCredentials(redisConfig.getUsername(),
-                  redisConfig.getPassword()))
-          .build();
-
-      HostAndPort hostAndPort = new HostAndPort(redisConfig.getHost(), redisConfig.getPort());
       JedisPoolConfig poolConfig = new JedisPoolConfig();
       poolConfig.setMaxTotal(redisConfig.getMaxConcurrentConnections());
       poolConfig.setBlockWhenExhausted(false);
+      poolConfig.setTestOnBorrow(true);
+      poolConfig.setTestOnReturn(true);
+      poolConfig.setTestWhileIdle(true);
+
+      JedisClientConfig clientConfig = DefaultJedisClientConfig.builder()
+          .ssl(redisConfig.isUseSsl())
+          .credentials(new DefaultRedisCredentials(redisConfig.getUsername(),
+              redisConfig.getPassword()))
+          .build();
+      HostAndPort hostAndPort = new HostAndPort(redisConfig.getHost(), redisConfig.getPort());
       this.jedisPool = new JedisPool(poolConfig, hostAndPort, clientConfig);
 
       Thread thread = new Thread(() -> {

@@ -31,6 +31,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import net.kyori.adventure.text.Component;
@@ -109,17 +110,14 @@ public class PlistCommand {
       context.getSource().sendMessage(Component.translatable("velocity.command.proxy-does-not-exist", NamedTextColor.RED)
           .arguments(Component.text(proxyName))
       );
+      return new ArrayList<>();
     }
 
-    return proxyPlayers;
+    return new ArrayList<>(proxyPlayers);
   }
 
   private int serverCount(final CommandContext<CommandSource> context) {
     final List<MultiProxyHandler.RemotePlayerInfo> proxyPlayers = getProxyPlayers(context);
-
-    if (proxyPlayers == null) {
-      return -1;
-    }
 
     final String serverName = getString(context, SERVER_ARG);
 
@@ -138,10 +136,6 @@ public class PlistCommand {
 
   private int proxyCount(final CommandContext<CommandSource> context) {
     final List<MultiProxyHandler.RemotePlayerInfo> proxyPlayers = getProxyPlayers(context);
-
-    if (proxyPlayers == null) {
-      return -1;
-    }
 
     sendTotalProxyCount(context.getSource(), getString(context, PROXY_ARG), proxyPlayers.size());
     return Command.SINGLE_SUCCESS;

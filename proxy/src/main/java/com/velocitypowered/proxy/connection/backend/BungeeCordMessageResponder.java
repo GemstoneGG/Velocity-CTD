@@ -77,6 +77,13 @@ public class BungeeCordMessageResponder {
 
   private void processConnect(final ByteBufDataInput in, final boolean queue) {
     String serverName = in.readUTF();
+
+    if (!player.hasPermission("velocity.command.server." + serverName)) {
+      player.sendMessage(Component.translatable("velocity.command.server-does-not-exist")
+          .arguments(Component.text(serverName)));
+      return;
+    }
+
     proxy.getServer(serverName).ifPresent(server -> {
       if (queue && proxy.getQueueManager().isEnabled()) {
         if (player.hasPermission("velocity.queue.bypass")) {
@@ -97,6 +104,12 @@ public class BungeeCordMessageResponder {
     Optional<Player> referencedPlayer = proxy.getPlayer(playerName);
     Optional<RegisteredServer> referencedServer = proxy.getServer(serverName);
     if (referencedPlayer.isPresent() && referencedServer.isPresent()) {
+      if (!referencedPlayer.get().hasPermission("velocity.command.server." + serverName)) {
+        referencedPlayer.get().sendMessage(Component.translatable("velocity.command.server-does-not-exist")
+            .arguments(Component.text(serverName)));
+        return;
+      }
+
       if (queue && proxy.getQueueManager().isEnabled()) {
         if (!referencedPlayer.get().hasPermission("velocity.queue.bypass")) {
           proxy.getQueueManager().queue(player, (VelocityRegisteredServer) referencedServer.get());
