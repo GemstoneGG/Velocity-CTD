@@ -379,6 +379,7 @@ no-queue-servers = [
 ]
 
 # If the disconnect reason contains any part of this filter, it will remove the player from the queue immediately.
+# This is case-sensitive for customization purposes and for exclusivity of each message.
 banned-reason = [
     "banned"
 ]
