@@ -1053,8 +1053,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     return ImmutableList.copyOf(connectionsByUuid.values());
   }
 
-
-
   @Override
   public int getPlayerCount() {
     return connectionsByUuid.size();

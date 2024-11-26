@@ -120,7 +120,7 @@ public class MultiProxyHandler {
       return this.name;
     }
 
-    public void setQueuedServer(String server) {
+    public void setQueuedServer(final String server) {
       this.queuedServer = server;
     }
 
@@ -132,11 +132,11 @@ public class MultiProxyHandler {
       return this.proxyId;
     }
 
-    public void setServerName(String serverName) {
+    public void setServerName(final String serverName) {
       this.serverName = serverName;
     }
 
-    public void setBeingTransferred(boolean beingTransferred) {
+    public void setBeingTransferred(final boolean beingTransferred) {
       this.beingTransferred = beingTransferred;
     }
   }
@@ -219,7 +219,7 @@ public class MultiProxyHandler {
       }
 
       switch (it.type()) {
-        case Reload -> {
+        case RELOAD -> {
           logger.info("Reloading Velocity configuration on remote request from {}...", it.source().proxy());
 
           try {
@@ -236,7 +236,7 @@ public class MultiProxyHandler {
           }
         }
 
-        case Uptime -> sendMessage(it.source(), VelocityCommand.getUptimeComponent(server));
+        case UPTIME -> sendMessage(it.source(), VelocityCommand.getUptimeComponent(server));
         default -> throw new IllegalStateException("invalid `RedisGenericReplyRequest` variant");
       }
     });
@@ -454,7 +454,7 @@ public class MultiProxyHandler {
    */
   public void requestReload(final String proxyId, @Nullable final CommandSource source) {
     this.server.getRedisManager().send(new RedisGenericReplyRequest(
-        RedisGenericReplyRequest.Type.Reload, proxyId, EncodedCommandSource.from(source, this.getOwnProxyId())));
+        RedisGenericReplyRequest.Type.RELOAD, proxyId, EncodedCommandSource.from(source, this.getOwnProxyId())));
   }
 
   /**
@@ -465,7 +465,7 @@ public class MultiProxyHandler {
    */
   public void requestUptime(final String proxyId, final CommandSource source) {
     this.server.getRedisManager().send(new RedisGenericReplyRequest(
-        RedisGenericReplyRequest.Type.Uptime, proxyId, EncodedCommandSource.from(source, this.getOwnProxyId())));
+        RedisGenericReplyRequest.Type.UPTIME, proxyId, EncodedCommandSource.from(source, this.getOwnProxyId())));
   }
 
   /**
