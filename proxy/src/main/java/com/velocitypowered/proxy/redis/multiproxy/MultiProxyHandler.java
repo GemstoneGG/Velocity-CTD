@@ -25,7 +25,6 @@ import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -413,7 +412,6 @@ public class MultiProxyHandler {
       queuePriorities.put(s.getServerInfo().getName(), player.getQueuePriority(s.getServerInfo().getName()));
     }
     queuePriorities.put("all", player.getQueuePriority("all"));
-
 
     this.server.getRedisManager().send(new RedisPlayerJoinUpdate(new RemotePlayerInfo(
         this.config.getProxyId(), player.getUniqueId(), player.getUsername(),
