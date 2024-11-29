@@ -204,9 +204,6 @@ public class MultiProxyHandler {
       if (it.proxyId().equalsIgnoreCase(getOwnProxyId())) {
         return;
       }
-      System.out.println("Sending: " + Arrays.toString(this.server.getMultiProxyHandler()
-          .getAllPlayers().toArray(new RemotePlayerInfo[0])));
-
       this.server.getRedisManager().send(new RedisStartupFillPlayersRequest(
           this.server.getMultiProxyHandler().getAllPlayers(),
           it.proxyId()
