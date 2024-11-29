@@ -145,9 +145,9 @@ public class PlistCommand {
     List<MultiProxyHandler.RemotePlayerInfo> mutableProxyPlayers = new ArrayList<>(proxyPlayers);
     mutableProxyPlayers.removeIf(it -> validatedServer.isPresent() && !it.getServerName().equalsIgnoreCase(serverName));
 
-    sendServerPlayers(context.getSource(), proxyPlayers, serverName);
+    sendServerPlayers(context.getSource(), mutableProxyPlayers, serverName);
     if ("all".equalsIgnoreCase(serverName)) {
-      sendTotalProxyCount(context.getSource(), proxyName, proxyPlayers.size());
+      sendTotalProxyCount(context.getSource(), validatedProxy.get(), mutableProxyPlayers.size());
     }
 
     return Command.SINGLE_SUCCESS;
