@@ -105,7 +105,8 @@ public class HubCommand {
 
       ((VelocityRegisteredServer) serverToTry).getQueueStatus().queue(player.getUniqueId(),
           player.getQueuePriority(serverToTry.getServerInfo().getName()),
-          player.hasPermission("velocity.queue.full.bypass"));
+          player.hasPermission("velocity.queue.full.bypass"),
+          player.hasPermission("velocity.queue.bypass"));
 
       return Command.SINGLE_SUCCESS;
     }

@@ -157,7 +157,8 @@ public class QueueManagerNoRedisImpl extends QueueManager {
     }
 
     status.queue(player.getUniqueId(), player.getQueuePriority(server.getServerInfo().getName()),
-        player.hasPermission("velocity.queue.full.bypass"));
+        player.hasPermission("velocity.queue.full.bypass"),
+        player.hasPermission("velocity.queue.bypass"));
   }
 
   /**

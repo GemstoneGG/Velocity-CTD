@@ -22,6 +22,7 @@ import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
 import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetQueuedServerRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
@@ -34,6 +35,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -160,8 +162,9 @@ public class ServerQueueStatus {
     server.ping().whenComplete((result, th) -> {
       if (!online && th == null) {
         for (ServerQueueEntry entry : queue) {
-          if (entry.priority == -1) {
+          if (entry.queueBypass) {
             entry.send();
+            dequeue(entry.player, false);
           }
         }
       }
@@ -217,7 +220,7 @@ public class ServerQueueStatus {
    * @param playerUuid the UUID of the player to queue
    * @param priority The priority with which the player should be added.
    */
-  public void queue(final UUID playerUuid, final int priority, final boolean fullBypass) {
+  public void queue(final UUID playerUuid, final int priority, final boolean fullBypass, boolean queueBypass) {
     if (!config.isEnabled()) {
       Player player = server.getPlayer(playerUuid);
       if (player != null) {
@@ -231,7 +234,7 @@ public class ServerQueueStatus {
       return;
     }
 
-    ServerQueueEntry entry = new ServerQueueEntry(playerUuid, this.server, this.velocityServer, priority, fullBypass);
+    ServerQueueEntry entry = new ServerQueueEntry(playerUuid, this.server, this.velocityServer, priority, fullBypass, queueBypass);
 
     synchronized (queue) {
       var iterator = queue.iterator();
@@ -323,16 +326,45 @@ public class ServerQueueStatus {
    * @return a descriptive component
    */
   public Component createListComponent() {
-    return Component.translatable("velocity.queue.command.listqueues.item")
-        .arguments(Component.text(server.getServerInfo().getName())
-            .hoverEvent(Component.translatable("velocity.queue.command.listqueues.hover")
-                .arguments(
-                    Component.text(queue.size()),
-                    Component.text(paused ? "True" : "False"),
-                    Component.text(online ? "True" : "False")
-                ).asHoverEvent()
-            )
-        );
+    if (this.velocityServer.getQueueManager().isMasterProxy()) {
+      return Component.translatable("velocity.queue.command.listqueues.item")
+          .arguments(Component.text(server.getServerInfo().getName())
+              .hoverEvent(Component.translatable("velocity.queue.command.listqueues.hover")
+                  .arguments(
+                      Component.text(queue.size()),
+                      Component.text(paused ? "True" : "False"),
+                      Component.text(online ? "True" : "False")
+                  ).asHoverEvent()
+              )
+          );
+    } else {
+      int queueSize = 0;
+      for (MultiProxyHandler.RemotePlayerInfo info : this.velocityServer.getMultiProxyHandler().getAllPlayers()) {
+        if (info.getServerName().equalsIgnoreCase(getServerName())) {
+          queueSize++;
+        }
+      }
+
+      AtomicBoolean status = new AtomicBoolean(true);
+
+      server.ping().whenComplete((result, th) -> {
+        status.set(th == null);
+      }).exceptionally(e -> {
+        status.set(false);
+        return null;
+      }).join();
+
+      return Component.translatable("velocity.queue.command.listqueues.item")
+          .arguments(Component.text(server.getServerInfo().getName())
+              .hoverEvent(Component.translatable("velocity.queue.command.listqueues.hover")
+                  .arguments(
+                      Component.text(queueSize),
+                      Component.text("?"),
+                      Component.text(status.get() ? "True" : "False")
+                  ).asHoverEvent()
+              )
+          );
+    }
   }
 
   /**
@@ -380,7 +412,9 @@ public class ServerQueueStatus {
    */
   public Component getActionBarComponent(final ServerQueueEntry entry) {
     int position = getQueuePosition(entry.player);
-    if (full && !entry.fullBypass) {
+    if (entry.queueBypass) {
+      return Component.translatable("velocity.queue.player-status.bypass", NamedTextColor.YELLOW);
+    } else if (full && !entry.fullBypass) {
       return Component.translatable("velocity.queue.player-status.full", NamedTextColor.YELLOW)
           .arguments(
               Component.text(position),

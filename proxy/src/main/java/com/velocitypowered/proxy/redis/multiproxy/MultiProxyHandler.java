@@ -25,6 +25,7 @@ import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -68,6 +69,7 @@ public class MultiProxyHandler {
     private String queuedServer = null;
     private boolean beingTransferred = false;
     private final boolean fullQueueBypass;
+    private final boolean queueBypass;
 
     /**
      * Constructs a new {@code RemotePlayerInfo} with the specified UUID and name.
@@ -76,16 +78,22 @@ public class MultiProxyHandler {
      * @param name the player's name
      */
     public RemotePlayerInfo(final String proxyId, final UUID uuid, final String name, Map<String, Integer> queuePriority,
-                            final boolean fullQueueBypass) {
+                            final boolean fullQueueBypass,
+                            final boolean queueBypass) {
       this.proxyId = proxyId;
       this.uuid = uuid;
       this.name = name;
       this.queuePriority = queuePriority;
       this.fullQueueBypass = fullQueueBypass;
+      this.queueBypass = queueBypass;
     }
 
     public UUID getUuid() {
       return uuid;
+    }
+
+    public boolean isQueueBypass() {
+      return queueBypass;
     }
 
     public String getName() {
@@ -193,6 +201,12 @@ public class MultiProxyHandler {
     });
 
     redisManager.listen(RedisStartupRequest.ID, RedisStartupRequest.class, it -> {
+      if (it.proxyId().equalsIgnoreCase(getOwnProxyId())) {
+        return;
+      }
+      System.out.println("Sending: " + Arrays.toString(this.server.getMultiProxyHandler()
+          .getAllPlayers().toArray(new RemotePlayerInfo[0])));
+
       this.server.getRedisManager().send(new RedisStartupFillPlayersRequest(
           this.server.getMultiProxyHandler().getAllPlayers(),
           it.proxyId()
@@ -307,15 +321,20 @@ public class MultiProxyHandler {
   private void handleJoin(final RemotePlayerInfo player) {
     // This handles the edge case if a player joins two proxies at once, once the player info broadcast is received,
     // we disconnect them from the local proxy.
+
+    boolean contains = false;
     for (RemotePlayerInfo info : this.allPlayers) {
       if (info.uuid.equals(player.uuid)) {
+        contains = true;
         this.server.getPlayer(info.uuid).ifPresent(p -> {
           p.disconnect(Component.translatable("velocity.error.already-connected-proxy.remote"));
         });
       }
     }
 
-    allPlayers.add(player);
+    if (!contains) {
+      allPlayers.add(player);
+    }
   }
 
   /**
@@ -346,6 +365,10 @@ public class MultiProxyHandler {
    */
   public void onPlayerLeave(final ConnectedPlayer player) {
     if (shuttingDown) {
+      return;
+    }
+
+    if (getPlayerInfo(player.getUniqueId()).isBeingTransferred()) {
       return;
     }
 
@@ -394,10 +417,13 @@ public class MultiProxyHandler {
     }
     queuePriorities.put("all", player.getQueuePriority("all"));
 
+
     this.server.getRedisManager().send(new RedisPlayerJoinUpdate(new RemotePlayerInfo(
         this.config.getProxyId(), player.getUniqueId(), player.getUsername(),
             queuePriorities,
-        player.hasPermission("velocity.queue.full.bypass"))));
+        player.hasPermission("velocity.queue.full.bypass"),
+        player.hasPermission("velocity.queue.bypass"))));
+    this.server.getRedisManager().send(new RedisPlayerFetchQueuedServerRequest(player.getUniqueId()));
     return false;
   }
 

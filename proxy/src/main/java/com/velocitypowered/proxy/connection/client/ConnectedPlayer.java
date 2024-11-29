@@ -840,7 +840,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                   if (this.server.getConfiguration().getQueue().isQueueOnShutdown()) {
                     this.server.getQueueManager().getQueue(originalEvent.getServer().getServerInfo().getName()).queue(getUniqueId(),
                         getQueuePriority(originalEvent.getServer().getServerInfo().getName()),
-                        hasPermission("velocity.queue.full.bypass"));
+                        hasPermission("velocity.queue.full.bypass"),
+                        hasPermission("velocity.queue.bypass"));
                   }
                   break;
                 default:

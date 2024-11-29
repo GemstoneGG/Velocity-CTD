@@ -18,6 +18,7 @@
 package com.velocitypowered.proxy.connection.backend;
 
 import com.velocitypowered.api.network.ProtocolVersion;
+import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.messages.LegacyChannelIdentifier;
@@ -78,7 +79,7 @@ public class BungeeCordMessageResponder {
   private void processConnect(final ByteBufDataInput in, final boolean queue) {
     String serverName = in.readUTF();
 
-    if (!player.hasPermission("velocity.command.server." + serverName)) {
+    if (player.getPermissionValue("velocity.command.server." + serverName) == Tristate.FALSE) {
       player.sendMessage(Component.translatable("velocity.command.server-does-not-exist")
           .arguments(Component.text(serverName)));
       return;
@@ -104,7 +105,7 @@ public class BungeeCordMessageResponder {
     Optional<Player> referencedPlayer = proxy.getPlayer(playerName);
     Optional<RegisteredServer> referencedServer = proxy.getServer(serverName);
     if (referencedPlayer.isPresent() && referencedServer.isPresent()) {
-      if (!referencedPlayer.get().hasPermission("velocity.command.server." + serverName)) {
+      if (referencedPlayer.get().getPermissionValue("velocity.command.server." + serverName) == Tristate.FALSE) {
         referencedPlayer.get().sendMessage(Component.translatable("velocity.command.server-does-not-exist")
             .arguments(Component.text(serverName)));
         return;

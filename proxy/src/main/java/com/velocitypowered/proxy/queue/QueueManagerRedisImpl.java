@@ -24,6 +24,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
 import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
+import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerFetchQueuedServerRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetQueuedServerRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueAddRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueAlreadyJoinedRequest;
@@ -84,13 +85,27 @@ public class QueueManagerRedisImpl extends QueueManager {
       }
 
       redisManager.send(new RedisPlayerSetQueuedServerRequest(it.playerUuid(), it.serverName()));
-      status.queue(it.playerUuid(), it.priority(), it.fullBypass());
+      status.queue(it.playerUuid(), it.priority(), it.fullBypass(), it.queueBypass());
     });
 
     redisManager.listen(RedisPlayerSetQueuedServerRequest.ID, RedisPlayerSetQueuedServerRequest.class, it -> {
       MultiProxyHandler.RemotePlayerInfo info = this.server.getMultiProxyHandler().getPlayerInfo(it.player());
       if (info != null) {
         info.setQueuedServer(it.server());
+      }
+    });
+
+    redisManager.listen(RedisPlayerFetchQueuedServerRequest.ID, RedisPlayerFetchQueuedServerRequest.class, it -> {
+      if (this.server.getQueueManager().isMasterProxy()) {
+        String queuedServer = null;
+        for (ServerQueueStatus status : this.server.getQueueManager().getAll()) {
+          if (status.isQueued(it.player())) {
+            queuedServer = status.getServerName();
+          }
+        }
+        if (queuedServer != null) {
+          this.server.getRedisManager().send(new RedisPlayerSetQueuedServerRequest(it.player(), queuedServer));
+        }
       }
     });
 
@@ -312,7 +327,8 @@ public class QueueManagerRedisImpl extends QueueManager {
 
     this.server.getRedisManager().send(new RedisQueueAddRequest(player.getUniqueId(),
             server.getServerInfo().getName(), player.getQueuePriority(server.getServerInfo().getName()), true,
-        player.hasPermission("velocity.queue.full.bypass")));
+        player.hasPermission("velocity.queue.full.bypass"),
+        player.hasPermission("velocity.queue.bypass")));
   }
 
   /**
