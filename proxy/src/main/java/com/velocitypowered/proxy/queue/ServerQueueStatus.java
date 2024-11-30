@@ -221,6 +221,9 @@ public class ServerQueueStatus {
    * @param priority The priority with which the player should be added.
    */
   public void queue(final UUID playerUuid, final int priority, final boolean fullBypass, boolean queueBypass) {
+    if (!this.velocityServer.getQueueManager().isMasterProxy()) {
+      return;
+    }
     if (!config.isEnabled()) {
       Player player = server.getPlayer(playerUuid);
       if (player != null) {
