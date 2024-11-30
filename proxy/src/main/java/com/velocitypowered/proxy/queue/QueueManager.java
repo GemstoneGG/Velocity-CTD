@@ -207,5 +207,4 @@ public abstract class QueueManager {
    * @param player The player to remove.
    */
   public abstract void removeFromAll(ConnectedPlayer player);
-
 }
