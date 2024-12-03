@@ -278,7 +278,7 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
       return displayName;
     }
 
-    public boolean getShowHat() {
+    public boolean isShowHat() {
       return showHat;
     }
 
