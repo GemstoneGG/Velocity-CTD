@@ -73,6 +73,10 @@ public class RedisManagerImpl {
   private @MonotonicNonNull JedisPool jedisPool;
   private final VelocityPubSub pubSub;
 
+  private List<RemotePlayerInfo> cachedPlayers = new ArrayList<>();
+  private long lastUpdateTime = 0;
+  private static final long CACHE_REFRESH_INTERVAL_MS = 1000;
+
   /**
    * Constructs a Redis manager using the given Velocity server instance to retrieve
    * configuration and initialize the Redis connection if enabled.
@@ -304,19 +308,23 @@ public class RedisManagerImpl {
    * @return the list of players.
    */
   public List<RemotePlayerInfo> getCache() {
-    List<RemotePlayerInfo> objects = new ArrayList<>();
-    try (Jedis jedis = this.jedisPool.getResource())  {
-      List<String> jsonList = jedis.lrange(CACHE_KEY, 0, -1);
+    long currentTime = System.currentTimeMillis();
+    if (currentTime - lastUpdateTime > CACHE_REFRESH_INTERVAL_MS) {
+      try (Jedis jedis = this.jedisPool.getResource()) {
 
-      for (String json : jsonList) {
-        RemotePlayerInfo player = gson.fromJson(json, RemotePlayerInfo.class);
-        objects.add(player);
+        List<String> jsonList = jedis.lrange(CACHE_KEY, 0, -1);
+        cachedPlayers.clear();
+        for (String json : jsonList) {
+          RemotePlayerInfo player = gson.fromJson(json, RemotePlayerInfo.class);
+          cachedPlayers.add(player);
+        }
+        lastUpdateTime = currentTime;
+      } catch (Exception e) {
+        e.printStackTrace();
       }
-    } catch (Exception e) {
-      e.printStackTrace();
     }
 
-    return objects;
+    return cachedPlayers;
   }
 
   private void start(final VelocityConfiguration.Redis redisConfig) {
