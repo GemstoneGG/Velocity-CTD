@@ -65,7 +65,6 @@ public class ServerQueueStatus {
     this.reloadConfig();
   }
 
-
   /**
    * Stops the queue.
    */
@@ -204,7 +203,6 @@ public class ServerQueueStatus {
 
     return QueueTimeFormatter.format(Math.max(delayInSeconds, 0));
   }
-
 
   /**
    * Sets whether this queue is paused.

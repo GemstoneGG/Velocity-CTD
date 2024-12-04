@@ -43,7 +43,7 @@ public final class RemotePlayerInfo implements Serializable {
    * @param uuid the player's unique identifier
    * @param name the player's name
    */
-  public RemotePlayerInfo(final String proxyId, final UUID uuid, final String name, Map<String, Integer> queuePriority,
+  public RemotePlayerInfo(final String proxyId, final UUID uuid, final String name, final Map<String, Integer> queuePriority,
                           final boolean fullQueueBypass,
                           final boolean queueBypass) {
     this.proxyId = proxyId;

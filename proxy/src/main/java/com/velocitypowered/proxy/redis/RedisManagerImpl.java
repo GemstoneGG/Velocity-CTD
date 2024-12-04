@@ -137,7 +137,6 @@ public class RedisManagerImpl {
     });
   }
 
-
   /**
    * Add paused queue.
    *
@@ -182,7 +181,6 @@ public class RedisManagerImpl {
       return new ArrayList<>();
     }
 
-
     try (Jedis jedis = this.jedisPool.getResource()) {
       return new ArrayList<>(jedis.smembers("PAUSED_QUEUES").stream().toList());
     } catch (Exception e) {
@@ -191,7 +189,6 @@ public class RedisManagerImpl {
 
     return new ArrayList<>();
   }
-
 
   /**
    * Adds a proxy ID to the cache.
@@ -237,7 +234,6 @@ public class RedisManagerImpl {
       return new ArrayList<>();
     }
 
-
     try (Jedis jedis = this.jedisPool.getResource()) {
       return new ArrayList<>(jedis.smembers("PROXY_IDS").stream().toList());
     } catch (Exception e) {
@@ -252,7 +248,7 @@ public class RedisManagerImpl {
    *
    * @param player The player to update.
    */
-  public void addPlayer(RemotePlayerInfo player) {
+  public void addPlayer(final RemotePlayerInfo player) {
     String json = gson.toJson(player);
 
     try (Jedis jedis = this.jedisPool.getResource()) {
@@ -267,7 +263,7 @@ public class RedisManagerImpl {
    *
    * @param info The player to update.
    */
-  public void removePlayer(RemotePlayerInfo info) {
+  public void removePlayer(final RemotePlayerInfo info) {
     String json = gson.toJson(info);
 
     try (Jedis jedis = this.jedisPool.getResource()) {
@@ -282,7 +278,7 @@ public class RedisManagerImpl {
    *
    * @param info the player to update.
    */
-  public void updatePlayer(RemotePlayerInfo info) {
+  public void updatePlayer(final RemotePlayerInfo info) {
     String newJson = gson.toJson(info);
 
     try (Jedis jedis = this.jedisPool.getResource()) {

@@ -78,7 +78,6 @@ public class MultiProxyHandler {
 
     redisManager.addProxyId(this.server.getConfiguration().getRedis().getProxyId());
 
-
     redisManager.listen(RedisShuttingDownAnnouncement.ID, RedisShuttingDownAnnouncement.class, it -> {
       handleShutdown(it.proxyId());
 
@@ -209,7 +208,6 @@ public class MultiProxyHandler {
     }
   }
 
-
   private void handleLeave(final UUID player) {
     List<RemotePlayerInfo> info = this.server.getRedisManager().getCache();
 
@@ -255,7 +253,6 @@ public class MultiProxyHandler {
     return enabled;
   }
 
-
   /**
    * Handles the event when a player leaves the proxy.
    *
@@ -269,7 +266,6 @@ public class MultiProxyHandler {
     if (getPlayerInfo(player.getUniqueId()).isBeingTransferred()) {
       return;
     }
-
 
     this.server.getMultiProxyHandler().handleLeave(player.getUniqueId());
   }
