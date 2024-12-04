@@ -31,6 +31,7 @@ import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetTransferringRequ
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessage;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisServerAlertRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisSwitchServerRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisTransferCommandRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import java.net.InetSocketAddress;
@@ -53,6 +54,7 @@ import redis.clients.jedis.JedisClientConfig;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisPubSub;
+import redis.clients.jedis.Transaction;
 import redis.clients.jedis.exceptions.JedisException;
 
 /**
@@ -134,6 +136,14 @@ public class RedisManagerImpl {
               .arguments(Component.text(connectedPlayer.getUsername()))));
         }
       }).delay(1, TimeUnit.SECONDS).schedule();
+    });
+
+    listen(RedisSwitchServerRequest.ID, RedisSwitchServerRequest.class, it -> {
+      proxy.getPlayer(it.username()).ifPresent(player -> {
+        proxy.getServer(it.server()).ifPresent(server -> {
+          player.createConnectionRequest(server).connectWithIndication();
+        });
+      });
     });
   }
 
@@ -252,7 +262,10 @@ public class RedisManagerImpl {
     String json = gson.toJson(player);
 
     try (Jedis jedis = this.jedisPool.getResource()) {
-      jedis.rpush(CACHE_KEY, json);
+      jedis.watch(CACHE_KEY);
+      Transaction transaction = jedis.multi();
+      transaction.rpush(CACHE_KEY, json);
+      transaction.exec();
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -267,7 +280,10 @@ public class RedisManagerImpl {
     String json = gson.toJson(info);
 
     try (Jedis jedis = this.jedisPool.getResource()) {
-      jedis.lrem(CACHE_KEY, 1, json);
+      jedis.watch(CACHE_KEY);
+      Transaction transaction = jedis.multi();
+      transaction.lrem(CACHE_KEY, 1, json);
+      transaction.exec();
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -282,17 +298,23 @@ public class RedisManagerImpl {
     String newJson = gson.toJson(info);
 
     try (Jedis jedis = this.jedisPool.getResource()) {
+      jedis.watch(CACHE_KEY);
       List<String> jsonList = jedis.lrange(CACHE_KEY, 0, -1);
+
+      Transaction transaction = jedis.multi();
 
       for (String json : jsonList) {
         RemotePlayerInfo player = gson.fromJson(json, RemotePlayerInfo.class);
 
         if (player.getUuid().equals(info.getUuid())) {
-          jedis.lrem(CACHE_KEY, 1, json);
+          transaction.lrem(CACHE_KEY, 1, json);
+          break;
         }
       }
 
-      jedis.rpush(CACHE_KEY, newJson);
+      transaction.rpush(CACHE_KEY, newJson);
+      transaction.exec();
+      jedis.unwatch();
     } catch (Exception e) {
       e.printStackTrace();
     }

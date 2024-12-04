@@ -277,10 +277,12 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
           return;
         }
 
-        RemotePlayerInfo info = this.server.getMultiProxyHandler().getPlayerInfo(player.getUniqueId());
-        if (this.server.getMultiProxyHandler().onPlayerJoin(player) && info != null && !info.isBeingTransferred()) {
-          player.disconnect0(Component.translatable("velocity.error.already-connected-proxy.remote"), true);
-          return;
+        if (this.server.getMultiProxyHandler().isEnabled()) {
+          RemotePlayerInfo info = this.server.getMultiProxyHandler().getPlayerInfo(player.getUniqueId());
+          if (this.server.getMultiProxyHandler().onPlayerJoin(player) && info != null && !info.isBeingTransferred()) {
+            player.disconnect0(Component.translatable("velocity.error.already-connected-proxy.remote"), true);
+            return;
+          }
         }
 
         ServerLoginSuccessPacket success = new ServerLoginSuccessPacket();

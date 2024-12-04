@@ -276,12 +276,15 @@ public class MultiProxyHandler {
    * @param player The UUID of the player.
    * @param serverName The name of the server the player is connecting to.
    */
-  public void handleServerSwitch(final UUID player, final String serverName) {
-    RemotePlayerInfo info = this.server.getRedisManager().getCache().stream().filter(i -> i.getUuid().equals(player)).findFirst().orElse(null);
-    if (info != null) {
-      info.setServerName(serverName);
-      this.server.getRedisManager().updatePlayer(info);
+  public void handleServerSwitch(final ConnectedPlayer player, final String serverName) {
+    RemotePlayerInfo info = this.server.getRedisManager().getCache().stream().filter(i -> i.getUuid()
+        .equals(player.getUniqueId())).findFirst().orElse(null);
+    if (info == null) {
+      info = createPlayerInfo(player);
     }
+
+    info.setServerName(serverName);
+    this.server.getRedisManager().updatePlayer(info);
   }
 
   /**
@@ -307,6 +310,11 @@ public class MultiProxyHandler {
       }
     }
 
+    this.server.getMultiProxyHandler().handleJoin(createPlayerInfo(player));
+    return false;
+  }
+
+  private RemotePlayerInfo createPlayerInfo(ConnectedPlayer player) {
     Map<String, Integer> queuePriorities = new HashMap<>();
 
     for (RegisteredServer s : this.server.getAllServers()) {
@@ -314,12 +322,11 @@ public class MultiProxyHandler {
     }
     queuePriorities.put("all", player.getQueuePriority("all"));
 
-    this.server.getMultiProxyHandler().handleJoin(new RemotePlayerInfo(
+    return new RemotePlayerInfo(
         this.config.getProxyId(), player.getUniqueId(), player.getUsername(),
-            queuePriorities,
+        queuePriorities,
         player.hasPermission("velocity.queue.full.bypass"),
-        player.hasPermission("velocity.queue.bypass")));
-    return false;
+        player.hasPermission("velocity.queue.bypass"));
   }
 
   /**

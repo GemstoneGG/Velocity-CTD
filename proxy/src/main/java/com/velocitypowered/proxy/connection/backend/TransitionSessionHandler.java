@@ -157,7 +157,7 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
           }
 
           if (server.getMultiProxyHandler().isEnabled()) {
-            server.getMultiProxyHandler().handleServerSwitch(player.getUniqueId(),
+            server.getMultiProxyHandler().handleServerSwitch(player,
                 serverConn.getServerInfo().getName());
           }
 
