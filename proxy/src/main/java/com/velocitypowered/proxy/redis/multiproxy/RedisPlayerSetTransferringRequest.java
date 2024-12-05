@@ -22,7 +22,7 @@ import java.util.UUID;
 
 /**
  * Constructs a packet that toggles the currently transferring mode for the
- * {@link com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler.RemotePlayerInfo} instance.
+ * {@link com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo} instance.
  *
  * @param uuid The UUID of the player.
  * @param transferring Whether they're being transferred or not.
