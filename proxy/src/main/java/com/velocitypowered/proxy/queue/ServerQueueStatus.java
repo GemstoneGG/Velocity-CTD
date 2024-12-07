@@ -168,7 +168,9 @@ public class ServerQueueStatus {
    */
   public void tickPingingBackend() {
     server.ping().whenComplete((result, th) -> {
-      if (!online && th == null) {
+      boolean tempOnline = online;
+      online = th == null;
+      if (!tempOnline && th == null) {
         for (ServerQueueEntry entry : queue) {
           if (entry.queueBypass) {
             entry.send();
@@ -176,7 +178,6 @@ public class ServerQueueStatus {
           }
         }
       }
-      online = th == null;
 
       if (online) {
         final int maxPlayers = this.velocityServer.getConfiguration().getPlayerCaps().get(server.getServerInfo().getName());
