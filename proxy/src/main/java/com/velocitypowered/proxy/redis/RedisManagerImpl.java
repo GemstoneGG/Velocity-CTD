@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -54,7 +55,6 @@ import redis.clients.jedis.JedisClientConfig;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisPubSub;
-import redis.clients.jedis.Transaction;
 import redis.clients.jedis.exceptions.JedisException;
 
 /**
@@ -258,14 +258,11 @@ public class RedisManagerImpl {
    *
    * @param player The player to update.
    */
-  public void addPlayer(final RemotePlayerInfo player) {
+  public void addOrUpdatePlayer(final RemotePlayerInfo player) {
     String json = gson.toJson(player);
 
     try (Jedis jedis = this.jedisPool.getResource()) {
-      jedis.watch(CACHE_KEY);
-      Transaction transaction = jedis.multi();
-      transaction.rpush(CACHE_KEY, json);
-      transaction.exec();
+      jedis.hset(CACHE_KEY, player.getUuid().toString(), json);
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -277,48 +274,13 @@ public class RedisManagerImpl {
    * @param info The player to update.
    */
   public void removePlayer(final RemotePlayerInfo info) {
-    String json = gson.toJson(info);
-
     try (Jedis jedis = this.jedisPool.getResource()) {
-      jedis.watch(CACHE_KEY);
-      Transaction transaction = jedis.multi();
-      transaction.lrem(CACHE_KEY, 1, json);
-      transaction.exec();
+      jedis.hdel(CACHE_KEY, info.getUuid().toString());
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
 
-  /**
-   * Update a player in the cache.
-   *
-   * @param info the player to update.
-   */
-  public void updatePlayer(final RemotePlayerInfo info) {
-    String newJson = gson.toJson(info);
-
-    try (Jedis jedis = this.jedisPool.getResource()) {
-      jedis.watch(CACHE_KEY);
-      List<String> jsonList = jedis.lrange(CACHE_KEY, 0, -1);
-
-      Transaction transaction = jedis.multi();
-
-      for (String json : jsonList) {
-        RemotePlayerInfo player = gson.fromJson(json, RemotePlayerInfo.class);
-
-        if (player.getUuid().equals(info.getUuid())) {
-          transaction.lrem(CACHE_KEY, 1, json);
-          break;
-        }
-      }
-
-      transaction.rpush(CACHE_KEY, newJson);
-      transaction.exec();
-      jedis.unwatch();
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
 
   /**
    * Get the cache of players.
@@ -326,23 +288,14 @@ public class RedisManagerImpl {
    * @return the list of players.
    */
   public List<RemotePlayerInfo> getCache() {
-    long currentTime = System.currentTimeMillis();
-    if (currentTime - lastUpdateTime > CACHE_REFRESH_INTERVAL_MS) {
-      try (Jedis jedis = this.jedisPool.getResource()) {
-
-        List<String> jsonList = jedis.lrange(CACHE_KEY, 0, -1);
-        cachedPlayers.clear();
-        for (String json : jsonList) {
-          RemotePlayerInfo player = gson.fromJson(json, RemotePlayerInfo.class);
-          cachedPlayers.add(player);
-        }
-        lastUpdateTime = currentTime;
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
+    try (Jedis jedis = this.jedisPool.getResource()) {
+      Map<String, String> playerMap = jedis.hgetAll(CACHE_KEY);
+      return playerMap.values().stream()
+          .map(json -> gson.fromJson(json, RemotePlayerInfo.class))
+          .collect(Collectors.toList());
+    } catch (Exception e) {
+      return new ArrayList<>();
     }
-
-    return cachedPlayers;
   }
 
   private void start(final VelocityConfiguration.Redis redisConfig) {

@@ -825,8 +825,11 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         for (ConnectedPlayer player : players) {
           if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
             String connectedServer = player.getConnectedServer() != null ? player.getConnectedServer().getServerInfo().getName() : null;
-            getRedisManager().send(new RedisPlayerSetTransferringRequest(player.getUniqueId(), true,
-                    connectedServer));
+
+            if (this.getMultiProxyHandler().isEnabled()) {
+              getRedisManager().send(new RedisPlayerSetTransferringRequest(player.getUniqueId(), true,
+                  connectedServer));
+            }
           }
         }
 

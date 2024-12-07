@@ -184,7 +184,7 @@ public class MultiProxyHandler {
         for (ServerQueueStatus status : this.server.getQueueManager().getAll()) {
           if (status.isQueued(it.uuid())) {
             info.setQueuedServer(status.getServerName());
-            this.server.getRedisManager().updatePlayer(info);
+            this.server.getRedisManager().addOrUpdatePlayer(info);
             break;
           }
         }
@@ -230,7 +230,7 @@ public class MultiProxyHandler {
       }
     }
 
-    this.server.getRedisManager().addPlayer(player);
+    this.server.getRedisManager().addOrUpdatePlayer(player);
     this.server.getRedisManager().send(new RedisUpdateQueuedServerRequest(player.getUuid()));
   }
 
@@ -284,7 +284,7 @@ public class MultiProxyHandler {
     }
 
     info.setServerName(serverName);
-    this.server.getRedisManager().updatePlayer(info);
+    this.server.getRedisManager().addOrUpdatePlayer(info);
   }
 
   /**

@@ -207,7 +207,9 @@ public class BungeeCordMessageResponder {
     String queuedServer = null;
     if (this.proxy.getMultiProxyHandler().isEnabled()) {
       RemotePlayerInfo info = proxy.getMultiProxyHandler().getPlayerInfo(playerUuid);
-      queuedServer = info.getQueuedServer();
+      if (info.getQueuedServer() != null) {
+        queuedServer = info.getQueuedServer();
+      }
     } else {
       for (ServerQueueStatus status : proxy.getQueueManager().getAll()) {
         if (status.isQueued(playerUuid)) {

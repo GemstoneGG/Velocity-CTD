@@ -75,7 +75,7 @@ public class ServerQueueStatus {
         for (RemotePlayerInfo info : list) {
           if (info.getUuid().equals(entry.player)) {
             info.setQueuedServer(null);
-            this.velocityServer.getRedisManager().updatePlayer(info);
+            this.velocityServer.getRedisManager().addOrUpdatePlayer(info);
           }
         }
       }
@@ -121,7 +121,9 @@ public class ServerQueueStatus {
         return;
       }
     } else {
-      queue.removeFirst();
+      if (this.velocityServer.getPlayer(entry.player).isEmpty()) {
+        queue.removeFirst();
+      }
     }
 
     // check if an entry is being sent (this will set to false automatically
@@ -250,7 +252,7 @@ public class ServerQueueStatus {
     if (this.velocityServer.getMultiProxyHandler().isEnabled()) {
       RemotePlayerInfo info = this.velocityServer.getMultiProxyHandler().getPlayerInfo(playerUuid);
       info.setQueuedServer(this.server.getServerInfo().getName());
-      this.velocityServer.getRedisManager().updatePlayer(info);
+      this.velocityServer.getRedisManager().addOrUpdatePlayer(info);
     }
 
     synchronized (queue) {
@@ -322,7 +324,7 @@ public class ServerQueueStatus {
       RemotePlayerInfo info = this.velocityServer.getMultiProxyHandler().getPlayerInfo(player);
       if (info != null) {
         info.setQueuedServer(null);
-        this.velocityServer.getRedisManager().updatePlayer(info);
+        this.velocityServer.getRedisManager().addOrUpdatePlayer(info);
       }
     }
 
