@@ -150,6 +150,8 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
           // the API knows which server the player is connected to.
           smc.setAutoReading(true);
 
+          player.clearAttemptedServers();
+
           // Send client settings. In 1.20.2+ this is done in the config state.
           if (smc.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_20_2)
               && player.getClientSettingsPacket() != null) {
