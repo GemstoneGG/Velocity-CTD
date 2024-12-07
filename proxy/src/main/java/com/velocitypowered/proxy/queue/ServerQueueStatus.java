@@ -114,6 +114,7 @@ public class ServerQueueStatus {
       return;
     }
 
+
     // check if they're online
     if (velocityServer.getMultiProxyHandler().isEnabled()) {
       if (!velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {

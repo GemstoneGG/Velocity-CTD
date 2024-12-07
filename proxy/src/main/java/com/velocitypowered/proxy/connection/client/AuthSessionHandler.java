@@ -45,7 +45,6 @@ import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccessPacket;
 import com.velocitypowered.proxy.protocol.packet.ServerboundCookieResponsePacket;
 import com.velocitypowered.proxy.protocol.packet.SetCompressionPacket;
 import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetTransferringRequest;
-import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import io.netty.buffer.ByteBuf;
 import java.util.Objects;
 import java.util.Optional;
@@ -278,11 +277,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         }
 
         if (this.server.getMultiProxyHandler().isEnabled()) {
-          RemotePlayerInfo info = this.server.getMultiProxyHandler().getPlayerInfo(player.getUniqueId());
-          if (this.server.getMultiProxyHandler().onPlayerJoin(player) && info != null && !info.isBeingTransferred()) {
-            player.disconnect0(Component.translatable("velocity.error.already-connected-proxy.remote"), true);
-            return;
-          }
+          this.server.getMultiProxyHandler().onPlayerJoin(player);
         }
 
         ServerLoginSuccessPacket success = new ServerLoginSuccessPacket();

@@ -75,10 +75,6 @@ public class RedisManagerImpl {
   private @MonotonicNonNull JedisPool jedisPool;
   private final VelocityPubSub pubSub;
 
-  private List<RemotePlayerInfo> cachedPlayers = new ArrayList<>();
-  private long lastUpdateTime = 0;
-  private static final long CACHE_REFRESH_INTERVAL_MS = 1000;
-
   /**
    * Constructs a Redis manager using the given Velocity server instance to retrieve
    * configuration and initialize the Redis connection if enabled.

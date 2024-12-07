@@ -219,17 +219,6 @@ public class MultiProxyHandler {
   }
 
   private void handleJoin(final RemotePlayerInfo player) {
-    List<RemotePlayerInfo> allPlayers = this.server.getRedisManager().getCache();
-    for (RemotePlayerInfo info : allPlayers) {
-      if (info.getUuid().equals(player.getUuid())) {
-        Player p = this.server.getPlayer(info.getUuid()).orElse(null);
-        if (p != null) {
-          p.disconnect(Component.translatable("velocity.error.already-connected-proxy.remote"));
-          return;
-        }
-      }
-    }
-
     this.server.getRedisManager().addOrUpdatePlayer(player);
     this.server.getRedisManager().send(new RedisUpdateQueuedServerRequest(player.getUuid()));
   }
@@ -292,26 +281,23 @@ public class MultiProxyHandler {
    *
    * @param player the {@link ConnectedPlayer} that joined
    */
-  public boolean onPlayerJoin(final ConnectedPlayer player) {
+  public void onPlayerJoin(final ConnectedPlayer player) {
     if (shuttingDown) {
-      return false;
+      return;
     }
 
-    // check for dupe connections on foreign proxies and disconnect.
-    for (String proxyId : this.getAllProxyIds()) {
-      if (proxyId.equals(this.getOwnProxyId())) {
-        continue;
-      }
-
-      for (RemotePlayerInfo playerInfo : this.getPlayers(proxyId)) {
-        if (playerInfo.getUuid().equals(player.getUniqueId())) {
-          return true;
+    List<RemotePlayerInfo> allPlayers = this.server.getRedisManager().getCache();
+    for (RemotePlayerInfo info : allPlayers) {
+      if (info.getUuid().equals(player.getUniqueId()) || info.getUsername().equalsIgnoreCase(player.getUsername())) {
+        Player p = this.server.getPlayer(info.getUuid()).orElse(null);
+        if (p != null) {
+          p.disconnect(Component.translatable("velocity.error.already-connected-proxy.remote"));
+          return;
         }
       }
     }
 
     this.server.getMultiProxyHandler().handleJoin(createPlayerInfo(player));
-    return false;
   }
 
   private RemotePlayerInfo createPlayerInfo(ConnectedPlayer player) {
