@@ -881,14 +881,14 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   /**
-   * Clears the attempted servers for getting next server to try.
+   * Clears the attempted servers for getting the next server to try.
    */
   public void clearAttemptedServers() {
     attemptedServers.clear();
   }
 
   /**
-   * Finds another server to attempt to log into, if we were unexpectedly disconnected from the
+   * Finds another server to attempt to log into if we were unexpectedly disconnected from the
    * server.
    *
    * @return the next server to try
@@ -901,7 +901,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   /**
-   * Finds another server to attempt to log into, if we were unexpectedly disconnected from the
+   * Finds another server to attempt to log into if we were unexpectedly disconnected from the
    * server.
    *
    * @param current the "current" server that the player is on, useful as an override
@@ -963,8 +963,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
           }
         }
-        Optional<RegisteredServer> foundServer;
 
+        Optional<RegisteredServer> foundServer;
         try {
           foundServer = Optional.of(registeredServers.get(0));
         } catch (IndexOutOfBoundsException e) {

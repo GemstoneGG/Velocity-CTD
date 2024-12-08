@@ -41,7 +41,7 @@ public interface RegisteredServer extends ChannelMessageSink, Audience {
    *
    * @return The global player count, with or without multi proxy support.
    */
-  int getTotalPlayerCount();
+  long getTotalPlayerCount();
 
   /**
    * Returns a list of all the players currently connected to this server on all proxies
