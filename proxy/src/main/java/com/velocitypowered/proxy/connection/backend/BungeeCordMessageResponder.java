@@ -225,7 +225,6 @@ public class BungeeCordMessageResponder {
       out.writeUTF(Objects.requireNonNullElse(queuedServer, "N/A"));
     }
 
-
     if (buf.isReadable()) {
       sendResponseOnConnection(buf);
     } else {
