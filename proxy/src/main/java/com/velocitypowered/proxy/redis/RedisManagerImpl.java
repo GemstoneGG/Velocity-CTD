@@ -277,7 +277,6 @@ public class RedisManagerImpl {
     }
   }
 
-
   /**
    * Get the cache of players.
    *
