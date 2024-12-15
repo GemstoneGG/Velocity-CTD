@@ -214,7 +214,7 @@ public final class KickedFromServerEvent implements
 
   /**
    * Notifies the player with the specified message but does nothing else. This is only a valid
-   * result to use if the player was  trying to connect to a different server, otherwise it is
+   * result to use if the player was trying to connect to a different server, otherwise it is
    * treated like a {@link DisconnectPlayer} result.
    */
   public static final class Notify implements ServerKickResult {

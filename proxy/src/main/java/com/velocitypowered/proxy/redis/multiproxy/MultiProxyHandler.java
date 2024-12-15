@@ -300,7 +300,7 @@ public class MultiProxyHandler {
     this.server.getMultiProxyHandler().handleJoin(createPlayerInfo(player));
   }
 
-  private RemotePlayerInfo createPlayerInfo(ConnectedPlayer player) {
+  private RemotePlayerInfo createPlayerInfo(final ConnectedPlayer player) {
     Map<String, Integer> queuePriorities = new HashMap<>();
 
     for (RegisteredServer s : this.server.getAllServers()) {
