@@ -107,6 +107,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -138,7 +139,6 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.kyori.adventure.title.Title.Times;
 import net.kyori.adventure.title.TitlePart;
 import net.kyori.adventure.translation.GlobalTranslator;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.NotNull;
@@ -178,7 +178,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private final VelocityServer server;
   private ClientConnectionPhase connectionPhase;
   private final CompletableFuture<Void> teardownFuture = new CompletableFuture<>();
-  private @MonotonicNonNull List<String> serversToTry = null;
   private final ResourcePackHandler resourcePackHandler;
   private final BundleDelimiterHandler bundleHandler = new BundleDelimiterHandler(this);
   private boolean connectionInProgress;
@@ -882,7 +881,14 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   /**
-   * Finds another server to attempt to log into, if we were unexpectedly disconnected from the
+   * Clears the attempted servers for getting the next server to try.
+   */
+  public void clearAttemptedServers() {
+    attemptedServers.clear();
+  }
+
+  /**
+   * Finds another server to attempt to log into if we were unexpectedly disconnected from the
    * server.
    *
    * @return the next server to try
@@ -895,30 +901,31 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   /**
-   * Finds another server to attempt to log into, if we were unexpectedly disconnected from the
+   * Finds another server to attempt to log into if we were unexpectedly disconnected from the
    * server.
    *
    * @param current the "current" server that the player is on, useful as an override
    * @return the next server to try
    */
   private Optional<RegisteredServer> getNextServerToTry(@Nullable final RegisteredServer current) {
-    List<String> forcedHosts = new ArrayList<>();
-    if (serversToTry == null) {
-      String virtualHostStr = getVirtualHost().map(InetSocketAddress::getHostString)
-          .orElse("");
-      forcedHosts = server.getConfiguration().getForcedHosts().getOrDefault(virtualHostStr,
-          Collections.emptyList());
+    List<String> serversToTry = new ArrayList<>();
+
+    String virtualHostStr = getVirtualHost().map(InetSocketAddress::getHostString)
+        .orElse("");
+    List<String> forcedHosts = server.getConfiguration().getForcedHosts().getOrDefault(virtualHostStr,
+        Collections.emptyList());
+
+    if (!forcedHosts.isEmpty()) {
       serversToTry = forcedHosts;
     }
 
+    // if they're not on a forced host
     if (serversToTry.isEmpty()) {
       List<String> connOrder = server.getConfiguration().getAttemptConnectionOrder();
       if (connOrder.isEmpty()) {
         return Optional.empty();
       } else {
-        Optional<RegisteredServer> selectedServer = Optional.empty();
-        int index = 0;
-
+        List<RegisteredServer> registeredServers = new ArrayList<>();
         for (String serverName : connOrder) {
           if (attemptedServers.contains(serverName)) {
             continue;
@@ -927,7 +934,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           RegisteredServer registeredServer = server.getServer(serverName).orElse(null);
           if (registeredServer == null) {
             logger.error(Component.text("Unable to read your velocity.toml fallback servers. Users are unable to connect."));
-            return selectedServer;
+            return Optional.empty();
           }
 
           if ((connectedServer != null && hasSameName(connectedServer.getServer(), serverName))
@@ -936,31 +943,36 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
             continue;
           }
 
-          if (selectedServer.isEmpty()) {
-            index = connOrder.indexOf(serverName);
-            selectedServer = Optional.of(registeredServer);
-            if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("FIRST_AVAILABLE")) {
-              serversToTry = connOrder;
-            }
-          } else {
-            if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("MOST_POPULATED")) {
-              if (registeredServer.getPlayersConnected().size() > selectedServer.get().getPlayersConnected().size()) {
-                index = connOrder.indexOf(serverName);
-                selectedServer = Optional.of(registeredServer);
-              }
-            } else if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("LEAST_POPULATED")) {
-              if (registeredServer.getPlayersConnected().size() < selectedServer.get().getPlayersConnected().size()) {
-                index = connOrder.indexOf(serverName);
-                selectedServer = Optional.of(registeredServer);
-              }
-            }
+          try {
+            registeredServer.ping().join();
+          } catch (Exception e) {
+            continue;
+          }
+
+          registeredServers.add(registeredServer);
+        }
+
+        switch (server.getConfiguration().getDynamicFallbackFilter()) {
+          case "MOST_POPULATED" -> {
+            registeredServers.sort((o1, o2) -> Long.compare(o2.getTotalPlayerCount(), o1.getTotalPlayerCount()));
+          }
+          case "LEAST_POPULATED" -> {
+            registeredServers.sort(Comparator.comparingLong(RegisteredServer::getTotalPlayerCount));
+          }
+          default -> {
+
           }
         }
 
-        selectedServer.ifPresent(registeredServer -> attemptedServers.add(registeredServer.getServerInfo().getName()));
-        tryIndex = index;
+        Optional<RegisteredServer> foundServer;
+        try {
+          foundServer = Optional.of(registeredServers.get(0));
+        } catch (IndexOutOfBoundsException e) {
+          return Optional.empty();
+        }
 
-        return selectedServer;
+        foundServer.ifPresent(registeredServer -> attemptedServers.add(registeredServer.getServerInfo().getName()));
+        return foundServer;
       }
     }
 
