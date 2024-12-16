@@ -31,6 +31,7 @@ import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendStatusRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendActionBarRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -283,11 +284,11 @@ public class QueueManagerRedisImpl extends QueueManager {
     }
 
     if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
-      for (ServerQueueStatus status : this.serverQueues.values()) {
-        if (status.isQueued(player.getUniqueId())) {
-          player.sendMessage(Component.translatable("velocity.queue.error.multi-queue"));
-          return;
-        }
+      RemotePlayerInfo info = this.server.getMultiProxyHandler().getPlayerInfo(player.getUniqueId());
+
+      if (info != null && info.getQueuedServer() != null) {
+        player.sendMessage(Component.translatable("velocity.queue.error.multi-queue"));
+        return;
       }
     }
 

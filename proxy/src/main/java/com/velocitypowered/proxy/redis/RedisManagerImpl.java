@@ -55,6 +55,7 @@ import redis.clients.jedis.JedisClientConfig;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisPubSub;
+import redis.clients.jedis.exceptions.JedisDataException;
 import redis.clients.jedis.exceptions.JedisException;
 
 /**
@@ -259,6 +260,8 @@ public class RedisManagerImpl {
 
     try (Jedis jedis = this.jedisPool.getResource()) {
       jedis.hset(CACHE_KEY, player.getUuid().toString(), json);
+    } catch (JedisDataException ignored) {
+
     } catch (Exception e) {
       e.printStackTrace();
     }
