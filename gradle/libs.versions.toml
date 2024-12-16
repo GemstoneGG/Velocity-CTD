@@ -36,7 +36,7 @@ flare-fastutil = { module = "space.vectrix.flare:flare-fastutil", version.ref = 
 jline = "org.jline:jline-terminal-jansi:3.28.0"
 jedis = "redis.clients:jedis:5.2.0"
 jopt = "net.sf.jopt-simple:jopt-simple:5.0.4"
-junit = "org.junit.jupiter:junit-jupiter:5.11.3"
+junit = "org.junit.jupiter:junit-jupiter:5.11.4"
 jspecify = "org.jspecify:jspecify:1.0.0"
 kyori-ansi = "net.kyori:ansi:1.1.1"
 guava = "com.google.guava:guava:33.3.1-jre"
