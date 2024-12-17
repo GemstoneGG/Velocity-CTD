@@ -91,7 +91,7 @@ public class HubCommand {
         return 0;
       }
 
-      if (translationExists("velocity.command.hub.fallback-connecting", player)) {
+      if (translationExists(player)) {
         player.sendMessage(Component.translatable("velocity.command.hub.fallback-connecting")
             .arguments(Component.text(serverToTry.getServerInfo().getName())));
       }
@@ -113,14 +113,14 @@ public class HubCommand {
     return 0;
   }
 
-  private static boolean translationExists(final String key, final Player player) {
+  private static boolean translationExists(final Player player) {
     Locale locale = player.getEffectiveLocale();
 
     if (locale == null) {
       locale = Locale.ENGLISH;
     }
 
-    Component format = GlobalTranslator.translator().translate(Component.translatable(key), locale);
+    Component format = GlobalTranslator.translator().translate(Component.translatable("velocity.command.hub.fallback-connecting"), locale);
     return format != null && !format.equals(Component.empty());
   }
 }

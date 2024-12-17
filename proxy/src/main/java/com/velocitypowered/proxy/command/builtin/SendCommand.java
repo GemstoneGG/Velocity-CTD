@@ -346,7 +346,6 @@ public class SendCommand {
             Component.text(targetServer.getServerInfo().getName())));
   }
 
-
   private int sendMultiProxy(final CommandContext<CommandSource> context) {
     final String serverName = context.getArgument(SERVER_ARG, String.class);
     final String player = context.getArgument(PLAYER_ARG, String.class);
@@ -416,6 +415,7 @@ public class SendCommand {
     }
 
     if (player.startsWith("+")) {
+
       final ServerResult result = findServer(player.substring(1));
 
       if (result.bestMatch().isEmpty()) {
@@ -495,6 +495,7 @@ public class SendCommand {
     boolean multipleMatches = false;
 
     for (RegisteredServer server : servers) {
+
       final String lowerName = server.getServerInfo().getName().toLowerCase();
 
       if (lowerName.equals(lowerServerName)) {

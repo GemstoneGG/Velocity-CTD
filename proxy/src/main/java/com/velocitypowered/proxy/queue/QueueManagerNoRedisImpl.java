@@ -189,10 +189,7 @@ public class QueueManagerNoRedisImpl extends QueueManager {
 
     for (Player player : temp.keySet()) {
       ServerQueueStatus status = temp.get(player);
-      ServerQueueEntry entry = status.getEntry(player.getUniqueId()).orElse(null);
-      if (entry != null) {
-        player.sendActionBar(temp.get(player).getActionBarComponent(entry));
-      }
+      status.getEntry(player.getUniqueId()).ifPresent(entry -> player.sendActionBar(temp.get(player).getActionBarComponent(entry)));
     }
   }
 
