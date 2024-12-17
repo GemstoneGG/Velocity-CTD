@@ -337,9 +337,9 @@ use-ssl = false
 
 # Maximum number of maintained connections to the Redis server.
 #
-# We encourage leaving this at "10," as having an absurd number
+# We encourage leaving this at "50," as having an absurd number
 # of connections to your Redis instance will massively depreciate performance.
-max-concurrent-connections = 10
+max-concurrent-connections = 50
 
 # The ID of this proxy and is only needed for multi-proxy setups.
 # Leave blank if you do not use Redis and is left blank by

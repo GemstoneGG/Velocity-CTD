@@ -88,7 +88,7 @@ public class HubCommand {
 
       RegisteredServer serverToTry = p.getNextServerToTry().orElse(null);
       if (serverToTry == null) {
-        p.sendMessage(Component.translatable("velocity.command.no-fallbacks"));
+        player.sendMessage(Component.translatable("velocity.command.no-fallbacks"));
         return 0;
       }
 

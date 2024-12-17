@@ -656,7 +656,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
               player.setServerLinks(getConfiguration().getServerLinks());
             }
           } catch (IllegalStateException ignored) {
-
+            // Ignore illegal state to ensure each reload is successful.
           }
         }
       }
