@@ -22,7 +22,6 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
-import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.HashMap;
 import java.util.Map;
@@ -190,10 +189,7 @@ public class QueueManagerNoRedisImpl extends QueueManager {
 
     for (Player player : temp.keySet()) {
       ServerQueueStatus status = temp.get(player);
-      ServerQueueEntry entry = status.getEntry(player.getUniqueId()).orElse(null);
-      if (entry != null) {
-        player.sendActionBar(temp.get(player).getActionBarComponent(entry));
-      }
+      status.getEntry(player.getUniqueId()).ifPresent(entry -> player.sendActionBar(temp.get(player).getActionBarComponent(entry)));
     }
   }
 

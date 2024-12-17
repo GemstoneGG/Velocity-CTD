@@ -55,7 +55,6 @@ import redis.clients.jedis.JedisClientConfig;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisPubSub;
-import redis.clients.jedis.exceptions.JedisDataException;
 import redis.clients.jedis.exceptions.JedisException;
 
 /**
@@ -135,13 +134,10 @@ public class RedisManagerImpl {
       }).delay(1, TimeUnit.SECONDS).schedule();
     });
 
-    listen(RedisSwitchServerRequest.ID, RedisSwitchServerRequest.class, it -> {
-      proxy.getPlayer(it.username()).ifPresent(player -> {
-        proxy.getServer(it.server()).ifPresent(server -> {
-          player.createConnectionRequest(server).connectWithIndication();
-        });
-      });
-    });
+    listen(RedisSwitchServerRequest.ID, RedisSwitchServerRequest.class, it
+        -> proxy.getPlayer(it.username()).ifPresent(player
+            -> proxy.getServer(it.server()).ifPresent(server
+                -> player.createConnectionRequest(server).connectWithIndication())));
   }
 
   /**
@@ -259,9 +255,11 @@ public class RedisManagerImpl {
     String json = gson.toJson(player);
 
     try (Jedis jedis = this.jedisPool.getResource()) {
-      jedis.hset(CACHE_KEY, player.getUuid().toString(), json);
-    } catch (JedisDataException ignored) {
+      if (!"hash".equals(jedis.type(CACHE_KEY))) {
+        jedis.del(CACHE_KEY);
+      }
 
+      jedis.hset(CACHE_KEY, player.getUuid().toString(), json);
     } catch (Exception e) {
       e.printStackTrace();
     }
