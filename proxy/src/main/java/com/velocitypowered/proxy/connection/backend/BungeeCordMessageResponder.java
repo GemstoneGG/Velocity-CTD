@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.connection.backend;
 
+import com.mojang.brigadier.Command;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.Player;
@@ -86,8 +87,15 @@ public class BungeeCordMessageResponder {
       return;
     }
 
+
+
+
     proxy.getServer(serverName).ifPresent(server -> {
       if (queue && proxy.getQueueManager().isEnabled()) {
+        if (this.proxy.getConfiguration().getQueue().getNoQueueServers().contains(server.getServerInfo().getName())) {
+          player.createConnectionRequest(server).connectWithIndication();
+          return;
+        }
         if (player.hasPermission("velocity.queue.bypass")) {
           player.createConnectionRequest(server).connectWithIndication();
         } else {
@@ -112,7 +120,13 @@ public class BungeeCordMessageResponder {
         return;
       }
 
+
       if (queue && proxy.getQueueManager().isEnabled()) {
+        if (this.proxy.getConfiguration().getQueue().getNoQueueServers().contains(referencedServer.get().getServerInfo().getName())) {
+          player.createConnectionRequest(referencedServer.get()).connectWithIndication();
+          return;
+        }
+
         if (!referencedPlayer.get().hasPermission("velocity.queue.bypass")) {
           proxy.getQueueManager().queue(player, (VelocityRegisteredServer) referencedServer.get());
         } else {
