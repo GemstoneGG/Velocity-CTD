@@ -26,6 +26,7 @@ import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyReloadEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
+import com.velocitypowered.api.network.ProtocolState;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.plugin.PluginContainer;
 import com.velocitypowered.api.plugin.PluginDescription;
@@ -650,7 +651,13 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     if (!this.getConfiguration().getServerLinks().isEmpty()) {
       for (Player player : this.getAllPlayers()) {
         if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_21)) {
-          player.setServerLinks(getConfiguration().getServerLinks());
+          try {
+            if (player.getProtocolState() == ProtocolState.CONFIGURATION || player.getProtocolState() == ProtocolState.PLAY) {
+              player.setServerLinks(getConfiguration().getServerLinks());
+            }
+          } catch (IllegalStateException ignored) {
+
+          }
         }
       }
     }
