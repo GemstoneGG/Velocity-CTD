@@ -135,8 +135,9 @@ public class RedisManagerImpl {
     });
 
     listen(RedisSwitchServerRequest.ID, RedisSwitchServerRequest.class, it
-        -> proxy.getPlayer(it.username()).ifPresent(player -> proxy.getServer(it.server()).ifPresent(server
-            -> player.createConnectionRequest(server).connectWithIndication())));
+        -> proxy.getPlayer(it.username()).ifPresent(player
+            -> proxy.getServer(it.server()).ifPresent(server
+                -> player.createConnectionRequest(server).connectWithIndication())));
   }
 
   /**
