@@ -251,8 +251,10 @@ public class ServerQueueStatus {
 
     if (this.velocityServer.getMultiProxyHandler().isEnabled()) {
       RemotePlayerInfo info = this.velocityServer.getMultiProxyHandler().getPlayerInfo(playerUuid);
-      info.setQueuedServer(this.server.getServerInfo().getName());
-      this.velocityServer.getRedisManager().addOrUpdatePlayer(info);
+      if (info != null) {
+        info.setQueuedServer(this.server.getServerInfo().getName());
+        this.velocityServer.getRedisManager().addOrUpdatePlayer(info);
+      }
     }
 
     synchronized (queue) {
