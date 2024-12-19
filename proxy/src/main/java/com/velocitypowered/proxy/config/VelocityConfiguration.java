@@ -1580,6 +1580,8 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private double backendPingInterval;
     @Expose
+    private double queueDelay;
+    @Expose
     private int maxSendRetries;
     @Expose
     private boolean removePlayerOnServerSwitch;
@@ -1620,6 +1622,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.queueAdminAliases = config.getOrElse("queue-admin-aliases", new ArrayList<>());
       this.masterProxyIds = config.getOrElse("master-proxy-ids", new ArrayList<>());
       this.bannedReason = config.getOrElse("banned-reason", new ArrayList<>());
+      this.queueDelay = config.getOrElse("queue-delay", 0.0);
     }
 
     public boolean isEnabled() {
@@ -1674,7 +1677,9 @@ public final class VelocityConfiguration implements ProxyConfig {
       return noQueueServers;
     }
 
-
+    public double getQueueDelay() {
+      return this.queueDelay;
+    }
 
     public boolean shouldOverrideBungeeMessaging() {
       return overrideBungeeMessaging;

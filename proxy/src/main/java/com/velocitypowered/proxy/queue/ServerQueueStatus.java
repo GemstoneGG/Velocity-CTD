@@ -47,10 +47,12 @@ public class ServerQueueStatus {
   private final VelocityServer velocityServer;
   private VelocityConfiguration.@MonotonicNonNull Queue config;
   private final Deque<ServerQueueEntry> queue = new ConcurrentLinkedDeque<>();
-  private boolean online = true;
+  private ServerStatus online = ServerStatus.ONLINE;
   private boolean full = false;
   private ScheduledTask sendingTaskHandle = null;
   private boolean paused = false;
+
+  private static long LAST_TURNED_ONLINE_TIME = -1;
 
   /**
    * Constructs a {@link ServerQueueStatus} instance.
@@ -135,11 +137,15 @@ public class ServerQueueStatus {
     entry.send();
   }
 
+  public boolean isOnline() {
+    return online == ServerStatus.ONLINE;
+  }
+
   /**
    * Sends the next player in queue, unless the queue is paused.
    */
   private void tickSending() {
-    if (isPaused() || !online) {
+    if (isPaused() || !isOnline()) {
       return;
     }
 
@@ -170,9 +176,25 @@ public class ServerQueueStatus {
    */
   public void tickPingingBackend() {
     server.ping().whenComplete((result, th) -> {
-      boolean tempOnline = online;
-      online = th == null;
-      if (!tempOnline && th == null) {
+      double queueDelay = this.velocityServer.getConfiguration().getQueue().getQueueDelay() * 1000;
+
+      if (th != null) {
+        online = ServerStatus.OFFLINE;
+      }
+
+      if (online == ServerStatus.OFFLINE && th == null) {
+        online = ServerStatus.WAITING;
+        LAST_TURNED_ONLINE_TIME = System.currentTimeMillis();
+      }
+
+      if (th == null && System.currentTimeMillis() >= LAST_TURNED_ONLINE_TIME + queueDelay
+          && online == ServerStatus.WAITING) {
+        online = ServerStatus.ONLINE;
+      }
+
+      ServerStatus temp = online;
+
+      if (temp != ServerStatus.ONLINE && isOnline()) {
         for (ServerQueueEntry entry : queue) {
           if (entry.queueBypass) {
             entry.send();
@@ -181,7 +203,7 @@ public class ServerQueueStatus {
         }
       }
 
-      if (online) {
+      if (isOnline()) {
         final int maxPlayers = this.velocityServer.getConfiguration().getPlayerCaps().get(server.getServerInfo().getName());
         long playerCount;
         if (this.velocityServer.getMultiProxyHandler().isEnabled()) {
@@ -362,7 +384,7 @@ public class ServerQueueStatus {
                   .arguments(
                       Component.text(queue.size()),
                       Component.text(isPaused() ? "True" : "False"),
-                      Component.text(online ? "True" : "False")
+                      Component.text(isOnline() ? "True" : "False")
                   ).asHoverEvent()
               )
           );
@@ -472,7 +494,7 @@ public class ServerQueueStatus {
           .arguments(Component.text(entry.target.getServerInfo().getName()));
     } else if (isPaused()) {
       return Component.translatable("velocity.queue.player-status.paused", NamedTextColor.YELLOW);
-    } else if (online) {
+    } else if (isOnline()) {
       return Component.translatable("velocity.queue.player-status.online", NamedTextColor.YELLOW)
           .arguments(
               Component.text(position),

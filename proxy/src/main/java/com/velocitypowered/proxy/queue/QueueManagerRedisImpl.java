@@ -314,7 +314,8 @@ public class QueueManagerRedisImpl extends QueueManager {
   @Override
   public void removeFromAll(final ConnectedPlayer player) {
     for (ServerQueueStatus status : this.getAll()) {
-      if (status.isQueued(player.getUniqueId())) {
+      RemotePlayerInfo info = this.server.getMultiProxyHandler().getPlayerInfo(player.getUniqueId());
+      if (info != null && info.getQueuedServer().equalsIgnoreCase(status.getServerName())) {
         this.server.getRedisManager().send(new RedisQueueLeaveRequest(player.getUniqueId(), status.getServerName(),
             false));
       }

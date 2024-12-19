@@ -18,7 +18,6 @@
 package com.velocitypowered.proxy.redis.multiproxy;
 
 import com.velocitypowered.api.command.CommandSource;
-import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.builtin.VelocityCommand;
@@ -289,11 +288,8 @@ public class MultiProxyHandler {
     List<RemotePlayerInfo> allPlayers = this.server.getRedisManager().getCache();
     for (RemotePlayerInfo info : allPlayers) {
       if (info.getUuid().equals(player.getUniqueId()) || info.getUsername().equalsIgnoreCase(player.getUsername())) {
-        Player p = this.server.getPlayer(info.getUuid()).orElse(null);
-        if (p != null) {
-          p.disconnect(Component.translatable("velocity.error.already-connected-proxy.remote"));
-          return;
-        }
+        player.disconnect(Component.translatable("velocity.error.already-connected-proxy.remote"));
+        return;
       }
     }
 
