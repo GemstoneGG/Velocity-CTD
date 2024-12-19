@@ -110,36 +110,32 @@ public class QueueManagerRedisImpl extends QueueManager {
       }
     });
 
-    redisManager.listen(RedisQueueSendRequest.ID, RedisQueueSendRequest.class, it -> {
-      server.getPlayer(it.playerUuid()).ifPresent(player -> {
-        RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
+    redisManager.listen(RedisQueueSendRequest.ID, RedisQueueSendRequest.class, it
+        -> server.getPlayer(it.playerUuid()).ifPresent(player -> {
+          RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
 
-        if (foundServer == null) {
-          redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(), false,
-                  it.playerUuid()));
-        } else {
-          if (this.server.getConfiguration().getQueue().isForwardKickReason()) {
-            player.createConnectionRequest(foundServer).connectWithIndication().thenAccept(result -> {
-              redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(),
-                  result, it.playerUuid()));
-            }).exceptionally(ex -> {
-              redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(),
-                  false, it.playerUuid()));
-              return null;
-            });
+          if (foundServer == null) {
+            redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(), false,
+                it.playerUuid()));
           } else {
-            player.createConnectionRequest(foundServer).connect().thenAccept(result -> {
-              redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(),
-                  result.isSuccessful(), it.playerUuid()));
-            }).exceptionally(ex -> {
-              redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(),
-                  false, it.playerUuid()));
-              return null;
-            });
+            if (this.server.getConfiguration().getQueue().isForwardKickReason()) {
+              player.createConnectionRequest(foundServer).connectWithIndication().thenAccept(result
+                  -> redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(),
+                  result, it.playerUuid()))).exceptionally(ex -> {
+                    redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(),
+                        false, it.playerUuid()));
+                    return null;
+                  });
+            } else {
+              player.createConnectionRequest(foundServer).connect().thenAccept(result -> redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(),
+                  result.isSuccessful(), it.playerUuid()))).exceptionally(ex -> {
+                    redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(),
+                        false, it.playerUuid()));
+                    return null;
+                  });
+            }
           }
-        }
-      });
-    });
+        }));
 
     redisManager.listen(RedisQueueSendStatusRequest.ID, RedisQueueSendStatusRequest.class, it -> {
       if (!isMasterProxy()) {
@@ -304,10 +300,9 @@ public class QueueManagerRedisImpl extends QueueManager {
   @Override
   public void tickMessageForAllPlayers() {
     for (ServerQueueStatus status : this.serverQueues.values()) {
-      status.getActivePlayers().forEach((entry, player) -> {
-        this.server.getRedisManager().send(new RedisSendActionBarRequest(player,
-                status.getActionBarComponent(entry)));
-      });
+      status.getActivePlayers().forEach((entry, player)
+          -> this.server.getRedisManager().send(new RedisSendActionBarRequest(player,
+              status.getActionBarComponent(entry))));
     }
   }
 

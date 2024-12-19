@@ -104,9 +104,9 @@ public class RedisManagerImpl {
     listen(RedisGetPlayerPingRequest.ID, RedisGetPlayerPingRequest.class, it -> {
       proxy.getPlayer(it.playerToCheck()).ifPresent(player -> {
         Component component = Component.translatable("velocity.command.ping.other",
-                        NamedTextColor.GREEN)
-                        .arguments(Component.text(player.getUsername()),
-                                Component.text(player.getPing()));
+            NamedTextColor.GREEN)
+               .arguments(Component.text(player.getUsername()),
+                   Component.text(player.getPing()));
 
         send(new RedisSendMessage(it.commandSender(), component));
       });

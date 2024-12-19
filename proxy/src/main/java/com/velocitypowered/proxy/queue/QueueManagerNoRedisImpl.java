@@ -73,11 +73,9 @@ public class QueueManagerNoRedisImpl extends QueueManager {
    * @param player the disconnecting player
    */
   public void onPlayerLeave(final ConnectedPlayer player) {
-    this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
-      this.server.getAllServers().forEach(server -> {
-        dequeue(player.getUniqueId(), server.getServerInfo().getName(), false);
-      });
-    })
+    this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, ()
+        -> this.server.getAllServers().forEach(server
+            -> dequeue(player.getUniqueId(), server.getServerInfo().getName(), false)))
     .delay(getTimeoutInSeconds(player), TimeUnit.SECONDS)
     .schedule();
   }
@@ -100,15 +98,13 @@ public class QueueManagerNoRedisImpl extends QueueManager {
 
     if (command) {
       if (wasQueued) {
-        this.server.getPlayer(player).ifPresent(p -> {
-          p.sendMessage(Component.translatable("velocity.queue.command.left-queue")
-              .arguments(Component.text(serverName)));
-        });
+        this.server.getPlayer(player).ifPresent(p
+            -> p.sendMessage(Component.translatable("velocity.queue.command.left-queue")
+                .arguments(Component.text(serverName))));
       } else {
-        this.server.getPlayer(player).ifPresent(p -> {
-          p.sendMessage(Component.translatable("velocity.queue.error.not-in-queue")
-              .arguments(Component.text(serverName)));
-        });
+        this.server.getPlayer(player).ifPresent(p
+            -> p.sendMessage(Component.translatable("velocity.queue.error.not-in-queue")
+                .arguments(Component.text(serverName))));
       }
     }
   }
