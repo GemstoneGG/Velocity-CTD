@@ -116,7 +116,7 @@ public class QueueManagerNoRedisImpl extends QueueManager {
    * @param server The server to queue into
    */
   public void queue(final Player player, final VelocityRegisteredServer server) {
-    if (!isEnabled() || player.hasPermission("velocity.queue.bypass")) {
+    if (!isQueueEnabled() || player.hasPermission("velocity.queue.bypass")) {
       player.createConnectionRequest(server).connectWithIndication();
       return;
     }

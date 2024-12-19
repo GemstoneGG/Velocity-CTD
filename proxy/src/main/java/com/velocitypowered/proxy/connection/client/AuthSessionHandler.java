@@ -276,7 +276,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
           return;
         }
 
-        if (this.server.getMultiProxyHandler().isEnabled()) {
+        if (this.server.getMultiProxyHandler().isRedisEnabled()) {
           this.server.getMultiProxyHandler().onPlayerJoin(player);
         }
 

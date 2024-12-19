@@ -98,7 +98,7 @@ public class HubCommand {
       }
 
       if (this.server.getConfiguration().getQueue().getNoQueueServers()
-              .contains(serverToTry.getServerInfo().getName()) || !server.getMultiProxyHandler().isEnabled()
+              .contains(serverToTry.getServerInfo().getName()) || !server.getMultiProxyHandler().isRedisEnabled()
               || player.hasPermission("velocity.queue.bypass")) {
         player.createConnectionRequest(serverToTry).connectWithIndication();
         return Command.SINGLE_SUCCESS;

@@ -69,7 +69,7 @@ public class MultiProxyHandler {
 
     this.enabled = config.isEnabled() && config.getProxyId() != null;
 
-    if (!this.isEnabled()) {
+    if (!this.isRedisEnabled()) {
       return;
     }
 
@@ -237,7 +237,7 @@ public class MultiProxyHandler {
    *
    * @return {@code true} if the multi-proxy setup is enabled; {@code false} otherwise
    */
-  public boolean isEnabled() {
+  public boolean isRedisEnabled() {
     return enabled;
   }
 

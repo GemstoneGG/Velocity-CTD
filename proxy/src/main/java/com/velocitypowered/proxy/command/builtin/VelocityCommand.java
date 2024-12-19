@@ -126,7 +126,7 @@ public final class VelocityCommand {
             builder.suggest("all");
           }
 
-          if (server.getMultiProxyHandler().isEnabled()) {
+          if (server.getMultiProxyHandler().isRedisEnabled()) {
             for (RemotePlayerInfo i : server.getMultiProxyHandler().getAllPlayers()) {
               if (i.getName().regionMatches(true, 0, argument, 0, argument.length())) {
                 builder.suggest(i.getName());
@@ -263,7 +263,7 @@ public final class VelocityCommand {
 
       final MultiProxyHandler multiProxyHandler = server.getMultiProxyHandler();
 
-      if (multiProxyHandler.isEnabled()) {
+      if (multiProxyHandler.isRedisEnabled()) {
         for (String proxyId : multiProxyHandler.getAllProxyIds()) {
           if (proxyId.equals(multiProxyHandler.getOwnProxyId())) {
             continue;

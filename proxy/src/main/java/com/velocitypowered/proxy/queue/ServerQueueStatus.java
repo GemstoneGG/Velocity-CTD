@@ -71,7 +71,7 @@ public class ServerQueueStatus {
    * Stops the queue.
    */
   public void stop() {
-    if (this.velocityServer.getMultiProxyHandler().isEnabled()) {
+    if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
       List<RemotePlayerInfo> list = this.velocityServer.getRedisManager().getCache();
       for (ServerQueueEntry entry : this.queue) {
         for (RemotePlayerInfo info : list) {
@@ -117,7 +117,7 @@ public class ServerQueueStatus {
     }
 
     // check if they're online
-    if (velocityServer.getMultiProxyHandler().isEnabled()) {
+    if (velocityServer.getMultiProxyHandler().isRedisEnabled()) {
       if (!velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
         queue.removeFirst();
         return;
@@ -160,7 +160,7 @@ public class ServerQueueStatus {
       return;
     }
 
-    if (velocityServer.getMultiProxyHandler().isEnabled()) {
+    if (velocityServer.getMultiProxyHandler().isRedisEnabled()) {
       if (velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
         sendFirstInQueue();
       }
@@ -206,7 +206,7 @@ public class ServerQueueStatus {
       if (isOnline()) {
         final int maxPlayers = this.velocityServer.getConfiguration().getPlayerCaps().get(server.getServerInfo().getName());
         long playerCount;
-        if (this.velocityServer.getMultiProxyHandler().isEnabled()) {
+        if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
           playerCount = this.velocityServer.getMultiProxyHandler().getAllPlayers().stream().filter(info -> info.getServerName() != null
               && info.getServerName().equalsIgnoreCase(server.getServerInfo().getName())).count();
         } else {
@@ -235,7 +235,7 @@ public class ServerQueueStatus {
    * @param paused whether this queue is paused
    */
   public void setPaused(final boolean paused) {
-    if (this.velocityServer.getMultiProxyHandler().isEnabled()) {
+    if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
       if (paused) {
         this.velocityServer.getRedisManager().addPausedQueue(getServerName());
       } else {
@@ -261,7 +261,7 @@ public class ServerQueueStatus {
       if (player != null) {
         player.createConnectionRequest(server).connect();
       } else {
-        if (this.velocityServer.getMultiProxyHandler().isEnabled()) {
+        if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
           this.velocityServer.getRedisManager().send(new RedisQueueSendRequest(playerUuid,
               server.getServerInfo().getName()));
         }
@@ -271,7 +271,7 @@ public class ServerQueueStatus {
 
     ServerQueueEntry entry = new ServerQueueEntry(playerUuid, this.server, this.velocityServer, priority, fullBypass, queueBypass);
 
-    if (this.velocityServer.getMultiProxyHandler().isEnabled()) {
+    if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
       RemotePlayerInfo info = this.velocityServer.getMultiProxyHandler().getPlayerInfo(playerUuid);
       if (info != null) {
         info.setQueuedServer(this.server.getServerInfo().getName());
@@ -329,7 +329,7 @@ public class ServerQueueStatus {
   public void dequeue(final UUID player, final boolean maxRetriesReached) {
     this.velocityServer.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
       if (maxRetriesReached) {
-        if (this.velocityServer.getMultiProxyHandler().isEnabled()) {
+        if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
           this.velocityServer.getRedisManager().send(new RedisSendMessageToUuidRequest(player,
               Component.translatable("velocity.queue.error.max-send-retries-reached")
                   .arguments(Component.text(getServerName()),
@@ -343,7 +343,7 @@ public class ServerQueueStatus {
       }
     }).delay(1, TimeUnit.SECONDS).schedule();
 
-    if (this.velocityServer.getMultiProxyHandler().isEnabled()) {
+    if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
       RemotePlayerInfo info = this.velocityServer.getMultiProxyHandler().getPlayerInfo(player);
       if (info != null) {
         info.setQueuedServer(null);
@@ -389,7 +389,7 @@ public class ServerQueueStatus {
           );
     } else {
       int queueSize = 0;
-      if (this.velocityServer.getMultiProxyHandler().isEnabled()) {
+      if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
         for (RemotePlayerInfo info : this.velocityServer.getMultiProxyHandler().getAllPlayers()) {
           if (info.getQueuedServer() != null && info.getQueuedServer().equalsIgnoreCase(getServerName())) {
             queueSize++;
@@ -424,7 +424,7 @@ public class ServerQueueStatus {
    * @return Whether the queue is paused or not.
    */
   public boolean isPaused() {
-    if (this.velocityServer.getMultiProxyHandler().isEnabled()) {
+    if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
       return this.velocityServer.getRedisManager().getPausedQueues().contains(getServerName());
     } else {
       return this.paused;

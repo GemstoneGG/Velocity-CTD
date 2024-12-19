@@ -197,7 +197,7 @@ public abstract class QueueManager {
    *
    * @return Whether the queue system is enabled or not.
    */
-  public boolean isEnabled() {
+  public boolean isQueueEnabled() {
     return enabled;
   }
 

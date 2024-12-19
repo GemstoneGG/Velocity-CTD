@@ -130,7 +130,7 @@ public class GlistCommand {
   private void sendTotalProxyCount(final CommandSource target) {
     final int online;
 
-    if (server.getMultiProxyHandler().isEnabled()) {
+    if (server.getMultiProxyHandler().isRedisEnabled()) {
       online = server.getMultiProxyHandler().getTotalPlayerCount();
     } else {
       online = server.getPlayerCount();
@@ -151,7 +151,7 @@ public class GlistCommand {
     List<Component> players = new ArrayList<>();
     MultiProxyHandler multiProxyHandler = this.server.getMultiProxyHandler();
 
-    if (multiProxyHandler.isEnabled()) {
+    if (multiProxyHandler.isRedisEnabled()) {
       for (String proxyId : multiProxyHandler.getAllProxyIds()) {
         for (RemotePlayerInfo player : multiProxyHandler.getPlayers(proxyId)) {
           if (player.getServerName() == null || !player.getServerName().equals(server.getServerInfo().getName())) {

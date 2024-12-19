@@ -56,7 +56,7 @@ public class PlistCommand {
    * Registers this command.
    */
   public void register(final boolean isPlistEnabled) {
-    if (!isPlistEnabled || !server.getMultiProxyHandler().isEnabled()) {
+    if (!isPlistEnabled || !server.getMultiProxyHandler().isRedisEnabled()) {
       return;
     }
 

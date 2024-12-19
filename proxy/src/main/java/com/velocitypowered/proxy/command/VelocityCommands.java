@@ -462,7 +462,7 @@ public final class VelocityCommands {
         ? ctx.getArgument("player", String.class)
         : "";
 
-    if (includeRemote && server.getMultiProxyHandler().isEnabled()) {
+    if (includeRemote && server.getMultiProxyHandler().isRedisEnabled()) {
       for (RemotePlayerInfo info : server.getMultiProxyHandler().getAllPlayers()) {
         if (info.getName().regionMatches(true, 0, argument, 0, argument.length())) {
           builder.suggest(info.getName());

@@ -61,7 +61,7 @@ public class ServerQueueEntry {
   public void send() {
     waitingForConnection = true;
 
-    if (proxy.getMultiProxyHandler().isEnabled()) {
+    if (proxy.getMultiProxyHandler().isRedisEnabled()) {
       proxy.getRedisManager().send(new RedisQueueSendRequest(player,
           target.getServerInfo().getName()));
     } else {

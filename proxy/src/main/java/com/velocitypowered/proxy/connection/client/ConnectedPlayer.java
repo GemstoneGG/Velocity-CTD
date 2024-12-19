@@ -233,11 +233,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       bar.viewerDisconnected(this);
     }
 
-    if (this.server.getMultiProxyHandler().isEnabled()) {
+    if (this.server.getMultiProxyHandler().isRedisEnabled()) {
       this.server.getMultiProxyHandler().onPlayerLeave(this);
     }
 
-    if (this.server.getQueueManager().isEnabled()) {
+    if (this.server.getQueueManager().isQueueEnabled()) {
       this.server.getQueueManager().onPlayerLeave(this);
     }
   }
@@ -846,7 +846,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                   if (this.server.getConfiguration().getQueue().isQueueOnShutdown()) {
                     ServerQueueStatus s = this.server.getQueueManager().getQueue(originalEvent.getServer().getServerInfo().getName());
                     if (!s.isPaused() || this.server.getConfiguration().getQueue().isAllowPausedQueueJoining()) {
-                      if (this.server.getMultiProxyHandler().isEnabled()) {
+                      if (this.server.getMultiProxyHandler().isRedisEnabled()) {
                         this.server.getRedisManager().send(new RedisQueueAddRequest(getUniqueId(),
                             s.getServerName(),
                             getQueuePriority(s.getServerName()),
@@ -1557,7 +1557,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
         final Component reason = requireNonNull(status).getReasonComponent()
             .orElse(ConnectionMessages.INTERNAL_SERVER_CONNECTION_ERROR);
 
-        if (server.getQueueManager().isEnabled()) {
+        if (server.getQueueManager().isQueueEnabled()) {
           for (String r : server.getConfiguration().getQueue().getBannedReason()) {
             if (reason.contains(Component.text(r))) {
               server.getQueueManager().removeFromAll(get());
@@ -1601,7 +1601,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                     DisconnectPacket.create(reason, getProtocolVersion(), connection.getState()), status.isSafe());
 
             TextComponent textComponent = (TextComponent) reason;
-            if (server.getQueueManager().isEnabled()) {
+            if (server.getQueueManager().isQueueEnabled()) {
               for (String r : server.getConfiguration().getQueue().getBannedReason()) {
                 if (containsString(textComponent, r)) {
                   server.getQueueManager().removeFromAll(get());

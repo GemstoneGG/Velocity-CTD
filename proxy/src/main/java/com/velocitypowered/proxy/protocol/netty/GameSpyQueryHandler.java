@@ -87,7 +87,7 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
   private QueryResponse createInitialResponse() {
 
     final int online;
-    if (server.getMultiProxyHandler().isEnabled()) {
+    if (server.getMultiProxyHandler().isRedisEnabled()) {
       online = server.getMultiProxyHandler().getTotalPlayerCount();
     } else {
       online = server.getPlayerCount();

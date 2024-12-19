@@ -67,7 +67,7 @@ public class ServerListPingHandler {
     String serverPingVersion = configuration.getFallbackVersionPing();
 
     final int online;
-    if (server.getMultiProxyHandler().isEnabled()) {
+    if (server.getMultiProxyHandler().isRedisEnabled()) {
       online = server.getMultiProxyHandler().getTotalPlayerCount();
     } else {
       online = server.getPlayerCount();
@@ -100,7 +100,7 @@ public class ServerListPingHandler {
         .replaceAll("\\{proxy-brand-custom}", this.server.getConfiguration().getProxyBrandCustom())
         .replaceAll("\\{proxy-version}", this.server.getVersion().getVersion())
         .replaceAll("\\{proxy-vendor}", this.server.getVersion().getVendor())
-        .replaceAll("\\{player-count}", this.server.getMultiProxyHandler().isEnabled()
+        .replaceAll("\\{player-count}", this.server.getMultiProxyHandler().isRedisEnabled()
             ? String.valueOf(this.server.getMultiProxyHandler().getTotalPlayerCount())
             : String.valueOf(this.server.getPlayerCount()))
         .replaceAll("\\{max-players}", String.valueOf(this.server.getConfiguration().getShowMaxPlayers()));

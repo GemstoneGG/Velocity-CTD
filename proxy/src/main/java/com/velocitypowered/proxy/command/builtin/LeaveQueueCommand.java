@@ -83,7 +83,7 @@ public class LeaveQueueCommand {
   private int leaveAllQueues(final CommandContext<CommandSource> ctx) {
     if (ctx.getSource() instanceof Player player) {
 
-      if (!this.server.getMultiProxyHandler().isEnabled()) {
+      if (!this.server.getMultiProxyHandler().isRedisEnabled()) {
         return leaveAllQueuesNoRedis(ctx);
       }
 
@@ -132,7 +132,7 @@ public class LeaveQueueCommand {
   }
 
   private int leaveQueue(final CommandContext<CommandSource> ctx) {
-    if (!this.server.getMultiProxyHandler().isEnabled()) {
+    if (!this.server.getMultiProxyHandler().isRedisEnabled()) {
       return leaveQueueNoRedis(ctx);
     }
 

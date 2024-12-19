@@ -75,7 +75,7 @@ public class FindCommand {
   }
 
   private int find(final CommandContext<CommandSource> context) {
-    if (server.getMultiProxyHandler().isEnabled()) {
+    if (server.getMultiProxyHandler().isRedisEnabled()) {
       return findMultiProxy(context);
     }
 

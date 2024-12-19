@@ -60,7 +60,7 @@ public class SendCommand {
       return;
     }
 
-    if (server.getMultiProxyHandler().isEnabled()) {
+    if (server.getMultiProxyHandler().isRedisEnabled()) {
       registerMultiProxy(true);
       return;
     }
@@ -213,7 +213,7 @@ public class SendCommand {
   }
 
   private int send(final CommandContext<CommandSource> context) {
-    if (server.getMultiProxyHandler().isEnabled()) {
+    if (server.getMultiProxyHandler().isRedisEnabled()) {
       return sendMultiProxy(context);
     }
     final String serverName = context.getArgument(SERVER_ARG, String.class);
