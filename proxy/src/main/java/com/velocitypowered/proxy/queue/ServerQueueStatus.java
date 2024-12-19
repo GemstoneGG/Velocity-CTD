@@ -335,11 +335,10 @@ public class ServerQueueStatus {
                   .arguments(Component.text(getServerName()),
                       Component.text(this.velocityServer.getConfiguration().getQueue().getMaxSendRetries()))));
         } else {
-          this.velocityServer.getPlayer(player).ifPresent(p -> {
-            p.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached")
-                .arguments(Component.text(getServerName()),
-                    Component.text(this.velocityServer.getConfiguration().getQueue().getMaxSendRetries())));
-          });
+          this.velocityServer.getPlayer(player).ifPresent(p
+              -> p.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached")
+                  .arguments(Component.text(getServerName()),
+                      Component.text(this.velocityServer.getConfiguration().getQueue().getMaxSendRetries()))));
         }
       }
     }).delay(1, TimeUnit.SECONDS).schedule();
@@ -400,12 +399,11 @@ public class ServerQueueStatus {
 
       AtomicBoolean status = new AtomicBoolean(true);
 
-      server.ping().whenComplete((result, th) -> {
-        status.set(th == null);
-      }).exceptionally(e -> {
-        status.set(false);
-        return null;
-      }).join();
+      server.ping().whenComplete((result, th)
+          -> status.set(th == null)).exceptionally(e -> {
+            status.set(false);
+            return null;
+          }).join();
 
       return Component.translatable("velocity.queue.command.listqueues.item")
           .arguments(Component.text(server.getServerInfo().getName())
