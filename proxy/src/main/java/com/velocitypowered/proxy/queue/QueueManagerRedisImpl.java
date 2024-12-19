@@ -127,12 +127,13 @@ public class QueueManagerRedisImpl extends QueueManager {
                     return null;
                   });
             } else {
-              player.createConnectionRequest(foundServer).connect().thenAccept(result -> redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(),
-                  result.isSuccessful(), it.playerUuid()))).exceptionally(ex -> {
-                    redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(),
-                        false, it.playerUuid()));
-                    return null;
-                  });
+              player.createConnectionRequest(foundServer).connect().thenAccept(result
+                  -> redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(),
+                      result.isSuccessful(), it.playerUuid()))).exceptionally(ex -> {
+                        redisManager.send(new RedisQueueSendStatusRequest(it.playerUuid(), it.serverName(),
+                            false, it.playerUuid()));
+                        return null;
+                      });
             }
           }
         }));
