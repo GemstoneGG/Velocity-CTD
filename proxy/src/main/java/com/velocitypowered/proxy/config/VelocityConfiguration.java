@@ -1576,11 +1576,11 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private double sendDelay;
     @Expose
+    private double queueDelay;
+    @Expose
     private double messageDelay;
     @Expose
     private double backendPingInterval;
-    @Expose
-    private double queueDelay;
     @Expose
     private int maxSendRetries;
     @Expose
@@ -1610,6 +1610,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.allowMultiQueue = config.getOrElse("allow-multi-queue", false);
       this.multipleServerMessagingSelection = config.getOrElse("multiple-server-messaging-selection", "last");
       this.sendDelay = config.getOrElse("send-delay", 1.0);
+      this.queueDelay = config.getOrElse("queue-delay", 0.0);
       this.messageDelay = config.getOrElse("message-delay", 1.0);
       this.backendPingInterval = config.getOrElse("backend-ping-interval", 1.0);
       this.maxSendRetries = config.getOrElse("max-send-retries", 10);
@@ -1622,7 +1623,6 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.queueAdminAliases = config.getOrElse("queue-admin-aliases", new ArrayList<>());
       this.masterProxyIds = config.getOrElse("master-proxy-ids", new ArrayList<>());
       this.bannedReason = config.getOrElse("banned-reason", new ArrayList<>());
-      this.queueDelay = config.getOrElse("queue-delay", 0.0);
     }
 
     public boolean isEnabled() {
@@ -1661,6 +1661,10 @@ public final class VelocityConfiguration implements ProxyConfig {
       return sendDelay;
     }
 
+    public double getQueueDelay() {
+      return this.queueDelay;
+    }
+
     public double getBackendPingInterval() {
       return backendPingInterval;
     }
@@ -1675,10 +1679,6 @@ public final class VelocityConfiguration implements ProxyConfig {
 
     public List<String> getNoQueueServers() {
       return noQueueServers;
-    }
-
-    public double getQueueDelay() {
-      return this.queueDelay;
     }
 
     public boolean shouldOverrideBungeeMessaging() {
@@ -1707,6 +1707,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", maxSendRetries=" + maxSendRetries
           + ", messageDelay=" + messageDelay
           + ", sendDelay=" + sendDelay
+          + ", queueDelay=" + queueDelay
           + ", multipleServerMessagingSelection=" + multipleServerMessagingSelection
           + ", allowMultiQueue=" + allowMultiQueue
           + ", noQueueServers=" + noQueueServers
