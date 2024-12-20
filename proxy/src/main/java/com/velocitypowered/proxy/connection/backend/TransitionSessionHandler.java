@@ -150,12 +150,6 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
           // the API knows which server the player is connected to.
           smc.setAutoReading(true);
 
-          // Clears the record of servers the player has previously attempted to connect to
-          // during the current session. Ensures the fallback or dynamic server selection
-          // logic starts with a fresh slate, allowing the player to retry connecting to servers
-          // without being limited by prior connection attempts.
-          player.clearAttemptedServers();
-
           // Send client settings. In 1.20.2+ this is done in the config state.
           if (smc.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_20_2)
               && player.getClientSettingsPacket() != null) {

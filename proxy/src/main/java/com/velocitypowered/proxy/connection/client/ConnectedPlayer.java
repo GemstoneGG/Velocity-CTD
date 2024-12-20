@@ -915,52 +915,37 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       List<String> connOrder = server.getConfiguration().getAttemptConnectionOrder();
       if (connOrder.isEmpty()) {
         return Optional.empty();
-      } else {
-        Optional<RegisteredServer> selectedServer = Optional.empty();
-        int index = 0;
+      }
 
-        for (String serverName : connOrder) {
-          if (attemptedServers.contains(serverName)) {
-            continue;
-          }
-
-          RegisteredServer registeredServer = server.getServer(serverName).orElse(null);
-          if (registeredServer == null) {
-            logger.error(Component.text("Unable to read your velocity.toml fallback servers. Users are unable to connect."));
-            return selectedServer;
-          }
-
-          if ((connectedServer != null && hasSameName(connectedServer.getServer(), serverName))
-              || (connectionInFlight != null && hasSameName(connectionInFlight.getServer(), serverName))
-              || (current != null && hasSameName(current, serverName))) {
-            continue;
-          }
-
-          if (selectedServer.isEmpty()) {
-            if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("FIRST_AVAILABLE")) {
-              index = connOrder.indexOf(serverName);
-              selectedServer = Optional.of(registeredServer);
-            }
-          } else {
-            if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("MOST_POPULATED")) {
-              if (registeredServer.getPlayersConnected().size() > selectedServer.get().getPlayersConnected().size()) {
-                index = connOrder.indexOf(serverName);
-                selectedServer = Optional.of(registeredServer);
-              }
-            } else if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("LEAST_POPULATED")) {
-              if (registeredServer.getPlayersConnected().size() < selectedServer.get().getPlayersConnected().size()) {
-                index = connOrder.indexOf(serverName);
-                selectedServer = Optional.of(registeredServer);
-              }
-            }
-          }
+      Optional<RegisteredServer> selectedServer = Optional.empty();
+      for (String serverName : connOrder) {
+        if (attemptedServers.contains(serverName)) {
+          continue;
         }
 
-        selectedServer.ifPresent(registeredServer -> attemptedServers.add(registeredServer.getServerInfo().getName()));
-        tryIndex = index;
+        RegisteredServer registeredServer = server.getServer(serverName).orElse(null);
+        if (registeredServer == null) {
+          logger.error(Component.text("Unable to read your velocity.toml fallback servers. Users are unable to connect."));
+          return Optional.empty();
+        }
 
-        return selectedServer;
+        if (selectedServer.isEmpty()) {
+          if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("FIRST_AVAILABLE")) {
+            return Optional.of(registeredServer);
+          }
+          selectedServer = Optional.of(registeredServer);
+        } else if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("MOST_POPULATED")) {
+          if (registeredServer.getPlayersConnected().size() > selectedServer.get().getPlayersConnected().size()) {
+            selectedServer = Optional.of(registeredServer);
+          }
+        } else if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("LEAST_POPULATED")) {
+          if (registeredServer.getPlayersConnected().size() < selectedServer.get().getPlayersConnected().size()) {
+            selectedServer = Optional.of(registeredServer);
+          }
+        }
       }
+
+      return selectedServer;
     }
 
     for (int i = tryIndex; i < serversToTry.size(); i++) {
