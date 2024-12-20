@@ -929,6 +929,12 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           return Optional.empty();
         }
 
+        if ((connectedServer != null && hasSameName(connectedServer.getServer(), serverName))
+            || (connectionInFlight != null && hasSameName(connectionInFlight.getServer(), serverName))
+            || (current != null && hasSameName(current, serverName))) {
+          continue;
+        }
+
         if (selectedServer.isEmpty()) {
           if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("FIRST_AVAILABLE")) {
             return Optional.of(registeredServer);
