@@ -361,7 +361,7 @@ public class SendCommand {
 
     final RegisteredServer targetServer = maybeServer.get();
 
-    if (!this.server.getMultiProxyHandler().isPlayerOnline(player)
+    if (this.server.getMultiProxyHandler().isPlayerOnline(player)
         && !Objects.equals(player, "all")
         && !Objects.equals(player, "current")
         && !player.startsWith("+")) {

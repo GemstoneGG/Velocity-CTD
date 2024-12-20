@@ -430,7 +430,7 @@ public class MultiProxyHandler {
   }
 
   /**
-   * Checks if the player is still connected to any proxy on the network.
+   * Checks if the player is still connected to any proxy on the network by UUID.
    *
    * @param uuid The UUID of the player.
    *
@@ -441,15 +441,14 @@ public class MultiProxyHandler {
   }
 
   /**
-   * Checks if the player is still connected to any proxy on the network.
+   * Checks if the player is still connected to any proxy on the network by username.
    *
    * @param username The username of the player.
    *
    * @return Whether the player is connected to any proxy or not.
    */
   public boolean isPlayerOnline(final String username) {
-    return this.server.getRedisManager().getCache().stream().anyMatch(info -> info.getUsername().equalsIgnoreCase(username));
-
+    return this.server.getRedisManager().getCache().stream().noneMatch(info -> info.getUsername().equalsIgnoreCase(username));
   }
 
   /**

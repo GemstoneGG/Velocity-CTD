@@ -55,6 +55,7 @@ import redis.clients.jedis.JedisClientConfig;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisPubSub;
+import redis.clients.jedis.exceptions.JedisDataException;
 import redis.clients.jedis.exceptions.JedisException;
 
 /**
@@ -255,11 +256,9 @@ public class RedisManagerImpl {
     String json = gson.toJson(player);
 
     try (Jedis jedis = this.jedisPool.getResource()) {
-      if (!"hash".equals(jedis.type(CACHE_KEY))) {
-        jedis.del(CACHE_KEY);
-      }
-
       jedis.hset(CACHE_KEY, player.getUuid().toString(), json);
+    } catch (JedisDataException ignored) {
+      // Ignore raw hash due to redundant logging.
     } catch (Exception e) {
       e.printStackTrace();
     }

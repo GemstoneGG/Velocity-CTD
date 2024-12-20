@@ -929,6 +929,12 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           return Optional.empty();
         }
 
+        if ((connectedServer != null && hasSameName(connectedServer.getServer(), serverName))
+            || (connectionInFlight != null && hasSameName(connectionInFlight.getServer(), serverName))
+            || (current != null && hasSameName(current, serverName))) {
+          continue;
+        }
+
         if (selectedServer.isEmpty()) {
           if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("FIRST_AVAILABLE")) {
             return Optional.of(registeredServer);
@@ -1018,8 +1024,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
             : LoginStatus.CONFLICTING_LOGIN;
       }
     } else {
-      status = connection.isKnownDisconnect() ? LoginStatus.CANCELLED_BY_PROXY :
-          LoginStatus.CANCELLED_BY_USER;
+      status = connection.isKnownDisconnect() ? LoginStatus.CANCELLED_BY_PROXY : LoginStatus.CANCELLED_BY_USER;
     }
 
     DisconnectEvent event = new DisconnectEvent(this, status);
@@ -1179,7 +1184,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   @Override
-  public int getQueuePriority(String serverName) {
+  public int getQueuePriority(final String serverName) {
     for (int i = 100; i > 0; i--) {
       if (hasPermission("velocity.queue.priority." + serverName + "." + i)) {
         return i;

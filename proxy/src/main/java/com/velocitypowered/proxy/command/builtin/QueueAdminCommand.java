@@ -426,7 +426,7 @@ public class QueueAdminCommand {
     }
 
     if (this.server.getMultiProxyHandler().isRedisEnabled()) {
-      if (!this.server.getMultiProxyHandler().isPlayerOnline(playerName)) {
+      if (this.server.getMultiProxyHandler().isPlayerOnline(playerName)) {
         ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
             .arguments(Component.text(playerName)));
         return -1;
@@ -585,7 +585,7 @@ public class QueueAdminCommand {
     String playerName = ctx.getArgument("player", String.class);
 
     if (this.server.getMultiProxyHandler().isRedisEnabled()) {
-      if (!this.server.getMultiProxyHandler().isPlayerOnline(playerName)) {
+      if (this.server.getMultiProxyHandler().isPlayerOnline(playerName)) {
         ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
             .arguments(Component.text(playerName)));
         return -1;
