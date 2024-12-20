@@ -437,7 +437,7 @@ public class ServerQueueStatus {
   public void broadcast(final Component component) {
     for (ServerQueueEntry status : queue) {
       this.velocityServer.getPlayer(status.player).ifPresent(player ->
-                player.sendMessage(component));
+          player.sendMessage(component));
     }
   }
 
