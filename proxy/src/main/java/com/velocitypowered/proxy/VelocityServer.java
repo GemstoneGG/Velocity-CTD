@@ -283,6 +283,15 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     console.setupStreams();
     pluginManager.registerPlugin(this.createVirtualPlugin());
 
+    // Yes, you're reading that correctly. We're generating a 1024-bit RSA keypair. Sounds
+    // dangerous, right? We're well within the realm of factoring such a key...
+    //
+    // You can blame Mojang. For the record, we also don't consider the Minecraft protocol
+    // encryption scheme to be secure, and it has reached the point where any serious cryptographic
+    // protocol needs a refresh. There are multiple obvious weaknesses, and this is far from the
+    // most serious.
+    //
+    // If you are using Minecraft in a security-sensitive application, *I don't know what to say.*
     serverKeyPair = EncryptionUtils.createRsaKeyPair(1024);
 
     cm.logChannelInformation();
