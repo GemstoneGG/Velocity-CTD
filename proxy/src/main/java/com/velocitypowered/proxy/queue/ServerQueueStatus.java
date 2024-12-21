@@ -154,6 +154,7 @@ public class ServerQueueStatus {
     }
 
     ServerQueueEntry entry = queue.peekFirst();
+
     if (entry == null || full && !entry.fullBypass) {
       return;
     }
