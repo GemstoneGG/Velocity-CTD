@@ -52,7 +52,6 @@ import com.velocitypowered.proxy.command.builtin.PlistCommand;
 import com.velocitypowered.proxy.command.builtin.QueueAdminCommand;
 import com.velocitypowered.proxy.command.builtin.SendCommand;
 import com.velocitypowered.proxy.command.builtin.ServerCommand;
-import com.velocitypowered.proxy.command.builtin.ShowAllCommand;
 import com.velocitypowered.proxy.command.builtin.ShutdownCommand;
 import com.velocitypowered.proxy.command.builtin.SlashServerCommand;
 import com.velocitypowered.proxy.command.builtin.TransferCommand;
@@ -674,7 +673,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     unregisterCommand("plist");
     unregisterCommand("ping");
     unregisterCommand("send");
-    unregisterCommand("showall");
     unregisterCommand("hub");
     unregisterCommand("lobby");
     unregisterCommand("transfer");
@@ -719,10 +717,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
     if (!commandManager.hasCommand("send")) {
       new SendCommand(this).register(configuration.isSendEnabled());
-    }
-
-    if (!commandManager.hasCommand("showall")) {
-      new ShowAllCommand(this).register(configuration.isShowAllEnabled());
     }
 
     if (!commandManager.hasCommand("queueadmin")) {

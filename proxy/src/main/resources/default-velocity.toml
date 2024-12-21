@@ -130,7 +130,6 @@ find-enabled = true
 hub-enabled = true
 ping-enabled = true
 plist-enabled = true
-showall-enabled = true
 transfer-enabled = true
 
 # Whether to use the default "/server" output, or whether to override it with the "velocity.command.server.usage" key.

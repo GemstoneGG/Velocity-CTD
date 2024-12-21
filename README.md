@@ -47,8 +47,6 @@ dependencies, useful performance improvements, and more.
 * Configurable `/plist` command that displays the total users on your proxy
   or from a defined proxy scope.
 * The `/send` supports sending users from `{SERVER_FROM}` to `{SERVER_TO}`.
-* Configurable `/showall` command that displays all users connected to a specific
-  instance rather than flooding your chat with users connected everywhere.
 * Configurable `/transfer` command that allows you to move a player, "current" players,
   a specific server, or all players from one proxy to another.
 * Configurable `/velocity sudo` command to force users to execute a command on the
@@ -93,8 +91,6 @@ dependencies, useful performance improvements, and more.
   connected to and not the latency of the backend server).
 * `velocity.command.plist` [/plist] (Returns the total users on your proxy
   or from a defined proxy scope).
-* `velocity.command.showall` [/showall] (Shows all users connected to a specific server
-  on the proxy).
 * `velocity.command.sudo` [/velocity sudo] (Allows you to run a message or a command
   for a player).
 * `velocity.command.transfer` [/transfer] (Allows you to transfer a player, "current" players,

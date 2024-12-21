@@ -492,10 +492,6 @@ public final class VelocityConfiguration implements ProxyConfig {
     return commands.isSendEnabled();
   }
 
-  public boolean isShowAllEnabled() {
-    return commands.isShowAllEnabled();
-  }
-
   public boolean isOverrideServerCommandUsage() {
     return commands.isOverrideServerCommandUsage();
   }
@@ -1102,8 +1098,6 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private boolean sendCommand = true;
     @Expose
-    private boolean showAllCommand = true;
-    @Expose
     private boolean overrideServerCommandUsage = false;
     @Expose
     private boolean transferEnabled = true;
@@ -1122,7 +1116,6 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.hubCommand = config.getOrElse("hub-enabled", true);
         this.pingCommand = config.getOrElse("ping-enabled", true);
         this.sendCommand = config.getOrElse("send-enabled", true);
-        this.showAllCommand = config.getOrElse("showall-enabled", true);
         this.overrideServerCommandUsage = config.getOrElse("override-server-command-usage", false);
         this.transferEnabled = config.getOrElse("transfer-enabled", true);
       }
@@ -1164,10 +1157,6 @@ public final class VelocityConfiguration implements ProxyConfig {
       return sendCommand;
     }
 
-    public boolean isShowAllEnabled() {
-      return showAllCommand;
-    }
-
     public boolean isOverrideServerCommandUsage() {
       return overrideServerCommandUsage;
     }
@@ -1188,7 +1177,6 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", hubCommand=" + hubCommand
           + ", pingCommand=" + pingCommand
           + ", sendCommand=" + sendCommand
-          + ", showAllCommand=" + showAllCommand
           + ", overrideServerCommandUsage=" + overrideServerCommandUsage
           + '}';
     }
