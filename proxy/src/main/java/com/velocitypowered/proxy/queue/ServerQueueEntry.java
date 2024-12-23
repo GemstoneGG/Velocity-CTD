@@ -56,7 +56,6 @@ public class ServerQueueEntry {
     this.queueBypass = queueBypass;
   }
 
-
   /**
    * Constructs a new queue entry.
    *
@@ -69,9 +68,9 @@ public class ServerQueueEntry {
    * @param fullBypass Full bypass.
    * @param queueBypass Queue bypass.
    */
-  public ServerQueueEntry(UUID player, VelocityRegisteredServer target,
-                          VelocityServer proxy, int connectionAttempts, boolean waitingForConnection,
-                          int priority, boolean fullBypass, boolean queueBypass) {
+  public ServerQueueEntry(final UUID player, final VelocityRegisteredServer target,
+                          final VelocityServer proxy, final int connectionAttempts, final boolean waitingForConnection,
+                          final int priority, final boolean fullBypass, final boolean queueBypass) {
     this.proxy = proxy;
     this.connectionAttempts = connectionAttempts;
     this.waitingForConnection = waitingForConnection;
@@ -91,8 +90,8 @@ public class ServerQueueEntry {
    * @param fullBypass Full bypass.
    * @param queueBypass Queue bypass.
    */
-  public void update(int connectionAttempts, boolean waitingForConnection,
-                     int priority, boolean fullBypass, boolean queueBypass) {
+  public void update(final int connectionAttempts, final boolean waitingForConnection,
+                     final int priority, final boolean fullBypass, final boolean queueBypass) {
     this.connectionAttempts = connectionAttempts;
     this.waitingForConnection = waitingForConnection;
     this.priority = priority;
@@ -213,7 +212,7 @@ public class ServerQueueEntry {
    *
    * @param waitingForConnection The waiting for connection status.
    */
-  public void setWaitingForConnection(boolean waitingForConnection) {
+  public void setWaitingForConnection(final boolean waitingForConnection) {
     this.waitingForConnection = waitingForConnection;
   }
 

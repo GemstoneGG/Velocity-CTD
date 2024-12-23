@@ -74,8 +74,8 @@ public class ServerQueueStatus {
    * @param full Full or not.
    * @param paused Paused or not.
    */
-  public ServerQueueStatus(VelocityRegisteredServer server, VelocityServer velocityServer, Deque<ServerQueueEntry> queue,
-                           ServerStatus online, boolean full, boolean paused) {
+  public ServerQueueStatus(final VelocityRegisteredServer server, final VelocityServer velocityServer, final Deque<ServerQueueEntry> queue,
+                           final ServerStatus online, final boolean full, final boolean paused) {
     this.server = server;
     this.velocityServer = velocityServer;
     this.queue = queue;
@@ -159,8 +159,6 @@ public class ServerQueueStatus {
     return online == ServerStatus.ONLINE;
   }
 
-
-
   /**
    * Generate the ETA component.
    *
@@ -240,8 +238,8 @@ public class ServerQueueStatus {
       if (!inserted) {
         queue.addLast(entry);
       }
-      this.velocityServer.getRedisManager().addOrUpdateQueue(this);
 
+      this.velocityServer.getRedisManager().addOrUpdateQueue(this);
     }
   }
 
@@ -538,7 +536,7 @@ public class ServerQueueStatus {
    *
    * @param serverStatus The queue status.
    */
-  public void setStatus(ServerStatus serverStatus) {
+  public void setStatus(final ServerStatus serverStatus) {
     if (this.online != serverStatus) {
       this.online = serverStatus;
       this.velocityServer.getRedisManager().addOrUpdateQueue(this);
@@ -550,11 +548,10 @@ public class ServerQueueStatus {
    *
    * @param newFull The full status.
    */
-  public void setFull(boolean newFull) {
+  public void setFull(final boolean newFull) {
     if (this.full != newFull) {
       this.full = newFull;
       this.velocityServer.getRedisManager().addOrUpdateQueue(this);
     }
   }
-
 }

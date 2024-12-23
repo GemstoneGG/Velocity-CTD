@@ -60,16 +60,24 @@ public class SlashServerCommand {
     );
   }
 
-  private int send(CommandContext<CommandSource> ctx) {
+  /**
+   * Connects the player to the target server when the command is executed.
+   *
+   * @param ctx the command context containing command details
+   * @return a success code indicating the result of the command
+   */
+  private int send(final CommandContext<CommandSource> ctx) {
     final Player player = (Player) ctx.getSource();
 
     if (this.proxyServer.getConfiguration().getQueue().getNoQueueServers().contains(this.server.getServerInfo().getName())) {
       player.createConnectionRequest(this.server).connectWithIndication();
+      return Command.SINGLE_SUCCESS;
     }
 
     ServerConnection conn = player.getCurrentServer().orElse(null);
     if (conn != null && conn.getServerInfo().getName().equalsIgnoreCase(server.getServerInfo().getName())) {
       player.sendMessage(Component.translatable("velocity.command.slashserver.already-connected"));
+      return Command.SINGLE_SUCCESS;
     }
 
     this.proxyServer.getQueueManager().queue(player, this.server);

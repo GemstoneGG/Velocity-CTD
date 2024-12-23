@@ -37,7 +37,7 @@ public class RedisRetriever implements QueueCacheRetriever {
    *
    * @param proxy The proxy.
    */
-  public RedisRetriever(VelocityServer proxy) {
+  public RedisRetriever(final VelocityServer proxy) {
     this.proxy = proxy;
     this.redisManager = proxy.getRedisManager();
   }
@@ -49,7 +49,7 @@ public class RedisRetriever implements QueueCacheRetriever {
    * @return The queue.
    */
   @Override
-  public ServerQueueStatus get(String serverName) {
+  public ServerQueueStatus get(final String serverName) {
     VelocityRegisteredServer server = (VelocityRegisteredServer) proxy.getServer(serverName).orElse(null);
     if (server == null) {
       throw new IllegalArgumentException("Attempted to fetch queue for invalid server: '" + serverName + "'");

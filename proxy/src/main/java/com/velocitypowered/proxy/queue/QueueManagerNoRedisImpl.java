@@ -33,6 +33,7 @@ import net.kyori.adventure.text.Component;
  * Manages the queue system without redis.
  */
 public class QueueManagerNoRedisImpl extends QueueManager {
+
   /**
    * Constructs a {@link QueueManagerRedisImpl}.
    *
@@ -43,7 +44,6 @@ public class QueueManagerNoRedisImpl extends QueueManager {
     this.cache = new StandardRetriever(server);
   }
 
-
   /**
    * Checks whether the current proxy is the current master-proxy or not.
    *
@@ -52,7 +52,6 @@ public class QueueManagerNoRedisImpl extends QueueManager {
   public boolean isMasterProxy() {
     return true;
   }
-
 
   /**
    * Hook that removes the player from all queues.

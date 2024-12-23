@@ -179,8 +179,6 @@ public class RedisManagerImpl {
     }
   }
 
-
-
   /**
    * Get all the paused queues.
    *
@@ -299,13 +297,12 @@ public class RedisManagerImpl {
     }
   }
 
-
   /**
    * Add or update a queue in the cache.
    *
    * @param queue The queue to add or update.
    */
-  public void addOrUpdateQueue(ServerQueueStatus queue) {
+  public void addOrUpdateQueue(final ServerQueueStatus queue) {
     if (this.jedisPool == null) {
       return;
     }
@@ -324,7 +321,7 @@ public class RedisManagerImpl {
    *
    * @param serverQueueEntry The entry to update.
    */
-  public void addOrUpdateEntry(ServerQueueEntry serverQueueEntry) {
+  public void addOrUpdateEntry(final ServerQueueEntry serverQueueEntry) {
     if (this.jedisPool == null) {
       return;
     }
@@ -353,11 +350,10 @@ public class RedisManagerImpl {
    * @param serverName The name of the server.
    * @return The queue from the cache.
    */
-  public SerializableQueue getQueue(String serverName) {
+  public SerializableQueue getQueue(final String serverName) {
     if (this.jedisPool == null) {
       return null;
     }
-
 
     try (Jedis jedis = this.jedisPool.getResource()) {
       String json = jedis.hget(QUEUE_CACHE_KEY, serverName);
@@ -467,8 +463,6 @@ public class RedisManagerImpl {
   public boolean isEnabled() {
     return jedisPool != null;
   }
-
-
 
   /**
    * Manages subscriptions and incoming message handling on a Redis channel.
