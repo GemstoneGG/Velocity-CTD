@@ -41,8 +41,8 @@ public class SerializableQueueEntry {
    * @param fullBypass The full bypass.
    * @param queueBypass The queue bypass.
    */
-  public SerializableQueueEntry(UUID uuid, int connectionAttempts, boolean waitingForConnection,
-                                int priority, boolean fullBypass, boolean queueBypass) {
+  public SerializableQueueEntry(final UUID uuid, final int connectionAttempts, final boolean waitingForConnection,
+                                final int priority, final boolean fullBypass, final boolean queueBypass) {
     this.uuid = uuid;
     this.connectionAttempts = connectionAttempts;
     this.waitingForConnection = waitingForConnection;

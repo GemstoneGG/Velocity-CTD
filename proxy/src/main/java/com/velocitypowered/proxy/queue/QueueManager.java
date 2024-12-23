@@ -119,7 +119,6 @@ public abstract class QueueManager {
         .schedule();
   }
 
-
   private void rescheduleTimerTask() {
     if (this.sendingTaskHandle != null) {
       this.sendingTaskHandle.cancel();
@@ -134,7 +133,6 @@ public abstract class QueueManager {
         .repeat((int) (this.config.getSendDelay() * 1000), TimeUnit.MILLISECONDS)
         .schedule();
   }
-
 
   /**
    * Handles the logic for when a player leaves.
@@ -151,7 +149,6 @@ public abstract class QueueManager {
       if (!isMasterProxy()) {
         return;
       }
-
 
       if (queue.isPaused() || !queue.isOnline()) {
         return;

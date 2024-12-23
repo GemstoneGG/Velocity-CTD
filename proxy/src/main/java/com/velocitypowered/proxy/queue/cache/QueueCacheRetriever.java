@@ -24,6 +24,7 @@ import java.util.List;
  * Represents the cache of all the queues.
  */
 public interface QueueCacheRetriever {
+
   /**
    * Gets a queue.
    *
