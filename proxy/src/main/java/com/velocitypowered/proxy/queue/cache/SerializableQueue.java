@@ -40,7 +40,7 @@ public class SerializableQueue {
    *
    * @param status The real queue.
    */
-  public SerializableQueue(ServerQueueStatus status) {
+  public SerializableQueue(final ServerQueueStatus status) {
     status.getQueue().forEach(e -> {
       queue.add(new SerializableQueueEntry(e.getPlayer(),
           e.getConnectionAttempts(),
@@ -55,7 +55,6 @@ public class SerializableQueue {
     this.serverName = status.getServerName();
   }
 
-
   /**
    * Converts the JSON to real object.
    *
@@ -63,8 +62,8 @@ public class SerializableQueue {
    * @param server The server.
    * @return The real object.
    */
-  public ServerQueueStatus convert(VelocityServer proxy,
-                                   VelocityRegisteredServer server) {
+  public ServerQueueStatus convert(final VelocityServer proxy,
+                                   final VelocityRegisteredServer server) {
     final Deque<ServerQueueEntry> entries = new ConcurrentLinkedDeque<>();
     queue.forEach(q -> {
       entries.add(new ServerQueueEntry(q.getUuid(),
