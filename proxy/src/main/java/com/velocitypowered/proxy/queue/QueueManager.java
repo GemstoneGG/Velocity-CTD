@@ -170,10 +170,14 @@ public abstract class QueueManager {
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         if (this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
           queue.sendFirstInQueue();
+        } else {
+          queue.getQueue().pollFirst();
         }
       } else {
         if (this.server.getPlayer(entry.getPlayer()).orElse(null) != null) {
           queue.sendFirstInQueue();
+        } else {
+          queue.getQueue().pollFirst();
         }
       }
     });
@@ -249,7 +253,7 @@ public abstract class QueueManager {
         return i;
       }
     }
-    return 1;
+    return -1;
   }
 
   /**

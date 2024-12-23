@@ -60,11 +60,15 @@ public class QueueManagerNoRedisImpl extends QueueManager {
    * @param player the disconnecting player
    */
   public void onPlayerLeave(final ConnectedPlayer player) {
-    this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, ()
-        -> this.server.getAllServers().forEach(server
-            -> dequeue(player.getUniqueId(), server.getServerInfo().getName(), false)))
-    .delay(getTimeoutInSeconds(player), TimeUnit.SECONDS)
-    .schedule();
+    long timeout = getTimeoutInSeconds(player);
+
+    if (timeout == -1) {
+      removeFromAll(player);
+    } else {
+      this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+        removeFromAll(player);
+      }).delay(getTimeoutInSeconds(player), TimeUnit.SECONDS).schedule();
+    }
   }
 
   /**

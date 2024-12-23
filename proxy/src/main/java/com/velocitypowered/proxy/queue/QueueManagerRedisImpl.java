@@ -133,9 +133,15 @@ public class QueueManagerRedisImpl extends QueueManager {
    */
   @Override
   public void onPlayerLeave(final ConnectedPlayer player) {
-    this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> this.server.getAllServers().forEach(server -> {
-      getQueue(server.getServerInfo().getName()).dequeue(player.getUniqueId(), false);
-    })).delay(getTimeoutInSeconds(player), TimeUnit.SECONDS).schedule();
+    long timeout = getTimeoutInSeconds(player);
+
+    if (timeout == -1) {
+      removeFromAll(player);
+    } else {
+      this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+        removeFromAll(player);
+      }).delay(getTimeoutInSeconds(player), TimeUnit.SECONDS).schedule();
+    }
   }
 
   /**
