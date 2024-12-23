@@ -39,7 +39,6 @@ import com.velocitypowered.proxy.protocol.packet.JoinGamePacket;
 import com.velocitypowered.proxy.protocol.packet.KeepAlivePacket;
 import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
 import com.velocitypowered.proxy.queue.ServerQueueStatus;
-import com.velocitypowered.proxy.redis.multiproxy.RedisQueueLeaveRequest;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import org.apache.logging.log4j.LogManager;
@@ -162,15 +161,9 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
           }
 
           if (this.server.getQueueManager().isQueueEnabled()) {
-            if (this.server.getRedisManager().isEnabled()) {
-              this.server.getRedisManager().send(new RedisQueueLeaveRequest(player.getUniqueId(),
-                  serverConn.getServer().getServerInfo().getName(),
-                  false));
-            } else {
-              ServerQueueStatus status = this.server.getQueueManager().getQueue(serverConn.getServer()
-                  .getServerInfo().getName());
-              status.dequeue(player.getUniqueId(), false);
-            }
+            ServerQueueStatus status = this.server.getQueueManager().getQueue(serverConn.getServer()
+                .getServerInfo().getName());
+            status.dequeue(player.getUniqueId(), false);
           }
 
           // We're done! :)

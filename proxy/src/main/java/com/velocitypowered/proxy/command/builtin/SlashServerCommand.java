@@ -65,13 +65,11 @@ public class SlashServerCommand {
 
     if (this.proxyServer.getConfiguration().getQueue().getNoQueueServers().contains(this.server.getServerInfo().getName())) {
       player.createConnectionRequest(this.server).connectWithIndication();
-      return Command.SINGLE_SUCCESS;
     }
 
     ServerConnection conn = player.getCurrentServer().orElse(null);
     if (conn != null && conn.getServerInfo().getName().equalsIgnoreCase(server.getServerInfo().getName())) {
       player.sendMessage(Component.translatable("velocity.command.slashserver.already-connected"));
-      return Command.SINGLE_SUCCESS;
     }
 
     this.proxyServer.getQueueManager().queue(player, this.server);

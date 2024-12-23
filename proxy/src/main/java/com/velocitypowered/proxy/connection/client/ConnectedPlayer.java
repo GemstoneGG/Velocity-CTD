@@ -92,7 +92,6 @@ import com.velocitypowered.proxy.protocol.packet.config.StartUpdatePacket;
 import com.velocitypowered.proxy.protocol.packet.title.GenericTitlePacket;
 import com.velocitypowered.proxy.protocol.util.ByteBufDataOutput;
 import com.velocitypowered.proxy.queue.ServerQueueStatus;
-import com.velocitypowered.proxy.redis.multiproxy.RedisQueueAddRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import com.velocitypowered.proxy.tablist.InternalTabList;
 import com.velocitypowered.proxy.tablist.KeyedVelocityTabList;
@@ -847,19 +846,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                   if (this.server.getConfiguration().getQueue().isQueueOnShutdown()) {
                     ServerQueueStatus s = this.server.getQueueManager().getQueue(originalEvent.getServer().getServerInfo().getName());
                     if (!s.isPaused() || this.server.getConfiguration().getQueue().isAllowPausedQueueJoining()) {
-                      if (this.server.getMultiProxyHandler().isRedisEnabled()) {
-                        this.server.getRedisManager().send(new RedisQueueAddRequest(getUniqueId(),
-                            s.getServerName(),
-                            getQueuePriority(s.getServerName()),
-                            true,
-                            hasPermission("velocity.queue.full.bypass"),
-                            hasPermission("velocity.queue.bypass")));
-                      } else {
-                        s.queue(getUniqueId(),
-                            getQueuePriority(originalEvent.getServer().getServerInfo().getName()),
-                            hasPermission("velocity.queue.full.bypass"),
-                            hasPermission("velocity.queue.bypass"));
-                      }
+                      s.queue(getUniqueId(),
+                          getQueuePriority(originalEvent.getServer().getServerInfo().getName()),
+                          hasPermission("velocity.queue.full.bypass"),
+                          hasPermission("velocity.queue.bypass"));
                     }
                   }
                   break;

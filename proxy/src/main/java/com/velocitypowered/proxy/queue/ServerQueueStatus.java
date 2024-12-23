@@ -18,7 +18,6 @@
 package com.velocitypowered.proxy.queue;
 
 import com.velocitypowered.api.proxy.Player;
-import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
@@ -46,13 +45,10 @@ public class ServerQueueStatus {
   private final VelocityRegisteredServer server;
   private final VelocityServer velocityServer;
   private VelocityConfiguration.@MonotonicNonNull Queue config;
-  private final Deque<ServerQueueEntry> queue = new ConcurrentLinkedDeque<>();
+  private final Deque<ServerQueueEntry> queue;
   private ServerStatus online = ServerStatus.ONLINE;
   private boolean full = false;
-  private ScheduledTask sendingTaskHandle = null;
   private boolean paused = false;
-
-  private static long LAST_TURNED_ONLINE_TIME = -1;
 
   /**
    * Constructs a {@link ServerQueueStatus} instance.
@@ -64,7 +60,38 @@ public class ServerQueueStatus {
                            final VelocityServer velocityServer) {
     this.server = server;
     this.velocityServer = velocityServer;
+    queue = new ConcurrentLinkedDeque<>();
     this.reloadConfig();
+  }
+
+  /**
+   * Constructs a new queue instance.
+   *
+   * @param server The target server.
+   * @param velocityServer The proxy.
+   * @param queue The cached queue list.
+   * @param online The server status.
+   * @param full Full or not.
+   * @param paused Paused or not.
+   */
+  public ServerQueueStatus(VelocityRegisteredServer server, VelocityServer velocityServer, Deque<ServerQueueEntry> queue,
+                           ServerStatus online, boolean full, boolean paused) {
+    this.server = server;
+    this.velocityServer = velocityServer;
+    this.queue = queue;
+    this.online = online;
+    this.full = full;
+    this.paused = paused;
+    this.reloadConfig();
+  }
+
+  /**
+   * Returns the whole queue.
+   *
+   * @return The whole queue.
+   */
+  public Deque<ServerQueueEntry> getQueue() {
+    return this.queue;
   }
 
   /**
@@ -75,39 +102,30 @@ public class ServerQueueStatus {
       List<RemotePlayerInfo> list = this.velocityServer.getRedisManager().getCache();
       for (ServerQueueEntry entry : this.queue) {
         for (RemotePlayerInfo info : list) {
-          if (info.getUuid().equals(entry.player)) {
+          if (info.getUuid().equals(entry.getPlayer())) {
             info.setQueuedServer(null);
             this.velocityServer.getRedisManager().addOrUpdatePlayer(info);
           }
         }
       }
-    }
 
-    if (sendingTaskHandle != null) {
-      sendingTaskHandle.cancel();
+      this.velocityServer.getRedisManager().addOrUpdateQueue(this);
     }
+    queue.clear();
   }
 
-  private void rescheduleTimerTask() {
-    if (this.sendingTaskHandle != null) {
-      this.sendingTaskHandle.cancel();
-    }
-
-    this.sendingTaskHandle = this.velocityServer.getScheduler()
-        .buildTask(VelocityVirtualPlugin.INSTANCE, this::tickSending)
-        .repeat((int) (this.config.getSendDelay() * 1000), TimeUnit.MILLISECONDS)
-        .schedule();
-  }
 
   /**
    * Called by {@link QueueManagerRedisImpl} when the proxy config is reloaded.
    */
   void reloadConfig() {
     this.config = this.velocityServer.getConfiguration().getQueue();
-    this.rescheduleTimerTask();
   }
 
-  private void sendFirstInQueue() {
+  /**
+   * Send the first person in the queue.
+   */
+  public void sendFirstInQueue() {
 
     ServerQueueEntry entry = queue.peekFirst();
 
@@ -118,19 +136,19 @@ public class ServerQueueStatus {
 
     // check if they're online
     if (velocityServer.getMultiProxyHandler().isRedisEnabled()) {
-      if (!velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
+      if (!velocityServer.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
         queue.removeFirst();
         return;
       }
     } else {
-      if (this.velocityServer.getPlayer(entry.player).isEmpty()) {
+      if (this.velocityServer.getPlayer(entry.getPlayer()).isEmpty()) {
         queue.removeFirst();
       }
     }
 
     // check if an entry is being sent (this will set to false automatically
     // whether it was successful or not)
-    if (entry.waitingForConnection) {
+    if (entry.isWaitingForConnection()) {
       return;
     }
 
@@ -141,80 +159,7 @@ public class ServerQueueStatus {
     return online == ServerStatus.ONLINE;
   }
 
-  /**
-   * Sends the next player in queue, unless the queue is paused.
-   */
-  private void tickSending() {
-    if (isPaused() || !isOnline()) {
-      return;
-    }
 
-    if (queue.isEmpty()) {
-      return;
-    }
-
-    ServerQueueEntry entry = queue.peekFirst();
-
-    if (entry == null || full && !entry.fullBypass) {
-      return;
-    }
-
-    if (velocityServer.getMultiProxyHandler().isRedisEnabled()) {
-      if (velocityServer.getMultiProxyHandler().isPlayerOnline(entry.player)) {
-        sendFirstInQueue();
-      }
-    } else {
-      if (velocityServer.getPlayer(entry.player).orElse(null) != null) {
-        sendFirstInQueue();
-      }
-    }
-  }
-
-  /**
-   * Pings the backend to update the online flag.
-   */
-  public void tickPingingBackend() {
-    server.ping().whenComplete((result, th) -> {
-      double queueDelay = this.velocityServer.getConfiguration().getQueue().getQueueDelay() * 1000;
-
-      if (th != null) {
-        online = ServerStatus.OFFLINE;
-      }
-
-      if (online == ServerStatus.OFFLINE && th == null) {
-        online = ServerStatus.WAITING;
-        LAST_TURNED_ONLINE_TIME = System.currentTimeMillis();
-      }
-
-      if (th == null && System.currentTimeMillis() >= LAST_TURNED_ONLINE_TIME + queueDelay
-          && online == ServerStatus.WAITING) {
-        online = ServerStatus.ONLINE;
-      }
-
-      ServerStatus temp = online;
-
-      if (temp != ServerStatus.ONLINE && isOnline()) {
-        for (ServerQueueEntry entry : queue) {
-          if (entry.queueBypass) {
-            entry.send();
-            dequeue(entry.player, false);
-          }
-        }
-      }
-
-      if (isOnline()) {
-        final int maxPlayers = this.velocityServer.getConfiguration().getPlayerCaps().get(server.getServerInfo().getName());
-        long playerCount;
-        if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
-          playerCount = this.velocityServer.getMultiProxyHandler().getAllPlayers().stream().filter(info -> info.getServerName() != null
-              && info.getServerName().equalsIgnoreCase(server.getServerInfo().getName())).count();
-        } else {
-          playerCount = server.getPlayerCount();
-        }
-        full = playerCount >= maxPlayers;
-      }
-    });
-  }
 
   /**
    * Generate the ETA component.
@@ -243,6 +188,7 @@ public class ServerQueueStatus {
     } else {
       this.paused = paused;
     }
+    this.velocityServer.getRedisManager().addOrUpdateQueue(this);
   }
 
   /**
@@ -252,9 +198,6 @@ public class ServerQueueStatus {
    * @param priority The priority with which the player should be added.
    */
   public void queue(final UUID playerUuid, final int priority, final boolean fullBypass, final boolean queueBypass) {
-    if (!this.velocityServer.getQueueManager().isMasterProxy()) {
-      return;
-    }
     if (!config.isEnabled()) {
       Player player = server.getPlayer(playerUuid);
       if (player != null) {
@@ -286,7 +229,7 @@ public class ServerQueueStatus {
       while (iterator.hasNext()) {
         ServerQueueEntry currentEntry = iterator.next();
 
-        if (currentEntry.priority < priority) {
+        if (currentEntry.getPriority() < priority) {
           insertAtPosition(entry, position);
           inserted = true;
           break;
@@ -297,10 +240,8 @@ public class ServerQueueStatus {
       if (!inserted) {
         queue.addLast(entry);
       }
-    }
+      this.velocityServer.getRedisManager().addOrUpdateQueue(this);
 
-    if (this.sendingTaskHandle == null) {
-      this.rescheduleTimerTask();
     }
   }
 
@@ -334,10 +275,11 @@ public class ServerQueueStatus {
                   .arguments(Component.text(getServerName()),
                       Component.text(this.velocityServer.getConfiguration().getQueue().getMaxSendRetries()))));
         } else {
-          this.velocityServer.getPlayer(player).ifPresent(p
-              -> p.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached")
+          this.velocityServer.getPlayer(player).ifPresent(p -> {
+            p.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached")
                   .arguments(Component.text(getServerName()),
-                      Component.text(this.velocityServer.getConfiguration().getQueue().getMaxSendRetries()))));
+                      Component.text(this.velocityServer.getConfiguration().getQueue().getMaxSendRetries())));
+          });
         }
       }
     }).delay(1, TimeUnit.SECONDS).schedule();
@@ -350,7 +292,8 @@ public class ServerQueueStatus {
       }
     }
 
-    this.queue.removeIf(entry -> entry.player.equals(player));
+    this.queue.removeIf(entry -> entry.getPlayer().equals(player));
+    this.velocityServer.getRedisManager().addOrUpdateQueue(this);
   }
 
   /**
@@ -362,7 +305,7 @@ public class ServerQueueStatus {
    */
   public Optional<ServerQueueEntry> getEntry(final UUID playerUuid) {
     for (ServerQueueEntry entry : queue) {
-      if (entry.player.equals(playerUuid)) {
+      if (entry.getPlayer().equals(playerUuid)) {
         return Optional.of(entry);
       }
     }
@@ -437,7 +380,7 @@ public class ServerQueueStatus {
    */
   public void broadcast(final Component component) {
     for (ServerQueueEntry status : queue) {
-      this.velocityServer.getPlayer(status.player).ifPresent(player ->
+      this.velocityServer.getPlayer(status.getPlayer()).ifPresent(player ->
           player.sendMessage(component));
     }
   }
@@ -450,7 +393,7 @@ public class ServerQueueStatus {
    */
   public boolean isQueued(final UUID playerUuid) {
     for (ServerQueueEntry queueStatus : queue) {
-      if (queueStatus.player.equals(playerUuid)) {
+      if (queueStatus.getPlayer().equals(playerUuid)) {
         return true;
       }
     }
@@ -474,21 +417,21 @@ public class ServerQueueStatus {
    * @return the component to display to the player
    */
   public Component getActionBarComponent(final ServerQueueEntry entry) {
-    int position = getQueuePosition(entry.player);
-    if (entry.queueBypass) {
+    int position = getQueuePosition(entry.getPlayer());
+    if (entry.isQueueBypass()) {
       return Component.translatable("velocity.queue.player-status.bypass", NamedTextColor.YELLOW);
-    } else if (full && !entry.fullBypass) {
+    } else if (full && !entry.isFullBypass()) {
       return Component.translatable("velocity.queue.player-status.full", NamedTextColor.YELLOW)
           .arguments(
               Component.text(position),
               Component.text(queue.size()),
-              Component.text(entry.target.getServerInfo().getName()),
+              Component.text(entry.getTarget().getServerInfo().getName()),
               calculateEta(position)
           );
-    } else if (entry.waitingForConnection) {
+    } else if (entry.isWaitingForConnection()) {
       return Component.translatable("velocity.queue.player-status.connecting",
                       NamedTextColor.YELLOW)
-          .arguments(Component.text(entry.target.getServerInfo().getName()));
+          .arguments(Component.text(entry.getTarget().getServerInfo().getName()));
     } else if (isPaused()) {
       return Component.translatable("velocity.queue.player-status.paused", NamedTextColor.YELLOW);
     } else if (isOnline()) {
@@ -496,7 +439,7 @@ public class ServerQueueStatus {
           .arguments(
               Component.text(position),
               Component.text(queue.size()),
-              Component.text(entry.target.getServerInfo().getName()),
+              Component.text(entry.getTarget().getServerInfo().getName()),
               calculateEta(position)
           );
     } else {
@@ -504,7 +447,7 @@ public class ServerQueueStatus {
           .arguments(
               Component.text(position),
               Component.text(queue.size()),
-              Component.text(entry.target.getServerInfo().getName())
+              Component.text(entry.getTarget().getServerInfo().getName())
           );
     }
   }
@@ -520,7 +463,7 @@ public class ServerQueueStatus {
     int position = 1;
 
     for (ServerQueueEntry entry : queue) {
-      if (entry.player.equals(player)) {
+      if (entry.getPlayer().equals(player)) {
         return position;
       }
 
@@ -539,7 +482,7 @@ public class ServerQueueStatus {
     Map<ServerQueueEntry, UUID> foundPlayers = new HashMap<>();
 
     for (ServerQueueEntry entry : queue) {
-      foundPlayers.put(entry, entry.player);
+      foundPlayers.put(entry, entry.getPlayer());
     }
 
     return foundPlayers;
@@ -554,6 +497,11 @@ public class ServerQueueStatus {
     return this.server.getServerInfo().getName();
   }
 
+  /**
+   * Get the size of the queue.
+   *
+   * @return The size of the queue.
+   */
   public int getSize() {
     return this.queue.size();
   }
@@ -566,4 +514,47 @@ public class ServerQueueStatus {
   public List<ServerQueueEntry> getAllEntries() {
     return this.queue.stream().toList();
   }
+
+  /**
+   * Gets the status of the queue.
+   *
+   * @return The status of the queue.
+   */
+  public ServerStatus getStatus() {
+    return this.online;
+  }
+
+  /**
+   * Checks if the queue is full.
+   *
+   * @return If the queue is full.
+   */
+  public boolean isFull() {
+    return this.full;
+  }
+
+  /**
+   * Set the status of the queue.
+   *
+   * @param serverStatus The queue status.
+   */
+  public void setStatus(ServerStatus serverStatus) {
+    if (this.online != serverStatus) {
+      this.online = serverStatus;
+      this.velocityServer.getRedisManager().addOrUpdateQueue(this);
+    }
+  }
+
+  /**
+   * Set the queue full status.
+   *
+   * @param newFull The full status.
+   */
+  public void setFull(boolean newFull) {
+    if (this.full != newFull) {
+      this.full = newFull;
+      this.velocityServer.getRedisManager().addOrUpdateQueue(this);
+    }
+  }
+
 }

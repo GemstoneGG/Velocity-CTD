@@ -34,8 +34,6 @@ import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.queue.ServerQueueEntry;
 import com.velocitypowered.proxy.queue.ServerQueueStatus;
-import com.velocitypowered.proxy.redis.multiproxy.RedisQueueAddRequest;
-import com.velocitypowered.proxy.redis.multiproxy.RedisQueueLeaveRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
@@ -282,7 +280,7 @@ public class QueueAdminCommand {
           }
         } else {
           for (ServerQueueEntry entry : velocityRegisteredServer.getQueueStatus().getAllEntries()) {
-            this.server.getPlayer(entry.player).ifPresent(player -> players.add(Component.text(player.getUsername())));
+            this.server.getPlayer(entry.getPlayer()).ifPresent(player -> players.add(Component.text(player.getUsername())));
           }
         }
 
@@ -332,7 +330,7 @@ public class QueueAdminCommand {
       }
     } else {
       for (ServerQueueEntry entry : server.getQueueStatus().getAllEntries()) {
-        this.server.getPlayer(entry.player).ifPresent(player -> players.add(Component.text(player.getUsername())));
+        this.server.getPlayer(entry.getPlayer()).ifPresent(player -> players.add(Component.text(player.getUsername())));
       }
     }
 
@@ -448,10 +446,10 @@ public class QueueAdminCommand {
         return -1;
       }
 
-      this.server.getRedisManager().send(new RedisQueueAddRequest(info.getUuid(), server.getServerInfo().getName(),
-          info.getQueuePriority().getOrDefault(server.getServerInfo().getName(), 0), false,
+      this.server.getQueueManager().getQueue(server.getServerInfo().getName()).queue(info.getUuid(),
+          info.getQueuePriority().getOrDefault(server.getServerInfo().getName(), 0),
           info.isFullQueueBypass(),
-          info.isQueueBypass()));
+          info.isQueueBypass());
     } else {
       Player p = this.server.getPlayer(playerName).orElse(null);
       if (p == null) {
@@ -533,10 +531,10 @@ public class QueueAdminCommand {
       }
 
       for (RemotePlayerInfo info : connected) {
-        this.server.getRedisManager().send(new RedisQueueAddRequest(info.getUuid(), to.getServerInfo().getName(),
-            info.getQueuePriority().getOrDefault(to.getServerInfo().getName(), 0), false,
+        this.server.getQueueManager().getQueue(to.getServerInfo().getName()).queue(info.getUuid(),
+            info.getQueuePriority().getOrDefault(to.getServerInfo().getName(), 0),
             info.isFullQueueBypass(),
-            info.isQueueBypass()));
+            info.isQueueBypass());
       }
 
       connectedSize = connected.size();
@@ -629,8 +627,8 @@ public class QueueAdminCommand {
         }
 
 
-        this.server.getRedisManager().send(new RedisQueueLeaveRequest(info.getUuid(),
-            server.getServerInfo().getName(), false));
+        this.server.getQueueManager().getQueue(server.getServerInfo().getName()).dequeue(info.getUuid(),
+            false);
       }
     } else {
       Player player = this.server.getPlayer(playerName).orElse(null);
@@ -690,8 +688,8 @@ public class QueueAdminCommand {
 
       for (RemotePlayerInfo player : players) {
         if (player.getQueuedServer() != null && player.getQueuedServer().equalsIgnoreCase(server.getServerInfo().getName())) {
-          this.server.getRedisManager().send(new RedisQueueLeaveRequest(player.getUuid(), server.getServerInfo().getName(),
-              false));
+          this.server.getQueueManager().getQueue(server.getServerInfo().getName()).dequeue(player.getUuid(),
+              false);
           amount++;
         }
       }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2020-2024 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,23 +15,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocitypowered.proxy.redis.multiproxy;
+package com.velocitypowered.proxy.queue.cache;
 
-import com.velocitypowered.proxy.redis.RedisPacket;
-import java.util.UUID;
+import com.velocitypowered.proxy.queue.ServerQueueStatus;
+import java.util.List;
 
 /**
- * Represents a packet that will send a warning message to a player in case they've already.
- * joined a queue they're intending to join
- *
- * @param uuid The UUID of the player.
- * @param serverName The name of the server.
+ * Represents the cache of all the queues.
  */
-public record RedisQueueAlreadyJoinedRequest(UUID uuid, String serverName) implements RedisPacket {
-  public static final String ID = "redis-queue-already-joined";
+public interface QueueCacheRetriever {
+  /**
+   * Gets a queue.
+   *
+   * @param serverName The name of the server.
+   * @return The queue.
+   */
+  ServerQueueStatus get(String serverName);
 
-  @Override
-  public String getId() {
-    return ID;
-  }
+  /**
+   * Gets all the queues.
+   *
+   * @return All the queues.
+   */
+  List<ServerQueueStatus> getAll();
 }

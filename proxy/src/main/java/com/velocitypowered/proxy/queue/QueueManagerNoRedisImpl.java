@@ -18,10 +18,10 @@
 package com.velocitypowered.proxy.queue;
 
 import com.velocitypowered.api.proxy.Player;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import com.velocitypowered.proxy.queue.cache.StandardRetriever;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,7 +33,6 @@ import net.kyori.adventure.text.Component;
  * Manages the queue system without redis.
  */
 public class QueueManagerNoRedisImpl extends QueueManager {
-
   /**
    * Constructs a {@link QueueManagerRedisImpl}.
    *
@@ -41,22 +40,9 @@ public class QueueManagerNoRedisImpl extends QueueManager {
    */
   public QueueManagerNoRedisImpl(final VelocityServer server) {
     super(server);
+    this.cache = new StandardRetriever(server);
   }
 
-  /**
-   * Gets the queue of a server, or creates it if it doesn't exist.
-   *
-   * @param server The server to get the queue of
-   * @return The queue of the server.
-   */
-  public ServerQueueStatus getQueue(final String server) {
-    RegisteredServer registeredServer = this.server.getServer(server).orElse(null);
-    if (registeredServer == null) {
-      return null;
-    }
-    return serverQueues.computeIfAbsent(server, status ->
-        new ServerQueueStatus((VelocityRegisteredServer) registeredServer, this.server));
-  }
 
   /**
    * Checks whether the current proxy is the current master-proxy or not.
@@ -66,6 +52,7 @@ public class QueueManagerNoRedisImpl extends QueueManager {
   public boolean isMasterProxy() {
     return true;
   }
+
 
   /**
    * Hook that removes the player from all queues.
@@ -122,7 +109,7 @@ public class QueueManagerNoRedisImpl extends QueueManager {
     }
 
     if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
-      for (ServerQueueStatus status : this.serverQueues.values()) {
+      for (ServerQueueStatus status : this.cache.getAll()) {
         if (status.isQueued(player.getUniqueId())) {
           player.sendMessage(Component.translatable("velocity.queue.error.multi-queue"));
           return;
@@ -164,7 +151,7 @@ public class QueueManagerNoRedisImpl extends QueueManager {
     Map<Player, ServerQueueStatus> temp = new HashMap<>();
     String filter = this.config.getMultipleServerMessagingSelection();
 
-    for (ServerQueueStatus status : this.serverQueues.values()) {
+    for (ServerQueueStatus status : this.cache.getAll()) {
       Map<ServerQueueEntry, UUID> map = status.getActivePlayers();
       for (ServerQueueEntry entry : map.keySet()) {
         UUID player = map.get(entry);
@@ -191,7 +178,7 @@ public class QueueManagerNoRedisImpl extends QueueManager {
 
   @Override
   public void removeFromAll(final ConnectedPlayer player) {
-    for (ServerQueueStatus status : this.serverQueues.values()) {
+    for (ServerQueueStatus status : this.cache.getAll()) {
       status.dequeue(player.getUniqueId(), false);
     }
   }

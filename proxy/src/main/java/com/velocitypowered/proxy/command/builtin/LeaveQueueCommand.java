@@ -30,7 +30,6 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.queue.ServerQueueStatus;
-import com.velocitypowered.proxy.redis.multiproxy.RedisQueueLeaveRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.List;
@@ -93,9 +92,14 @@ public class LeaveQueueCommand {
         return -1;
       }
 
+      if (info == null) {
+        return -1;
+      }
+
       for (RegisteredServer server : this.server.getAllServers()) {
-        this.server.getRedisManager().send(new RedisQueueLeaveRequest(player.getUniqueId(),
-                server.getServerInfo().getName(), false));
+        if (info.getQueuedServer() != null && info.getQueuedServer().equalsIgnoreCase(server.getServerInfo().getName())) {
+          this.server.getQueueManager().getQueue(server.getServerInfo().getName()).dequeue(player.getUniqueId(), false);
+        }
       }
 
       player.sendMessage(Component.translatable("velocity.queue.command.left-queue.all"));
@@ -142,8 +146,7 @@ public class LeaveQueueCommand {
     }
 
     if (ctx.getSource() instanceof Player player) {
-      this.server.getRedisManager().send(new RedisQueueLeaveRequest(player.getUniqueId(),
-              server.getServerInfo().getName(), true));
+      this.server.getQueueManager().getQueue(server.getServerInfo().getName()).dequeue(player.getUniqueId(), false);
     } else {
       ctx.getSource().sendMessage(CommandMessages.PLAYERS_ONLY);
       return -1;

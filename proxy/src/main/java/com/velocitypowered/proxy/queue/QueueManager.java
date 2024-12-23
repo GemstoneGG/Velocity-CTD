@@ -24,6 +24,7 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import com.velocitypowered.proxy.queue.cache.QueueCacheRetriever;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.HashMap;
 import java.util.List;
@@ -38,9 +39,13 @@ public abstract class QueueManager {
   protected final VelocityConfiguration.Queue config;
   protected ScheduledTask tickMessageTaskHandle;
   protected ScheduledTask tickPingingBackendTaskHandle;
-  protected final Map<String, ServerQueueStatus> serverQueues = new HashMap<>();
 
   private final boolean enabled;
+
+  protected QueueCacheRetriever cache = null;
+
+  protected static Map<String, Long> LAST_TURNED_ONLINE_TIME = new HashMap<>();
+  private ScheduledTask sendingTaskHandle = null;
 
   /**
    * Initializes a new Queue Manager with the proxy and config.
@@ -58,6 +63,7 @@ public abstract class QueueManager {
 
     this.schedulePingingBackend();
     this.scheduleTickMessage();
+    this.rescheduleTimerTask();
   }
 
   /**
@@ -71,8 +77,8 @@ public abstract class QueueManager {
     if (registeredServer == null) {
       return null;
     }
-    return serverQueues.computeIfAbsent(server, status ->
-        new ServerQueueStatus((VelocityRegisteredServer) registeredServer, this.server));
+
+    return cache.get(server);
   }
 
   /**
@@ -108,16 +114,27 @@ public abstract class QueueManager {
     }
 
     this.tickPingingBackendTaskHandle = server.getScheduler()
-        .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
-          for (RegisteredServer serverApi : this.server.getAllServers()) {
-            VelocityRegisteredServer server = (VelocityRegisteredServer) serverApi;
-            ServerQueueStatus queueStatus = getQueue(server.getServerInfo().getName());
-            queueStatus.tickPingingBackend();
-          }
-        })
+        .buildTask(VelocityVirtualPlugin.INSTANCE, this::tickPingingBackend)
         .repeat((int) (config.getBackendPingInterval() * 1000), TimeUnit.MILLISECONDS)
         .schedule();
   }
+
+
+  private void rescheduleTimerTask() {
+    if (this.sendingTaskHandle != null) {
+      this.sendingTaskHandle.cancel();
+    }
+
+    if (!isMasterProxy()) {
+      return;
+    }
+
+    this.sendingTaskHandle = this.server.getScheduler()
+        .buildTask(VelocityVirtualPlugin.INSTANCE, this::tickSending)
+        .repeat((int) (this.config.getSendDelay() * 1000), TimeUnit.MILLISECONDS)
+        .schedule();
+  }
+
 
   /**
    * Handles the logic for when a player leaves.
@@ -125,6 +142,98 @@ public abstract class QueueManager {
    * @param player The player that left.
    */
   public abstract void onPlayerLeave(ConnectedPlayer player);
+
+  /**
+   * Sends the next player in queue, unless the queue is paused.
+   */
+  public void tickSending() {
+    cache.getAll().forEach(queue -> {
+      if (!isMasterProxy()) {
+        return;
+      }
+
+
+      if (queue.isPaused() || !queue.isOnline()) {
+        return;
+      }
+
+      if (queue.getQueue().isEmpty()) {
+        return;
+      }
+
+      ServerQueueEntry entry = queue.getQueue().peekFirst();
+
+      if (entry == null || queue.isFull() && !entry.isFullBypass()) {
+        return;
+      }
+
+      if (this.server.getMultiProxyHandler().isRedisEnabled()) {
+        if (this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
+          queue.sendFirstInQueue();
+        }
+      } else {
+        if (this.server.getPlayer(entry.getPlayer()).orElse(null) != null) {
+          queue.sendFirstInQueue();
+        }
+      }
+    });
+
+  }
+
+  /**
+   * Pings the backend to update the online flag.
+   */
+  public void tickPingingBackend() {
+    List<ServerQueueStatus> queues = this.cache.getAll();
+    for (ServerQueueStatus queue : queues) {
+      RegisteredServer s = this.server.getServer(queue.getServerName()).orElse(null);
+      if (s == null) {
+        continue;
+      }
+
+      s.ping().whenComplete((result, th) -> {
+        double queueDelay = this.server.getConfiguration().getQueue().getQueueDelay() * 1000;
+
+        if (th != null) {
+          queue.setStatus(ServerStatus.OFFLINE);
+        }
+
+        if (queue.getStatus() == ServerStatus.OFFLINE && th == null) {
+          queue.setStatus(ServerStatus.WAITING);
+          LAST_TURNED_ONLINE_TIME.put(queue.getServerName(), System.currentTimeMillis());
+        }
+
+        if (th == null && System.currentTimeMillis()
+            >= LAST_TURNED_ONLINE_TIME.get(queue.getServerName()) + queueDelay
+            && queue.getStatus() == ServerStatus.WAITING) {
+          queue.setStatus(ServerStatus.ONLINE);
+        }
+
+        ServerStatus temp = queue.getStatus();
+
+        if (temp != ServerStatus.ONLINE && queue.isOnline()) {
+          for (ServerQueueEntry entry : queue.getQueue()) {
+            if (entry.isQueueBypass()) {
+              entry.send();
+              queue.dequeue(entry.getPlayer(), false);
+            }
+          }
+        }
+
+        if (queue.isOnline()) {
+          final int maxPlayers = this.server.getConfiguration().getPlayerCaps().get(queue.getServerName());
+          long playerCount;
+          if (this.server.getMultiProxyHandler().isRedisEnabled()) {
+            playerCount = this.server.getMultiProxyHandler().getAllPlayers().stream().filter(info -> info.getServerName() != null
+                && info.getServerName().equalsIgnoreCase(queue.getServerName())).count();
+          } else {
+            playerCount = server.getPlayerCount();
+          }
+          queue.setFull(playerCount >= maxPlayers);
+        }
+      });
+    }
+  }
 
   /**
    * Gets the timeout in seconds at which the player will be removed from a queue
@@ -160,8 +269,9 @@ public abstract class QueueManager {
    * Reloads the config for every server that has a queue.
    */
   public void reloadConfig() {
-    for (ServerQueueStatus server : this.serverQueues.values()) {
+    for (ServerQueueStatus server : this.cache.getAll()) {
       server.reloadConfig();
+      this.server.getRedisManager().addOrUpdateQueue(server);
     }
   }
 
@@ -169,7 +279,7 @@ public abstract class QueueManager {
    * Clears all the queues and stops the tasks.
    */
   public void clearQueue() {
-    for (ServerQueueStatus status : this.serverQueues.values()) {
+    for (ServerQueueStatus status : this.cache.getAll()) {
 
       status.stop();
     }
@@ -189,7 +299,7 @@ public abstract class QueueManager {
    * @return All the queues.
    */
   public List<ServerQueueStatus> getAll() {
-    return this.serverQueues.values().stream().toList();
+    return this.cache.getAll();
   }
 
   /**
