@@ -432,7 +432,8 @@ public class QueueAdminCommand {
       RemotePlayerInfo info = this.server.getMultiProxyHandler().getPlayerInfo(playerName);
 
       if (info.getServerName().equalsIgnoreCase(server.getServerInfo().getName())) {
-        ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-connected"));
+        ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-connected")
+            .arguments(Component.text(info.getUsername())));
         return -1;
       }
 
@@ -460,7 +461,8 @@ public class QueueAdminCommand {
 
       ServerConnection conn = p.getCurrentServer().orElse(null);
       if (conn != null && conn.getServerInfo().getName().equalsIgnoreCase(server.getServerInfo().getName())) {
-        ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-connected"));
+        ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-connected")
+            .arguments(Component.text(p.getUsername())));
         return -1;
       }
 
