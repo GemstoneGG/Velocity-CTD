@@ -125,7 +125,27 @@ public class ServerQueueStatus {
   /**
    * Send the first person in the queue.
    */
-  public void sendFirstInQueue(final ServerQueueEntry entry) {
+  public void sendFirstInQueue() {
+
+    ServerQueueEntry entry = queue.peekFirst();
+
+    // empty queue
+    if (entry == null) {
+      return;
+    }
+
+    // check if they're online
+    if (velocityServer.getMultiProxyHandler().isRedisEnabled()) {
+      if (!velocityServer.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
+        queue.removeFirst();
+        return;
+      }
+    } else {
+      if (this.velocityServer.getPlayer(entry.getPlayer()).isEmpty()) {
+        queue.removeFirst();
+      }
+    }
+
     // check if an entry is being sent (this will set to false automatically
     // whether it was successful or not)
     if (entry.isWaitingForConnection()) {

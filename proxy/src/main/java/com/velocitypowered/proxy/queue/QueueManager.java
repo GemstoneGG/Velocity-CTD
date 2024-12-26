@@ -119,6 +119,11 @@ public abstract class QueueManager {
         .schedule();
   }
 
+  /**
+   * Reschedules the task responsible for processing and sending queued players to their destination servers.
+   * This method cancels any existing task associated with sending queued players and schedules a new task.
+   * The new task runs periodically based on the configured delay specified in the queue settings.
+   */
   public void rescheduleTimerTask() {
     if (this.sendingTaskHandle != null) {
       this.sendingTaskHandle.cancel();
@@ -162,14 +167,14 @@ public abstract class QueueManager {
 
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         if (this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
-          queue.sendFirstInQueue(entry);
+          queue.sendFirstInQueue();
         } else {
           queue.getQueue().pollFirst();
           this.server.getRedisManager().addOrUpdateQueue(queue);
         }
       } else {
         if (this.server.getPlayer(entry.getPlayer()).orElse(null) != null) {
-          queue.sendFirstInQueue(entry);
+          queue.sendFirstInQueue();
         } else {
           queue.getQueue().pollFirst();
         }
