@@ -125,7 +125,7 @@ public class ServerQueueStatus {
   /**
    * Send the first person in the queue.
    */
-  public void sendFirstInQueue(ServerQueueEntry entry) {
+  public void sendFirstInQueue(final ServerQueueEntry entry) {
     // check if an entry is being sent (this will set to false automatically
     // whether it was successful or not)
     if (entry.isWaitingForConnection()) {
