@@ -166,13 +166,13 @@ public abstract class QueueManager {
 
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         if (this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
-          queue.sendFirstInQueue();
+          queue.sendFirstInQueue(entry);
         } else {
           queue.getQueue().pollFirst();
         }
       } else {
         if (this.server.getPlayer(entry.getPlayer()).orElse(null) != null) {
-          queue.sendFirstInQueue();
+          queue.sendFirstInQueue(entry);
         } else {
           queue.getQueue().pollFirst();
         }
