@@ -119,13 +119,9 @@ public abstract class QueueManager {
         .schedule();
   }
 
-  private void rescheduleTimerTask() {
+  public void rescheduleTimerTask() {
     if (this.sendingTaskHandle != null) {
       this.sendingTaskHandle.cancel();
-    }
-
-    if (!isMasterProxy()) {
-      return;
     }
 
     this.sendingTaskHandle = this.server.getScheduler()
@@ -145,11 +141,11 @@ public abstract class QueueManager {
    * Sends the next player in queue, unless the queue is paused.
    */
   public void tickSending() {
-    cache.getAll().forEach(queue -> {
-      if (!isMasterProxy()) {
-        return;
-      }
+    if (!isMasterProxy()) {
+      return;
+    }
 
+    cache.getAll().forEach(queue -> {
       if (queue.isPaused() || !queue.isOnline()) {
         return;
       }
@@ -169,6 +165,7 @@ public abstract class QueueManager {
           queue.sendFirstInQueue(entry);
         } else {
           queue.getQueue().pollFirst();
+          this.server.getRedisManager().addOrUpdateQueue(queue);
         }
       } else {
         if (this.server.getPlayer(entry.getPlayer()).orElse(null) != null) {
