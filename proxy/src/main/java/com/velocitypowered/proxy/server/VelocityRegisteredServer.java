@@ -101,6 +101,23 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
   }
 
   @Override
+  public int getTotalPlayerCount() {
+    if (this.server.getMultiProxyHandler().isRedisEnabled()) {
+      int amount = 0;
+
+      for (RemotePlayerInfo info : this.server.getMultiProxyHandler().getAllPlayers()) {
+        if (info.getServerName() != null && info.getServerName().equalsIgnoreCase(getServerInfo().getName())) {
+          amount++;
+        }
+      }
+
+      return amount;
+    } else {
+      return getPlayersConnected().size();
+    }
+  }
+
+  @Override
   public List<PlayerInfo> getPlayerInfo() {
     if (this.server == null || !this.server.getMultiProxyHandler().isRedisEnabled()) {
       List<PlayerInfo> info = new ArrayList<>();
