@@ -167,14 +167,14 @@ public abstract class QueueManager {
 
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         if (this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
-          queue.sendFirstInQueue();
+          queue.sendFirstInQueue(entry);
         } else {
           queue.getQueue().pollFirst();
           this.server.getRedisManager().addOrUpdateQueue(queue);
         }
       } else {
         if (this.server.getPlayer(entry.getPlayer()).orElse(null) != null) {
-          queue.sendFirstInQueue();
+          queue.sendFirstInQueue(entry);
         } else {
           queue.getQueue().pollFirst();
         }
