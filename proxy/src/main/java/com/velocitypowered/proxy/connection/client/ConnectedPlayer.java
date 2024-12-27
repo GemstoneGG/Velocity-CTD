@@ -52,7 +52,6 @@ import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.PluginMessageEncoder;
 import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.api.proxy.player.ResourcePackInfo;
-import com.velocitypowered.api.proxy.server.PingOptions;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.api.util.ModInfo;
@@ -104,6 +103,7 @@ import com.velocitypowered.proxy.util.TranslatableMapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -197,6 +197,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private @Nullable ClientSettingsPacket clientSettingsPacket;
   private final ChatQueue chatQueue;
   private final ChatBuilderFactory chatBuilderFactory;
+  private final List<String> attemptedServers;
 
   ConnectedPlayer(final VelocityServer server, final GameProfile profile, final MinecraftConnection connection,
                   @Nullable final InetSocketAddress virtualHost, @Nullable final String rawVirtualHost, final boolean onlineMode,
@@ -209,6 +210,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     this.permissionFunction = PermissionFunction.ALWAYS_UNDEFINED;
     this.connectionPhase = connection.getType().getInitialClientPhase();
     this.onlineMode = onlineMode;
+    this.attemptedServers = new ArrayList<>();
 
     if (connection.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_19_3)) {
       this.tabList = new VelocityTabList(this);
@@ -238,6 +240,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     if (this.server.getQueueManager().isQueueEnabled()) {
       this.server.getQueueManager().onPlayerLeave(this);
     }
+  }
+
+  public List<String> getAttemptedServers() {
+    return attemptedServers;
   }
 
   public ChatBuilderFactory getChatBuilderFactory() {
@@ -903,17 +909,14 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
       Optional<RegisteredServer> selectedServer = Optional.empty();
       for (String serverName : connOrder) {
+        if (attemptedServers.contains(serverName)) {
+          continue;
+        }
+
         RegisteredServer registeredServer = server.getServer(serverName).orElse(null);
         if (registeredServer == null) {
           logger.error(Component.text("Unable to read your velocity.toml fallback servers. Users are unable to connect."));
           return Optional.empty();
-        }
-
-        try {
-          PingOptions options = PingOptions.builder().timeout(2, TimeUnit.SECONDS).build();
-          registeredServer.ping(options).join();
-        } catch (Exception e) {
-          continue;
         }
 
         if ((connectedServer != null && hasSameName(connectedServer.getServer(), serverName))
