@@ -114,7 +114,6 @@ public class ServerQueueStatus {
     queue.clear();
   }
 
-
   /**
    * Called by {@link QueueManagerRedisImpl} when the proxy config is reloaded.
    */
@@ -408,8 +407,8 @@ public class ServerQueueStatus {
           );
     } else if (entry.isWaitingForConnection()) {
       return Component.translatable("velocity.queue.player-status.connecting",
-                      NamedTextColor.YELLOW)
-          .arguments(Component.text(entry.getTarget().getServerInfo().getName()));
+          NamedTextColor.YELLOW)
+              .arguments(Component.text(entry.getTarget().getServerInfo().getName()));
     } else if (isPaused()) {
       return Component.translatable("velocity.queue.player-status.paused", NamedTextColor.YELLOW);
     } else if (isOnline()) {

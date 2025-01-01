@@ -43,7 +43,6 @@ public record RedisSendActionBarRequest(UUID playerUuid, String componentJson) i
     this(target, SERIALIZER.serialize(component));
   }
 
-
   @Override
   public String getId() {
     return ID;

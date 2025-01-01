@@ -141,7 +141,6 @@ public class ServerQueueEntry {
           success = s.isSuccessful();
         }
 
-
         if (success) {
           proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, false);
         } else {
