@@ -9,10 +9,11 @@ bind = "0.0.0.0:25565"
 motd = "<#ff3a4c>A Velocity Server"
 
 # What should it look like when you hover over the player count? This is
-# displayed when hovering over the player count/max players' tooltip.
+# displayed when hovering over the player count/max players' tooltip and
+# only supports the legacy color code symbol due to Minecraft limitations.
 motd-hover = [
-    "<#ff3a4c>A Velocity Tooltip",
-    "<#09add3>that shows more information!"
+    "§cA Velocity Tooltip",
+    "§bthat shows more information!"
 ]
 
 # What should we display for the maximum number of players? (Velocity does not support a cap
