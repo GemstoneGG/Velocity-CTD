@@ -72,7 +72,7 @@ public class RedisRetriever implements QueueCacheRetriever {
   }
 
   @Override
-  public ServerQueueStatus get(UUID uuid) {
+  public ServerQueueStatus get(final UUID uuid) {
     for (ServerQueueStatus status : getAll()) {
       if (status.isQueued(uuid)) {
         return status;

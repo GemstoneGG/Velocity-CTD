@@ -426,7 +426,6 @@ public class QueueAdminCommand {
         p.hasPermission("velocity.queue.full.bypass"),
         p.hasPermission("velocity.queue.bypass"));
 
-
     ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.added")
         .arguments(
             Component.text(playerName),
@@ -451,7 +450,6 @@ public class QueueAdminCommand {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.same-server-queue"));
       return -1;
     }
-
 
     List<Player> connected = new ArrayList<>();
     for (Player p : this.server.getAllPlayers()) {
@@ -480,6 +478,7 @@ public class QueueAdminCommand {
           player.hasPermission("velocity.queue.full.bypass"),
           player.hasPermission("velocity.queue.bypass"));
     }
+
     int connectedSize = connected.size();
 
     ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.addedall-player" + (connectedSize == 1 ? "" : "s"))
