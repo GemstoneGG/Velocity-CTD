@@ -32,7 +32,6 @@ public final class RemotePlayerInfo implements Serializable {
   private final String name;
   private final Map<String, Integer> queuePriority;
   private String serverName = null;
-  private String queuedServer = null;
   private boolean beingTransferred = false;
   private final boolean fullQueueBypass;
   private final boolean queueBypass;
@@ -92,19 +91,6 @@ public final class RemotePlayerInfo implements Serializable {
 
   public String getUsername() {
     return this.name;
-  }
-
-  /**
-   * Set the queued server.
-   *
-   * @param server The server.
-   */
-  public void setQueuedServer(final String server) {
-    this.queuedServer = server;
-  }
-
-  public String getQueuedServer() {
-    return this.queuedServer;
   }
 
   public String getProxyId() {

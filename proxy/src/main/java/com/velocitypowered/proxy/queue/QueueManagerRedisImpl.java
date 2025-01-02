@@ -27,7 +27,6 @@ import com.velocitypowered.proxy.redis.RedisManagerImpl;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendActionBarRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
-import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -158,16 +157,37 @@ public class QueueManagerRedisImpl extends QueueManager {
     }
 
     if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
-      RemotePlayerInfo info = this.server.getMultiProxyHandler().getPlayerInfo(player.getUniqueId());
-
-      if (info != null && info.getQueuedServer() != null) {
-        player.sendMessage(Component.translatable("velocity.queue.error.multi-queue"));
-        return;
+      for (ServerQueueStatus status : this.cache.getAll()) {
+        if (status.isQueued(player.getUniqueId())) {
+          player.sendMessage(Component.translatable("velocity.queue.error.multi-queue"));
+          return;
+        }
       }
     }
 
-    getQueue(server.getServerInfo().getName()).queue(player.getUniqueId(),
-        player.getQueuePriority(server.getServerInfo().getName()),
+    String serverName = server.getServerInfo().getName();
+    ServerQueueStatus status = getQueue(serverName);
+    if (status == null) {
+      throw new IllegalArgumentException("No queue found for server '" + serverName + "'");
+    }
+
+    if (status.isPaused() && !this.server.getConfiguration().getQueue().isAllowPausedQueueJoining()) {
+      player.sendMessage(Component.translatable("velocity.queue.error.paused")
+          .arguments(Component.text(serverName)));
+      return;
+    }
+
+    if (status.isQueued(player.getUniqueId())) {
+      player.sendMessage(Component.translatable("velocity.queue.error.already-queued.other")
+          .arguments(
+              Component.text(player.getUsername()),
+              Component.text(serverName)
+          )
+      );
+      return;
+    }
+
+    status.queue(player.getUniqueId(), player.getQueuePriority(server.getServerInfo().getName()),
         player.hasPermission("velocity.queue.full.bypass"),
         player.hasPermission("velocity.queue.bypass"));
   }

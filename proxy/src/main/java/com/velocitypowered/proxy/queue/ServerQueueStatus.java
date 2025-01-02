@@ -23,7 +23,6 @@ import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
-import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Deque;
 import java.util.HashMap;
@@ -98,20 +97,8 @@ public class ServerQueueStatus {
    * Stops the queue.
    */
   public void stop() {
-    if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
-      List<RemotePlayerInfo> list = this.velocityServer.getRedisManager().getCache();
-      for (ServerQueueEntry entry : this.queue) {
-        for (RemotePlayerInfo info : list) {
-          if (info.getUuid().equals(entry.getPlayer())) {
-            info.setQueuedServer(null);
-            this.velocityServer.getRedisManager().addOrUpdatePlayer(info);
-          }
-        }
-      }
-
-      this.velocityServer.getRedisManager().addOrUpdateQueue(this);
-    }
     queue.clear();
+    this.velocityServer.getRedisManager().addOrUpdateQueue(this);
   }
 
   /**
@@ -190,14 +177,6 @@ public class ServerQueueStatus {
 
     ServerQueueEntry entry = new ServerQueueEntry(playerUuid, this.server, this.velocityServer, priority, fullBypass, queueBypass);
 
-    if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
-      RemotePlayerInfo info = this.velocityServer.getMultiProxyHandler().getPlayerInfo(playerUuid);
-      if (info != null) {
-        info.setQueuedServer(this.server.getServerInfo().getName());
-        this.velocityServer.getRedisManager().addOrUpdatePlayer(info);
-      }
-    }
-
     synchronized (queue) {
       var iterator = queue.iterator();
       boolean inserted = false;
@@ -261,14 +240,6 @@ public class ServerQueueStatus {
       }
     }).delay(1, TimeUnit.SECONDS).schedule();
 
-    if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
-      RemotePlayerInfo info = this.velocityServer.getMultiProxyHandler().getPlayerInfo(player);
-      if (info != null) {
-        info.setQueuedServer(null);
-        this.velocityServer.getRedisManager().addOrUpdatePlayer(info);
-      }
-    }
-
     this.queue.removeIf(entry -> entry.getPlayer().equals(player));
     this.velocityServer.getRedisManager().addOrUpdateQueue(this);
   }
@@ -307,15 +278,6 @@ public class ServerQueueStatus {
               )
           );
     } else {
-      int queueSize = 0;
-      if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
-        for (RemotePlayerInfo info : this.velocityServer.getMultiProxyHandler().getAllPlayers()) {
-          if (info.getQueuedServer() != null && info.getQueuedServer().equalsIgnoreCase(getServerName())) {
-            queueSize++;
-          }
-        }
-      }
-
       AtomicBoolean status = new AtomicBoolean(true);
 
       server.ping().whenComplete((result, th)
@@ -328,7 +290,7 @@ public class ServerQueueStatus {
           .arguments(Component.text(server.getServerInfo().getName())
               .hoverEvent(Component.translatable("velocity.queue.command.listqueues.hover")
                   .arguments(
-                      Component.text(queueSize),
+                      Component.text(queue.size()),
                       Component.text(isPaused() ? "True" : "False"),
                       Component.text(status.get() ? "True" : "False")
                   ).asHoverEvent()

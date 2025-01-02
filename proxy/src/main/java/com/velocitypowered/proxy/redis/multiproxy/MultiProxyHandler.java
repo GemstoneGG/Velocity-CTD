@@ -24,7 +24,6 @@ import com.velocitypowered.proxy.command.builtin.VelocityCommand;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
-import com.velocitypowered.proxy.queue.ServerQueueStatus;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
 import java.util.Collections;
 import java.util.HashMap;
@@ -173,23 +172,6 @@ public class MultiProxyHandler {
       );
     });
 
-    redisManager.listen(RedisUpdateQueuedServerRequest.ID, RedisUpdateQueuedServerRequest.class, it -> {
-      if (!this.server.getQueueManager().isMasterProxy()) {
-        return;
-      }
-
-      RemotePlayerInfo info = this.server.getMultiProxyHandler().getPlayerInfo(it.uuid());
-      if (info != null) {
-        for (ServerQueueStatus status : this.server.getQueueManager().getAll()) {
-          if (status.isQueued(it.uuid())) {
-            info.setQueuedServer(status.getServerName());
-            this.server.getRedisManager().addOrUpdatePlayer(info);
-            break;
-          }
-        }
-      }
-    });
-
     redisManager.send(new RedisStartupRequest(config.getProxyId()));
   }
 
@@ -219,7 +201,6 @@ public class MultiProxyHandler {
 
   private void handleJoin(final RemotePlayerInfo player) {
     this.server.getRedisManager().addOrUpdatePlayer(player);
-    this.server.getRedisManager().send(new RedisUpdateQueuedServerRequest(player.getUuid()));
   }
 
   /**

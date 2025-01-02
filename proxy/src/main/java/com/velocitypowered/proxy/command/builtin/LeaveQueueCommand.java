@@ -30,7 +30,6 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.queue.ServerQueueStatus;
-import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.List;
 import net.kyori.adventure.text.Component;
@@ -67,7 +66,7 @@ public class LeaveQueueCommand {
             .suggests(VelocityCommands.suggestServer(server, "server", false))
             .executes(this::leaveQueue)
         )
-        .executes(this::leaveAllQueues);
+        .executes(this::leaveAllQueuesNoRedis);
 
     final BrigadierCommand command = new BrigadierCommand(rootNode);
     server.getCommandManager().register(
@@ -77,38 +76,6 @@ public class LeaveQueueCommand {
             .build(),
         command
     );
-  }
-
-  private int leaveAllQueues(final CommandContext<CommandSource> ctx) {
-    if (ctx.getSource() instanceof Player player) {
-
-      if (!this.server.getMultiProxyHandler().isRedisEnabled()) {
-        return leaveAllQueuesNoRedis(ctx);
-      }
-
-      RemotePlayerInfo info = this.server.getMultiProxyHandler().getPlayerInfo(player.getUniqueId());
-      if (info != null && info.getQueuedServer() == null) {
-        ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.not-in-queue.all"));
-        return -1;
-      }
-
-      if (info == null) {
-        return -1;
-      }
-
-      for (RegisteredServer server : this.server.getAllServers()) {
-        if (info.getQueuedServer() != null && info.getQueuedServer().equalsIgnoreCase(server.getServerInfo().getName())) {
-          this.server.getQueueManager().getQueue(server.getServerInfo().getName()).dequeue(player.getUniqueId(), false);
-        }
-      }
-
-      player.sendMessage(Component.translatable("velocity.queue.command.left-queue.all"));
-
-      return Command.SINGLE_SUCCESS;
-    } else {
-      ctx.getSource().sendMessage(CommandMessages.PLAYERS_ONLY);
-      return -1;
-    }
   }
 
   private int leaveAllQueuesNoRedis(final CommandContext<CommandSource> ctx) {

@@ -19,6 +19,7 @@ package com.velocitypowered.proxy.queue.cache;
 
 import com.velocitypowered.proxy.queue.ServerQueueStatus;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Represents the cache of all the queues.
@@ -32,6 +33,14 @@ public interface QueueCacheRetriever {
    * @return The queue.
    */
   ServerQueueStatus get(String serverName);
+
+  /**
+   * Gets the queue a player is in.
+   *
+   * @param uuid The UUID of the player.
+   */
+
+  ServerQueueStatus get(UUID uuid);
 
   /**
    * Gets all the queues.

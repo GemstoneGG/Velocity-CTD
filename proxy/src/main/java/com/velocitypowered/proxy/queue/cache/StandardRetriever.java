@@ -23,6 +23,7 @@ import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * The non-redis implementation of the redis queue.
@@ -55,6 +56,16 @@ public class StandardRetriever implements QueueCacheRetriever {
     }
 
     return queues.computeIfAbsent(serverName, k -> new ServerQueueStatus(server, proxy));
+  }
+
+  @Override
+  public ServerQueueStatus get(UUID uuid) {
+    for (ServerQueueStatus status : getAll()) {
+      if (status.isQueued(uuid)) {
+        return status;
+      }
+    }
+    return null;
   }
 
   /**

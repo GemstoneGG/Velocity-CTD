@@ -23,6 +23,7 @@ import com.velocitypowered.proxy.redis.RedisManagerImpl;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * The redis implementation of the queue cache.
@@ -68,6 +69,16 @@ public class RedisRetriever implements QueueCacheRetriever {
     }
 
     return status;
+  }
+
+  @Override
+  public ServerQueueStatus get(UUID uuid) {
+    for (ServerQueueStatus status : getAll()) {
+      if (status.isQueued(uuid)) {
+        return status;
+      }
+    }
+    return null;
   }
 
   /**
