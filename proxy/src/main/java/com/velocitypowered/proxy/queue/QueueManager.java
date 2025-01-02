@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import net.kyori.adventure.text.Component;
 
 /**
  * The interface (abstract class) that will provide methods for the Queue Manager implementations.
@@ -261,7 +262,50 @@ public abstract class QueueManager {
    * @param player The player to add to the queue.
    * @param server The server to add the player to the queue to.
   */
-  public abstract void queue(Player player, VelocityRegisteredServer server);
+  public void queue(Player player, VelocityRegisteredServer server) {
+    if (!isQueueEnabled() || player.hasPermission("velocity.queue.bypass")) {
+      player.createConnectionRequest(server).connectWithIndication();
+      return;
+    }
+
+    if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
+      for (ServerQueueStatus status : this.cache.getAll()) {
+        if (status.isQueued(player.getUniqueId())) {
+          player.sendMessage(Component.translatable("velocity.queue.error.already-queued")
+              .arguments(
+                  Component.text(status.getServerName())
+              )
+          );
+          status.dequeue(player.getUniqueId(), false);
+        }
+      }
+    }
+
+    String serverName = server.getServerInfo().getName();
+    ServerQueueStatus status = getQueue(serverName);
+    if (status == null) {
+      throw new IllegalArgumentException("No queue found for server '" + serverName + "'");
+    }
+
+    if (status.isPaused() && !this.server.getConfiguration().getQueue().isAllowPausedQueueJoining()) {
+      player.sendMessage(Component.translatable("velocity.queue.error.paused")
+          .arguments(Component.text(serverName)));
+      return;
+    }
+
+    if (status.isQueued(player.getUniqueId())) {
+      player.sendMessage(Component.translatable("velocity.queue.error.already-queued")
+          .arguments(
+              Component.text(serverName)
+          )
+      );
+      return;
+    }
+
+    status.queue(player.getUniqueId(), player.getQueuePriority(server.getServerInfo().getName()),
+        player.hasPermission("velocity.queue.full.bypass"),
+        player.hasPermission("velocity.queue.bypass"));
+  }
 
   /**
    * Sends the actionbar message to all players.

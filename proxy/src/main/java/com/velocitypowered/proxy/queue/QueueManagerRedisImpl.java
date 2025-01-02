@@ -17,7 +17,6 @@
 
 package com.velocitypowered.proxy.queue;
 
-import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -27,7 +26,6 @@ import com.velocitypowered.proxy.redis.RedisManagerImpl;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendActionBarRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
-import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -141,55 +139,6 @@ public class QueueManagerRedisImpl extends QueueManager {
         removeFromAll(player);
       }).delay(getTimeoutInSeconds(player), TimeUnit.SECONDS).schedule();
     }
-  }
-
-  /**
-   * Queues the player into a specific server, without indication.
-   *
-   * @param player The player to queue
-   * @param server The server to queue into
-   */
-  @Override
-  public void queue(final Player player, final VelocityRegisteredServer server) {
-    if (!isQueueEnabled() || player.hasPermission("velocity.queue.bypass")) {
-      player.createConnectionRequest(server).connectWithIndication();
-      return;
-    }
-
-    if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
-      for (ServerQueueStatus status : this.cache.getAll()) {
-        if (status.isQueued(player.getUniqueId())) {
-          player.sendMessage(Component.translatable("velocity.queue.error.multi-queue"));
-          return;
-        }
-      }
-    }
-
-    String serverName = server.getServerInfo().getName();
-    ServerQueueStatus status = getQueue(serverName);
-    if (status == null) {
-      throw new IllegalArgumentException("No queue found for server '" + serverName + "'");
-    }
-
-    if (status.isPaused() && !this.server.getConfiguration().getQueue().isAllowPausedQueueJoining()) {
-      player.sendMessage(Component.translatable("velocity.queue.error.paused")
-          .arguments(Component.text(serverName)));
-      return;
-    }
-
-    if (status.isQueued(player.getUniqueId())) {
-      player.sendMessage(Component.translatable("velocity.queue.error.already-queued.other")
-          .arguments(
-              Component.text(player.getUsername()),
-              Component.text(serverName)
-          )
-      );
-      return;
-    }
-
-    status.queue(player.getUniqueId(), player.getQueuePriority(server.getServerInfo().getName()),
-        player.hasPermission("velocity.queue.full.bypass"),
-        player.hasPermission("velocity.queue.bypass"));
   }
 
   /**
