@@ -7,6 +7,9 @@ on:
     branches:
       - libdeflate
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -33,5 +36,6 @@ jobs:
       with:
         title: "Velocity"
         automatic_release_tag: "Releases"
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
         files: "*/build/libs/*.jar"
         prerelease: false
