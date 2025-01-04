@@ -64,7 +64,7 @@ public class ServerListPingHandler {
       version = ProtocolVersion.LEGACY;
     }
 
-    String serverPingVersion = configuration.getFallbackVersionPing();
+    final String serverPingVersion = configuration.getFallbackVersionPing();
 
     final int online;
     if (server.getMultiProxyHandler().isEnabled()) {
@@ -82,7 +82,7 @@ public class ServerListPingHandler {
 
     int maxPlayers = configuration.getShowMaxPlayers();
     if (maxPlayers == 0) {
-        maxPlayers = online + 1; 
+      maxPlayers = online + 1;
     }
 
     return new ServerPing(
