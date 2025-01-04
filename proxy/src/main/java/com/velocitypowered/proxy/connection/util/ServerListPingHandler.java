@@ -80,9 +80,14 @@ public class ServerListPingHandler {
               UUID.randomUUID()));
     }
 
+    int maxPlayers = configuration.getShowMaxPlayers();
+    if (maxPlayers == 0) {
+        maxPlayers = online + 1; 
+    }
+
     return new ServerPing(
         new ServerPing.Version(version.getProtocol(), formatVersionString(serverPingVersion, version)),
-        new ServerPing.Players(online, online + 1, samplePlayers),
+        new ServerPing.Players(online, maxPlayers, samplePlayers),
         configuration.getMotd(),
         configuration.getFavicon().orElse(null),
         configuration.isAnnounceForge() ? ModInfo.DEFAULT : null
