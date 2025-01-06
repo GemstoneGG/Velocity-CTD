@@ -241,7 +241,6 @@ public class BungeeCordMessageResponder {
     ByteBuf buf = Unpooled.buffer();
     int position = -1;
 
-
     for (ServerQueueStatus status : proxy.getQueueManager().getAll()) {
       if (status.isQueued(playerUuid)) {
         position = status.getQueuePosition(playerUuid);
