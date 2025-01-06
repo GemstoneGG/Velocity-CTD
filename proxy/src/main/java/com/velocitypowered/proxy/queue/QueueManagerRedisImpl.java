@@ -120,7 +120,6 @@ public class QueueManagerRedisImpl extends QueueManager {
     return false;
   }
 
-
   /**
    * Updates the actionbar message for this player.
    */

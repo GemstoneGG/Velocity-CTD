@@ -214,7 +214,7 @@ public class QueueAdminCommand {
 
       VelocityRegisteredServer registeredServer = (VelocityRegisteredServer) server;
       ServerQueueStatus queueStatus = this.server.getQueueManager()
-              .getQueue(registeredServer.getServerInfo().getName());
+          .getQueue(registeredServer.getServerInfo().getName());
 
       source.sendMessage(queueStatus.createListComponent());
     }
@@ -264,7 +264,6 @@ public class QueueAdminCommand {
         VelocityRegisteredServer velocityRegisteredServer = (VelocityRegisteredServer) s;
         List<Component> players = new ArrayList<>();
 
-
         for (ServerQueueEntry entry : velocityRegisteredServer.getQueueStatus().getAllEntries()) {
           players.add(Component.text(entry.getUsername()));
         }
@@ -283,6 +282,7 @@ public class QueueAdminCommand {
             });
 
       }
+
       return -1;
     } else if (server == null) {
       ctx.getSource().sendMessage(Component.translatable("velocity.command.server-does-not-exist")
@@ -664,7 +664,6 @@ public class QueueAdminCommand {
       return Command.SINGLE_SUCCESS;
     }
 
-
     if (servers.size() > 1) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.remove-all-success")
               .arguments(Component.text(playerName)));
@@ -731,14 +730,12 @@ public class QueueAdminCommand {
       return Command.SINGLE_SUCCESS;
     }
 
-
     if (servers.size() > 1) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.remove-all-success")
           .arguments(Component.text(playerName)));
     }
     return Command.SINGLE_SUCCESS;
   }
-
 
   private int removeAll(final CommandContext<CommandSource> ctx) {
     if (this.server.getRedisManager().isEnabled()) {
@@ -758,7 +755,6 @@ public class QueueAdminCommand {
         server.getQueueStatus().dequeue(player.getUniqueId(), false);
       }
     }
-
 
     if (amount == 0) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.removeall-no-players-queued")
@@ -791,7 +787,6 @@ public class QueueAdminCommand {
       }
     }
 
-
     if (amount == 0) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.removeall-no-players-queued")
           .arguments(Component.text(server.getServerInfo().getName())));
@@ -807,5 +802,4 @@ public class QueueAdminCommand {
 
     return Command.SINGLE_SUCCESS;
   }
-
 }
