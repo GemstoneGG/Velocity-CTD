@@ -264,6 +264,6 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
    * @return The queue status of the server
    */
   public ServerQueueStatus getQueueStatus() {
-    return requireNonNull(this.server).getQueueManager().getQueue(serverInfo.getName());
+    return this.server.getQueueManager().getQueue(serverInfo.getName());
   }
 }

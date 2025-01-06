@@ -141,7 +141,17 @@ public abstract class QueueManager {
    *
    * @param player The player that left.
    */
-  public abstract void onPlayerLeave(ConnectedPlayer player);
+  public void onPlayerLeave(ConnectedPlayer player) {
+    long timeout = getTimeoutInSeconds(player);
+
+    if (timeout == -1) {
+      removeFromAll(player);
+    } else {
+      this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+        removeFromAll(player);
+      }).delay(getTimeoutInSeconds(player), TimeUnit.SECONDS).schedule();
+    }
+  }
 
   /**
    * Sends the next player in queue, unless the queue is paused.
@@ -363,5 +373,11 @@ public abstract class QueueManager {
    *
    * @param player The player to remove.
    */
-  public abstract void removeFromAll(ConnectedPlayer player);
+  public void removeFromAll(ConnectedPlayer player) {
+    for (ServerQueueStatus status : this.cache.getAll()) {
+      if (status.isQueued(player.getUniqueId())) {
+        status.dequeue(player.getUniqueId(), false);
+      }
+    }
+  }
 }

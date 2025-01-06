@@ -18,9 +18,11 @@
 package com.velocitypowered.proxy.queue;
 
 import com.velocitypowered.api.proxy.ConnectionRequestBuilder;
+import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -44,7 +46,8 @@ public class ServerQueueEntry {
    * @param player the player who is queueing
    * @param target the target server
    */
-  public ServerQueueEntry(final UUID player, final VelocityRegisteredServer target,
+  public ServerQueueEntry(final UUID player,
+                          final VelocityRegisteredServer target,
                           final VelocityServer proxy, final int priority,
                           final boolean fullBypass,
                           final boolean queueBypass) {
@@ -68,7 +71,8 @@ public class ServerQueueEntry {
    * @param fullBypass Full bypass.
    * @param queueBypass Queue bypass.
    */
-  public ServerQueueEntry(final UUID player, final VelocityRegisteredServer target,
+  public ServerQueueEntry(final UUID player,
+                          final VelocityRegisteredServer target,
                           final VelocityServer proxy, final int connectionAttempts, final boolean waitingForConnection,
                           final int priority, final boolean fullBypass, final boolean queueBypass) {
     this.proxy = proxy;
@@ -247,5 +251,30 @@ public class ServerQueueEntry {
    */
   public boolean isQueueBypass() {
     return queueBypass;
+  }
+
+
+  /**
+   * Get the username of the player.
+   *
+   * @return The username of the player.
+   */
+  public String getUsername() {
+    if (this.proxy.getRedisManager().isEnabled()) {
+      RemotePlayerInfo info = this.proxy.getMultiProxyHandler().getPlayerInfo(player);
+      if (info == null) {
+        return "N/A";
+      }
+
+      return info.getUsername();
+    } else {
+      Player p = this.proxy.getPlayer(player).orElse(null);
+
+      if (p == null) {
+        return "N/A";
+      }
+
+      return p.getUsername();
+    }
   }
 }

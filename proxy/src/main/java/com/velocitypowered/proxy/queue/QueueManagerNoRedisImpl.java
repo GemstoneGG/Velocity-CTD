@@ -19,13 +19,10 @@ package com.velocitypowered.proxy.queue;
 
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.queue.cache.StandardRetriever;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Manages the queue system without redis.
@@ -49,23 +46,6 @@ public class QueueManagerNoRedisImpl extends QueueManager {
    */
   public boolean isMasterProxy() {
     return true;
-  }
-
-  /**
-   * Hook that removes the player from all queues.
-   *
-   * @param player the disconnecting player
-   */
-  public void onPlayerLeave(final ConnectedPlayer player) {
-    long timeout = getTimeoutInSeconds(player);
-
-    if (timeout == -1) {
-      removeFromAll(player);
-    } else {
-      this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
-        removeFromAll(player);
-      }).delay(getTimeoutInSeconds(player), TimeUnit.SECONDS).schedule();
-    }
   }
 
   /**
@@ -97,13 +77,6 @@ public class QueueManagerNoRedisImpl extends QueueManager {
     for (Player player : temp.keySet()) {
       ServerQueueStatus status = temp.get(player);
       status.getEntry(player.getUniqueId()).ifPresent(entry -> player.sendActionBar(temp.get(player).getActionBarComponent(entry)));
-    }
-  }
-
-  @Override
-  public void removeFromAll(final ConnectedPlayer player) {
-    for (ServerQueueStatus status : this.cache.getAll()) {
-      status.dequeue(player.getUniqueId(), false);
     }
   }
 }
