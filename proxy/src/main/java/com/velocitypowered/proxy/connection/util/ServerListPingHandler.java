@@ -64,7 +64,7 @@ public class ServerListPingHandler {
       version = ProtocolVersion.LEGACY;
     }
 
-    String serverPingVersion = configuration.getFallbackVersionPing();
+    final String serverPingVersion = configuration.getFallbackVersionPing();
 
     final int online;
     if (server.getMultiProxyHandler().isRedisEnabled()) {
@@ -80,9 +80,14 @@ public class ServerListPingHandler {
               UUID.randomUUID()));
     }
 
+    int maxPlayers = configuration.getShowMaxPlayers();
+    if (maxPlayers == 0) {
+      maxPlayers = online + 1;
+    }
+
     return new ServerPing(
         new ServerPing.Version(version.getProtocol(), formatVersionString(serverPingVersion, version)),
-        new ServerPing.Players(online, configuration.getShowMaxPlayers(), samplePlayers),
+        new ServerPing.Players(online, maxPlayers, samplePlayers),
         configuration.getMotd(),
         configuration.getFavicon().orElse(null),
         configuration.isAnnounceForge() ? ModInfo.DEFAULT : null

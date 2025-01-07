@@ -144,7 +144,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class VelocityServer implements ProxyServer, ForwardingAudience {
 
-  public static final String VELOCITY_URL = "https://github.com/GemstoneGG/Velocity-CTD";
+  public static final String VELOCITY_URL = "https://github.com/SkyboundLab/Velocity";
 
   private static final Logger logger = LogManager.getLogger(VelocityServer.class);
   public static final Gson GENERAL_GSON = new GsonBuilder()
