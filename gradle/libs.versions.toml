@@ -8,7 +8,7 @@ netty = "4.1.116.Final"
 [plugins]
 indra-publishing = "net.kyori.indra.publishing:3.1.3"
 shadow = "com.gradleup.shadow:8.3.5"
-spotless = "com.diffplug.spotless:7.0.0"
+spotless = "com.diffplug.spotless:7.0.1"
 
 [libraries]
 adventure-bom = "net.kyori:adventure-bom:4.18.0"
