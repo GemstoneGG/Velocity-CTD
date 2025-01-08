@@ -47,10 +47,10 @@ public class ServerQueueEntry {
    * @param target the target server
    */
   public ServerQueueEntry(final UUID player,
-                          final VelocityRegisteredServer target,
-                          final VelocityServer proxy, final int priority,
-                          final boolean fullBypass,
-                          final boolean queueBypass) {
+      final VelocityRegisteredServer target,
+      final VelocityServer proxy, final int priority,
+      final boolean fullBypass,
+      final boolean queueBypass) {
     this.player = player;
     this.target = target;
     this.proxy = proxy;
@@ -62,19 +62,18 @@ public class ServerQueueEntry {
   /**
    * Constructs a new queue entry.
    *
-   * @param player The UUID of the player.
-   * @param target The target server.
-   * @param proxy The proxy.
-   * @param connectionAttempts The amount of connection attempts.
+   * @param player               The UUID of the player.
+   * @param target               The target server.
+   * @param proxy                The proxy.
+   * @param connectionAttempts   The number of connection attempts.
    * @param waitingForConnection Waiting for connection or not.
-   * @param priority The queue priority.
-   * @param fullBypass Full bypass.
-   * @param queueBypass Queue bypass.
+   * @param priority             The queue priority.
+   * @param fullBypass           Full bypass.
+   * @param queueBypass          Queue bypass.
    */
-  public ServerQueueEntry(final UUID player,
-                          final VelocityRegisteredServer target,
-                          final VelocityServer proxy, final int connectionAttempts, final boolean waitingForConnection,
-                          final int priority, final boolean fullBypass, final boolean queueBypass) {
+  public ServerQueueEntry(final UUID player, final VelocityRegisteredServer target,
+      final VelocityServer proxy, final int connectionAttempts, final boolean waitingForConnection,
+      final int priority, final boolean fullBypass, final boolean queueBypass) {
     this.proxy = proxy;
     this.connectionAttempts = connectionAttempts;
     this.waitingForConnection = waitingForConnection;
@@ -88,14 +87,14 @@ public class ServerQueueEntry {
   /**
    * Update the entry.
    *
-   * @param connectionAttempts Connection attempts.
+   * @param connectionAttempts   Connection attempts.
    * @param waitingForConnection Waiting for connection.
-   * @param priority Priority.
-   * @param fullBypass Full bypass.
-   * @param queueBypass Queue bypass.
+   * @param priority             Priority.
+   * @param fullBypass           Full bypass.
+   * @param queueBypass          Queue bypass.
    */
   public void update(final int connectionAttempts, final boolean waitingForConnection,
-                     final int priority, final boolean fullBypass, final boolean queueBypass) {
+      final int priority, final boolean fullBypass, final boolean queueBypass) {
     this.connectionAttempts = connectionAttempts;
     this.waitingForConnection = waitingForConnection;
     this.priority = priority;
@@ -253,7 +252,6 @@ public class ServerQueueEntry {
     return queueBypass;
   }
 
-
   /**
    * Get the username of the player.
    *
@@ -269,7 +267,6 @@ public class ServerQueueEntry {
       return info.getUsername();
     } else {
       Player p = this.proxy.getPlayer(player).orElse(null);
-
       if (p == null) {
         return "N/A";
       }
