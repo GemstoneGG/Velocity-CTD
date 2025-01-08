@@ -232,6 +232,10 @@ public class MultiProxyHandler {
       return;
     }
 
+    if (player.isDontRemoveFromRedis()) {
+      return;
+    }
+
     if (getPlayerInfo(player.getUniqueId()).isBeingTransferred()) {
       return;
     }
@@ -261,20 +265,26 @@ public class MultiProxyHandler {
    *
    * @param player the {@link ConnectedPlayer} that joined
    */
-  public void onPlayerJoin(final ConnectedPlayer player) {
+  public boolean onPlayerJoin(final ConnectedPlayer player) {
     if (shuttingDown) {
-      return;
+      return false;
     }
 
     List<RemotePlayerInfo> allPlayers = this.server.getRedisManager().getCache();
     for (RemotePlayerInfo info : allPlayers) {
       if (info.getUuid().equals(player.getUniqueId()) || info.getUsername().equalsIgnoreCase(player.getUsername())) {
-        player.disconnect(Component.translatable("velocity.error.already-connected-proxy.remote"));
-        return;
+        if (this.server.getConfiguration().isOnlineModeKickExistingPlayers()) {
+          server.getRedisManager().send(new RedisKickPlayerRequest(player.getUniqueId(), server.getMultiProxyHandler().getOwnProxyId()));
+        } else {
+          player.setDontRemoveFromRedis(true);
+          player.disconnect0(Component.translatable("velocity.error.already-connected-proxy.remote"), true);
+          return false;
+        }
       }
     }
 
     this.server.getMultiProxyHandler().handleJoin(createPlayerInfo(player));
+    return true;
   }
 
   private RemotePlayerInfo createPlayerInfo(final ConnectedPlayer player) {

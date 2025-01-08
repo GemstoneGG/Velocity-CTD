@@ -782,34 +782,4 @@ public class QueueAdminCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private int removeAllRedis(final CommandContext<CommandSource> ctx) {
-    VelocityRegisteredServer server = VelocityCommands.getServer(this.server, ctx, "server", true);
-    if (server == null) {
-      return -1;
-    }
-
-    int amount = 0;
-
-    for (RemotePlayerInfo player : this.server.getMultiProxyHandler().getAllPlayers()) {
-      if (server.getQueueStatus().isQueued(player.getUuid())) {
-        amount++;
-        server.getQueueStatus().dequeue(player.getUuid(), false);
-      }
-    }
-
-    if (amount == 0) {
-      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.removeall-no-players-queued")
-          .arguments(Component.text(server.getServerInfo().getName())));
-      return -1;
-    }
-
-    ctx.getSource()
-        .sendMessage(Component.translatable("velocity.queue.command.removedall-player" + (amount == 1 ? "" : "s"))
-            .arguments(
-                Component.text(amount),
-                Component.text(server.getServerInfo().getName())));
-
-    return Command.SINGLE_SUCCESS;
-  }
-
 }

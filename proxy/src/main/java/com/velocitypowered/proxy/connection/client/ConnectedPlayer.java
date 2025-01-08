@@ -181,6 +181,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private final ResourcePackHandler resourcePackHandler;
   private final BundleDelimiterHandler bundleHandler = new BundleDelimiterHandler(this);
   private boolean connectionInProgress;
+  private boolean dontRemoveFromRedis;
 
   @SuppressWarnings("UnstableApiUsage")
   private final @NotNull Pointers pointers =
@@ -629,6 +630,24 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   public void clearPlayerListHeaderAndFooterSilent() {
     this.playerListHeader = Component.empty();
     this.playerListFooter = Component.empty();
+  }
+
+  /**
+   * Sets whether the disconnect event should remove the player from the redis cache.
+   *
+   * @param remove Whether to remove the player or not.
+   */
+  public void setDontRemoveFromRedis(boolean remove) {
+    this.dontRemoveFromRedis = remove;
+  }
+
+  /**
+   * Gets whether the disconnect event should remove the player from the redis cache.
+   *
+   * @return Whether to remove the player or not.
+   */
+  public boolean isDontRemoveFromRedis() {
+    return this.dontRemoveFromRedis;
   }
 
   @Override

@@ -30,6 +30,7 @@ import com.velocitypowered.proxy.queue.ServerQueueEntry;
 import com.velocitypowered.proxy.queue.ServerQueueStatus;
 import com.velocitypowered.proxy.queue.cache.SerializableQueue;
 import com.velocitypowered.proxy.redis.multiproxy.RedisGetPlayerPingRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisKickPlayerRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetTransferringRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessage;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
@@ -143,6 +144,19 @@ public class RedisManagerImpl {
         -> proxy.getPlayer(it.username()).ifPresent(player
             -> proxy.getServer(it.server()).ifPresent(server
                 -> player.createConnectionRequest(server).connectWithIndication())));
+
+    listen(RedisKickPlayerRequest.ID, RedisKickPlayerRequest.class, it -> {
+      if (proxy.getMultiProxyHandler().getOwnProxyId().equalsIgnoreCase(it.proxyId())) {
+        return;
+      }
+
+      ConnectedPlayer player = (ConnectedPlayer) proxy.getPlayer(it.player()).orElse(null);
+
+      if (player != null) {
+        player.setDontRemoveFromRedis(true);
+        player.disconnect0(Component.translatable("velocity.error.already-connected-proxy.remote"), true);
+      }
+    });
   }
 
   /**
