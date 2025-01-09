@@ -151,7 +151,6 @@ public class RedisManagerImpl {
       }
 
       ConnectedPlayer player = (ConnectedPlayer) proxy.getPlayer(it.player()).orElse(null);
-
       if (player != null) {
         player.setDontRemoveFromRedis(true);
         player.disconnect0(Component.translatable("velocity.error.already-connected-proxy.remote"), true);

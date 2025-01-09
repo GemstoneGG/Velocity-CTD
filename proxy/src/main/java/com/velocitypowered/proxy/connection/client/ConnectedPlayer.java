@@ -655,6 +655,24 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     return tabList;
   }
 
+  /**
+   * Sets whether the disconnect event should remove the player from the Redis cache.
+   *
+   * @param remove Whether to remove the player or not.
+   */
+  public void setDontRemoveFromRedis(final boolean remove) {
+    this.dontRemoveFromRedis = remove;
+  }
+
+  /**
+   * Gets whether the disconnect event should remove the player from the Redis cache.
+   *
+   * @return Whether to remove the player or not.
+   */
+  public boolean isDontRemoveFromRedis() {
+    return this.dontRemoveFromRedis;
+  }
+
   @Override
   public void disconnect(final Component reason) {
     if (connection.eventLoop().inEventLoop()) {
