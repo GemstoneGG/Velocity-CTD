@@ -105,7 +105,6 @@ import io.netty.buffer.Unpooled;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -655,23 +654,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     return tabList;
   }
 
-  /**
-   * Sets whether the disconnect event should remove the player from the Redis cache.
-   *
-   * @param remove Whether to remove the player or not.
-   */
-  public void setDontRemoveFromRedis(final boolean remove) {
-    this.dontRemoveFromRedis = remove;
-  }
-
-  /**
-   * Gets whether the disconnect event should remove the player from the Redis cache.
-   *
-   * @return Whether to remove the player or not.
-   */
-  public boolean isDontRemoveFromRedis() {
-    return this.dontRemoveFromRedis;
-  }
 
   @Override
   public void disconnect(final Component reason) {
@@ -938,70 +920,57 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @return the next server to try
    */
   private Optional<RegisteredServer> getNextServerToTry(@Nullable final RegisteredServer current) {
-    List<String> forcedHosts;
     if (serversToTry == null) {
-      String virtualHostStr = getVirtualHost().map(InetSocketAddress::getHostString)
-          .orElse("");
-      forcedHosts = server.getConfiguration().getForcedHosts().getOrDefault(virtualHostStr,
-          Collections.emptyList());
-      serversToTry = forcedHosts;
+      serversToTry = new ArrayList<>();
+    }
+    String virtualHostStr = getVirtualHost().map(InetSocketAddress::getHostString)
+        .orElse("");
+    System.out.println("virtual host: " + virtualHostStr);
+    List<String> connOrder = new ArrayList<>(server.getConfiguration().getForcedHosts().getOrDefault(virtualHostStr,
+        new ArrayList<>()));
+    connOrder.addAll(server.getConfiguration().getAttemptConnectionOrder());
+
+    System.out.println("conn order: " + connOrder);
+
+    if (connOrder.isEmpty()) {
+      return Optional.empty();
     }
 
-    if (serversToTry.isEmpty()) {
-      List<String> connOrder = server.getConfiguration().getAttemptConnectionOrder();
-      if (connOrder.isEmpty()) {
-        return Optional.empty();
-      }
-
-      Optional<RegisteredServer> selectedServer = Optional.empty();
-      for (String serverName : connOrder) {
-        if (attemptedServers.contains(serverName)) {
-          continue;
-        }
-
-        RegisteredServer registeredServer = server.getServer(serverName).orElse(null);
-        if (registeredServer == null) {
-          logger.error(Component.text("Unable to read your velocity.toml fallback servers. Users are unable to connect."));
-          return Optional.empty();
-        }
-
-        if ((connectedServer != null && hasSameName(connectedServer.getServer(), serverName))
-            || (connectionInFlight != null && hasSameName(connectionInFlight.getServer(), serverName))
-            || (current != null && hasSameName(current, serverName))) {
-          continue;
-        }
-
-        if (selectedServer.isEmpty()) {
-          if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("FIRST_AVAILABLE")) {
-            return Optional.of(registeredServer);
-          }
-          selectedServer = Optional.of(registeredServer);
-        } else if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("MOST_POPULATED")) {
-          if (registeredServer.getTotalPlayerCount() > selectedServer.get().getTotalPlayerCount()) {
-            selectedServer = Optional.of(registeredServer);
-          }
-        } else if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("LEAST_POPULATED")) {
-          if (registeredServer.getTotalPlayerCount() < selectedServer.get().getTotalPlayerCount()) {
-            selectedServer = Optional.of(registeredServer);
-          }
-        }
-      }
-
-      return selectedServer;
-    }
-
-    for (int i = tryIndex; i < serversToTry.size(); i++) {
-      String toTryName = serversToTry.get(i);
-      if ((connectedServer != null && hasSameName(connectedServer.getServer(), toTryName))
-          || (connectionInFlight != null && hasSameName(connectionInFlight.getServer(), toTryName))
-          || (current != null && hasSameName(current, toTryName))) {
+    Optional<RegisteredServer> selectedServer = Optional.empty();
+    for (String serverName : connOrder) {
+      if (attemptedServers.contains(serverName)) {
         continue;
       }
 
-      tryIndex = i;
-      return server.getServer(toTryName);
+      RegisteredServer registeredServer = server.getServer(serverName).orElse(null);
+      if (registeredServer == null) {
+        logger.error(Component.text("Unable to read your velocity.toml fallback servers. Users are unable to connect."));
+        return Optional.empty();
+      }
+
+      if ((connectedServer != null && hasSameName(connectedServer.getServer(), serverName))
+          || (connectionInFlight != null && hasSameName(connectionInFlight.getServer(), serverName))
+          || (current != null && hasSameName(current, serverName))) {
+        continue;
+      }
+
+      if (selectedServer.isEmpty()) {
+        if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("FIRST_AVAILABLE")) {
+          return Optional.of(registeredServer);
+        }
+        selectedServer = Optional.of(registeredServer);
+      } else if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("MOST_POPULATED")) {
+        if (registeredServer.getTotalPlayerCount() > selectedServer.get().getTotalPlayerCount()) {
+          selectedServer = Optional.of(registeredServer);
+        }
+      } else if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("LEAST_POPULATED")) {
+        if (registeredServer.getTotalPlayerCount() < selectedServer.get().getTotalPlayerCount()) {
+          selectedServer = Optional.of(registeredServer);
+        }
+      }
     }
-    return Optional.empty();
+
+    return selectedServer;
   }
 
   private static boolean hasSameName(final RegisteredServer server, final String name) {
