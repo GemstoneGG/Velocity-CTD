@@ -167,9 +167,6 @@ public class GlistCommand {
       }
     } else {
       final List<Player> onServer = ImmutableList.copyOf(server.getPlayersConnected());
-      if (onServer.isEmpty() && fromAll) {
-        return;
-      }
       totalPlayers = onServer.size();
 
       for (Player player : onServer) {
@@ -178,18 +175,19 @@ public class GlistCommand {
       }
     }
 
-    int finalTotalPlayers = totalPlayers;
-    players.stream()
+    if (totalPlayers == 0 && fromAll) {
+      return;
+    }
+
+    Component playerList = players.stream()
         .reduce((a, b) -> a.append(Component.text(", ")).append(b))
-        .ifPresent(playerList -> {
-          final TranslatableComponent.Builder builder = Component.translatable()
-              .key("velocity.command.glist-server")
-              .arguments(
-                  Component.text(server.getServerInfo().getName()),
-                  Component.text(finalTotalPlayers),
-                  playerList
-              );
-          target.sendMessage(builder.build());
-        });
+        .orElse(Component.text(""));
+    target.sendMessage(Component.translatable("velocity.command.glist-server")
+        .arguments(
+            Component.text(server.getServerInfo().getName()),
+            Component.text(totalPlayers),
+            playerList
+        )
+    );
   }
 }

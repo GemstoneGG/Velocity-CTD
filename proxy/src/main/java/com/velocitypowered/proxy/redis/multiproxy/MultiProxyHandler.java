@@ -298,8 +298,9 @@ public class MultiProxyHandler {
     return new RemotePlayerInfo(
         this.config.getProxyId(), player.getUniqueId(), player.getUsername(),
         queuePriorities,
-        player.hasPermission("velocity.queue.full.bypass"),
-        player.hasPermission("velocity.queue.bypass"));
+        server.getQueueManager().isQueueEnabled() && player.hasPermission("velocity.queue.full.bypass"),
+        server.getQueueManager().isQueueEnabled() && player.hasPermission("velocity.queue.bypass")
+    );
   }
 
   /**

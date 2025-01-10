@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Encodes a command source over Redis, for sending replies to user commands.
  */
-public class EncodedCommandSource {
+public final class EncodedCommandSource {
   private static final Logger logger = LoggerFactory.getLogger(EncodedCommandSource.class);
   private final String target;
   private final String targetProxy;

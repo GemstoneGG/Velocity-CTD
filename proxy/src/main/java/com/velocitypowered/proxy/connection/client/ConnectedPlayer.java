@@ -881,12 +881,21 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                   }
 
                   if (this.server.getConfiguration().getQueue().isQueueOnShutdown()) {
+                    TextComponent kickMsg = (TextComponent) originalEvent.getServerKickReason().orElse(Component.empty());
                     ServerQueueStatus s = this.server.getQueueManager().getQueue(originalEvent.getServer().getServerInfo().getName());
-                    if (!s.isPaused() || this.server.getConfiguration().getQueue().isAllowPausedQueueJoining()) {
+
+                    // Checks if the kick reason is valid for a re-queue
+                    // This is done to make sure players don't get constantly sent over and over again in a kick loop
+                    boolean isValidReason = this.server.getConfiguration().getQueue().getBannedReason()
+                        .stream()
+                        .noneMatch(text -> containsString(kickMsg, text));
+
+                    if (isValidReason && (!s.isPaused() || this.server.getConfiguration().getQueue().isAllowPausedQueueJoining())) {
                       s.queue(getUniqueId(),
                           getQueuePriority(originalEvent.getServer().getServerInfo().getName()),
-                          hasPermission("velocity.queue.full.bypass"),
-                          hasPermission("velocity.queue.bypass"));
+                          server.getQueueManager().isQueueEnabled() && hasPermission("velocity.queue.full.bypass"),
+                          server.getQueueManager().isQueueEnabled() && hasPermission("velocity.queue.bypass")
+                      );
                     }
                   }
                   break;
@@ -1212,6 +1221,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   @Override
   public int getQueuePriority(final String serverName) {
+    if (!server.getQueueManager().isQueueEnabled()) {
+      return 0;
+    }
+
     for (int i = 100; i > 0; i--) {
       if (hasPermission("velocity.queue.priority." + serverName + "." + i)) {
         return i;
