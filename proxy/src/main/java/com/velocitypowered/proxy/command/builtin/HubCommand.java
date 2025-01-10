@@ -97,17 +97,17 @@ public class HubCommand {
             .arguments(Component.text(serverToTry.getServerInfo().getName())));
       }
 
-      if (this.server.getConfiguration().getQueue().getNoQueueServers()
-              .contains(serverToTry.getServerInfo().getName()) || !server.getMultiProxyHandler().isRedisEnabled()
-              || player.hasPermission("velocity.queue.bypass")) {
+      if (this.server.getConfiguration().getQueue().getNoQueueServers().contains(serverToTry.getServerInfo().getName())
+              || !server.getMultiProxyHandler().isRedisEnabled()
+              || (server.getQueueManager().isQueueEnabled() && player.hasPermission("velocity.queue.bypass"))) {
         player.createConnectionRequest(serverToTry).connectWithIndication();
         return Command.SINGLE_SUCCESS;
       }
 
       ((VelocityRegisteredServer) serverToTry).getQueueStatus().queue(player.getUniqueId(),
           player.getQueuePriority(serverToTry.getServerInfo().getName()),
-          player.hasPermission("velocity.queue.full.bypass"),
-          player.hasPermission("velocity.queue.bypass"));
+          server.getQueueManager().isQueueEnabled() && player.hasPermission("velocity.queue.full.bypass"),
+          server.getQueueManager().isQueueEnabled() && player.hasPermission("velocity.queue.bypass"));
 
       return Command.SINGLE_SUCCESS;
     }

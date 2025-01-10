@@ -129,7 +129,7 @@ public class PlistCommand {
             new ArrayList<>(this.server.getMultiProxyHandler().getPlayers(validatedProxy.get()));
         serverPlayers.removeIf(player -> !player.getServerName().equalsIgnoreCase(registeredServer.getServerInfo().getName()));
         allPlayers.addAll(serverPlayers);
-        sendServerPlayers(context.getSource(), validatedProxy.get(), registeredServer);
+        sendServerPlayers(context.getSource(), validatedProxy.get(), registeredServer, true);
       }
 
       sendTotalProxyCount(context.getSource(), validatedProxy.get(), allPlayers.size());
@@ -141,7 +141,7 @@ public class PlistCommand {
       return Command.SINGLE_SUCCESS;
     }
 
-    sendServerPlayers(context.getSource(), validatedProxy.get(), validatedServer.get());
+    sendServerPlayers(context.getSource(), validatedProxy.get(), validatedServer.get(), false);
     return Command.SINGLE_SUCCESS;
   }
 
@@ -184,7 +184,8 @@ public class PlistCommand {
 
   private void sendServerPlayers(final CommandSource target,
                                  final String proxyId,
-                                 final RegisteredServer server) {
+                                 final RegisteredServer server,
+                                 final boolean fromAll) {
     final List<RemotePlayerInfo> proxyPlayers = this.server.getMultiProxyHandler().getPlayers(proxyId);
     List<Component> players = new ArrayList<>();
     int totalPlayers = 0;
@@ -196,18 +197,19 @@ public class PlistCommand {
       }
     }
 
-    int finalTotalPlayers = totalPlayers;
-    players.stream()
+    if (fromAll && totalPlayers == 0) {
+      return;
+    }
+
+    Component playerList = players.stream()
         .reduce((a, b) -> a.append(Component.text(", ")).append(b))
-        .ifPresent(playerList -> {
-          final TranslatableComponent.Builder builder = Component.translatable()
-              .key("velocity.command.plist-server")
-              .arguments(
-                  Component.text(server.getServerInfo().getName()),
-                  Component.text(finalTotalPlayers),
-                  playerList
-              );
-          target.sendMessage(builder.build());
-        });
+        .orElse(Component.text(""));
+    target.sendMessage(Component.translatable("velocity.command.plist-server")
+        .arguments(
+            Component.text(server.getServerInfo().getName()),
+            Component.text(totalPlayers),
+            playerList
+        )
+    );
   }
 }

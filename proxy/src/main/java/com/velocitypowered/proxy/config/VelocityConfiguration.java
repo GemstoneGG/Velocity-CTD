@@ -295,7 +295,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
 
       if (!servers.getServers().containsKey(entry.getKey())) {
-        logger.error("Server '{}' does not exist (in /server aliases)", entry.getKey());
+        logger.error("Server '{}' does not exist in /server aliases", entry.getKey());
         valid = false;
       }
     }
@@ -777,7 +777,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         for (CommentedConfig.Entry entry : serverLinksConfig.entrySet()) {
           CommentedConfig link = entry.getValue();
           links.add(ServerLink.serverLink(MiniMessage.miniMessage().deserialize(link.get("label")),
-                  link.get("link")));
+              link.get("link")));
 
         }
       }

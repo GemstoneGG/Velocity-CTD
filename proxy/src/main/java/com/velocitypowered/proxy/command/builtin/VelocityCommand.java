@@ -126,6 +126,16 @@ public final class VelocityCommand {
             builder.suggest("all");
           }
 
+          if (argument.isEmpty() || argument.startsWith("+")) {
+            for (final RegisteredServer registeredServer : server.getAllServers()) {
+              final String serverName = registeredServer.getServerInfo().getName();
+
+              if (serverName.regionMatches(true, 0, argument, 1, argument.length() - 1)) {
+                builder.suggest("+" + serverName);
+              }
+            }
+          }
+
           if (server.getMultiProxyHandler().isRedisEnabled()) {
             for (RemotePlayerInfo i : server.getMultiProxyHandler().getAllPlayers()) {
               if (i.getName().regionMatches(true, 0, argument, 0, argument.length())) {
@@ -206,7 +216,7 @@ public final class VelocityCommand {
    * @param server the proxy server
    * @return the component used by {@code /velocity uptime}
    */
-  public static Component getUptimeComponent(VelocityServer server) {
+  public static Component getUptimeComponent(final VelocityServer server) {
     long timeInSeconds = (System.currentTimeMillis() - server.getStartTime()) / 1000;
     int days = (int) TimeUnit.SECONDS.toDays(timeInSeconds);
     long hours = TimeUnit.SECONDS.toHours(timeInSeconds) - (days * 24L);
@@ -274,12 +284,25 @@ public final class VelocityCommand {
                 "velocity.command.sudo.executed-remotely-all",
                 NamedTextColor.GREEN,
                 Component.text(proxyId),
-                Component.text(playerName),
                 Component.text(messageOrCommand)
             ));
             for (RemotePlayerInfo player : multiProxyHandler.getPlayers(proxyId)) {
               multiProxyHandler.sudo(player, source, messageOrCommand);
             }
+          } else if (playerName.startsWith("+")) {
+            String serverName = playerName.substring(1);
+            for (RemotePlayerInfo player : multiProxyHandler.getPlayers(proxyId)) {
+              if (player.getServerName().equalsIgnoreCase(serverName)) {
+                multiProxyHandler.sudo(player, source, messageOrCommand);
+              }
+            }
+            source.sendMessage(Component.translatable(
+                "velocity.command.sudo.executed-remotely-server",
+                NamedTextColor.GREEN,
+                Component.text(proxyId),
+                Component.text(messageOrCommand),
+                Component.text(serverName)
+            ));
           } else {
             for (RemotePlayerInfo player : multiProxyHandler.getPlayers(proxyId)) {
               if (player.getName().equalsIgnoreCase(playerName)) {
@@ -300,79 +323,119 @@ public final class VelocityCommand {
       }
 
       if (this.server.getPlayerCount() == 0) {
-        context.getSource().sendMessage(Component.translatable("velocity.command.sudo.no-players"));
+        source.sendMessage(Component.translatable("velocity.command.sudo.no-players"));
         return Command.SINGLE_SUCCESS;
       }
 
       if (playerName.equalsIgnoreCase("all")) {
-        if (messageOrCommand.startsWith("/")) {
-          source.sendMessage(Component.translatable(
-              "velocity.command.sudo.command-executed-all",
-              NamedTextColor.GREEN,
-              Component.text(messageOrCommand)
-          ));
-        } else {
-          source.sendMessage(Component.translatable(
-              "velocity.command.sudo.message-sent-all",
-              NamedTextColor.GREEN,
-              Component.text(messageOrCommand)
-          ));
-        }
-        server.getAllPlayers().forEach(player -> {
-          if (messageOrCommand.startsWith("/")) {
-            String[] split = messageOrCommand.split(" ");
-            String command = split[0].substring(1);
-            if (this.server.getCommandManager().hasCommand(command)) {
-              this.server.getCommandManager().executeAsync(player, messageOrCommand.substring(1));
-            } else {
-              player.spoofChatInput(messageOrCommand);
-            }
+        handleAllPlayers(source, messageOrCommand);
+      } else if (playerName.startsWith("+")) {
+        String serverName = playerName.substring(1);
+        handleServerPlayers(source, serverName, messageOrCommand);
+      } else {
+        handleSinglePlayer(source, playerName, messageOrCommand);
+      }
+      return Command.SINGLE_SUCCESS;
+    }
 
-          } else {
-            player.spoofChatInput(messageOrCommand);
-          }
-        });
-        return Command.SINGLE_SUCCESS;
+    private void handleAllPlayers(final CommandSource source, final String messageOrCommand) {
+      Collection<Player> players = server.getAllPlayers();
+      if (players.isEmpty()) {
+        source.sendMessage(Component.translatable("velocity.command.sudo.no-players"));
+        return;
       }
 
-      server.getPlayer(playerName).ifPresentOrElse(player -> {
-        if (messageOrCommand.startsWith("/")) {
-          String[] split = messageOrCommand.split(" ");
-          String command = split[0].substring(1);
-          if (this.server.getCommandManager().hasCommand(command)) {
-            source.sendMessage(Component.translatable(
-                "velocity.command.sudo.command-executed",
-                NamedTextColor.GREEN,
-                Component.text(playerName),
-                Component.text(messageOrCommand)
-            ));
-            this.server.getCommandManager().executeAsync(player, messageOrCommand.substring(1));
-          } else {
-            source.sendMessage(Component.translatable(
-                "velocity.command.sudo.command-executed",
-                NamedTextColor.GREEN,
-                Component.text(playerName),
-                Component.text(messageOrCommand)
-            ));
-            player.spoofChatInput(messageOrCommand);
-          }
+      for (Player player : players) {
+        executeSudo(player, messageOrCommand, source, false);
+      }
+
+      if (messageOrCommand.startsWith("/")) {
+        source.sendMessage(Component.translatable(
+            "velocity.command.sudo.command-executed-all",
+            NamedTextColor.GREEN,
+            Component.text(messageOrCommand)
+        ));
+      } else {
+        source.sendMessage(Component.translatable(
+            "velocity.command.sudo.message-sent-all",
+            NamedTextColor.GREEN,
+            Component.text(messageOrCommand)
+        ));
+      }
+    }
+
+    private void handleServerPlayers(final CommandSource source, final String serverName, final String messageOrCommand) {
+      RegisteredServer targetServer = server.getServer(serverName).orElse(null);
+
+      if (targetServer == null) {
+        source.sendMessage(Component.translatable(
+            "velocity.command.server-does-not-exist",
+            NamedTextColor.RED,
+            Component.text(serverName)
+        ));
+        return;
+      }
+
+      Collection<Player> connectedPlayers = targetServer.getPlayersConnected();
+      if (connectedPlayers.isEmpty()) {
+        source.sendMessage(Component.translatable(
+            "velocity.command.sudo.no-players"));
+        return;
+      }
+
+      for (Player player : targetServer.getPlayersConnected()) {
+        executeSudo(player, messageOrCommand, source, false);
+      }
+
+      if (messageOrCommand.startsWith("/")) {
+        source.sendMessage(Component.translatable(
+            "velocity.command.sudo.command-executed-server",
+            NamedTextColor.GREEN,
+            Component.text(messageOrCommand)
+        ));
+      } else {
+        source.sendMessage(Component.translatable(
+            "velocity.command.sudo.message-sent-server",
+            NamedTextColor.GREEN,
+            Component.text(messageOrCommand)
+        ));
+      }
+    }
+
+    private void handleSinglePlayer(final CommandSource source, final String playerName, final String messageOrCommand) {
+      server.getPlayer(playerName).ifPresentOrElse(
+              player -> executeSudo(player, messageOrCommand, source, true),
+              () -> source.sendMessage(Component.translatable(
+                      "velocity.command.player-not-found",
+                      NamedTextColor.RED,
+                      Component.text(playerName)
+              ))
+      );
+    }
+
+    private void executeSudo(final Player player, final String messageOrCommand, final CommandSource source, final boolean isIndividual) {
+      if (messageOrCommand.startsWith("/")) {
+        String[] split = messageOrCommand.split(" ", 2);
+        String command = split[0].substring(1);
+        String args = split.length > 1 ? split[1] : "";
+
+        if (server.getCommandManager().hasCommand(command)) {
+          server.getCommandManager().executeAsync(player, command + " " + args);
         } else {
           player.spoofChatInput(messageOrCommand);
-          source.sendMessage(Component.translatable(
-              "velocity.command.sudo.message-sent",
-              NamedTextColor.GREEN,
-              Component.text(playerName),
-              Component.text(messageOrCommand)
-          ));
         }
-      },
-          () -> source.sendMessage(Component.translatable(
-              "velocity.command.player-not-found",
-              NamedTextColor.RED,
-              Component.text(playerName)
-          ))
-      );
-      return Command.SINGLE_SUCCESS;
+      } else {
+        player.spoofChatInput(messageOrCommand);
+      }
+
+      if (isIndividual) {
+        source.sendMessage(Component.translatable(
+            "velocity.command.sudo.message-sent",
+            NamedTextColor.GREEN,
+            Component.text(player.getUsername()),
+            Component.text(messageOrCommand)
+        ));
+      }
     }
   }
 
