@@ -316,6 +316,9 @@ public abstract class QueueManager {
       return;
     }
 
+    player.sendMessage(Component.translatable("velocity.queue.command.queued")
+        .arguments(Component.text(serverName)));
+
     status.queue(player.getUniqueId(), player.getQueuePriority(server.getServerInfo().getName()),
         player.hasPermission("velocity.queue.full.bypass"),
         player.hasPermission("velocity.queue.bypass"));

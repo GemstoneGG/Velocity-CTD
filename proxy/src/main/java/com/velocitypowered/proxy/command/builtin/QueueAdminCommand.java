@@ -749,7 +749,6 @@ public class QueueAdminCommand {
             .arguments(
                 Component.text(amount),
                 Component.text(server.getServerInfo().getName())));
-
     return Command.SINGLE_SUCCESS;
   }
 

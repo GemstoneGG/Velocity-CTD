@@ -48,13 +48,15 @@ import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 /**
- * Handles messages coming from servers trying to communicate with the
- * BungeeCord plugin
+ * Handles messages coming from servers trying to communicate with the BungeeCord plugin
  * messaging channel interface.
  */
-@SuppressFBWarnings(value = "OS_OPEN_STREAM", justification = "Most methods in this class open "
-    + "instances of ByteBufDataOutput backed by heap-allocated ByteBufs. Closing them does "
-    + "nothing.")
+@SuppressFBWarnings(
+    value = "OS_OPEN_STREAM",
+    justification = "Most methods in this class open "
+      + "instances of ByteBufDataOutput backed by heap-allocated ByteBufs. Closing them does "
+      + "nothing."
+)
 public class BungeeCordMessageResponder {
 
   private static final MinecraftChannelIdentifier MODERN_CHANNEL = MinecraftChannelIdentifier
@@ -114,8 +116,7 @@ public class BungeeCordMessageResponder {
       }
 
       if (queue && proxy.getQueueManager().isQueueEnabled()) {
-        if (this.proxy.getConfiguration().getQueue().getNoQueueServers()
-            .contains(referencedServer.get().getServerInfo().getName())) {
+        if (this.proxy.getConfiguration().getQueue().getNoQueueServers().contains(referencedServer.get().getServerInfo().getName())) {
           player.createConnectionRequest(referencedServer.get()).connectWithIndication();
           return;
         }

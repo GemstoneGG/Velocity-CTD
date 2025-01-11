@@ -47,10 +47,10 @@ public class ServerQueueEntry {
    * @param target the target server
    */
   public ServerQueueEntry(final UUID player,
-      final VelocityRegisteredServer target,
-      final VelocityServer proxy, final int priority,
-      final boolean fullBypass,
-      final boolean queueBypass) {
+                          final VelocityRegisteredServer target,
+                          final VelocityServer proxy, final int priority,
+                          final boolean fullBypass,
+                          final boolean queueBypass) {
     this.player = player;
     this.target = target;
     this.proxy = proxy;
@@ -72,8 +72,8 @@ public class ServerQueueEntry {
    * @param queueBypass          Queue bypass.
    */
   public ServerQueueEntry(final UUID player, final VelocityRegisteredServer target,
-      final VelocityServer proxy, final int connectionAttempts, final boolean waitingForConnection,
-      final int priority, final boolean fullBypass, final boolean queueBypass) {
+                          final VelocityServer proxy, final int connectionAttempts, final boolean waitingForConnection,
+                          final int priority, final boolean fullBypass, final boolean queueBypass) {
     this.proxy = proxy;
     this.connectionAttempts = connectionAttempts;
     this.waitingForConnection = waitingForConnection;
@@ -94,7 +94,7 @@ public class ServerQueueEntry {
    * @param queueBypass          Queue bypass.
    */
   public void update(final int connectionAttempts, final boolean waitingForConnection,
-      final int priority, final boolean fullBypass, final boolean queueBypass) {
+                     final int priority, final boolean fullBypass, final boolean queueBypass) {
     this.connectionAttempts = connectionAttempts;
     this.waitingForConnection = waitingForConnection;
     this.priority = priority;
