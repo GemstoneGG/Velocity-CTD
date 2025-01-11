@@ -46,8 +46,7 @@ public class ServerQueueEntry {
    * @param player the player who is queueing
    * @param target the target server
    */
-  public ServerQueueEntry(final UUID player,
-                          final VelocityRegisteredServer target,
+  public ServerQueueEntry(final UUID player, final VelocityRegisteredServer target,
                           final VelocityServer proxy, final int priority,
                           final boolean fullBypass,
                           final boolean queueBypass) {
