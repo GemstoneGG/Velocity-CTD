@@ -136,7 +136,6 @@ public class TransferCommand {
                             .executes(this::transfer)))
             .build();
 
-
     final BrigadierCommand command = new BrigadierCommand(transfer);
     server.getCommandManager().register(
         server.getCommandManager().metaBuilder(command)
@@ -251,7 +250,6 @@ public class TransferCommand {
             .arguments(Component.text(player)));
         return -1;
       }
-
 
       RegisteredServer foundServer = this.server.getServer(foundServerConn.getServerInfo().getName()).orElse(null);
 

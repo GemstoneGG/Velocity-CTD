@@ -332,7 +332,6 @@ public class MultiProxyHandler {
     return ids;
   }
 
-
   /**
    * Retrieves a list of players connected to a specified proxy in the multi-proxy setup.
    *

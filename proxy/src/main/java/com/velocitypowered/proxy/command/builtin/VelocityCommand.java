@@ -144,7 +144,6 @@ public final class VelocityCommand {
             }
           }
 
-
           if (server.getMultiProxyHandler().isRedisEnabled()) {
             for (RemotePlayerInfo i : server.getMultiProxyHandler().getAllPlayers()) {
               if (i.getName().regionMatches(true, 0, argument, 0, argument.length())) {
@@ -356,8 +355,8 @@ public final class VelocityCommand {
           return Command.SINGLE_SUCCESS;
         }
 
+        boolean doneOne = false;
         if (this.server.getMultiProxyHandler().isRedisEnabled()) {
-          boolean doneOne = false;
           for (RemotePlayerInfo info : this.server.getMultiProxyHandler().getAllPlayers()) {
             if (info.getServerName().equalsIgnoreCase(playerName.substring(1))) {
               this.server.getRedisManager().send(new RedisSudo(info.getProxyId(), info.getUuid(), messageOrCommand));
@@ -373,7 +372,6 @@ public final class VelocityCommand {
           }
           return Command.SINGLE_SUCCESS;
         } else {
-          boolean doneOne = false;
           for (Player player : registeredServer.getPlayersConnected()) {
             if (this.server.getCommandManager().hasCommand(messageOrCommand)) {
               this.server.getCommandManager().executeAsync(player, messageOrCommand);
@@ -421,12 +419,8 @@ public final class VelocityCommand {
               .arguments(Component.text(player.getUsername()), Component.text(messageOrCommand)));
         }
       }
-
-
       return Command.SINGLE_SUCCESS;
     }
-
-
   }
 
   private record Reload(VelocityServer server) implements Command<CommandSource> {

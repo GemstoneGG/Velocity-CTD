@@ -928,7 +928,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     List<String> connOrder = new ArrayList<>(server.getConfiguration().getForcedHosts().getOrDefault(virtualHostStr,
         new ArrayList<>()));
     connOrder.addAll(server.getConfiguration().getAttemptConnectionOrder());
-
     connOrder.removeAll(attemptedServers);
 
     if (connOrder.isEmpty()) {
