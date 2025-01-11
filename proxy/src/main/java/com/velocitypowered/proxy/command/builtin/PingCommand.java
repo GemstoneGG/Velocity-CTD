@@ -126,8 +126,7 @@ public class PingCommand {
           return -1;
         }
 
-        Component component = Component.translatable("velocity.command.ping.other",
-                NamedTextColor.GREEN)
+        Component component = Component.translatable("velocity.command.ping.other", NamedTextColor.GREEN)
             .arguments(Component.text(player.getUsername()),
                 Component.text(player.getPing()));
         context.getSource().sendMessage(component);
