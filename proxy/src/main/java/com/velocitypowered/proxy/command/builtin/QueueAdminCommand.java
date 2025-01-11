@@ -529,8 +529,8 @@ public class QueueAdminCommand {
         continue;
       }
       to.getQueueStatus().queue(player.getUniqueId(), player.getQueuePriority(to.getServerInfo().getName()),
-          server.getQueueManager().isQueueEnabled() && player.hasPermission("velocity.queue.full.bypass"),
-          server.getQueueManager().isQueueEnabled() && player.hasPermission("velocity.queue.bypass")
+          player.hasPermission("velocity.queue.full.bypass"),
+          player.hasPermission("velocity.queue.bypass")
       );
     }
 
