@@ -76,8 +76,8 @@ public class ServerListPingHandler {
     List<ServerPing.SamplePlayer> samplePlayers = new ArrayList<>();
     for (String s : server.getConfiguration().getMotdHover()) {
       samplePlayers.add(new ServerPing.SamplePlayer(
-              s,
-              UUID.randomUUID()));
+          s,
+          UUID.randomUUID()));
     }
 
     return new ServerPing(

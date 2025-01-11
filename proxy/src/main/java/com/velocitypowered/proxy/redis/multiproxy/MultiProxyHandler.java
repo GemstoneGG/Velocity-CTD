@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -49,6 +50,8 @@ public class MultiProxyHandler {
   private final Map<UUID, String> transferringServers = new HashMap<>();
 
   private final boolean enabled;
+
+  private int totalPlayerCount;
 
   /**
    * Initializes the {@code MultiProxyHandler} to manage multi-proxy functionality
@@ -73,6 +76,9 @@ public class MultiProxyHandler {
     }
 
     RedisManagerImpl redisManager = this.server.getRedisManager();
+
+    Executors.newScheduledThreadPool(1).scheduleAtFixedRate(()
+        -> totalPlayerCount = redisManager.getCache().size(), 100, 100, TimeUnit.MILLISECONDS);
 
     redisManager.addProxyId(this.server.getConfiguration().getRedis().getProxyId());
 
@@ -303,7 +309,7 @@ public class MultiProxyHandler {
    * @return the combined player count from this proxy and all other known proxies
    */
   public int getTotalPlayerCount() {
-    return this.server.getRedisManager().getCache().size();
+    return totalPlayerCount;
   }
 
   /**
