@@ -530,8 +530,7 @@ public class QueueAdminCommand {
       }
       to.getQueueStatus().queue(player.getUniqueId(), player.getQueuePriority(to.getServerInfo().getName()),
           player.hasPermission("velocity.queue.full.bypass"),
-          player.hasPermission("velocity.queue.bypass")
-      );
+          player.hasPermission("velocity.queue.bypass"));
     }
 
     int connectedSize = connected.size();
