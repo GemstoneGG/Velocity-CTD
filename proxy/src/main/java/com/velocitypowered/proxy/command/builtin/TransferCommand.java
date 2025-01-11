@@ -136,7 +136,6 @@ public class TransferCommand {
                             .executes(this::transfer)))
             .build();
 
-
     final BrigadierCommand command = new BrigadierCommand(transfer);
     server.getCommandManager().register(
         server.getCommandManager().metaBuilder(command)
@@ -177,13 +176,13 @@ public class TransferCommand {
 
     if (address == null) {
       context.getSource().sendMessage(Component.translatable("velocity.command.error.transfer.invalid-proxy")
-              .arguments(Component.text(proxyId)));
+          .arguments(Component.text(proxyId)));
       return -1;
     }
 
     if (player.equalsIgnoreCase("all")) {
       context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.all")
-              .arguments(Component.text(proxyId)));
+          .arguments(Component.text(proxyId)));
 
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         for (Player p : this.server.getAllPlayers()) {
@@ -280,7 +279,7 @@ public class TransferCommand {
       }).delay(1, TimeUnit.SECONDS).schedule();
     } else {
       context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.player")
-              .arguments(Component.text(player), Component.text(proxyId)));
+          .arguments(Component.text(player), Component.text(proxyId)));
 
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         UUID sender = null;

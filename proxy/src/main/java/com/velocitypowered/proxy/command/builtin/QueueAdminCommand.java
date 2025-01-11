@@ -228,11 +228,11 @@ public class QueueAdminCommand {
         .getArgument("server", String.class)).orElse(null);
 
     if (serverName.equalsIgnoreCase("current")) {
-      if (!(ctx.getSource() instanceof Player p)) {
+      if (!(ctx.getSource() instanceof Player player)) {
         ctx.getSource().sendMessage(Component.translatable("velocity.command.players-only"));
         return -1;
       }
-      ServerConnection connection = p.getCurrentServer().orElse(null);
+      ServerConnection connection = player.getCurrentServer().orElse(null);
       if (connection == null) {
         ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.list.current-not-connected"));
         return -1;
@@ -404,37 +404,37 @@ public class QueueAdminCommand {
       return -1;
     }
 
-    Player p = this.server.getPlayer(playerName).orElse(null);
-    if (p == null) {
+    Player player = this.server.getPlayer(playerName).orElse(null);
+    if (player == null) {
       ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
           .arguments(Component.text(playerName)));
       return -1;
     }
 
-    ServerConnection conn = p.getCurrentServer().orElse(null);
+    ServerConnection conn = player.getCurrentServer().orElse(null);
     if (conn != null && conn.getServerInfo().getName().equalsIgnoreCase(server.getServerInfo().getName())) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-connected")
-          .arguments(Component.text(p.getUsername())));
+          .arguments(Component.text(player.getUsername())));
       return -1;
     }
 
-    if (server.getQueueStatus().isQueued(p.getUniqueId())) {
+    if (server.getQueueStatus().isQueued(player.getUniqueId())) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-queued.other")
           .arguments(
-              Component.text(p.getUsername()),
+              Component.text(player.getUsername()),
               Component.text(server.getServerInfo().getName())
           )
       );
       return -1;
     }
 
-    server.getQueueStatus().queue(p.getUniqueId(), p.getQueuePriority(server.getServerInfo().getName()),
-        p.hasPermission("velocity.queue.full.bypass"),
-        p.hasPermission("velocity.queue.bypass"));
+    server.getQueueStatus().queue(player.getUniqueId(), player.getQueuePriority(server.getServerInfo().getName()),
+        player.hasPermission("velocity.queue.full.bypass"),
+        player.hasPermission("velocity.queue.bypass"));
 
     ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.added")
         .arguments(
-            Component.text(playerName),
+            Component.text(player.getUsername()),
             Component.text(server.getServerInfo().getName())
         ));
 
@@ -449,37 +449,37 @@ public class QueueAdminCommand {
       return -1;
     }
 
-    RemotePlayerInfo p = this.server.getMultiProxyHandler().getPlayerInfo(playerName);
-    if (p == null) {
+    RemotePlayerInfo player = this.server.getMultiProxyHandler().getPlayerInfo(playerName);
+    if (player == null) {
       ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
           .arguments(Component.text(playerName)));
       return -1;
     }
 
-    String conn = p.getServerName();
+    String conn = player.getServerName();
     if (conn != null && conn.equalsIgnoreCase(server.getServerInfo().getName())) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-connected")
-          .arguments(Component.text(p.getUsername())));
+          .arguments(Component.text(player.getUsername())));
       return -1;
     }
 
-    if (server.getQueueStatus().isQueued(p.getUuid())) {
+    if (server.getQueueStatus().isQueued(player.getUuid())) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-queued.other")
           .arguments(
-              Component.text(p.getUsername()),
+              Component.text(player.getUsername()),
               Component.text(server.getServerInfo().getName())
           )
       );
       return -1;
     }
 
-    server.getQueueStatus().queue(p.getUuid(), p.getQueuePriority().get(server.getServerInfo().getName()),
-        p.isFullQueueBypass(),
-        p.isQueueBypass());
+    server.getQueueStatus().queue(player.getUuid(), player.getQueuePriority().get(server.getServerInfo().getName()),
+        player.isFullQueueBypass(),
+        player.isQueueBypass());
 
     ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.added")
         .arguments(
-            Component.text(playerName),
+            Component.text(player.getUsername()),
             Component.text(server.getServerInfo().getName())
         ));
 
@@ -506,11 +506,11 @@ public class QueueAdminCommand {
     }
 
     List<Player> connected = new ArrayList<>();
-    for (Player p : this.server.getAllPlayers()) {
-      ServerConnection conn = p.getCurrentServer().orElse(null);
+    for (Player player : this.server.getAllPlayers()) {
+      ServerConnection conn = player.getCurrentServer().orElse(null);
       if (conn != null && conn.getServerInfo().getName().equalsIgnoreCase(from.getServerInfo().getName())) {
-        if (!to.getQueueStatus().isQueued(p.getUniqueId())) {
-          connected.add(p);
+        if (!to.getQueueStatus().isQueued(player.getUniqueId())) {
+          connected.add(player);
         }
       }
     }
@@ -563,11 +563,11 @@ public class QueueAdminCommand {
     }
 
     List<RemotePlayerInfo> connected = new ArrayList<>();
-    for (RemotePlayerInfo p : this.server.getMultiProxyHandler().getAllPlayers()) {
-      String conn = p.getServerName();
+    for (RemotePlayerInfo player : this.server.getMultiProxyHandler().getAllPlayers()) {
+      String conn = player.getServerName();
       if (conn != null && conn.equalsIgnoreCase(from.getServerInfo().getName())) {
-        if (!to.getQueueStatus().isQueued(p.getUuid())) {
-          connected.add(p);
+        if (!to.getQueueStatus().isQueued(player.getUuid())) {
+          connected.add(player);
         }
       }
     }
@@ -640,6 +640,7 @@ public class QueueAdminCommand {
       return -1;
     }
 
+    boolean handledSpecific = false;
     int amountDone = 0;
 
     for (RegisteredServer s : servers) {
@@ -648,9 +649,11 @@ public class QueueAdminCommand {
         ctx.getSource().sendMessage(Component.translatable("velocity.queue.remove-success")
             .arguments(Component.text(player.getUsername()),
                 Component.text(velocityRegisteredServer.getServerInfo().getName())));
+        handledSpecific = true;
       } else if (servers.size() == 1) {
         ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.not-in-queue.other.specific")
             .arguments(Component.text(player.getUsername()), Component.text(s.getServerInfo().getName())));
+        handledSpecific = true;
       }
 
       if (velocityRegisteredServer.getQueueStatus().isQueued(player.getUniqueId())) {
@@ -659,7 +662,7 @@ public class QueueAdminCommand {
       }
     }
 
-    if (amountDone == 0) {
+    if (!handledSpecific && amountDone == 0) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.not-in-queue.other")
           .arguments(Component.text(player.getUsername())));
       return Command.SINGLE_SUCCESS;
@@ -706,6 +709,7 @@ public class QueueAdminCommand {
       return -1;
     }
 
+    boolean handledSpecific = false;
     int amountDone = 0;
 
     for (RegisteredServer s : servers) {
@@ -714,9 +718,11 @@ public class QueueAdminCommand {
         ctx.getSource().sendMessage(Component.translatable("velocity.queue.remove-success")
             .arguments(Component.text(player.getUsername()),
                 Component.text(velocityRegisteredServer.getServerInfo().getName())));
+        handledSpecific = true;
       } else if (servers.size() == 1) {
         ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.not-in-queue.other.specific")
             .arguments(Component.text(player.getUsername()), Component.text(s.getServerInfo().getName())));
+        handledSpecific = true;
       }
 
       if (velocityRegisteredServer.getQueueStatus().isQueued(player.getUuid())) {
@@ -725,7 +731,7 @@ public class QueueAdminCommand {
       }
     }
 
-    if (amountDone == 0) {
+    if (!handledSpecific && amountDone == 0) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.not-in-queue.other")
           .arguments(Component.text(player.getUsername())));
       return Command.SINGLE_SUCCESS;
@@ -733,7 +739,7 @@ public class QueueAdminCommand {
 
     if (servers.size() > 1) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.remove-all-success")
-          .arguments(Component.text(playerName)));
+          .arguments(Component.text(player.getUsername())));
     }
     return Command.SINGLE_SUCCESS;
   }
