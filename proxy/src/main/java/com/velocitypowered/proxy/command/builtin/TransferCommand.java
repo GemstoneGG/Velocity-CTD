@@ -252,6 +252,7 @@ public class TransferCommand {
         return -1;
       }
 
+
       RegisteredServer foundServer = this.server.getServer(foundServerConn.getServerInfo().getName()).orElse(null);
 
       context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.server")
@@ -279,15 +280,20 @@ public class TransferCommand {
         }
       }).delay(1, TimeUnit.SECONDS).schedule();
     } else {
-      context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.player")
-              .arguments(Component.text(player), Component.text(proxyId)));
-
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         UUID sender = null;
         if (context.getSource() instanceof Player p) {
           sender = p.getUniqueId();
         }
-        this.server.getRedisManager().send(new RedisTransferCommandRequest(sender, player, proxyId, address.ip(), address.port()));
+
+        if (this.server.getMultiProxyHandler().getPlayerInfo(player).getUsername() == null) {
+          return Command.SINGLE_SUCCESS;
+        }
+        context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.player")
+            .arguments(Component.text(this.server.getMultiProxyHandler().getPlayerInfo(player).getUsername()),
+                Component.text(proxyId)));
+        this.server.getRedisManager().send(new RedisTransferCommandRequest(sender, this.server.getMultiProxyHandler()
+            .getPlayerInfo(player).getUsername(), proxyId, address.ip(), address.port()));
       } else {
         this.server.getPlayer(player).ifPresent(p -> {
           ConnectedPlayer connectedPlayer = (ConnectedPlayer) p;

@@ -440,7 +440,7 @@ public final class VelocityCommands {
         ? context.getArgument("proxy", String.class)
         : "";
     for (String proxyId : server.getMultiProxyHandler().getAllProxyIds()) {
-      if (proxyId.regionMatches(true, 0, argument, 0, argument.length())) {
+      if (proxyId.toLowerCase().regionMatches(true, 0, argument.toLowerCase(), 0, argument.length())) {
         builder.suggest(proxyId);
       }
     }

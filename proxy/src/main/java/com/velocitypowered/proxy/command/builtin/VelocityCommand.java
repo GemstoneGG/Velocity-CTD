@@ -38,7 +38,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.util.ProxyVersion;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
-import com.velocitypowered.proxy.redis.multiproxy.MultiProxyHandler;
+import com.velocitypowered.proxy.redis.multiproxy.RedisSudo;
 import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.util.InformationUtils;
 import java.io.BufferedWriter;
@@ -135,6 +135,15 @@ public final class VelocityCommand {
               }
             }
           }
+
+          if ((argument.isEmpty() || argument.startsWith("-")) && server.getMultiProxyHandler().isRedisEnabled()) {
+            for (String id : server.getMultiProxyHandler().getAllProxyIds()) {
+              if (id.regionMatches(true, 0, argument, 1, argument.length() - 1)) {
+                builder.suggest("-" + id);
+              }
+            }
+          }
+
 
           if (server.getMultiProxyHandler().isRedisEnabled()) {
             for (RemotePlayerInfo i : server.getMultiProxyHandler().getAllPlayers()) {
@@ -249,16 +258,23 @@ public final class VelocityCommand {
       final CommandSource source = context.getSource();
       final String proxyId = StringArgumentType.getString(context, "proxy");
 
-      if (!server.getMultiProxyHandler().getAllProxyIds().contains(proxyId)) {
+      String realId = null;
+      for (String s : server.getMultiProxyHandler().getAllProxyIds()) {
+        if (s.equalsIgnoreCase(proxyId)) {
+          realId = s;
+        }
+      }
+
+      if (!server.getMultiProxyHandler().getAllProxyIdsLowerCase().contains(proxyId.toLowerCase())) {
         source.sendMessage(Component.translatable("velocity.command.proxy-does-not-exist")
-            .arguments(Component.text(proxyId)));
+            .arguments(Component.text(realId)));
         return -1;
       }
 
       source.sendMessage(Component.translatable("velocity.command.uptime-remote")
-          .arguments(Component.text(proxyId)));
+          .arguments(Component.text(realId)));
 
-      server.getMultiProxyHandler().requestUptime(proxyId, source);
+      server.getMultiProxyHandler().requestUptime(realId, source);
       return Command.SINGLE_SUCCESS;
     }
   }
@@ -271,172 +287,146 @@ public final class VelocityCommand {
       final String playerName = context.getArgument("player", String.class);
       final String messageOrCommand = context.getArgument("message/command", String.class);
 
-      final MultiProxyHandler multiProxyHandler = server.getMultiProxyHandler();
-
-      if (multiProxyHandler.isRedisEnabled()) {
-        for (String proxyId : multiProxyHandler.getAllProxyIds()) {
-          if (proxyId.equals(multiProxyHandler.getOwnProxyId())) {
-            continue;
+      if (playerName.equalsIgnoreCase("all")) {
+        boolean doneOne = false;
+        if (this.server.getMultiProxyHandler().isRedisEnabled()) {
+          for (RemotePlayerInfo info : this.server.getMultiProxyHandler().getAllPlayers()) {
+            this.server.getRedisManager().send(new RedisSudo(info.getProxyId(), info.getUuid(),
+                messageOrCommand));
+            doneOne = true;
           }
 
-          if (playerName.equalsIgnoreCase("all")) {
-            source.sendMessage(Component.translatable(
-                "velocity.command.sudo.executed-remotely-all",
-                NamedTextColor.GREEN,
-                Component.text(proxyId),
-                Component.text(messageOrCommand)
-            ));
-            for (RemotePlayerInfo player : multiProxyHandler.getPlayers(proxyId)) {
-              multiProxyHandler.sudo(player, source, messageOrCommand);
-            }
-          } else if (playerName.startsWith("+")) {
-            String serverName = playerName.substring(1);
-            for (RemotePlayerInfo player : multiProxyHandler.getPlayers(proxyId)) {
-              if (player.getServerName().equalsIgnoreCase(serverName)) {
-                multiProxyHandler.sudo(player, source, messageOrCommand);
-              }
-            }
-            source.sendMessage(Component.translatable(
-                "velocity.command.sudo.executed-remotely-server",
-                NamedTextColor.GREEN,
-                Component.text(proxyId),
-                Component.text(messageOrCommand),
-                Component.text(serverName)
-            ));
+          if (!doneOne) {
+            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.no-players"));
           } else {
-            for (RemotePlayerInfo player : multiProxyHandler.getPlayers(proxyId)) {
-              if (player.getName().equalsIgnoreCase(playerName)) {
-                source.sendMessage(Component.translatable(
-                    "velocity.command.sudo.executed-remotely",
-                    NamedTextColor.GREEN,
-                    Component.text(proxyId),
-                    Component.text(playerName),
-                    Component.text(messageOrCommand)
-                ));
+            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
+                .arguments(Component.text("everyone"), Component.text(messageOrCommand)));
+          }
+          return Command.SINGLE_SUCCESS;
+        } else {
+          for (Player player : server.getAllPlayers()) {
+            if (this.server.getCommandManager().hasCommand(messageOrCommand)) {
+              this.server.getCommandManager().executeAsync(player, messageOrCommand);
+            } else {
+              player.spoofChatInput(messageOrCommand);
+            }
+            doneOne = true;
+          }
+          if (!doneOne) {
+            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.no-players"));
+          } else {
+            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
+                .arguments(Component.text("everyone"), Component.text(messageOrCommand)));
+          }
+        }
+      } else if (playerName.length() > 1 && playerName.startsWith("-")
+          && server.getMultiProxyHandler().getAllProxyIdsLowerCase().contains(playerName.substring(1).toLowerCase())) {
+        boolean doneOne = false;
+        for (RemotePlayerInfo info : this.server.getMultiProxyHandler().getAllPlayers()) {
+          if (info.getProxyId().equalsIgnoreCase(playerName.substring(1))) {
+            this.server.getRedisManager().send(new RedisSudo(info.getProxyId(), info.getUuid(), messageOrCommand));
+            doneOne = true;
+          }
+        }
 
-                multiProxyHandler.sudo(player, source, messageOrCommand);
-                return Command.SINGLE_SUCCESS;
-              }
+        String realId = null;
+        for (String s : this.server.getMultiProxyHandler().getAllProxyIds()) {
+          if (s.equalsIgnoreCase(playerName.substring(1))) {
+            realId = s;
+          }
+        }
+
+        if (!doneOne) {
+          context.getSource().sendMessage(Component.translatable("velocity.command.sudo.no-players"));
+        } else {
+          context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
+              .arguments(Component.text(realId), Component.text(messageOrCommand)));
+        }
+        return Command.SINGLE_SUCCESS;
+      } else if (playerName.startsWith("+")) {
+        if (playerName.length() == 1) {
+          source.sendMessage(Component.translatable("velocity.command.sudo.invalid-server")
+              .arguments(Component.text(playerName)));
+          return Command.SINGLE_SUCCESS;
+        }
+        RegisteredServer registeredServer = this.server.getServer(playerName.substring(1)).orElse(null);
+        if (registeredServer == null) {
+          source.sendMessage(Component.translatable("velocity.command.sudo.invalid-server")
+              .arguments(Component.text(playerName.substring(1))));
+          return Command.SINGLE_SUCCESS;
+        }
+
+        if (this.server.getMultiProxyHandler().isRedisEnabled()) {
+          boolean doneOne = false;
+          for (RemotePlayerInfo info : this.server.getMultiProxyHandler().getAllPlayers()) {
+            if (info.getServerName().equalsIgnoreCase(playerName.substring(1))) {
+              this.server.getRedisManager().send(new RedisSudo(info.getProxyId(), info.getUuid(), messageOrCommand));
+              doneOne = true;
             }
           }
+
+          if (!doneOne) {
+            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.no-players"));
+          } else {
+            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
+                .arguments(Component.text(registeredServer.getServerInfo().getName()), Component.text(messageOrCommand)));
+          }
+          return Command.SINGLE_SUCCESS;
+        } else {
+          boolean doneOne = false;
+          for (Player player : registeredServer.getPlayersConnected()) {
+            if (this.server.getCommandManager().hasCommand(messageOrCommand)) {
+              this.server.getCommandManager().executeAsync(player, messageOrCommand);
+            } else {
+              player.spoofChatInput(messageOrCommand);
+            }
+            doneOne = true;
+          }
+          if (!doneOne) {
+            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.no-players"));
+          } else {
+            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
+                .arguments(Component.text(registeredServer.getServerInfo().getName()), Component.text(messageOrCommand)));
+          }
+        }
+      } else {
+        if (this.server.getMultiProxyHandler().isRedisEnabled()) {
+          RemotePlayerInfo info = this.server.getMultiProxyHandler().getPlayerInfo(playerName);
+          if (info == null) {
+            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.invalid-player")
+                .arguments(Component.text(playerName)));
+            return Command.SINGLE_SUCCESS;
+          }
+
+          this.server.getRedisManager().send(new RedisSudo(info.getProxyId(), info.getUuid(), messageOrCommand));
+          context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
+              .arguments(Component.text(info.getUsername()), Component.text(messageOrCommand)));
+          return Command.SINGLE_SUCCESS;
+        } else {
+          Player player = this.server.getPlayer(playerName).orElse(null);
+
+          if (player == null) {
+            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.invalid-player")
+                .arguments(Component.text(playerName)));
+            return Command.SINGLE_SUCCESS;
+          }
+
+          if (this.server.getCommandManager().hasCommand(messageOrCommand)) {
+            this.server.getCommandManager().executeAsync(player, messageOrCommand);
+          } else {
+            player.spoofChatInput(messageOrCommand);
+          }
+
+          context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
+              .arguments(Component.text(player.getUsername()), Component.text(messageOrCommand)));
         }
       }
 
-      if (this.server.getPlayerCount() == 0) {
-        source.sendMessage(Component.translatable("velocity.command.sudo.no-players"));
-        return Command.SINGLE_SUCCESS;
-      }
 
-      if (playerName.equalsIgnoreCase("all")) {
-        handleAllPlayers(source, messageOrCommand);
-      } else if (playerName.startsWith("+")) {
-        String serverName = playerName.substring(1);
-        handleServerPlayers(source, serverName, messageOrCommand);
-      } else {
-        handleSinglePlayer(source, playerName, messageOrCommand);
-      }
       return Command.SINGLE_SUCCESS;
     }
 
-    private void handleAllPlayers(final CommandSource source, final String messageOrCommand) {
-      Collection<Player> players = server.getAllPlayers();
-      if (players.isEmpty()) {
-        source.sendMessage(Component.translatable("velocity.command.sudo.no-players"));
-        return;
-      }
 
-      for (Player player : players) {
-        executeSudo(player, messageOrCommand, source, false);
-      }
-
-      if (messageOrCommand.startsWith("/")) {
-        source.sendMessage(Component.translatable(
-            "velocity.command.sudo.command-executed-all",
-            NamedTextColor.GREEN,
-            Component.text(messageOrCommand)
-        ));
-      } else {
-        source.sendMessage(Component.translatable(
-            "velocity.command.sudo.message-sent-all",
-            NamedTextColor.GREEN,
-            Component.text(messageOrCommand)
-        ));
-      }
-    }
-
-    private void handleServerPlayers(final CommandSource source, final String serverName, final String messageOrCommand) {
-      RegisteredServer targetServer = server.getServer(serverName).orElse(null);
-
-      if (targetServer == null) {
-        source.sendMessage(Component.translatable(
-            "velocity.command.server-does-not-exist",
-            NamedTextColor.RED,
-            Component.text(serverName)
-        ));
-        return;
-      }
-
-      Collection<Player> connectedPlayers = targetServer.getPlayersConnected();
-      if (connectedPlayers.isEmpty()) {
-        source.sendMessage(Component.translatable(
-            "velocity.command.sudo.no-players"));
-        return;
-      }
-
-      for (Player player : targetServer.getPlayersConnected()) {
-        executeSudo(player, messageOrCommand, source, false);
-      }
-
-      if (messageOrCommand.startsWith("/")) {
-        source.sendMessage(Component.translatable(
-            "velocity.command.sudo.command-executed-server",
-            NamedTextColor.GREEN,
-            Component.text(messageOrCommand)
-        ));
-      } else {
-        source.sendMessage(Component.translatable(
-            "velocity.command.sudo.message-sent-server",
-            NamedTextColor.GREEN,
-            Component.text(messageOrCommand)
-        ));
-      }
-    }
-
-    private void handleSinglePlayer(final CommandSource source, final String playerName, final String messageOrCommand) {
-      server.getPlayer(playerName).ifPresentOrElse(
-              player -> executeSudo(player, messageOrCommand, source, true),
-              () -> source.sendMessage(Component.translatable(
-                      "velocity.command.player-not-found",
-                      NamedTextColor.RED,
-                      Component.text(playerName)
-              ))
-      );
-    }
-
-    private void executeSudo(final Player player, final String messageOrCommand, final CommandSource source, final boolean isIndividual) {
-      if (messageOrCommand.startsWith("/")) {
-        String[] split = messageOrCommand.split(" ", 2);
-        String command = split[0].substring(1);
-        String args = split.length > 1 ? split[1] : "";
-
-        if (server.getCommandManager().hasCommand(command)) {
-          server.getCommandManager().executeAsync(player, command + " " + args);
-        } else {
-          player.spoofChatInput(messageOrCommand);
-        }
-      } else {
-        player.spoofChatInput(messageOrCommand);
-      }
-
-      if (isIndividual) {
-        source.sendMessage(Component.translatable(
-            "velocity.command.sudo.message-sent",
-            NamedTextColor.GREEN,
-            Component.text(player.getUsername()),
-            Component.text(messageOrCommand)
-        ));
-      }
-    }
   }
 
   private record Reload(VelocityServer server) implements Command<CommandSource> {
@@ -469,16 +459,23 @@ public final class VelocityCommand {
       final CommandSource source = context.getSource();
       final String proxyId = StringArgumentType.getString(context, "proxy");
 
-      if (!server.getMultiProxyHandler().getAllProxyIds().contains(proxyId)) {
+      String realId = null;
+      for (String s : server.getMultiProxyHandler().getAllProxyIds()) {
+        if (s.equalsIgnoreCase(proxyId)) {
+          realId = s;
+        }
+      }
+
+      if (!server.getMultiProxyHandler().getAllProxyIdsLowerCase().contains(proxyId.toLowerCase())) {
         source.sendMessage(Component.translatable("velocity.command.proxy-does-not-exist")
-            .arguments(Component.text(proxyId)));
+            .arguments(Component.text(realId)));
         return -1;
       }
 
       source.sendMessage(Component.translatable("velocity.command.reload-remote")
-          .arguments(Component.text(proxyId)));
+          .arguments(Component.text(realId)));
 
-      server.getMultiProxyHandler().requestReload(proxyId, source);
+      server.getMultiProxyHandler().requestReload(realId, source);
       return Command.SINGLE_SUCCESS;
     }
   }

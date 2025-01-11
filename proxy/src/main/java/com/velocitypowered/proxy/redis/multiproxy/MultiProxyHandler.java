@@ -25,6 +25,7 @@ import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -32,7 +33,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,7 +98,7 @@ public class MultiProxyHandler {
     });
 
     redisManager.listen(RedisGenericReplyRequest.ID, RedisGenericReplyRequest.class, it -> {
-      if (!it.targetProxy().equals(this.getOwnProxyId())) {
+      if (!it.targetProxy().equalsIgnoreCase(this.getOwnProxyId())) {
         return;
       }
 
@@ -138,8 +138,7 @@ public class MultiProxyHandler {
         return;
       }
 
-      server.getPlayer(it.playerUuid()).ifPresentOrElse(player -> {
-
+      server.getPlayer(it.playerUuid()).ifPresent(player -> {
         if (it.message().startsWith("/")) {
           String[] split = it.message().split(" ");
           String command = split[0].substring(1);
@@ -148,27 +147,10 @@ public class MultiProxyHandler {
           } else {
             player.spoofChatInput(it.message());
           }
-
-          it.replySource().sendMessage(server, Component.translatable(
-              "velocity.command.sudo.command-executed",
-              NamedTextColor.GREEN,
-              Component.text(player.getUsername()),
-              Component.text(it.message())
-          ));
         } else {
           player.spoofChatInput(it.message());
-          it.replySource().sendMessage(server, Component.translatable(
-              "velocity.command.sudo.message-sent",
-              NamedTextColor.GREEN,
-              Component.text(player.getUsername()),
-              Component.text(it.message())
-          ));
         }
-      },
-          () -> it.replySource().sendMessage(server, Component.translatable(
-              "velocity.command.remote-player-not-found",
-              NamedTextColor.RED
-          ))
+      }
       );
     });
 
@@ -336,6 +318,22 @@ public class MultiProxyHandler {
   }
 
   /**
+   * Returns the set of all proxy IDs known to this proxy.
+   *
+   * @return the list of all proxy IDs in lower case.
+   */
+  public List<String> getAllProxyIdsLowerCase() {
+    List<String> ids = new ArrayList<>();
+    for (String s : this.server.getRedisManager().getProxyIds()) {
+      ids.add(s.toLowerCase());
+    }
+
+    Collections.sort(ids);
+    return ids;
+  }
+
+
+  /**
    * Retrieves a list of players connected to a specified proxy in the multi-proxy setup.
    *
    * @param proxyId the ID of the proxy to retrieve players from
@@ -450,16 +448,5 @@ public class MultiProxyHandler {
    */
   public void alert(final Component component) {
     server.getRedisManager().send(new RedisServerAlertRequest(component));
-  }
-
-  /**
-   * Runs a command on a remote player.
-   *
-   * @param player the target player
-   * @param source where to send feedback to
-   */
-  public void sudo(final RemotePlayerInfo player, final CommandSource source, final String message) {
-    this.server.getRedisManager().send(new RedisSudo(player.getProxyId(), player.getUuid(),
-        EncodedCommandSource.from(source, this.getOwnProxyId()), message));
   }
 }

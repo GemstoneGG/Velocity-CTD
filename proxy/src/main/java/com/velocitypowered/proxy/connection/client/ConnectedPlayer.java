@@ -925,12 +925,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     }
     String virtualHostStr = getVirtualHost().map(InetSocketAddress::getHostString)
         .orElse("");
-    System.out.println("virtual host: " + virtualHostStr);
     List<String> connOrder = new ArrayList<>(server.getConfiguration().getForcedHosts().getOrDefault(virtualHostStr,
         new ArrayList<>()));
     connOrder.addAll(server.getConfiguration().getAttemptConnectionOrder());
 
-    System.out.println("conn order: " + connOrder);
+    connOrder.removeAll(attemptedServers);
 
     if (connOrder.isEmpty()) {
       return Optional.empty();
@@ -938,10 +937,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
     Optional<RegisteredServer> selectedServer = Optional.empty();
     for (String serverName : connOrder) {
-      if (attemptedServers.contains(serverName)) {
-        continue;
-      }
-
       RegisteredServer registeredServer = server.getServer(serverName).orElse(null);
       if (registeredServer == null) {
         logger.error(Component.text("Unable to read your velocity.toml fallback servers. Users are unable to connect."));
@@ -970,6 +965,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       }
     }
 
+    selectedServer.ifPresent(registeredServer -> attemptedServers.add(registeredServer.getServerInfo().getName()));
     return selectedServer;
   }
 
