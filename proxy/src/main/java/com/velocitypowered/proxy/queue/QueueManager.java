@@ -101,6 +101,7 @@ public abstract class QueueManager {
 
     this.tickMessageTaskHandle = server.getScheduler()
         .buildTask(VelocityVirtualPlugin.INSTANCE, this::tickMessageForAllPlayers)
+        .delay((long) (config.getMessageDelay() * 1000), TimeUnit.MILLISECONDS)
         .repeat((long) (config.getMessageDelay() * 1000), TimeUnit.MILLISECONDS)
         .schedule();
   }
@@ -116,6 +117,7 @@ public abstract class QueueManager {
 
     this.tickPingingBackendTaskHandle = server.getScheduler()
         .buildTask(VelocityVirtualPlugin.INSTANCE, this::tickPingingBackend)
+        .delay((long) (config.getBackendPingInterval() * 1000), TimeUnit.MILLISECONDS)
         .repeat((long) (config.getBackendPingInterval() * 1000), TimeUnit.MILLISECONDS)
         .schedule();
   }
