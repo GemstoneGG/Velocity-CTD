@@ -43,7 +43,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -97,6 +96,23 @@ public class RedisManagerImpl {
     }
 
     registerListeners(velocityServer);
+  }
+
+  private void startKeepalive(final String proxyId, final VelocityServer server) {
+    if (jedisPool == null) {
+      return;
+    }
+
+    server.getScheduler()
+        .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+          try (Jedis jedis = jedisPool.getResource()) {
+            jedis.setex("PROXY_HEARTBEAT:" + proxyId, 60, "online");
+          } catch (Exception e) {
+            logger.error("Keepalive failed for Proxy ID '{}'.", proxyId, e);
+          }
+        })
+        .repeat(30, TimeUnit.SECONDS)
+        .schedule();
   }
 
   private void registerListeners(final VelocityServer proxy) {
@@ -210,86 +226,6 @@ public class RedisManagerImpl {
     }
 
     return new ArrayList<>();
-  }
-
-  private void startKeepalive(final String proxyId, final VelocityServer server) {
-    if (jedisPool == null) {
-      return;
-    }
-
-    server.getScheduler()
-        .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
-          try (Jedis jedis = jedisPool.getResource()) {
-            jedis.setex("PROXY_HEARTBEAT:" + proxyId, 60, "online");
-            logger.debug("Keepalive packet sent for Proxy ID '{}'.", proxyId);
-          } catch (Exception e) {
-            logger.error("Failed to send keepalive for Proxy ID '{}'.", proxyId, e);
-          }
-        })
-        .repeat(30, TimeUnit.SECONDS)
-        .schedule();
-  }
-
-  private void startPeriodicCleanup(final VelocityServer server) {
-    server.getScheduler()
-        .buildTask(VelocityVirtualPlugin.INSTANCE, this::periodicCleanup)
-        .repeat(5, TimeUnit.MINUTES)
-        .schedule();
-  }
-
-  /**
-   * Periodically cleans up stale proxy IDs from the Redis cache.
-   *
-   * <p>This method iterates through the list of proxy IDs stored in Redis and checks for their heartbeat keys.
-   * If a heartbeat key does not exist for a proxy ID, it is considered stale and removed from the list.
-   */
-  public void periodicCleanup() {
-    if (jedisPool == null) {
-      return;
-    }
-
-    try (Jedis jedis = jedisPool.getResource()) {
-      Set<String> proxyIds = jedis.smembers("PROXY_IDS");
-      for (String proxyId : proxyIds) {
-        if (!jedis.exists("PROXY_HEARTBEAT:" + proxyId)) {
-          logger.warn("Stale proxy ID '{}' detected. Cleaning up...", proxyId);
-          jedis.srem("PROXY_IDS", proxyId);
-        }
-      }
-    } catch (Exception e) {
-      logger.error("Error during periodic cleanup.", e);
-    }
-  }
-
-  private void validateProxyId(final String proxyId) {
-    if (jedisPool == null) {
-      throw new IllegalStateException("Redis connection pool is not initialized.");
-    }
-
-    try (Jedis jedis = jedisPool.getResource()) {
-      boolean proxyExists = jedis.sismember("PROXY_IDS", proxyId);
-      boolean heartbeatExists = jedis.exists("PROXY_HEARTBEAT:" + proxyId);
-
-      if (proxyExists && heartbeatExists) {
-        logger.error("Another proxy with ID '{}' is already running. This proxy will terminate.", proxyId);
-      } else if (proxyExists) {
-        logger.warn("Stale Proxy ID '{}' detected. Cleaning up before proceeding.", proxyId);
-        jedis.srem("PROXY_IDS", proxyId);
-      }
-
-      jedis.sadd("PROXY_IDS", proxyId);
-      jedis.setex("PROXY_HEARTBEAT:" + proxyId, 60, "online");
-    } catch (Exception e) {
-      logger.error("Failed to validate Proxy ID. Terminating proxy...", e);
-      cleanupResources();
-      System.exit(1);
-    }
-  }
-
-  private void cleanupResources() {
-    if (jedisPool != null) {
-      jedisPool.close();
-    }
   }
 
   /**
@@ -511,10 +447,31 @@ public class RedisManagerImpl {
 
       validateProxyId(redisConfig.getProxyId());
       startKeepalive(redisConfig.getProxyId(), server);
-      startPeriodicCleanup(server);
       addProxyId(redisConfig.getProxyId());
     } catch (Exception e) {
       logger.error("Failed to setup Redis connection", e);
+    }
+  }
+
+  private void validateProxyId(final String proxyId) {
+    if (jedisPool == null) {
+      throw new IllegalStateException("Redis connection pool is not initialized.");
+    }
+
+    try (Jedis jedis = jedisPool.getResource()) {
+      if (jedis.sismember("PROXY_IDS", proxyId)) {
+        if (jedis.exists("PROXY_HEARTBEAT:" + proxyId)) {
+          logger.error("Proxy ID '{}' is still marked as running. Killing"
+              + "your proxies with Redis enabled is not suggested. Please wait"
+              + "for Redis to automatically determine whether the proxy is online or not.", proxyId);
+          System.exit(0);
+          return;
+        }
+        logger.warn("Stale Proxy ID '{}' detected. Cleaning up before proceeding.", proxyId);
+        jedis.srem("PROXY_IDS", proxyId);
+      }
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to validate Proxy ID.", e);
     }
   }
 
