@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -462,8 +463,8 @@ public class RedisManagerImpl {
       if (jedis.sismember("PROXY_IDS", proxyId)) {
         if (jedis.exists("PROXY_HEARTBEAT:" + proxyId)) {
           logger.error("Proxy ID '{}' is still marked as running. Killing"
-              + "your proxies with Redis enabled is not suggested. Please wait"
-              + "for Redis to automatically determine whether the proxy is online or not.", proxyId);
+              + " your proxies with Redis enabled is not suggested. Please wait"
+              + " for Redis to automatically determine whether the proxy is online or not.", proxyId);
           System.exit(0);
           return;
         }
