@@ -294,5 +294,10 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
     public ProtocolState getProtocolState() {
       return connection.getState().toProtocolState();
     }
+
+    @Override
+    public HandshakeIntent getHandshakeIntent() {
+      return HandshakeIntent.STATUS;
+    }
   }
 }

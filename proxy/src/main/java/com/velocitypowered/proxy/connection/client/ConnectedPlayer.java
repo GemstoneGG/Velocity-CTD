@@ -38,6 +38,7 @@ import com.velocitypowered.api.event.player.PlayerModInfoEvent;
 import com.velocitypowered.api.event.player.PlayerSettingsChangedEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.event.player.configuration.PlayerEnterConfigurationEvent;
+import com.velocitypowered.api.network.HandshakeIntent;
 import com.velocitypowered.api.network.ProtocolState;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.permission.PermissionFunction;
@@ -160,6 +161,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private final MinecraftConnection connection;
   private final @Nullable InetSocketAddress virtualHost;
   private final @Nullable String rawVirtualHost;
+  private final HandshakeIntent handshakeIntent;
   private GameProfile profile;
   private PermissionFunction permissionFunction;
   private int tryIndex = 0;
@@ -201,12 +203,13 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   ConnectedPlayer(final VelocityServer server, final GameProfile profile, final MinecraftConnection connection,
                   @Nullable final InetSocketAddress virtualHost, @Nullable final String rawVirtualHost, final boolean onlineMode,
-                  @Nullable final IdentifiedKey playerKey) {
+                  final HandshakeIntent handshakeIntent, @Nullable final IdentifiedKey playerKey) {
     this.server = server;
     this.profile = profile;
     this.connection = connection;
     this.virtualHost = virtualHost;
     this.rawVirtualHost = rawVirtualHost;
+    this.handshakeIntent = handshakeIntent;
     this.permissionFunction = PermissionFunction.ALWAYS_UNDEFINED;
     this.connectionPhase = connection.getType().getInitialClientPhase();
     this.onlineMode = onlineMode;
@@ -1445,6 +1448,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   @Override
   public ProtocolState getProtocolState() {
     return connection.getState().toProtocolState();
+  }
+
+  @Override
+  public HandshakeIntent getHandshakeIntent() {
+    return handshakeIntent;
   }
 
   private final class ConnectionRequestBuilderImpl implements ConnectionRequestBuilder {
