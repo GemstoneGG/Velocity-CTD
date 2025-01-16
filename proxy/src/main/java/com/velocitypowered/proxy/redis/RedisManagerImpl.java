@@ -343,7 +343,7 @@ public class RedisManagerImpl {
             logger.error("Error during player cleanup task.", e);
           }
         })
-        .repeat(1, TimeUnit.MINUTES)
+        .repeat(5, TimeUnit.MINUTES)
         .schedule();
   }
 
