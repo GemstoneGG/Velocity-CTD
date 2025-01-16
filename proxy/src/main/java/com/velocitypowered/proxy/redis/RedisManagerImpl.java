@@ -31,6 +31,8 @@ import com.velocitypowered.proxy.queue.ServerQueueStatus;
 import com.velocitypowered.proxy.queue.cache.SerializableQueue;
 import com.velocitypowered.proxy.redis.multiproxy.RedisGetPlayerPingRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisKickPlayerRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerCheckRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerCheckResponse;
 import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetTransferringRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessage;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
@@ -43,6 +45,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -80,6 +85,8 @@ public class RedisManagerImpl {
 
   private @MonotonicNonNull JedisPool jedisPool;
   private final VelocityPubSub pubSub;
+  private final VelocityServer velocityServer;
+  private final Set<String> confirmedOnlinePlayers = ConcurrentHashMap.newKeySet();
 
   /**
    * Constructs a Redis manager using the given Velocity server instance to retrieve
@@ -90,9 +97,11 @@ public class RedisManagerImpl {
   public RedisManagerImpl(final VelocityServer velocityServer) {
     VelocityConfiguration.Redis redisConfig = velocityServer.getConfiguration().getRedis();
     this.pubSub = new VelocityPubSub();
+    this.velocityServer = velocityServer;
 
     if (redisConfig.isEnabled()) {
       this.start(redisConfig, velocityServer);
+      this.startPlayerCleanup();
     }
 
     registerListeners(velocityServer);
@@ -171,6 +180,18 @@ public class RedisManagerImpl {
       if (player != null) {
         player.setDontRemoveFromRedis(true);
         player.disconnect0(Component.translatable("velocity.error.already-connected-proxy.remote"), true);
+      }
+    });
+
+    listen("player_check_request", RedisPlayerCheckRequest.class, request -> {
+      boolean isOnline = velocityServer.getPlayer(UUID.fromString(request.playerUuid())).isPresent();
+      RedisPlayerCheckResponse response = new RedisPlayerCheckResponse(request.playerUuid(), isOnline);
+      send(response);
+    });
+
+    listen("player_check_response", RedisPlayerCheckResponse.class, response -> {
+      if (response.online()) {
+        confirmedOnlinePlayers.add(response.playerUuid());
       }
     });
   }
@@ -295,6 +316,58 @@ public class RedisManagerImpl {
       // Ignore raw hash due to redundant logging.
     } catch (Exception e) {
       e.printStackTrace();
+    }
+  }
+
+  private void startPlayerCleanup() {
+    if (jedisPool == null) {
+      return;
+    }
+
+    velocityServer.getScheduler()
+        .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+          try (Jedis jedis = jedisPool.getResource()) {
+            Map<String, String> playerMap = jedis.hgetAll(CACHE_KEY);
+
+            if (playerMap.isEmpty()) {
+              return;
+            }
+
+            confirmedOnlinePlayers.clear();
+
+            for (String playerJson : playerMap.values()) {
+              RemotePlayerInfo playerInfo = gson.fromJson(playerJson, RemotePlayerInfo.class);
+              broadcastPlayerCheck(playerInfo);
+            }
+          } catch (Exception e) {
+            logger.error("Error during player cleanup task.", e);
+          }
+        })
+        .repeat(1, TimeUnit.MINUTES)
+        .schedule();
+  }
+
+  private void broadcastPlayerCheck(final RemotePlayerInfo playerInfo) {
+    RedisPlayerCheckRequest request = new RedisPlayerCheckRequest(playerInfo.getUuid().toString());
+    send(request);
+
+    velocityServer.getScheduler()
+        .buildTask(VelocityVirtualPlugin.INSTANCE, () -> handlePlayerCheckTimeout(playerInfo))
+        .delay(10, TimeUnit.SECONDS)
+        .schedule();
+  }
+
+  private void handlePlayerCheckTimeout(final RemotePlayerInfo playerInfo) {
+    if (confirmedOnlinePlayers.contains(playerInfo.getUuid().toString())) {
+      return;
+    }
+
+    try (Jedis jedis = jedisPool.getResource()) {
+      if (jedis.hexists(CACHE_KEY, playerInfo.getUuid().toString())) {
+        jedis.hdel(CACHE_KEY, playerInfo.getUuid().toString());
+      }
+    } catch (Exception e) {
+      logger.error("Error removing offline player after Redis timeout.", e);
     }
   }
 
