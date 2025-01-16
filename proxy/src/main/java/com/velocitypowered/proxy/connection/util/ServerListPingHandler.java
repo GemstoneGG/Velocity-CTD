@@ -34,6 +34,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import net.kyori.adventure.text.Component;
 
 /**
  * Common utilities for handling server list ping results.
@@ -74,7 +75,7 @@ public class ServerListPingHandler {
     }
 
     List<ServerPing.SamplePlayer> samplePlayers = new ArrayList<>();
-    for (String s : server.getConfiguration().getMotdHover()) {
+    for (Component s : server.getConfiguration().getMotdHover()) {
       samplePlayers.add(new ServerPing.SamplePlayer(
           s,
           UUID.randomUUID()));

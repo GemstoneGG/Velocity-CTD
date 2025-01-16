@@ -54,6 +54,13 @@ public interface ProxyConfig {
   net.kyori.adventure.text.Component getMotd();
 
   /**
+   * Get the MOTD hover legacy component shown in the tab list.
+   *
+   * @return the motd legacy component
+   */
+  List<net.kyori.adventure.text.Component> getMotdHover();
+
+  /**
    * Get the maximum players shown in the tab list.
    *
    * @return max players

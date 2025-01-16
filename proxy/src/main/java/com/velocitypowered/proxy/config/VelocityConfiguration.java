@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -66,8 +67,10 @@ public final class VelocityConfiguration implements ProxyConfig {
   private String bind = "0.0.0.0:25565";
   @Expose
   private String motd = "<aqua>A Velocity Server";
+  private net.kyori.adventure.text.@MonotonicNonNull Component motdAsComponent;
   @Expose
   private List<String> motdHover = List.of("");
+  private List<net.kyori.adventure.text.@MonotonicNonNull Component> motdHoverComponents;
   @Expose
   private int showMaxPlayers = 500;
   @Expose
@@ -98,7 +101,6 @@ public final class VelocityConfiguration implements ProxyConfig {
   private final Queue queue;
   @Expose
   private boolean enablePlayerAddressLogging = true;
-  private net.kyori.adventure.text.@MonotonicNonNull Component motdAsComponent;
   private @Nullable Favicon favicon;
   @Expose
   private boolean forceKeyAuthentication = true; // Added in 1.19
@@ -130,7 +132,7 @@ public final class VelocityConfiguration implements ProxyConfig {
   private Map<String, Integer> playerCaps;
 
   private VelocityConfiguration(final Servers servers, final ForcedHosts forcedHosts, final Commands commands,
-      final Advanced advanced, final Query query, final Metrics metrics, final Redis redis, final Queue queue) {
+                                final Advanced advanced, final Query query, final Metrics metrics, final Redis redis, final Queue queue) {
     this.servers = servers;
     this.forcedHosts = forcedHosts;
     this.commands = commands;
@@ -307,6 +309,13 @@ public final class VelocityConfiguration implements ProxyConfig {
       valid = false;
     }
 
+    try {
+      getMotdHover();
+    } catch (Exception e) {
+      logger.error("Can't parse your MOTD hover", e);
+      valid = false;
+    }
+
     if (advanced.compressionLevel < -1 || advanced.compressionLevel > 9) {
       logger.error("Invalid compression level {}", advanced.compressionLevel);
       valid = false;
@@ -376,8 +385,14 @@ public final class VelocityConfiguration implements ProxyConfig {
     return motdAsComponent;
   }
 
-  public List<String> getMotdHover() {
-    return this.motdHover;
+  @Override
+  public List<net.kyori.adventure.text.Component> getMotdHover() {
+    if (motdHoverComponents == null) {
+      motdHoverComponents = motdHover.stream()
+          .map(MiniMessage.miniMessage()::deserialize)
+          .toList();
+    }
+    return motdHoverComponents;
   }
 
   @Override
@@ -1211,8 +1226,10 @@ public final class VelocityConfiguration implements ProxyConfig {
     private boolean allowIllegalCharactersInChat = false;
     @Expose
     private String serverBrand = "{backend-brand} ({proxy-brand})";
+    private String serverBrandAsString;
     @Expose
     private String fallbackVersionPing = "{proxy-brand} {protocol-min}-{protocol-max}";
+    private String fallbackVersionPingAsString;
     @Expose
     private boolean alwaysFallBackPing = true;
     @Expose
@@ -1250,6 +1267,12 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.proxyBrandCustom = config.getOrElse("custom-brand-proxy", "Velocity");
         this.backendBrandCustom = config.getOrElse("custom-brand-backend", "Paper");
       }
+
+      this.serverBrandAsString = LegacyComponentSerializer.legacySection()
+          .serialize(MiniMessage.miniMessage().deserialize(this.serverBrand));
+
+      this.fallbackVersionPingAsString = LegacyComponentSerializer.legacySection()
+          .serialize(MiniMessage.miniMessage().deserialize(this.fallbackVersionPing));
     }
 
     public int getCompressionThreshold() {
@@ -1313,11 +1336,11 @@ public final class VelocityConfiguration implements ProxyConfig {
     }
 
     public String getServerBrand() {
-      return serverBrand;
+      return this.serverBrandAsString;
     }
 
     public String getFallbackVersionPing() {
-      return this.fallbackVersionPing;
+      return this.fallbackVersionPingAsString;
     }
 
     public boolean getAlwaysFallBackPing() {
