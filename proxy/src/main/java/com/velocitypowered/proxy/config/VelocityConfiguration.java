@@ -704,18 +704,18 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
 
       String forwardingSecretString = System.getenv().getOrDefault(
-              "VELOCITY_FORWARDING_SECRET", "");
+          "VELOCITY_FORWARDING_SECRET", "");
       if (forwardingSecretString.isEmpty()) {
         final String forwardSecretFile = config.get("forwarding-secret-file");
         final Path secretPath = forwardSecretFile == null
-                ? defaultForwardingSecretPath
-                : Path.of(forwardSecretFile);
+            ? defaultForwardingSecretPath
+            : Path.of(forwardSecretFile);
         if (Files.exists(secretPath)) {
           if (Files.isRegularFile(secretPath)) {
             forwardingSecretString = String.join("", Files.readAllLines(secretPath));
           } else {
             throw new RuntimeException(
-                    "The file " + forwardSecretFile + " is not a valid file or it is a directory.");
+                "The file " + forwardSecretFile + " is not a valid file or it is a directory.");
           }
         } else {
           throw new RuntimeException("The forwarding-secret-file does not exist.");
@@ -791,7 +791,6 @@ public final class VelocityConfiguration implements ProxyConfig {
           CommentedConfig link = entry.getValue();
           links.add(ServerLink.serverLink(MiniMessage.miniMessage().deserialize(link.get("label")),
               link.get("link")));
-
         }
       }
 
@@ -807,8 +806,8 @@ public final class VelocityConfiguration implements ProxyConfig {
 
           CommentedConfig link = entry.getValue();
           addresses.add(new ProxyAddress(link.get("proxy-id"),
-                  link.get("ip"),
-                  link.get("port")));
+              link.get("ip"),
+              link.get("port")));
         }
       }
 
@@ -946,7 +945,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         Map<String, PlayerInfoForwarding> serverForwardingModes = new HashMap<>();
         for (UnmodifiableConfig.Entry entry : config.entrySet()) {
           if (entry.getKey().equalsIgnoreCase("dynamic-fallbacks-filter")) {
-            continue;
+            continue; // Intended despite uselessness.
           } else if (entry.getValue() instanceof String) {
             servers.put(cleanServerName(entry.getKey()), entry.getValue());
           } else if (entry.getValue() instanceof UnmodifiableConfig) {
@@ -1347,7 +1346,6 @@ public final class VelocityConfiguration implements ProxyConfig {
       return this.alwaysFallBackPing;
     }
 
-
     public String getProxyBrandCustom() {
       return this.proxyBrandCustom;
     }
@@ -1553,7 +1551,6 @@ public final class VelocityConfiguration implements ProxyConfig {
     public @Nullable String getProxyId() {
       return proxyId;
     }
-
 
     @Override
     public String toString() {
