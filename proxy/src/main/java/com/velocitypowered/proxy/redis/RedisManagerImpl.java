@@ -332,7 +332,6 @@ public class RedisManagerImpl {
         Map<String, String> playerMap = jedis.hgetAll(CACHE_KEY);
 
         if (playerMap.isEmpty()) {
-          logger.info("No players found in Redis cache to clean up.");
           return;
         }
 
@@ -348,15 +347,12 @@ public class RedisManagerImpl {
               .toList();
 
           if (!invalidEntries.isEmpty()) {
-            logger.info("Removing {} invalid player entries from Redis cache.", invalidEntries.size());
             jedis.hdel(CACHE_KEY, invalidEntries.toArray(new String[0]));
-          } else {
-            logger.info("All cached player entries are valid.");
           }
         }).delay(10, TimeUnit.SECONDS).schedule();
 
       } catch (Exception e) {
-        logger.error("Error during player cleanup task.", e);
+        logger.error("Error removing offline player after Redis timeout.", e);
       }
     }).repeat(1, TimeUnit.MINUTES).schedule();
   }
