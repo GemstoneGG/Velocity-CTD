@@ -327,6 +327,10 @@ public class RedisManagerImpl {
       return;
     }
 
+    if (this.velocityServer.getQueueManager() != null && !this.velocityServer.getQueueManager().isMasterProxy()) {
+      return;
+    }
+
     velocityServer.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
       try (Jedis jedis = jedisPool.getResource()) {
         Map<String, String> playerMap = jedis.hgetAll(CACHE_KEY);
