@@ -31,8 +31,6 @@ import com.velocitypowered.proxy.queue.ServerQueueStatus;
 import com.velocitypowered.proxy.queue.cache.SerializableQueue;
 import com.velocitypowered.proxy.redis.multiproxy.RedisGetPlayerPingRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisKickPlayerRequest;
-import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerCheckRequest;
-import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerCheckResponse;
 import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetTransferringRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessage;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
@@ -45,9 +43,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -85,8 +80,6 @@ public class RedisManagerImpl {
 
   private @MonotonicNonNull JedisPool jedisPool;
   private final VelocityPubSub pubSub;
-  private final VelocityServer velocityServer;
-  private final Set<String> confirmedOnlinePlayers = ConcurrentHashMap.newKeySet();
 
   /**
    * Constructs a Redis manager using the given Velocity server instance to retrieve
@@ -97,11 +90,9 @@ public class RedisManagerImpl {
   public RedisManagerImpl(final VelocityServer velocityServer) {
     VelocityConfiguration.Redis redisConfig = velocityServer.getConfiguration().getRedis();
     this.pubSub = new VelocityPubSub();
-    this.velocityServer = velocityServer;
 
     if (redisConfig.isEnabled()) {
       this.start(redisConfig, velocityServer);
-      this.startPlayerCleanup();
     }
 
     registerListeners(velocityServer);
@@ -180,21 +171,6 @@ public class RedisManagerImpl {
       if (player != null) {
         player.setDontRemoveFromRedis(true);
         player.disconnect0(Component.translatable("velocity.error.already-connected-proxy.remote"), true);
-      }
-    });
-
-    listen("player_check_request", RedisPlayerCheckRequest.class, request -> {
-      Set<String> uuids = request.playerUuids();
-      uuids.forEach(uuid -> {
-        boolean isOnline = velocityServer.getPlayer(UUID.fromString(uuid)).isPresent();
-        RedisPlayerCheckResponse response = new RedisPlayerCheckResponse(uuid, isOnline);
-        send(response);
-      });
-    });
-
-    listen("player_check_response", RedisPlayerCheckResponse.class, response -> {
-      if (response.online()) {
-        confirmedOnlinePlayers.add(response.playerUuid());
       }
     });
   }
@@ -320,45 +296,6 @@ public class RedisManagerImpl {
     } catch (Exception e) {
       e.printStackTrace();
     }
-  }
-
-  private void startPlayerCleanup() {
-    if (jedisPool == null) {
-      return;
-    }
-
-    if (this.velocityServer.getQueueManager() != null && !this.velocityServer.getQueueManager().isMasterProxy()) {
-      return;
-    }
-
-    velocityServer.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
-      try (Jedis jedis = jedisPool.getResource()) {
-        Map<String, String> playerMap = jedis.hgetAll(CACHE_KEY);
-
-        if (playerMap.isEmpty()) {
-          return;
-        }
-
-        Set<String> playerUuids = playerMap.keySet();
-        confirmedOnlinePlayers.clear();
-
-        RedisPlayerCheckRequest batchCheckRequest = new RedisPlayerCheckRequest(playerUuids);
-        send(batchCheckRequest);
-
-        velocityServer.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
-          List<String> invalidEntries = playerUuids.stream()
-              .filter(uuid -> !confirmedOnlinePlayers.contains(uuid))
-              .toList();
-
-          if (!invalidEntries.isEmpty()) {
-            jedis.hdel(CACHE_KEY, invalidEntries.toArray(new String[0]));
-          }
-        }).delay(10, TimeUnit.SECONDS).schedule();
-
-      } catch (Exception e) {
-        logger.error("Error removing offline player after Redis timeout.", e);
-      }
-    }).repeat(1, TimeUnit.MINUTES).schedule();
   }
 
   /**
