@@ -184,9 +184,12 @@ public class RedisManagerImpl {
     });
 
     listen("player_check_request", RedisPlayerCheckRequest.class, request -> {
-      boolean isOnline = velocityServer.getPlayer(UUID.fromString(request.playerUuid())).isPresent();
-      RedisPlayerCheckResponse response = new RedisPlayerCheckResponse(request.playerUuid(), isOnline);
-      send(response);
+      Set<String> uuids = request.playerUuids();
+      uuids.forEach(uuid -> {
+        boolean isOnline = velocityServer.getPlayer(UUID.fromString(uuid)).isPresent();
+        RedisPlayerCheckResponse response = new RedisPlayerCheckResponse(uuid, isOnline);
+        send(response);
+      });
     });
 
     listen("player_check_response", RedisPlayerCheckResponse.class, response -> {
@@ -324,51 +327,38 @@ public class RedisManagerImpl {
       return;
     }
 
-    velocityServer.getScheduler()
-        .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
-          try (Jedis jedis = jedisPool.getResource()) {
-            Map<String, String> playerMap = jedis.hgetAll(CACHE_KEY);
+    velocityServer.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+      try (Jedis jedis = jedisPool.getResource()) {
+        Map<String, String> playerMap = jedis.hgetAll(CACHE_KEY);
 
-            if (playerMap.isEmpty()) {
-              return;
-            }
+        if (playerMap.isEmpty()) {
+          logger.info("No players found in Redis cache to clean up.");
+          return;
+        }
 
-            confirmedOnlinePlayers.clear();
+        Set<String> playerUuids = playerMap.keySet();
+        confirmedOnlinePlayers.clear();
 
-            for (String playerJson : playerMap.values()) {
-              RemotePlayerInfo playerInfo = gson.fromJson(playerJson, RemotePlayerInfo.class);
-              broadcastPlayerCheck(playerInfo);
-            }
-          } catch (Exception e) {
-            logger.error("Error during player cleanup task.", e);
+        RedisPlayerCheckRequest batchCheckRequest = new RedisPlayerCheckRequest(playerUuids);
+        send(batchCheckRequest);
+
+        velocityServer.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+          List<String> invalidEntries = playerUuids.stream()
+              .filter(uuid -> !confirmedOnlinePlayers.contains(uuid))
+              .toList();
+
+          if (!invalidEntries.isEmpty()) {
+            logger.info("Removing {} invalid player entries from Redis cache.", invalidEntries.size());
+            jedis.hdel(CACHE_KEY, invalidEntries.toArray(new String[0]));
+          } else {
+            logger.info("All cached player entries are valid.");
           }
-        })
-        .repeat(5, TimeUnit.MINUTES)
-        .schedule();
-  }
+        }).delay(10, TimeUnit.SECONDS).schedule();
 
-  private void broadcastPlayerCheck(final RemotePlayerInfo playerInfo) {
-    RedisPlayerCheckRequest request = new RedisPlayerCheckRequest(playerInfo.getUuid().toString());
-    send(request);
-
-    velocityServer.getScheduler()
-        .buildTask(VelocityVirtualPlugin.INSTANCE, () -> handlePlayerCheckTimeout(playerInfo))
-        .delay(10, TimeUnit.SECONDS)
-        .schedule();
-  }
-
-  private void handlePlayerCheckTimeout(final RemotePlayerInfo playerInfo) {
-    if (confirmedOnlinePlayers.contains(playerInfo.getUuid().toString())) {
-      return;
-    }
-
-    try (Jedis jedis = jedisPool.getResource()) {
-      if (jedis.hexists(CACHE_KEY, playerInfo.getUuid().toString())) {
-        jedis.hdel(CACHE_KEY, playerInfo.getUuid().toString());
+      } catch (Exception e) {
+        logger.error("Error during player cleanup task.", e);
       }
-    } catch (Exception e) {
-      logger.error("Error removing offline player after Redis timeout.", e);
-    }
+    }).repeat(1, TimeUnit.MINUTES).schedule();
   }
 
   /**

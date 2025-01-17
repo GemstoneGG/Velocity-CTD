@@ -18,15 +18,31 @@
 package com.velocitypowered.proxy.redis.multiproxy;
 
 import com.velocitypowered.proxy.redis.RedisPacket;
+import java.util.Collections;
+import java.util.Set;
 
 /**
- * Represents a request to check whether a specific player is currently online.
+ * Represents a request to check whether specific players are currently online.
  *
- * <p>This request is sent via Redis to all proxies to determine the online status of a player.
+ * <p>This request is sent via Redis to all proxies to determine the online status
+ * of a list of players.
  *
- * @param playerUuid the UUID of the player being checked
+ * @param playerUuids the set of player UUIDs to check
  */
-public record RedisPlayerCheckRequest(String playerUuid) implements RedisPacket {
+public record RedisPlayerCheckRequest(Set<String> playerUuids) implements RedisPacket {
+
+  /**
+   * Constructs a new RedisPlayerCheckRequest.
+   *
+   * @param playerUuids the set of player UUIDs to check
+   * @throws IllegalArgumentException if the set is null or empty
+   */
+  public RedisPlayerCheckRequest {
+    if (playerUuids == null || playerUuids.isEmpty()) {
+      throw new IllegalArgumentException("Player UUID set cannot be null or empty.");
+    }
+    playerUuids = Collections.unmodifiableSet(playerUuids);
+  }
 
   @Override
   public String getId() {
