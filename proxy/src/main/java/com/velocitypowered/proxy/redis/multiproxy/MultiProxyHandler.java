@@ -80,8 +80,6 @@ public class MultiProxyHandler {
     Executors.newScheduledThreadPool(1).scheduleAtFixedRate(()
         -> totalPlayerCount = redisManager.getCache().size(), 100, 100, TimeUnit.MILLISECONDS);
 
-    redisManager.addProxyId(this.server.getConfiguration().getRedis().getProxyId());
-
     redisManager.listen(RedisShuttingDownAnnouncement.ID, RedisShuttingDownAnnouncement.class, it -> {
       handleShutdown(it.proxyId());
 
@@ -298,8 +296,7 @@ public class MultiProxyHandler {
    */
   public void shutdown() {
     shuttingDown = true;
-    this.server.getRedisManager().removeProxyId(this.server.getConfiguration().getRedis().getProxyId());
-
+    this.server.getRedisManager().removeProxyId(this.config.getProxyId());
     this.server.getRedisManager().send(new RedisShuttingDownAnnouncement(this.config.getProxyId()));
   }
 

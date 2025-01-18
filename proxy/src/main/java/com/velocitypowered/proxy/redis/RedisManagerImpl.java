@@ -229,40 +229,6 @@ public class RedisManagerImpl {
   }
 
   /**
-   * Adds a proxy ID to the cache.
-   *
-   * @param id The ID of the proxy.
-   */
-  public void addProxyId(final String id) {
-    if (this.jedisPool == null) {
-      return;
-    }
-
-    try (Jedis jedis = this.jedisPool.getResource()) {
-      jedis.sadd("PROXY_IDS", id);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
-
-  /**
-   * Removes a proxy ID from the cache.
-   *
-   * @param id The ID of the proxy.
-   */
-  public void removeProxyId(final String id) {
-    if (this.jedisPool == null) {
-      return;
-    }
-
-    try (Jedis jedis = this.jedisPool.getResource()) {
-      jedis.srem("PROXY_IDS", id);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
-
-  /**
    * Gets all proxy ids from the cache.
    *
    * @return all the proxy ids.
@@ -273,13 +239,27 @@ public class RedisManagerImpl {
     }
 
     try (Jedis jedis = this.jedisPool.getResource()) {
-      return new ArrayList<>(jedis.smembers("PROXY_IDS").stream().toList());
+      return new ArrayList<>(jedis.keys("PROXY_HEARTBEAT:*").stream().map(key -> key.replace("PROXY_HEARTBEAT:", "")).collect(Collectors.toList()));
     } catch (Exception e) {
       e.printStackTrace();
     }
 
     return new ArrayList<>();
   }
+
+  /**
+   * Remove the proxy ID from the redis cache.
+   *
+   * @param proxyId The proxy ID.
+   */
+  public void removeProxyId(String proxyId) {
+    try (Jedis jedis = this.jedisPool.getResource()) {
+      jedis.del("PROXY_HEARTBEAT:" + proxyId);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
 
   /**
    * Add a player to the cache.
@@ -447,10 +427,22 @@ public class RedisManagerImpl {
 
       validateProxyId(redisConfig.getProxyId());
       startKeepalive(redisConfig.getProxyId(), server);
-      addProxyId(redisConfig.getProxyId());
+      startKeepalivePlayers(server);
     } catch (Exception e) {
       logger.error("Failed to setup Redis connection", e);
     }
+  }
+
+  private void startKeepalivePlayers(VelocityServer proxy) {
+    proxy.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+      for (RemotePlayerInfo info : this.getCache()) {
+        if (info.getProxyId().equalsIgnoreCase(proxy.getConfiguration().getRedis().getProxyId())) {
+          if (proxy.getPlayer(info.getUuid()).isEmpty()) {
+            removePlayer(info);
+          }
+        }
+      }
+    }).repeat(10, TimeUnit.SECONDS).schedule();
   }
 
   private void validateProxyId(final String proxyId) {
@@ -459,17 +451,14 @@ public class RedisManagerImpl {
     }
 
     try (Jedis jedis = jedisPool.getResource()) {
-      if (jedis.sismember("PROXY_IDS", proxyId)) {
-        if (jedis.exists("PROXY_HEARTBEAT:" + proxyId)) {
-          logger.error("Proxy ID '{}' is still marked as running. Killing"
-              + " your proxies with Redis enabled is not suggested. Please wait"
-              + " for Redis to automatically determine whether the proxy is online or not.", proxyId);
-          System.exit(0);
-          return;
-        }
-        logger.warn("Stale Proxy ID '{}' detected. Cleaning up before proceeding.", proxyId);
-        jedis.srem("PROXY_IDS", proxyId);
+      if (jedis.exists("PROXY_HEARTBEAT:" + proxyId)) {
+        logger.error("Proxy ID '{}' is still marked as running. Killing"
+            + " your proxies with Redis enabled is not suggested. Please wait"
+            + " for Redis to automatically determine whether the proxy is online or not.", proxyId);
+        System.exit(0);
+        return;
       }
+      logger.warn("Stale Proxy ID '{}' detected. Cleaning up before proceeding.", proxyId);
     } catch (Exception e) {
       throw new IllegalStateException("Failed to validate Proxy ID.", e);
     }
@@ -515,6 +504,8 @@ public class RedisManagerImpl {
   public boolean isEnabled() {
     return jedisPool != null;
   }
+
+
 
   /**
    * Manages subscriptions and incoming message handling on a Redis channel.

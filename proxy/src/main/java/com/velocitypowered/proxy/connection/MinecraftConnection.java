@@ -192,10 +192,11 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
       }
 
       if (association != null) {
-        if (cause instanceof ReadTimeoutException) {
+        if (cause instanceof  ReadTimeoutException) {
           if (server.getConfiguration().isLogOfflineConnections()
                   || !(association instanceof InitialInboundConnection)) {
             logger.error("{}: read timed out", association);
+
           }
         } else {
           boolean frontlineHandler = activeSessionHandler instanceof InitialLoginSessionHandler
