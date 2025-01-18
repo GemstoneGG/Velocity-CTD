@@ -24,6 +24,9 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.util.except.QuietDecoderException;
 import io.netty.buffer.ByteBuf;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 /**
  * The {@code KnownPacksPacket} class represents a packet that handles the synchronization
  * of known resource packs between the client and server in the Minecraft protocol.
@@ -39,6 +42,14 @@ public class KnownPacksPacket implements MinecraftPacket {
       new QuietDecoderException("too many known packs");
 
   private KnownPack[] packs;
+
+  public KnownPacksPacket() {
+    packs = new KnownPack[0];
+  }
+
+  public KnownPacksPacket(final KnownPack[] packs) {
+    this.packs = packs;
+  }
 
   @Override
   public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
@@ -72,6 +83,17 @@ public class KnownPacksPacket implements MinecraftPacket {
     return handler.handle(this);
   }
 
+  public KnownPack[] getPacks() {
+    return packs;
+  }
+
+  @Override
+  public String toString() {
+    return "KnownPacksPacket{"
+      + "packs=" + Arrays.toString(packs)
+      + '}';
+  }
+
   /**
    * The {@code KnownPack} record represents a known resource pack with a namespace,
    * identifier, and version in the Minecraft protocol.
@@ -92,6 +114,30 @@ public class KnownPacksPacket implements MinecraftPacket {
       ProtocolUtils.writeString(buf, namespace);
       ProtocolUtils.writeString(buf, id);
       ProtocolUtils.writeString(buf, version);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+
+      KnownPack knownPack = (KnownPack) o;
+      return Objects.equals(id, knownPack.id) && Objects.equals(version, knownPack.version) && Objects.equals(namespace, knownPack.namespace);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(namespace, id, version);
+    }
+
+    @Override
+    public String toString() {
+      return "KnownPack{"
+        + "namespace='" + namespace + '\''
+        + ", id='" + id + '\''
+        + ", version='" + version + '\''
+        + '}';
     }
   }
 }

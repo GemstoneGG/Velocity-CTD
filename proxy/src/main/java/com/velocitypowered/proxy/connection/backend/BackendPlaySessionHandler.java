@@ -56,6 +56,7 @@ import com.velocitypowered.proxy.protocol.packet.ClientboundStoreCookiePacket;
 import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
 import com.velocitypowered.proxy.protocol.packet.KeepAlivePacket;
 import com.velocitypowered.proxy.protocol.packet.LegacyPlayerListItemPacket;
+import com.velocitypowered.proxy.protocol.packet.ObjectivePacket;
 import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
 import com.velocitypowered.proxy.protocol.packet.RemovePlayerInfoPacket;
 import com.velocitypowered.proxy.protocol.packet.RemoveResourcePackPacket;
@@ -179,6 +180,16 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
       playerSessionHandler.getServerBossBars().add(packet.getUuid());
     } else if (packet.getAction() == BossBarPacket.REMOVE) {
       playerSessionHandler.getServerBossBars().remove(packet.getUuid());
+    }
+    return false; // forward
+  }
+
+  @Override
+  public boolean handle(final ObjectivePacket packet) {
+    if (packet.getAction() == ObjectivePacket.ADD) {
+      playerSessionHandler.getServerObjectives().add(packet.getName());
+    } else if (packet.getAction() == ObjectivePacket.REMOVE) {
+      playerSessionHandler.getServerObjectives().remove(packet.getName());
     }
     return false; // forward
   }

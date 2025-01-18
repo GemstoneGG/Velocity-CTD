@@ -171,12 +171,8 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(final KnownPacksPacket packet) {
-    if (player.getConnectionInFlightOrConnectedServer() != null) {
-      callConfigurationEvent().thenRunAsync(() ->
-          player.getConnectionInFlightOrConnectedServer().ensureConnected().write(packet)).exceptionally(ex -> {
-            logger.error("Error forwarding known packs response to backend:", ex);
-            return null;
-          });
+    if (player.getConnectionInFlight() != null) {
+      player.getConnectionInFlight().ensureConnected().write(packet);
       return true;
     }
 
