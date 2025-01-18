@@ -106,7 +106,7 @@ public class RedisManagerImpl {
     server.getScheduler()
         .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
           try (Jedis jedis = jedisPool.getResource()) {
-            jedis.setex("PROXY_HEARTBEAT:" + proxyId, 60, "online");
+            jedis.setex("PROXY_HEARTBEAT:" + proxyId, 30, "online");
           } catch (Exception e) {
             logger.error("Keepalive failed for Proxy ID '{}'.", proxyId, e);
           }
@@ -252,14 +252,13 @@ public class RedisManagerImpl {
    *
    * @param proxyId The proxy ID.
    */
-  public void removeProxyId(String proxyId) {
+  public void removeProxyId(final String proxyId) {
     try (Jedis jedis = this.jedisPool.getResource()) {
       jedis.del("PROXY_HEARTBEAT:" + proxyId);
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
-
 
   /**
    * Add a player to the cache.
@@ -433,7 +432,7 @@ public class RedisManagerImpl {
     }
   }
 
-  private void startKeepalivePlayers(VelocityServer proxy) {
+  private void startKeepalivePlayers(final VelocityServer proxy) {
     proxy.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
       for (RemotePlayerInfo info : this.getCache()) {
         if (info.getProxyId().equalsIgnoreCase(proxy.getConfiguration().getRedis().getProxyId())) {
@@ -442,7 +441,7 @@ public class RedisManagerImpl {
           }
         }
       }
-    }).repeat(10, TimeUnit.SECONDS).schedule();
+    }).repeat(30, TimeUnit.SECONDS).schedule();
   }
 
   private void validateProxyId(final String proxyId) {
@@ -458,7 +457,7 @@ public class RedisManagerImpl {
         System.exit(0);
         return;
       }
-      logger.warn("Stale Proxy ID '{}' detected. Cleaning up before proceeding.", proxyId);
+      logger.warn("Proxy ID '{}' was shutdown improperly. Removing previous for clean startup...", proxyId);
     } catch (Exception e) {
       throw new IllegalStateException("Failed to validate Proxy ID.", e);
     }
@@ -504,8 +503,6 @@ public class RedisManagerImpl {
   public boolean isEnabled() {
     return jedisPool != null;
   }
-
-
 
   /**
    * Manages subscriptions and incoming message handling on a Redis channel.
