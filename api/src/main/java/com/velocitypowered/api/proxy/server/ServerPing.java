@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -25,7 +26,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 /**
  * Represents a 1.7 and above server list ping response. This class is immutable.
  */
-public final class ServerPing {
+public final class ServerPing implements Supplier<ServerPing> {
 
   private final Version version;
   private final @Nullable Players players;
@@ -139,6 +140,11 @@ public final class ServerPing {
 
   public static Builder builder() {
     return new Builder();
+  }
+
+  @Override
+  public ServerPing get() {
+    return null;
   }
 
   /**

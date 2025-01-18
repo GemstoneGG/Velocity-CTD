@@ -135,7 +135,7 @@ public class ServerQueueEntry {
         future = p.createConnectionRequest(foundServer).connect();
       }
 
-      future.thenAccept(result -> {
+      future.thenAcceptAsync(result -> {
         boolean success = false;
         if (result instanceof Boolean b) {
           success = b;
@@ -152,7 +152,7 @@ public class ServerQueueEntry {
             proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, true);
           }
         }
-      }).exceptionally(ex -> {
+      }).exceptionallyAsync(ex -> {
         updateStatus();
 
         if (getConnectionAttempts() == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {

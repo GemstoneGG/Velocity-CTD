@@ -104,7 +104,7 @@ abstract class InvocableCommandRegistrar<T extends InvocableCommand<I>,
         .executes(callback)
         .suggests((context, builder) -> {
           final I invocation = invocationFactory.create(context);
-          return command.suggestAsync(invocation).thenApply(suggestions -> {
+          return command.suggestAsync(invocation).thenApplyAsync(suggestions -> {
             for (String value : suggestions) {
               Preconditions.checkNotNull(value, "suggestion");
               builder.suggest(value);

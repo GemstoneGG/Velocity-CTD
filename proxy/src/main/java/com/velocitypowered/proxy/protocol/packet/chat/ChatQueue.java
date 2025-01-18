@@ -51,9 +51,9 @@ public class ChatQueue {
   private void queueTask(final Task task) {
     synchronized (internalLock) {
       MinecraftConnection smc = player.ensureAndGetCurrentServer().ensureConnected();
-      head = head.thenCompose(v -> {
+      head = head.thenComposeAsync(v -> {
         try {
-          return task.update(chatState, smc).exceptionally(ignored -> null);
+          return task.update(chatState, smc).exceptionallyAsync(ignored -> null);
         } catch (Throwable ignored) {
           return CompletableFuture.completedFuture(null);
         }
@@ -74,7 +74,7 @@ public class ChatQueue {
   public void queuePacket(final Function<LastSeenMessages, CompletableFuture<MinecraftPacket>> nextPacket, @Nullable final Instant timestamp, @Nullable final LastSeenMessages lastSeenMessages) {
     queueTask((chatState, smc) -> {
       LastSeenMessages newLastSeenMessages = chatState.updateFromMessage(timestamp, lastSeenMessages);
-      return nextPacket.apply(newLastSeenMessages).thenCompose(packet -> writePacket(packet, smc));
+      return nextPacket.apply(newLastSeenMessages).thenComposeAsync(packet -> writePacket(packet, smc));
     });
   }
 

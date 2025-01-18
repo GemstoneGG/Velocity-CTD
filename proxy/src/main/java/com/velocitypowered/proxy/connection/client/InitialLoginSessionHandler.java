@@ -157,7 +157,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
           }
         });
       });
-    }, mcConnection.eventLoop()).exceptionally((ex) -> {
+    }, mcConnection.eventLoop()).exceptionallyAsync((ex) -> {
       logger.error("Exception in pre-login stage", ex);
       return null;
     });
@@ -268,7 +268,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
               inbound.disconnect(Component.translatable("multiplayer.disconnect.authservers_down"));
             }
           }, mcConnection.eventLoop())
-          .thenRun(() -> {
+          .thenRunAsync(() -> {
             if (httpClient instanceof final AutoCloseable closeable) {
               try {
                 closeable.close();

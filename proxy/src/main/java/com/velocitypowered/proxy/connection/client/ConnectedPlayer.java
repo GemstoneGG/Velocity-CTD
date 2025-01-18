@@ -1030,7 +1030,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     }
 
     DisconnectEvent event = new DisconnectEvent(this, status);
-    server.getEventManager().fire(event).whenComplete((val, ex) -> {
+    server.getEventManager().fire(event).whenCompleteAsync((val, ex) -> {
       if (ex == null) {
         this.teardownFuture.complete(null);
       } else {
@@ -1078,8 +1078,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   @Override
   public boolean sendPluginMessage(
-          final @NotNull ChannelIdentifier identifier,
-          final @NotNull PluginMessageEncoder dataEncoder
+      final @NotNull ChannelIdentifier identifier,
+      final @NotNull PluginMessageEncoder dataEncoder
   ) {
     requireNonNull(identifier);
     requireNonNull(dataEncoder);
@@ -1110,17 +1110,17 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   public void transferToHost(final @NotNull InetSocketAddress address) {
     Preconditions.checkNotNull(address);
     Preconditions.checkArgument(
-            this.getProtocolVersion().compareTo(ProtocolVersion.MINECRAFT_1_20_5) >= 0,
-            "Player version must be 1.20.5 to be able to transfer to another host");
+        this.getProtocolVersion().compareTo(ProtocolVersion.MINECRAFT_1_20_5) >= 0,
+        "Player version must be 1.20.5 to be able to transfer to another host");
 
-    server.getEventManager().fire(new PreTransferEvent(this, address)).thenAccept((event) -> {
+    server.getEventManager().fire(new PreTransferEvent(this, address)).thenAcceptAsync((event) -> {
       if (event.getResult().isAllowed()) {
         InetSocketAddress resultedAddress = event.getResult().address();
         if (resultedAddress == null) {
           resultedAddress = address;
         }
         connection.write(new TransferPacket(
-                resultedAddress.getHostName(), resultedAddress.getPort()));
+            resultedAddress.getHostName(), resultedAddress.getPort()));
       }
     });
   }
@@ -1407,7 +1407,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           connection.getChannel().pipeline().get(MinecraftEncoder.class).setState(StateRegistry.CONFIG);
           // Make sure we don't send any play packets to the player after update start
           connection.addPlayPacketQueueHandler();
-        }, connection.eventLoop()).exceptionally((ex) -> {
+        }, connection.eventLoop()).exceptionallyAsync((ex) -> {
           logger.error("Error switching player connection to config state", ex);
           return null;
         });
@@ -1415,7 +1415,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   /**
    * Gets the current "phase" of the connection, mostly used for tracking modded negotiation for
-   * legacy forge servers and provides methods for performing phase specific actions.
+   * legacy forge servers and provides methods for performing phase-specific actions.
    *
    * @return The {@link ClientConnectionPhase}
    */
@@ -1490,7 +1490,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     }
 
     private CompletableFuture<Impl> internalConnect() {
-      return this.getInitialStatus().thenCompose(initialCheck -> {
+      return this.getInitialStatus().thenComposeAsync(initialCheck -> {
         if (initialCheck.isPresent()) {
           return completedFuture(plainResult(initialCheck.get(), toConnect));
         }
@@ -1558,10 +1558,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
         connectionInProgress = false;
       }, connection.eventLoop())
-          .exceptionally((ex) -> {
+          .exceptionallyAsync((ex) -> {
             connectionInProgress = false;
             return null;
-          }).thenApply(x -> x);
+          }).thenApplyAsync(x -> x);
     }
 
     @Override
@@ -1610,10 +1610,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
         connectionInProgress = false;
       }, connection.eventLoop())
-          .exceptionally((ex) -> {
+          .exceptionallyAsync((ex) -> {
             connectionInProgress = false;
             return null;
-          }).thenApply(Result::isSuccessful);
+          }).thenApplyAsync(Result::isSuccessful);
     }
 
     @Override

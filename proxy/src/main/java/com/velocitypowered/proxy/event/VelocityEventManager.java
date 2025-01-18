@@ -677,6 +677,6 @@ public class VelocityEventManager implements EventManager {
       final HandlerRegistration registration, final Throwable t) {
     final PluginDescription pluginDescription = registration.plugin.getDescription();
     logger.error("Couldn't pass {} to {} {}", registration.eventType.getSimpleName(),
-            pluginDescription.getId(), pluginDescription.getVersion().orElse(""), t);
+        pluginDescription.getId(), pluginDescription.getVersion().orElse(""), t);
   }
 }

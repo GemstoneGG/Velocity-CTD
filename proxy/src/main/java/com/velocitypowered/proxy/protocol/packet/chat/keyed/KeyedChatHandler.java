@@ -101,10 +101,10 @@ public class KeyedChatHandler implements
 
     if (playerKey != null && !packet.isUnsigned()) {
       // 1.19->1.19.2 signed version
-      chatFuture = future.thenApply(handleOldSignedChat(packet));
+      chatFuture = future.thenApplyAsync(handleOldSignedChat(packet));
     } else {
       // 1.19->1.19.2 unsigned version
-      chatFuture = future.thenApply(pme -> {
+      chatFuture = future.thenApplyAsync(pme -> {
         PlayerChatEvent.ChatResult chatResult = pme.getResult();
         if (!chatResult.isAllowed()) {
           return null;
@@ -116,7 +116,7 @@ public class KeyedChatHandler implements
       });
     }
     chatQueue.queuePacket(
-        newLastSeen -> chatFuture.exceptionally((ex) -> {
+        newLastSeen -> chatFuture.exceptionallyAsync((ex) -> {
           logger.error("Exception while handling player chat for {}", player, ex);
           return null;
         }),

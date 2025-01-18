@@ -373,7 +373,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
                   backendConn.write(message);
                 }
               }
-            }, backendConn.eventLoop()).exceptionally((ex) -> {
+            }, backendConn.eventLoop()).exceptionallyAsync((ex) -> {
               logger.error("Exception while handling plugin message packet for {}", player, ex);
               return null;
             });
@@ -405,7 +405,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
         smc.write(packet);
         smc.setActiveSessionHandler(StateRegistry.CONFIG);
         smc.setAutoReading(true);
-      }, smc.eventLoop()).exceptionally((ex) -> {
+      }, smc.eventLoop()).exceptionallyAsync((ex) -> {
         logger.error("Error forwarding config state acknowledgement to server:", ex);
         return null;
       });
@@ -690,7 +690,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
             resp.getOffers().addAll(offers);
             player.getConnection().write(resp);
           }
-        }, player.getConnection().eventLoop()).exceptionally((ex) -> {
+        }, player.getConnection().eventLoop()).exceptionallyAsync((ex) -> {
           logger.error("Exception while handling command tab completion for player {} executing {}",
               player, command, ex);
           return null;
@@ -755,7 +755,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
                 player.getUsername(), command,
                 e);
           }
-        }, player.getConnection().eventLoop()).exceptionally((ex) -> {
+        }, player.getConnection().eventLoop()).exceptionallyAsync((ex) -> {
           logger.error(
               "Exception while finishing command tab completion,"
                   + " with request {} and response {}",
@@ -777,7 +777,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
             response.getOffers().add(new Offer(s));
           }
           player.getConnection().write(response);
-        }, player.getConnection().eventLoop()).exceptionally((ex) -> {
+        }, player.getConnection().eventLoop()).exceptionallyAsync((ex) -> {
           logger.error(
               "Exception while finishing regular tab completion,"
                   + " with request {} and response{}",

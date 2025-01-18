@@ -169,8 +169,8 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
           // We're done! :)
           server.getEventManager().fireAndForget(new ServerPostConnectEvent(player,
               previousServer));
-          resultFuture.complete(ConnectionRequestResults.successful(serverConn.getServer()));
-        }, smc.eventLoop()).exceptionally(exc -> {
+          resultFuture.completeAsync(ConnectionRequestResults.successful(serverConn.getServer()));
+        }, smc.eventLoop()).exceptionallyAsync(exc -> {
           logger.error("Unable to switch to new server {} for {}",
               serverConn.getServerInfo().getName(),
               player.getUsername(), exc);
@@ -191,10 +191,10 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
     // the client.
     if (connection.getType() == ConnectionTypes.LEGACY_FORGE
         && !serverConn.getPhase().consideredComplete()) {
-      resultFuture.complete(ConnectionRequestResults.forUnsafeDisconnect(packet,
+      resultFuture.completeAsync(ConnectionRequestResults.forUnsafeDisconnect(packet,
           serverConn.getServer()));
     } else {
-      resultFuture.complete(ConnectionRequestResults.forDisconnect(packet, serverConn.getServer()));
+      resultFuture.completeAsync(ConnectionRequestResults.forDisconnect(packet, serverConn.getServer()));
     }
 
     return true;

@@ -611,7 +611,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         Optional<RegisteredServer> next = player.getNextServerToTry();
         if (next.isPresent()) {
           player.createConnectionRequest(next.get()).connectWithIndication()
-              .whenComplete((success, ex) -> {
+              .whenCompleteAsync((success, ex) -> {
                 if (ex != null || success == null || !success) {
                   player.disconnect(Component.text("Your server has been changed, but we could "
                       + "not move you to any fallback servers."));

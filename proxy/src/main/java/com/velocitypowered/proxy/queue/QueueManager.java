@@ -207,7 +207,7 @@ public abstract class QueueManager {
         continue;
       }
 
-      s.ping().whenComplete((result, th) -> {
+      s.ping().whenCompleteAsync((result, th) -> {
         double queueDelay = this.server.getConfiguration().getQueue().getQueueDelay() * 1000;
 
         if (th != null) {

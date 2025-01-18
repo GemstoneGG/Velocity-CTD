@@ -52,7 +52,7 @@ public class LegacyChatHandler implements ChatHandler<LegacyChatPacket> {
       return;
     }
     this.server.getEventManager().fire(new PlayerChatEvent(this.player, packet.getMessage()))
-        .whenComplete((chatEvent, throwable) -> {
+        .whenCompleteAsync((chatEvent, throwable) -> {
           if (!chatEvent.getResult().isAllowed()) {
             return;
           }

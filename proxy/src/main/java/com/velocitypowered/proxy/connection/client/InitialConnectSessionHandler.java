@@ -75,7 +75,7 @@ public class InitialConnectSessionHandler implements MinecraftSessionHandler {
               serverConn.ensureConnected().write(copied);
             }
           }, player.getConnection().eventLoop())
-          .exceptionally((ex) -> {
+          .exceptionallyAsync((ex) -> {
             logger.error("Exception while handling plugin message {}", packet, ex);
             return null;
           });

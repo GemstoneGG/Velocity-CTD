@@ -150,7 +150,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
               startLoginCompletion(player);
             }
           }, mcConnection.eventLoop());
-    }, mcConnection.eventLoop()).exceptionally((ex) -> {
+    }, mcConnection.eventLoop()).exceptionallyAsync((ex) -> {
       logger.error("Exception during connection of {}", finalProfile, ex);
       return null;
     });
@@ -229,8 +229,8 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
       }
       server.getEventManager()
           .fire(new PostLoginEvent(connectedPlayer))
-          .thenCompose(ignored -> connectToInitialServer(connectedPlayer))
-          .exceptionally((ex) -> {
+          .thenComposeAsync(ignored -> connectToInitialServer(connectedPlayer))
+          .exceptionallyAsync((ex) -> {
             logger.error("Exception while connecting {} to initial server", connectedPlayer, ex);
             return null;
           });
@@ -293,13 +293,14 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         if (inbound.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
           loginState = State.ACKNOWLEDGED;
           mcConnection.setActiveSessionHandler(StateRegistry.PLAY, new InitialConnectSessionHandler(player, server));
-          server.getEventManager().fire(new PostLoginEvent(player)).thenCompose((ignored) -> connectToInitialServer(player)).exceptionally((ex) -> {
-            logger.error("Exception while connecting {} to initial server", player, ex);
-            return null;
-          });
+          server.getEventManager().fire(new PostLoginEvent(player)).thenComposeAsync((ignored)
+              -> connectToInitialServer(player)).exceptionallyAsync((ex) -> {
+                logger.error("Exception while connecting {} to initial server", player, ex);
+                return null;
+              });
         }
       }
-    }, mcConnection.eventLoop()).exceptionally((ex) -> {
+    }, mcConnection.eventLoop()).exceptionallyAsync((ex) -> {
       logger.error("Exception while completing login initialisation phase for {}", player, ex);
       return null;
     });
