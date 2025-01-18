@@ -259,6 +259,8 @@ allow-illegal-characters-in-chat = false
 #                              would be shown with this specific assignment.
 # - "{proxy-vendor}":          Returns the group or association (vendor) of your proxy
 #                              that by default would display "Velocity Contributors."
+# - "{server-connected}":      Returns the name of the server that you are connected
+#                              to of your proxy with case-sensitivity."
 server-brand = "{backend-brand} ({proxy-brand})"
 
 # Modifies the brand and server version that displays in the multiplayer menu and status pingers.

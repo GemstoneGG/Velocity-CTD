@@ -264,6 +264,7 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
               server.getConfiguration().getServerBrand(),
               server.getConfiguration().getProxyBrandCustom(),
               server.getConfiguration().getBackendBrandCustom(),
+              serverConn.getServer().getServerInfo().getName(),
               ProtocolVersion.getVersionByName(server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn()));
     } else {
       serverConn.getPlayer().getConnection().write(packet.retain());

@@ -300,6 +300,7 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
           server.getConfiguration().getServerBrand(),
           server.getConfiguration().getProxyBrandCustom(),
           server.getConfiguration().getBackendBrandCustom(),
+          serverConn.getServer().getServerInfo().getName(),
           ProtocolVersion.getVersionByName(server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn());
       playerConnection.write(rewritten);
       return true;

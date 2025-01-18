@@ -136,6 +136,7 @@ public final class PluginMessageUtil {
                                                           final String brand,
                                                           final String proxyBrandCustom,
                                                           final String backendBrandCustom,
+                                                          final String connectedServer,
                                                           final String minimumVersion) {
     checkNotNull(message, "message");
     checkNotNull(version, "version");
@@ -152,7 +153,8 @@ public final class PluginMessageUtil {
         .replaceAll("\\{proxy-brand}", version.getName())
         .replaceAll("\\{proxy-brand-custom}", proxyBrandCustom)
         .replaceAll("\\{proxy-version}", version.getVersion())
-        .replaceAll("\\{proxy-vendor}", version.getVendor());
+        .replaceAll("\\{proxy-vendor}", version.getVendor())
+        .replaceAll("\\{server-connected}", connectedServer);
 
     ByteBuf rewrittenBuf = Unpooled.buffer();
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
