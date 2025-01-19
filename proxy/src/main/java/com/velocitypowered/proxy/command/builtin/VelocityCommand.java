@@ -465,9 +465,9 @@ public final class VelocityCommand {
         }
       }
 
-      if (!server.getMultiProxyHandler().getAllProxyIdsLowerCase().contains(proxyId.toLowerCase())) {
+      if (realId == null || !server.getMultiProxyHandler().getAllProxyIdsLowerCase().contains(proxyId.toLowerCase())) {
         source.sendMessage(Component.translatable("velocity.command.proxy-does-not-exist")
-            .arguments(Component.text(realId)));
+            .arguments(Component.text(proxyId)));
         return -1;
       }
 

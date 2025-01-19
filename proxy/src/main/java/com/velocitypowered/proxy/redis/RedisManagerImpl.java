@@ -105,6 +105,10 @@ public class RedisManagerImpl {
 
     server.getScheduler()
         .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+          if (server.isStartedShutdown()) {
+            return;
+          }
+          
           try (Jedis jedis = jedisPool.getResource()) {
             jedis.setex("PROXY_HEARTBEAT:" + proxyId, 30, "online");
           } catch (Exception e) {

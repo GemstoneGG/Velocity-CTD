@@ -184,6 +184,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private final VelocityCommandManager commandManager;
   private final AtomicBoolean shutdownInProgress = new AtomicBoolean(false);
   private boolean shutdown = false;
+  private boolean startedShutdown = false;
   private final VelocityPluginManager pluginManager;
 
   private final Map<UUID, ConnectedPlayer> connectionsByUuid = new ConcurrentHashMap<>();
@@ -255,6 +256,10 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     }
 
     return new ProxyVersion(implName, implVendor, implVersion);
+  }
+
+  public boolean isStartedShutdown() {
+    return this.startedShutdown;
   }
 
   private VelocityPluginContainer createVirtualPlugin() {
@@ -808,6 +813,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     }
 
     Runnable shutdownProcess = () -> {
+      startedShutdown = true;
       logger.info("Shutting down the proxy...");
 
       // Shutdown the connection manager, this should be
