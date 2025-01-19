@@ -296,8 +296,11 @@ public class MultiProxyHandler {
    */
   public void shutdown() {
     shuttingDown = true;
-    this.server.getRedisManager().removeProxyId(this.config.getProxyId());
-    this.server.getRedisManager().send(new RedisShuttingDownAnnouncement(this.config.getProxyId()));
+
+    if (this.server.getMultiProxyHandler().isRedisEnabled()) {
+      this.server.getRedisManager().removeProxyId(this.config.getProxyId());
+      this.server.getRedisManager().send(new RedisShuttingDownAnnouncement(this.config.getProxyId()));
+    }
   }
 
   /**

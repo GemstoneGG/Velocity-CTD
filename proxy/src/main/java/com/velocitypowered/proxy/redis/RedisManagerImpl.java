@@ -433,6 +433,10 @@ public class RedisManagerImpl {
   }
 
   private void startKeepalivePlayers(final VelocityServer proxy) {
+    if (jedisPool == null) {
+      return;
+    }
+
     proxy.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
       for (RemotePlayerInfo info : this.getCache()) {
         if (info.getProxyId().equalsIgnoreCase(proxy.getConfiguration().getRedis().getProxyId())) {
