@@ -250,7 +250,7 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
   @Override
   public boolean handle(final DisconnectPacket packet) {
     serverConn.disconnect();
-    resultFuture.completeAsync(ConnectionRequestResults.forDisconnect(packet, serverConn.getServer()));
+    resultFuture.complete(ConnectionRequestResults.forDisconnect(packet, serverConn.getServer()));
     return true;
   }
 

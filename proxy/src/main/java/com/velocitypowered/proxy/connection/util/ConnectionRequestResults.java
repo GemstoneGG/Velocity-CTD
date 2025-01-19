@@ -22,7 +22,6 @@ import com.velocitypowered.api.proxy.ConnectionRequestBuilder.Status;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
 import java.util.Optional;
-import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import net.kyori.adventure.text.Component;
 
@@ -35,7 +34,7 @@ public final class ConnectionRequestResults {
     throw new AssertionError();
   }
 
-  public static Supplier<? extends Impl> successful(final RegisteredServer server) {
+  public static Impl successful(final RegisteredServer server) {
     return plainResult(Status.SUCCESS, server);
   }
 
@@ -59,15 +58,15 @@ public final class ConnectionRequestResults {
    * @param server    the server to use
    * @return the result
    */
-  public static Supplier<? extends Impl> forDisconnect(final Component component, final RegisteredServer server) {
+  public static Impl forDisconnect(final Component component, final RegisteredServer server) {
     return new Impl(Status.SERVER_DISCONNECTED, component, server, true);
   }
 
-  public static Supplier<? extends Impl> forDisconnect(final DisconnectPacket disconnect, final RegisteredServer server) {
+  public static Impl forDisconnect(final DisconnectPacket disconnect, final RegisteredServer server) {
     return forDisconnect(disconnect.getReason().getComponent(), server);
   }
 
-  public static Supplier<? extends Impl> forUnsafeDisconnect(final DisconnectPacket disconnect, final RegisteredServer server) {
+  public static Impl forUnsafeDisconnect(final DisconnectPacket disconnect, final RegisteredServer server) {
     return new Impl(Status.SERVER_DISCONNECTED, disconnect.getReason().getComponent(), server,
         false);
   }
@@ -75,7 +74,7 @@ public final class ConnectionRequestResults {
   /**
    * Base implementation.
    */
-  public static class Impl implements ConnectionRequestBuilder.Result, Supplier<Impl> {
+  public static class Impl implements ConnectionRequestBuilder.Result {
 
     private final Status status;
     private final @Nullable net.kyori.adventure.text.Component component;
@@ -112,11 +111,6 @@ public final class ConnectionRequestResults {
      */
     public boolean isSafe() {
       return safe;
-    }
-
-    @Override
-    public Impl get() {
-      return null;
     }
   }
 }

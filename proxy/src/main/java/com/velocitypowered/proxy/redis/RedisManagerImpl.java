@@ -455,9 +455,7 @@ public class RedisManagerImpl {
             + " your proxies with Redis enabled is not suggested. Please wait"
             + " for Redis to automatically determine whether the proxy is online or not.", proxyId);
         System.exit(0);
-        return;
       }
-      logger.warn("Proxy ID '{}' was shutdown improperly. Removing previous for clean startup...", proxyId);
     } catch (Exception e) {
       throw new IllegalStateException("Failed to validate Proxy ID.", e);
     }
