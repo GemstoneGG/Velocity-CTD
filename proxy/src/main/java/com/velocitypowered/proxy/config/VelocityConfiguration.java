@@ -1577,8 +1577,6 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private boolean allowMultiQueue;
     @Expose
-    private String multipleServerMessagingSelection;
-    @Expose
     private double sendDelay;
     @Expose
     private double queueDelay;
@@ -1613,7 +1611,6 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.enabled = config.getOrElse("enabled", false);
       this.noQueueServers = config.getOrElse("no-queue-servers", List.of());
       this.allowMultiQueue = config.getOrElse("allow-multi-queue", false);
-      this.multipleServerMessagingSelection = config.getOrElse("multiple-server-messaging-selection", "last");
       this.sendDelay = config.getOrElse("send-delay", 1.0);
       this.queueDelay = config.getOrElse("queue-delay", 0.0);
       this.messageDelay = config.getOrElse("message-delay", 1.0);
@@ -1674,10 +1671,6 @@ public final class VelocityConfiguration implements ProxyConfig {
       return backendPingInterval;
     }
 
-    public String getMultipleServerMessagingSelection() {
-      return multipleServerMessagingSelection;
-    }
-
     public boolean isAllowMultiQueue() {
       return allowMultiQueue;
     }
@@ -1713,7 +1706,6 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", messageDelay=" + messageDelay
           + ", sendDelay=" + sendDelay
           + ", queueDelay=" + queueDelay
-          + ", multipleServerMessagingSelection=" + multipleServerMessagingSelection
           + ", allowMultiQueue=" + allowMultiQueue
           + ", noQueueServers=" + noQueueServers
           + ", overrideBungeeMessaging=" + overrideBungeeMessaging

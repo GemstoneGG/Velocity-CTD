@@ -108,7 +108,7 @@ public class RedisManagerImpl {
           if (server.isStartedShutdown()) {
             return;
           }
-          
+
           try (Jedis jedis = jedisPool.getResource()) {
             jedis.setex("PROXY_HEARTBEAT:" + proxyId, 30, "online");
           } catch (Exception e) {

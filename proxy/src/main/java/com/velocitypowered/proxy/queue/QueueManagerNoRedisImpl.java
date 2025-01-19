@@ -53,7 +53,6 @@ public class QueueManagerNoRedisImpl extends QueueManager {
    */
   public void tickMessageForAllPlayers() {
     Map<Player, ServerQueueStatus> temp = new HashMap<>();
-    String filter = this.config.getMultipleServerMessagingSelection();
 
     for (ServerQueueStatus status : this.cache.getAll()) {
       Map<ServerQueueEntry, UUID> map = status.getActivePlayers();
@@ -65,7 +64,7 @@ public class QueueManagerNoRedisImpl extends QueueManager {
           return;
         }
 
-        if (filter.equalsIgnoreCase("first") && temp.containsKey(p)) {
+        if (temp.containsKey(p)) {
           continue;
         }
 

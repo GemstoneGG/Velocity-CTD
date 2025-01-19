@@ -389,15 +389,6 @@ banned-reason = [
 # Whether the user should be capable of entering multiple queues at once.
 allow-multi-queue = false
 
-# Determines which server should be prioritized for action bars
-# and placeholders when the "multi-queue" option is enabled.
-# Available options:
-# - "first":         Returns the first server you connected
-#                    to from the queue list.
-# - "last":          Returns the last server you connected
-#                    to from the queue list.
-multiple-server-messaging-selection = "last"
-
 # How long the queue system should wait before sending each user to a server (in seconds).
 send-delay = 1.0
 
