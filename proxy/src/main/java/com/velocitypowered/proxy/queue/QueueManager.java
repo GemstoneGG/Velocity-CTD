@@ -65,6 +65,9 @@ public abstract class QueueManager {
     restartTasks();
   }
 
+  /**
+   * Restarts all scheduled tasks for the queue manager.
+   */
   public void restartTasks() {
     this.schedulePingingBackend();
     this.scheduleTickMessage();
@@ -136,9 +139,9 @@ public abstract class QueueManager {
       this.sendingTaskHandle.cancel();
     }
 
-    this.sendingTaskHandle = this.server.getScheduler()
+    this.sendingTaskHandle = server.getScheduler()
         .buildTask(VelocityVirtualPlugin.INSTANCE, this::tickSending)
-        .repeat((long) (this.config.getSendDelay() * 1000), TimeUnit.MILLISECONDS)
+        .repeat((long) (config.getSendDelay() * 1000), TimeUnit.MILLISECONDS)
         .schedule();
   }
 
@@ -153,9 +156,8 @@ public abstract class QueueManager {
     if (timeout == -1) {
       removeFromAll(player);
     } else {
-      this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
-        removeFromAll(player);
-      }).delay(getTimeoutInSeconds(player), TimeUnit.SECONDS).schedule();
+      this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, ()
+          -> removeFromAll(player)).delay(getTimeoutInSeconds(player), TimeUnit.SECONDS).schedule();
     }
   }
 
@@ -358,6 +360,10 @@ public abstract class QueueManager {
 
     if (tickPingingBackendTaskHandle != null) {
       tickPingingBackendTaskHandle.cancel();
+    }
+
+    if (sendingTaskHandle != null) {
+      sendingTaskHandle.cancel();
     }
   }
 
