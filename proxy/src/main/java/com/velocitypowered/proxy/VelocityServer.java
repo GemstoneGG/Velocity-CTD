@@ -660,6 +660,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     this.configuration = newConfiguration;
     eventManager.fireAndForget(new ProxyReloadEvent());
     queueManager.reloadConfig();
+    queueManager.restartTasks();
 
     if (!this.getConfiguration().getServerLinks().isEmpty()) {
       for (Player player : this.getAllPlayers()) {

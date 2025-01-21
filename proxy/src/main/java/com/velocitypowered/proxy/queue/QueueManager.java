@@ -62,6 +62,10 @@ public abstract class QueueManager {
       return;
     }
 
+    restartTasks();
+  }
+
+  public void restartTasks() {
     this.schedulePingingBackend();
     this.scheduleTickMessage();
     this.rescheduleTimerTask();
