@@ -193,7 +193,6 @@ public abstract class QueueManager {
         }
       }
     });
-
   }
 
   /**
