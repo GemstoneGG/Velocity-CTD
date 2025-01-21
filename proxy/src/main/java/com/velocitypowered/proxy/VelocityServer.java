@@ -827,9 +827,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       ImmutableList<ConnectedPlayer> players = ImmutableList.copyOf(connectionsByUuid.values());
 
       if (this.getQueueManager().isQueueEnabled()) {
-        players.forEach(p -> {
-          this.getQueueManager().removeFromAll(p);
-        });
+        players.forEach(p -> this.getQueueManager().removeFromAll(p));
       }
 
       if (!getConfiguration().isAcceptTransfers()) {
