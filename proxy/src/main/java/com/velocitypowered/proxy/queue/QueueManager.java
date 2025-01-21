@@ -37,7 +37,7 @@ import net.kyori.adventure.text.Component;
  */
 public abstract class QueueManager {
   protected final VelocityServer server;
-  protected final VelocityConfiguration.Queue config;
+  protected VelocityConfiguration.Queue config;
   protected ScheduledTask tickMessageTaskHandle;
   protected ScheduledTask tickPingingBackendTaskHandle;
 
@@ -339,6 +339,7 @@ public abstract class QueueManager {
    * Reloads the config for every server that has a queue.
    */
   public void reloadConfig() {
+    this.config = server.getConfiguration().getQueue();
     for (ServerQueueStatus server : this.cache.getAll()) {
       server.reloadConfig();
     }
