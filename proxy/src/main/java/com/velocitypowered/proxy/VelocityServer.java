@@ -1138,6 +1138,11 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   }
 
   @Override
+  public boolean isShuttingDown() {
+    return shutdownInProgress.get();
+  }
+
+  @Override
   public InetSocketAddress getBoundAddress() {
     if (configuration == null) {
       throw new IllegalStateException(
