@@ -39,7 +39,6 @@ import com.velocitypowered.proxy.protocol.packet.JoinGamePacket;
 import com.velocitypowered.proxy.protocol.packet.KeepAlivePacket;
 import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
 import com.velocitypowered.proxy.queue.ServerQueueStatus;
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -229,7 +228,7 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public void disconnected() {
-    resultFuture
-        .completeExceptionally(new IOException("Unexpectedly disconnected from remote server"));
+    final ConnectedPlayer player = serverConn.getPlayer();
+    player.teardown();
   }
 }
