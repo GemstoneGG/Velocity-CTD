@@ -46,10 +46,9 @@ public enum PostOrder {
   LAST,
 
   /**
-   * A deprecated order option, no longer required.
-   * You can now specify custom priorities using {@link Subscribe#priority()}.
+   * Previously used to specify that {@link Subscribe#priority()} should be used.
    *
-   * @deprecated Use {@link Subscribe#priority()} to define custom priorities instead.
+   * @deprecated No longer required, you only need to specify {@link Subscribe#priority()}.
    */
   @Deprecated
   CUSTOM
