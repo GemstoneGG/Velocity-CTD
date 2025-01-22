@@ -268,8 +268,8 @@ public class VelocityCommandManager implements CommandManager {
     Preconditions.checkNotNull(cmdLine, "cmdLine");
 
     CommandExecuteEvent.InvocationInfo invocationInfo = new CommandExecuteEvent.InvocationInfo(
-            CommandExecuteEvent.SignedState.UNSUPPORTED,
-            CommandExecuteEvent.Source.API
+        CommandExecuteEvent.SignedState.UNSUPPORTED,
+        CommandExecuteEvent.Source.API
     );
 
     return callCommandEvent(source, cmdLine, invocationInfo).thenComposeAsync(event -> {

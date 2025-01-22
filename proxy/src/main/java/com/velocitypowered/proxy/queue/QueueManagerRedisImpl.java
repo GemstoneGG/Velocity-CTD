@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.queue;
 
+import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.queue.cache.RedisRetriever;
@@ -26,11 +27,14 @@ import com.velocitypowered.proxy.redis.multiproxy.RedisSendActionBarRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import net.kyori.adventure.text.Component;
 
 /**
- * Manages the queue system with redis.
+ * Manages the queue system with Redis.
  */
 public class QueueManagerRedisImpl extends QueueManager {
 
@@ -81,7 +85,6 @@ public class QueueManagerRedisImpl extends QueueManager {
           server.getPlayer(it.player()).ifPresent(player -> player.sendMessage(component));
         }
       });
-
   }
 
   /**
@@ -97,7 +100,6 @@ public class QueueManagerRedisImpl extends QueueManager {
     Collections.sort(activeProxies);
 
     activeProxies.retainAll(masterProxies);
-
 
     String ownProxy = this.server.getMultiProxyHandler().getOwnProxyId();
 
@@ -121,14 +123,36 @@ public class QueueManagerRedisImpl extends QueueManager {
   }
 
   /**
-   * Updates the actionbar message for this player.
+   * Updates the actionbar message for all players.
    */
   @Override
   public void tickMessageForAllPlayers() {
+    Map<UUID, ServerQueueStatus> temp = new HashMap<>();
+    String filter = this.config.getMultipleServerMessagingSelection();
+
     for (ServerQueueStatus status : this.cache.getAll()) {
-      status.getActivePlayers().forEach((entry, player)
-          -> this.server.getRedisManager().send(new RedisSendActionBarRequest(player,
-              status.getActionBarComponent(entry))));
+      Map<ServerQueueEntry, UUID> activePlayers = status.getActivePlayers();
+      for (Map.Entry<ServerQueueEntry, UUID> entry : activePlayers.entrySet()) {
+        UUID playerUuid = entry.getValue();
+
+        Player p = server.getPlayer(playerUuid).orElse(null);
+        if (p == null) {
+          return;
+        }
+
+        if (filter.equalsIgnoreCase("first") && temp.containsKey(playerUuid)) {
+          continue;
+        }
+
+        temp.put(playerUuid, status);
+      }
     }
+
+    temp.forEach((playerUuid, status) -> status.getEntry(playerUuid).ifPresent(entry ->
+        this.server.getRedisManager().send(new RedisSendActionBarRequest(
+            playerUuid,
+            status.getActionBarComponent(entry)
+        ))
+    ));
   }
 }

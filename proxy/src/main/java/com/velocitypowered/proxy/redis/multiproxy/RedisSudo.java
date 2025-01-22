@@ -25,10 +25,9 @@ import java.util.UUID;
  *
  * @param targetProxy the target proxy ID
  * @param playerUuid the UUID of the player to execute as
- * @param replySource the encoded command source to send replies to
  * @param message the message to force the target to send (will run a command if the message begins with a forward slash)
  */
-public record RedisSudo(String targetProxy, UUID playerUuid, EncodedCommandSource replySource, String message) implements RedisPacket {
+public record RedisSudo(String targetProxy, UUID playerUuid, String message) implements RedisPacket {
   public static final String ID = "sudo";
 
   @Override

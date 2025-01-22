@@ -40,7 +40,7 @@ import org.bstats.json.JsonObjectBuilder;
  */
 public final class Metrics {
 
-  private final MetricsBase metricsBase;
+  private MetricsBase metricsBase;
 
   private Metrics(final Logger logger, final int serviceId, final boolean defaultEnabled) {
     File configFile = Path.of("plugins", "bStats", "config.txt").toFile();
@@ -48,7 +48,8 @@ public final class Metrics {
     try {
       config = new MetricsConfig(configFile, defaultEnabled);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      logger.error("Failed to create bStats config", e);
+      return;
     }
 
     metricsBase = new MetricsBase(

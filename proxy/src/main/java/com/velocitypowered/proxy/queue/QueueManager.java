@@ -101,7 +101,7 @@ public abstract class QueueManager {
 
     this.tickMessageTaskHandle = server.getScheduler()
         .buildTask(VelocityVirtualPlugin.INSTANCE, this::tickMessageForAllPlayers)
-        .repeat((int) (config.getMessageDelay() * 1000), TimeUnit.MILLISECONDS)
+        .repeat((long) (config.getMessageDelay() * 1000), TimeUnit.MILLISECONDS)
         .schedule();
   }
 
@@ -116,7 +116,7 @@ public abstract class QueueManager {
 
     this.tickPingingBackendTaskHandle = server.getScheduler()
         .buildTask(VelocityVirtualPlugin.INSTANCE, this::tickPingingBackend)
-        .repeat((int) (config.getBackendPingInterval() * 1000), TimeUnit.MILLISECONDS)
+        .repeat((long) (config.getBackendPingInterval() * 1000), TimeUnit.MILLISECONDS)
         .schedule();
   }
 
@@ -132,7 +132,7 @@ public abstract class QueueManager {
 
     this.sendingTaskHandle = this.server.getScheduler()
         .buildTask(VelocityVirtualPlugin.INSTANCE, this::tickSending)
-        .repeat((int) (this.config.getSendDelay() * 1000), TimeUnit.MILLISECONDS)
+        .repeat((long) (this.config.getSendDelay() * 1000), TimeUnit.MILLISECONDS)
         .schedule();
   }
 
@@ -141,7 +141,7 @@ public abstract class QueueManager {
    *
    * @param player The player that left.
    */
-  public void onPlayerLeave(ConnectedPlayer player) {
+  public void onPlayerLeave(final ConnectedPlayer player) {
     long timeout = getTimeoutInSeconds(player);
 
     if (timeout == -1) {
@@ -258,6 +258,10 @@ public abstract class QueueManager {
    * @return The timeout in seconds at which the player will be removed from a queue after leaving the server.
    */
   protected int getTimeoutInSeconds(final ConnectedPlayer player) {
+    if (player.hasPermission("velocity.queue.timeout.exempt")) {
+      return 0;
+    }
+
     for (int i = 86400; i > 0; i--) {
       if (player.hasPermission("velocity.queue.timeout." + i)) {
         return i;
@@ -272,49 +276,51 @@ public abstract class QueueManager {
    * @param player The player to add to the queue.
    * @param server The server to add the player to the queue to.
   */
-  public void queue(Player player, VelocityRegisteredServer server) {
+  public void queue(final Player player, final VelocityRegisteredServer server) {
     if (!isQueueEnabled() || player.hasPermission("velocity.queue.bypass")) {
       player.createConnectionRequest(server).connectWithIndication();
+      return;
+    }
+
+    String targetServerName = server.getServerInfo().getName();
+
+    ServerQueueStatus targetQueueStatus = getQueue(targetServerName);
+    if (targetQueueStatus != null && targetQueueStatus.isQueued(player.getUniqueId())) {
+      player.sendMessage(Component.translatable("velocity.queue.error.already-queued")
+          .arguments(Component.text(targetServerName)));
       return;
     }
 
     if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
       for (ServerQueueStatus status : this.cache.getAll()) {
         if (status.isQueued(player.getUniqueId())) {
-          player.sendMessage(Component.translatable("velocity.queue.error.already-queued")
-              .arguments(
-                  Component.text(status.getServerName())
-              )
-          );
           status.dequeue(player.getUniqueId(), false);
+          player.sendMessage(Component.translatable("velocity.queue.error.queued-swap")
+              .arguments(
+                  Component.text(status.getServerName()),
+                  Component.text(targetServerName)));
+          break;
         }
       }
     }
 
-    String serverName = server.getServerInfo().getName();
-    ServerQueueStatus status = getQueue(serverName);
+    ServerQueueStatus status = getQueue(targetServerName);
     if (status == null) {
-      throw new IllegalArgumentException("No queue found for server '" + serverName + "'");
+      throw new IllegalArgumentException("No queue found for server '" + targetServerName + "'");
     }
 
     if (status.isPaused() && !this.server.getConfiguration().getQueue().isAllowPausedQueueJoining()) {
       player.sendMessage(Component.translatable("velocity.queue.error.paused")
-          .arguments(Component.text(serverName)));
-      return;
-    }
-
-    if (status.isQueued(player.getUniqueId())) {
-      player.sendMessage(Component.translatable("velocity.queue.error.already-queued")
-          .arguments(
-              Component.text(serverName)
-          )
-      );
+          .arguments(Component.text(targetServerName)));
       return;
     }
 
     status.queue(player.getUniqueId(), player.getQueuePriority(server.getServerInfo().getName()),
         player.hasPermission("velocity.queue.full.bypass"),
         player.hasPermission("velocity.queue.bypass"));
+
+    player.sendMessage(Component.translatable("velocity.queue.command.queued")
+        .arguments(Component.text(targetServerName)));
   }
 
   /**
@@ -373,7 +379,7 @@ public abstract class QueueManager {
    *
    * @param player The player to remove.
    */
-  public void removeFromAll(ConnectedPlayer player) {
+  public void removeFromAll(final ConnectedPlayer player) {
     for (ServerQueueStatus status : this.cache.getAll()) {
       if (status.isQueued(player.getUniqueId())) {
         status.dequeue(player.getUniqueId(), false);

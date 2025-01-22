@@ -664,7 +664,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
               player.setServerLinks(getConfiguration().getServerLinks());
             }
           } catch (IllegalStateException ignored) {
-            // Ignore illegal state to ensure each reload is successful.
+            // Ignore illegal state to ensure each viable reload is successful.
           }
         }
       }
@@ -780,7 +780,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   }
 
   /**
-   * Loads the server list from the velocity configuration file.
+   * Loads the server list from the Velocity configuration file.
    */
   private static List<ServerInfo> loadServersFromNewList(final VelocityConfiguration config) {
     List<ServerInfo> serverList = new ArrayList<>();

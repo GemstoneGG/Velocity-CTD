@@ -30,24 +30,24 @@ public class NativeVelocityCipher implements VelocityCipher {
 
   public static final VelocityCipherFactory FACTORY = new VelocityCipherFactory() {
     @Override
-    public VelocityCipher forEncryption(SecretKey key) throws GeneralSecurityException {
+    public VelocityCipher forEncryption(final SecretKey key) throws GeneralSecurityException {
       return new NativeVelocityCipher(true, key);
     }
 
     @Override
-    public VelocityCipher forDecryption(SecretKey key) throws GeneralSecurityException {
+    public VelocityCipher forDecryption(final SecretKey key) throws GeneralSecurityException {
       return new NativeVelocityCipher(false, key);
     }
   };
-  private long ctx;
+  private final long ctx;
   private boolean disposed = false;
 
-  private NativeVelocityCipher(boolean encrypt, SecretKey key) throws GeneralSecurityException {
+  private NativeVelocityCipher(final boolean encrypt, final SecretKey key) throws GeneralSecurityException {
     this.ctx = OpenSslCipherImpl.init(key.getEncoded(), encrypt);
   }
 
   @Override
-  public void process(ByteBuf source) {
+  public void process(final ByteBuf source) {
     ensureNotDisposed();
 
     long base = source.memoryAddress() + source.readerIndex();
@@ -60,7 +60,6 @@ public class NativeVelocityCipher implements VelocityCipher {
   public void close() {
     if (!disposed) {
       OpenSslCipherImpl.free(ctx);
-      this.ctx = 0;
     }
     disposed = true;
   }

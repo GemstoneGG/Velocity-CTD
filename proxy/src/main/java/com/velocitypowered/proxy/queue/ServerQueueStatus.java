@@ -221,6 +221,7 @@ public class ServerQueueStatus {
    * Removes a player from this queue.
    *
    * @param player the player to remove
+   * @param maxRetriesReached the maximum number of retries
    */
   public void dequeue(final UUID player, final boolean maxRetriesReached) {
     this.velocityServer.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {

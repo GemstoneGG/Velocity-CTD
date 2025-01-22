@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Manages the queue system without redis.
+ * Manages the queue system without Redis.
  */
 public class QueueManagerNoRedisImpl extends QueueManager {
 
@@ -49,7 +49,7 @@ public class QueueManagerNoRedisImpl extends QueueManager {
   }
 
   /**
-   * Updates the actionbar message for this player.
+   * Updates the actionbar message for all players.
    */
   public void tickMessageForAllPlayers() {
     Map<Player, ServerQueueStatus> temp = new HashMap<>();
@@ -70,7 +70,6 @@ public class QueueManagerNoRedisImpl extends QueueManager {
         }
 
         temp.put(p, status);
-
       }
     }
 

@@ -212,7 +212,7 @@ public class VelocityTabList implements InternalTabList {
 
   @Override
   public TabListEntry buildEntry(final GameProfile profile, @Nullable final Component displayName, final int latency,
-      final int gameMode, @Nullable final ChatSession chatSession, final boolean listed, final int listOrder) {
+                                 final int gameMode, @Nullable final ChatSession chatSession, final boolean listed, final int listOrder) {
     return new VelocityTabListEntry(this, profile, displayName, latency, gameMode, chatSession, listed, listOrder);
   }
 
@@ -236,7 +236,7 @@ public class VelocityTabList implements InternalTabList {
   }
 
   private void processUpsert(final EnumSet<UpsertPlayerInfoPacket.Action> actions,
-      final UpsertPlayerInfoPacket.Entry entry) {
+                             final UpsertPlayerInfoPacket.Entry entry) {
     Preconditions.checkNotNull(entry.getProfileId(), "Profile ID cannot be null");
     UUID profileId = entry.getProfileId();
     VelocityTabListEntry currentEntry = this.entries.get(profileId);

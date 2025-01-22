@@ -61,14 +61,14 @@ public class ServerQueueEntry {
   /**
    * Constructs a new queue entry.
    *
-   * @param player The UUID of the player.
-   * @param target The target server.
-   * @param proxy The proxy.
-   * @param connectionAttempts The number of connection attempts.
+   * @param player               The UUID of the player.
+   * @param target               The target server.
+   * @param proxy                The proxy.
+   * @param connectionAttempts   The number of connection attempts.
    * @param waitingForConnection Waiting for connection or not.
-   * @param priority The queue priority.
-   * @param fullBypass Full bypass.
-   * @param queueBypass Queue bypass.
+   * @param priority             The queue priority.
+   * @param fullBypass           Full bypass.
+   * @param queueBypass          Queue bypass.
    */
   public ServerQueueEntry(final UUID player, final VelocityRegisteredServer target,
                           final VelocityServer proxy, final int connectionAttempts, final boolean waitingForConnection,
@@ -86,11 +86,11 @@ public class ServerQueueEntry {
   /**
    * Update the entry.
    *
-   * @param connectionAttempts Connection attempts.
+   * @param connectionAttempts   Connection attempts.
    * @param waitingForConnection Waiting for connection.
-   * @param priority Priority.
-   * @param fullBypass Full bypass.
-   * @param queueBypass Queue bypass.
+   * @param priority             Priority.
+   * @param fullBypass           Full bypass.
+   * @param queueBypass          Queue bypass.
    */
   public void update(final int connectionAttempts, final boolean waitingForConnection,
                      final int priority, final boolean fullBypass, final boolean queueBypass) {

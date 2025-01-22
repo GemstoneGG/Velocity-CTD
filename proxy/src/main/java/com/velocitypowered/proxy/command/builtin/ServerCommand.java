@@ -91,8 +91,8 @@ public final class ServerCommand {
                 return -1;
               }
 
-              if (this.server.getConfiguration().getQueue().getNoQueueServers()
-                      .contains(registeredServer.getServerInfo().getName()) || !server.getQueueManager().isQueueEnabled()
+              if (this.server.getConfiguration().getQueue().getNoQueueServers().contains(registeredServer.getServerInfo().getName())
+                      || !server.getQueueManager().isQueueEnabled()
                       || player.hasPermission("velocity.queue.bypass")) {
                 player.createConnectionRequest(registeredServer).connectWithIndication();
                 return Command.SINGLE_SUCCESS;
@@ -104,12 +104,7 @@ public final class ServerCommand {
         ).build();
 
     final BrigadierCommand command = new BrigadierCommand(node);
-    String[] aliases = new String[] {};
-
-    if (server.getConfiguration().getQueue().isEnabled()) {
-      // if queue feature is enabled, add aliases
-      aliases = server.getConfiguration().getServerAliases().toArray(new String[0]);
-    }
+    String[] aliases = server.getConfiguration().getServerAliases().toArray(new String[0]);
 
     server.getCommandManager().register(
         server.getCommandManager().metaBuilder(command)
@@ -166,7 +161,7 @@ public final class ServerCommand {
   }
 
   private static TextComponent formatServerComponent(final String currentPlayerServer,
-                                              final RegisteredServer server) {
+                                                     final RegisteredServer server) {
     final ServerInfo serverInfo = server.getServerInfo();
     final TextComponent.Builder serverTextComponent = Component.text()
             .content(serverInfo.getName());

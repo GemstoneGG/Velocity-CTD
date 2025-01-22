@@ -29,11 +29,11 @@ public class LibdeflateVelocityCompressor implements VelocityCompressor {
 
   public static final VelocityCompressorFactory FACTORY = LibdeflateVelocityCompressor::new;
 
-  private long inflateCtx;
-  private long deflateCtx;
+  private final long inflateCtx;
+  private final long deflateCtx;
   private boolean disposed = false;
 
-  private LibdeflateVelocityCompressor(int level) {
+  private LibdeflateVelocityCompressor(final int level) {
     int correctedLevel = level == -1 ? 6 : level;
     if (correctedLevel > 12 || correctedLevel < 1) {
       throw new IllegalArgumentException("Invalid compression level " + level);
@@ -44,7 +44,7 @@ public class LibdeflateVelocityCompressor implements VelocityCompressor {
   }
 
   @Override
-  public void inflate(ByteBuf source, ByteBuf destination, int uncompressedSize)
+  public void inflate(final ByteBuf source, final ByteBuf destination, final int uncompressedSize)
       throws DataFormatException {
     ensureNotDisposed();
 
@@ -62,7 +62,7 @@ public class LibdeflateVelocityCompressor implements VelocityCompressor {
   }
 
   @Override
-  public void deflate(ByteBuf source, ByteBuf destination) throws DataFormatException {
+  public void deflate(final ByteBuf source, final ByteBuf destination) throws DataFormatException {
     ensureNotDisposed();
 
     while (true) {
@@ -91,9 +91,7 @@ public class LibdeflateVelocityCompressor implements VelocityCompressor {
   public void close() {
     if (!disposed) {
       NativeZlibInflate.free(inflateCtx);
-      this.inflateCtx = 0;
       NativeZlibDeflate.free(deflateCtx);
-      this.deflateCtx = 0;
     }
     disposed = true;
   }

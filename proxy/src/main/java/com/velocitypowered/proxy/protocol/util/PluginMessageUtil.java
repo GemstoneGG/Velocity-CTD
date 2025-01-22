@@ -207,11 +207,11 @@ public final class PluginMessageUtil {
         // BungeeQuack.
         "bungeecord:main";
       default -> {
-        String lower = name.toLowerCase(Locale.ROOT);
-        yield "legacy:" + INVALID_IDENTIFIER_REGEX.matcher(lower).replaceAll("");
         // This is very likely a legacy name, so transform it. Velocity uses the same scheme as
         // BungeeCord does to transform channels, but also removes clearly invalid characters as
         // well.
+        String lower = name.toLowerCase(Locale.ROOT);
+        yield "legacy:" + INVALID_IDENTIFIER_REGEX.matcher(lower).replaceAll("");
       }
     };
   }

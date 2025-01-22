@@ -136,7 +136,6 @@ public class TransferCommand {
                             .executes(this::transfer)))
             .build();
 
-
     final BrigadierCommand command = new BrigadierCommand(transfer);
     server.getCommandManager().register(
         server.getCommandManager().metaBuilder(command)
@@ -149,15 +148,12 @@ public class TransferCommand {
   private int transfer(final CommandContext<CommandSource> context) {
     final String player = context.getArgument("player", String.class);
     final String proxyId = context.getArgument("proxy-id", String.class);
+    final String normalizedProxyId = normalizeProxyId(proxyId);
 
-    ProxyAddress add = null;
-    for (ProxyAddress a : this.server.getConfiguration().getProxyAddresses()) {
-      if (a.proxyId().equalsIgnoreCase(proxyId)) {
-        add = a;
-      }
-    }
-
-    ProxyAddress address = add;
+    ProxyAddress address = server.getConfiguration().getProxyAddresses().stream()
+        .filter(proxy -> proxy.proxyId().equalsIgnoreCase(proxyId))
+        .findFirst()
+        .orElse(null);
 
     if (this.server.getMultiProxyHandler().isRedisEnabled()) {
       if (this.server.getMultiProxyHandler().isPlayerOnline(player) && !player.equalsIgnoreCase("all")
@@ -177,13 +173,13 @@ public class TransferCommand {
 
     if (address == null) {
       context.getSource().sendMessage(Component.translatable("velocity.command.error.transfer.invalid-proxy")
-              .arguments(Component.text(proxyId)));
+          .arguments(Component.text(proxyId)));
       return -1;
     }
 
     if (player.equalsIgnoreCase("all")) {
       context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.all")
-              .arguments(Component.text(proxyId)));
+          .arguments(Component.text(normalizedProxyId)));
 
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         for (Player p : this.server.getAllPlayers()) {
@@ -215,7 +211,7 @@ public class TransferCommand {
       }
 
       context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.server")
-          .arguments(Component.text(foundServer.getServerInfo().getName()), Component.text(proxyId)));
+          .arguments(Component.text(foundServer.getServerInfo().getName()), Component.text(normalizedProxyId)));
 
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         for (Player p : foundServer.getPlayersConnected()) {
@@ -255,7 +251,7 @@ public class TransferCommand {
       RegisteredServer foundServer = this.server.getServer(foundServerConn.getServerInfo().getName()).orElse(null);
 
       context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.server")
-          .arguments(Component.text(foundServer.getServerInfo().getName()), Component.text(proxyId)));
+          .arguments(Component.text(foundServer.getServerInfo().getName()), Component.text(normalizedProxyId)));
 
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         for (Player p : foundServer.getPlayersConnected()) {
@@ -279,25 +275,43 @@ public class TransferCommand {
         }
       }).delay(1, TimeUnit.SECONDS).schedule();
     } else {
-      context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.player")
-              .arguments(Component.text(player), Component.text(proxyId)));
-
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         UUID sender = null;
         if (context.getSource() instanceof Player p) {
           sender = p.getUniqueId();
         }
-        this.server.getRedisManager().send(new RedisTransferCommandRequest(sender, player, proxyId, address.ip(), address.port()));
+
+        RemotePlayerInfo playerInfo = this.server.getMultiProxyHandler().getPlayerInfo(player);
+
+        if (playerInfo == null || playerInfo.getName() == null || playerInfo.getProxyId() == null) {
+          context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
+              .arguments(Component.text(player)));
+          return -1;
+        }
+
+        context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.player")
+            .arguments(Component.text(playerInfo.getName()), Component.text(normalizedProxyId)));
+
+        this.server.getRedisManager().send(new RedisTransferCommandRequest(
+            sender, playerInfo.getName(), proxyId, address.ip(), address.port()
+        ));
       } else {
-        this.server.getPlayer(player).ifPresent(p -> {
-          ConnectedPlayer connectedPlayer = (ConnectedPlayer) p;
-          if (connectedPlayer.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
-            connectedPlayer.transferToHost(new InetSocketAddress(address.ip(), address.port()));
-          } else {
-            context.getSource().sendMessage(Component.translatable("velocity.command.transfer.invalid-version")
-                .arguments(Component.text(connectedPlayer.getUsername())));
-          }
-        });
+        Optional<Player> maybePlayer = this.server.getPlayer(player);
+        if (maybePlayer.isEmpty()) {
+          context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
+              .arguments(Component.text(player)));
+          return -1;
+        }
+
+        ConnectedPlayer connectedPlayer = (ConnectedPlayer) maybePlayer.get();
+        if (connectedPlayer.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
+          context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.player")
+              .arguments(Component.text(connectedPlayer.getUsername()), Component.text(normalizedProxyId)));
+          connectedPlayer.transferToHost(new InetSocketAddress(address.ip(), address.port()));
+        } else {
+          context.getSource().sendMessage(Component.translatable("velocity.command.transfer.invalid-version")
+              .arguments(Component.text(connectedPlayer.getUsername())));
+        }
       }
     }
 
@@ -335,5 +349,13 @@ public class TransferCommand {
     }
 
     return bestMatch;
+  }
+
+  private String normalizeProxyId(final String inputProxyId) {
+    return server.getConfiguration().getProxyAddresses().stream()
+        .map(ProxyAddress::proxyId)
+        .filter(s -> s.equalsIgnoreCase(inputProxyId))
+        .findFirst()
+        .orElse(inputProxyId);
   }
 }

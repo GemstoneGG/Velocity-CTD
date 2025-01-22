@@ -135,7 +135,7 @@ public class VelocityTabListLegacy extends KeyedVelocityTabList {
 
   @Override
   public TabListEntry buildEntry(final GameProfile profile, @Nullable final Component displayName, final int latency,
-      final int gameMode) {
+                                 final int gameMode) {
     return new VelocityTabListEntryLegacy(this, profile, displayName, latency, gameMode);
   }
 }

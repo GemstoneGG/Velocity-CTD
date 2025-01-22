@@ -104,7 +104,6 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
                 final StringBuilder json = new StringBuilder();
                 VelocityServer.getPingGsonInstance(connection.getProtocolVersion())
                         .toJson(event.getPing(), json);
-
                 connection.write(new StatusResponsePacket(json));
               } else {
                 connection.close();
@@ -118,7 +117,7 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  private ByteBuf encode(String response) {
+  private ByteBuf encode(final String response) {
     ByteBuf buf = Unpooled.buffer();
     buf.writeByte(0xFF);
 

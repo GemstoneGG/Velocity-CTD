@@ -40,8 +40,8 @@ public class KeyedVelocityTabListEntry implements TabListEntry {
   private @Nullable IdentifiedKey playerKey;
 
   KeyedVelocityTabListEntry(final KeyedVelocityTabList tabList, final GameProfile profile,
-      final net.kyori.adventure.text.@Nullable Component displayName, final int latency, final int gameMode,
-      @Nullable final IdentifiedKey playerKey) {
+                            final net.kyori.adventure.text.@Nullable Component displayName, final int latency, final int gameMode,
+                            @Nullable final IdentifiedKey playerKey) {
     this.tabList = tabList;
     this.profile = profile;
     this.displayName = displayName;

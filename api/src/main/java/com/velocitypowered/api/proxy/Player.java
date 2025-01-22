@@ -476,12 +476,11 @@ public interface Player extends
    */
   void setServerLinks(@NotNull List<ServerLink> links);
 
-
   /**
    * Gets the custom queue priority in case they have one.
-   * If player does not have custom queue priority for specified server,
+   * If a player does not have a custom queue priority for a specified server,
    * global priority is checked. If the player doesn't have a global priority
-   * either, 0 is returned.
+   * too, 0 is returned.
    *
    * @param server The server to check priority for
    *

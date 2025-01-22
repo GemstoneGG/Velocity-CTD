@@ -38,6 +38,7 @@ import com.velocitypowered.api.event.player.PlayerModInfoEvent;
 import com.velocitypowered.api.event.player.PlayerSettingsChangedEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.event.player.configuration.PlayerEnterConfigurationEvent;
+import com.velocitypowered.api.network.HandshakeIntent;
 import com.velocitypowered.api.network.ProtocolState;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.permission.PermissionFunction;
@@ -105,7 +106,6 @@ import io.netty.buffer.Unpooled;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -161,6 +161,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private final MinecraftConnection connection;
   private final @Nullable InetSocketAddress virtualHost;
   private final @Nullable String rawVirtualHost;
+  private final HandshakeIntent handshakeIntent;
   private GameProfile profile;
   private PermissionFunction permissionFunction;
   private int tryIndex = 0;
@@ -202,12 +203,13 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   ConnectedPlayer(final VelocityServer server, final GameProfile profile, final MinecraftConnection connection,
                   @Nullable final InetSocketAddress virtualHost, @Nullable final String rawVirtualHost, final boolean onlineMode,
-                  @Nullable final IdentifiedKey playerKey) {
+                  final HandshakeIntent handshakeIntent, @Nullable final IdentifiedKey playerKey) {
     this.server = server;
     this.profile = profile;
     this.connection = connection;
     this.virtualHost = virtualHost;
     this.rawVirtualHost = rawVirtualHost;
+    this.handshakeIntent = handshakeIntent;
     this.permissionFunction = PermissionFunction.ALWAYS_UNDEFINED;
     this.connectionPhase = connection.getType().getInitialClientPhase();
     this.onlineMode = onlineMode;
@@ -863,12 +865,21 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                   }
 
                   if (this.server.getConfiguration().getQueue().isQueueOnShutdown()) {
+                    TextComponent kickMsg = (TextComponent) originalEvent.getServerKickReason().orElse(Component.empty());
                     ServerQueueStatus s = this.server.getQueueManager().getQueue(originalEvent.getServer().getServerInfo().getName());
-                    if (!s.isPaused() || this.server.getConfiguration().getQueue().isAllowPausedQueueJoining()) {
+
+                    // Checks if the kick reason is valid for a re-queue
+                    // This is done to make sure players don't get constantly sent over and over again in a kick loop
+                    boolean isValidReason = this.server.getConfiguration().getQueue().getBannedReason()
+                        .stream()
+                        .noneMatch(text -> containsString(kickMsg, text));
+
+                    if (isValidReason && (!s.isPaused() || this.server.getConfiguration().getQueue().isAllowPausedQueueJoining())) {
                       s.queue(getUniqueId(),
                           getQueuePriority(originalEvent.getServer().getServerInfo().getName()),
-                          hasPermission("velocity.queue.full.bypass"),
-                          hasPermission("velocity.queue.bypass"));
+                          server.getQueueManager().isQueueEnabled() && hasPermission("velocity.queue.full.bypass"),
+                          server.getQueueManager().isQueueEnabled() && hasPermission("velocity.queue.bypass")
+                      );
                     }
                   }
                   break;
@@ -911,70 +922,52 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @return the next server to try
    */
   private Optional<RegisteredServer> getNextServerToTry(@Nullable final RegisteredServer current) {
-    List<String> forcedHosts;
     if (serversToTry == null) {
-      String virtualHostStr = getVirtualHost().map(InetSocketAddress::getHostString)
-          .orElse("");
-      forcedHosts = server.getConfiguration().getForcedHosts().getOrDefault(virtualHostStr,
-          Collections.emptyList());
-      serversToTry = forcedHosts;
+      serversToTry = new ArrayList<>();
+    }
+    String virtualHostStr = getVirtualHost().map(InetSocketAddress::getHostString)
+        .orElse("");
+    List<String> connOrder = new ArrayList<>(server.getConfiguration().getForcedHosts().getOrDefault(virtualHostStr,
+        new ArrayList<>()));
+    connOrder.addAll(server.getConfiguration().getAttemptConnectionOrder());
+    connOrder.removeAll(attemptedServers);
+
+    if (connOrder.isEmpty()) {
+      return Optional.empty();
     }
 
-    if (serversToTry.isEmpty()) {
-      List<String> connOrder = server.getConfiguration().getAttemptConnectionOrder();
-      if (connOrder.isEmpty()) {
+    Optional<RegisteredServer> selectedServer = Optional.empty();
+    for (String serverName : connOrder) {
+      RegisteredServer registeredServer = server.getServer(serverName).orElse(null);
+      if (registeredServer == null) {
+        logger.error(Component.text("Unable to read your velocity.toml fallback servers. Users are unable to connect."));
         return Optional.empty();
       }
 
-      Optional<RegisteredServer> selectedServer = Optional.empty();
-      for (String serverName : connOrder) {
-        if (attemptedServers.contains(serverName)) {
-          continue;
-        }
-
-        RegisteredServer registeredServer = server.getServer(serverName).orElse(null);
-        if (registeredServer == null) {
-          logger.error(Component.text("Unable to read your velocity.toml fallback servers. Users are unable to connect."));
-          return Optional.empty();
-        }
-
-        if ((connectedServer != null && hasSameName(connectedServer.getServer(), serverName))
-            || (connectionInFlight != null && hasSameName(connectionInFlight.getServer(), serverName))
-            || (current != null && hasSameName(current, serverName))) {
-          continue;
-        }
-
-        if (selectedServer.isEmpty()) {
-          if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("FIRST_AVAILABLE")) {
-            return Optional.of(registeredServer);
-          }
-          selectedServer = Optional.of(registeredServer);
-        } else if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("MOST_POPULATED")) {
-          if (registeredServer.getTotalPlayerCount() > selectedServer.get().getTotalPlayerCount()) {
-            selectedServer = Optional.of(registeredServer);
-          }
-        } else if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("LEAST_POPULATED")) {
-          if (registeredServer.getTotalPlayerCount() < selectedServer.get().getTotalPlayerCount()) {
-            selectedServer = Optional.of(registeredServer);
-          }
-        }
-      }
-
-      return selectedServer;
-    }
-
-    for (int i = tryIndex; i < serversToTry.size(); i++) {
-      String toTryName = serversToTry.get(i);
-      if ((connectedServer != null && hasSameName(connectedServer.getServer(), toTryName))
-          || (connectionInFlight != null && hasSameName(connectionInFlight.getServer(), toTryName))
-          || (current != null && hasSameName(current, toTryName))) {
+      if ((connectedServer != null && hasSameName(connectedServer.getServer(), serverName))
+          || (connectionInFlight != null && hasSameName(connectionInFlight.getServer(), serverName))
+          || (current != null && hasSameName(current, serverName))) {
         continue;
       }
 
-      tryIndex = i;
-      return server.getServer(toTryName);
+      if (selectedServer.isEmpty()) {
+        if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("FIRST_AVAILABLE")) {
+          return Optional.of(registeredServer);
+        }
+        selectedServer = Optional.of(registeredServer);
+      } else if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("MOST_POPULATED")) {
+        if (registeredServer.getTotalPlayerCount() > selectedServer.get().getTotalPlayerCount()) {
+          selectedServer = Optional.of(registeredServer);
+        }
+      } else if (server.getConfiguration().getDynamicFallbackFilter().equalsIgnoreCase("LEAST_POPULATED")) {
+        if (registeredServer.getTotalPlayerCount() < selectedServer.get().getTotalPlayerCount()) {
+          selectedServer = Optional.of(registeredServer);
+        }
+      }
     }
-    return Optional.empty();
+
+    selectedServer.ifPresent(registeredServer -> attemptedServers.add(registeredServer.getServerInfo().getName()));
+    return selectedServer;
   }
 
   private static boolean hasSameName(final RegisteredServer server, final String name) {
@@ -1194,6 +1187,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   @Override
   public int getQueuePriority(final String serverName) {
+    if (!server.getQueueManager().isQueueEnabled()) {
+      return 0;
+    }
+
     for (int i = 100; i > 0; i--) {
       if (hasPermission("velocity.queue.priority." + serverName + "." + i)) {
         return i;
@@ -1451,6 +1448,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   @Override
   public ProtocolState getProtocolState() {
     return connection.getState().toProtocolState();
+  }
+
+  @Override
+  public HandshakeIntent getHandshakeIntent() {
+    return handshakeIntent;
   }
 
   private final class ConnectionRequestBuilderImpl implements ConnectionRequestBuilder {

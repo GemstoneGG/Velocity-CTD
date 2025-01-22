@@ -64,8 +64,8 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
    * @param resultFuture the result future
    */
   TransitionSessionHandler(final VelocityServer server,
-      final VelocityServerConnection serverConn,
-      final CompletableFuture<Impl> resultFuture) {
+                           final VelocityServerConnection serverConn,
+                           final CompletableFuture<Impl> resultFuture) {
     this.server = server;
     this.serverConn = serverConn;
     this.resultFuture = resultFuture;

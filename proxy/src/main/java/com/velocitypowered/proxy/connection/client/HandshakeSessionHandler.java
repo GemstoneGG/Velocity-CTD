@@ -142,9 +142,8 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
       // forwarder. This particular value cannot adequately log the user's username; thus, forcing
       // us to deactivate logging altogether, unlike in the AuthSessionHandler, where logging is by choice.
       connection.setState(StateRegistry.LOGIN);
-      ic.disconnectQuietly(
-          Component.translatable("velocity.error.modern-forwarding-needs-new-client")
-              .arguments(Component.text(minimumVersion), Component.text(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
+      ic.disconnectQuietly(Component.translatable("velocity.error.modern-forwarding-needs-new-client")
+          .arguments(Component.text(minimumVersion), Component.text(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
       return;
     }
 
@@ -164,8 +163,7 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
         && handshake.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_13)) {
       // Bump connection into correct protocol state so that we can send the disconnect packet.
       connection.setState(StateRegistry.LOGIN);
-      ic.disconnectQuietly(
-          Component.translatable("velocity.error.modern-forwarding-needs-new-client"));
+      ic.disconnectQuietly(Component.translatable("velocity.error.modern-forwarding-needs-new-client"));
       return;
     }
 
@@ -295,6 +293,11 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
     @Override
     public ProtocolState getProtocolState() {
       return connection.getState().toProtocolState();
+    }
+
+    @Override
+    public HandshakeIntent getHandshakeIntent() {
+      return HandshakeIntent.STATUS;
     }
   }
 }
