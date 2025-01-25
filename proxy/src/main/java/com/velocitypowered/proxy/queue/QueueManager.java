@@ -67,13 +67,6 @@ public abstract class QueueManager {
       return;
     }
 
-    restartTasks();
-  }
-
-  /**
-   * Restarts all scheduled tasks for the queue manager.
-   */
-  public void restartTasks() {
     this.schedulePingingBackend();
     this.scheduleTickMessage();
     this.rescheduleTimerTask();
@@ -346,7 +339,6 @@ public abstract class QueueManager {
     for (ServerQueueStatus server : this.cache.getAll()) {
       server.reloadConfig();
     }
-    restartTasks();
   }
 
   /**
