@@ -44,7 +44,8 @@ public abstract class QueueManager {
   protected ScheduledFuture<?> tickPingingBackendTaskHandle;
   private ScheduledFuture<?> sendingTaskHandle;
 
-  private static final ScheduledExecutorService SERVICE = Executors.newScheduledThreadPool(3);
+  private static final int THREAD_COUNT = Math.max(1, Runtime.getRuntime().availableProcessors() / 8);
+  private static final ScheduledExecutorService SERVICE = Executors.newScheduledThreadPool(THREAD_COUNT);
 
   private final boolean enabled;
 
