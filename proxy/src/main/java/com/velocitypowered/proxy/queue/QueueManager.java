@@ -356,10 +356,6 @@ public abstract class QueueManager {
     if (tickPingingBackendTaskHandle != null) {
       tickPingingBackendTaskHandle.cancel(true);
     }
-
-    if (sendingTaskHandle != null) {
-      sendingTaskHandle.cancel(true);
-    }
   }
 
   /**

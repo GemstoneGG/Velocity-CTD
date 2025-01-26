@@ -86,7 +86,6 @@ public class MultiProxyHandler {
       if (this.server.getQueueManager().isMasterProxy()) {
         this.server.getQueueManager().schedulePingingBackend();
         this.server.getQueueManager().scheduleTickMessage();
-        this.server.getQueueManager().rescheduleTimerTask();
       }
     });
 
