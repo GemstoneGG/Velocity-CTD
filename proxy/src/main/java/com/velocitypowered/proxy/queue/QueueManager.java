@@ -335,7 +335,6 @@ public abstract class QueueManager {
    * Reloads the config for every server that has a queue.
    */
   public void reloadConfig() {
-    this.config = server.getConfiguration().getQueue();
     for (ServerQueueStatus server : this.cache.getAll()) {
       server.reloadConfig();
     }
