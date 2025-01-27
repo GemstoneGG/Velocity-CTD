@@ -193,7 +193,7 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
               DatagramPacket responsePacket = new DatagramPacket(queryResponse, msg.sender());
               ctx.writeAndFlush(responsePacket, ctx.voidPromise());
             }, ctx.channel().eventLoop())
-            .exceptionallyAsync((ex) -> {
+            .exceptionally((ex) -> {
               LogManager.getLogger(getClass()).error(
                   "Exception while writing GS4 response for query from {}", senderAddress, ex);
               return null;

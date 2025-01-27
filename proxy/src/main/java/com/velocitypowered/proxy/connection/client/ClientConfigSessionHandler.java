@@ -145,7 +145,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   public boolean handle(final KnownPacksPacket packet) {
     if (player.getConnectionInFlightOrConnectedServer() != null) {
       callConfigurationEvent().thenRunAsync(() ->
-          player.getConnectionInFlightOrConnectedServer().ensureConnected().write(packet)).exceptionallyAsync(ex -> {
+          player.getConnectionInFlightOrConnectedServer().ensureConnected().write(packet)).exceptionally(ex -> {
             logger.error("Error forwarding known packs response to backend:", ex);
             return null;
           });
@@ -253,12 +253,12 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
       smc.write(brandPacket);
     }
 
-    callConfigurationEvent().thenComposeAsync(v -> server.getEventManager().fire(new PlayerFinishConfigurationEvent(player, serverConn))
+    callConfigurationEvent().thenCompose(v -> server.getEventManager().fire(new PlayerFinishConfigurationEvent(player, serverConn))
         .completeOnTimeout(null, 5, TimeUnit.SECONDS)).thenRunAsync(() -> {
           player.getConnection().write(FinishedUpdatePacket.INSTANCE);
           player.getConnection().getChannel().pipeline().get(MinecraftEncoder.class).setState(StateRegistry.PLAY);
           server.getEventManager().fireAndForget(new PlayerFinishedConfigurationEvent(player, serverConn));
-        }, player.getConnection().eventLoop()).exceptionallyAsync(ex -> {
+        }, player.getConnection().eventLoop()).exceptionally(ex -> {
           logger.error("Error finishing configuration state:", ex);
           return null;
         });

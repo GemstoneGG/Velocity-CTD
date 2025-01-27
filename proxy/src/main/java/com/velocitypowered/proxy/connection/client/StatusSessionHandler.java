@@ -68,7 +68,7 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
     }
     this.pingReceived = true;
     server.getServerListPingHandler().getInitialPing(this.inbound)
-        .thenComposeAsync(ping -> server.getEventManager().fire(new ProxyPingEvent(inbound, ping)))
+        .thenCompose(ping -> server.getEventManager().fire(new ProxyPingEvent(inbound, ping)))
         .thenAcceptAsync(event -> {
           if (event.getResult().isAllowed()) {
             connection.closeWith(LegacyDisconnect.fromServerPing(event.getPing(), packet.getVersion()));
@@ -76,7 +76,7 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
             connection.close();
           }
         }, connection.eventLoop())
-        .exceptionallyAsync((ex) -> {
+        .exceptionally((ex) -> {
           logger.error("Exception while handling legacy ping {}", packet, ex);
           return null;
         });
@@ -97,7 +97,7 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
     this.pingReceived = true;
 
     this.server.getServerListPingHandler().getInitialPing(inbound)
-        .thenComposeAsync(ping -> server.getEventManager().fire(new ProxyPingEvent(inbound, ping)))
+        .thenCompose(ping -> server.getEventManager().fire(new ProxyPingEvent(inbound, ping)))
         .thenAcceptAsync(
             (event) -> {
               if (event.getResult().isAllowed()) {
@@ -110,7 +110,7 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
               }
             },
             connection.eventLoop())
-        .exceptionallyAsync((ex) -> {
+        .exceptionally((ex) -> {
           logger.error("Exception while handling status request {}", packet, ex);
           return null;
         });

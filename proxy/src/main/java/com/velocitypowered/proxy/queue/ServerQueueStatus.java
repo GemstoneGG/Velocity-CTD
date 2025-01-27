@@ -281,8 +281,8 @@ public class ServerQueueStatus {
     } else {
       AtomicBoolean status = new AtomicBoolean(true);
 
-      server.ping().whenCompleteAsync((result, th)
-          -> status.set(th == null)).exceptionallyAsync(e -> {
+      server.ping().whenComplete((result, th)
+          -> status.set(th == null)).exceptionally(e -> {
             status.set(false);
             return null;
           }).join();

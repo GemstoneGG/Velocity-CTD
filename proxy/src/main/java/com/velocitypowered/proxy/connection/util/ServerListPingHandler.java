@@ -129,7 +129,7 @@ public class ServerListPingHandler {
         (ex) -> fallback);
     switch (mode) {
       case ALL:
-        return pingResponses.thenApplyAsync(responses -> {
+        return pingResponses.thenApply(responses -> {
           // Find the first non-fallback
           for (ServerPing response : responses) {
             if (response == fallback) {
@@ -140,7 +140,7 @@ public class ServerListPingHandler {
           return fallback;
         });
       case MODS:
-        return pingResponses.thenApplyAsync(responses -> {
+        return pingResponses.thenApply(responses -> {
           // Find the first non-fallback that contains a mod list
           for (ServerPing response : responses) {
             if (response == fallback) {
@@ -154,7 +154,7 @@ public class ServerListPingHandler {
           return fallback;
         });
       case DESCRIPTION:
-        return pingResponses.thenApplyAsync(responses -> {
+        return pingResponses.thenApply(responses -> {
           // Find the first non-fallback. If it includes a modlist, add it too.
           for (ServerPing response : responses) {
             if (response == fallback) {

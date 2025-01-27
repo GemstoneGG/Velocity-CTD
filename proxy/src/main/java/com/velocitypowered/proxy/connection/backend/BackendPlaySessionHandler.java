@@ -242,7 +242,7 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
             PlayerResourcePackStatusEvent.Status.DECLINED
         ));
       }
-    }, playerConnection.eventLoop()).exceptionallyAsync((ex) -> {
+    }, playerConnection.eventLoop()).exceptionally((ex) -> {
       if (serverConn.getConnection() != null) {
         serverConn.getConnection().write(new ResourcePackResponsePacket(
             packet.getId(),
@@ -275,7 +275,7 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
         }
         playerConnection.write(packet);
       }
-    }, playerConnection.eventLoop()).exceptionallyAsync((ex) -> {
+    }, playerConnection.eventLoop()).exceptionally((ex) -> {
       logger.error("Exception while handling resource pack remove for {}", playerConnection, ex);
       return null;
     });
@@ -324,7 +324,7 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
             packet.getChannel(), Unpooled.wrappedBuffer(copy));
         playerConnection.write(copied);
       }
-    }, playerConnection.eventLoop()).exceptionallyAsync((ex) -> {
+    }, playerConnection.eventLoop()).exceptionally((ex) -> {
       logger.error("Exception while handling plugin message {}", packet, ex);
       return null;
     });
@@ -368,7 +368,7 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
     server.getEventManager().fire(
             new PlayerAvailableCommandsEvent(serverConn.getPlayer(), rootNode))
         .thenAcceptAsync(event -> playerConnection.write(commands), playerConnection.eventLoop())
-        .exceptionallyAsync((ex) -> {
+        .exceptionally((ex) -> {
           logger.error("Exception while handling available commands for {}", playerConnection, ex);
           return null;
         });

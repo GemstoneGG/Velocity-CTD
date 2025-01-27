@@ -67,7 +67,7 @@ public interface CommandHandler<T extends MinecraftPacket> {
       ConnectedPlayer player, String command,
       Function<Boolean, MinecraftPacket> hasRunPacketFunction) {
     return server.getCommandManager().executeImmediatelyAsync(player, command)
-        .thenApplyAsync(hasRunPacketFunction);
+        .thenApply(hasRunPacketFunction);
   }
 
   /**
@@ -98,12 +98,12 @@ public interface CommandHandler<T extends MinecraftPacket> {
     player.getChatQueue().queuePacket(
         newLastSeenMessages -> eventFuture
             .thenComposeAsync(event -> futurePacketCreator.apply(event, newLastSeenMessages))
-            .thenApplyAsync(pkt -> {
+            .thenApply(pkt -> {
               if (server.getConfiguration().isLogCommandExecutions()) {
                 logger.info("{} -> executed command /{}", player, message);
               }
               return pkt;
-            }).exceptionallyAsync(e -> {
+            }).exceptionally(e -> {
               logger.info("Exception occurred while running command for {}", player.getUsername(), e);
               player.sendMessage(
                   Component.translatable("velocity.command.generic-error", NamedTextColor.RED));

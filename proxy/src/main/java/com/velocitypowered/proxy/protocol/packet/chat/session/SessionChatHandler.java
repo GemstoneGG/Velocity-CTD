@@ -62,7 +62,7 @@ public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> 
     CompletableFuture<PlayerChatEvent> eventFuture = eventManager.fire(toSend);
     chatQueue.queuePacket(
         newLastSeenMessages -> eventFuture
-            .thenApplyAsync(pme -> {
+            .thenApply(pme -> {
               PlayerChatEvent.ChatResult chatResult = pme.getResult();
               if (!chatResult.isAllowed()) {
                 if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
@@ -85,7 +85,7 @@ public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> 
               }
               return packet.withLastSeenMessages(newLastSeenMessages);
             })
-            .exceptionallyAsync((ex) -> {
+            .exceptionally((ex) -> {
               logger.error("Exception while handling player chat for {}", player, ex);
               return null;
             }),

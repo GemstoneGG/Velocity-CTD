@@ -293,7 +293,7 @@ public class VelocityCommandManager implements CommandManager {
 
     return CompletableFuture.supplyAsync(
         () -> this.parse(cmdLine, source), figureAsyncExecutorForParsing()
-    ).thenComposeAsync(
+    ).thenCompose(
         parsed -> CompletableFuture.supplyAsync(
             () -> executeImmediately0(source, parsed), this.getAsyncExecutor(parsed)
         )
@@ -310,7 +310,7 @@ public class VelocityCommandManager implements CommandManager {
   public CompletableFuture<List<String>> offerSuggestions(final CommandSource source,
       final String cmdLine) {
     return offerBrigadierSuggestions(source, cmdLine)
-        .thenApplyAsync(suggestions -> Lists.transform(suggestions.getList(), Suggestion::getText));
+        .thenApply(suggestions -> Lists.transform(suggestions.getList(), Suggestion::getText));
   }
 
   /**

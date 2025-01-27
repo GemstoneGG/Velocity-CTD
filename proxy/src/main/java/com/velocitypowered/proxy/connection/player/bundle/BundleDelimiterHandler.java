@@ -68,7 +68,7 @@ public final class BundleDelimiterHandler {
     CompletableFuture<Void> future = new CompletableFuture<>();
     connection.eventLoop().execute(() -> {
       if (inBundleSession) {
-        finishedBundleSessionFuture.thenRunAsync(() -> {
+        finishedBundleSessionFuture.thenRun(() -> {
           sendPackets(sendPackets);
           future.complete(null);
         });

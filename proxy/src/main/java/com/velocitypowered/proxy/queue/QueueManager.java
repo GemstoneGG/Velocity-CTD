@@ -67,6 +67,13 @@ public abstract class QueueManager {
       return;
     }
 
+    restartTasks();
+  }
+
+  /**
+   * Restarts all scheduled tasks for the queue manager.
+   */
+  public void restartTasks() {
     this.schedulePingingBackend();
     this.scheduleTickMessage();
     this.rescheduleTimerTask();
@@ -208,7 +215,7 @@ public abstract class QueueManager {
         continue;
       }
 
-      s.ping().whenCompleteAsync((result, th) -> {
+      s.ping().whenComplete((result, th) -> {
         double queueDelay = this.server.getConfiguration().getQueue().getQueueDelay() * 1000;
 
         if (th != null) {
@@ -338,6 +345,7 @@ public abstract class QueueManager {
     for (ServerQueueStatus server : this.cache.getAll()) {
       server.reloadConfig();
     }
+    restartTasks();
   }
 
   /**
@@ -354,6 +362,10 @@ public abstract class QueueManager {
 
     if (tickPingingBackendTaskHandle != null) {
       tickPingingBackendTaskHandle.cancel(true);
+    }
+
+    if (sendingTaskHandle != null) {
+      sendingTaskHandle.cancel(true);
     }
   }
 
