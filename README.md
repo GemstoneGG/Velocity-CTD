@@ -133,6 +133,12 @@ dependencies, useful performance improvements, and more.
 * `velocity.queue.admin.removeall` (Allows you to remove a player from all queues).
 * `velocity.queue.admin.unpause` (Allows you to unpause any specific server for queuing).
 
+## Special Notes
+To proficiently review the stability and performance of your proxy in addition to spark,
+consider utilizing JProfiler to enhance your experience and report any ongoing issues.
+
+[![JProfiler](https://github.com/user-attachments/assets/d4f6a94b-8da2-484a-85c8-537a4d19d188)](https://www.ej-technologies.com/jprofiler)
+
 ## Building
 
 Velocity is built with [Gradle](https://gradle.org). We recommend using the
