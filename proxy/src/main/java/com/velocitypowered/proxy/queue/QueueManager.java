@@ -67,13 +67,16 @@ public abstract class QueueManager {
       return;
     }
 
-    restartTasks();
   }
 
   /**
    * Restarts all scheduled tasks for the queue manager.
    */
   public void restartTasks() {
+    if (!this.isMasterProxy()) {
+      return;
+    }
+
     this.schedulePingingBackend();
     this.scheduleTickMessage();
     this.rescheduleTimerTask();
@@ -342,6 +345,7 @@ public abstract class QueueManager {
    * Reloads the config for every server that has a queue.
    */
   public void reloadConfig() {
+    this.config = this.server.getConfiguration().getQueue();
     for (ServerQueueStatus server : this.cache.getAll()) {
       server.reloadConfig();
     }

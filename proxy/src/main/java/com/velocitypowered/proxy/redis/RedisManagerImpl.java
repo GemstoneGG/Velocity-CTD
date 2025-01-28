@@ -80,6 +80,7 @@ public class RedisManagerImpl {
 
   private @MonotonicNonNull JedisPool jedisPool;
   private final VelocityPubSub pubSub;
+  private final AsyncPlayerCache asyncPlayerCache;
 
   /**
    * Constructs a Redis manager using the given Velocity server instance to retrieve
@@ -91,9 +92,12 @@ public class RedisManagerImpl {
     VelocityConfiguration.Redis redisConfig = velocityServer.getConfiguration().getRedis();
     this.pubSub = new VelocityPubSub();
 
+    // Probably make the thread pool size configurable for lower end machines.
+
     if (redisConfig.isEnabled()) {
       this.start(redisConfig, velocityServer);
     }
+    asyncPlayerCache = new AsyncPlayerCache(CACHE_KEY, jedisPool, gson, 8);
 
     registerListeners(velocityServer);
   }
@@ -270,15 +274,11 @@ public class RedisManagerImpl {
    * @param player The player to update.
    */
   public void addOrUpdatePlayer(final RemotePlayerInfo player) {
-    String json = gson.toJson(player);
-
-    try (Jedis jedis = this.jedisPool.getResource()) {
-      jedis.hset(CACHE_KEY, player.getUuid().toString(), json);
-    } catch (JedisDataException ignored) {
-      // Ignore raw hash due to redundant logging.
-    } catch (Exception e) {
-      e.printStackTrace();
+    if (this.jedisPool == null) {
+      return;
     }
+
+    asyncPlayerCache.addOrUpdatePlayer(player);
   }
 
   /**
@@ -287,11 +287,10 @@ public class RedisManagerImpl {
    * @param info The player to update.
    */
   public void removePlayer(final RemotePlayerInfo info) {
-    try (Jedis jedis = this.jedisPool.getResource()) {
-      jedis.hdel(CACHE_KEY, info.getUuid().toString());
-    } catch (Exception e) {
-      e.printStackTrace();
+    if (this.jedisPool == null) {
+      return;
     }
+    asyncPlayerCache.removePlayer(info);
   }
 
   /**
@@ -300,14 +299,10 @@ public class RedisManagerImpl {
    * @return the list of players.
    */
   public List<RemotePlayerInfo> getCache() {
-    try (Jedis jedis = this.jedisPool.getResource()) {
-      Map<String, String> playerMap = jedis.hgetAll(CACHE_KEY);
-      return playerMap.values().stream()
-          .map(json -> gson.fromJson(json, RemotePlayerInfo.class))
-          .collect(Collectors.toList());
-    } catch (Exception e) {
+    if (this.jedisPool == null) {
       return new ArrayList<>();
     }
+    return asyncPlayerCache.getCache();
   }
 
   /**
