@@ -92,12 +92,12 @@ public class RedisManagerImpl {
     VelocityConfiguration.Redis redisConfig = velocityServer.getConfiguration().getRedis();
     this.pubSub = new VelocityPubSub();
 
-    // Probably make the thread pool size configurable for lower end machines.
-
     if (redisConfig.isEnabled()) {
       this.start(redisConfig, velocityServer);
     }
-    asyncPlayerCache = new AsyncPlayerCache(CACHE_KEY, jedisPool, gson, 8);
+
+    int threadPoolSize = Math.max(1, Runtime.getRuntime().availableProcessors() / 8);
+    asyncPlayerCache = new AsyncPlayerCache(CACHE_KEY, jedisPool, gson, threadPoolSize);
 
     registerListeners(velocityServer);
   }
