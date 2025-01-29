@@ -403,7 +403,10 @@ public class RedisManagerImpl {
       poolConfig.setTestOnBorrow(true);
       poolConfig.setTestOnReturn(true);
       poolConfig.setTestWhileIdle(true);
-
+      poolConfig.setMinEvictableIdleTimeMillis(30000); // 30 seconds before removing stale connections
+      poolConfig.setTimeBetweenEvictionRunsMillis(15000); // Check stale connections every 15 sec
+      poolConfig.setNumTestsPerEvictionRun(-1); // Test all idle connections
+      
       JedisClientConfig clientConfig = DefaultJedisClientConfig.builder()
           .ssl(redisConfig.isUseSsl())
           .credentials(new DefaultRedisCredentials(redisConfig.getUsername(),
