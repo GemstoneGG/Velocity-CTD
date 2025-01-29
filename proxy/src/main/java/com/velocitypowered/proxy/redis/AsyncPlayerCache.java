@@ -54,13 +54,12 @@ public class AsyncPlayerCache {
    * @param gson The gson instance.
    * @param threadPoolSize The size of the thread pool. Preferably around 10.
    */
-  public AsyncPlayerCache(String cacheKey, JedisPool jedisPool, Gson gson, int threadPoolSize) {
+  public AsyncPlayerCache(final String cacheKey, final JedisPool jedisPool, final Gson gson, final int threadPoolSize) {
     this.cacheKey = cacheKey;
     this.redisExecutor = Executors.newFixedThreadPool(threadPoolSize);
     this.jedisPool = jedisPool;
     this.gson = gson;
   }
-
 
   /**
    * Add or update a player async.
@@ -69,7 +68,7 @@ public class AsyncPlayerCache {
    *
    * @return A future with no result.
    */
-  public CompletableFuture<Void> addOrUpdatePlayers(List<RemotePlayerInfo> players) {
+  public CompletableFuture<Void> addOrUpdatePlayers(final List<RemotePlayerInfo> players) {
     if (players.isEmpty()) {
       return CompletableFuture.completedFuture(null);
     }
@@ -88,15 +87,14 @@ public class AsyncPlayerCache {
     }, redisExecutor);
   }
 
-
   /**
    * Remove players from the cache.
    *
    * @param players The players to remove.
    *
-   * @return A future with the amount of players that were removed.
+   * @return A future with the number of players that were removed.
    */
-  public CompletableFuture<Long> removePlayers(List<RemotePlayerInfo> players) {
+  public CompletableFuture<Long> removePlayers(final List<RemotePlayerInfo> players) {
     if (players.isEmpty()) {
       return CompletableFuture.completedFuture(0L);
     }
@@ -113,7 +111,6 @@ public class AsyncPlayerCache {
       }
     }, redisExecutor);
   }
-
 
   /**
    * Get all the players in the cache.
@@ -138,7 +135,7 @@ public class AsyncPlayerCache {
     return result;
   }
 
-  private List<RemotePlayerInfo> processEntries(List<Map.Entry<String, String>> entries) {
+  private List<RemotePlayerInfo> processEntries(final List<Map.Entry<String, String>> entries) {
     return entries.parallelStream()
         .map(entry -> gson.fromJson(entry.getValue(), RemotePlayerInfo.class))
         .collect(Collectors.toList());
@@ -159,7 +156,7 @@ public class AsyncPlayerCache {
    *
    * @return A future with no result.
    */
-  public CompletableFuture<Void> addOrUpdatePlayer(RemotePlayerInfo player) {
+  public CompletableFuture<Void> addOrUpdatePlayer(final RemotePlayerInfo player) {
     return addOrUpdatePlayers(Collections.singletonList(player));
   }
 
@@ -170,8 +167,7 @@ public class AsyncPlayerCache {
    *
    * @return A future with the amount removed.
    */
-  public CompletableFuture<Long> removePlayer(RemotePlayerInfo player) {
+  public CompletableFuture<Long> removePlayer(final RemotePlayerInfo player) {
     return removePlayers(Collections.singletonList(player));
   }
-
 }
