@@ -62,6 +62,12 @@ public abstract class QueueManager {
     this.server = server;
     this.config = server.getConfiguration().getQueue();
     this.enabled = config.isEnabled();
+
+    if (!config.isEnabled()) {
+      return;
+    }
+
+    restartTasks();
   }
 
   /**
