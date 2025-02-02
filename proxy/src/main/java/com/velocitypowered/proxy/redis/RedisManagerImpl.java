@@ -60,7 +60,6 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisPubSub;
 import redis.clients.jedis.exceptions.JedisDataException;
-import redis.clients.jedis.exceptions.JedisException;
 
 /**
  * Manages Redis connectivity and communication within the Velocity proxy.
@@ -418,7 +417,7 @@ public class RedisManagerImpl {
       Thread thread = new Thread(() -> {
         try (Jedis jedis = this.jedisPool.getResource()) {
           jedis.subscribe(this.pubSub, CHANNEL);
-        } catch (JedisException e) {
+        } catch (Exception e) {
           logger.error("Error in pubsub listener", e);
         }
       });
@@ -516,17 +515,35 @@ public class RedisManagerImpl {
 
     @Override
     public void onMessage(final String channel, final String message) {
-      JsonObject obj = gson.fromJson(message, JsonObject.class);
-      String packetId = obj.getAsJsonPrimitive("id").getAsString();
-      JsonObject packetObj = obj.getAsJsonObject("obj");
-      ChannelRegistration<?> registration = this.listeners.get(packetId);
+      try {
+        JsonObject obj = gson.fromJson(message, JsonObject.class);
+        String packetId = obj.getAsJsonPrimitive("id").getAsString();
+        JsonObject packetObj = obj.getAsJsonObject("obj");
+        ChannelRegistration<?> registration = this.listeners.get(packetId);
 
-      if (registration == null) {
-        return;
+        if (registration == null) {
+          return;
+        }
+
+        this.onMessage0(registration, channel, packetObj);
+      } catch (Exception e) {
+        logger.error(ANSI_WHITE + "------------------------------------");
+        logger.error(ANSI_RED + "AN ERROR HAS OCCURRED!!!!");
+        logger.error(" ");
+        logger.error(ANSI_BLUE + "CAUSE OF ERROR: " + ANSI_RESET + "{}", String.valueOf(e.getCause()));
+        logger.error(ANSI_YELLOW + "MESSAGE: " + ANSI_RESET + "{}", e.getMessage());
+        logger.error(ANSI_WHITE + "------------------------------------");
+        logger.error(ANSI_PURPLE + "STACK TRACE:");
+        e.printStackTrace();
       }
-
-      this.onMessage0(registration, channel, packetObj);
     }
+
+    public static final String ANSI_RESET = "\u001B[0m";
+    public static final String ANSI_RED = "\u001B[31m";
+    public static final String ANSI_YELLOW = "\u001B[33m";
+    public static final String ANSI_BLUE = "\u001B[34m";
+    public static final String ANSI_PURPLE = "\u001B[35m";
+    public static final String ANSI_WHITE = "\u001B[37m";
 
     // second function for `T` parameter
     private <T> void onMessage0(final ChannelRegistration<T> registration, final String channel,
