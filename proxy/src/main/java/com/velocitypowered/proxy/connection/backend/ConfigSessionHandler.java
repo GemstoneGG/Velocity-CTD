@@ -56,11 +56,10 @@ import com.velocitypowered.proxy.protocol.packet.config.RegistrySyncPacket;
 import com.velocitypowered.proxy.protocol.packet.config.StartUpdatePacket;
 import com.velocitypowered.proxy.protocol.packet.config.TagsUpdatePacket;
 import com.velocitypowered.proxy.protocol.util.PluginMessageUtil;
-import java.net.InetSocketAddress;
-import java.util.concurrent.CompletableFuture;
-
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
+import java.net.InetSocketAddress;
+import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.key.Key;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
