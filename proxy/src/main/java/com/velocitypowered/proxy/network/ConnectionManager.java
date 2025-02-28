@@ -18,6 +18,8 @@
 package com.velocitypowered.proxy.network;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.velocitypowered.api.event.proxy.ListenerBoundEvent;
 import com.velocitypowered.api.event.proxy.ListenerCloseEvent;
 import com.velocitypowered.api.network.ListenerType;
@@ -28,14 +30,17 @@ import com.velocitypowered.proxy.protocol.netty.GameSpyQueryHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.WriteBufferWaterMark;
+import io.netty.channel.unix.UnixChannelOption;
 import io.netty.util.concurrent.GlobalEventExecutor;
+import io.netty.util.concurrent.MultithreadEventExecutorGroup;
 import java.net.InetSocketAddress;
 import java.net.http.HttpClient;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -50,7 +55,7 @@ public final class ConnectionManager {
   private static final WriteBufferWaterMark SERVER_WRITE_MARK = new WriteBufferWaterMark(1 << 20,
       1 << 21);
   private static final Logger LOGGER = LogManager.getLogger(ConnectionManager.class, new ParameterizedMessageFactory());
-  private final Map<InetSocketAddress, Endpoint> endpoints = new HashMap<>();
+  private final Multimap<InetSocketAddress, Endpoint> endpoints = HashMultimap.create();
   private final TransportType transportType;
   private final EventLoopGroup bossGroup;
   private final EventLoopGroup workerGroup;
@@ -92,7 +97,6 @@ public final class ConnectionManager {
   public void bind(final InetSocketAddress address) {
     final ServerBootstrap bootstrap = new ServerBootstrap()
         .channelFactory(this.transportType.serverSocketChannelFactory)
-        .group(this.bossGroup, this.workerGroup)
         .childOption(ChannelOption.WRITE_BUFFER_WATER_MARK, SERVER_WRITE_MARK)
         .childHandler(this.serverChannelInitializer.get())
         .childOption(ChannelOption.TCP_NODELAY, true)
@@ -103,26 +107,50 @@ public final class ConnectionManager {
       bootstrap.option(ChannelOption.TCP_FASTOPEN, 3);
     }
 
-    bootstrap.bind()
-        .addListener((ChannelFutureListener) future -> {
-          final Channel channel = future.channel();
-          if (future.isSuccess()) {
-            this.endpoints.put(address, new Endpoint(channel, ListenerType.MINECRAFT));
-            
-            // Warn people with console access that HAProxy is in use, see PR: #1436
-            if (this.server.getConfiguration().isProxyProtocol()) {
-              LOGGER.warn("Using HAProxy and listening on {}, please ensure this listener is adequately firewalled.", channel.localAddress());
+    if (server.getConfiguration().isEnableReusePort()) {
+      // We don't need a boss group, since each worker will bind to the socket
+      bootstrap.option(UnixChannelOption.SO_REUSEPORT, true)
+          .group(this.workerGroup);
+    } else {
+      bootstrap.group(this.bossGroup, this.workerGroup);
+    }
+
+    final int binds = server.getConfiguration().isEnableReusePort()
+        ? ((MultithreadEventExecutorGroup) this.workerGroup).executorCount() : 1;
+
+    for (int bind = 0; bind < binds; bind++) {
+      // Wait for each bind to open. If we encounter any errors, don't try to bind again.
+      int finalBind = bind;
+      ChannelFuture f = bootstrap.bind()
+          .addListener((ChannelFutureListener) future -> {
+            final Channel channel = future.channel();
+            if (future.isSuccess()) {
+              this.endpoints.put(address, new Endpoint(channel, ListenerType.MINECRAFT));
+
+              LOGGER.info("Listening on {}", channel.localAddress());
+
+              if (finalBind == 0) {
+                // Warn people with console access that HAProxy is in use, see PR: #1436
+                if (this.server.getConfiguration().isProxyProtocol()) {
+                  LOGGER.warn(
+                      "Using HAProxy and listening on {}, please ensure this listener is adequately firewalled.",
+                      channel.localAddress());
+                }
+
+                // Fire the proxy bound event after the socket is bound
+                server.getEventManager().fireAndForget(
+                    new ListenerBoundEvent(address, ListenerType.MINECRAFT));
+              }
+            } else {
+              LOGGER.error("Can't bind to {}", address, future.cause());
             }
+          });
+      f.syncUninterruptibly();
 
-            LOGGER.info("Listening on {}", channel.localAddress());
-
-            // Fire the proxy bound event after the socket is bound
-            server.getEventManager().fireAndForget(
-                new ListenerBoundEvent(address, ListenerType.MINECRAFT));
-          } else {
-            LOGGER.error("Can't bind to {}", address, future.cause());
-          }
-        });
+      if (!f.isSuccess()) {
+        break;
+      }
+    }
   }
 
   /**
@@ -180,17 +208,20 @@ public final class ConnectionManager {
    * @param oldBind the endpoint to close
    */
   public void close(final InetSocketAddress oldBind) {
-    Endpoint endpoint = endpoints.remove(oldBind);
+    Collection<Endpoint> endpoints = this.endpoints.removeAll(oldBind);
+    Preconditions.checkState(!endpoints.isEmpty(), "Endpoint was not registered");
+
+    ListenerType type = endpoints.iterator().next().type();
 
     // Fire proxy close event to notify plugins of socket close. We block since plugins
     // should have a chance to be notified before the server stops accepting connections.
-    server.getEventManager().fire(new ListenerCloseEvent(oldBind, endpoint.type())).join();
+    server.getEventManager().fire(new ListenerCloseEvent(oldBind, type)).join();
 
-    Channel serverChannel = endpoint.channel();
-
-    Preconditions.checkState(serverChannel != null, "Endpoint %s not registered", oldBind);
-    LOGGER.info("Closing endpoint {}", serverChannel.localAddress());
-    serverChannel.close().syncUninterruptibly();
+    for (Endpoint endpoint : endpoints) {
+      Channel serverChannel = endpoint.channel();
+      LOGGER.info("Closing endpoint {}", serverChannel.localAddress());
+      serverChannel.close().syncUninterruptibly();
+    }
   }
 
   /**
@@ -199,24 +230,28 @@ public final class ConnectionManager {
    * @param interrupt should closing forward interruptions
    */
   public void closeEndpoints(final boolean interrupt) {
-    for (final Map.Entry<InetSocketAddress, Endpoint> entry : this.endpoints.entrySet()) {
+    for (final Map.Entry<InetSocketAddress, Collection<Endpoint>> entry : this.endpoints.asMap()
+        .entrySet()) {
       final InetSocketAddress address = entry.getKey();
-      final Endpoint endpoint = entry.getValue();
+      final Collection<Endpoint> endpoints = entry.getValue();
+      ListenerType type = endpoints.iterator().next().type();
 
       // Fire proxy close event to notify plugins of socket close. We block since plugins
       // should have a chance to be notified before the server stops accepting connections.
-      server.getEventManager().fire(new ListenerCloseEvent(address, endpoint.type())).join();
+      server.getEventManager().fire(new ListenerCloseEvent(address, type)).join();
 
-      LOGGER.info("Closing endpoint {}", address);
-      if (interrupt) {
-        try {
-          endpoint.channel().close().sync();
-        } catch (final InterruptedException e) {
-          LOGGER.info("Interrupted whilst closing endpoint", e);
-          Thread.currentThread().interrupt();
+      for (Endpoint endpoint : endpoints) {
+        LOGGER.info("Closing endpoint {}", address);
+        if (interrupt) {
+          try {
+            endpoint.channel().close().sync();
+          } catch (final InterruptedException e) {
+            LOGGER.info("Interrupted whilst closing endpoint", e);
+            Thread.currentThread().interrupt();
+          }
+        } else {
+          endpoint.channel().close().syncUninterruptibly();
         }
-      } else {
-        endpoint.channel().close().syncUninterruptibly();
       }
     }
     this.endpoints.clear();
@@ -246,8 +281,8 @@ public final class ConnectionManager {
    */
   public HttpClient createHttpClient() {
     return HttpClient.newBuilder()
-            .executor(this.workerGroup)
-            .build();
+        .executor(this.workerGroup)
+        .build();
   }
 
   public BackendChannelInitializerHolder getBackendChannelInitializer() {

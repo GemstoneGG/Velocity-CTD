@@ -230,6 +230,12 @@ log-command-executions = false
 # Transfer packet (Minecraft 1.20.5) to be received.
 accepts-transfers = false
 
+# Enables support for SO_REUSEPORT. This may help the proxy scale better on multicore systems
+# with a lot of incoming connections, and provide better CPU utilization than the existing
+# strategy of having a single thread accepting connections and distributing them to worker
+# threads. Disabled by default. Requires Linux or macOS.
+enable-reuse-port = false
+
 # Enables the execution of illegal characters in chat and only allows
 # or denies illegal characters that are executed through the proxy.
 allow-illegal-characters-in-chat = false

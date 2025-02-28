@@ -596,6 +596,10 @@ public final class VelocityConfiguration implements ProxyConfig {
     return forceKeyAuthentication;
   }
 
+  public boolean isEnableReusePort() {
+    return advanced.isEnableReusePort();
+  }
+
   public @NotNull Redis getRedis() {
     return redis;
   }
@@ -1222,6 +1226,8 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private boolean acceptTransfers = false;
     @Expose
+    private boolean enableReusePort = false;
+    @Expose
     private boolean allowIllegalCharactersInChat = false;
     @Expose
     private String serverBrand = "{backend-brand} ({proxy-brand})";
@@ -1259,6 +1265,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.announceProxyCommands = config.getOrElse("announce-proxy-commands", true);
         this.logCommandExecutions = config.getOrElse("log-command-executions", false);
         this.acceptTransfers = config.getOrElse("accepts-transfers", false);
+        this.enableReusePort = config.getOrElse("enable-reuse-port", false);
         this.allowIllegalCharactersInChat = config.getOrElse("allow-illegal-characters-in-chat", false);
         this.serverBrand = config.getOrElse("server-brand", "{backend-brand} ({proxy-brand})");
         this.fallbackVersionPing = config.getOrElse("fallback-version-ping", "{proxy-brand} {protocol-min}-{protocol-max}");
@@ -1330,6 +1337,10 @@ public final class VelocityConfiguration implements ProxyConfig {
       return this.acceptTransfers;
     }
 
+    public boolean isEnableReusePort() {
+      return enableReusePort;
+    }
+
     public boolean isAllowIllegalCharactersInChat() {
       return allowIllegalCharactersInChat;
     }
@@ -1370,6 +1381,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", announceProxyCommands=" + announceProxyCommands
           + ", logCommandExecutions=" + logCommandExecutions
           + ", acceptTransfers=" + acceptTransfers
+          + ", enableReusePort=" + enableReusePort
           + ", allowIllegalCharactersInChat=" + allowIllegalCharactersInChat
           + '}';
     }
