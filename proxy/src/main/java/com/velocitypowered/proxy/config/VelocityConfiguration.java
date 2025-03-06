@@ -763,8 +763,8 @@ public final class VelocityConfiguration implements ProxyConfig {
       final boolean kickExisting = config.getOrElse("kick-existing-players", false);
       final boolean enablePlayerAddressLogging = config.getOrElse(
               "enable-player-address-logging", true);
-      final long maxCommandsPerSecond = config.getOrElse(
-              "max-commands-per-second", 10L);
+      final int maxCommandsPerSecond = config.getOrElse(
+              "max-commands-per-second", 10);
       final boolean logPlayerConnections = config.getOrElse(
               "log-player-connections", true);
       final boolean logPlayerDisconnections = config.getOrElse(
