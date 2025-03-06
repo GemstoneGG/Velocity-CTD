@@ -48,6 +48,10 @@ public class LegacyCommandHandler implements CommandHandler<LegacyChatPacket> {
 
   @Override
   public void handlePlayerCommandInternal(final LegacyChatPacket packet) {
+    if (!checkCommandRateLimit(this.player, this.server.getConfiguration().getMaxCommandsPerSecond())) {
+      return;
+    }
+
     String command = packet.getMessage().substring(1);
     queueCommandResult(this.server, this.player, (event, newLastSeenMessages) -> {
       CommandExecuteEvent.CommandResult result = event.getResult();

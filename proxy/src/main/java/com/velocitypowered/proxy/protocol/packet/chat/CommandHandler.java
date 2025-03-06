@@ -17,12 +17,18 @@
 
 package com.velocitypowered.proxy.protocol.packet.chat;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.velocitypowered.api.event.command.CommandExecuteEvent;
+import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import java.time.Instant;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import net.kyori.adventure.text.Component;
@@ -110,4 +116,45 @@ public interface CommandHandler<T extends MinecraftPacket> {
               return null;
             }), timestamp, lastSeenMessages);
   }
+
+  /**
+   * Checks whether the specified player has exceeded the command rate limit.
+   *
+   * <p>This method verifies if a player is issuing commands too frequently
+   * and enforces a rate limit to prevent spam. If the player exceeds the
+   * allowed rate, the command execution may be blocked or delayed.</p>
+   *
+   * @param player The player executing the command.
+   * @return {@code true} if the player is within the allowed rate limit,
+   *         {@code false} if the command execution should be restricted.
+   */
+  default boolean checkCommandRateLimit(Player player, long limit) {
+    if (limit < 0) {
+      return true;
+    }
+
+    long newAmount;
+    try {
+      newAmount = COMMANDS_IN_LAST_SECOND.get(player.getUniqueId(), () -> 0L) + 1;
+    } catch (ExecutionException e) {
+      logger.error("Error while checking command rate limit for {}", player.getUsername(), e);
+      return true;
+    }
+
+    if (newAmount > limit) {
+      player.disconnect(Component.text("Sending commands too quickly"));
+      return false;
+    }
+
+    COMMANDS_IN_LAST_SECOND.put(player.getUniqueId(), newAmount);
+    return true;
+  }
+
+  /**
+   * Tracks the number of commands executed by each player within the last second.
+   * Entries expire after 1 second to enforce rate limits.
+   */
+  Cache<UUID, Long> COMMANDS_IN_LAST_SECOND = CacheBuilder.newBuilder()
+      .expireAfterWrite(1, TimeUnit.SECONDS)
+      .build();
 }

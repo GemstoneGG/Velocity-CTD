@@ -50,6 +50,10 @@ public class KeyedCommandHandler implements CommandHandler<KeyedPlayerCommandPac
 
   @Override
   public void handlePlayerCommandInternal(final KeyedPlayerCommandPacket packet) {
+    if (!checkCommandRateLimit(this.player, this.server.getConfiguration().getMaxCommandsPerSecond())) {
+      return;
+    }
+
     queueCommandResult(this.server, this.player, (event, newLastSeenMessages) -> {
       CommandExecuteEvent.CommandResult result = event.getResult();
       IdentifiedKey playerKey = player.getIdentifiedKey();

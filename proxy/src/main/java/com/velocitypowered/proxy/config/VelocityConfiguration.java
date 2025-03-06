@@ -96,6 +96,8 @@ public final class VelocityConfiguration implements ProxyConfig {
   private final Query query;
   private final Metrics metrics;
   @Expose
+  private long maxCommandsPerSecond = 10;
+  @Expose
   private final Redis redis;
   @Expose
   private final Queue queue;
@@ -151,10 +153,11 @@ public final class VelocityConfiguration implements ProxyConfig {
                                 final boolean enablePlayerAddressLogging, final Servers servers, final ForcedHosts forcedHosts,
                                 final Commands commands, final Advanced advanced, final Query query, final Metrics metrics,
                                 final boolean forceKeyAuthentication, final boolean logPlayerConnections, final boolean logPlayerDisconnections,
-                                final boolean logOfflineConnections, final boolean disableForge, final boolean enforceChatSigning,
-                                final boolean translateHeaderFooter, final boolean logMinimumVersion, final String minimumVersion, final Redis redis,
-                                final Queue queue, final Map<String, List<String>> slashServers, final List<ServerLink> serverLinks,
-                                final List<ProxyAddress> proxyAddresses, final String dynamicProxyFilter, final Map<String, Integer> playerCaps) {
+                                final boolean logOfflineConnections, final long maxCommandsPerSecond, final boolean disableForge,
+                                final boolean enforceChatSigning, final boolean translateHeaderFooter, final boolean logMinimumVersion,
+                                final String minimumVersion, final Redis redis, final Queue queue, final Map<String, List<String>> slashServers,
+                                final List<ServerLink> serverLinks, final List<ProxyAddress> proxyAddresses, final String dynamicProxyFilter,
+                                final Map<String, Integer> playerCaps) {
     this.bind = bind;
     this.motd = motd;
     this.motdHover = motdHover;
@@ -176,6 +179,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     this.forceKeyAuthentication = forceKeyAuthentication;
     this.logPlayerConnections = logPlayerConnections;
     this.logPlayerDisconnections = logPlayerDisconnections;
+    this.maxCommandsPerSecond = maxCommandsPerSecond;
     this.logOfflineConnections = logOfflineConnections;
     this.disableForge = disableForge;
     this.enforceChatSigning = enforceChatSigning;
@@ -435,6 +439,10 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Override
   public Map<String, List<String>> getForcedHosts() {
     return forcedHosts.getForcedHosts();
+  }
+
+  public long getMaxCommandsPerSecond() {
+    return maxCommandsPerSecond;
   }
 
   @Override
@@ -755,6 +763,8 @@ public final class VelocityConfiguration implements ProxyConfig {
       final boolean kickExisting = config.getOrElse("kick-existing-players", false);
       final boolean enablePlayerAddressLogging = config.getOrElse(
               "enable-player-address-logging", true);
+      final long maxCommandsPerSecond = config.getOrElse(
+              "max-commands-per-second", 10L);
       final boolean logPlayerConnections = config.getOrElse(
               "log-player-connections", true);
       final boolean logPlayerDisconnections = config.getOrElse(
@@ -854,6 +864,7 @@ public final class VelocityConfiguration implements ProxyConfig {
               logPlayerConnections,
               logPlayerDisconnections,
               logOfflineConnections,
+              maxCommandsPerSecond,
               disableForge,
               enforceChatSigning,
               translateHeaderFooter,

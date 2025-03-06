@@ -106,6 +106,10 @@ public class SessionCommandHandler implements CommandHandler<SessionPlayerComman
 
   @Override
   public void handlePlayerCommandInternal(final SessionPlayerCommandPacket packet) {
+    if (!checkCommandRateLimit(this.player, this.server.getConfiguration().getMaxCommandsPerSecond())) {
+      return;
+    }
+
     queueCommandResult(this.server, this.player, (event, newLastSeenMessages) -> {
       SessionPlayerCommandPacket fixedPacket = packet.withLastSeenMessages(newLastSeenMessages);
 

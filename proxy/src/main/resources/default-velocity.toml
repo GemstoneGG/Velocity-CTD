@@ -94,6 +94,9 @@ ping-passthrough = "disabled"
 # If not enabled (default is true) player IP addresses will be replaced by <ip address withheld> in logs.
 enable-player-address-logging = true
 
+# Max commands a player can send in a second before being kicked. Set to -1 to disable.
+max-commands-per-second = 10
+
 # If false, disables logging for offline player connections.
 log-offline-connections = true
 
