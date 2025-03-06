@@ -96,7 +96,7 @@ public final class VelocityConfiguration implements ProxyConfig {
   private final Query query;
   private final Metrics metrics;
   @Expose
-  private long maxCommandsPerSecond = 10;
+  private int maxCommandsPerSecond = 10;
   @Expose
   private final Redis redis;
   @Expose
@@ -153,7 +153,7 @@ public final class VelocityConfiguration implements ProxyConfig {
                                 final boolean enablePlayerAddressLogging, final Servers servers, final ForcedHosts forcedHosts,
                                 final Commands commands, final Advanced advanced, final Query query, final Metrics metrics,
                                 final boolean forceKeyAuthentication, final boolean logPlayerConnections, final boolean logPlayerDisconnections,
-                                final boolean logOfflineConnections, final long maxCommandsPerSecond, final boolean disableForge,
+                                final boolean logOfflineConnections, final int maxCommandsPerSecond, final boolean disableForge,
                                 final boolean enforceChatSigning, final boolean translateHeaderFooter, final boolean logMinimumVersion,
                                 final String minimumVersion, final Redis redis, final Queue queue, final Map<String, List<String>> slashServers,
                                 final List<ServerLink> serverLinks, final List<ProxyAddress> proxyAddresses, final String dynamicProxyFilter,
