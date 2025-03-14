@@ -515,35 +515,17 @@ public class RedisManagerImpl {
 
     @Override
     public void onMessage(final String channel, final String message) {
-      try {
-        JsonObject obj = gson.fromJson(message, JsonObject.class);
-        String packetId = obj.getAsJsonPrimitive("id").getAsString();
-        JsonObject packetObj = obj.getAsJsonObject("obj");
-        ChannelRegistration<?> registration = this.listeners.get(packetId);
+      JsonObject obj = gson.fromJson(message, JsonObject.class);
+      String packetId = obj.getAsJsonPrimitive("id").getAsString();
+      JsonObject packetObj = obj.getAsJsonObject("obj");
+      ChannelRegistration<?> registration = this.listeners.get(packetId);
 
-        if (registration == null) {
-          return;
-        }
-
-        this.onMessage0(registration, channel, packetObj);
-      } catch (Exception e) {
-        logger.error(ANSI_WHITE + "------------------------------------");
-        logger.error(ANSI_RED + "AN ERROR HAS OCCURRED!!!!");
-        logger.error(" ");
-        logger.error(ANSI_BLUE + "CAUSE OF ERROR: " + ANSI_RESET + "{}", String.valueOf(e.getCause()));
-        logger.error(ANSI_YELLOW + "MESSAGE: " + ANSI_RESET + "{}", e.getMessage());
-        logger.error(ANSI_WHITE + "------------------------------------");
-        logger.error(ANSI_PURPLE + "STACK TRACE:");
-        e.printStackTrace();
+      if (registration == null) {
+        return;
       }
-    }
 
-    public static final String ANSI_RESET = "\u001B[0m";
-    public static final String ANSI_RED = "\u001B[31m";
-    public static final String ANSI_YELLOW = "\u001B[33m";
-    public static final String ANSI_BLUE = "\u001B[34m";
-    public static final String ANSI_PURPLE = "\u001B[35m";
-    public static final String ANSI_WHITE = "\u001B[37m";
+      this.onMessage0(registration, channel, packetObj);
+    }
 
     // second function for `T` parameter
     private <T> void onMessage0(final ChannelRegistration<T> registration, final String channel,
