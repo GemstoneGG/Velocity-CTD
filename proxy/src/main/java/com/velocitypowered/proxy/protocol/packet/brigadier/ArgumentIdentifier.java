@@ -66,6 +66,13 @@ public final class ArgumentIdentifier {
     this.versionById = ImmutableMap.copyOf(temp);
   }
 
+  @Override
+  public String toString() {
+    return "ArgumentIdentifier{"
+        + "identifier='" + identifier + '\''
+        + '}';
+  }
+
   public String getIdentifier() {
     return identifier;
   }
@@ -102,7 +109,5 @@ public final class ArgumentIdentifier {
     public ProtocolVersion getVersion() {
       return version;
     }
-
   }
-
 }

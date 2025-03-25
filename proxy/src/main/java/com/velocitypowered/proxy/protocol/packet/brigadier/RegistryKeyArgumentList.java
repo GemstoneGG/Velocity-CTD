@@ -87,26 +87,26 @@ public final class RegistryKeyArgumentList {
   /**
    * Represents a registry key argument for a resource.
    */
-  public static class Resource extends RegistryKeyArgument {
+  public static class ResourceSelector extends RegistryKeyArgument {
 
-    public Resource(final String identifier) {
+    public ResourceSelector(final String identifier) {
       super(identifier);
     }
 
     /**
-     * Serializer for {@link Resource}.
+     * Serializer for {@link ResourceSelector}.
      */
-    public static class Serializer implements ArgumentPropertySerializer<Resource> {
+    public static class Serializer implements ArgumentPropertySerializer<ResourceSelector> {
 
-      static final Resource.Serializer REGISTRY = new Resource.Serializer();
+      static final ResourceSelector.Serializer REGISTRY = new ResourceSelector.Serializer();
 
       @Override
-      public Resource deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
-        return new Resource(ProtocolUtils.readString(buf));
+      public ResourceSelector deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
+        return new ResourceSelector(ProtocolUtils.readString(buf));
       }
 
       @Override
-      public void serialize(final Resource object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
+      public void serialize(final ResourceSelector object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
         ProtocolUtils.writeString(buf, object.getIdentifier());
       }
     }
