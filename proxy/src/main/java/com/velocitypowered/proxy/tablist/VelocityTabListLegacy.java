@@ -19,6 +19,8 @@ package com.velocitypowered.proxy.tablist;
 
 import com.google.common.collect.ImmutableList;
 import com.velocitypowered.api.proxy.ProxyServer;
+import com.velocitypowered.api.proxy.crypto.IdentifiedKey;
+import com.velocitypowered.api.proxy.player.ChatSession;
 import com.velocitypowered.api.proxy.player.TabListEntry;
 import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -134,8 +136,22 @@ public class VelocityTabListLegacy extends KeyedVelocityTabList {
   }
 
   @Override
+  public TabListEntry buildEntry(final GameProfile profile,
+                                 final net.kyori.adventure.text.@Nullable Component displayName,
+                                 final int latency, final int gameMode, @Nullable final IdentifiedKey key) {
+    return new VelocityTabListEntryLegacy(this, profile, displayName, latency, gameMode);
+  }
+
+  @Override
   public TabListEntry buildEntry(final GameProfile profile, @Nullable final Component displayName, final int latency,
-                                 final int gameMode) {
+                                 final int gameMode, @Nullable final ChatSession chatSession, final boolean listed) {
+    return new VelocityTabListEntryLegacy(this, profile, displayName, latency, gameMode);
+  }
+
+  @Override
+  public TabListEntry buildEntry(final GameProfile profile, @Nullable final Component displayName, final int latency,
+                                 final int gameMode, @Nullable final ChatSession chatSession, final boolean listed, final int listOrder,
+                                 final boolean showHat) {
     return new VelocityTabListEntryLegacy(this, profile, displayName, latency, gameMode);
   }
 }

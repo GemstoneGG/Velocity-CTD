@@ -300,6 +300,7 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
           server.getConfiguration().getServerBrand(),
           server.getConfiguration().getProxyBrandCustom(),
           server.getConfiguration().getBackendBrandCustom(),
+          serverConn.getServer().getServerInfo().getName(),
           ProtocolVersion.getVersionByName(server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn());
       playerConnection.write(rewritten);
       return true;
@@ -320,7 +321,7 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
     server.getEventManager().fire(event).thenAcceptAsync(pme -> {
       if (pme.getResult().isAllowed() && !playerConnection.isClosed()) {
         PluginMessagePacket copied = new PluginMessagePacket(
-                packet.getChannel(), Unpooled.wrappedBuffer(copy));
+            packet.getChannel(), Unpooled.wrappedBuffer(copy));
         playerConnection.write(copied);
       }
     }, playerConnection.eventLoop()).exceptionally((ex) -> {

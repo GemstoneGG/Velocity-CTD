@@ -17,12 +17,8 @@
 
 package com.velocitypowered.proxy.queue;
 
-import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.queue.cache.StandardRetriever;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 /**
  * Manages the queue system without Redis.
@@ -52,30 +48,14 @@ public class QueueManagerNoRedisImpl extends QueueManager {
    * Updates the actionbar message for all players.
    */
   public void tickMessageForAllPlayers() {
-    Map<Player, ServerQueueStatus> temp = new HashMap<>();
-    String filter = this.config.getMultipleServerMessagingSelection();
-
     for (ServerQueueStatus status : this.cache.getAll()) {
-      Map<ServerQueueEntry, UUID> map = status.getActivePlayers();
-      for (ServerQueueEntry entry : map.keySet()) {
-        UUID player = map.get(entry);
-
-        Player p = server.getPlayer(player).orElse(null);
-        if (p == null) {
-          return;
-        }
-
-        if (filter.equalsIgnoreCase("first") && temp.containsKey(p)) {
-          continue;
-        }
-
-        temp.put(p, status);
-      }
-    }
-
-    for (Player player : temp.keySet()) {
-      ServerQueueStatus status = temp.get(player);
-      status.getEntry(player.getUniqueId()).ifPresent(entry -> player.sendActionBar(temp.get(player).getActionBarComponent(entry)));
+      status.getActivePlayers().forEach((entry, playerUuid) ->
+          server.getPlayer(playerUuid).ifPresent(player ->
+              status.getEntry(player.getUniqueId()).ifPresent(queueEntry ->
+                  player.sendActionBar(status.getActionBarComponent(queueEntry))
+              )
+          )
+      );
     }
   }
 }

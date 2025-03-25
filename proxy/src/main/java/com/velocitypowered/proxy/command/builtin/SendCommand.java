@@ -216,6 +216,7 @@ public class SendCommand {
     if (server.getMultiProxyHandler().isRedisEnabled()) {
       return sendMultiProxy(context);
     }
+
     final String serverName = context.getArgument(SERVER_ARG, String.class);
     final String player = context.getArgument(PLAYER_ARG, String.class);
 
@@ -438,20 +439,22 @@ public class SendCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private void sendPlayerMultiProxy(final CommandContext<CommandSource> context, final String player0,
-      final RegisteredServer targetServer) {
+  private void sendPlayerMultiProxy(final CommandContext<CommandSource> context, final String playerInput,
+                                    final RegisteredServer targetServer) {
 
-    boolean alreadyConnected = server.getMultiProxyHandler().getPlayerInfo(player0).getServerName()
-        .equalsIgnoreCase(targetServer.getServerInfo().getName());
+    RemotePlayerInfo playerInfo = server.getMultiProxyHandler().getPlayerInfo(playerInput);
+
+    String correctName = playerInfo.getName();
+    boolean alreadyConnected = playerInfo.getServerName().equalsIgnoreCase(targetServer.getServerInfo().getName());
 
     if (alreadyConnected) {
       context.getSource().sendMessage(Component.translatable("velocity.command.send-player-none",
-          Component.text(player0), Component.text(targetServer.getServerInfo().getName())));
+              Component.text(correctName), Component.text(targetServer.getServerInfo().getName())));
     } else {
-      this.server.getRedisManager().send(new RedisSwitchServerRequest(player0,
-          targetServer.getServerInfo().getName()));
+      this.server.getRedisManager().send(new RedisSwitchServerRequest(correctName,
+              targetServer.getServerInfo().getName()));
       context.getSource().sendMessage(Component.translatable("velocity.command.send-player",
-          Component.text(player0), Component.text(targetServer.getServerInfo().getName())));
+              Component.text(correctName), Component.text(targetServer.getServerInfo().getName())));
     }
   }
 

@@ -52,6 +52,9 @@ public class MinecraftCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
   protected void decode(final ChannelHandlerContext ctx, final ByteBuf in, final List<Object> out) throws Exception {
     int claimedUncompressedSize = ProtocolUtils.readVarInt(in);
     if (claimedUncompressedSize == 0) {
+      int actualUncompressedSize = in.readableBytes();
+      checkFrame(actualUncompressedSize < threshold, "Actual uncompressed size %s is greater than"
+              + " threshold %s", actualUncompressedSize, threshold);
       // This message is not compressed.
       out.add(in.retain());
       return;

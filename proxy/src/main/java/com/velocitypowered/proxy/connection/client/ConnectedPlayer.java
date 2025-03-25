@@ -197,7 +197,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private @Nullable Locale effectiveLocale;
   private final @Nullable IdentifiedKey playerKey;
   private @Nullable ClientSettingsPacket clientSettingsPacket;
-  private final ChatQueue chatQueue;
+  private volatile ChatQueue chatQueue;
   private final ChatBuilderFactory chatBuilderFactory;
   private final List<String> attemptedServers;
 
@@ -255,6 +255,17 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   public ChatQueue getChatQueue() {
     return chatQueue;
+  }
+
+  /**
+   * Discards any messages still being processed by the {@link ChatQueue}, and creates a fresh state for future packets.
+   * This should be used on server switches, or whenever the client resets its own 'last seen' state.
+   */
+  public void discardChatQueue() {
+    // No need for atomic swap, should only be called from event loop
+    final ChatQueue oldChatQueue = chatQueue;
+    chatQueue = new ChatQueue(this);
+    oldChatQueue.close();
   }
 
   public BundleDelimiterHandler getBundleHandler() {
@@ -1006,7 +1017,14 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     return mc;
   }
 
-  void teardown() {
+  /**
+   * Disconnects any ongoing or established connections. This
+   * method ensures that any connection currently in flight or any
+   * connected server is properly disconnected to clean up resources and
+   * prevent potential memory leaks and is made public to "fix" the ongoing
+   * unexpected disconnection error for some users, on top of making it easily accessible.
+   */
+  public void teardown() {
     if (connectionInFlight != null) {
       connectionInFlight.disconnect();
     }
@@ -1078,8 +1096,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   @Override
   public boolean sendPluginMessage(
-          final @NotNull ChannelIdentifier identifier,
-          final @NotNull PluginMessageEncoder dataEncoder
+      final @NotNull ChannelIdentifier identifier,
+      final @NotNull PluginMessageEncoder dataEncoder
   ) {
     requireNonNull(identifier);
     requireNonNull(dataEncoder);
@@ -1110,8 +1128,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   public void transferToHost(final @NotNull InetSocketAddress address) {
     Preconditions.checkNotNull(address);
     Preconditions.checkArgument(
-            this.getProtocolVersion().compareTo(ProtocolVersion.MINECRAFT_1_20_5) >= 0,
-            "Player version must be 1.20.5 to be able to transfer to another host");
+        this.getProtocolVersion().compareTo(ProtocolVersion.MINECRAFT_1_20_5) >= 0,
+        "Player version must be 1.20.5 to be able to transfer to another host");
 
     server.getEventManager().fire(new PreTransferEvent(this, address)).thenAccept((event) -> {
       if (event.getResult().isAllowed()) {
@@ -1120,7 +1138,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           resultedAddress = address;
         }
         connection.write(new TransferPacket(
-                resultedAddress.getHostName(), resultedAddress.getPort()));
+            resultedAddress.getHostName(), resultedAddress.getPort()));
       }
     });
   }
@@ -1399,6 +1417,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   public void switchToConfigState() {
     server.getEventManager().fire(new PlayerEnterConfigurationEvent(this, getConnectionInFlightOrConnectedServer()))
         .completeOnTimeout(null, 5, TimeUnit.SECONDS).thenRunAsync(() -> {
+          // if the connection was closed earlier, there is a risk that the player is no longer connected
+          if (!connection.getChannel().isActive()) {
+            return;
+          }
+
           if (bundleHandler.isInBundleSession()) {
             bundleHandler.toggleBundleSession();
             connection.write(BundleDelimiterPacket.INSTANCE);
@@ -1415,7 +1438,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   /**
    * Gets the current "phase" of the connection, mostly used for tracking modded negotiation for
-   * legacy forge servers and provides methods for performing phase specific actions.
+   * legacy forge servers and provides methods for performing phase-specific actions.
    *
    * @return The {@link ClientConnectionPhase}
    */

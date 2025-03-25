@@ -24,7 +24,7 @@ import net.kyori.adventure.text.Component;
  * Formats time values as components using the {@code velocity.queue.time} translations.
  */
 public class QueueTimeFormatter {
-  private static Component formatComponent(final String name, final int value) {
+  private static Component formatComponent(final String name, final long value) {
     String key = "velocity.queue.time." + name + (value == 1 ? "" : "s");
     return Component.translatable(key).arguments(Component.text(value));
   }
@@ -35,10 +35,10 @@ public class QueueTimeFormatter {
    * @param inputSeconds the number of seconds
    * @return the time formatted as a component
    */
-  public static Component format(final int inputSeconds) {
-    int days = (int) TimeUnit.SECONDS.toDays(inputSeconds);
-    int hours = (int) (TimeUnit.SECONDS.toHours(inputSeconds) - (days * 24L));
-    int minutes = (int) (TimeUnit.SECONDS.toMinutes(inputSeconds)
+  public static Component format(final long inputSeconds) {
+    long days = TimeUnit.SECONDS.toDays(inputSeconds);
+    long hours = (TimeUnit.SECONDS.toHours(inputSeconds) - (days * 24L));
+    long minutes = (TimeUnit.SECONDS.toMinutes(inputSeconds)
                 - (TimeUnit.SECONDS.toHours(inputSeconds) * 60));
 
 
@@ -52,7 +52,7 @@ public class QueueTimeFormatter {
     if (minutes != 0) {
       output = output.append(formatComponent("minute", minutes));
     }
-    int seconds = (int) (TimeUnit.SECONDS.toSeconds(inputSeconds)
+    long seconds = (TimeUnit.SECONDS.toSeconds(inputSeconds)
             - (TimeUnit.SECONDS.toMinutes(inputSeconds) * 60));
 
     return output.append(formatComponent("second", seconds));

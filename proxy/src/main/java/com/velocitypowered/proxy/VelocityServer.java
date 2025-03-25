@@ -95,6 +95,7 @@ import io.netty.channel.EventLoopGroup;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
@@ -184,12 +185,15 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private final VelocityCommandManager commandManager;
   private final AtomicBoolean shutdownInProgress = new AtomicBoolean(false);
   private boolean shutdown = false;
+  private boolean startedShutdown = false;
   private final VelocityPluginManager pluginManager;
 
   private final Map<UUID, ConnectedPlayer> connectionsByUuid = new ConcurrentHashMap<>();
   private final Map<String, ConnectedPlayer> connectionsByName = new ConcurrentHashMap<>();
   private final VelocityConsole console;
-  private @MonotonicNonNull Ratelimiter ipAttemptLimiter;
+  private @MonotonicNonNull Ratelimiter<InetAddress> ipAttemptLimiter;
+  private @MonotonicNonNull Ratelimiter<UUID> commandRateLimiter;
+  private @MonotonicNonNull Ratelimiter<UUID> tabCompleteRateLimiter;
   private final VelocityEventManager eventManager;
   private final VelocityScheduler scheduler;
   private final VelocityChannelRegistrar channelRegistrar = new VelocityChannelRegistrar();
@@ -255,6 +259,10 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     }
 
     return new ProxyVersion(implName, implVendor, implVersion);
+  }
+
+  public boolean isStartedShutdown() {
+    return this.startedShutdown;
   }
 
   private VelocityPluginContainer createVirtualPlugin() {
@@ -354,6 +362,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     registerTranslations(true);
 
     ipAttemptLimiter = Ratelimiters.createWithMilliseconds(configuration.getLoginRatelimit());
+    commandRateLimiter = Ratelimiters.createWithMilliseconds(configuration.getCommandRatelimit());
+    tabCompleteRateLimiter = Ratelimiters.createWithMilliseconds(configuration.getTabCompleteRatelimit());
     loadPlugins();
 
     // Go ahead and fire the proxy initialization event. We block since plugins should have a chance
@@ -808,6 +818,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     }
 
     Runnable shutdownProcess = () -> {
+      startedShutdown = true;
       logger.info("Shutting down the proxy...");
 
       // Shutdown the connection manager, this should be
@@ -820,9 +831,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       ImmutableList<ConnectedPlayer> players = ImmutableList.copyOf(connectionsByUuid.values());
 
       if (this.getQueueManager().isQueueEnabled()) {
-        players.forEach(p -> {
-          this.getQueueManager().removeFromAll(p);
-        });
+        players.forEach(p -> this.getQueueManager().removeFromAll(p));
       }
 
       if (!getConfiguration().isAcceptTransfers()) {
@@ -983,8 +992,16 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     return cm.createHttpClient();
   }
 
-  public Ratelimiter getIpAttemptLimiter() {
+  public @MonotonicNonNull Ratelimiter<InetAddress> getIpAttemptLimiter() {
     return ipAttemptLimiter;
+  }
+
+  public @MonotonicNonNull Ratelimiter<UUID> getCommandRateLimiter() {
+    return commandRateLimiter;
+  }
+
+  public @MonotonicNonNull Ratelimiter<UUID> getTabCompleteRateLimiter() {
+    return tabCompleteRateLimiter;
   }
 
   /**
@@ -1131,6 +1148,11 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   @Override
   public VelocityChannelRegistrar getChannelRegistrar() {
     return channelRegistrar;
+  }
+  
+  @Override
+  public boolean isShuttingDown() {
+    return shutdownInProgress.get();
   }
 
   @Override

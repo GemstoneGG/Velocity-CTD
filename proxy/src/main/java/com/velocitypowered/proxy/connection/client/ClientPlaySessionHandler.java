@@ -113,6 +113,8 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
 
   private CompletableFuture<Void> configSwitchFuture;
 
+  private int failedTabCompleteAttempts;
+
   /**
    * Constructs a client play session handler.
    *
@@ -171,6 +173,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
 
   @Override
   public void deactivated() {
+    player.discardChatQueue();
     for (PluginMessagePacket message : loginPluginMessages) {
       ReferenceCountUtil.release(message);
     }
@@ -446,6 +449,13 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
+  public boolean handle(final JoinGamePacket packet) {
+    // Forward the packet as normal, but discard any chat state we have queued - the client will do this too
+    player.discardChatQueue();
+    return false;
+  }
+
+  @Override
   public void handleGeneric(final MinecraftPacket packet) {
     VelocityServerConnection serverConnection = player.getConnectedServer();
     if (serverConnection == null) {
@@ -662,6 +672,15 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
         outstandingTabComplete = packet;
       }
       return false;
+    }
+
+    if (!server.getTabCompleteRateLimiter().attempt(player.getUniqueId())) {
+      if (server.getConfiguration().isKickOnTabCompleteRateLimit()
+          && failedTabCompleteAttempts++ >= server.getConfiguration().getKickAfterRateLimitedTabCompletes()) {
+        player.disconnect(Component.translatable("velocity.kick.tab-complete-rate-limit"));
+      }
+
+      return true;
     }
 
     server.getCommandManager().offerBrigadierSuggestions(player, command)

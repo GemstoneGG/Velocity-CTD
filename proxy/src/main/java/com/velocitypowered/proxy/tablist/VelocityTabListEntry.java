@@ -40,6 +40,7 @@ public class VelocityTabListEntry implements TabListEntry {
   private int gameMode;
   private boolean listed;
   private int listOrder;
+  private boolean showHat;
   private @Nullable ChatSession session;
 
   /**
@@ -47,7 +48,7 @@ public class VelocityTabListEntry implements TabListEntry {
    */
   public VelocityTabListEntry(final VelocityTabList tabList, final GameProfile profile, final Component displayName,
                               final int latency, final int gameMode, @Nullable final ChatSession session,
-                              final boolean listed, final int listOrder) {
+                              final boolean listed, final int listOrder, final boolean showHat) {
     this.tabList = tabList;
     this.profile = profile;
     this.displayName = displayName;
@@ -56,6 +57,7 @@ public class VelocityTabListEntry implements TabListEntry {
     this.session = session;
     this.listed = listed;
     this.listOrder = listOrder;
+    this.showHat = showHat;
   }
 
   @Override
@@ -168,7 +170,27 @@ public class VelocityTabListEntry implements TabListEntry {
     return this;
   }
 
-  void setListOrderWithoutUpdate(int listOrder) {
+  void setListOrderWithoutUpdate(final int listOrder) {
     this.listOrder = listOrder;
+  }
+
+  @Override
+  public boolean isShowHat() {
+    return showHat;
+  }
+
+  @Override
+  public VelocityTabListEntry setShowHat(final boolean showHat) {
+    this.showHat = showHat;
+    if (tabList.getPlayer().getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_21_4)) {
+      UpsertPlayerInfoPacket.Entry upsertEntry = this.tabList.createRawEntry(this);
+      upsertEntry.setShowHat(showHat);
+      tabList.emitActionRaw(UpsertPlayerInfoPacket.Action.UPDATE_HAT, upsertEntry);
+    }
+    return this;
+  }
+
+  void setShowHatWithoutUpdate(final boolean showHat) {
+    this.showHat = showHat;
   }
 }

@@ -22,24 +22,25 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatAcknowledgementPacket;
-import com.velocitypowered.proxy.protocol.packet.chat.CommandHandler;
+import com.velocitypowered.proxy.protocol.packet.chat.RateLimitedCommandHandler;
 import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.text.Component;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * A handler for processing session-based commands, implementing {@link CommandHandler}.
+ * A handler for processing session-based commands, implementing {@link RateLimitedCommandHandler}.
  *
  * <p>The {@code SessionCommandHandler} is responsible for handling commands that are specific
  * to a player's session, using {@link SessionPlayerCommandPacket}. It provides logic to
  * process commands that are tied to the context of the current session.</p>
  */
-public class SessionCommandHandler implements CommandHandler<SessionPlayerCommandPacket> {
+public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlayerCommandPacket> {
 
   private final ConnectedPlayer player;
   private final VelocityServer server;
 
   public SessionCommandHandler(final ConnectedPlayer player, final VelocityServer server) {
+    super(player, server);
     this.player = player;
     this.server = server;
   }

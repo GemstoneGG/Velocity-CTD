@@ -131,8 +131,8 @@ public class ServerQueueStatus {
    * @param position pos in queue.
    * @return ETA component.
    */
-  public Component calculateEta(final int position) {
-    int delayInSeconds = (int) this.config.getSendDelay() * position;
+  public Component calculateEta(final long position) {
+    long delayInSeconds = (long) this.config.getSendDelay() * position;
 
     return QueueTimeFormatter.format(Math.max(delayInSeconds, 0));
   }
@@ -234,8 +234,8 @@ public class ServerQueueStatus {
         } else {
           this.velocityServer.getPlayer(player).ifPresent(p -> {
             p.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached")
-                  .arguments(Component.text(getServerName()),
-                      Component.text(this.velocityServer.getConfiguration().getQueue().getMaxSendRetries())));
+                .arguments(Component.text(getServerName()),
+                    Component.text(this.velocityServer.getConfiguration().getQueue().getMaxSendRetries())));
           });
         }
       }

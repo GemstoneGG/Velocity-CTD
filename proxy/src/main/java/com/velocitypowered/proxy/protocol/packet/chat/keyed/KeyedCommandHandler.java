@@ -21,24 +21,25 @@ import com.velocitypowered.api.event.command.CommandExecuteEvent;
 import com.velocitypowered.api.proxy.crypto.IdentifiedKey;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.protocol.packet.chat.CommandHandler;
+import com.velocitypowered.proxy.protocol.packet.chat.RateLimitedCommandHandler;
 import com.velocitypowered.proxy.protocol.packet.chat.builder.ChatBuilderV2;
 import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.text.Component;
 
 /**
- * Handles keyed player commands by implementing {@link CommandHandler}.
+ * Handles keyed player commands by implementing {@link RateLimitedCommandHandler}.
  *
  * <p>The {@code KeyedCommandHandler} processes commands that are sent using
  * {@link KeyedPlayerCommandPacket}. It provides the necessary logic for handling
  * and executing commands associated with specific keys.</p>
  */
-public class KeyedCommandHandler implements CommandHandler<KeyedPlayerCommandPacket> {
+public class KeyedCommandHandler extends RateLimitedCommandHandler<KeyedPlayerCommandPacket> {
 
   private final ConnectedPlayer player;
   private final VelocityServer server;
 
   public KeyedCommandHandler(final ConnectedPlayer player, final VelocityServer server) {
+    super(player, server);
     this.player = player;
     this.server = server;
   }

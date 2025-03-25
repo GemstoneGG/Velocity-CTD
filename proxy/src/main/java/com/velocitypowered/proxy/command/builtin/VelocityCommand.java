@@ -94,7 +94,7 @@ public final class VelocityCommand {
         .executes(new Heap())
         .build();
     final LiteralCommandNode<CommandSource> info = BrigadierCommand.literalArgumentBuilder("info")
-        .requires(source -> source.getPermissionValue("velocity.command.info") != Tristate.FALSE)
+        .requires(source -> source.getPermissionValue("velocity.command.info") == Tristate.TRUE)
         .executes(new Info(server))
         .build();
     final LiteralCommandNode<CommandSource> plugins = BrigadierCommand
@@ -465,9 +465,9 @@ public final class VelocityCommand {
         }
       }
 
-      if (!server.getMultiProxyHandler().getAllProxyIdsLowerCase().contains(proxyId.toLowerCase())) {
+      if (realId == null || !server.getMultiProxyHandler().getAllProxyIdsLowerCase().contains(proxyId.toLowerCase())) {
         source.sendMessage(Component.translatable("velocity.command.proxy-does-not-exist")
-            .arguments(Component.text(realId)));
+            .arguments(Component.text(proxyId)));
         return -1;
       }
 

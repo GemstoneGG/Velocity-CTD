@@ -293,10 +293,11 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         if (inbound.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
           loginState = State.ACKNOWLEDGED;
           mcConnection.setActiveSessionHandler(StateRegistry.PLAY, new InitialConnectSessionHandler(player, server));
-          server.getEventManager().fire(new PostLoginEvent(player)).thenCompose((ignored) -> connectToInitialServer(player)).exceptionally((ex) -> {
-            logger.error("Exception while connecting {} to initial server", player, ex);
-            return null;
-          });
+          server.getEventManager().fire(new PostLoginEvent(player)).thenCompose((ignored)
+              -> connectToInitialServer(player)).exceptionally((ex) -> {
+                logger.error("Exception while connecting {} to initial server", player, ex);
+                return null;
+              });
         }
       }
     }, mcConnection.eventLoop()).exceptionally((ex) -> {

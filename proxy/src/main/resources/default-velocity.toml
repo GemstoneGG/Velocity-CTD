@@ -10,10 +10,10 @@ motd = "<#ff3a4c>A Velocity Server"
 
 # What should it look like when you hover over the player count? This is
 # displayed when hovering over the player count/max players' tooltip and
-# only supports the legacy color code symbol due to Minecraft limitations.
+# only supports the legacy color codes due to Minecraft limitations.
 motd-hover = [
-    "§cA Velocity Tooltip",
-    "§bthat shows more information!"
+    "<red>A Velocity Tooltip",
+    "<aqua>that shows more information!"
 ]
 
 # What should we display for the maximum number of players? (Velocity does not support a cap
@@ -230,6 +230,33 @@ log-command-executions = false
 # Transfer packet (Minecraft 1.20.5) to be received.
 accepts-transfers = false
 
+# Enables support for SO_REUSEPORT. This may help the proxy scale better on multicore systems
+# with a lot of incoming connections, and provide better CPU utilization than the existing
+# strategy of having a single thread accepting connections and distributing them to worker
+# threads. Disabled by default. Requires Linux or macOS.
+enable-reuse-port = false
+
+# How fast (in milliseconds) are clients allowed to send commands after the last command
+# By default this is 50ms (20 commands per second).
+command-rate-limit = 25
+
+# Should we forward commands to the backend upon being rate limited?
+# This will forward the command to the server instead of processing it on the proxy.
+# Since most server implementations have a rate limit, this will prevent the player
+# from being able to send excessive commands to the server.
+forward-commands-if-rate-limited = true
+
+# How many commands are allowed to be sent after the rate limit is hit before the player is kicked?
+# Setting this to 0 or lower will disable this feature.
+kick-after-rate-limited-commands = 0
+
+# How fast (in milliseconds) are clients allowed to send tab completions after the last tab completion.
+tab-complete-rate-limit = 10
+
+# How many tab completions are allowed to be sent after the rate limit is hit before the player is kicked?
+# Setting this to 0 or lower will disable this feature.
+kick-after-rate-limited-tab-completes = 0
+
 # Enables the execution of illegal characters in chat and only allows
 # or denies illegal characters that are executed through the proxy.
 allow-illegal-characters-in-chat = false
@@ -259,6 +286,8 @@ allow-illegal-characters-in-chat = false
 #                              would be shown with this specific assignment.
 # - "{proxy-vendor}":          Returns the group or association (vendor) of your proxy
 #                              that by default would display "Velocity Contributors."
+# - "{server-connected}":      Returns the name of the server that you are connected
+#                              to of your proxy with case-sensitivity."
 server-brand = "{backend-brand} ({proxy-brand})"
 
 # Modifies the brand and server version that displays in the multiplayer menu and status pingers.
@@ -386,15 +415,6 @@ banned-reason = [
 
 # Whether the user should be capable of entering multiple queues at once.
 allow-multi-queue = false
-
-# Determines which server should be prioritized for action bars
-# and placeholders when the "multi-queue" option is enabled.
-# Available options:
-# - "first":         Returns the first server you connected
-#                    to from the queue list.
-# - "last":          Returns the last server you connected
-#                    to from the queue list.
-multiple-server-messaging-selection = "last"
 
 # How long the queue system should wait before sending each user to a server (in seconds).
 send-delay = 1.0

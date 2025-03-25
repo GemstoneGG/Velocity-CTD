@@ -34,6 +34,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import net.kyori.adventure.text.Component;
 
 /**
  * Common utilities for handling server list ping results.
@@ -74,7 +75,7 @@ public class ServerListPingHandler {
     }
 
     List<ServerPing.SamplePlayer> samplePlayers = new ArrayList<>();
-    for (String s : server.getConfiguration().getMotdHover()) {
+    for (Component s : server.getConfiguration().getMotdHover()) {
       samplePlayers.add(new ServerPing.SamplePlayer(
           s,
           UUID.randomUUID()));
@@ -108,7 +109,8 @@ public class ServerListPingHandler {
 
   private CompletableFuture<ServerPing> attemptPingPassthrough(final VelocityInboundConnection connection,
                                                                final PingPassthroughMode mode, final List<String> servers,
-                                                               final ProtocolVersion responseProtocolVersion) {
+                                                               final ProtocolVersion responseProtocolVersion,
+                                                               final String virtualHostStr) {
     ServerPing fallback = constructLocalPing(connection.getProtocolVersion());
     List<CompletableFuture<ServerPing>> pings = new ArrayList<>();
     for (String s : servers) {
@@ -118,7 +120,7 @@ public class ServerListPingHandler {
       }
       VelocityRegisteredServer vrs = (VelocityRegisteredServer) rs.get();
       pings.add(vrs.ping(connection.getConnection().eventLoop(), PingOptions.builder()
-              .version(responseProtocolVersion).build()));
+              .version(responseProtocolVersion).virtualHost(virtualHostStr).build()));
     }
     if (pings.isEmpty()) {
       return CompletableFuture.completedFuture(fallback);
@@ -200,7 +202,7 @@ public class ServerListPingHandler {
           .orElse("");
       List<String> serversToTry = server.getConfiguration().getForcedHosts().getOrDefault(
           virtualHostStr, server.getConfiguration().getAttemptConnectionOrder());
-      return attemptPingPassthrough(connection, passthroughMode, serversToTry, shownVersion);
+      return attemptPingPassthrough(connection, passthroughMode, serversToTry, shownVersion, virtualHostStr);
     }
   }
 }
