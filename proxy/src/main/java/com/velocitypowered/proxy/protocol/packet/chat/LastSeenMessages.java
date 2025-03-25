@@ -67,7 +67,7 @@ public class LastSeenMessages {
     ProtocolUtils.writeVarInt(buf, offset);
     buf.writeBytes(Arrays.copyOf(acknowledged.toByteArray(), DIV_FLOOR));
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_21_5)) {
-      this.checksum = buf.readByte();
+      buf.writeByte(this.checksum);
     }
   }
 
