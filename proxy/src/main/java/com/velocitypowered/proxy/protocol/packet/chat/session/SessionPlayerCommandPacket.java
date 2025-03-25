@@ -51,7 +51,7 @@ public class SessionPlayerCommandPacket implements MinecraftPacket {
     this.timeStamp = Instant.ofEpochMilli(buf.readLong());
     this.salt = buf.readLong();
     this.argumentSignatures = new ArgumentSignatures(buf);
-    this.lastSeenMessages = new LastSeenMessages(buf);
+    this.lastSeenMessages = new LastSeenMessages(buf, protocolVersion);
   }
 
   @Override
@@ -60,7 +60,7 @@ public class SessionPlayerCommandPacket implements MinecraftPacket {
     buf.writeLong(this.timeStamp.toEpochMilli());
     buf.writeLong(this.salt);
     this.argumentSignatures.encode(buf);
-    this.lastSeenMessages.encode(buf);
+    this.lastSeenMessages.encode(buf, protocolVersion);
   }
 
   public String getCommand() {

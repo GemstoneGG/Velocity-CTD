@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.protocol.packet.chat;
 
+import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
 import java.util.Arrays;
@@ -32,15 +33,16 @@ public class LastSeenMessages {
   private static final int DIV_FLOOR = -Math.floorDiv(-WINDOW_SIZE, 8);
   private final int offset;
   private final BitSet acknowledged;
+  private byte checksum;
 
   public LastSeenMessages() {
-    this.offset = 0;
-    this.acknowledged = new BitSet();
+    this(0, new BitSet(), (byte) 0);
   }
 
-  public LastSeenMessages(final int offset, final BitSet acknowledged) {
+  public LastSeenMessages(final int offset, final BitSet acknowledged, final byte checksum) {
     this.offset = offset;
     this.acknowledged = acknowledged;
+    this.checksum = checksum;
   }
 
   /**
@@ -49,17 +51,24 @@ public class LastSeenMessages {
    *
    * @param buf the buffer containing the serialized last seen messages data
    */
-  public LastSeenMessages(final ByteBuf buf) {
+  public LastSeenMessages(final ByteBuf buf, final ProtocolVersion protocolVersion) {
     this.offset = ProtocolUtils.readVarInt(buf);
 
     byte[] bytes = new byte[DIV_FLOOR];
     buf.readBytes(bytes);
     this.acknowledged = BitSet.valueOf(bytes);
+
+    if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_21_5)) {
+      this.checksum = buf.readByte();
+    }
   }
 
-  public void encode(final ByteBuf buf) {
+  public void encode(final ByteBuf buf, final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeVarInt(buf, offset);
     buf.writeBytes(Arrays.copyOf(acknowledged.toByteArray(), DIV_FLOOR));
+    if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_21_5)) {
+      this.checksum = buf.readByte();
+    }
   }
 
   public int getOffset() {
@@ -71,7 +80,7 @@ public class LastSeenMessages {
   }
 
   public LastSeenMessages offset(final int offset) {
-    return new LastSeenMessages(this.offset + offset, acknowledged);
+    return new LastSeenMessages(this.offset + offset, acknowledged, checksum);
   }
 
   @Override
@@ -79,6 +88,7 @@ public class LastSeenMessages {
     return "LastSeenMessages{"
       + "offset=" + offset
       + ", acknowledged=" + acknowledged
+      + ", checksum=" + checksum
       + '}';
   }
 }

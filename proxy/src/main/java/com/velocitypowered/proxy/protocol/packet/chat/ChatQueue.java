@@ -214,7 +214,7 @@ public class ChatQueue implements AutoCloseable {
     }
 
     public LastSeenMessages createLastSeen() {
-      return new LastSeenMessages(0, lastSeenMessages);
+      return new LastSeenMessages(0, lastSeenMessages, (byte) 0);
     }
   }
 }
