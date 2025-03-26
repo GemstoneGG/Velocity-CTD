@@ -261,6 +261,11 @@ kick-after-rate-limited-tab-completes = 0
 # or denies illegal characters that are executed through the proxy.
 allow-illegal-characters-in-chat = false
 
+# Enables the utilization of the configuration phase when switching
+# servers and may resolve various ongoing bugs that networks face
+# and is marked as experimental, with reason!
+enable-configuration-phase = true
+
 # Modifies the server brand that displays in your debug menu.
 # Available options:
 # - "{protocol-min}":          Returns the lowest compatible version from the

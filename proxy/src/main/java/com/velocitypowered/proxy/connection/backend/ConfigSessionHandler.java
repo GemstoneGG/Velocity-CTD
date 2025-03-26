@@ -236,10 +236,27 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
     final ConnectedPlayer player = serverConn.getPlayer();
 
     smc.getChannel().pipeline().get(MinecraftDecoder.class).setState(StateRegistry.PLAY);
-    if (player.getConnection().getActiveSessionHandler() instanceof ClientConfigSessionHandler configHandler) {
-      configHandler.handleBackendFinishUpdate(serverConn).thenRunAsync(this::finish, smc.eventLoop());
+
+    if (server.getConfiguration().isEnableConfigurationPhase()
+            && player.getConnection().getActiveSessionHandler() instanceof ClientConfigSessionHandler configHandler) {
+      // Configuration phase is enabled — use original logic
+      configHandler.handleBackendFinishUpdate(serverConn).thenRunAsync(() -> {
+        smc.write(FinishedUpdatePacket.INSTANCE);
+        if (serverConn == player.getConnectedServer()) {
+          smc.setActiveSessionHandler(StateRegistry.PLAY);
+          player.sendPlayerListHeaderAndFooter(player.getPlayerListHeader(), player.getPlayerListFooter());
+          // The client cleared the tab list. TODO: Restore changes done via TabList API
+          player.getTabList().clearAllSilent();
+        } else {
+          smc.setActiveSessionHandler(StateRegistry.PLAY, new TransitionSessionHandler(server, serverConn, resultFuture));
+        }
+        if (player.resourcePackHandler().getFirstAppliedPack() == null && resourcePackToApply != null) {
+          player.resourcePackHandler().queueResourcePack(resourcePackToApply);
+        }
+      }, smc.eventLoop());
     } else {
-      final String brand = serverConn.getPlayer().getClientBrand();
+      // Configuration phase is disabled — use fallback logic
+      final String brand = player.getClientBrand();
       if (brand != null) {
         final ByteBuf buf = Unpooled.buffer();
         ProtocolUtils.writeString(buf, brand);

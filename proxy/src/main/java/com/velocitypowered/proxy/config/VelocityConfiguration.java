@@ -598,6 +598,10 @@ public final class VelocityConfiguration implements ProxyConfig {
     return advanced.isAllowIllegalCharactersInChat();
   }
 
+  public boolean isEnableConfigurationPhase() {
+    return advanced.isEnableConfigurationPhase();
+  }
+
   public String getServerBrand() {
     return advanced.getServerBrand();
   }
@@ -1270,6 +1274,8 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private boolean allowIllegalCharactersInChat = false;
     @Expose
+    private boolean enableConfigurationPhase = true;
+    @Expose
     private String serverBrand = "{backend-brand} ({proxy-brand})";
     private String serverBrandAsString;
     @Expose
@@ -1312,6 +1318,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.tabCompleteRateLimit = config.getIntOrElse("tab-complete-rate-limit", 10); // very lenient
         this.kickAfterRateLimitedTabCompletes = config.getIntOrElse("kick-after-rate-limited-tab-completes", 0);
         this.allowIllegalCharactersInChat = config.getOrElse("allow-illegal-characters-in-chat", false);
+        this.enableConfigurationPhase = config.getOrElse("enable-configuration-phase", true);
         this.serverBrand = config.getOrElse("server-brand", "{backend-brand} ({proxy-brand})");
         this.fallbackVersionPing = config.getOrElse("fallback-version-ping", "{proxy-brand} {protocol-min}-{protocol-max}");
         this.alwaysFallBackPing = config.getOrElse("always-fallback-ping", false);
@@ -1410,6 +1417,10 @@ public final class VelocityConfiguration implements ProxyConfig {
       return allowIllegalCharactersInChat;
     }
 
+    public boolean isEnableConfigurationPhase() {
+      return enableConfigurationPhase;
+    }
+
     public String getServerBrand() {
       return this.serverBrandAsString;
     }
@@ -1448,6 +1459,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", acceptTransfers=" + acceptTransfers
           + ", enableReusePort=" + enableReusePort
           + ", allowIllegalCharactersInChat=" + allowIllegalCharactersInChat
+          + ", enableConfigurationPhase=" + enableConfigurationPhase
           + '}';
     }
   }
