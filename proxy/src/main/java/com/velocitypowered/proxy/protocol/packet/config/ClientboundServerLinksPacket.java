@@ -81,22 +81,6 @@ public class ClientboundServerLinksPacket implements MinecraftPacket {
    */
   public record ServerLink(int id, ComponentHolder displayName, String url) {
 
-    /**
-    * Constructs a new {@link ServerLink} instance by converting the provided
-    * {@link com.velocitypowered.api.util.ServerLink} and considering the specified protocol
-    * version.
-    *
-    * @param link the {@link com.velocitypowered.api.util.ServerLink} object containing the
-    *             original link details
-    * @param protocolVersion the version of the protocol being used, which may influence how the
-    *                        link is handled or displayed
-    */
-    public ServerLink(final com.velocitypowered.api.util.ServerLink link, final ProtocolVersion protocolVersion) {
-      this(link.getBuiltInType().map(Enum::ordinal).orElse(-1),
-          link.getCustomLabel().map(c -> new ComponentHolder(protocolVersion, c)).orElse(null),
-          link.getUrl().toString());
-    }
-
     private static ServerLink read(final ByteBuf buf, final ProtocolVersion version) {
       if (buf.readBoolean()) {
         return new ServerLink(ProtocolUtils.readVarInt(buf), null, ProtocolUtils.readString(buf));

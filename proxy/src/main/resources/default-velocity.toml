@@ -237,7 +237,7 @@ accepts-transfers = false
 enable-reuse-port = false
 
 # How fast (in milliseconds) are clients allowed to send commands after the last command
-# By default this is 25ms (10 commands per second).
+# By default this is 25ms (40 commands per second).
 command-rate-limit = 25
 
 # Should we forward commands to the backend upon being rate limited?
