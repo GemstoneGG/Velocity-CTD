@@ -255,6 +255,7 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
         }
       }, smc.eventLoop());
     } else {
+      player.getConnection().write(FinishedUpdatePacket.INSTANCE);
       // Configuration phase is disabled — use fallback logic
       final String brand = player.getClientBrand();
       if (brand != null) {
