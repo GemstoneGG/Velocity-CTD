@@ -237,8 +237,7 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
     smc.getChannel().pipeline().get(MinecraftDecoder.class).setState(StateRegistry.PLAY);
 
-    if (server.getConfiguration().isEnableConfigurationPhase()
-            && player.getConnection().getActiveSessionHandler() instanceof ClientConfigSessionHandler configHandler) {
+    if (player.getConnection().getActiveSessionHandler() instanceof ClientConfigSessionHandler configHandler) {
       // Configuration phase is enabled — use original logic
       configHandler.handleBackendFinishUpdate(serverConn).thenRunAsync(() -> {
         smc.write(FinishedUpdatePacket.INSTANCE);
