@@ -29,11 +29,13 @@ import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 
 /**
@@ -65,6 +67,32 @@ public class ServerListPingHandler {
       version = ProtocolVersion.LEGACY;
     }
 
+    List<ServerPing.SamplePlayer> samplePlayers;
+    if (configuration.getSamplePlayersInPing()) {
+      List<ServerPing.SamplePlayer> unshuffledPlayers;
+      if (server.getMultiProxyHandler().isRedisEnabled()) {
+        unshuffledPlayers = server.getMultiProxyHandler().getAllPlayers().stream()
+                .map(player -> new ServerPing.SamplePlayer(player.getUsername(), player.getUuid()))
+                .collect(Collectors.toList());
+      } else {
+        unshuffledPlayers = server.getAllPlayers().stream()
+                .map(player -> {
+                  if (player.getPlayerSettings().isClientListingAllowed()) {
+                    return new ServerPing.SamplePlayer(player.getUsername(), player.getUniqueId());
+                  } else {
+                    return ServerPing.SamplePlayer.ANONYMOUS;
+                  }
+                })
+                .collect(Collectors.toList());
+      }
+
+      Collections.shuffle(unshuffledPlayers);
+      int limit = Math.min(12, unshuffledPlayers.size());
+      samplePlayers = new ArrayList<>(unshuffledPlayers.subList(0, limit));
+    } else {
+      samplePlayers = new ArrayList<>();
+    }
+
     String serverPingVersion = configuration.getFallbackVersionPing();
 
     final int online;
@@ -74,7 +102,6 @@ public class ServerListPingHandler {
       online = server.getPlayerCount();
     }
 
-    List<ServerPing.SamplePlayer> samplePlayers = new ArrayList<>();
     for (Component s : server.getConfiguration().getMotdHover()) {
       samplePlayers.add(new ServerPing.SamplePlayer(
           s,
