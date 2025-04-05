@@ -749,7 +749,8 @@ public enum StateRegistry {
           map(0x5A, MINECRAFT_1_20_2, false),
           map(0x5C, MINECRAFT_1_20_3, false),
           map(0x5E, MINECRAFT_1_20_5, false),
-          map(0x64, MINECRAFT_1_21_2, false));
+          map(0x64, MINECRAFT_1_21_2, false)
+          map(0x63, MINECRAFT_1_21_5, false));
     }
   },
   LOGIN {
