@@ -256,7 +256,8 @@ public class VelocityCommandManager implements CommandManager {
       }
     } catch (final Throwable e) {
       // Ugly, ugly swallowing of everything Throwable, because plugins are naughty.
-      throw new RuntimeException("Unable to invoke command  " + parsed.getReader().getString() + "for " + source, e);
+      // "Ugly indeed, but with proper spacing... umm.. uhh... yeah still ugly..." - Hadimhz
+      throw new RuntimeException("Unable to invoke command " + parsed.getReader().getString() + " for " + source, e);
     } finally {
       eventManager.fireAndForget(new PostCommandInvocationEvent(source, parsed.getReader().getString(), result));
     }
