@@ -37,14 +37,14 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
 
   private static final QuietDecoderException BAD_PACKET_LENGTH =
           new QuietDecoderException("Bad packet length");
-  private static final DecoderException BAD_PACKET_ID =
-          new DecoderException("Bad packet ID");
-  private static final DecoderException VARINT_TOO_BIG =
-      new DecoderException("VarInt too big");
-  private static final DecoderException PACKET_TOO_LARGE =
-          new DecoderException("Packet too big");
-  private static final DecoderException PACKET_TOO_SMALL =
-          new DecoderException("Packet too small");
+  private static final QuietDecoderException BAD_PACKET_ID =
+          new QuietDecoderException("Bad packet ID");
+  private static final QuietDecoderException VARINT_TOO_BIG =
+      new QuietDecoderException("VarInt too big");
+  private static final QuietDecoderException PACKET_TOO_LARGE =
+          new QuietDecoderException("Packet too big");
+  private static final QuietDecoderException PACKET_TOO_SMALL =
+          new QuietDecoderException("Packet too small");
 
   private StateRegistry.PacketRegistry.ProtocolRegistry registry;
   private boolean handshakeState;
