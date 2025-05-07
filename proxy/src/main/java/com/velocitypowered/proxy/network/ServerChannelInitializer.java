@@ -57,7 +57,7 @@ public class ServerChannelInitializer extends ChannelInitializer<Channel> {
   protected void initChannel(final Channel ch) {
     ch.pipeline()
         .addLast(LEGACY_PING_DECODER, new LegacyPingDecoder())
-        .addLast(FRAME_DECODER, new MinecraftVarintFrameDecoder())
+        .addLast(FRAME_DECODER, new MinecraftVarintFrameDecoder(true))
         .addLast(READ_TIMEOUT,
             new ReadTimeoutHandler(this.server.getConfiguration().getReadTimeout(),
                 TimeUnit.MILLISECONDS))

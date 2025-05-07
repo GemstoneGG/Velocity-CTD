@@ -19,10 +19,15 @@ package com.velocitypowered.proxy.protocol.netty;
 
 import static io.netty.util.ByteProcessor.FIND_NON_NUL;
 
+import com.velocitypowered.api.network.ProtocolVersion;
+import com.velocitypowered.proxy.protocol.MinecraftPacket;
+import com.velocitypowered.proxy.protocol.ProtocolUtils;
+import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.util.except.QuietDecoderException;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
+import io.netty.handler.codec.DecoderException;
 import java.util.List;
 
 /**
@@ -31,9 +36,36 @@ import java.util.List;
 public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
 
   private static final QuietDecoderException BAD_PACKET_LENGTH =
-      new QuietDecoderException("Bad packet length");
-  private static final QuietDecoderException VARINT_TOO_BIG =
-      new QuietDecoderException("VarInt too big");
+          new QuietDecoderException("Bad packet length");
+  private static final DecoderException BAD_PACKET_ID =
+          new DecoderException("Bad packet ID");
+  private static final DecoderException VARINT_TOO_BIG =
+      new DecoderException("VarInt too big");
+  private static final DecoderException PACKET_TOO_LARGE =
+          new DecoderException("Packet too big");
+  private static final DecoderException PACKET_TOO_SMALL =
+          new DecoderException("Packet too small");
+
+  private StateRegistry.PacketRegistry.ProtocolRegistry registry;
+  private boolean handshakeState;
+
+  public MinecraftVarintFrameDecoder() {
+    this(false);
+  }
+
+  /**
+   * Decodes the length of packets.
+   *
+   * @param handshakeState Whether this decoder is being used in the handshake state
+   */
+  public MinecraftVarintFrameDecoder(boolean handshakeState) {
+    this.handshakeState = handshakeState;
+    if (handshakeState) {
+      this.registry = StateRegistry.HANDSHAKE.getProtocolRegistry(ProtocolUtils.Direction.SERVERBOUND, ProtocolVersion.MINIMUM_VERSION);
+    } else {
+      this.registry = null;
+    }
+  }
 
   @Override
   protected void decode(final ChannelHandlerContext ctx, final ByteBuf in, final List<Object> out)
@@ -64,6 +96,31 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
 
     // note that zero-length packets are ignored
     if (length > 0) {
+
+      if (handshakeState) {
+        final int newReaderIndex = in.readerIndex();
+        int packetId = ProtocolUtils.readVarInt(in);
+        int varintBytes = ProtocolUtils.varIntBytes(packetId);
+
+        int claimedPacketLength = length - varintBytes;
+        MinecraftPacket packet = this.registry.createPacket(packetId);
+        if (packet == null) {
+          throw BAD_PACKET_ID;
+        }
+
+        int maxLen = packet.expectedMaxLength(in, ProtocolUtils.Direction.SERVERBOUND, registry.version);
+        int minLen = packet.expectedMinLength(in, ProtocolUtils.Direction.SERVERBOUND, registry.version);
+
+        if (maxLen >= 0 && claimedPacketLength > maxLen) {
+          throw PACKET_TOO_LARGE;
+        }
+        if (claimedPacketLength < minLen) {
+          throw PACKET_TOO_SMALL;
+        }
+
+        in.readerIndex(newReaderIndex);
+      }
+
       if (in.readableBytes() < length) {
         in.resetReaderIndex();
       } else {
@@ -140,5 +197,15 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
       return result | tmp << 14;
     }
     return result | (tmp & 0x7F) << 14;
+  }
+
+  /**
+   * Sets the state of the connection.
+   *
+   * @param state the state of the connection
+   */
+  public void setState(final StateRegistry state) {
+    this.handshakeState = state == StateRegistry.HANDSHAKE || state == StateRegistry.STATUS;
+    this.registry = state.getProtocolRegistry(ProtocolUtils.Direction.SERVERBOUND, ProtocolVersion.MINIMUM_VERSION);
   }
 }

@@ -47,6 +47,7 @@ import com.velocitypowered.proxy.protocol.netty.MinecraftCompressDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftCompressorAndLengthEncoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
+import com.velocitypowered.proxy.protocol.netty.MinecraftVarintFrameDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintLengthEncoder;
 import com.velocitypowered.proxy.protocol.netty.PlayPacketQueueInboundHandler;
 import com.velocitypowered.proxy.protocol.netty.PlayPacketQueueOutboundHandler;
@@ -387,6 +388,11 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
         .get(MinecraftDecoder.class);
     if (minecraftDecoder != null) {
       minecraftDecoder.setState(state);
+    }
+    final MinecraftVarintFrameDecoder varintDecoder = this.channel.pipeline()
+            .get(MinecraftVarintFrameDecoder.class);
+    if (varintDecoder != null) {
+      varintDecoder.setState(state);
     }
 
     if (state == StateRegistry.CONFIG) {
