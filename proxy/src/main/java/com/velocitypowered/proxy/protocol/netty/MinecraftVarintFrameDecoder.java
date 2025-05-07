@@ -40,7 +40,7 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
   private static final QuietDecoderException BAD_PACKET_ID =
           new QuietDecoderException("Bad packet ID");
   private static final QuietDecoderException VARINT_TOO_BIG =
-      new QuietDecoderException("VarInt too big");
+          new QuietDecoderException("VarInt too big");
   private static final QuietDecoderException PACKET_TOO_LARGE =
           new QuietDecoderException("Packet too big");
   private static final QuietDecoderException PACKET_TOO_SMALL =
