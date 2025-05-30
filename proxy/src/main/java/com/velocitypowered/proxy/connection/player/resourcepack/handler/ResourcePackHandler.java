@@ -113,31 +113,37 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
     player.getConnection().write(request);
   }
 
-  /**
-   * Processes a client response to a "sent" resource-pack.
-   *
-   * <p>Cases in which no action will be taken:
-   *
-   * <li><b>DOWNLOADED</b>
-   * In this case, the resource pack is downloaded and will be applied to the client;
-   * no action is required in Velocity.
-   *
-   * <li><b>INVALID_URL</b>
-   * In this case, the client has received a resource pack request,
-   * and the first check it performs is if the URL is valid, if not,
-   * it will return this value
-   *
-   * <li><b>FAILED_RELOAD</b>
-   * In this case, when trying to reload the client's resources,
-   * an error occurred while reloading a resource pack
-   *
-   * <li><b>DECLINED</b>
-   * Only in modern versions, as the resource pack has already been rejected,
-   * there is nothing to do, if the resource pack is required,
-   * the client will be kicked out of the server.</p>
-   *
-   * @param bundle the resource pack response bundle
-   */
+/**
+ * Processes a client response to a "sent" resource-pack.
+ *
+ * <p>Cases in which no action will be taken:</p>
+ * 
+ * <ul>
+ *   <li><b>DOWNLOADED</b><br>
+ *       In this case, the resource pack is downloaded and will be applied to the client;
+ *       no action is required in Velocity.
+ *   </li>
+ *   
+ *   <li><b>INVALID_URL</b><br>
+ *       In this case, the client has received a resource pack request,
+ *       and the first check it performs is if the URL is valid, if not,
+ *       it will return this value
+ *   </li>
+ *   
+ *   <li><b>FAILED_RELOAD</b><br>
+ *       In this case, when trying to reload the client's resources,
+ *       an error occurred while reloading a resource pack
+ *   </li>
+ *   
+ *   <li><b>DECLINED</b><br>
+ *       Only in modern versions, as the resource pack has already been rejected,
+ *       there is nothing to do. If the resource pack is required,
+ *       the client will be kicked out of the server.
+ *   </li>
+ * </ul>
+ *
+ * @param bundle the resource pack response bundle
+ */
   public abstract boolean onResourcePackResponse(@NotNull ResourcePackResponseBundle bundle);
 
   protected boolean handleResponseResult(final @Nullable ResourcePackInfo queued,
