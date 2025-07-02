@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -227,8 +228,22 @@ public class ServerListPingHandler {
       String virtualHostStr = connection.getVirtualHost().map(InetSocketAddress::getHostString)
           .map(str -> str.toLowerCase(Locale.ROOT))
           .orElse("");
-      List<String> serversToTry = server.getConfiguration().getForcedHosts().getOrDefault(
-          virtualHostStr, server.getConfiguration().getAttemptConnectionOrder());
+
+      List<String> serversToTry = server.getConfiguration().getForcedHosts().get(virtualHostStr);
+      if (serversToTry == null || serversToTry.isEmpty()) {
+        for (Map.Entry<String, List<String>> entry : server.getConfiguration().getForcedHosts().entrySet()) {
+          String pattern = entry.getKey().toLowerCase(Locale.ROOT);
+          if (pattern.startsWith("*.") && virtualHostStr.endsWith(pattern.substring(1))) {
+            serversToTry = entry.getValue();
+            break;
+          }
+        }
+      }
+
+      if (serversToTry == null || serversToTry.isEmpty()) {
+        serversToTry = server.getConfiguration().getAttemptConnectionOrder();
+      }
+
       return attemptPingPassthrough(connection, passthroughMode, serversToTry, shownVersion, virtualHostStr);
     }
   }

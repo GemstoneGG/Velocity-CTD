@@ -106,10 +106,10 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import java.net.InetSocketAddress;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -945,20 +945,24 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @return the next server to try
    */
   private Optional<RegisteredServer> getNextServerToTry(@Nullable final RegisteredServer current) {
-    if (serversToTry == null) {
+    if (serversToTry == null || serversToTry.isEmpty()) {
       String virtualHostStr = getVirtualHost().map(InetSocketAddress::getHostString)
           .orElse("")
           .toLowerCase(Locale.ROOT);
-      serversToTry = server.getConfiguration().getForcedHosts().getOrDefault(virtualHostStr,
-          Collections.emptyList());
-    }
 
-    if (serversToTry.isEmpty()) {
-      List<String> connOrder = server.getConfiguration().getAttemptConnectionOrder();
-      if (connOrder.isEmpty()) {
-        return Optional.empty();
-      } else {
-        serversToTry = connOrder;
+      serversToTry = server.getConfiguration().getForcedHosts().get(virtualHostStr);
+      if (serversToTry == null || serversToTry.isEmpty()) {
+        for (Map.Entry<String, List<String>> entry : server.getConfiguration().getForcedHosts().entrySet()) {
+          String pattern = entry.getKey().toLowerCase(Locale.ROOT);
+          if (pattern.startsWith("*.") && virtualHostStr.endsWith(pattern.substring(1))) {
+            serversToTry = entry.getValue();
+            break;
+          }
+        }
+      }
+
+      if (serversToTry == null || serversToTry.isEmpty()) {
+        serversToTry = server.getConfiguration().getAttemptConnectionOrder();
       }
     }
 
@@ -982,20 +986,20 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
       if (selectedServer.isEmpty()) {
         if (strategy.equalsIgnoreCase("FIRST_AVAILABLE")) {
-          tryIndex = i + 1;
+          tryIndex = i;
           return Optional.of(registeredServer);
         }
         selectedServer = Optional.of(registeredServer);
-        tryIndex = i + 1;
+        tryIndex = i;
       } else if (strategy.equalsIgnoreCase("MOST_POPULATED")) {
         if (registeredServer.getTotalPlayerCount() > selectedServer.get().getTotalPlayerCount()) {
           selectedServer = Optional.of(registeredServer);
-          tryIndex = i + 1;
+          tryIndex = i;
         }
       } else if (strategy.equalsIgnoreCase("LEAST_POPULATED")) {
         if (registeredServer.getTotalPlayerCount() < selectedServer.get().getTotalPlayerCount()) {
           selectedServer = Optional.of(registeredServer);
-          tryIndex = i + 1;
+          tryIndex = i;
         }
       }
     }
