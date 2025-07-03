@@ -195,7 +195,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private @MonotonicNonNull List<String> serversToTry = null;
   private final ResourcePackHandler resourcePackHandler;
   private final BundleDelimiterHandler bundleHandler = new BundleDelimiterHandler(this);
-  private boolean connectionInProgress;
   private boolean dontRemoveFromRedis;
   private @Nullable String clientBrand;
   private @Nullable Locale effectiveLocale;
@@ -1584,11 +1583,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
     @Override
     public CompletableFuture<Result> connect() {
-      if (connectionInProgress) {
-        return completedFuture(ConnectionRequestResults.plainResult(Status.CONNECTION_CANCELLED, toConnect));
-      }
-
-      connectionInProgress = true;
       return this.internalConnect().whenCompleteAsync((status, throwable) -> {
         if (status != null && !status.isSuccessful()) {
           if (!status.isSafe()) {
@@ -1611,22 +1605,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
             }
           }
         }
-
-        connectionInProgress = false;
-      }, connection.eventLoop())
-          .exceptionally((ex) -> {
-            connectionInProgress = false;
-            return null;
-          }).thenApply(x -> x);
+      }, connection.eventLoop()).thenApply(x -> x);
     }
 
     @Override
     public CompletableFuture<Boolean> connectWithIndication() {
-      if (connectionInProgress) {
-        return completedFuture(false);
-      }
-
-      connectionInProgress = true;
       return internalConnect().whenCompleteAsync((status, throwable) -> {
         if (throwable != null) {
           // TODO: The exception handling from this is not very good. Find a better way.
@@ -1657,19 +1640,13 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
             }
           }
           default -> {
-            // The only remaining value is successful (no need to do anything!)
+            // In this case, the default handler removes the user on server switch.
             if (server.getConfiguration().getQueue().isRemovePlayerOnServerSwitch()) {
               server.getQueueManager().removeFromAll(get());
             }
           }
         }
-
-        connectionInProgress = false;
-      }, connection.eventLoop())
-          .exceptionally((ex) -> {
-            connectionInProgress = false;
-            return null;
-          }).thenApply(Result::isSuccessful);
+      }, connection.eventLoop()).thenApply(Result::isSuccessful);
     }
 
     @Override
