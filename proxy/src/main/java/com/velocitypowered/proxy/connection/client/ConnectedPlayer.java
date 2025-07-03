@@ -750,8 +750,12 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       friendlyError = Component.translatable("velocity.error.connected-server-error",
           Component.text(server.getServerInfo().getName()));
     } else {
-      logger.error("{}: unable to connect to server {}", this, server.getServerInfo().getName(),
-          wrapped);
+      if (Boolean.getBoolean("velocity.suppress-connection-timeout-logs")) {
+        logger.error("{}: unable to connect to server {}", this, server.getServerInfo().getName());
+      } else {
+        logger.error("{}: unable to connect to server {}", this, server.getServerInfo().getName(),
+            wrapped);
+      }
       friendlyError = Component.translatable("velocity.error.connecting-server-error",
           Component.text(server.getServerInfo().getName()));
     }
