@@ -2,7 +2,9 @@
 configurate3 = "3.7.3"
 configurate4 = "4.2.0"
 flare = "2.0.1"
-log4j = "2.25.0"
+junit = "5.13.3"
+junit-platform = "1.13.3"
+log4j = "2.25.1"
 netty = "4.2.1.Final"
 
 [plugins]
@@ -37,10 +39,10 @@ flare-fastutil = { module = "space.vectrix.flare:flare-fastutil", version.ref = 
 jline = "org.jline:jline-terminal-jansi:3.30.4"
 jedis = "redis.clients:jedis:6.0.0"
 jopt = "net.sf.jopt-simple:jopt-simple:5.0.4"
-junit-platform-launcher = "org.junit.platform:junit-platform-launcher:1.13.3"
-junit-platform-engine = "org.junit.platform:junit-platform-engine:1.13.3"
-junit-jupiter-api = "org.junit.jupiter:junit-jupiter-api:5.13.3"
-junit-jupiter-engine = "org.junit.jupiter:junit-jupiter-engine:5.13.3"
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
+junit-platform-engine = { module = "org.junit.platform:junit-platform-engine", version.ref = "junit-platform" }
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
 jspecify = "org.jspecify:jspecify:1.0.0"
 kyori-ansi = "net.kyori:ansi:1.1.1"
 guava = "com.google.guava:guava:33.4.8-jre"
@@ -70,4 +72,6 @@ terminalconsoleappender = "net.minecrell:terminalconsoleappender:1.3.0"
 configurate3 = ["configurate3-hocon", "configurate3-yaml", "configurate3-gson"]
 configurate4 = ["configurate4-hocon", "configurate4-yaml", "configurate4-gson"]
 flare = ["flare-core", "flare-fastutil"]
+junit = ["junit-jupiter-api", "junit-jupiter-engine"]
+junit-platform = ["junit-platform-launcher", "junit-platform-engine"]
 log4j = ["log4j-api", "log4j-core", "log4j-slf4j-impl", "log4j-iostreams", "log4j-jul"]
