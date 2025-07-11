@@ -23,6 +23,8 @@ import static com.velocitypowered.proxy.connection.VelocityConstants.EMPTY_BYTE_
 import static com.velocitypowered.proxy.crypto.EncryptionUtils.decryptRsa;
 import static com.velocitypowered.proxy.crypto.EncryptionUtils.generateServerId;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
@@ -50,6 +52,7 @@ import java.net.http.HttpResponse;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.MessageDigest;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -78,6 +81,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
   private byte[] verify = EMPTY_BYTE_ARRAY;
   private LoginState currentState = LoginState.LOGIN_PACKET_EXPECTED;
   private final boolean forceKeyAuthentication;
+  private final Cache<String, GameProfile> profileResultCache;
 
   InitialLoginSessionHandler(final VelocityServer server, final MinecraftConnection mcConnection,
                              final LoginInboundConnection inbound) {
@@ -86,6 +90,19 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
     this.inbound = Preconditions.checkNotNull(inbound, "inbound");
     this.forceKeyAuthentication = VelocityProperties.readBoolean(
             "auth.forceSecureProfiles", server.getConfiguration().isForceKeyAuthentication());
+
+    int expiration = server.getConfiguration().getProfileCacheExpiryMinutes();
+    if (!server.getConfiguration().isCachePlayerProfileResultEnabled()) {
+      this.profileResultCache = null;
+    } else {
+      if (expiration <= 0) {
+        expiration = 1;
+      }
+      this.profileResultCache = Caffeine.newBuilder()
+          .expireAfterWrite(Duration.ofMinutes(expiration))
+          .maximumSize(10_000) // To ensure invalid sessions cannot flood cache
+          .build();
+    }
   }
 
   @Override
@@ -202,9 +219,22 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
       byte[] decryptedSharedSecret = decryptRsa(serverKeyPair, packet.getSharedSecret());
       String serverId = generateServerId(decryptedSharedSecret, serverKeyPair.getPublic());
 
+      String username = login.getUsername();
+      GameProfile cachedProfile = null;
+      if (profileResultCache != null) {
+        cachedProfile = profileResultCache.getIfPresent(username);
+      }
+
+      if (cachedProfile != null) {
+        mcConnection.enableEncryption(decryptedSharedSecret);
+        mcConnection.setActiveSessionHandler(StateRegistry.LOGIN,
+            new AuthSessionHandler(server, inbound, cachedProfile, true));
+        return true;
+      }
+
       String playerIp = ((InetSocketAddress) mcConnection.getRemoteAddress()).getHostString();
       String url = String.format(MOJANG_HASJOINED_URL,
-          urlFormParameterEscaper().escape(login.getUsername()), serverId);
+          urlFormParameterEscaper().escape(username), serverId);
 
       if (server.getConfiguration().shouldPreventClientProxyConnections()) {
         url += "&ip=" + urlFormParameterEscaper().escape(playerIp);
