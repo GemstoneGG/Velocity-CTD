@@ -97,7 +97,7 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Expose
   private final Commands commands;
   @Expose
-  private final Map<String, List<String>> commandAliases;
+  private final CommandAliases commandAliases;
   @Expose
   private final Advanced advanced;
   @Expose
@@ -139,7 +139,7 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Expose
   private Map<String, Integer> playerCaps;
 
-  private VelocityConfiguration(final Servers servers, final ForcedHosts forcedHosts, final Map<String, List<String>> commandAliases,
+  private VelocityConfiguration(final Servers servers, final ForcedHosts forcedHosts, final CommandAliases commandAliases,
                                 final Commands commands, final Advanced advanced, final Query query, final Metrics metrics, final Redis redis,
                                 final Queue queue) {
     this.servers = servers;
@@ -159,8 +159,7 @@ public final class VelocityConfiguration implements ProxyConfig {
                                 final PlayerInfoForwarding playerInfoForwardingMode, final byte[] forwardingSecret,
                                 final boolean onlineModeKickExistingPlayers, final PingPassthroughMode pingPassthrough,
                                 final boolean samplePlayersInPing, final boolean enablePlayerAddressLogging,
-                                final Servers servers, final ForcedHosts forcedHosts,
-                                final Map<String, List<String>> commandAliases,
+                                final Servers servers, final ForcedHosts forcedHosts, final CommandAliases commandAliases,
                                 final Commands commands, final Advanced advanced, final Query query,
                                 final Metrics metrics, final boolean forceKeyAuthentication,
                                 final boolean logPlayerConnections, final boolean logPlayerDisconnections,
@@ -446,7 +445,7 @@ public final class VelocityConfiguration implements ProxyConfig {
   }
 
   public Map<String, List<String>> getCommandAliases() {
-    return commandAliases;
+    return commandAliases.getAliases();
   }
 
   @Override
@@ -863,20 +862,6 @@ public final class VelocityConfiguration implements ProxyConfig {
         }
       }
 
-      final Map<String, List<String>> commandAliases = new HashMap<>();
-      if (commandAliasesConfig != null) {
-        for (UnmodifiableConfig.Entry entry : commandAliasesConfig.entrySet()) {
-          if (entry.getValue() instanceof List<?> list) {
-            List<String> aliases = list.stream().map(Object::toString).toList();
-            commandAliases.put(entry.getKey(), aliases);
-          } else if (entry.getValue() instanceof String str) {
-            commandAliases.put(entry.getKey(), List.of(str));
-          } else {
-            logger.warn("Invalid value in [command-aliases] for '{}': {}", entry.getKey(), entry.getValue());
-          }
-        }
-      }
-
       final Map<String, List<ServerLink>> links = new HashMap<>();
       if (serverLinksConfig != null) {
         for (CommentedConfig.Entry entry : serverLinksConfig.entrySet()) {
@@ -951,7 +936,7 @@ public final class VelocityConfiguration implements ProxyConfig {
               enablePlayerAddressLogging,
               new Servers(serversConfig),
               new ForcedHosts(forcedHostsConfig),
-              commandAliases,
+              new CommandAliases(commandAliasesConfig),
               new Commands(commandsConfig),
               new Advanced(advancedConfig),
               new Query(queryConfig),
@@ -1147,6 +1132,36 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", attemptConnectionOrder=" + attemptConnectionOrder
           + ", serverForwardingModes=" + serverForwardingModes
           + '}';
+    }
+  }
+
+  private static final class CommandAliases {
+    private final Map<String, List<String>> aliases;
+
+    private CommandAliases(final CommentedConfig config) {
+      Map<String, List<String>> parsed = new HashMap<>();
+      if (config != null) {
+        for (UnmodifiableConfig.Entry entry : config.entrySet()) {
+          Object value = entry.getValue();
+          if (value instanceof List<?> list) {
+            parsed.put(entry.getKey(), list.stream().map(Object::toString).toList());
+          } else if (value instanceof String str) {
+            parsed.put(entry.getKey(), List.of(str));
+          } else {
+            logger.warn("Invalid value in [command-aliases] for '{}': {}", entry.getKey(), value);
+          }
+        }
+      }
+      this.aliases = ImmutableMap.copyOf(parsed);
+    }
+
+    public Map<String, List<String>> getAliases() {
+      return aliases;
+    }
+
+    @Override
+    public String toString() {
+      return "CommandAliases{" + "aliases=" + aliases + '}';
     }
   }
 
