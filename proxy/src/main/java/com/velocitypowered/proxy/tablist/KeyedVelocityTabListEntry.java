@@ -25,6 +25,7 @@ import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.proxy.protocol.packet.LegacyPlayerListItemPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.RemoteChatSession;
 import java.util.Optional;
+import net.kyori.adventure.text.Component;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -40,8 +41,8 @@ public class KeyedVelocityTabListEntry implements TabListEntry {
   private @Nullable IdentifiedKey playerKey;
 
   KeyedVelocityTabListEntry(final KeyedVelocityTabList tabList, final GameProfile profile,
-                            final net.kyori.adventure.text.@Nullable Component displayName, final int latency, final int gameMode,
-                            @Nullable final IdentifiedKey playerKey) {
+                            final @Nullable Component displayName, final int latency,
+                            final int gameMode, @Nullable final IdentifiedKey playerKey) {
     this.tabList = tabList;
     this.profile = profile;
     this.displayName = displayName;
@@ -61,18 +62,18 @@ public class KeyedVelocityTabListEntry implements TabListEntry {
   }
 
   @Override
-  public Optional<net.kyori.adventure.text.Component> getDisplayNameComponent() {
+  public Optional<Component> getDisplayNameComponent() {
     return Optional.ofNullable(displayName);
   }
 
   @Override
-  public TabListEntry setDisplayName(final net.kyori.adventure.text.@Nullable Component displayName) {
+  public TabListEntry setDisplayName(final @Nullable Component displayName) {
     this.displayName = displayName;
     tabList.updateEntry(LegacyPlayerListItemPacket.UPDATE_DISPLAY_NAME, this);
     return this;
   }
 
-  void setDisplayNameInternal(final net.kyori.adventure.text.@Nullable Component displayName) {
+  void setDisplayNameInternal(final @Nullable Component displayName) {
     this.displayName = displayName;
   }
 

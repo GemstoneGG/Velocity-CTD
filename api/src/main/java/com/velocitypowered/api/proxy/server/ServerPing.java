@@ -30,7 +30,7 @@ public final class ServerPing {
 
   private final Version version;
   private final @Nullable Players players;
-  private final net.kyori.adventure.text.Component description;
+  private final Component description;
   private final @Nullable Favicon favicon;
   private final @Nullable ModInfo modinfo;
 
@@ -43,7 +43,7 @@ public final class ServerPing {
    * @param favicon the server's favicon, or {@code null} if not set
    */
   public ServerPing(final Version version, @Nullable final Players players,
-                    final net.kyori.adventure.text.Component description, @Nullable final Favicon favicon) {
+                    final Component description, @Nullable final Favicon favicon) {
     this(version, players, description, favicon, ModInfo.DEFAULT);
   }
 
@@ -57,7 +57,7 @@ public final class ServerPing {
    * @param modinfo the mod info for the server, or {@code null} if not present
    */
   public ServerPing(final Version version, @Nullable final Players players,
-                    final net.kyori.adventure.text.Component description, @Nullable final Favicon favicon,
+                    final Component description, @Nullable final Favicon favicon,
                     @Nullable final ModInfo modinfo) {
     this.version = Preconditions.checkNotNull(version, "version");
     this.players = players;
@@ -89,7 +89,7 @@ public final class ServerPing {
    *
    * @return the description component
    */
-  public net.kyori.adventure.text.Component getDescriptionComponent() {
+  public Component getDescriptionComponent() {
     return description;
   }
 
@@ -339,7 +339,7 @@ public final class ServerPing {
      * @param description Component to use as the description.
      * @return this builder, for chaining
      */
-    public Builder description(final net.kyori.adventure.text.Component description) {
+    public Builder description(final Component description) {
       this.description = Preconditions.checkNotNull(description, "description");
       return this;
     }

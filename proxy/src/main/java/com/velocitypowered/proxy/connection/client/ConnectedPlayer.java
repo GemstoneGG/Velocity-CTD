@@ -456,7 +456,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   @Override
-  public void sendActionBar(final net.kyori.adventure.text.@NonNull Component message) {
+  public void sendActionBar(final @NonNull Component message) {
     Component translated = translateMessage(message);
 
     ProtocolVersion playerVersion = getProtocolVersion();

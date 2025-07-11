@@ -13,6 +13,7 @@ import com.velocitypowered.api.event.annotation.AwaitingEvent;
 import com.velocitypowered.api.proxy.InboundConnection;
 import java.util.Optional;
 import java.util.UUID;
+import net.kyori.adventure.text.Component;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -125,10 +126,10 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
         Result.FORCE_OFFLINE, null);
 
     private final Result result;
-    private final net.kyori.adventure.text.Component reason;
+    private final Component reason;
 
     private PreLoginComponentResult(final Result result,
-                                    final net.kyori.adventure.text.@Nullable Component reason) {
+                                    final @Nullable Component reason) {
       this.result = result;
       this.reason = reason;
     }
@@ -141,9 +142,9 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
     /**
      * Gets the reason component shown to the player if the connection is denied.
      *
-     * @return the reason as a {@link net.kyori.adventure.text.Component}, or empty if not denied
+     * @return the reason as a {@link Component}, or empty if not denied
      */
-    public Optional<net.kyori.adventure.text.Component> getReasonComponent() {
+    public Optional<Component> getReasonComponent() {
       return Optional.ofNullable(reason);
     }
 
@@ -211,7 +212,7 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
      * @param reason the reason for disallowing the connection
      * @return a new result
      */
-    public static PreLoginComponentResult denied(final net.kyori.adventure.text.Component reason) {
+    public static PreLoginComponentResult denied(final Component reason) {
       Preconditions.checkNotNull(reason, "reason");
       return new PreLoginComponentResult(Result.DISALLOWED, reason);
     }

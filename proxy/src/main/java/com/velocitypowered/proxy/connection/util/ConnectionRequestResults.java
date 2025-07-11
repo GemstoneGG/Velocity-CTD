@@ -75,7 +75,7 @@ public final class ConnectionRequestResults {
   public static class Impl implements ConnectionRequestBuilder.Result {
 
     private final Status status;
-    private final @Nullable net.kyori.adventure.text.Component component;
+    private final @Nullable Component component;
     private final RegisteredServer attemptedConnection;
     private final boolean safe;
 
