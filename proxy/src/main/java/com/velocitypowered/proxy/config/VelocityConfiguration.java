@@ -1302,7 +1302,7 @@ public final class VelocityConfiguration implements ProxyConfig {
 
   private static final class Advanced {
     @Expose
-    private boolean cachePlayerProfileResult = true;
+    private boolean cachePlayerProfileResult = false;
     @Expose
     private int profileCacheExpiryMinutes = 1440;
     @Expose
@@ -1365,7 +1365,7 @@ public final class VelocityConfiguration implements ProxyConfig {
 
     private Advanced(final CommentedConfig config) {
       if (config != null) {
-        this.cachePlayerProfileResult = config.getOrElse("cache-player-profile-result", true);
+        this.cachePlayerProfileResult = config.getOrElse("cache-player-profile-result", false);
         this.profileCacheExpiryMinutes = config.getOrElse("cache-profile-expiry-minutes", 1440);
         this.compressionThreshold = config.getIntOrElse("compression-threshold", 256);
         this.compressionLevel = config.getIntOrElse("compression-level", -1);
