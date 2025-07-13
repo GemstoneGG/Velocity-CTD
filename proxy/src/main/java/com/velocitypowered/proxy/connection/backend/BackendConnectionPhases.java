@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@ public final class BackendConnectionPhases {
    * The backend connection is unknown at this time.
    */
   public static final BackendConnectionPhase UNKNOWN = new BackendConnectionPhase() {
+
     @Override
     public boolean consideredComplete() {
       return false;
@@ -60,6 +61,7 @@ public final class BackendConnectionPhases {
    * in-flight connection instead.
    */
   public static final BackendConnectionPhase IN_TRANSITION = new BackendConnectionPhase() {
+
     @Override
     public boolean consideredComplete() {
       return BackendConnectionPhase.super.consideredComplete();

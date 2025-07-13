@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -23,8 +23,19 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @AwaitingEvent
 public class ServerResourcePackRemoveEvent implements ResultedEvent<ResultedEvent.GenericResult> {
 
+  /**
+   * The result determining whether the resource pack removal should proceed.
+   */
   private GenericResult result;
+
+  /**
+   * The UUID of the resource pack to be removed, or {@code null} if all resource packs should be cleared.
+   */
   private final @MonotonicNonNull UUID packId;
+
+  /**
+   * The server attempting to remove the resource pack(s) from the player.
+   */
   private final ServerConnection serverConnection;
 
   /**
@@ -60,12 +71,12 @@ public class ServerResourcePackRemoveEvent implements ResultedEvent<ResultedEven
   }
 
   @Override
-  public GenericResult getResult() {
+  public final GenericResult getResult() {
     return this.result;
   }
 
   @Override
-  public void setResult(final GenericResult result) {
+  public final void setResult(final GenericResult result) {
     this.result = Preconditions.checkNotNull(result, "result");
   }
 }

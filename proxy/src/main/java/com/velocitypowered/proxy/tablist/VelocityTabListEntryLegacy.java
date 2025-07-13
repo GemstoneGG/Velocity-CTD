@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ public class VelocityTabListEntryLegacy extends KeyedVelocityTabListEntry {
   }
 
   @Override
-  public TabListEntry setDisplayName(@Nullable final Component displayName) {
+  public final TabListEntry setDisplayName(@Nullable final Component displayName) {
     getTabList().removeEntry(getProfile().getId()); // We have to remove first if updating
     setDisplayNameInternal(displayName);
     getTabList().addEntry(this);

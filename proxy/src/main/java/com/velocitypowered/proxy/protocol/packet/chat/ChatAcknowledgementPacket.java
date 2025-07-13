@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,39 +29,56 @@ import io.netty.buffer.ByteBuf;
  * a chat message from the server.
  */
 public class ChatAcknowledgementPacket implements MinecraftPacket {
+
+  /**
+   * The offset of the last message acknowledged by the client.
+   */
   int offset;
 
+  /**
+   * Constructs a {@code ChatAcknowledgementPacket} with a specific offset value.
+   *
+   * @param offset the acknowledgment offset
+   */
   public ChatAcknowledgementPacket(final int offset) {
     this.offset = offset;
   }
 
+  /**
+   * Constructs an empty {@code ChatAcknowledgementPacket} for decoding.
+   */
   public ChatAcknowledgementPacket() {
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                           final ProtocolVersion protocolVersion) {
     offset = ProtocolUtils.readVarInt(buf);
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-      final ProtocolVersion protocolVersion) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                           final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeVarInt(buf, offset);
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "ChatAcknowledgement{"
         + "offset=" + offset
         + '}';
   }
 
+  /**
+   * Returns the offset value carried in this packet.
+   *
+   * @return the message acknowledgment offset
+   */
   public int offset() {
     return offset;
   }

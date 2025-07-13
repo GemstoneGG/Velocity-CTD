@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,8 +39,21 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class VelocityTabListLegacy extends KeyedVelocityTabList {
 
+  /**
+   * A mapping from player names (as shown in tab list) to generated UUIDs,
+   * used for identifying and updating legacy 1.7 tab list entries.
+   *
+   * <p>Legacy versions (pre-1.8) do not provide UUIDs in tab packets, so this map is
+   * used to simulate identity tracking.</p>
+   */
   private final Map<String, UUID> nameMapping = new ConcurrentHashMap<>();
 
+  /**
+   * Constructs a new legacy 1.7-compatible tab list implementation.
+   *
+   * @param player the connected player this tab list is for
+   * @param proxyServer the proxy server instance
+   */
   public VelocityTabListLegacy(final ConnectedPlayer player, final ProxyServer proxyServer) {
     super(player, proxyServer);
   }
@@ -55,36 +68,37 @@ public class VelocityTabListLegacy extends KeyedVelocityTabList {
   }
 
   @Override
-  public void addEntry(final TabListEntry entry) {
+  public final void addEntry(final TabListEntry entry) {
     super.addEntry(entry);
     nameMapping.put(entry.getProfile().getName(), entry.getProfile().getId());
   }
 
   @Override
-  public Optional<TabListEntry> removeEntry(final UUID uuid) {
+  public final Optional<TabListEntry> removeEntry(final UUID uuid) {
     Optional<TabListEntry> entry = super.removeEntry(uuid);
     entry.map(TabListEntry::getProfile).map(GameProfile::getName).ifPresent(nameMapping::remove);
     return entry;
   }
 
   @Override
-  public void clearAll() {
+  public final void clearAll() {
     for (TabListEntry value : entries.values()) {
       connection.delayedWrite(new LegacyPlayerListItemPacket(
           LegacyPlayerListItemPacket.REMOVE_PLAYER,
           Collections.singletonList(LegacyPlayerListItemPacket.Item.from(value))));
     }
+
     clearAllSilent();
   }
 
   @Override
-  public void clearAllSilent() {
+  public final void clearAllSilent() {
     entries.clear();
     nameMapping.clear();
   }
 
   @Override
-  public void processLegacy(final LegacyPlayerListItemPacket packet) {
+  public final void processLegacy(final LegacyPlayerListItemPacket packet) {
     Item item = packet.getItems().get(0); // Only one item per packet in 1.7
 
     switch (packet.getAction()) {
@@ -117,7 +131,7 @@ public class VelocityTabListLegacy extends KeyedVelocityTabList {
   }
 
   @Override
-  void updateEntry(final int action, final TabListEntry entry) {
+  final void updateEntry(final int action, final TabListEntry entry) {
     if (entries.containsKey(entry.getProfile().getId())) {
       switch (action) {
         // Add here because we removed beforehand
@@ -133,20 +147,20 @@ public class VelocityTabListLegacy extends KeyedVelocityTabList {
   }
 
   @Override
-  public TabListEntry buildEntry(final GameProfile profile,
+  public final TabListEntry buildEntry(final GameProfile profile,
                                  final @Nullable Component displayName,
                                  final int latency, final int gameMode, @Nullable final IdentifiedKey key) {
     return new VelocityTabListEntryLegacy(this, profile, displayName, latency, gameMode);
   }
 
   @Override
-  public TabListEntry buildEntry(final GameProfile profile, @Nullable final Component displayName, final int latency,
+  public final TabListEntry buildEntry(final GameProfile profile, @Nullable final Component displayName, final int latency,
                                  final int gameMode, @Nullable final ChatSession chatSession, final boolean listed) {
     return new VelocityTabListEntryLegacy(this, profile, displayName, latency, gameMode);
   }
 
   @Override
-  public TabListEntry buildEntry(final GameProfile profile, @Nullable final Component displayName, final int latency,
+  public final TabListEntry buildEntry(final GameProfile profile, @Nullable final Component displayName, final int latency,
                                  final int gameMode, @Nullable final ChatSession chatSession, final boolean listed, final int listOrder,
                                  final boolean showHat) {
     return new VelocityTabListEntryLegacy(this, profile, displayName, latency, gameMode);

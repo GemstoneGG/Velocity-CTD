@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,22 +49,22 @@ import java.util.function.Predicate;
  */
 public class VelocityArgumentCommandNode<S, T> extends ArgumentCommandNode<S, String> {
 
+  /**
+   * The actual {@link ArgumentType} used for parsing, distinct from what is exposed to the client.
+   */
   private final ArgumentType<T> type;
 
-  VelocityArgumentCommandNode(
-      final String name, final ArgumentType<T> type, final Command<S> command,
-      final Predicate<S> requirement,
-      final BiPredicate<CommandContextBuilder<S>, ImmutableStringReader> contextRequirement,
-      final CommandNode<S> redirect, final RedirectModifier<S> modifier, final boolean forks,
-      final SuggestionProvider<S> customSuggestions) {
-    super(name, StringArgumentType.greedyString(), command, requirement, contextRequirement,
-        redirect, modifier, forks, customSuggestions);
+  VelocityArgumentCommandNode(final String name, final ArgumentType<T> type, final Command<S> command,
+                              final Predicate<S> requirement,
+                              final BiPredicate<CommandContextBuilder<S>, ImmutableStringReader> contextRequirement,
+                              final CommandNode<S> redirect, final RedirectModifier<S> modifier, final boolean forks,
+                              final SuggestionProvider<S> customSuggestions) {
+    super(name, StringArgumentType.greedyString(), command, requirement, contextRequirement, redirect, modifier, forks, customSuggestions);
     this.type = Preconditions.checkNotNull(type, "type");
   }
 
   @Override
-  public void parse(final StringReader reader, final CommandContextBuilder<S> contextBuilder)
-      throws CommandSyntaxException {
+  public final void parse(final StringReader reader, final CommandContextBuilder<S> contextBuilder) throws CommandSyntaxException {
     // Same as "super", except we use the rich ArgumentType
     final int start = reader.getCursor();
     final T result = this.type.parse(reader);
@@ -79,7 +79,7 @@ public class VelocityArgumentCommandNode<S, T> extends ArgumentCommandNode<S, St
   }
 
   @Override
-  public CompletableFuture<Suggestions> listSuggestions(
+  public final CompletableFuture<Suggestions> listSuggestions(
       final CommandContext<S> context, final SuggestionsBuilder builder)
       throws CommandSyntaxException {
     if (getCustomSuggestions() == null) {
@@ -89,38 +89,52 @@ public class VelocityArgumentCommandNode<S, T> extends ArgumentCommandNode<S, St
   }
 
   @Override
-  public RequiredArgumentBuilder<S, String> createBuilder() {
+  public final RequiredArgumentBuilder<S, String> createBuilder() {
     throw new UnsupportedOperationException();
   }
 
-  public VelocityArgumentCommandNode<S, T> withCommand(Command<S> command) {
+  /**
+   * Creates a copy of this node with a new {@link Command} instance.
+   *
+   * @param command the new command to associate with the node
+   * @return a new {@link VelocityArgumentCommandNode} with the updated command
+   */
+  public VelocityArgumentCommandNode<S, T> withCommand(final Command<S> command) {
     return new VelocityArgumentCommandNode<>(getName(), type, command, getRequirement(),
         getContextRequirement(), getRedirect(), getRedirectModifier(), isFork(), getCustomSuggestions());
   }
 
-  public VelocityArgumentCommandNode<S, T> withRedirect(CommandNode<S> target) {
+  /**
+   * Creates a copy of this node with a new redirection target.
+   *
+   * @param target the new node to redirect to
+   * @return a new {@link VelocityArgumentCommandNode} with the updated redirect target
+   */
+  public VelocityArgumentCommandNode<S, T> withRedirect(final CommandNode<S> target) {
     return new VelocityArgumentCommandNode<>(getName(), type, getCommand(), getRequirement(),
         getContextRequirement(), target, getRedirectModifier(), isFork(), getCustomSuggestions());
   }
 
   @Override
-  public boolean isValidInput(final String input) {
+  public final boolean isValidInput(final String input) {
     return true;
   }
 
   @Override
-  public void addChild(final CommandNode<S> node) {
+  public final void addChild(final CommandNode<S> node) {
     throw new UnsupportedOperationException("Cannot add children to a greedy node");
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public final boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
+
     if (!(o instanceof final VelocityArgumentCommandNode<?, ?> that)) {
       return false;
     }
+
     if (!super.equals(o)) {
       return false;
     }
@@ -129,19 +143,19 @@ public class VelocityArgumentCommandNode<S, T> extends ArgumentCommandNode<S, St
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     int result = super.hashCode();
     result = 31 * result + this.type.hashCode();
     return result;
   }
 
   @Override
-  public Collection<String> getExamples() {
+  public final Collection<String> getExamples() {
     return this.type.getExamples();
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "<argument " + this.getName() + ":" + this.type + ">";
   }
 }

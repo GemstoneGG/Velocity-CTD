@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,12 +43,20 @@ public enum ChatType {
    */
   GAME_INFO((byte) 2);
 
+  /**
+   * The raw byte value of the chat type, used in legacy protocol serialization.
+   */
   private final byte raw;
 
   ChatType(final byte raw) {
     this.raw = raw;
   }
 
+  /**
+   * Returns the protocol-specific byte ID for this chat type.
+   *
+   * @return the raw byte value of the chat type
+   */
   public byte getId() {
     return raw;
   }

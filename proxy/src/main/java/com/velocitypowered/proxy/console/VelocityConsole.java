@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,24 +55,45 @@ import org.jline.reader.LineReaderBuilder;
 @SuppressWarnings("UnstableApiUsage")
 public final class VelocityConsole extends SimpleTerminalConsole implements ConsoleCommandSource {
 
+  /**
+   * The logger used for standard logging output.
+   */
   private static final Logger logger = LogManager.getLogger(VelocityConsole.class, new ParameterizedMessageFactory());
-  private static final ComponentLogger componentLogger = ComponentLogger
-          .logger(VelocityConsole.class);
 
+  /**
+   * The Adventure component logger for rich console output.
+   */
+  private static final ComponentLogger componentLogger = ComponentLogger.logger(VelocityConsole.class);
+
+  /**
+   * The Velocity server instance backing this console.
+   */
   private final VelocityServer server;
+
+  /**
+   * The permission function applied to the console. Defaults to {@link PermissionFunction#ALWAYS_TRUE}.
+   */
   private PermissionFunction permissionFunction = ALWAYS_TRUE;
 
+  /**
+   * The pointer registry for this console instance.
+   */
   private final @NotNull Pointers pointers = ConsoleCommandSource.super.pointers().toBuilder()
       .withDynamic(PermissionChecker.POINTER, this::getPermissionChecker)
-      .withDynamic(Identity.LOCALE, () -> ClosestLocaleMatcher.INSTANCE
-          .lookupClosest(Locale.getDefault()))
+      .withDynamic(Identity.LOCALE, () -> ClosestLocaleMatcher.INSTANCE.lookupClosest(Locale.getDefault()))
       .withStatic(FacetPointers.TYPE, Type.CONSOLE)
       .build();
 
+  /**
+   * Constructs a new {@link VelocityConsole} instance.
+   *
+   * @param server the Velocity server
+   */
   public VelocityConsole(final VelocityServer server) {
     this.server = server;
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public void sendMessage(@NonNull final Identity identity, @NonNull final Component message,
                           @NonNull final MessageType messageType) {

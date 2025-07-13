@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,23 +34,26 @@ import net.kyori.adventure.text.Component;
  */
 public class LegacyChatBuilder extends ChatBuilderV2 {
 
+  /**
+   * Constructs a new {@code LegacyChatBuilder} for the specified protocol version.
+   *
+   * @param version the protocol version targeted by this builder
+   */
   public LegacyChatBuilder(final ProtocolVersion version) {
     super(version);
   }
 
   @Override
-  public MinecraftPacket toClient() {
-    // This is temporary
-    UUID identity = sender == null ? (senderIdentity == null ? Identity.nil().uuid()
-        : senderIdentity.uuid()) : sender.getUniqueId();
+  public final MinecraftPacket toClient() {
+    // This is temporary (this also has been here for a good while)
+    UUID identity = sender == null ? (senderIdentity == null ? Identity.nil().uuid() : senderIdentity.uuid()) : sender.getUniqueId();
     Component msg = component == null ? Component.text(message) : component;
 
-    return new LegacyChatPacket(ProtocolUtils.getJsonChatSerializer(version).serialize(msg), type.getId(),
-        identity);
+    return new LegacyChatPacket(ProtocolUtils.getJsonChatSerializer(version).serialize(msg), type.getId(), identity);
   }
 
   @Override
-  public MinecraftPacket toServer() {
+  public final MinecraftPacket toServer() {
     LegacyChatPacket chat = new LegacyChatPacket();
     chat.setMessage(message);
     return chat;

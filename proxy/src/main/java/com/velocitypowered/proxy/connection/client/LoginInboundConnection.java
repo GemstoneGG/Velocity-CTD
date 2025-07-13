@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,15 +44,45 @@ import space.vectrix.flare.fastutil.Int2ObjectSyncMap;
  */
 public class LoginInboundConnection implements LoginPhaseConnection, KeyIdentifiable {
 
+  /**
+   * Atomic updater used to generate unique plugin message IDs.
+   */
   private static final AtomicIntegerFieldUpdater<LoginInboundConnection> SEQUENCE_UPDATER =
       AtomicIntegerFieldUpdater.newUpdater(LoginInboundConnection.class, "sequenceCounter");
 
+  /**
+   * The connection delegate used for low-level access to connection state and networking.
+   */
   private final InitialInboundConnection delegate;
+
+  /**
+   * Stores outstanding plugin message responses by ID, waiting for client replies.
+   */
   private final Int2ObjectMap<MessageConsumer> outstandingResponses;
+
+  /**
+   * Sequence counter for assigning unique plugin message IDs.
+   */
   private volatile int sequenceCounter;
+
+  /**
+   * Queue of login plugin messages to be sent once the login event has fired.
+   */
   private final Queue<LoginPluginMessagePacket> loginMessagesToSend;
+
+  /**
+   * Task to run once all login plugin messages have been responded to.
+   */
   private volatile Runnable onAllMessagesHandled;
+
+  /**
+   * Whether the login event has already been fired.
+   */
   private volatile boolean loginEventFired;
+
+  /**
+   * The identified key used for cryptographic identity verification.
+   */
   private @MonotonicNonNull IdentifiedKey playerKey;
 
   LoginInboundConnection(final InitialInboundConnection delegate) {
@@ -62,42 +92,45 @@ public class LoginInboundConnection implements LoginPhaseConnection, KeyIdentifi
   }
 
   @Override
-  public InetSocketAddress getRemoteAddress() {
+  public final InetSocketAddress getRemoteAddress() {
     return delegate.getRemoteAddress();
   }
 
   @Override
-  public Optional<InetSocketAddress> getVirtualHost() {
+  public final Optional<InetSocketAddress> getVirtualHost() {
     return delegate.getVirtualHost();
   }
 
   @Override
-  public Optional<String> getRawVirtualHost() {
+  public final Optional<String> getRawVirtualHost() {
     return delegate.getRawVirtualHost();
   }
 
   @Override
-  public boolean isActive() {
+  public final boolean isActive() {
     return delegate.isActive();
   }
 
   @Override
-  public ProtocolVersion getProtocolVersion() {
+  public final ProtocolVersion getProtocolVersion() {
     return delegate.getProtocolVersion();
   }
 
   @Override
-  public void sendLoginPluginMessage(final ChannelIdentifier identifier, final byte[] contents,
+  public final void sendLoginPluginMessage(final ChannelIdentifier identifier, final byte[] contents,
                                      final MessageConsumer consumer) {
     if (identifier == null) {
       throw new NullPointerException("identifier");
     }
+
     if (contents == null) {
       throw new NullPointerException("contents");
     }
+
     if (consumer == null) {
       throw new NullPointerException("consumer");
     }
+
     if (delegate.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_13)) {
       throw new IllegalStateException("Login plugin messages can only be sent to clients running "
           + "Minecraft 1.13 and above");
@@ -125,18 +158,17 @@ public class LoginInboundConnection implements LoginPhaseConnection, KeyIdentifi
     this.cleanup();
   }
 
-  void cleanup() {
+  final void cleanup() {
     this.loginMessagesToSend.clear();
     this.outstandingResponses.clear();
     this.onAllMessagesHandled = null;
   }
 
-  void handleLoginPluginResponse(final LoginPluginResponsePacket response) {
+  final void handleLoginPluginResponse(final LoginPluginResponsePacket response) {
     final MessageConsumer consumer = this.outstandingResponses.remove(response.getId());
     if (consumer != null) {
       try {
-        consumer.onMessageResponse(response.isSuccess() ? ByteBufUtil.getBytes(response.content())
-            : null);
+        consumer.onMessageResponse(response.isSuccess() ? ByteBufUtil.getBytes(response.content()) : null);
       } finally {
         final Runnable onAllMessagesHandled = this.onAllMessagesHandled;
         if (this.outstandingResponses.isEmpty() && onAllMessagesHandled != null) {
@@ -146,7 +178,7 @@ public class LoginInboundConnection implements LoginPhaseConnection, KeyIdentifi
     }
   }
 
-  void loginEventFired(final Runnable onAllMessagesHandled) {
+  final void loginEventFired(final Runnable onAllMessagesHandled) {
     this.loginEventFired = true;
     this.onAllMessagesHandled = onAllMessagesHandled;
     if (!this.loginMessagesToSend.isEmpty()) {
@@ -154,32 +186,38 @@ public class LoginInboundConnection implements LoginPhaseConnection, KeyIdentifi
       while ((message = this.loginMessagesToSend.poll()) != null) {
         this.delegate.getConnection().delayedWrite(message);
       }
+
       this.delegate.getConnection().flush();
     } else {
       onAllMessagesHandled.run();
     }
   }
 
-  MinecraftConnection delegatedConnection() {
+  final MinecraftConnection delegatedConnection() {
     return delegate.getConnection();
   }
 
+  /**
+   * Sets the player's {@link IdentifiedKey} used for secure identity validation.
+   *
+   * @param playerKey the player's identified key
+   */
   public void setPlayerKey(final IdentifiedKey playerKey) {
     this.playerKey = playerKey;
   }
 
   @Override
-  public IdentifiedKey getIdentifiedKey() {
+  public final IdentifiedKey getIdentifiedKey() {
     return playerKey;
   }
 
   @Override
-  public ProtocolState getProtocolState() {
+  public final ProtocolState getProtocolState() {
     return delegate.getProtocolState();
   }
 
   @Override
-  public HandshakeIntent getHandshakeIntent() {
+  public final HandshakeIntent getHandshakeIntent() {
     return delegate.getHandshakeIntent();
   }
 }

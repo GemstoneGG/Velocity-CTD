@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,14 +44,25 @@ public final class VelocityArgumentBuilder<S, T>
    * @return a builder
    */
   public static <S, T> VelocityArgumentBuilder<S, T> velocityArgument(final String name,
-      final ArgumentType<T> type) {
+                                                                      final ArgumentType<T> type) {
     Preconditions.checkNotNull(name, "name");
     Preconditions.checkNotNull(type, "type");
     return new VelocityArgumentBuilder<>(name, type);
   }
 
+  /**
+   * The name of the argument node.
+   */
   private final String name;
+
+  /**
+   * The Brigadier {@link ArgumentType} used to parse the argument.
+   */
   private final ArgumentType<T> type;
+
+  /**
+   * The suggestion provider used for tab completion, or {@code null} if not set.
+   */
   private SuggestionProvider<S> suggestionsProvider = null;
 
   private VelocityArgumentBuilder(final String name, final ArgumentType<T> type) {
@@ -59,6 +70,12 @@ public final class VelocityArgumentBuilder<S, T>
     this.type = type;
   }
 
+  /**
+   * Sets the {@link SuggestionProvider} used for this argument node.
+   *
+   * @param provider the suggestion provider, or {@code null} to disable suggestions
+   * @return this builder, for chaining
+   */
   public VelocityArgumentBuilder<S, T> suggests(final @Nullable SuggestionProvider<S> provider) {
     this.suggestionsProvider = provider;
     return this;

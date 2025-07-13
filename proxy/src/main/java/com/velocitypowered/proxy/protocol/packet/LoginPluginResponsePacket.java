@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,9 +32,23 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
  */
 public class LoginPluginResponsePacket extends DeferredByteBufHolder implements MinecraftPacket {
 
+  /**
+   * The ID of the plugin message being responded to.
+   * This value is used to correlate responses with their original plugin requests.
+   */
   private int id;
+
+  /**
+   * Indicates whether the plugin message was successfully handled by the client.
+   */
   private boolean success;
 
+  /**
+   * Constructs an empty {@code LoginPluginResponsePacket} with an empty buffer.
+   *
+   * <p>This constructor is typically used during decoding. The buffer content and other fields
+   * will be set via {@link #decode(ByteBuf, ProtocolUtils.Direction, ProtocolVersion)}.</p>
+   */
   public LoginPluginResponsePacket() {
     super(Unpooled.EMPTY_BUFFER);
   }
@@ -52,18 +66,38 @@ public class LoginPluginResponsePacket extends DeferredByteBufHolder implements 
     this.success = success;
   }
 
+  /**
+   * Retrieves the plugin message ID associated with this response.
+   *
+   * @return the plugin message ID
+   */
   public int getId() {
     return id;
   }
 
+  /**
+   * Sets the plugin message ID for this response.
+   *
+   * @param id the plugin message ID to set
+   */
   public void setId(final int id) {
     this.id = id;
   }
 
+  /**
+   * Returns whether the plugin message response indicates success.
+   *
+   * @return {@code true} if the plugin message was successful, {@code false} otherwise
+   */
   public boolean isSuccess() {
     return success;
   }
 
+  /**
+   * Sets whether the plugin message was successful.
+   *
+   * @param success {@code true} if the plugin message was successful, {@code false} otherwise
+   */
   public void setSuccess(final boolean success) {
     this.success = success;
   }
@@ -78,7 +112,7 @@ public class LoginPluginResponsePacket extends DeferredByteBufHolder implements 
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     this.id = ProtocolUtils.readVarInt(buf);
     this.success = buf.readBoolean();
     if (buf.isReadable()) {
@@ -89,14 +123,14 @@ public class LoginPluginResponsePacket extends DeferredByteBufHolder implements 
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     ProtocolUtils.writeVarInt(buf, id);
     buf.writeBoolean(success);
     buf.writeBytes(content());
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

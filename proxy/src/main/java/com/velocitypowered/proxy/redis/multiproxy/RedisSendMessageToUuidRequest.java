@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,8 +32,20 @@ import org.slf4j.LoggerFactory;
  * @param componentJson the message to send, encoded as JSON
  */
 public record RedisSendMessageToUuidRequest(UUID player, String componentJson) implements RedisPacket {
+
+  /**
+   * The SLF4J logger instance for reporting deserialization issues.
+   */
   private static final Logger logger = LoggerFactory.getLogger(RedisSendMessage.class);
+
+  /**
+   * The shared Gson serializer used for encoding and decoding {@link Component} objects.
+   */
   private static final GsonComponentSerializer SERIALIZER = GsonComponentSerializer.gson();
+
+  /**
+   * The unique Redis packet ID that identifies this packet type.
+   */
   public static final String ID = "send-message-uuid";
 
   /**

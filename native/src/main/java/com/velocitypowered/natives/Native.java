@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,5 +23,14 @@ import com.velocitypowered.natives.util.BufferPreference;
  * Generic interface for any Velocity native.
  */
 public interface Native {
+
+  /**
+   * Returns the preferred {@link BufferPreference} for this native implementation.
+   *
+   * <p>This informs the caller whether the native prefers direct or heap-based buffers
+   * when interfacing with Netty or native memory operations.</p>
+   *
+   * @return the preferred buffer type
+   */
   BufferPreference preferredBufferType();
 }

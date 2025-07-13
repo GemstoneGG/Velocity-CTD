@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,19 +35,24 @@ import net.kyori.adventure.text.Component;
  */
 public class SessionChatBuilder extends ChatBuilderV2 {
 
+  /**
+   * Constructs a new {@code SessionChatBuilder} for the specified protocol version.
+   *
+   * @param version the protocol version this builder targets
+   */
   public SessionChatBuilder(final ProtocolVersion version) {
     super(version);
   }
 
   @Override
-  public MinecraftPacket toClient() {
-    // This is temporary
+  public final MinecraftPacket toClient() {
+    // This is temporary (once again likely not too temporary)
     Component msg = component == null ? Component.text(message) : component;
     return new SystemChatPacket(new ComponentHolder(version, msg), type == ChatType.CHAT ? ChatType.SYSTEM : type);
   }
 
   @Override
-  public MinecraftPacket toServer() {
+  public final MinecraftPacket toServer() {
     LastSeenMessages lastSeenMessages = this.lastSeenMessages != null ? this.lastSeenMessages : new LastSeenMessages();
     if (message.startsWith("/")) {
       if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {

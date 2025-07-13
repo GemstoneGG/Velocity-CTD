@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,38 +33,59 @@ import net.kyori.adventure.key.Key;
  */
 public class ActiveFeaturesPacket implements MinecraftPacket {
 
+  /**
+   * The list of active feature identifiers, sent as {@link Key} entries.
+   */
   private Key[] activeFeatures;
 
+  /**
+   * Constructs an {@code ActiveFeaturesPacket} with a specific set of feature keys.
+   *
+   * @param activeFeatures the array of enabled feature keys
+   */
   public ActiveFeaturesPacket(final Key[] activeFeatures) {
     this.activeFeatures = activeFeatures;
   }
 
+  /**
+   * Constructs an empty {@code ActiveFeaturesPacket}, typically for decoding.
+   */
   public ActiveFeaturesPacket() {
     this.activeFeatures = new Key[0];
   }
 
+  /**
+   * Updates the list of active features in this packet.
+   *
+   * @param activeFeatures the new feature keys to set
+   */
   public void setActiveFeatures(final Key[] activeFeatures) {
     this.activeFeatures = activeFeatures;
   }
 
+  /**
+   * Returns the array of feature keys currently declared as active.
+   *
+   * @return the active feature list
+   */
   public Key[] getActiveFeatures() {
     return activeFeatures;
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                           final ProtocolVersion protocolVersion) {
     activeFeatures = ProtocolUtils.readKeyArray(buf);
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                           final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeKeyArray(buf, activeFeatures);
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

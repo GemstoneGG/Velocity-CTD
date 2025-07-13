@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ import static java.util.Objects.requireNonNull;
  * @since 3.3.0
  */
 public final class VelocityProperties {
+
   /**
    * Attempts to read a system property as boolean.
    *
@@ -41,6 +42,7 @@ public final class VelocityProperties {
     if (value == null) {
       return defaultValue;
     }
+
     return Boolean.parseBoolean(value);
   }
 

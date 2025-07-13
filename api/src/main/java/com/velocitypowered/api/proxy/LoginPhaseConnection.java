@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -26,8 +26,7 @@ public interface LoginPhaseConnection extends InboundConnection, KeyIdentifiable
    * @param contents the message to send
    * @param consumer the consumer that will respond to the message
    */
-  void sendLoginPluginMessage(ChannelIdentifier identifier, byte[] contents,
-      MessageConsumer consumer);
+  void sendLoginPluginMessage(ChannelIdentifier identifier, byte[] contents, MessageConsumer consumer);
 
   /**
    * Consumes the message.

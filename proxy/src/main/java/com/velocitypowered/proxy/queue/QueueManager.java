@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,16 +36,49 @@ import net.kyori.adventure.text.Component;
  * The interface (abstract class) that will provide methods for the Queue Manager implementations.
  */
 public abstract class QueueManager {
+
+  /**
+   * The proxy server instance that this queue manager is operating on.
+   */
   protected final VelocityServer server;
+
+  /**
+   * The active queue configuration retrieved from the proxy configuration file.
+   */
   protected VelocityConfiguration.Queue config;
+
+  /**
+   * The scheduled task responsible for sending actionbar messages to players in queues
+   * at fixed intervals.
+   */
   protected ScheduledTask tickMessageTaskHandle;
+
+  /**
+   * The scheduled task responsible for pinging backend servers to update their online status
+   * and determine if players can be sent to them.
+   */
   protected ScheduledTask tickPingingBackendTaskHandle;
 
+  /**
+   * Indicates whether the queue system is enabled. This is determined from the loaded configuration.
+   */
   private final boolean enabled;
 
+  /**
+   * The cache retriever used to access queue data. This may be a Redis-backed or in-memory implementation.
+   */
   protected QueueCacheRetriever cache = null;
 
+  /**
+   * Tracks the timestamp (in milliseconds) of when each server was last marked as ONLINE.
+   * Used to implement queue delay logic for transitioning servers from WAITING to ONLINE.
+   */
   protected static final Map<String, Long> LAST_TURNED_ONLINE_TIME = new ConcurrentHashMap<>();
+
+  /**
+   * The scheduled task that periodically attempts to send players from queues
+   * to their destination servers, respecting full, paused, or offline states.
+   */
   private ScheduledTask sendingTaskHandle = null;
 
   /**
@@ -160,8 +193,8 @@ public abstract class QueueManager {
     if (timeout == -1) {
       removeFromAll(player);
     } else {
-      this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, ()
-          -> removeFromAll(player)).delay(getTimeoutInSeconds(player), TimeUnit.SECONDS).schedule();
+      this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () ->
+              removeFromAll(player)).delay(getTimeoutInSeconds(player), TimeUnit.SECONDS).schedule();
     }
   }
 
@@ -278,6 +311,7 @@ public abstract class QueueManager {
         return i;
       }
     }
+
     return -1;
   }
 
@@ -347,6 +381,7 @@ public abstract class QueueManager {
     for (ServerQueueStatus server : this.cache.getAll()) {
       server.reloadConfig();
     }
+
     restartTasks();
   }
 

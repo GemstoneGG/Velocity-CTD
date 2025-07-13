@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,11 +33,34 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class KeyedVelocityTabListEntry implements TabListEntry {
 
+  /**
+   * The parent tab list this entry belongs to.
+   */
   private final KeyedVelocityTabList tabList;
+
+  /**
+   * The game profile (UUID and name) associated with this entry.
+   */
   private final GameProfile profile;
-  private net.kyori.adventure.text.Component displayName;
+
+  /**
+   * The display name shown in the tab list (nullable).
+   */
+  private Component displayName;
+
+  /**
+   * The latency (ping) value shown in the tab list.
+   */
   private int latency;
+
+  /**
+   * The player's current game mode (e.g. 0 = survival).
+   */
   private int gameMode;
+
+  /**
+   * The player's public identity key used for signed chat, or {@code null} if absent.
+   */
   private @Nullable IdentifiedKey playerKey;
 
   KeyedVelocityTabListEntry(final KeyedVelocityTabList tabList, final GameProfile profile,
@@ -52,20 +75,26 @@ public class KeyedVelocityTabListEntry implements TabListEntry {
   }
 
   @Override
-  public TabList getTabList() {
+  public final TabList getTabList() {
     return tabList;
   }
 
   @Override
-  public GameProfile getProfile() {
+  public final GameProfile getProfile() {
     return profile;
   }
 
   @Override
-  public Optional<Component> getDisplayNameComponent() {
+  public final Optional<Component> getDisplayNameComponent() {
     return Optional.ofNullable(displayName);
   }
 
+  /**
+   * Sets the display name component for this tab list entry and triggers an update to the client.
+   *
+   * @param displayName the new display name to set, or {@code null} to clear
+   * @return this entry instance for chaining
+   */
   @Override
   public TabListEntry setDisplayName(final @Nullable Component displayName) {
     this.displayName = displayName;
@@ -73,52 +102,80 @@ public class KeyedVelocityTabListEntry implements TabListEntry {
     return this;
   }
 
+  /**
+   * Sets the display name without sending an update packet.
+   *
+   * <p>This is used when applying updates received from a remote source.</p>
+   *
+   * @param displayName the new display name to set
+   */
   void setDisplayNameInternal(final @Nullable Component displayName) {
     this.displayName = displayName;
   }
 
   @Override
-  public int getLatency() {
+  public final int getLatency() {
     return latency;
   }
 
   @Override
-  public TabListEntry setLatency(final int latency) {
+  public final TabListEntry setLatency(final int latency) {
     this.latency = latency;
     tabList.updateEntry(LegacyPlayerListItemPacket.UPDATE_LATENCY, this);
     return this;
   }
 
+  /**
+   * Sets the latency (ping) value without notifying the client.
+   *
+   * <p>Used internally for applying packet updates.</p>
+   *
+   * @param latency the new latency value
+   */
   void setLatencyInternal(final int latency) {
     this.latency = latency;
   }
 
   @Override
-  public int getGameMode() {
+  public final int getGameMode() {
     return gameMode;
   }
 
   @Override
-  public TabListEntry setGameMode(final int gameMode) {
+  public final TabListEntry setGameMode(final int gameMode) {
     this.gameMode = gameMode;
     tabList.updateEntry(LegacyPlayerListItemPacket.UPDATE_GAMEMODE, this);
     return this;
   }
 
+  /**
+   * Sets the game mode without sending an update packet.
+   *
+   * <p>Used internally for deserialization or legacy packet updates.</p>
+   *
+   * @param gameMode the new game mode value
+   */
   void setGameModeInternal(final int gameMode) {
     this.gameMode = gameMode;
   }
 
   @Override
-  public @Nullable ChatSession getChatSession() {
+  public final ChatSession getChatSession() {
     return new RemoteChatSession(null, this.playerKey);
   }
 
   @Override
-  public IdentifiedKey getIdentifiedKey() {
+  public final IdentifiedKey getIdentifiedKey() {
     return playerKey;
   }
 
+  /**
+   * Sets the player's identity key without triggering a network update.
+   *
+   * <p>This is typically used during tab list entry reconstruction or legacy packet handling.</p>
+   *
+   * @param playerKey the new {@link IdentifiedKey} to assign
+   */
   void setPlayerKeyInternal(final IdentifiedKey playerKey) {
     this.playerKey = playerKey;
   }

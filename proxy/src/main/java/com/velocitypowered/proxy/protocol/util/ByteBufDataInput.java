@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,9 @@ import org.jetbrains.annotations.NotNull;
  */
 public class ByteBufDataInput implements ByteArrayDataInput {
 
+  /**
+   * The underlying {@link ByteBuf} being read from.
+   */
   private final ByteBuf in;
 
   /**
@@ -41,83 +44,88 @@ public class ByteBufDataInput implements ByteArrayDataInput {
     this.in = buf;
   }
 
+  /**
+   * Returns the underlying {@link ByteBuf} that this wrapper reads from.
+   *
+   * @return the wrapped buffer
+   */
   public ByteBuf unwrap() {
     return in;
   }
 
   @Override
-  public void readFully(final byte @NotNull [] b) {
+  public final void readFully(final byte @NotNull [] b) {
     in.readBytes(b);
   }
 
   @Override
-  public void readFully(final byte @NotNull [] b, final int off, final int len) {
+  public final void readFully(final byte @NotNull [] b, final int off, final int len) {
     in.readBytes(b, off, len);
   }
 
   @Override
-  public int skipBytes(final int n) {
+  public final int skipBytes(final int n) {
     in.skipBytes(n);
     return n;
   }
 
   @Override
-  public boolean readBoolean() {
+  public final boolean readBoolean() {
     return in.readBoolean();
   }
 
   @Override
-  public byte readByte() {
+  public final byte readByte() {
     return in.readByte();
   }
 
   @Override
-  public int readUnsignedByte() {
+  public final int readUnsignedByte() {
     return in.readUnsignedByte() & 0xFF;
   }
 
   @Override
-  public short readShort() {
+  public final short readShort() {
     return in.readShort();
   }
 
   @Override
-  public int readUnsignedShort() {
+  public final int readUnsignedShort() {
     return in.readUnsignedShort();
   }
 
   @Override
-  public char readChar() {
+  public final char readChar() {
     return in.readChar();
   }
 
   @Override
-  public int readInt() {
+  public final int readInt() {
     return in.readInt();
   }
 
   @Override
-  public long readLong() {
+  public final long readLong() {
     return in.readLong();
   }
 
   @Override
-  public float readFloat() {
+  public final float readFloat() {
     return in.readFloat();
   }
 
   @Override
-  public double readDouble() {
+  public final double readDouble() {
     return in.readDouble();
   }
 
   @Override
-  public String readLine() {
+  public final String readLine() {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public @NotNull String readUTF() {
+  public final @NotNull String readUTF() {
     try {
       return DataInputStream.readUTF(this);
     } catch (IOException e) {

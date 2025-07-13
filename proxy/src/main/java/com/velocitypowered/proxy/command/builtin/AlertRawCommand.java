@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,8 +35,16 @@ import net.kyori.adventure.text.format.NamedTextColor;
  */
 public class AlertRawCommand {
 
+  /**
+   * The {@link VelocityServer} instance used for broadcasting messages and accessing proxy state.
+   */
   private final VelocityServer server;
 
+  /**
+   * Constructs a new {@link AlertRawCommand} with the given server instance.
+   *
+   * @param server the proxy server instance
+   */
   public AlertRawCommand(final VelocityServer server) {
     this.server = server;
   }
@@ -60,6 +68,7 @@ public class AlertRawCommand {
         .then(BrigadierCommand
             .requiredArgumentBuilder("message", StringArgumentType.greedyString())
             .executes(this::alert));
+
     return new BrigadierCommand(rootNode);
   }
 
@@ -69,6 +78,7 @@ public class AlertRawCommand {
       context.getSource().sendMessage(
           Component.translatable("velocity.command.alertraw.no-message", NamedTextColor.YELLOW)
       );
+
       return 0;
     }
 

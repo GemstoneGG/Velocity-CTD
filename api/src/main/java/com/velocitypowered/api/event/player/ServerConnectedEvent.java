@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -25,8 +25,19 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @AwaitingEvent
 public final class ServerConnectedEvent {
 
+  /**
+   * The player who has connected to the new server.
+   */
   private final Player player;
+
+  /**
+   * The server the player has successfully connected to.
+   */
   private final RegisteredServer server;
+
+  /**
+   * The server the player was previously connected to, or {@code null} if none.
+   */
   private final @Nullable RegisteredServer previousServer;
 
   /**

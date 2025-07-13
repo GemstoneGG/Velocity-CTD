@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -71,7 +71,14 @@ public interface IdentifiedKey extends KeySigned {
      */
     LINKED_V2(ImmutableSet.of(), ImmutableSet.of(ProtocolVersion.MINECRAFT_1_19_1));
 
+    /**
+     * The set of older key revisions that this revision is backward-compatible with.
+     */
     final Set<Revision> backwardsCompatibleTo;
+
+    /**
+     * The set of Minecraft protocol versions this revision applies to.
+     */
     final Set<ProtocolVersion> applicableTo;
 
     Revision(final Set<Revision> backwardsCompatibleTo, final Set<ProtocolVersion> applicableTo) {

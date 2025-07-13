@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,18 +32,34 @@ import net.kyori.adventure.text.Component;
  */
 public abstract class RateLimitedCommandHandler<T extends MinecraftPacket> implements CommandHandler<T> {
 
+  /**
+   * The player who issued the command.
+   */
   private final Player player;
+
+  /**
+   * The Velocity server instance, used to retrieve configuration and rate limiter state.
+   */
   private final VelocityServer velocityServer;
 
+  /**
+   * The number of consecutive failed command attempts due to rate limiting.
+   */
   private int failedAttempts;
 
+  /**
+   * Constructs a new {@code RateLimitedCommandHandler} for the specified player and server.
+   *
+   * @param player the player sending the command
+   * @param velocityServer the Velocity server managing command processing and rate limiting
+   */
   protected RateLimitedCommandHandler(final Player player, final VelocityServer velocityServer) {
     this.player = player;
     this.velocityServer = velocityServer;
   }
 
   @Override
-  public boolean handlePlayerCommand(final MinecraftPacket packet) {
+  public final boolean handlePlayerCommand(final MinecraftPacket packet) {
     if (packetClass().isInstance(packet)) {
       if (!velocityServer.getCommandRateLimiter().attempt(player.getUniqueId())) {
         if (velocityServer.getConfiguration().isKickOnCommandRateLimit() && failedAttempts++

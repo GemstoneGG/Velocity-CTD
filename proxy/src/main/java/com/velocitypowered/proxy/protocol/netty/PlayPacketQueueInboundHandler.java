@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,20 +41,28 @@ import org.jetbrains.annotations.NotNull;
  */
 public class PlayPacketQueueInboundHandler extends ChannelDuplexHandler {
 
+  /**
+   * The packet registry for the CONFIG state, used to detect which packets must bypass queuing.
+   */
   private final StateRegistry.PacketRegistry.ProtocolRegistry registry;
+
+  /**
+   * Internal queue of messages waiting to be forwarded once the PLAY state is reached.
+   */
   private final Queue<Object> queue = new ArrayDeque<>();
 
   /**
    * Provides registries for "client" &amp; server bound packets.
    *
    * @param version the protocol version
+   * @param direction the direction of the packet flow (typically {@code SERVERBOUND})
    */
   public PlayPacketQueueInboundHandler(final ProtocolVersion version, final ProtocolUtils.Direction direction) {
     this.registry = StateRegistry.CONFIG.getProtocolRegistry(direction, version);
   }
 
   @Override
-  public void channelRead(@NotNull final ChannelHandlerContext ctx, @NotNull final Object msg) {
+  public final void channelRead(@NotNull final ChannelHandlerContext ctx, @NotNull final Object msg) {
     if (msg instanceof final MinecraftPacket packet) {
       // If the packet exists in the CONFIG state, we want to always
       // ensure that it gets handled by the current handler
@@ -69,14 +77,14 @@ public class PlayPacketQueueInboundHandler extends ChannelDuplexHandler {
   }
 
   @Override
-  public void channelInactive(@NotNull final ChannelHandlerContext ctx) throws Exception {
+  public final void channelInactive(@NotNull final ChannelHandlerContext ctx) throws Exception {
     this.releaseQueue(ctx, false);
 
     super.channelInactive(ctx);
   }
 
   @Override
-  public void handlerRemoved(final ChannelHandlerContext ctx) {
+  public final void handlerRemoved(final ChannelHandlerContext ctx) {
     this.releaseQueue(ctx, ctx.channel().isActive());
   }
 

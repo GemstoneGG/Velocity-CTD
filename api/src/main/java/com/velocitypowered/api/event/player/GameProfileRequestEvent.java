@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -25,10 +25,29 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @AwaitingEvent
 public final class GameProfileRequestEvent {
 
+  /**
+   * The username associated with the connection, derived from the original profile.
+   */
   private final String username;
+
+  /**
+   * The inbound connection attempting to log in.
+   */
   private final InboundConnection connection;
+
+  /**
+   * The original game profile generated or retrieved by the proxy.
+   */
   private final GameProfile originalProfile;
+
+  /**
+   * Whether the player is connecting in online mode.
+   */
   private final boolean onlineMode;
+
+  /**
+   * The custom game profile to use for the connection, or {@code null} to use the original profile.
+   */
   private @Nullable GameProfile gameProfile;
 
   /**

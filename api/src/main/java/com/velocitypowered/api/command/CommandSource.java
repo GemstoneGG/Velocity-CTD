@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -39,10 +39,8 @@ public interface CommandSource extends Audience, PermissionSubject {
   *     and <a href="https://docs.advntr.dev/minimessage/dynamic-replacements">MiniMessage Placeholders docs</a>
   *     for more information on the format.
   **/
-  default void sendRichMessage(
-          final @NotNull String message,
-          final @NotNull TagResolver @NotNull... resolvers
-  ) {
+  default void sendRichMessage(final @NotNull String message,
+                               final @NotNull TagResolver @NotNull... resolvers) {
     this.sendMessage(MiniMessage.miniMessage().deserialize(message, this, resolvers));
   }
 

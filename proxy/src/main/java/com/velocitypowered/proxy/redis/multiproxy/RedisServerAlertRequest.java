@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,10 +30,21 @@ import org.slf4j.LoggerFactory;
  * @param componentJson the message to send, encoded as JSON
  */
 public record RedisServerAlertRequest(String componentJson) implements RedisPacket {
-  public static final String ID = "redis-server-alert";
 
+  /**
+   * The SLF4J logger used for reporting deserialization issues.
+   */
   private static final Logger logger = LoggerFactory.getLogger(RedisSendMessage.class);
+
+  /**
+   * The shared serializer for encoding and decoding {@link Component} messages to JSON.
+   */
   private static final GsonComponentSerializer SERIALIZER = GsonComponentSerializer.gson();
+
+  /**
+   * The unique Redis packet identifier for this broadcast message type.
+   */
+  public static final String ID = "redis-server-alert";
 
   /**
    * Sends a message to all servers. Encodes the given component as JSON text.

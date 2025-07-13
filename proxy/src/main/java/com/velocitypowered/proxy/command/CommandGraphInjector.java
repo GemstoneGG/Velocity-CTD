@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,10 +41,26 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class CommandGraphInjector<S> {
 
+  /**
+   * A static {@link StringRange} pointing to the start of the command input.
+   * Used when injecting command nodes to simulate parsing from the root.
+   */
   private static final StringRange ALIAS_RANGE = StringRange.at(0);
+
+  /**
+   * A static {@link StringReader} instance representing an empty input string.
+   * Used for evaluating alias requirements without actual user input.
+   */
   private static final StringReader ALIAS_READER = new StringReader("");
 
+  /**
+   * The dispatcher from which command nodes are sourced for injection.
+   */
   private final @GuardedBy("lock") CommandDispatcher<S> dispatcher;
+
+  /**
+   * The lock used to guard concurrent access to the dispatcher and node copying.
+   */
   private final Lock lock;
 
   CommandGraphInjector(final CommandDispatcher<S> dispatcher, final Lock lock) {
@@ -70,8 +86,7 @@ public final class CommandGraphInjector<S> {
     try {
       final Map<CommandNode<S>, CommandNode<S>> done = new IdentityHashMap<>();
       final RootCommandNode<S> origin = this.dispatcher.getRoot();
-      final CommandContextBuilder<S> rootContext =
-          new CommandContextBuilder<>(this.dispatcher, source, origin, 0);
+      final CommandContextBuilder<S> rootContext = new CommandContextBuilder<>(this.dispatcher, source, origin, 0);
 
       // Filter alias nodes
       for (final CommandNode<S> node : origin.getChildren()) {
@@ -87,8 +102,7 @@ public final class CommandGraphInjector<S> {
 
         final LiteralCommandNode<S> asLiteral = (LiteralCommandNode<S>) node;
         final LiteralCommandNode<S> copy = asLiteral.createBuilder().build();
-        final VelocityArgumentCommandNode<S, ?> argsNode =
-            VelocityCommands.getArgumentsNode(asLiteral);
+        final VelocityArgumentCommandNode<S, ?> argsNode = VelocityCommands.getArgumentsNode(asLiteral);
         if (argsNode == null) {
           // This literal is associated with a BrigadierCommand, filter normally.
           this.copyChildren(node, copy, source, done);
@@ -98,6 +112,7 @@ public final class CommandGraphInjector<S> {
             copy.addChild(child);
           }
         }
+
         this.addAlias(copy, dest);
       }
     } finally {
@@ -109,6 +124,7 @@ public final class CommandGraphInjector<S> {
     if (done.containsKey(node)) {
       return done.get(node);
     }
+
     // We only check the non-context requirement when filtering alias nodes.
     // Otherwise, we would need to manually craft context builder and reader instances,
     // which are both incorrect and inefficient.
@@ -118,6 +134,7 @@ public final class CommandGraphInjector<S> {
     if (!node.canUse(source)) {
       return null;
     }
+
     final ArgumentBuilder<S, ?> builder = node.createBuilder();
     if (node.getRedirect() != null) {
       // Redirects to non-Brigadier commands are not supported. Luckily,
@@ -126,6 +143,7 @@ public final class CommandGraphInjector<S> {
       final CommandNode<S> target = this.filterNode(node.getRedirect(), source, done);
       builder.forward(target, builder.getRedirectModifier(), builder.isFork());
     }
+
     final CommandNode<S> result = builder.build();
     done.put(node, result);
     this.copyChildren(node, result, source, done);

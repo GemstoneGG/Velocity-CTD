@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,36 +35,42 @@ import io.netty.buffer.ByteBuf;
  */
 public class TitleActionbarPacket extends GenericTitlePacket {
 
+  /**
+   * The text component that will be displayed in the action bar.
+   */
   private ComponentHolder component;
 
+  /**
+   * Constructs a new {@code TitleActionbarPacket} and sets its action type.
+   */
   public TitleActionbarPacket() {
     setAction(ActionType.SET_TITLE);
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     component.write(buf);
   }
 
   @Override
-  public ComponentHolder getComponent() {
+  public final ComponentHolder getComponent() {
     return component;
   }
 
   @Override
-  public void setComponent(final ComponentHolder component) {
+  public final void setComponent(final ComponentHolder component) {
     this.component = component;
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "TitleActionbarPacket{"
         + ", component='" + component + '\''
         + '}';
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

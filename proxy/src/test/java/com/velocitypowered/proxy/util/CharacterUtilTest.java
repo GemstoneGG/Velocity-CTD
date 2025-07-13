@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,8 +24,19 @@ import org.junit.jupiter.api.Test;
 
 class CharacterUtilTest {
 
+  /**
+   * A string containing all allowed ASCII characters permitted by {@link CharacterUtil#isAllowedCharacter(char)}.
+   *
+   * <p>This includes common punctuation, digits, uppercase and lowercase Latin letters,
+   * and some extended Latin symbols.</p>
+   */
   private static final String CHARACTERS = "!\\\"#$%&'()*+,-./0123456789:;<=>?"
       + "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\\\]^_'abcdefghijklmnopqrstuvwxyz¡«»";
+
+  /**
+   * A string of sample non-ASCII characters that are permitted by
+   * {@link CharacterUtil#isAllowedCharacter(char)} despite being outside the standard ASCII range.
+   */
   private static final String NON_ASCII_CHARACTERS = "速度ъगꯀ▀";
 
   @Test

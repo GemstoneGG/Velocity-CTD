@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,8 +44,24 @@ import net.kyori.adventure.text.Component;
  */
 public class ServerListPingHandler {
 
+  /**
+   * The {@link VelocityServer} instance associated with this ping handler.
+   *
+   * <p>Used to retrieve configuration options, player counts, proxy version info,
+   * and server data during ping construction or passthrough processing.</p>
+   */
   private final VelocityServer server;
 
+  /**
+   * Constructs a new {@link ServerListPingHandler} for managing initial server list ping responses.
+   *
+   * <p>This utility class determines how the proxy responds to Minecraft server list pings
+   * based on configuration and protocol version. It supports both static (local) and passthrough
+   * ping responses.</p>
+   *
+   * @param server the {@link VelocityServer} instance to use for configuration and server access
+   * @throws NullPointerException if {@code server} is null
+   */
   public ServerListPingHandler(final VelocityServer server) {
     this.server = server;
   }
@@ -56,6 +72,7 @@ public class ServerListPingHandler {
     return clientVersion.lessThan(minimumVersion);
   }
 
+  @SuppressWarnings("checkstyle:FinalParameters")
   private ServerPing constructLocalPing(ProtocolVersion version) {
     boolean fallback = displayFallbackPing(version);
     VelocityConfiguration configuration = server.getConfiguration();
@@ -104,9 +121,7 @@ public class ServerListPingHandler {
     }
 
     for (Component s : server.getConfiguration().getMotdHover()) {
-      samplePlayers.add(new ServerPing.SamplePlayer(
-          s,
-          UUID.randomUUID()));
+      samplePlayers.add(new ServerPing.SamplePlayer(s, UUID.randomUUID()));
     }
 
     return new ServerPing(
@@ -146,10 +161,12 @@ public class ServerListPingHandler {
       if (rs.isEmpty()) {
         continue;
       }
+
       VelocityRegisteredServer vrs = (VelocityRegisteredServer) rs.get();
       pings.add(vrs.ping(connection.getConnection().eventLoop(), PingOptions.builder()
               .version(responseProtocolVersion).virtualHost(virtualHostStr).build()));
     }
+
     if (pings.isEmpty()) {
       return CompletableFuture.completedFuture(fallback);
     }
@@ -166,6 +183,7 @@ public class ServerListPingHandler {
             }
             return response;
           }
+
           return fallback;
         });
       case MODS:
@@ -180,6 +198,7 @@ public class ServerListPingHandler {
               return fallback.asBuilder().mods(modInfo.get()).build();
             }
           }
+
           return fallback;
         });
       case DESCRIPTION:
@@ -202,6 +221,7 @@ public class ServerListPingHandler {
                 response.getModinfo().orElse(null)
             );
           }
+
           return fallback;
         });
       // Not possible, but covered for completeness.

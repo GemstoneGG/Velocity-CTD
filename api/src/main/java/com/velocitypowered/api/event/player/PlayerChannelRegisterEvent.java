@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2022 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -18,7 +18,14 @@ import java.util.List;
  */
 public final class PlayerChannelRegisterEvent {
 
+  /**
+   * The player who sent the plugin message to register channels.
+   */
   private final Player player;
+
+  /**
+   * The list of plugin message channels the player registered.
+   */
   private final List<ChannelIdentifier> channels;
 
   /**

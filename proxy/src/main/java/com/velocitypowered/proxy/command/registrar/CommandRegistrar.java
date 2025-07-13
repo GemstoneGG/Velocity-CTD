@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ public interface CommandRegistrar<T extends Command> {
    * @param command the command to register
    * @throws IllegalArgumentException if the given command cannot be registered
    */
-  void register(final CommandMeta meta, final T command);
+  void register(CommandMeta meta, T command);
 
   /**
    * Returns the superclass or superinterface of all {@link Command} classes compatible with this

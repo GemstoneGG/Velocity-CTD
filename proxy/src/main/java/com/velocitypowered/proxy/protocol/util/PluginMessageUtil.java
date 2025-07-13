@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,11 +46,34 @@ import java.util.regex.Pattern;
  */
 public final class PluginMessageUtil {
 
+  /**
+   * Legacy plugin message channel name for client brand identification used before Minecraft 1.13.
+   */
   private static final String BRAND_CHANNEL_LEGACY = "MC|Brand";
+
+  /**
+   * Modern plugin message channel name for client brand identification used in Minecraft 1.13+.
+   */
   private static final String BRAND_CHANNEL = "minecraft:brand";
+
+  /**
+   * Legacy plugin channel used for registering plugin message channels.
+   */
   private static final String REGISTER_CHANNEL_LEGACY = "REGISTER";
+
+  /**
+   * Modern plugin channel used for registering plugin message channels.
+   */
   private static final String REGISTER_CHANNEL = "minecraft:register";
+
+  /**
+   * Legacy plugin channel used for unregistering plugin message channels.
+   */
   private static final String UNREGISTER_CHANNEL_LEGACY = "UNREGISTER";
+
+  /**
+   * Modern plugin channel used for unregistering plugin message channels.
+   */
   private static final String UNREGISTER_CHANNEL = "minecraft:unregister";
 
   private PluginMessageUtil() {
@@ -93,14 +116,23 @@ public final class PluginMessageUtil {
         .equals(UNREGISTER_CHANNEL);
   }
 
+  /**
+   * Exception instance used when a plugin message channel name is invalid.
+   *
+   * <p>This is thrown during plugin message decoding when a channel identifier fails validation,
+   * unless debug mode is enabled, in which case the raw {@link IllegalArgumentException} is thrown.</p>
+   */
   private static final QuietDecoderException ILLEGAL_CHANNEL = new QuietDecoderException("Illegal channel");
 
   /**
    * Fetches all the channels in a register or unregister plugin message.
    *
-   * @param existingChannels the number of channels already registered
-   * @param message the message to get the channels from
+   * @param existingChannels the number of plugin channels already registered for the player
+   * @param message the {@link PluginMessagePacket} containing channel registration data
+   * @param protocolVersion the protocol version of the client that sent the packet
+   * @param server the current Velocity proxy server instance
    * @return the channels, as an immutable list
+   * @throws IllegalArgumentException if the payload is malformed or exceeds limits
    */
   public static List<ChannelIdentifier> getChannels(final int existingChannels,
                                                     final PluginMessagePacket message,
@@ -115,6 +147,7 @@ public final class PluginMessageUtil {
       // Return an empty list.
       return ImmutableList.of();
     }
+
     String payload = message.content().toString(StandardCharsets.UTF_8);
     checkArgument(payload.length() <= Short.MAX_VALUE, "payload too long: %s", payload.length());
     String[] channels = payload.split("\0");
@@ -136,6 +169,7 @@ public final class PluginMessageUtil {
         throw ILLEGAL_CHANNEL;
       }
     }
+
     return channelIdentifiers.build();
   }
 
@@ -169,16 +203,23 @@ public final class PluginMessageUtil {
         sb.append('\0');
       }
     }
+
     return sb.toString();
   }
 
   /**
    * Rewrites the brand message to indicate the presence of Velocity.
    *
-   * @param message the plugin message
-   * @param version the proxy version
-   * @param brand the brand format
-   * @return the rewritten plugin message
+   * @param message the original brand {@link PluginMessagePacket}
+   * @param version the {@link ProxyVersion} instance for the current Velocity proxy
+   * @param protocolVersion the client's protocol version
+   * @param brand the format string for the new brand message, supporting placeholders
+   * @param proxyBrandCustom the custom name for the proxy brand (e.g. "Velocity", "MyProxy")
+   * @param backendBrandCustom the custom name to replace the backend brand placeholder
+   * @param connectedServer the name of the server the player is currently connected to
+   * @param minimumVersion the minimum supported Minecraft version (for {@code {protocol-min}})
+   * @return the rewritten brand plugin message packet
+   * @throws IllegalArgumentException if the provided packet is not a brand message
    */
   public static PluginMessagePacket rewriteMinecraftBrand(final PluginMessagePacket message,
                                                           final ProxyVersion version,
@@ -234,6 +275,10 @@ public final class PluginMessageUtil {
     }
   }
 
+  /**
+   * Pattern used to remove characters not allowed in Minecraft plugin channel identifiers.
+   * This is applied when transforming legacy channel names to modern identifiers.
+   */
   private static final Pattern INVALID_IDENTIFIER_REGEX = Pattern.compile("[^a-z0-9\\-_]*");
 
   /**

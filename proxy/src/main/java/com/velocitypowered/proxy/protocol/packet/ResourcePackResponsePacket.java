@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,10 +33,26 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
  */
 public class ResourcePackResponsePacket implements MinecraftPacket {
 
+  /**
+   * The unique identifier of the resource pack response.
+   * Only used for Minecraft 1.20.3 and above.
+   */
   private UUID id;
+
+  /**
+   * The SHA-1 hash of the resource pack.
+   * Used by Minecraft 1.9.4 and below.
+   */
   private String hash = "";
+
+  /**
+   * The status of the resource pack response sent by the client.
+   */
   private @MonotonicNonNull Status status;
 
+  /**
+   * Constructs a new {@code ResourcePackResponsePacket}.
+   */
   public ResourcePackResponsePacket() {
   }
 
@@ -63,46 +79,61 @@ public class ResourcePackResponsePacket implements MinecraftPacket {
     if (status == null) {
       throw new IllegalStateException("Packet not yet deserialized");
     }
+
     return status;
   }
 
+  /**
+   * Returns the SHA-1 hash of the resource pack.
+   *
+   * @return the hash string
+   */
   public String getHash() {
     return hash;
   }
 
+  /**
+   * Returns the UUID of the resource pack response.
+   *
+   * @return the UUID
+   */
   public UUID getId() {
     return id;
   }
 
   @Override
-  public void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
+  public final void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       this.id = ProtocolUtils.readUuid(buf);
     }
+
     if (protocolVersion.noGreaterThan(ProtocolVersion.MINECRAFT_1_9_4)) {
       this.hash = ProtocolUtils.readString(buf);
     }
+
     this.status = Status.values()[ProtocolUtils.readVarInt(buf)];
   }
 
   @Override
-  public void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
+  public final void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       ProtocolUtils.writeUuid(buf, id);
     }
+
     if (protocolVersion.noGreaterThan(ProtocolVersion.MINECRAFT_1_9_4)) {
       ProtocolUtils.writeString(buf, hash);
     }
+
     ProtocolUtils.writeVarInt(buf, status.ordinal());
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "ResourcePackResponsePacket{"
         + "id=" + id
         + ", hash='" + hash + '\''

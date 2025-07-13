@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,18 +28,22 @@ import io.netty.buffer.ByteBuf;
  */
 public class TimeArgumentSerializer implements ArgumentPropertySerializer<Integer> {
 
+  /**
+   * A shared singleton instance of {@code TimeArgumentSerializer}.
+   */
   static final TimeArgumentSerializer TIME = new TimeArgumentSerializer();
 
   @Override
-  public Integer deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
+  public final Integer deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_19_4)) {
       return buf.readInt();
     }
+
     return 0;
   }
 
   @Override
-  public void serialize(final Integer object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
+  public final void serialize(final Integer object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_19_4)) {
       buf.writeInt(object);
     }

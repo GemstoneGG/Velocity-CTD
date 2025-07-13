@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,18 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * @param componentJson The actionbar message to send.
  */
 public record RedisSendActionBarRequest(UUID playerUuid, String componentJson) implements RedisPacket {
+
+  /**
+   * The Redis packet ID used to identify this packet type.
+   */
   public static final String ID = "redis-send-actionbar-request";
+
+  /**
+   * The shared Gson serializer used for converting {@link Component} objects
+   * to and from their JSON representation.
+   *
+   * <p>This uses the standard {@link GsonComponentSerializer#gson()} instance.</p>
+   */
   private static final GsonComponentSerializer SERIALIZER = GsonComponentSerializer.gson();
 
   /**

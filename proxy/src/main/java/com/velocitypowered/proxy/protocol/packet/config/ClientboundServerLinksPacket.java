@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,17 +32,28 @@ import java.util.List;
  */
 public class ClientboundServerLinksPacket implements MinecraftPacket {
 
+  /**
+   * The list of server links provided in the packet.
+   */
   private List<ServerLink> serverLinks;
 
+  /**
+   * Constructs an empty {@code ClientboundServerLinksPacket}, typically used for decoding.
+   */
   public ClientboundServerLinksPacket() {
   }
 
+  /**
+   * Constructs a {@code ClientboundServerLinksPacket} with a provided list of links.
+   *
+   * @param serverLinks the list of links to send to the client
+   */
   public ClientboundServerLinksPacket(final List<ServerLink> serverLinks) {
     this.serverLinks = serverLinks;
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     int linksCount = ProtocolUtils.readVarInt(buf);
 
     this.serverLinks = new ArrayList<>(linksCount);
@@ -52,7 +63,7 @@ public class ClientboundServerLinksPacket implements MinecraftPacket {
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeVarInt(buf, serverLinks.size());
 
     for (ServerLink serverLink : serverLinks) {
@@ -61,10 +72,15 @@ public class ClientboundServerLinksPacket implements MinecraftPacket {
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
+  /**
+   * Returns the list of {@link ServerLink} entries contained in this packet.
+   *
+   * @return the list of links
+   */
   public List<ServerLink> getServerLinks() {
     return serverLinks;
   }
@@ -97,6 +113,7 @@ public class ClientboundServerLinksPacket implements MinecraftPacket {
         buf.writeBoolean(false);
         displayName.write(buf);
       }
+
       ProtocolUtils.writeString(buf, url);
     }
   }

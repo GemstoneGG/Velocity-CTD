@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -15,6 +15,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Indicates an event that has a result attached to it.
+ *
+ * @param <R> the type of result associated with the event
  */
 public interface ResultedEvent<R extends ResultedEvent.Result> {
 
@@ -51,9 +53,19 @@ public interface ResultedEvent<R extends ResultedEvent.Result> {
    */
   final class GenericResult implements Result {
 
+    /**
+     * A shared instance representing an allowed result.
+     */
     private static final GenericResult ALLOWED = new GenericResult(true);
+
+    /**
+     * A shared instance representing a denied result.
+     */
     private static final GenericResult DENIED = new GenericResult(false);
 
+    /**
+     * Whether the event is allowed to proceed.
+     */
     private final boolean status;
 
     private GenericResult(final boolean b) {
@@ -94,9 +106,19 @@ public interface ResultedEvent<R extends ResultedEvent.Result> {
    */
   final class ComponentResult implements Result {
 
+    /**
+     * A shared instance representing an allowed result with no denial reason.
+     */
     private static final ComponentResult ALLOWED = new ComponentResult(true, null);
 
+    /**
+     * Whether the event is allowed to proceed.
+     */
     private final boolean status;
+
+    /**
+     * The denial reason as a rich {@link Component}, or {@code null} if allowed or no reason provided.
+     */
     private final @Nullable Component reason;
 
     private ComponentResult(final boolean status, @Nullable final Component reason) {
@@ -123,9 +145,11 @@ public interface ResultedEvent<R extends ResultedEvent.Result> {
       if (status) {
         return "allowed";
       }
+
       if (reason != null) {
         return "denied: " + PlainTextComponentSerializer.plainText().serialize(reason);
       }
+
       return "denied";
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,33 +44,98 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class KeyedPlayerCommandPacket implements MinecraftPacket {
 
+  /**
+   * The maximum number of command arguments allowed in a signed command packet.
+   *
+   * <p>Exceeding this limit will result in a decoding failure to prevent abuse or
+   * invalid packet formats.</p>
+   */
   private static final int MAX_NUM_ARGUMENTS = 8;
+
+  /**
+   * The maximum length (in characters) for each individual command argument name.
+   *
+   * <p>This ensures that keys used in the argument-signature map are reasonably sized.</p>
+   */
   private static final int MAX_LENGTH_ARGUMENTS = 16;
+
+  /**
+   * Thrown when the argument map exceeds protocol limits.
+   */
   private static final QuietDecoderException LIMITS_VIOLATION =
       new QuietDecoderException("Command arguments incorrect size");
 
+  /**
+   * Indicates whether the command is unsigned (no salt, no signatures).
+   */
   private boolean unsigned = false;
+
+  /**
+   * The raw command name or literal string (e.g., "say", "msg", etc.).
+   */
   private String command;
+
+  /**
+   * Timestamp of when the command was issued.
+   */
   private Instant timestamp;
+
+  /**
+   * The cryptographic salt used to sign the command.
+   */
   private long salt;
-  private boolean signedPreview; // purely for pass through for 1.19 -> 1.19.2 - this will never be implemented
+
+  /**
+   * Whether a signed preview was enabled (used only for 1.19 compatibility).
+   */
+  private boolean signedPreview;
+
+  /**
+   * Signatures of previously seen chat messages (used for replay protection).
+   */
   private SignaturePair[] previousMessages = new SignaturePair[0];
+
+  /**
+   * Signature of the last known message from the client.
+   */
   private @Nullable SignaturePair lastMessage;
+
+  /**
+   * A mapping of argument names to their cryptographic signatures.
+   */
   private Map<String, byte[]> arguments = ImmutableMap.of();
 
+  /**
+   * Returns the timestamp of the command.
+   *
+   * @return the instant when the command was created
+   */
   public Instant getTimestamp() {
     return timestamp;
   }
 
+  /**
+   * Returns whether this packet is unsigned.
+   *
+   * @return true if unsigned, false otherwise
+   */
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   public boolean isUnsigned() {
     return unsigned;
   }
 
+  /**
+   * Returns the command name (without leading slash).
+   *
+   * @return the raw command string
+   */
   public String getCommand() {
     return command;
   }
 
+  /**
+   * Constructs a blank {@link KeyedPlayerCommandPacket} for deserialization.
+   */
   public KeyedPlayerCommandPacket() {
   }
 
@@ -93,7 +158,7 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
                      final ProtocolVersion protocolVersion) {
     command = ProtocolUtils.readString(buf, 256);
     timestamp = Instant.ofEpochMilli(buf.readLong());
@@ -104,12 +169,14 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
     if (mapSize > MAX_NUM_ARGUMENTS) {
       throw LIMITS_VIOLATION;
     }
+
     // Mapped as "Argument : signature"
     ImmutableMap.Builder<String, byte[]> entries = ImmutableMap.builderWithExpectedSize(mapSize);
     for (int i = 0; i < mapSize; i++) {
       entries.put(ProtocolUtils.readString(buf, MAX_LENGTH_ARGUMENTS),
           ProtocolUtils.readByteArray(buf, unsigned ? 0 : ProtocolUtils.DEFAULT_MAX_STRING_SIZE));
     }
+
     arguments = entries.build();
 
     this.signedPreview = buf.readBoolean();
@@ -128,6 +195,7 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
         lastSignatures[i] = new SignaturePair(ProtocolUtils.readUuid(buf),
             ProtocolUtils.readByteArray(buf));
       }
+
       previousMessages = lastSignatures;
 
       if (buf.readBoolean()) {
@@ -142,7 +210,7 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
                      final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeString(buf, command);
     buf.writeLong(timestamp.toEpochMilli());
@@ -153,6 +221,7 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
     if (size > MAX_NUM_ARGUMENTS) {
       throw LIMITS_VIOLATION;
     }
+
     ProtocolUtils.writeVarInt(buf, size);
     for (Map.Entry<String, byte[]> entry : arguments.entrySet()) {
       // What annoys me is that this isn't "sorted"
@@ -180,7 +249,7 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "PlayerCommand{"
         + "unsigned=" + unsigned
         + ", command='" + command + '\''
@@ -193,7 +262,7 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,5 +21,14 @@ package com.velocitypowered.proxy.redis;
  * Interface implemented by Redis packets.
  */
 public interface RedisPacket {
+
+  /**
+   * Returns the identifier of this Redis packet.
+   *
+   * <p>This ID is used to distinguish between different packet types during serialization
+   * and deserialization.
+   *
+   * @return the packet ID as a {@link String}
+   */
   String getId();
 }

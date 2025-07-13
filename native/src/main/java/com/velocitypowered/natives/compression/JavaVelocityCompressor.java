@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,10 +33,27 @@ import java.util.zip.Inflater;
  */
 public final class JavaVelocityCompressor implements VelocityCompressor {
 
+  /**
+   * A {@link VelocityCompressorFactory} for creating instances of {@link JavaVelocityCompressor}.
+   *
+   * <p>This factory allows the {@link JavaVelocityCompressor} to be registered or used
+   * where a generic {@link VelocityCompressor} implementation is required.</p>
+   */
   public static final VelocityCompressorFactory FACTORY = JavaVelocityCompressor::new;
 
+  /**
+   * The underlying {@link Deflater} used to compress data using the DEFLATE algorithm.
+   */
   private final Deflater deflater;
+
+  /**
+   * The underlying {@link Inflater} used to decompress DEFLATE-compressed data.
+   */
   private final Inflater inflater;
+
+  /**
+   * Indicates whether this compressor instance has been disposed.
+   */
   private boolean disposed = false;
 
   private JavaVelocityCompressor(final int level) {

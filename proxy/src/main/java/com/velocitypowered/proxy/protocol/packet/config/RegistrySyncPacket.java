@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,25 +38,28 @@ import io.netty.buffer.ByteBuf;
  */
 public class RegistrySyncPacket extends DeferredByteBufHolder implements MinecraftPacket {
 
+  /**
+   * Constructs a new empty {@code RegistrySyncPacket} with a {@code null} buffer reference.
+   */
   public RegistrySyncPacket() {
     super(null);
   }
 
   // NBT change in 1.20.2 makes it difficult to parse this packet.
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                           final ProtocolVersion protocolVersion) {
     this.replace(buf.readRetainedSlice(buf.readableBytes()));
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                           final ProtocolVersion protocolVersion) {
     buf.writeBytes(content());
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

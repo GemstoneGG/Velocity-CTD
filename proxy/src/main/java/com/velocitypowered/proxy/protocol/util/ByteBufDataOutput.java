@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,88 +31,100 @@ import org.jetbrains.annotations.NotNull;
  */
 public class ByteBufDataOutput extends OutputStream implements ByteArrayDataOutput {
 
+  /**
+   * The backing {@link ByteBuf} to which data is written.
+   */
   private final ByteBuf buf;
+
+  /**
+   * A wrapper {@link DataOutputStream} used for writing UTF-8 encoded strings.
+   */
   private final DataOutputStream utf8out;
 
+  /**
+   * Constructs a new {@code ByteBufDataOutput} instance using the provided {@link ByteBuf}.
+   *
+   * @param buf the Netty buffer to write to
+   */
   public ByteBufDataOutput(final ByteBuf buf) {
     this.buf = buf;
     this.utf8out = new DataOutputStream(this);
   }
 
   @Override
-  public byte @NotNull [] toByteArray() {
+  public final byte @NotNull [] toByteArray() {
     return ByteBufUtil.getBytes(buf);
   }
 
   @Override
-  public void write(final int b) {
+  public final void write(final int b) {
     buf.writeByte(b);
   }
 
   @Override
-  public void write(final byte @NotNull [] b) {
+  public final void write(final byte @NotNull [] b) {
     buf.writeBytes(b);
   }
 
   @Override
-  public void write(final byte @NotNull [] b, final int off, final int len) {
+  public final void write(final byte @NotNull [] b, final int off, final int len) {
     buf.writeBytes(b, off, len);
   }
 
   @Override
-  public void writeBoolean(final boolean v) {
+  public final void writeBoolean(final boolean v) {
     buf.writeBoolean(v);
   }
 
   @Override
-  public void writeByte(final int v) {
+  public final void writeByte(final int v) {
     buf.writeByte(v);
   }
 
   @Override
-  public void writeShort(final int v) {
+  public final void writeShort(final int v) {
     buf.writeShort(v);
   }
 
   @Override
-  public void writeChar(final int v) {
+  public final void writeChar(final int v) {
     buf.writeChar(v);
   }
 
   @Override
-  public void writeInt(final int v) {
+  public final void writeInt(final int v) {
     buf.writeInt(v);
   }
 
   @Override
-  public void writeLong(final long v) {
+  public final void writeLong(final long v) {
     buf.writeLong(v);
   }
 
   @Override
-  public void writeFloat(final float v) {
+  public final void writeFloat(final float v) {
     buf.writeFloat(v);
   }
 
   @Override
-  public void writeDouble(final double v) {
+  public final void writeDouble(final double v) {
     buf.writeDouble(v);
   }
 
   @Override
-  public void writeBytes(@NotNull final String s) {
+  public final void writeBytes(@NotNull final String s) {
     buf.writeCharSequence(s, StandardCharsets.US_ASCII);
   }
 
   @Override
-  public void writeChars(final String s) {
+  public final void writeChars(final String s) {
     for (char c : s.toCharArray()) {
       buf.writeChar(c);
     }
   }
 
   @Override
-  public void writeUTF(@NotNull final String s) {
+  public final void writeUTF(@NotNull final String s) {
     try {
       this.utf8out.writeUTF(s);
     } catch (IOException e) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -16,8 +16,19 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class ProxyVersion {
 
+  /**
+   * The name of the proxy implementation (e.g., "Velocity").
+   */
   private final String name;
+
+  /**
+   * The vendor of the proxy implementation (e.g., "Velocity Contributors").
+   */
   private final String vendor;
+
+  /**
+   * The version string of the proxy implementation.
+   */
   private final String version;
 
   /**
@@ -65,9 +76,11 @@ public final class ProxyVersion {
     if (this == o) {
       return true;
     }
+
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
+
     ProxyVersion that = (ProxyVersion) o;
     return Objects.equals(name, that.name)
         && Objects.equals(vendor, that.vendor)

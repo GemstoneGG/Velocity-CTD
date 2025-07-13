@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,50 +39,120 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class KeyedPlayerChatPacket implements MinecraftPacket {
 
+  /**
+   * The raw message content sent by the client.
+   */
   private String message;
+
+  /**
+   * Whether this message includes a signed preview (1.19+).
+   */
   private boolean signedPreview;
+
+  /**
+   * Whether this message is unsigned (determined during decoding).
+   */
   private boolean unsigned = false;
+
+  /**
+   * The expiration timestamp for signed messages.
+   */
   private @Nullable Instant expiry;
+
+  /**
+   * The cryptographic signature associated with this message.
+   */
   private byte[] signature;
+
+  /**
+   * The salt used during signing.
+   */
   private byte[] salt;
+
+  /**
+   * A list of previously acknowledged message signatures (1.19.1+).
+   */
   private SignaturePair[] previousMessages = new SignaturePair[0];
+
+  /**
+   * The last known message signature acknowledged by the client (1.19.1+).
+   */
   private @Nullable SignaturePair lastMessage;
 
+  /**
+   * The maximum number of previous message signatures allowed in a single packet.
+   */
   public static final int MAXIMUM_PREVIOUS_MESSAGE_COUNT = 5;
 
+  /**
+   * Thrown when the previous message signature count is out of range.
+   */
   public static final QuietDecoderException INVALID_PREVIOUS_MESSAGES =
       new QuietDecoderException("Invalid previous messages");
 
+  /**
+   * Constructs a blank {@code KeyedPlayerChatPacket} for deserialization.
+   */
   public KeyedPlayerChatPacket() {
   }
 
+  /**
+   * Constructs a new {@code KeyedPlayerChatPacket} with an unsigned message.
+   *
+   * @param message the raw message to send
+   */
   public KeyedPlayerChatPacket(final String message) {
     this.message = message;
     this.unsigned = true;
   }
 
+  /**
+   * Sets the expiration time for the signed message.
+   *
+   * @param expiry the message expiration timestamp
+   */
   public void setExpiry(@Nullable final Instant expiry) {
     this.expiry = expiry;
   }
 
+  /**
+   * Returns the expiration time for the message.
+   *
+   * @return the timestamp, or {@code null} if not applicable
+   */
   public @Nullable Instant getExpiry() {
     return expiry;
   }
 
+  /**
+   * Returns whether this message is unsigned.
+   *
+   * @return {@code true} if unsigned; otherwise {@code false}
+   */
   public boolean isUnsigned() {
     return unsigned;
   }
 
+  /**
+   * Returns the message text.
+   *
+   * @return the message string
+   */
   public String getMessage() {
     return message;
   }
 
+  /**
+   * Returns whether the message was sent with a signed preview.
+   *
+   * @return {@code true} if preview is signed
+   */
   public boolean isSignedPreview() {
     return signedPreview;
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
                      final ProtocolVersion protocolVersion) {
     message = ProtocolUtils.readString(buf, 256);
 
@@ -117,6 +187,7 @@ public class KeyedPlayerChatPacket implements MinecraftPacket {
         lastSignatures[i] = new SignaturePair(ProtocolUtils.readUuid(buf),
             ProtocolUtils.readByteArray(buf));
       }
+
       previousMessages = lastSignatures;
 
       if (buf.readBoolean()) {
@@ -127,7 +198,7 @@ public class KeyedPlayerChatPacket implements MinecraftPacket {
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
                      final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeString(buf, message);
 
@@ -156,7 +227,7 @@ public class KeyedPlayerChatPacket implements MinecraftPacket {
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

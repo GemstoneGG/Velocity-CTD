@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,11 +26,14 @@ import io.netty.handler.codec.MessageToByteEncoder;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Encodes {@code LegacyDisconnect} for Minecraft 1.3-1.6.4.
+ * Encodes {@code LegacyDisconnect} for Minecraft 1.3 - 1.6.4.
  */
 @Sharable
 public final class LegacyPingEncoder extends MessageToByteEncoder<LegacyDisconnect> {
 
+  /**
+   * The singleton instance of this encoder.
+   */
   public static final LegacyPingEncoder INSTANCE = new LegacyPingEncoder();
 
   private LegacyPingEncoder() {

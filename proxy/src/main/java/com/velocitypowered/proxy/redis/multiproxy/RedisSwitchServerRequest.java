@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,10 @@ import com.velocitypowered.proxy.redis.RedisPacket;
  * @param server The server to send the player to.
  */
 public record RedisSwitchServerRequest(String username, String server) implements RedisPacket {
+
+  /**
+   * The unique Redis packet identifier used to represent a server switch request.
+   */
   public static final String ID = "switch-server";
 
   @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -21,7 +21,14 @@ import com.velocitypowered.api.proxy.Player;
 @AwaitingEvent
 public final class LoginEvent implements ResultedEvent<ResultedEvent.ComponentResult> {
 
+  /**
+   * The player who has successfully authenticated.
+   */
   private final Player player;
+
+  /**
+   * The result of the login event, determining whether the player is allowed to proceed.
+   */
   private ComponentResult result;
 
   /**

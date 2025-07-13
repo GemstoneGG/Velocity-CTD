@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -23,8 +23,20 @@ import java.util.List;
  */
 @AwaitingEvent
 public class TabCompleteEvent {
+
+  /**
+   * The player who requested the tab completion.
+   */
   private final Player player;
+
+  /**
+   * The partial input that triggered the tab completion request.
+   */
   private final String partialMessage;
+
+  /**
+   * The list of tab completion suggestions. This list is mutable and may be modified by plugins.
+   */
   private final List<String> suggestions;
 
   /**
@@ -68,7 +80,7 @@ public class TabCompleteEvent {
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "TabCompleteEvent{"
         + "player=" + player
         + ", partialMessage='" + partialMessage + '\''

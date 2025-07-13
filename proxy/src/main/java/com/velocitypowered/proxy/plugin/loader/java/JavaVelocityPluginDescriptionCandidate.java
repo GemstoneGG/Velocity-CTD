@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 class JavaVelocityPluginDescriptionCandidate extends VelocityPluginDescription {
 
+  /**
+   * The fully-qualified name of the plugin's main class.
+   */
   private final String mainClass;
 
   JavaVelocityPluginDescriptionCandidate(final String id, @Nullable final String name, @Nullable final String version,

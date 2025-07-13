@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -48,8 +48,7 @@ public interface EventManager {
    * @deprecated use {@link #register(Object, Class, short, EventHandler)} instead
    */
   @Deprecated
-  <E> void register(Object plugin, Class<E> eventClass, PostOrder postOrder,
-      EventHandler<E> handler);
+  <E> void register(Object plugin, Class<E> eventClass, PostOrder postOrder, EventHandler<E> handler);
 
   /**
    * Requests that the specified {@code handler} listen for events and associate it with the {@code
@@ -64,8 +63,7 @@ public interface EventManager {
    * @param handler the handler to register
    * @param <E> the event type to handle
    */
-  <E> void register(Object plugin, Class<E> eventClass, short postOrder,
-      EventHandler<E> handler);
+  <E> void register(Object plugin, Class<E> eventClass, short postOrder, EventHandler<E> handler);
 
   /**
    * Fires the specified event to the event bus asynchronously. This allows Velocity to continue

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,39 +32,66 @@ import net.kyori.adventure.key.Key;
  */
 public class ClientboundStoreCookiePacket implements MinecraftPacket {
 
+  /**
+   * The {@link Key} identifying the type of cookie to be stored.
+   */
   private Key key;
+
+  /**
+   * The payload associated with the cookie, stored as a byte array.
+   */
   private byte[] payload;
 
+  /**
+   * Returns the {@link Key} identifying the type of cookie.
+   *
+   * @return the cookie key
+   */
   public Key getKey() {
     return key;
   }
 
+  /**
+   * Returns the payload of the cookie as a byte array.
+   *
+   * @return the cookie payload
+   */
   public byte[] getPayload() {
     return payload;
   }
 
+  /**
+   * Constructs an empty {@code ClientboundStoreCookiePacket}.
+   * This constructor is primarily used during decoding.
+   */
   public ClientboundStoreCookiePacket() {
   }
 
+  /**
+   * Constructs a new {@code ClientboundStoreCookiePacket} with the given key and payload.
+   *
+   * @param key the {@link Key} identifying the cookie
+   * @param payload the byte array representing the cookie's payload
+   */
   public ClientboundStoreCookiePacket(final Key key, final byte[] payload) {
     this.key = key;
     this.payload = payload;
   }
 
   @Override
-  public void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
+  public final void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     this.key = ProtocolUtils.readKey(buf);
     this.payload = ProtocolUtils.readByteArray(buf, 5120);
   }
 
   @Override
-  public void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
+  public final void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeKey(buf, key);
     ProtocolUtils.writeByteArray(buf, payload);
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

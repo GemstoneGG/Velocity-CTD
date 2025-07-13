@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,49 +30,85 @@ import io.netty.buffer.ByteBuf;
  */
 public class PlayerChatCompletionPacket implements MinecraftPacket {
 
+  /**
+   * The array of string completions suggested by the server.
+   */
   private String[] completions;
+
+  /**
+   * The action that determines how the completions will be applied on the client.
+   */
   private Action action;
 
+  /**
+   * Constructs an empty {@code PlayerChatCompletionPacket} for decoding purposes.
+   */
   public PlayerChatCompletionPacket() {
   }
 
+  /**
+   * Constructs a {@code PlayerChatCompletionPacket} with the specified completions and action.
+   *
+   * @param completions the string completions to send
+   * @param action the completion action to apply
+   */
   public PlayerChatCompletionPacket(final String[] completions, final Action action) {
     this.completions = completions;
     this.action = action;
   }
 
+  /**
+   * Returns the current array of suggested completions.
+   *
+   * @return the completions array
+   */
   public String[] getCompletions() {
     return completions;
   }
 
+  /**
+   * Returns the action associated with this packet.
+   *
+   * @return the {@link Action} to be applied
+   */
   public Action getAction() {
     return action;
   }
 
+  /**
+   * Sets the completions array for this packet.
+   *
+   * @param completions the new completions to apply
+   */
   public void setCompletions(final String[] completions) {
     this.completions = completions;
   }
 
+  /**
+   * Sets the action to be applied for this completion update.
+   *
+   * @param action the new {@link Action}
+   */
   public void setAction(final Action action) {
     this.action = action;
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                           final ProtocolVersion protocolVersion) {
     action = Action.values()[ProtocolUtils.readVarInt(buf)];
     completions = ProtocolUtils.readStringArray(buf);
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                           final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeVarInt(buf, action.ordinal());
     ProtocolUtils.writeStringArray(buf, completions);
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 

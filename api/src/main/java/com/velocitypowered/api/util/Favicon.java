@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -26,6 +26,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class Favicon {
 
+  /**
+   * The Base64-encoded data URI representing the PNG favicon.
+   */
   private final String base64Url;
 
   /**
@@ -52,9 +55,11 @@ public final class Favicon {
     if (this == o) {
       return true;
     }
+
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
+
     Favicon favicon = (Favicon) o;
     return Objects.equals(base64Url, favicon.base64Url);
   }
@@ -87,8 +92,8 @@ public final class Favicon {
     } catch (IOException e) {
       throw new AssertionError(e);
     }
-    return new Favicon(
-        "data:image/png;base64," + Base64.getEncoder().encodeToString(os.toByteArray()));
+
+    return new Favicon("data:image/png;base64," + Base64.getEncoder().encodeToString(os.toByteArray()));
   }
 
   /**
@@ -104,6 +109,7 @@ public final class Favicon {
       if (image == null) {
         throw new IOException("Unable to read the image.");
       }
+
       return create(image);
     }
   }

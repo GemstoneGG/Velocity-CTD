@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -23,7 +23,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @AwaitingEvent
 public class PlayerChooseInitialServerEvent {
 
+  /**
+   * The player for whom the initial server is being chosen.
+   */
   private final Player player;
+
+  /**
+   * The initial server the player will connect to, or {@code null} if not yet assigned.
+   */
   private @Nullable RegisteredServer initialServer;
 
   /**
@@ -65,7 +72,7 @@ public class PlayerChooseInitialServerEvent {
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "PlayerChooseInitialServerEvent{"
         + "player=" + player
         + ", initialServer=" + initialServer

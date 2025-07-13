@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,14 +30,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
- * Decodes Minecraft 1.3-1.6.4 server ping requests.
+ * Decodes Minecraft 1.3 - 1.6.4 server ping requests.
  */
 public class LegacyPingDecoder extends ByteToMessageDecoder {
 
+  /**
+   * The expected channel name for Minecraft 1.6.x legacy pings.
+   */
   private static final String MC_1_6_CHANNEL = "MC|PingHost";
 
   @Override
-  protected void decode(final ChannelHandlerContext ctx, final ByteBuf in, final List<Object> out) throws Exception {
+  protected final void decode(final ChannelHandlerContext ctx, final ByteBuf in, final List<Object> out) throws Exception {
     if (!in.isReadable()) {
       return;
     }
@@ -79,12 +82,12 @@ public class LegacyPingDecoder extends ByteToMessageDecoder {
     if (!channelName.equals(MC_1_6_CHANNEL)) {
       throw new IllegalArgumentException("Didn't find correct channel");
     }
+
     in.skipBytes(3);
     String hostname = readLegacyString(in);
     int port = in.readInt();
 
-    return new LegacyPingPacket(LegacyMinecraftPingVersion.MINECRAFT_1_6, InetSocketAddress
-        .createUnresolved(hostname, port));
+    return new LegacyPingPacket(LegacyMinecraftPingVersion.MINECRAFT_1_6, InetSocketAddress.createUnresolved(hostname, port));
   }
 
   private static String readLegacyString(final ByteBuf buf) {

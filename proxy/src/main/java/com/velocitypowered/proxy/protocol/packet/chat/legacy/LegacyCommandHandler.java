@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,14 @@ import java.util.concurrent.CompletableFuture;
  */
 public class LegacyCommandHandler extends RateLimitedCommandHandler<LegacyChatPacket> {
 
+  /**
+   * The player who sent the command.
+   */
   private final ConnectedPlayer player;
+
+  /**
+   * The Velocity server instance used for plugin execution and backend forwarding.
+   */
   private final VelocityServer server;
 
   /**
@@ -49,24 +56,26 @@ public class LegacyCommandHandler extends RateLimitedCommandHandler<LegacyChatPa
   }
 
   @Override
-  public Class<LegacyChatPacket> packetClass() {
+  public final Class<LegacyChatPacket> packetClass() {
     return LegacyChatPacket.class;
   }
 
   @Override
-  public void handlePlayerCommandInternal(final LegacyChatPacket packet) {
+  public final void handlePlayerCommandInternal(final LegacyChatPacket packet) {
     String command = packet.getMessage().substring(1);
     queueCommandResult(this.server, this.player, (event, newLastSeenMessages) -> {
       CommandExecuteEvent.CommandResult result = event.getResult();
       if (result == CommandExecuteEvent.CommandResult.denied()) {
         return CompletableFuture.completedFuture(null);
       }
+
       String commandToRun = result.getCommand().orElse(command);
       if (result.isForwardToServer()) {
         return CompletableFuture.completedFuture(this.player.getChatBuilderFactory().builder()
             .message("/" + commandToRun)
             .toServer());
       }
+
       return runCommand(this.server, this.player, commandToRun, hasRun -> {
         if (!hasRun) {
           return this.player.getChatBuilderFactory().builder()
@@ -74,6 +83,7 @@ public class LegacyCommandHandler extends RateLimitedCommandHandler<LegacyChatPa
               .asPlayer(this.player)
               .toServer();
         }
+
         return null;
       });
     }, command, Instant.now(), null,

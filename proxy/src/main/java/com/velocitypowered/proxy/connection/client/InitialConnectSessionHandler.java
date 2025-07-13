@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,10 +35,19 @@ import org.apache.logging.log4j.Logger;
  */
 public class InitialConnectSessionHandler implements MinecraftSessionHandler {
 
+  /**
+   * The logger instance for logging events related to {@link InitialConnectSessionHandler}.
+   */
   private static final Logger logger = LogManager.getLogger(InitialConnectSessionHandler.class);
 
+  /**
+   * The player associated with this session.
+   */
   private final ConnectedPlayer player;
 
+  /**
+   * The Velocity server instance.
+   */
   private final VelocityServer server;
 
   InitialConnectSessionHandler(final ConnectedPlayer player, final VelocityServer server) {
@@ -47,7 +56,7 @@ public class InitialConnectSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public boolean handle(final PluginMessagePacket packet) {
+  public final boolean handle(final PluginMessagePacket packet) {
     VelocityServerConnection serverConn = player.getConnectionInFlight();
     if (serverConn != null) {
       if (player.getPhase().handle(player, packet, serverConn)) {
@@ -65,8 +74,7 @@ public class InitialConnectSessionHandler implements MinecraftSessionHandler {
       }
 
       byte[] copy = ByteBufUtil.getBytes(packet.content());
-      PluginMessageEvent event = new PluginMessageEvent(serverConn, serverConn.getPlayer(), id,
-          copy);
+      PluginMessageEvent event = new PluginMessageEvent(serverConn, serverConn.getPlayer(), id, copy);
       server.getEventManager().fire(event)
           .thenAcceptAsync(pme -> {
             if (pme.getResult().isAllowed() && serverConn.isActive()) {
@@ -80,11 +88,12 @@ public class InitialConnectSessionHandler implements MinecraftSessionHandler {
             return null;
           });
     }
+
     return true;
   }
 
   @Override
-  public void disconnected() {
+  public final void disconnected() {
     // the user canceled the login process
     player.teardown();
   }

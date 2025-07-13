@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,12 +59,34 @@ import org.apache.logging.log4j.Logger;
  */
 public class ClientConfigSessionHandler implements MinecraftSessionHandler {
 
+  /**
+   * Logger for internal debug and error messages.
+   */
   private static final Logger logger = LogManager.getLogger(ClientConfigSessionHandler.class);
+
+  /**
+   * The Velocity server instance.
+   */
   private final VelocityServer server;
+
+  /**
+   * The player whose session is being handled.
+   */
   private final ConnectedPlayer player;
+
+  /**
+   * The most recently seen client brand channel identifier.
+   */
   private String brandChannel = null;
 
+  /**
+   * Future representing the result of the {@link PlayerConfigurationEvent}.
+   */
   private CompletableFuture<?> configurationFuture;
+
+  /**
+   * Future that completes when the client transitions from configuration to play state.
+   */
   private CompletableFuture<Void> configSwitchFuture;
 
   /**
@@ -79,29 +101,29 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public void activated() {
+  public final void activated() {
     configSwitchFuture = new CompletableFuture<>();
   }
 
   @Override
-  public void deactivated() {
+  public final void deactivated() {
     configurationFuture = null;
   }
 
   @Override
-  public boolean handle(final KeepAlivePacket packet) {
+  public final boolean handle(final KeepAlivePacket packet) {
     player.forwardKeepAlive(packet);
     return true;
   }
 
   @Override
-  public boolean handle(final ClientSettingsPacket packet) {
+  public final boolean handle(final ClientSettingsPacket packet) {
     player.setClientSettings(packet);
     return true;
   }
 
   @Override
-  public boolean handle(final ResourcePackResponsePacket packet) {
+  public final boolean handle(final ResourcePackResponsePacket packet) {
     return player.resourcePackHandler().onResourcePackResponse(
         new ResourcePackResponseBundle(packet.getId(),
             packet.getHash(),
@@ -110,7 +132,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public boolean handle(final FinishedUpdatePacket packet) {
+  public final boolean handle(final FinishedUpdatePacket packet) {
     player.getConnection().setActiveSessionHandler(StateRegistry.PLAY, new ClientPlaySessionHandler(server, player));
 
     configSwitchFuture.complete(null);
@@ -118,7 +140,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public boolean handle(final PluginMessagePacket packet) {
+  public final boolean handle(final PluginMessagePacket packet) {
     final VelocityServerConnection serverConn = player.getConnectionInFlight();
     if (PluginMessageUtil.isMcBrand(packet)) {
       final String brand = PluginMessageUtil.readBrandMessage(packet.content());
@@ -148,6 +170,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
               serverConn.ensureConnected().write(new PluginMessagePacket(
                   pme.getIdentifier().getId(), Unpooled.wrappedBuffer(bytes)));
             }
+
             serverConn.getPlayer().getConnection().setAutoReading(true);
           }, player.getConnection().eventLoop()).exceptionally((ex) -> {
             logger.error("Exception while handling plugin message packet for {}", player, ex);
@@ -159,7 +182,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public boolean handle(final PingIdentifyPacket packet) {
+  public final boolean handle(final PingIdentifyPacket packet) {
     if (player.getConnectionInFlight() != null) {
       player.getConnectionInFlight().ensureConnected().write(packet);
       return true;
@@ -169,7 +192,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public boolean handle(final KnownPacksPacket packet) {
+  public final boolean handle(final KnownPacksPacket packet) {
     callConfigurationEvent().thenRun(() -> {
       VelocityServerConnection targetServer = player.getConnectionInFlightOrConnectedServer();
       if (targetServer != null) {
@@ -184,7 +207,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public boolean handle(final ServerboundCookieResponsePacket packet) {
+  public final boolean handle(final ServerboundCookieResponsePacket packet) {
     server.getEventManager()
         .fire(new CookieReceiveEvent(player, packet.getKey(), packet.getPayload()))
         .thenAcceptAsync(event -> {
@@ -196,8 +219,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
               final byte[] resultedData = event.getResult().getData() == null
                   ? event.getOriginalData() : event.getResult().getData();
 
-              serverConnection.ensureConnected()
-                  .write(new ServerboundCookieResponsePacket(resultedKey, resultedData));
+              serverConnection.ensureConnected().write(new ServerboundCookieResponsePacket(resultedKey, resultedData));
             }
           }
         }, player.getConnection().eventLoop());
@@ -206,7 +228,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public void handleGeneric(final MinecraftPacket packet) {
+  public final void handleGeneric(final MinecraftPacket packet) {
     VelocityServerConnection serverConnection = player.getConnectedServer();
     if (serverConnection == null) {
       // No server connection yet, probably transitioning.
@@ -218,12 +240,13 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
       if (packet instanceof PluginMessagePacket) {
         ((PluginMessagePacket) packet).retain();
       }
+
       smc.write(packet);
     }
   }
 
   @Override
-  public void handleUnknown(final ByteBuf buf) {
+  public final void handleUnknown(final ByteBuf buf) {
     final VelocityServerConnection serverConnection = player.getConnectedServer();
     if (serverConnection == null) {
       // No server connection yet, probably transitioning.
@@ -237,12 +260,12 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public void disconnected() {
+  public final void disconnected() {
     player.teardown();
   }
 
   @Override
-  public void exception(final Throwable throwable) {
+  public final void exception(final Throwable throwable) {
     player.disconnect(Component.translatable("velocity.error.player-connection-error", NamedTextColor.RED));
   }
 
@@ -256,12 +279,18 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
    * This is handled differently because for 1.20.5+ servers can't keep
    * their connection alive between states and older servers don't have
    * the known packs transaction.
+   *
+   * @return a {@link CompletableFuture} that completes when the configuration event is fired
    */
   private CompletableFuture<?> callConfigurationEvent() {
     if (configurationFuture != null) {
       return configurationFuture;
     }
-    return configurationFuture = server.getEventManager().fire(new PlayerConfigurationEvent(player, player.getConnectionInFlightOrConnectedServer()));
+
+    CompletableFuture<?> future = server.getEventManager().fire(new PlayerConfigurationEvent(player,
+            player.getConnectionInFlightOrConnectedServer()));
+    configurationFuture = future;
+    return future;
   }
 
   /**

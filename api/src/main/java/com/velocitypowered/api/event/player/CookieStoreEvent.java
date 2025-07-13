@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -23,9 +23,24 @@ import net.kyori.adventure.key.Key;
 @AwaitingEvent
 public final class CookieStoreEvent implements ResultedEvent<CookieStoreEvent.ForwardResult> {
 
+  /**
+   * The player who should store the cookie.
+   */
   private final Player player;
+
+  /**
+   * The original key identifying the cookie to be stored.
+   */
   private final Key originalKey;
+
+  /**
+   * The original data payload of the cookie.
+   */
   private final byte[] originalData;
+
+  /**
+   * The result indicating how the cookie should be handled by the proxy.
+   */
   private ForwardResult result;
 
   /**
@@ -93,11 +108,29 @@ public final class CookieStoreEvent implements ResultedEvent<CookieStoreEvent.Fo
    */
   public static final class ForwardResult implements Result {
 
+    /**
+     * A result indicating the cookie should be forwarded to the client unchanged.
+     */
     private static final ForwardResult ALLOWED = new ForwardResult(true, null, null);
+
+    /**
+     * A result indicating the cookie has been handled by the proxy and should not be forwarded.
+     */
     private static final ForwardResult DENIED = new ForwardResult(false, null, null);
 
+    /**
+     * Whether the cookie should be forwarded to the client.
+     */
     private final boolean status;
+
+    /**
+     * A replacement key to use when forwarding the cookie, or {@code null} to use the original key.
+     */
     private final Key key;
+
+    /**
+     * A replacement payload to use when forwarding the cookie, or {@code null} to use the original data.
+     */
     private final byte[] data;
 
     private ForwardResult(final boolean status, final Key key, final byte[] data) {

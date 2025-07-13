@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,18 +36,32 @@ import java.util.Map;
  */
 public class TagsUpdatePacket implements MinecraftPacket {
 
+  /**
+   * A map of registry keys to tag definitions.
+   *
+   * <p>The outer key is the registry name (e.g., {@code minecraft:block}), and the inner map
+   * contains tag names mapped to an array of integer entry IDs.</p>
+   */
   private Map<String, Map<String, int[]>> tags;
 
+  /**
+   * Constructs a {@code TagsUpdatePacket} with an explicit tag mapping.
+   *
+   * @param tags the registry-to-tag structure
+   */
   public TagsUpdatePacket(final Map<String, Map<String, int[]>> tags) {
     this.tags = tags;
   }
 
+  /**
+   * Constructs an empty {@code TagsUpdatePacket} with no tag data.
+   */
   public TagsUpdatePacket() {
     this.tags = Map.of();
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
                      final ProtocolVersion protocolVersion) {
     ImmutableMap.Builder<String, Map<String, int[]>> builder = ImmutableMap.builder();
     int size = ProtocolUtils.readVarInt(buf);
@@ -64,11 +78,12 @@ public class TagsUpdatePacket implements MinecraftPacket {
 
       builder.put(key, innerBuilder.build());
     }
+
     tags = builder.build();
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
                      final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeVarInt(buf, tags.size());
     for (Map.Entry<String, Map<String, int[]>> entry : tags.entrySet()) {
@@ -84,7 +99,7 @@ public class TagsUpdatePacket implements MinecraftPacket {
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

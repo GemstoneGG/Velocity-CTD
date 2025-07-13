@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,14 @@ import net.kyori.adventure.text.Component;
  */
 public class KeyedCommandHandler extends RateLimitedCommandHandler<KeyedPlayerCommandPacket> {
 
+  /**
+   * The player who sent the command.
+   */
   private final ConnectedPlayer player;
+
+  /**
+   * The server instance managing command execution and configuration.
+   */
   private final VelocityServer server;
 
   /**
@@ -51,12 +58,12 @@ public class KeyedCommandHandler extends RateLimitedCommandHandler<KeyedPlayerCo
   }
 
   @Override
-  public Class<KeyedPlayerCommandPacket> packetClass() {
+  public final Class<KeyedPlayerCommandPacket> packetClass() {
     return KeyedPlayerCommandPacket.class;
   }
 
   @Override
-  public void handlePlayerCommandInternal(final KeyedPlayerCommandPacket packet) {
+  public final void handlePlayerCommandInternal(final KeyedPlayerCommandPacket packet) {
     queueCommandResult(this.server, this.player, (event, newLastSeenMessages) -> {
       CommandExecuteEvent.CommandResult result = event.getResult();
       IdentifiedKey playerKey = player.getIdentifiedKey();
@@ -73,6 +80,7 @@ public class KeyedCommandHandler extends RateLimitedCommandHandler<KeyedPlayerCo
                     + "Contact your network administrator."));
           }
         }
+
         return CompletableFuture.completedFuture(null);
       }
 
@@ -97,8 +105,10 @@ public class KeyedCommandHandler extends RateLimitedCommandHandler<KeyedPlayerCo
                     + "Contact your network administrator."));
             return CompletableFuture.completedFuture(null);
           }
+
           write.message("/" + commandToRun);
         }
+
         return CompletableFuture.completedFuture(write.toServer());
       }
       return runCommand(this.server, this.player, commandToRun, hasRun -> {
@@ -126,6 +136,7 @@ public class KeyedCommandHandler extends RateLimitedCommandHandler<KeyedPlayerCo
               .message("/" + commandToRun)
               .toServer();
         }
+
         return null;
       });
     }, packet.getCommand(), packet.getTimestamp(), null, new CommandExecuteEvent.InvocationInfo(

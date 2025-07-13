@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,11 +43,26 @@ import net.kyori.adventure.text.format.NamedTextColor;
  */
 public class PlistCommand {
 
+  /**
+   * The argument key used for identifying a specific server in command input.
+   */
   private static final String SERVER_ARG = "server";
+
+  /**
+   * The argument key used for identifying a specific proxy in command input.
+   */
   private static final String PROXY_ARG = "proxy";
 
+  /**
+   * The Velocity server instance.
+   */
   private final VelocityServer server;
 
+  /**
+   * Constructs the {@code /plist} command handler.
+   *
+   * @param server the Velocity server instance
+   */
   public PlistCommand(final VelocityServer server) {
     this.server = server;
   }
@@ -78,21 +93,25 @@ public class PlistCommand {
             final String argument = context.getArguments().containsKey(SERVER_ARG)
                 ? context.getArgument(SERVER_ARG, String.class)
                 : "";
+
             for (RegisteredServer registeredServer : server.getAllServers()) {
               final String serverName = registeredServer.getServerInfo().getName();
               if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
                 builder.suggest(serverName);
               }
             }
+
             if ("all".regionMatches(true, 0, argument, 0, argument.length())) {
               builder.suggest("all");
             }
+
             return builder.buildFuture();
           })
           .executes(this::serverCount)
           .build()
         )
         .build();
+
     rootNode.then(serverNode);
     return new BrigadierCommand(rootNode);
   }
@@ -175,14 +194,14 @@ public class PlistCommand {
 
   private void sendTotalProxyCount(final CommandSource target, final String proxyId, final int online) {
     final TranslatableComponent.Builder msg = Component.translatable()
-            .key(online == 1
-                  ? "velocity.command.plist-player-singular"
-                  : "velocity.command.plist-player-plural"
-            ).color(NamedTextColor.YELLOW)
-            .arguments(
-                Component.text(Integer.toString(online)),
-                Component.text(proxyId)
-            );
+        .key(online == 1
+              ? "velocity.command.plist-player-singular"
+              : "velocity.command.plist-player-plural"
+        ).color(NamedTextColor.YELLOW)
+        .arguments(
+            Component.text(Integer.toString(online)),
+            Component.text(proxyId)
+        );
     target.sendMessage(msg.build());
   }
 

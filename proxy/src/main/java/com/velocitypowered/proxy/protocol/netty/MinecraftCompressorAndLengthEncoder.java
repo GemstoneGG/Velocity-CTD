@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,16 +32,29 @@ import java.util.zip.DataFormatException;
  */
 public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<ByteBuf> {
 
+  /**
+   * The compression threshold. Packets smaller than this will not be compressed.
+   */
   private int threshold;
+
+  /**
+   * The {@link VelocityCompressor} used to compress packets.
+   */
   private final VelocityCompressor compressor;
 
+  /**
+   * Constructs a new {@code MinecraftCompressorAndLengthEncoder}.
+   *
+   * @param threshold  the compression threshold
+   * @param compressor the compressor to use
+   */
   public MinecraftCompressorAndLengthEncoder(final int threshold, final VelocityCompressor compressor) {
     this.threshold = threshold;
     this.compressor = compressor;
   }
 
   @Override
-  protected void encode(final ChannelHandlerContext ctx, final ByteBuf msg, final ByteBuf out) throws Exception {
+  protected final void encode(final ChannelHandlerContext ctx, final ByteBuf msg, final ByteBuf out) throws Exception {
     int uncompressed = msg.readableBytes();
     if (uncompressed < threshold) {
       // Under the threshold, there is nothing to do.
@@ -53,8 +66,7 @@ public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<By
     }
   }
 
-  private void handleCompressed(final ChannelHandlerContext ctx, final ByteBuf msg, final ByteBuf out)
-      throws DataFormatException {
+  private void handleCompressed(final ChannelHandlerContext ctx, final ByteBuf msg, final ByteBuf out) throws DataFormatException {
     int uncompressed = msg.readableBytes();
 
     ProtocolUtils.write21BitVarInt(out, 0); // Stub packet length
@@ -67,6 +79,7 @@ public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<By
     } finally {
       compatibleIn.release();
     }
+
     int compressedLength = out.writerIndex() - startCompressed;
     if (compressedLength >= 1 << 21) {
       throw new DataFormatException("The server sent a very large (over 2MiB compressed) packet.");
@@ -80,7 +93,7 @@ public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<By
   }
 
   @Override
-  protected ByteBuf allocateBuffer(final ChannelHandlerContext ctx, final ByteBuf msg, final boolean preferDirect) {
+  protected final ByteBuf allocateBuffer(final ChannelHandlerContext ctx, final ByteBuf msg, final boolean preferDirect) {
     int uncompressed = msg.readableBytes();
     if (uncompressed < threshold) {
       int finalBufferSize = uncompressed + 1;
@@ -90,17 +103,22 @@ public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<By
           : ctx.alloc().directBuffer(finalBufferSize);
     }
 
-    // (maximum data length after compression) + packet length varint + uncompressed data varint
+    // (maximum data length after compression) + packet length varInt + uncompressed data varInt
     int initialBufferSize = (uncompressed - 1) + 3 + ProtocolUtils.varIntBytes(uncompressed);
     return MoreByteBufUtils.preferredBuffer(ctx.alloc(), compressor, initialBufferSize);
   }
 
   @Override
-  public void handlerRemoved(final ChannelHandlerContext ctx) {
+  public final void handlerRemoved(final ChannelHandlerContext ctx) {
     compressor.close();
   }
 
-  public void setThreshold(final int threshold) {
+  /**
+   * Updates the compression threshold.
+   *
+   * @param threshold the new threshold value
+   */
+  public final void setThreshold(final int threshold) {
     this.threshold = threshold;
   }
 }

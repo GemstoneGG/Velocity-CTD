@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,14 +30,21 @@ import org.jetbrains.annotations.NotNull;
  */
 public class AutoReadHolderHandler extends ChannelDuplexHandler {
 
+  /**
+   * Queue of messages that have been received via {@code channelRead} but not yet propagated
+   * because {@code autoRead} is disabled.
+   */
   private final Queue<Object> queuedMessages;
 
+  /**
+   * Constructs a new {@code AutoReadHolderHandler}.
+   */
   public AutoReadHolderHandler() {
     this.queuedMessages = new ArrayDeque<>();
   }
 
   @Override
-  public void read(final ChannelHandlerContext ctx) throws Exception {
+  public final void read(final ChannelHandlerContext ctx) throws Exception {
     drainQueuedMessages(ctx);
     ctx.read();
   }
@@ -48,12 +55,13 @@ public class AutoReadHolderHandler extends ChannelDuplexHandler {
       while ((queued = this.queuedMessages.poll()) != null) {
         ctx.fireChannelRead(queued);
       }
+
       ctx.fireChannelReadComplete();
     }
   }
 
   @Override
-  public void channelRead(final ChannelHandlerContext ctx, @NotNull final Object msg) {
+  public final void channelRead(final ChannelHandlerContext ctx, @NotNull final Object msg) {
     if (ctx.channel().config().isAutoRead()) {
       ctx.fireChannelRead(msg);
     } else {
@@ -62,7 +70,7 @@ public class AutoReadHolderHandler extends ChannelDuplexHandler {
   }
 
   @Override
-  public void channelReadComplete(final ChannelHandlerContext ctx) {
+  public final void channelReadComplete(final ChannelHandlerContext ctx) {
     if (ctx.channel().config().isAutoRead()) {
       if (!this.queuedMessages.isEmpty()) {
         this.drainQueuedMessages(ctx); // will also call fireChannelReadComplete()
@@ -73,10 +81,11 @@ public class AutoReadHolderHandler extends ChannelDuplexHandler {
   }
 
   @Override
-  public void handlerRemoved(final ChannelHandlerContext ctx) {
+  public final void handlerRemoved(final ChannelHandlerContext ctx) {
     for (Object message : this.queuedMessages) {
       ReferenceCountUtil.release(message);
     }
+
     this.queuedMessages.clear();
   }
 }

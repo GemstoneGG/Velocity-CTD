@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,8 +31,19 @@ import org.slf4j.LoggerFactory;
 
 class VelocityPluginModule implements Module {
 
+  /**
+   * The parsed plugin description containing metadata and the main class reference.
+   */
   private final JavaVelocityPluginDescription description;
+
+  /**
+   * The plugin container associated with the plugin instance.
+   */
   private final PluginContainer pluginContainer;
+
+  /**
+   * The base directory where all plugin data directories reside.
+   */
   private final Path basePluginPath;
 
   VelocityPluginModule(final JavaVelocityPluginDescription description, final PluginContainer pluginContainer,
@@ -48,8 +59,7 @@ class VelocityPluginModule implements Module {
 
     binder.bind(Logger.class).toInstance(LoggerFactory.getLogger(description.getId()));
     binder.bind(ComponentLogger.class).toInstance(ComponentLogger.logger(description.getId()));
-    binder.bind(Path.class).annotatedWith(DataDirectory.class)
-        .toInstance(basePluginPath.resolve(description.getId()));
+    binder.bind(Path.class).annotatedWith(DataDirectory.class).toInstance(basePluginPath.resolve(description.getId()));
     binder.bind(PluginDescription.class).toInstance(description);
     binder.bind(PluginContainer.class).toInstance(pluginContainer);
 

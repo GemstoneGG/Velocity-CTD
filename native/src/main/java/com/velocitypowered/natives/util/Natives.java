@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -78,6 +78,24 @@ public final class Natives {
     }
   }
 
+  /**
+   * Provides the best available {@link VelocityCompressorFactory} implementation for the current platform.
+   *
+   * <p>This loader attempts to initialize platform-optimized native implementations of libdeflate.
+   * The native shared objects are selected based on OS, architecture, and libc (e.g., glibc or musl).
+   * If no matching native is available, the Java-based fallback ({@link JavaVelocityCompressor}) will be used.</p>
+   *
+   * <p>The following native variants may be selected, depending on runtime environment:
+   * <ul>
+   *   <li>Linux x86_64 (glibc or musl)</li>
+   *   <li>Linux AArch64 (glibc or musl)</li>
+   *   <li>macOS ARM64</li>
+   * </ul>
+   * </p>
+   *
+   * @see LibdeflateVelocityCompressor
+   * @see JavaVelocityCompressor
+   */
   public static final NativeCodeLoader<VelocityCompressorFactory> compress = new NativeCodeLoader<>(
       ImmutableList.of(
           new NativeCodeLoader.Variant<>(NativeConstraints.LINUX_X86_64,
@@ -107,6 +125,25 @@ public final class Natives {
       )
   );
 
+  /**
+   * Provides the best available {@link VelocityCipherFactory} implementation for the current platform.
+   *
+   * <p>This loader attempts to initialize native OpenSSL-based AES-CFB8 cipher implementations
+   * for the current system architecture and libc runtime. Multiple shared object variants are supported
+   * for OpenSSL 1.1.x and 3.x.x. If no native variant is usable, it falls back to the standard
+   * Java-based cipher using {@link JavaVelocityCipher}.</p>
+   *
+   * <p>The following native variants may be selected:
+   * <ul>
+   *   <li>Linux x86_64 (OpenSSL 1.1.x or 3.x.x, glibc or musl)</li>
+   *   <li>Linux AArch64 (OpenSSL 1.1.x or 3.x.x, glibc or musl)</li>
+   *   <li>macOS ARM64 (native build)</li>
+   * </ul>
+   * </p>
+   *
+   * @see NativeVelocityCipher
+   * @see JavaVelocityCipher
+   */
   public static final NativeCodeLoader<VelocityCipherFactory> cipher = new NativeCodeLoader<>(
       ImmutableList.of(
           new NativeCodeLoader.Variant<>(NativeConstraints.LINUX_X86_64,

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,16 @@ import org.checkerframework.checker.lock.qual.GuardedBy;
  */
 abstract class AbstractCommandRegistrar<T extends Command> implements CommandRegistrar<T> {
 
+  /**
+   * The root command node used to register commands.
+   *
+   * <p>This field is guarded by {@link #lock}.</p>
+   */
   private final @GuardedBy("lock") RootCommandNode<CommandSource> root;
+
+  /**
+   * The lock used to guard modifications to the root command tree.
+   */
   private final Lock lock;
 
   protected AbstractCommandRegistrar(final RootCommandNode<CommandSource> root, final Lock lock) {
@@ -52,10 +61,8 @@ abstract class AbstractCommandRegistrar<T extends Command> implements CommandReg
     }
   }
 
-  protected void register(final LiteralCommandNode<CommandSource> node,
-      final String secondaryAlias) {
-    final LiteralCommandNode<CommandSource> copy =
-        VelocityCommands.shallowCopy(node, secondaryAlias);
+  protected void register(final LiteralCommandNode<CommandSource> node, final String secondaryAlias) {
+    final LiteralCommandNode<CommandSource> copy = VelocityCommands.shallowCopy(node, secondaryAlias);
     this.register(copy);
   }
 }

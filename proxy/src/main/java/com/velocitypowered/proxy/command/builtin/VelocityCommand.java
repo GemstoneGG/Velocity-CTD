@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -78,6 +78,21 @@ import org.apache.logging.log4j.Logger;
  * Implements the {@code /velocity} command and friends.
  */
 public final class VelocityCommand {
+
+  /**
+   * Implements the {@code /velocity} command and its subcommands.
+   *
+   * <p>This command provides access to administrative utilities such as:</p>
+   * <ul>
+   *   <li>{@code /velocity dump} - Creates a diagnostic dump</li>
+   *   <li>{@code /velocity heap} - Triggers a heap dump</li>
+   *   <li>{@code /velocity info} - Displays version and environment info</li>
+   *   <li>{@code /velocity plugins} - Lists installed plugins</li>
+   *   <li>{@code /velocity reload} - Reloads the proxy configuration</li>
+   *   <li>{@code /velocity sudo} - Forces player(s) to run a command or message</li>
+   *   <li>{@code /velocity uptime} - Shows how long the proxy has been running</li>
+   * </ul>
+   */
   private static final String USAGE = "/velocity <%s>";
 
   /**
@@ -116,6 +131,7 @@ public final class VelocityCommand {
               Component.translatable("velocity.command.sudo.usage", NamedTextColor.YELLOW)
                   .arguments(Component.text("velocity sudo"))
           );
+
           return Command.SINGLE_SUCCESS;
         })
         .then(BrigadierCommand.requiredArgumentBuilder("player", StringArgumentType.word())
@@ -170,6 +186,7 @@ public final class VelocityCommand {
               Component.translatable("velocity.command.sudo.usage", NamedTextColor.YELLOW)
                   .arguments(Component.text("velocity sudo"))
           );
+
           return Command.SINGLE_SUCCESS;
         })
         .then(BrigadierCommand.requiredArgumentBuilder("message/command", StringArgumentType.greedyString())
@@ -432,6 +449,9 @@ public final class VelocityCommand {
 
   private record Reload(VelocityServer server) implements Command<CommandSource> {
 
+    /**
+     * Logger instance used for reporting reload-related errors.
+     */
     private static final Logger logger = LogManager.getLogger(Reload.class);
 
     @Override
@@ -483,7 +503,14 @@ public final class VelocityCommand {
 
   private static final class Info implements Command<CommandSource> {
 
+    /**
+     * Primary color used for Velocity branding in info output.
+     */
     private static final TextColor VELOCITY_COLOR = TextColor.color(0xff3a4c);
+
+    /**
+     * Memoized supplier that builds the {@code /velocity info} output component.
+     */
     private final Supplier<Component> infoSupplier;
 
     private Info(final ProxyServer server) {
@@ -610,6 +637,10 @@ public final class VelocityCommand {
   }
 
   private record Dump(ProxyServer server) implements Command<CommandSource> {
+
+    /**
+     * Logger instance for logging errors and output related to the dump command.
+     */
     private static final Logger logger = LogManager.getLogger(Dump.class);
 
     @Override
@@ -667,9 +698,25 @@ public final class VelocityCommand {
    * Heap SubCommand.
    */
   public static final class Heap implements Command<CommandSource> {
+
+    /**
+     * Logger instance for logging errors during heap dump generation.
+     */
     private static final Logger logger = LogManager.getLogger(Heap.class);
+
+    /**
+     * Method handle to the platform-specific heap dump method.
+     */
     private MethodHandle heapGenerator;
+
+    /**
+     * Consumer that triggers heap dump generation and sends output to the command source.
+     */
     private Consumer<CommandSource> heapConsumer;
+
+    /**
+     * Directory path where heap dumps will be saved.
+     */
     private final Path dir = Path.of("./dumps");
 
     @Override

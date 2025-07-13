@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlayerCommandPacket> {
 
+  /**
+   * The player issuing the command.
+   */
   private final ConnectedPlayer player;
+
+  /**
+   * The proxy server instance, used for configuration and command routing.
+   */
   private final VelocityServer server;
 
   /**
@@ -52,7 +59,7 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
   }
 
   @Override
-  public Class<SessionPlayerCommandPacket> packetClass() {
+  public final Class<SessionPlayerCommandPacket> packetClass() {
     return SessionPlayerCommandPacket.class;
   }
 
@@ -61,6 +68,7 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
     if (packet.lastSeenMessages == null) {
       return null;
     }
+
     if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
       // Any signed message produced by the client *must* be passed through to the server to maintain a
       // consistent state for future messages.
@@ -72,12 +80,14 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
               + "Contact your network administrator."));
       return null;
     }
+
     // An unsigned command with a 'last seen' update will not happen as of 1.20.5+, but for earlier versions - we still
     // need to pass through the acknowledgement
     final int offset = packet.lastSeenMessages.getOffset();
     if (offset != 0) {
       return new ChatAcknowledgementPacket(offset);
     }
+
     return null;
   }
 
@@ -86,6 +96,7 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
     if (newCommand.equals(packet.command)) {
       return packet;
     }
+
     return modifyCommand(packet, newCommand);
   }
 
@@ -112,7 +123,7 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
   }
 
   @Override
-  public void handlePlayerCommandInternal(final SessionPlayerCommandPacket packet) {
+  public final void handlePlayerCommandInternal(final SessionPlayerCommandPacket packet) {
     queueCommandResult(this.server, this.player, (event, newLastSeenMessages) -> {
       SessionPlayerCommandPacket fixedPacket = packet.withLastSeenMessages(newLastSeenMessages);
 
@@ -130,6 +141,7 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
         if (hasRun) {
           return consumeCommand(fixedPacket);
         }
+
         return forwardCommand(fixedPacket, commandToRun);
       });
     }, packet.command, packet.timeStamp, packet.lastSeenMessages,

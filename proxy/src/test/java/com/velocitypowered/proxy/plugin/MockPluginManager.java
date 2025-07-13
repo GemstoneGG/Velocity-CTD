@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,30 +29,32 @@ import java.util.Optional;
  */
 public class MockPluginManager implements PluginManager {
 
+  /**
+   * Singleton instance of the {@code MockPluginManager}.
+   */
   public static final PluginManager INSTANCE = new MockPluginManager();
 
   @Override
-  public Optional<PluginContainer> fromInstance(final Object instance) {
+  public final Optional<PluginContainer> fromInstance(final Object instance) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<PluginContainer> getPlugin(final String id) {
+  public final Optional<PluginContainer> getPlugin(final String id) {
     return Optional.empty();
   }
 
   @Override
-  public Collection<PluginContainer> getPlugins() {
+  public final Collection<PluginContainer> getPlugins() {
     return ImmutableList.of();
   }
 
   @Override
-  public boolean isLoaded(final String id) {
+  public final boolean isLoaded(final String id) {
     return false;
   }
 
   @Override
   public void addToClasspath(final Object plugin, final Path path) {
-
   }
 }

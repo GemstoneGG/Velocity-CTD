@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,9 +35,23 @@ import net.kyori.adventure.text.Component;
  */
 public class SlashServerCommand {
 
+  /**
+   * The Velocity server instance used to manage connections and access server metadata.
+   */
   private final VelocityServer proxyServer;
+
+  /**
+   * The specific target server this slash command connects to.
+   */
   private final VelocityRegisteredServer server;
 
+  /**
+   * Constructs a new {@link SlashServerCommand} for the given server name.
+   *
+   * @param proxyServer the proxy server instance
+   * @param serverName the name of the server this command will connect to
+   * @throws java.util.NoSuchElementException if the server name is not registered
+   */
   public SlashServerCommand(final VelocityServer proxyServer, final String serverName) {
     this.proxyServer = proxyServer;
     this.server = (VelocityRegisteredServer) this.proxyServer.getServer(serverName).orElseThrow();
@@ -45,6 +59,8 @@ public class SlashServerCommand {
 
   /**
    * Registers or unregisters the command based on the configuration value.
+   *
+   * @param name the literal name of the command (typically the server name)
    */
   public void register(final String name) {
     final LiteralArgumentBuilder<CommandSource> rootNode = BrigadierCommand

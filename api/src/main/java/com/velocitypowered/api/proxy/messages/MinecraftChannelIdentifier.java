@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -20,7 +20,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class MinecraftChannelIdentifier implements ChannelIdentifier {
 
+  /**
+   * The namespace of the channel identifier (e.g., {@code Minecraft}, {@code MyPlugin}).
+   */
   private final String namespace;
+
+  /**
+   * The name of the channel within its namespace.
+   */
   private final String name;
 
   private MinecraftChannelIdentifier(final String namespace, final String name) {
@@ -69,6 +76,7 @@ public final class MinecraftChannelIdentifier implements ChannelIdentifier {
     } else if (colonPos == 0) {
       return create(Key.MINECRAFT_NAMESPACE, identifier.substring(1));
     }
+
     String namespace = identifier.substring(0, colonPos);
     String name = identifier.substring(colonPos + 1);
     return create(namespace, name);
@@ -121,9 +129,11 @@ public final class MinecraftChannelIdentifier implements ChannelIdentifier {
     if (this == o) {
       return true;
     }
+
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
+
     MinecraftChannelIdentifier that = (MinecraftChannelIdentifier) o;
     return Objects.equals(namespace, that.namespace)
         && Objects.equals(name, that.name);

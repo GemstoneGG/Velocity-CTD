@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,36 +29,57 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Represents an argument type for registry keys.
+ * Represents a Brigadier {@link ArgumentType} for registry keys, which are typically
+ * namespaced resource locations (e.g., {@code minecraft:diamond_sword}).
  *
- * <p>This class handles parsing and validating registry key arguments.</p>
+ * <p>This argument type reads an unquoted string from input and treats it as a raw registry
+ * key. It does not validate the format or resolve the key against a known registry.</p>
+ *
+ * <p>Examples include simple strings, namespaced keys, or numeric-like identifiers.</p>
  */
 public class RegistryKeyArgument implements ArgumentType<String> {
 
+  /**
+   * A set of example inputs commonly used for registry key arguments.
+   */
   private static final List<String> EXAMPLES = Arrays.asList("foo", "foo:bar", "012");
+
+  /**
+   * The internal identifier used to associate this argument with a specific registry context.
+   */
   private final String identifier;
 
+  /**
+   * Constructs a new {@link RegistryKeyArgument} with the given identifier string.
+   *
+   * @param identifier a registry category or type name (e.g., {@code "minecraft:item"})
+   */
   public RegistryKeyArgument(final String identifier) {
     this.identifier = identifier;
   }
 
+  /**
+   * Returns the internal identifier associated with this registry argument.
+   *
+   * @return the registry type identifier string
+   */
   public String getIdentifier() {
     return identifier;
   }
 
   @Override
-  public String parse(final StringReader stringReader) throws CommandSyntaxException {
+  public final String parse(final StringReader stringReader) throws CommandSyntaxException {
     return stringReader.readString();
   }
 
   @Override
-  public <S> CompletableFuture<Suggestions> listSuggestions(final CommandContext<S> context,
+  public final <S> CompletableFuture<Suggestions> listSuggestions(final CommandContext<S> context,
                                                             final SuggestionsBuilder builder) {
     return Suggestions.empty();
   }
 
   @Override
-  public Collection<String> getExamples() {
+  public final Collection<String> getExamples() {
     return EXAMPLES;
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,9 +36,22 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class ServerMap {
 
+  /**
+   * The {@link VelocityServer} instance backing this server map,
+   * or {@code null} if not initialized in a running proxy context (e.g., testing).
+   */
   private final @Nullable VelocityServer server;
+
+  /**
+   * A thread-safe map of lowercase server names to their {@link RegisteredServer} instances.
+   */
   private final Map<String, RegisteredServer> servers = new ConcurrentHashMap<>();
 
+  /**
+   * Creates a new {@code ServerMap} for managing registered servers.
+   *
+   * @param server the Velocity server instance, may be {@code null}
+   */
   public ServerMap(@Nullable final VelocityServer server) {
     this.server = server;
   }
@@ -55,6 +68,11 @@ public class ServerMap {
     return Optional.ofNullable(servers.get(lowerName));
   }
 
+  /**
+   * Returns an immutable snapshot of all registered servers currently known to the proxy.
+   *
+   * @return a collection of all {@link RegisteredServer} instances
+   */
   public Collection<RegisteredServer> getAllServers() {
     return ImmutableList.copyOf(servers.values());
   }
@@ -109,6 +127,7 @@ public class ServerMap {
       throw new IllegalArgumentException(
           "Server with name " + serverInfo.getName() + " is not registered!");
     }
+
     Preconditions.checkArgument(rs.getServerInfo().equals(serverInfo),
         "Trying to remove server %s with differing information", serverInfo.getName());
     Preconditions.checkState(servers.remove(lowerName, rs),

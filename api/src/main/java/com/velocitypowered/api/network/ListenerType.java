@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -22,6 +22,9 @@ public enum ListenerType {
    */
   QUERY("Query");
 
+  /**
+   * A human-readable name for the listener type.
+   */
   final String name;
 
   ListenerType(final String name) {

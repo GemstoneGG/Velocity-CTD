@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -28,8 +28,21 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @AwaitingEvent
 public final class PermissionsSetupEvent {
 
+  /**
+   * The subject whose permissions are being initialized.
+   */
   private final PermissionSubject subject;
+
+  /**
+   * The default permission provider originally supplied when the event was posted.
+   */
   private final PermissionProvider defaultProvider;
+
+  /**
+   * The permission provider currently in use for the subject.
+   *
+   * <p>This may be overridden by plugins via {@link #setProvider(PermissionProvider)}.</p>
+   */
   private PermissionProvider provider;
 
   /**

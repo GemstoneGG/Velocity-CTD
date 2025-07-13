@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -22,7 +22,14 @@ import com.velocitypowered.api.proxy.Player;
 @AwaitingEvent
 public class PlayerAvailableCommandsEvent {
 
+  /**
+   * The player receiving the list of available commands.
+   */
   private final Player player;
+
+  /**
+   * The mutable Brigadier root command node representing the available commands.
+   */
   private final RootCommandNode<?> rootNode;
 
   /**

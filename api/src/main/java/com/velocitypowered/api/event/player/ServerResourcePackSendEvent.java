@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -21,9 +21,26 @@ import com.velocitypowered.api.proxy.player.ResourcePackInfo;
  */
 @AwaitingEvent
 public class ServerResourcePackSendEvent implements ResultedEvent<ResultedEvent.GenericResult> {
+
+  /**
+   * The result determining whether the resource pack should be forwarded to the player.
+   */
   private GenericResult result;
+
+  /**
+   * The original resource pack sent by the server.
+   */
   private final ResourcePackInfo receivedResourcePack;
+
+  /**
+   * The resource pack that will actually be sent to the player.
+   * This may be modified by plugins from the original.
+   */
   private ResourcePackInfo providedResourcePack;
+
+  /**
+   * The server connection that attempted to send the resource pack.
+   */
   private final ServerConnection serverConnection;
 
   /**
@@ -77,12 +94,12 @@ public class ServerResourcePackSendEvent implements ResultedEvent<ResultedEvent.
   }
 
   @Override
-  public GenericResult getResult() {
+  public final GenericResult getResult() {
     return this.result;
   }
 
   @Override
-  public void setResult(final GenericResult result) {
+  public final void setResult(final GenericResult result) {
     this.result = result;
   }
 }

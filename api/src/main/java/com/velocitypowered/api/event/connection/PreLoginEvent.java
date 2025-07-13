@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -31,9 +31,24 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @AwaitingEvent
 public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLoginComponentResult> {
 
+  /**
+   * The inbound connection associated with this pre-login attempt.
+   */
   private final InboundConnection connection;
+
+  /**
+   * The username provided by the connecting player.
+   */
   private final String username;
+
+  /**
+   * The UUID of the connecting player, if available.
+   */
   private final @Nullable UUID uuid;
+
+  /**
+   * The result of the pre-login event, indicating whether the player is allowed to proceed.
+   */
   private PreLoginComponentResult result;
 
   /**
@@ -118,14 +133,32 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
    */
   public static final class PreLoginComponentResult implements ResultedEvent.Result {
 
+    /**
+     * A result allowing the player to connect normally.
+     */
     private static final PreLoginComponentResult ALLOWED = new PreLoginComponentResult(
         Result.ALLOWED, null);
+
+    /**
+     * A result allowing the player to connect and forcing online mode for authentication.
+     */
     private static final PreLoginComponentResult FORCE_ONLINEMODE = new PreLoginComponentResult(
         Result.FORCE_ONLINE, null);
+
+    /**
+     * A result allowing the player to connect and forcing offline mode.
+     */
     private static final PreLoginComponentResult FORCE_OFFLINEMODE = new PreLoginComponentResult(
         Result.FORCE_OFFLINE, null);
 
+    /**
+     * The login result type (e.g., allowed, denied, forced mode).
+     */
     private final Result result;
+
+    /**
+     * The message to show to the player if the login is denied.
+     */
     private final Component reason;
 
     private PreLoginComponentResult(final Result result,
@@ -218,10 +251,26 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
     }
 
     private enum Result {
-      ALLOWED,
-      FORCE_ONLINE,
-      FORCE_OFFLINE,
-      DISALLOWED
+
+    /**
+     * The connection is allowed without any modifications to the proxy’s default mode.
+     */
+    ALLOWED,
+
+    /**
+     * The connection is allowed, and the proxy will enforce online mode for this connection.
+     */
+    FORCE_ONLINE,
+
+    /**
+     * The connection is allowed, and the proxy will enforce offline mode for this connection.
+     */
+    FORCE_OFFLINE,
+
+    /**
+     * The connection is denied and will be disconnected.
+     */
+    DISALLOWED
     }
   }
 }

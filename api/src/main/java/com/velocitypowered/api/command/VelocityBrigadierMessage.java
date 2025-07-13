@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -30,6 +30,12 @@ public final class VelocityBrigadierMessage implements Message, ComponentLike {
     return new VelocityBrigadierMessage(message);
   }
 
+  /**
+   * The component backing this brigadier message.
+   *
+   * <p>This component provides both rich formatting for client display and a fallback
+   * plain-text representation via {@link #getString()}.</p>
+   */
   private final Component message;
 
   private VelocityBrigadierMessage(final Component message) {

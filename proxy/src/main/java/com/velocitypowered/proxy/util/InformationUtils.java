@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -67,31 +67,40 @@ public enum InformationUtils {
       if (desc.getName().isPresent()) {
         current.addProperty("name", desc.getName().get());
       }
+
       if (desc.getVersion().isPresent()) {
         current.addProperty("version", desc.getVersion().get());
       }
+
       if (!desc.getAuthors().isEmpty()) {
         JsonArray authorsArray = new JsonArray();
         for (String author : desc.getAuthors()) {
           authorsArray.add(author);
         }
+
         current.add("authors", authorsArray);
       }
+
       if (desc.getDescription().isPresent()) {
         current.addProperty("description", desc.getDescription().get());
       }
+
       if (desc.getUrl().isPresent()) {
         current.addProperty("url", desc.getUrl().get());
       }
+
       if (!desc.getDependencies().isEmpty()) {
         JsonArray dependencies = new JsonArray();
         for (PluginDependency dependency : desc.getDependencies()) {
           dependencies.add(dependency.getId());
         }
+
         current.add("dependencies", dependencies);
       }
+
       plugins.add(current);
     }
+
     return plugins;
   }
 
@@ -123,6 +132,7 @@ public enum InformationUtils {
    * Creates a {@link JsonObject} containing information about the forced hosts of the
    * {@link ProxyConfig} instance.
    *
+   * @param config the proxy configuration containing forced host mappings
    * @return {@link JsonArray} containing forced hosts
    */
   public static JsonObject collectForcedHosts(final ProxyConfig config) {
@@ -134,8 +144,10 @@ public enum InformationUtils {
       for (int i = 0; i < entry.getValue().size(); i++) {
         host.add(entry.getValue().get(i));
       }
+
       forcedHosts.add(entry.getKey(), host);
     }
+
     return forcedHosts;
   }
 
@@ -178,15 +190,18 @@ public enum InformationUtils {
         ret.append(":X");
         continue;
       }
+
       if (!bits[iter].equals("0")) {
         if (iter == 0) {
           ret = new StringBuilder(bits[iter]);
         } else {
           ret = new StringBuilder("::" + bits[iter]);
         }
+
         flag = true;
       }
     }
+
     return ret;
   }
 
@@ -207,6 +222,7 @@ public enum InformationUtils {
     } else {
       info.addProperty("host", anonymizeInetAddress(iaddr.getAddress()));
     }
+
     info.addProperty("port", iaddr.getPort());
     return info;
   }
@@ -258,11 +274,22 @@ public enum InformationUtils {
         withExcludes ? GSON_WITH_EXCLUDES.toJson(toSerialize) : GSON_WITHOUT_EXCLUDES.toJson(toSerialize));
   }
 
+  /**
+   * A {@link Gson} instance configured to pretty-print JSON and exclude fields
+   * not marked with {@link com.google.gson.annotations.Expose}.
+   *
+   * <p>Used when output should be restricted to explicitly exposed fields only.</p>
+   */
   private static final Gson GSON_WITH_EXCLUDES = new GsonBuilder()
       .setPrettyPrinting()
       .excludeFieldsWithoutExposeAnnotation()
       .create();
 
+  /**
+   * A {@link Gson} instance configured to pretty-print JSON without excluding any fields.
+   *
+   * <p>Used when full serialization is desired regardless of {@link com.google.gson.annotations.Expose}.</p>
+   */
   private static final Gson GSON_WITHOUT_EXCLUDES = new GsonBuilder()
       .setPrettyPrinting()
       .create();

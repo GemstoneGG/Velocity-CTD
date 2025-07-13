@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -18,6 +18,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * Represents a single entry in a {@link TabList}.
  */
 public interface TabListEntry extends KeyIdentifiable {
+
   /**
    * Returns the {@link ChatSession} associated with this entry.
    *
@@ -31,6 +32,7 @@ public interface TabListEntry extends KeyIdentifiable {
     if (session == null) {
       return null;
     }
+
     return getChatSession().getIdentifiedKey();
   }
 
@@ -51,11 +53,11 @@ public interface TabListEntry extends KeyIdentifiable {
   GameProfile getProfile();
 
   /**
-   * Returns {@link Optional} text {@link net.kyori.adventure.text.Component}, which when present is
+   * Returns {@link Optional} text {@link Component}, which when present is
    * the text displayed for {@code this} entry in the {@link TabList}, otherwise
    * {@link GameProfile#getName()} is shown.
    *
-   * @return {@link Optional} text {@link net.kyori.adventure.text.Component} of name displayed in
+   * @return {@link Optional} text {@link Component} of name displayed in
    *     the tab list
    */
   Optional<Component> getDisplayNameComponent();
@@ -197,15 +199,49 @@ public interface TabListEntry extends KeyIdentifiable {
    */
   final class Builder {
 
+    /**
+     * The parent tab list this entry will belong to.
+     */
     private @Nullable TabList tabList;
+
+    /**
+     * The profile used to identify and render the tab entry.
+     */
     private @Nullable GameProfile profile;
+
+    /**
+     * The display name override for the tab entry.
+     */
     private @Nullable Component displayName;
+
+    /**
+     * The latency (ping) shown for this entry.
+     */
     private int latency = 0;
+
+    /**
+     * The game mode displayed for this entry.
+     */
     private int gameMode = 0;
+
+    /**
+     * Whether the entry should be visible in the tab list.
+     */
     private boolean listed = true;
+
+    /**
+     * The order or priority of this entry in the tab list.
+     */
     private int listOrder = 0;
+
+    /**
+     * Whether the hat layer should be shown in the tab list.
+     */
     private boolean showHat;
 
+    /**
+     * The chat session associated with this entry, if any.
+     */
     private @Nullable ChatSession chatSession;
 
     private Builder() {

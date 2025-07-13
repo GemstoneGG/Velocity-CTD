@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,12 +29,34 @@ import java.util.BitSet;
  */
 public class LastSeenMessages {
 
+  /**
+   * The number of messages in the sliding acknowledgment window.
+   */
   public static final int WINDOW_SIZE = 20;
+
+  /**
+   * The number of bytes needed to store a WINDOW_SIZE-sized BitSet.
+   */
   private static final int DIV_FLOOR = -Math.floorDiv(-WINDOW_SIZE, 8);
+
+  /**
+   * The base offset of the message window, relative to the message history index.
+   */
   private final int offset;
+
+  /**
+   * A {@link BitSet} indicating which messages in the window were seen.
+   */
   private final BitSet acknowledged;
+
+  /**
+   * A one-byte checksum included in protocol versions 1.21.5 and later.
+   */
   private byte checksum;
 
+  /**
+   * Constructs an empty {@link LastSeenMessages} with offset 0 and an empty acknowledgment set.
+   */
   public LastSeenMessages() {
     this(0, new BitSet(), (byte) 0);
   }
@@ -57,6 +79,7 @@ public class LastSeenMessages {
    * {@link ByteBuf}.
    *
    * @param buf the buffer containing the serialized last seen messages data
+   * @param protocolVersion the protocol version (determines if checksum is written)
    */
   public LastSeenMessages(final ByteBuf buf, final ProtocolVersion protocolVersion) {
     this.offset = ProtocolUtils.readVarInt(buf);
@@ -93,16 +116,30 @@ public class LastSeenMessages {
     return this.offset;
   }
 
+  /**
+   * Gets the {@link BitSet} of messages acknowledged in this window.
+   *
+   * @return the bitset of seen messages
+   */
   public BitSet getAcknowledged() {
     return acknowledged;
   }
 
+  /**
+   * Creates a new {@link LastSeenMessages} instance with an adjusted offset.
+   *
+   * <p>The returned instance shares the same acknowledgment and checksum state,
+   * but its offset is incremented by the specified amount.</p>
+   *
+   * @param offset the amount to shift the offset by
+   * @return a new {@code LastSeenMessages} instance with updated offset
+   */
   public LastSeenMessages offset(final int offset) {
     return new LastSeenMessages(this.offset + offset, acknowledged, checksum);
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "LastSeenMessages{"
         + "offset=" + offset
         + ", acknowledged=" + acknowledged

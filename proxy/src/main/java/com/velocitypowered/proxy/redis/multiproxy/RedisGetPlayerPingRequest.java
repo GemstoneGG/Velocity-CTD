@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,10 @@ import com.velocitypowered.proxy.redis.RedisPacket;
  * @param playerToCheck The UUID of the player that needs to be checked.
  */
 public record RedisGetPlayerPingRequest(EncodedCommandSource commandSender, String playerToCheck) implements RedisPacket {
+
+  /**
+   * The Redis packet ID for this request type.
+   */
   public static final String ID = "get-player-ping";
 
   @Override

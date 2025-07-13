@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,11 +34,29 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class ChatQueue implements AutoCloseable {
 
+  /**
+   * Internal lock for coordinating serialized access to the queue.
+   */
   private final Object internalLock = new Object();
+
+  /**
+   * The player associated with this chat queue.
+   */
   private final ConnectedPlayer player;
+
+  /**
+   * The current mutable chat state for this session.
+   */
   private final ChatState chatState = new ChatState();
+
+  /**
+   * The current head of the async packet queue chain.
+   */
   private CompletableFuture<Void> head = CompletableFuture.completedFuture(null);
 
+  /**
+   * Whether the queue is closed and no further tasks may be submitted.
+   */
   private volatile boolean closed;
 
   /**
@@ -55,11 +73,13 @@ public class ChatQueue implements AutoCloseable {
       if (closed) {
         throw new IllegalStateException("ChatQueue has already been closed");
       }
+
       MinecraftConnection smc = player.ensureAndGetCurrentServer().ensureConnected();
       head = head.thenCompose(v -> {
         if (closed) {
           return CompletableFuture.completedFuture(null);
         }
+
         try {
           return task.update(chatState, smc).exceptionally(ignored -> null);
         } catch (Throwable ignored) {
@@ -113,6 +133,7 @@ public class ChatQueue implements AutoCloseable {
       if (ackCountToForward > 0) {
         return writePacket(new ChatAcknowledgementPacket(ackCountToForward), smc);
       }
+
       return CompletableFuture.completedFuture(null);
     });
   }
@@ -129,7 +150,7 @@ public class ChatQueue implements AutoCloseable {
   }
 
   @Override
-  public void close() {
+  public final void close() {
     closed = true;
   }
 
@@ -157,11 +178,38 @@ public class ChatQueue implements AutoCloseable {
    * updates.</p>
    */
   public static final class ChatState {
+
+    /**
+     * The minimum number of acknowledgements that must be accumulated before the proxy
+     * considers forwarding a {@link ChatAcknowledgementPacket}.
+     *
+     * <p>This threshold ensures that message acknowledgements are not flushed too early,
+     * preserving a consistent and efficient stream of acknowledgment updates.</p>
+     */
     private static final int MINIMUM_DELAYED_ACK_COUNT = LastSeenMessages.WINDOW_SIZE;
+
+    /**
+     * A placeholder {@link BitSet} used when acknowledgements are forwarded in bulk,
+     * and the actual client last-seen message state is no longer reliable.
+     *
+     * <p>This is used to "reset" the last-seen tracking safely when acknowledgment count
+     * exceeds the window size and cannot be inferred from client behavior.</p>
+     */
     private static final BitSet DUMMY_LAST_SEEN_MESSAGES = new BitSet();
 
+    /**
+     * The timestamp of the last message received from the client.
+     */
     public volatile Instant lastTimestamp = Instant.EPOCH;
+
+    /**
+     * The last known acknowledged messages bitset.
+     */
     private volatile BitSet lastSeenMessages = new BitSet();
+
+    /**
+     * The number of acknowledgments pending until flush.
+     */
     private final AtomicInteger delayedAckCount = new AtomicInteger();
 
     private ChatState() {
@@ -183,12 +231,14 @@ public class ChatQueue implements AutoCloseable {
       if (timestamp != null) {
         this.lastTimestamp = timestamp;
       }
+
       if (lastSeenMessages != null) {
         // We held back some acknowledged messages, so flush that out now that we have a known 'last seen' state again
         int delayedAckCount = this.delayedAckCount.getAndSet(0);
         this.lastSeenMessages = lastSeenMessages.getAcknowledged();
         return lastSeenMessages.offset(delayedAckCount);
       }
+
       return null;
     }
 
@@ -211,9 +261,15 @@ public class ChatQueue implements AutoCloseable {
         this.delayedAckCount.set(MINIMUM_DELAYED_ACK_COUNT);
         return ackCountToForward;
       }
+
       return 0;
     }
 
+    /**
+     * Creates a snapshot of the current {@link LastSeenMessages} state.
+     *
+     * @return a new {@link LastSeenMessages} representing the current view
+     */
     public LastSeenMessages createLastSeen() {
       return new LastSeenMessages(0, lastSeenMessages, (byte) 0);
     }

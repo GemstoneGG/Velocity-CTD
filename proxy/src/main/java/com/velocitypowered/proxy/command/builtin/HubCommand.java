@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,14 +37,25 @@ import net.kyori.adventure.translation.GlobalTranslator;
  */
 public class HubCommand {
 
+  /**
+   * The Velocity server instance used for configuration access and player redirection.
+   */
   private final VelocityServer server;
 
+  /**
+   * Constructs a new {@link HubCommand} instance.
+   *
+   * @param server the Velocity server instance
+   */
   public HubCommand(final VelocityServer server) {
     this.server = server;
   }
 
   /**
    * Registers or unregisters the command based on the configuration value.
+   *
+   * @param isHubCommand {@code true} if the command is enabled via configuration
+   * @return the {@link BrigadierCommand} instance or {@code null} if disabled
    */
   public BrigadierCommand register(final boolean isHubCommand) {
     if (!isHubCommand) {
@@ -111,6 +122,7 @@ public class HubCommand {
 
       return Command.SINGLE_SUCCESS;
     }
+
     return 0;
   }
 

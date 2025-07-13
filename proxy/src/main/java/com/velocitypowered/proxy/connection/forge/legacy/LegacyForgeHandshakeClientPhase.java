@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -175,6 +175,16 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
     }
   };
 
+  /**
+   * The discriminator value of a {@link PluginMessagePacket} used to determine whether the Forge
+   * handshake should advance to the next {@link LegacyForgeHandshakeClientPhase}.
+   *
+   * <p>Legacy Forge packets are sent using plugin messages with a unique integer discriminator as the
+   * first value. This field represents the expected discriminator for a given handshake phase.
+   * When such a packet is received, the phase transitions to the result of {@link #nextPhase()}.</p>
+   *
+   * <p>If this field is {@code null}, the phase is terminal and does not transition.</p>
+   */
   @Nullable
   private final Integer packetToAdvanceOn;
 
@@ -252,8 +262,7 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
    * @return The phase to transition to, which may be the same as before.
    */
   private LegacyForgeHandshakeClientPhase getNewPhase(final PluginMessagePacket packet) {
-    if (packetToAdvanceOn != null
-        && LegacyForgeUtil.getHandshakePacketDiscriminator(packet) == packetToAdvanceOn) {
+    if (packetToAdvanceOn != null && LegacyForgeUtil.getHandshakePacketDiscriminator(packet) == packetToAdvanceOn) {
       return nextPhase();
     }
 

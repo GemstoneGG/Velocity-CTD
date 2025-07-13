@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,9 +23,14 @@ import java.util.UUID;
 /**
  * Sends a request to kick a player.
  *
- * @param player The UUID of the player.
+ * @param player  the UUID of the player to kick
+ * @param proxyId the ID of the proxy expected to perform the kick
  */
 public record RedisKickPlayerRequest(UUID player, String proxyId) implements RedisPacket {
+
+  /**
+   * The Redis packet ID for this request type.
+   */
   public static final String ID = "kick-player-request";
 
   @Override

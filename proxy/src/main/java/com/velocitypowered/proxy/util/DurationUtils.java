@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,9 @@ import java.time.Duration;
  */
 public final class DurationUtils {
 
+  /**
+   * One Minecraft tick in milliseconds (1/20th of a second).
+   */
   private static final long ONE_TICK_IN_MILLISECONDS = 50;
 
   private DurationUtils() {

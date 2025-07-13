@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,12 +63,24 @@ public final class ArgumentPropertyRegistry {
     throw new AssertionError();
   }
 
-  private static final Map<ArgumentIdentifier, ArgumentPropertySerializer<?>> byIdentifier =
-      new HashMap<>();
-  private static final Map<Class<? extends ArgumentType>,
-      ArgumentPropertySerializer<?>> byClass = new HashMap<>();
-  private static final Map<Class<? extends ArgumentType>, ArgumentIdentifier> classToId =
-      new HashMap<>();
+  /**
+   * A map from {@link ArgumentIdentifier} to their corresponding
+   * {@link ArgumentPropertySerializer}. Used to look up how to (de)serialize
+   * an argument property by its identifier.
+   */
+  private static final Map<ArgumentIdentifier, ArgumentPropertySerializer<?>> byIdentifier = new HashMap<>();
+
+  /**
+   * A map from Brigadier argument type classes to their associated
+   * {@link ArgumentPropertySerializer}. Enables serialization by runtime type.
+   */
+  private static final Map<Class<? extends ArgumentType>, ArgumentPropertySerializer<?>> byClass = new HashMap<>();
+
+  /**
+   * A map from Brigadier argument type classes to their associated
+   * {@link ArgumentIdentifier}. Allows resolving identifier from argument instance.
+   */
+  private static final Map<Class<? extends ArgumentType>, ArgumentIdentifier> classToId = new HashMap<>();
 
   private static <T extends ArgumentType<?>> void register(final ArgumentIdentifier identifier,
                                                            final Class<T> klazz, final ArgumentPropertySerializer<T> serializer) {
@@ -99,6 +111,7 @@ public final class ArgumentPropertyRegistry {
     if (serializer == null) {
       throw new IllegalArgumentException("Argument type identifier " + identifier + " unknown.");
     }
+
     Object result = serializer.deserialize(buf, protocolVersion);
 
     if (result instanceof ArgumentType) {
@@ -129,9 +142,9 @@ public final class ArgumentPropertyRegistry {
       ArgumentPropertySerializer serializer = byClass.get(type.getClass());
       ArgumentIdentifier id = classToId.get(type.getClass());
       if (serializer == null || id == null) {
-        throw new IllegalArgumentException("Don't know how to serialize "
-            + type.getClass().getName());
+        throw new IllegalArgumentException("Don't know how to serialize " + type.getClass().getName());
       }
+
       writeIdentifier(buf, id, protocolVersion);
       serializer.serialize(type, buf, protocolVersion);
     }
@@ -172,6 +185,7 @@ public final class ArgumentPropertyRegistry {
           return i;
         }
       }
+
       throw new IllegalArgumentException("Argument type identifier " + id + " unknown.");
     } else {
       String identifier = ProtocolUtils.readString(buf);
@@ -181,6 +195,7 @@ public final class ArgumentPropertyRegistry {
         }
       }
     }
+
     return null;
   }
 
@@ -196,7 +211,6 @@ public final class ArgumentPropertyRegistry {
           @Override
           public void serialize(final BoolArgumentType object, final ByteBuf buf,
                                 final ProtocolVersion protocolVersion) {
-
           }
         });
     register(id("brigadier:float", mapSet(MINECRAFT_1_19, 1)), FloatArgumentType.class, FLOAT);

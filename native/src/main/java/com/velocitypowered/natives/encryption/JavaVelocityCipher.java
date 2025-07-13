@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,24 +29,38 @@ import javax.crypto.spec.IvParameterSpec;
 /**
  * Implements AES-CFB8 encryption/decryption using {@link Cipher}.
  */
-public class JavaVelocityCipher implements VelocityCipher {
+public final class JavaVelocityCipher implements VelocityCipher {
 
+  /**
+   * A {@link VelocityCipherFactory} for creating {@link JavaVelocityCipher} instances.
+   *
+   * <p>This factory provides instances configured for either encryption or decryption
+   * using AES/CFB8 with no padding, based on the given {@link SecretKey}.</p>
+   */
   public static final VelocityCipherFactory FACTORY = new VelocityCipherFactory() {
+
     @Override
-    public VelocityCipher forEncryption(SecretKey key) throws GeneralSecurityException {
+    public VelocityCipher forEncryption(final SecretKey key) throws GeneralSecurityException {
       return new JavaVelocityCipher(true, key);
     }
 
     @Override
-    public VelocityCipher forDecryption(SecretKey key) throws GeneralSecurityException {
+    public VelocityCipher forDecryption(final SecretKey key) throws GeneralSecurityException {
       return new JavaVelocityCipher(false, key);
     }
   };
 
+  /**
+   * The internal Java {@link Cipher} instance used for encryption or decryption.
+   */
   private final Cipher cipher;
+
+  /**
+   * Whether this cipher instance has been disposed.
+   */
   private boolean disposed = false;
 
-  private JavaVelocityCipher(boolean encrypt, SecretKey key) throws GeneralSecurityException {
+  private JavaVelocityCipher(final boolean encrypt, final SecretKey key) throws GeneralSecurityException {
     this.cipher = Cipher.getInstance("AES/CFB8/NoPadding");
     // But you're saying, *why* are we using the key as the IV?
     // After all, reusing the key as
@@ -65,7 +79,7 @@ public class JavaVelocityCipher implements VelocityCipher {
   }
 
   @Override
-  public void process(ByteBuf source) {
+  public void process(final ByteBuf source) {
     ensureNotDisposed();
     Preconditions.checkArgument(source.hasArray(), "No source array");
 

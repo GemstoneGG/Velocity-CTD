@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -71,14 +71,42 @@ import redis.clients.jedis.exceptions.JedisDataException;
  * ensure reliable operation within the Velocity environment.</p>
  */
 public class RedisManagerImpl {
-  private static final String CHANNEL = "velocityredis";
-  private static final String CACHE_KEY = "remote-players";
-  private static final String QUEUE_CACHE_KEY = "queue-cache";
 
+  /**
+   * The SLF4J logger instance for logging RedisManager-related events and errors.
+   */
   private static final Logger logger = LoggerFactory.getLogger(RedisManagerImpl.class);
+
+  /**
+   * The shared Gson instance used for (de)serializing Redis packet payloads and cache entries.
+   */
   private static final Gson gson = new Gson();
 
+  /**
+   * The Redis pub/sub channel used for inter-proxy communication.
+   */
+  private static final String CHANNEL = "velocityredis";
+
+  /**
+   * The Redis key used to store serialized {@link RemotePlayerInfo} entries.
+   */
+  private static final String CACHE_KEY = "remote-players";
+
+  /**
+   * The Redis key used to store serialized {@link SerializableQueue} entries.
+   */
+  private static final String QUEUE_CACHE_KEY = "queue-cache";
+
+  /**
+   * The Redis connection pool used to manage access to Redis from within the proxy.
+   *
+   * <p>May be {@code null} if Redis is disabled or not yet initialized.</p>
+   */
   private @MonotonicNonNull JedisPool jedisPool;
+
+  /**
+   * The {@link VelocityPubSub} handler used for subscribing to and dispatching Redis channel messages.
+   */
   private final VelocityPubSub pubSub;
 
   /**
@@ -128,16 +156,15 @@ public class RedisManagerImpl {
       }
     });
 
-    listen(RedisGetPlayerPingRequest.ID, RedisGetPlayerPingRequest.class, it -> {
-      proxy.getPlayer(it.playerToCheck()).ifPresent(player -> {
-        Component component = Component.translatable("velocity.command.ping.other",
-            NamedTextColor.GREEN)
-               .arguments(Component.text(player.getUsername()),
-                   Component.text(player.getPing()));
+    listen(RedisGetPlayerPingRequest.ID, RedisGetPlayerPingRequest.class, it ->
+            proxy.getPlayer(it.playerToCheck()).ifPresent(player -> {
+              Component component = Component.translatable("velocity.command.ping.other",
+                  NamedTextColor.GREEN)
+                     .arguments(Component.text(player.getUsername()),
+                         Component.text(player.getPing()));
 
-        send(new RedisSendMessage(it.commandSender(), component));
-      });
-    });
+              send(new RedisSendMessage(it.commandSender(), component));
+            }));
 
     listen(RedisTransferCommandRequest.ID, RedisTransferCommandRequest.class, it -> {
       ConnectedPlayer connectedPlayer = (ConnectedPlayer) proxy.getPlayer(it.player()).orElse(null);
@@ -161,10 +188,10 @@ public class RedisManagerImpl {
       }).delay(1, TimeUnit.SECONDS).schedule();
     });
 
-    listen(RedisSwitchServerRequest.ID, RedisSwitchServerRequest.class, it
-        -> proxy.getPlayer(it.username()).ifPresent(player
-            -> proxy.getServer(it.server()).ifPresent(server
-                -> player.createConnectionRequest(server).connectWithIndication())));
+    listen(RedisSwitchServerRequest.ID, RedisSwitchServerRequest.class, it ->
+            proxy.getPlayer(it.username()).ifPresent(player ->
+                    proxy.getServer(it.server()).ifPresent(server ->
+                            player.createConnectionRequest(server).connectWithIndication())));
 
     listen(RedisKickPlayerRequest.ID, RedisKickPlayerRequest.class, it -> {
       if (proxy.getMultiProxyHandler().getOwnProxyId().equalsIgnoreCase(it.proxyId())) {
@@ -307,6 +334,7 @@ public class RedisManagerImpl {
     } catch (Exception e) {
       e.printStackTrace();
     }
+
     return false;
   }
 
@@ -443,6 +471,7 @@ public class RedisManagerImpl {
           logger.error("Error in pubsub listener", e);
         }
       });
+
       thread.setName("Velocity Redis PubSub Listener Thread");
       thread.setDaemon(true);
       thread.start();
@@ -521,6 +550,11 @@ public class RedisManagerImpl {
     this.pubSub.register(id, clazz, consumer);
   }
 
+  /**
+   * Checks whether Redis is currently enabled and the connection pool is active.
+   *
+   * @return {@code true} if Redis is enabled and initialized, {@code false} otherwise
+   */
   public boolean isEnabled() {
     return jedisPool != null;
   }
@@ -532,11 +566,21 @@ public class RedisManagerImpl {
    * handler that dispatches messages based on packet ID to registered listeners.</p>
    */
   public static class VelocityPubSub extends JedisPubSub {
+
+    /**
+     * The SLF4J logger instance for logging Redis pub/sub events and errors.
+     */
     private static final Logger logger = LoggerFactory.getLogger(VelocityPubSub.class);
+
+    /**
+     * A map of packet ID strings to their corresponding message listeners.
+     *
+     * <p>This is used to dispatch Redis messages based on the packet ID field.</p>
+     */
     private final Map<String, ChannelRegistration<?>> listeners = new HashMap<>();
 
     @Override
-    public void onMessage(final String channel, final String message) {
+    public final void onMessage(final String channel, final String message) {
       JsonObject obj = gson.fromJson(message, JsonObject.class);
       String packetId = obj.getAsJsonPrimitive("id").getAsString();
       JsonObject packetObj = obj.getAsJsonObject("obj");

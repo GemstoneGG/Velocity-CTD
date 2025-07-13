@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,10 +47,21 @@ import net.kyori.adventure.text.format.NamedTextColor;
  */
 public class GlistCommand {
 
+  /**
+   * The name of the argument used to specify the server in the {@code /glist} command.
+   */
   private static final String SERVER_ARG = "server";
 
+  /**
+   * The {@link VelocityServer} instance used to retrieve server and player information.
+   */
   private final VelocityServer server;
 
+  /**
+   * Constructs a new {@link GlistCommand}.
+   *
+   * @param server the Velocity server instance
+   */
   public GlistCommand(final VelocityServer server) {
     this.server = server;
   }
@@ -77,19 +88,23 @@ public class GlistCommand {
           final String argument = context.getArguments().containsKey(SERVER_ARG)
               ? context.getArgument(SERVER_ARG, String.class)
               : "";
+
           for (RegisteredServer server : server.getAllServers()) {
             final String serverName = server.getServerInfo().getName();
             if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
               builder.suggest(serverName);
             }
           }
+
           if ("all".regionMatches(true, 0, argument, 0, argument.length())) {
             builder.suggest("all");
           }
+
           return builder.buildFuture();
         })
         .executes(this::serverCount)
         .build();
+
     rootNode.then(serverNode);
     return new BrigadierCommand(rootNode);
   }
@@ -100,6 +115,7 @@ public class GlistCommand {
     source.sendMessage(
         Component.translatable("velocity.command.glist-view-all", NamedTextColor.YELLOW)
             .arguments(Component.text(VelocityCommands.readAlias(context.getNodes()))));
+
     return 1;
   }
 
@@ -121,6 +137,7 @@ public class GlistCommand {
       }
       sendServerPlayers(source, registeredServer.get(), false);
     }
+
     return Command.SINGLE_SUCCESS;
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,8 +61,7 @@ public final class PluginDependencyUtils {
         .allowsSelfLoops(false)
         .expectedNodeCount(sortedCandidates.size())
         .build();
-    Map<String, PluginDescription> candidateMap = Maps.uniqueIndex(sortedCandidates,
-        PluginDescription::getId);
+    Map<String, PluginDescription> candidateMap = Maps.uniqueIndex(sortedCandidates, PluginDescription::getId);
 
     for (PluginDescription description : sortedCandidates) {
       graph.addNode(description);

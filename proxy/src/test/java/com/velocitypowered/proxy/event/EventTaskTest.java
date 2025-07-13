@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,9 @@ import org.junit.jupiter.api.Test;
  */
 public class EventTaskTest {
 
+  /**
+   * Tests that a completed {@link CompletableFuture} resumes the continuation successfully.
+   */
   @Test
   public void testResumeWhenCompleteNormal() {
     WitnessContinuation continuation = new WitnessContinuation();
@@ -41,6 +44,9 @@ public class EventTaskTest {
         + "complete successfully");
   }
 
+  /**
+   * Tests that a failed {@link CompletableFuture} resumes the continuation with an error.
+   */
   @Test
   public void testResumeWhenCompleteException() {
     WitnessContinuation continuation = new WitnessContinuation();
@@ -49,6 +55,12 @@ public class EventTaskTest {
     assertTrue(continuation.completedWithError(), "Failed future completed successfully");
   }
 
+  /**
+   * Tests that a successful {@link CompletableFuture} resumed from another thread
+   * resumes the continuation normally.
+   *
+   * @throws InterruptedException if the latch await is interrupted
+   */
   @Test
   public void testResumeWhenCompleteFromOtherThread() throws InterruptedException {
     WitnessContinuation continuation = new WitnessContinuation();
@@ -62,6 +74,12 @@ public class EventTaskTest {
         + "complete successfully");
   }
 
+  /**
+   * Tests that a failed {@link CompletableFuture} resumed from another thread
+   * resumes the continuation with an exception.
+   *
+   * @throws InterruptedException if the latch await is interrupted
+   */
   @Test
   public void testResumeWhenFailFromOtherThread() throws InterruptedException {
     WitnessContinuation continuation = new WitnessContinuation();
@@ -76,6 +94,11 @@ public class EventTaskTest {
     assertTrue(continuation.completedWithError(), "Failed future completed successfully");
   }
 
+  /**
+   * Tests that a complex asynchronous chain that fails mid-way resumes the continuation with an error.
+   *
+   * @throws InterruptedException if the latch await is interrupted
+   */
   @Test
   public void testResumeWhenFailFromOtherThreadComplexChain() throws InterruptedException {
     WitnessContinuation continuation = new WitnessContinuation();
@@ -98,14 +121,37 @@ public class EventTaskTest {
    */
   private static final class WitnessContinuation implements Continuation {
 
+    /**
+     * Atomic updater for the {@link #status} field to ensure thread-safe transitions
+     * between uncompleted, successful, and exceptional states.
+     */
     private static final AtomicIntegerFieldUpdater<WitnessContinuation> STATUS_UPDATER =
         AtomicIntegerFieldUpdater.newUpdater(WitnessContinuation.class, "status");
 
+    /**
+     * Internal status constant indicating the continuation has not yet completed.
+     */
     private static final int UNCOMPLETED = 0;
+
+    /**
+     * Internal status constant indicating the continuation completed successfully.
+     */
     private static final int COMPLETED = 1;
+
+    /**
+     * Internal status constant indicating the continuation completed with an exception.
+     */
     private static final int COMPLETED_WITH_EXCEPTION = 2;
 
+    /**
+     * Tracks the current completion status of the continuation.
+     * Updated atomically by {@link #resume()} and {@link #resumeWithException(Throwable)}.
+     */
     private volatile int status = UNCOMPLETED;
+
+    /**
+     * Optional consumer invoked when the continuation completes, either normally or exceptionally.
+     */
     private Consumer<Throwable> onComplete;
 
     @Override

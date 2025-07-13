@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,24 +46,57 @@ import javax.crypto.Cipher;
 public enum EncryptionUtils {
   ;
 
+  /**
+   * PEM header/footer for RSA public key blocks.
+   */
   public static final Pair<String, String> PEM_RSA_PUBLIC_KEY_DESCRIPTOR =
       Pair.of("-----BEGIN RSA PUBLIC KEY-----", "-----END RSA PUBLIC KEY-----");
+
+  /**
+   * PEM header/footer for RSA private key blocks.
+   */
   public static final Pair<String, String> PEM_RSA_PRIVATE_KEY_DESCRIPTOR =
       Pair.of("-----BEGIN RSA PRIVATE KEY-----", "-----END RSA PRIVATE KEY-----");
 
+  /**
+   * Algorithm constant for SHA1withRSA signature.
+   */
   public static final String SHA1_WITH_RSA = "SHA1withRSA";
+
+  /**
+   * Algorithm constant for SHA256withRSA signature.
+   */
   public static final String SHA256_WITH_RSA = "SHA256withRSA";
 
-  public static final QuietDecoderException INVALID_SIGNATURE
-      = new QuietDecoderException("Incorrectly signed chat message");
-  public static final QuietDecoderException PREVIEW_SIGNATURE_MISSING
-      = new QuietDecoderException("Unsigned chat message requested signed preview");
+  /**
+   * Exception thrown when chat message verification fails.
+   */
+  public static final QuietDecoderException INVALID_SIGNATURE = new QuietDecoderException("Incorrectly signed chat message");
+
+  /**
+   * Exception thrown when a chat preview is requested but the message is unsigned.
+   */
+  public static final QuietDecoderException PREVIEW_SIGNATURE_MISSING = new QuietDecoderException("Unsigned chat message requested signed preview");
+
+  /**
+   * A constant empty byte array.
+   */
   public static final byte[] EMPTY = new byte[0];
+
+  /**
+   * The Yggdrasil session public key used to validate Mojang-signed data.
+   */
   private static final PublicKey YGGDRASIL_SESSION_KEY;
+
+  /**
+   * The RSA {@link KeyFactory} used throughout the class.
+   */
   private static final KeyFactory RSA_KEY_FACTORY;
 
-  private static final Base64.Encoder MIME_SPECIAL_ENCODER
-      = Base64.getMimeEncoder(76, "\n".getBytes(StandardCharsets.UTF_8));
+  /**
+   * MIME Base64 encoder used for PEM formatting.
+   */
+  private static final Base64.Encoder MIME_SPECIAL_ENCODER = Base64.getMimeEncoder(76, "\n".getBytes(StandardCharsets.UTF_8));
 
   static {
     try {
@@ -82,6 +115,11 @@ public enum EncryptionUtils {
     }
   }
 
+  /**
+   * Returns the Mojang-provided Yggdrasil session public key.
+   *
+   * @return the Mojang Yggdrasil session key
+   */
   public static PublicKey getYggdrasilSessionKey() {
     return YGGDRASIL_SESSION_KEY;
   }
@@ -110,10 +148,22 @@ public enum EncryptionUtils {
     }
   }
 
+  /**
+   * Encodes a byte array into a MIME-style Base64 string.
+   *
+   * @param data the input byte array
+   * @return the encoded Base64 string
+   */
   public static String encodeUrlEncoded(final byte[] data) {
     return MIME_SPECIAL_ENCODER.encodeToString(data);
   }
 
+  /**
+   * Decodes a MIME-style Base64 string into a byte array.
+   *
+   * @param toParse the encoded string
+   * @return the decoded bytes
+   */
   public static byte[] decodeUrlEncoded(final String toParse) {
     return Base64.getMimeDecoder().decode(toParse);
   }
@@ -135,9 +185,7 @@ public enum EncryptionUtils {
       throw new IllegalArgumentException("Invalid key type");
     }
 
-    return encoder.first() + "\n"
-        + encodeUrlEncoded(toEncode.getEncoded()) + "\n"
-        + encoder.second() + "\n";
+    return encoder.first() + "\n" + encodeUrlEncoded(toEncode.getEncoded()) + "\n" + encoder.second() + "\n";
   }
 
   /**

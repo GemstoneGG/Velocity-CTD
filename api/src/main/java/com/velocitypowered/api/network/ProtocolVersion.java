@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -288,10 +288,24 @@ public enum ProtocolVersion implements Ordered<ProtocolVersion> {
    */
   MINECRAFT_1_21_7(772, "1.21.7");
 
+  /**
+   * Bitmask shift used to encode snapshot protocol versions.
+   */
   private static final int SNAPSHOT_BIT = 30;
 
+  /**
+   * The protocol version number used by the Minecraft network protocol.
+   */
   private final int protocol;
+
+  /**
+   * The protocol version number used for snapshot compatibility, or {@code -1} if not applicable.
+   */
   private final int snapshotProtocol;
+
+  /**
+   * All human-readable Minecraft version names that this protocol version covers.
+   */
   private final String[] names;
 
   /**

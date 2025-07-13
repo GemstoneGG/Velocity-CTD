@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,20 +31,56 @@ import java.util.concurrent.CompletableFuture;
  * Stores the status of a single server queue entry for a specific player.
  */
 public class ServerQueueEntry {
+
+  /**
+   * The UUID of the player associated with this queue entry.
+   */
   private final UUID player;
+
+  /**
+   * The target server the player is attempting to connect to.
+   */
   private final VelocityRegisteredServer target;
+
+  /**
+   * The proxy instance managing the queue system.
+   */
   private final VelocityServer proxy;
+
+  /**
+   * The number of connection attempts made by the player.
+   */
   private int connectionAttempts = 0;
+
+  /**
+   * Whether the player is currently waiting for a connection attempt.
+   */
   private boolean waitingForConnection = false;
+
+  /**
+   * The queue priority assigned to the player.
+   */
   private int priority;
+
+  /**
+   * Whether the player bypasses the full server capacity check.
+   */
   private boolean fullBypass;
+
+  /**
+   * Whether the player bypasses the queue entirely.
+   */
   private boolean queueBypass;
 
   /**
    * Constructs a new {@link ServerQueueEntry} instance.
    *
-   * @param player the player who is queueing
-   * @param target the target server
+   * @param player the UUID of the player in the queue
+   * @param target the target server the player is queueing for
+   * @param proxy the proxy instance
+   * @param priority the queue priority for the player
+   * @param fullBypass whether the player bypasses full server limits
+   * @param queueBypass whether the player bypasses the queue entirely
    */
   public ServerQueueEntry(final UUID player, final VelocityRegisteredServer target,
                           final VelocityServer proxy, final int priority,
@@ -109,8 +145,7 @@ public class ServerQueueEntry {
     setWaitingForConnection(true);
 
     if (proxy.getMultiProxyHandler().isRedisEnabled()) {
-      proxy.getRedisManager().send(new RedisQueueSendRequest(player,
-          target.getServerInfo().getName()));
+      proxy.getRedisManager().send(new RedisQueueSendRequest(player, target.getServerInfo().getName()));
     } else {
       handleSending();
     }
@@ -158,6 +193,7 @@ public class ServerQueueEntry {
         if (getConnectionAttempts() == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
           proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, true);
         }
+
         return null;
       }).join();
     });

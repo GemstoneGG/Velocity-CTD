@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,14 +39,24 @@ import net.kyori.adventure.text.Component;
  */
 public class LeaveQueueCommand {
 
+  /**
+   * The Velocity server instance used for accessing queue data and player state.
+   */
   private final VelocityServer server;
 
+  /**
+   * Constructs a new {@link LeaveQueueCommand} instance.
+   *
+   * @param server the Velocity server instance
+   */
   public LeaveQueueCommand(final VelocityServer server) {
     this.server = server;
   }
 
   /**
    * Registers or unregisters the command based on the configuration value.
+   *
+   * @param isQueueEnabled whether queueing is enabled in the configuration
    */
   public void register(final boolean isQueueEnabled) {
     if (!isQueueEnabled) {
@@ -97,8 +107,8 @@ public class LeaveQueueCommand {
       }
 
       p.sendMessage(Component.translatable("velocity.queue.command.left-queue.all"));
-
     }
+
     return Command.SINGLE_SUCCESS;
   }
 

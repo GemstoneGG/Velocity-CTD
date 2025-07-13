@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,12 +49,15 @@ import net.kyori.adventure.text.format.NamedTextColor;
  */
 public class TransferCommand {
 
+  /**
+   * The Velocity server instance used to handle transfers and access server and proxy data.
+   */
   private final VelocityServer server;
 
   /**
-   * Constructs the /transfer command.
+   * Implements Velocity's {@code /transfer} command.
    *
-   * @param server The proxy.
+   * @param server the Velocity server instance
    */
   public TransferCommand(final VelocityServer server) {
     this.server = server;
@@ -87,6 +90,7 @@ public class TransferCommand {
           if ("all".regionMatches(true, 0, argument, 0, argument.length())) {
             builder.suggest("all");
           }
+
           if ("current".regionMatches(true, 0, argument, 0, argument.length())
               && ctx.getSource() instanceof Player) {
             builder.suggest("current");
@@ -229,7 +233,6 @@ public class TransferCommand {
           }
         }
       }).delay(1, TimeUnit.SECONDS).schedule();
-
     } else if (player.equalsIgnoreCase("current")) {
       if (!(context.getSource() instanceof Player sender)) {
         context.getSource().sendMessage(Component.translatable("velocity.command.players-only"));

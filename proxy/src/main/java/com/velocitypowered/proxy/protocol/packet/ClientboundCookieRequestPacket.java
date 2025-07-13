@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,31 +32,48 @@ import net.kyori.adventure.key.Key;
  */
 public class ClientboundCookieRequestPacket implements MinecraftPacket {
 
+  /**
+   * The key representing the requested cookie type.
+   */
   private Key key;
 
+  /**
+   * Returns the {@link Key} for the cookie being requested.
+   *
+   * @return the cookie key
+   */
   public Key getKey() {
     return key;
   }
 
+  /**
+   * Creates an empty cookie request packet.
+   * This constructor is typically used during deserialization.
+   */
   public ClientboundCookieRequestPacket() {
   }
 
+  /**
+   * Constructs a new {@code ClientboundCookieRequestPacket} with the specified cookie key.
+   *
+   * @param key the {@link Key} representing the cookie to request from the client
+   */
   public ClientboundCookieRequestPacket(final Key key) {
     this.key = key;
   }
 
   @Override
-  public void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
+  public final void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     this.key = ProtocolUtils.readKey(buf);
   }
 
   @Override
-  public void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
+  public final void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeKey(buf, key);
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,29 +25,20 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 @NullMarked
-record RegisteredCallback(
-    Duration duration,
-    @Nullable AtomicInteger remainingUses,
-    ClickCallback<Audience> callback
-) {
-  RegisteredCallback(
-      final Duration duration,
-      final int maxUses,
-      final ClickCallback<Audience> callback
-  ) {
-    this(
-        duration,
-        maxUses == ClickCallback.UNLIMITED_USES
-          ? null
-          : new AtomicInteger(maxUses),
-        callback
-    );
+record RegisteredCallback(Duration duration,
+                          @Nullable AtomicInteger remainingUses,
+                          ClickCallback<Audience> callback) {
+  RegisteredCallback(final Duration duration,
+                     final int maxUses,
+                     final ClickCallback<Audience> callback) {
+    this(duration, maxUses == ClickCallback.UNLIMITED_USES ? null : new AtomicInteger(maxUses), callback);
   }
 
   boolean tryUse() {
     if (this.remainingUses != null) {
       return this.remainingUses.decrementAndGet() >= 0;
     }
+
     return true;
   }
 }

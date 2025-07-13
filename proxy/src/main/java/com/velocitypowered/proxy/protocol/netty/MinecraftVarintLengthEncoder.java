@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,8 +33,15 @@ import java.util.List;
 @Sharable
 public final class MinecraftVarintLengthEncoder extends MessageToMessageEncoder<ByteBuf> {
 
+  /**
+   * A shared singleton instance of this encoder.
+   */
   public static final MinecraftVarintLengthEncoder INSTANCE = new MinecraftVarintLengthEncoder();
 
+  /**
+   * Whether the current cipher implementation is {@link JavaVelocityCipher}, implying use of
+   * heap buffers for best compatibility.
+   */
   static final boolean IS_JAVA_CIPHER = Natives.cipher.get() == JavaVelocityCipher.FACTORY;
 
   private MinecraftVarintLengthEncoder() {
@@ -46,9 +53,7 @@ public final class MinecraftVarintLengthEncoder extends MessageToMessageEncoder<
     final int length = buf.readableBytes();
     final int varintLength = ProtocolUtils.varIntBytes(length);
 
-    final ByteBuf lenBuf = IS_JAVA_CIPHER
-        ? ctx.alloc().heapBuffer(varintLength)
-        : ctx.alloc().directBuffer(varintLength);
+    final ByteBuf lenBuf = IS_JAVA_CIPHER ? ctx.alloc().heapBuffer(varintLength) : ctx.alloc().directBuffer(varintLength);
 
     ProtocolUtils.writeVarInt(lenBuf, length);
     list.add(lenBuf);

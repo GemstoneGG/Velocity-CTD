@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,10 @@ import java.util.UUID;
  * @param message the message to force the target to be sent (will run a command if the message begins with a forward slash)
  */
 public record RedisSudo(String targetProxy, UUID playerUuid, String message) implements RedisPacket {
+
+  /**
+   * The unique Redis packet identifier for a sudo operation.
+   */
   public static final String ID = "sudo";
 
   @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -27,15 +27,54 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class QueryResponse {
 
+  /**
+   * The hostname to display in the query response.
+   */
   private final String hostname;
+
+  /**
+   * The game version to display in the query response.
+   */
   private final String gameVersion;
+
+  /**
+   * The map name to display in the query response.
+   */
   private final String map;
+
+  /**
+   * The number of players currently online.
+   */
   private final int currentPlayers;
+
+  /**
+   * The maximum number of players the server reports it can support.
+   */
   private final int maxPlayers;
+
+  /**
+   * The proxy's externally visible hostname.
+   */
   private final String proxyHost;
+
+  /**
+   * The proxy's externally visible port.
+   */
   private final int proxyPort;
+
+  /**
+   * The list of player names to include in the query response.
+   */
   private final ImmutableCollection<String> players;
+
+  /**
+   * The reported proxy software version.
+   */
   private final String proxyVersion;
+
+  /**
+   * The list of plugins reported in the query response.
+   */
   private final ImmutableCollection<PluginInformation> plugins;
 
   @VisibleForTesting
@@ -147,7 +186,6 @@ public final class QueryResponse {
     return plugins;
   }
 
-
   /**
    * Creates a new {@link Builder} instance from data represented by this response, so that you
    * may create a new {@link QueryResponse} with new data. It is guaranteed that
@@ -184,9 +222,11 @@ public final class QueryResponse {
     if (this == o) {
       return true;
     }
+
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
+
     QueryResponse response = (QueryResponse) o;
     return currentPlayers == response.currentPlayers
         && maxPlayers == response.maxPlayers
@@ -227,17 +267,55 @@ public final class QueryResponse {
    * A builder for {@link QueryResponse} objects.
    */
   public static final class Builder {
+
+    /**
+     * The hostname to return in the query response.
+     */
     private @MonotonicNonNull String hostname;
+
+    /**
+     * The game version string.
+     */
     private @MonotonicNonNull String gameVersion;
+
+    /**
+     * The map name for the query response.
+     */
     private @MonotonicNonNull String map;
+
+    /**
+     * The proxy hostname.
+     */
     private @MonotonicNonNull String proxyHost;
+
+    /**
+     * The proxy software version.
+     */
     private @MonotonicNonNull String proxyVersion;
 
+    /**
+     * The current number of players online.
+     */
     private int currentPlayers;
+
+    /**
+     * The maximum number of players the server reports.
+     */
     private int maxPlayers;
+
+    /**
+     * The proxy port to advertise in the response.
+     */
     private int proxyPort;
 
+    /**
+     * The list of player names to include in the response.
+     */
     private final List<String> players = new ArrayList<>();
+
+    /**
+     * The list of plugins to include in the response.
+     */
     private final List<PluginInformation> plugins = new ArrayList<>();
 
     private Builder() {
@@ -426,7 +504,14 @@ public final class QueryResponse {
    */
   public static final class PluginInformation {
 
+    /**
+     * The name of the plugin.
+     */
     private final String name;
+
+    /**
+     * The version of the plugin, or {@code null} if not present.
+     */
     private final @Nullable String version;
 
     PluginInformation(final String name, @Nullable final String version) {
@@ -476,9 +561,11 @@ public final class QueryResponse {
       if (this == o) {
         return true;
       }
+
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
+
       PluginInformation that = (PluginInformation) o;
       return name.equals(that.name) && Objects.equals(version, that.version);
     }

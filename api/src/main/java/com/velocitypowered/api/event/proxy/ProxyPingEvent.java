@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -24,8 +24,19 @@ import org.jetbrains.annotations.NotNull;
 @AwaitingEvent
 public final class ProxyPingEvent implements ResultedEvent<ResultedEvent.GenericResult> {
 
+  /**
+   * The inbound connection that requested the server ping.
+   */
   private final InboundConnection connection;
+
+  /**
+   * The ping response that will be sent to the client.
+   */
   private ServerPing ping;
+
+  /**
+   * The result determining whether the ping response should be sent or the connection closed.
+   */
   private GenericResult result = GenericResult.allowed();
 
   /**

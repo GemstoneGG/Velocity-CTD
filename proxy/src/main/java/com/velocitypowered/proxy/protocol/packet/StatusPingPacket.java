@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,30 +30,36 @@ import io.netty.buffer.ByteBuf;
  */
 public class StatusPingPacket implements MinecraftPacket {
 
+  /**
+   * The random identifier used to correlate the status ping request and response.
+   *
+   * <p>This value is sent by the client and echoed back by the server in the pong
+   * to measure round-trip latency.</p>
+   */
   private long randomId;
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     randomId = buf.readLong();
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     buf.writeLong(randomId);
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
   @Override
-  public int expectedMaxLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
+  public final int expectedMaxLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
     return 8;
   }
 
   @Override
-  public int expectedMinLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
+  public final int expectedMinLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
     return 8;
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,8 +41,14 @@ import org.junit.jupiter.api.TestFactory;
  */
 public class RegistrationTest {
 
+  /**
+   * The event manager instance used for each test run. This is reset before each test.
+   */
   private EventManager eventManager;
 
+  /**
+   * Sets up a fresh {@link EventManager} before each test.
+   */
   @BeforeEach
   public final void setup() {
     resetEventManager();
@@ -52,6 +58,12 @@ public class RegistrationTest {
     eventManager = createEventManager(new FakePluginManager());
   }
 
+  /**
+   * Creates a new {@link EventManager} implementation with the given {@link PluginManager}.
+   *
+   * @param pluginManager the plugin manager to bind to
+   * @return a fresh {@link EventManager}
+   */
   protected EventManager createEventManager(final PluginManager pluginManager) {
     return new VelocityEventManager(pluginManager);
   }
@@ -59,11 +71,14 @@ public class RegistrationTest {
   // Must be public to generate a method calling it
   private static class SimpleEvent {
 
+    /**
+     * Tracks the number of times the event was handled by listeners.
+     * Used to verify correct invocation in event registration tests.
+     */
     int value;
   }
 
   private static final class SimpleSubclassedEvent extends SimpleEvent {
-
   }
 
   private static final class HandlerListener implements EventHandler<SimpleEvent> {
@@ -83,12 +98,10 @@ public class RegistrationTest {
   }
 
   private interface EventGenerator {
-
     void assertFiredEventValue(int value);
   }
 
   private interface TestFunction {
-
     void runTest(boolean annotated, EventGenerator generator);
   }
 
@@ -114,11 +127,12 @@ public class RegistrationTest {
             }));
       }
     }
+
     return tests.stream();
   }
 
   @TestFactory
-  Stream<DynamicNode> simpleRegisterAndUnregister() {
+  final Stream<DynamicNode> simpleRegisterAndUnregister() {
     return composeTests("simpleRegisterAndUnregister", (annotated, generator) -> {
       if (annotated) {
         eventManager.register(PLUGIN_A, new AnnotatedListener());
@@ -134,7 +148,7 @@ public class RegistrationTest {
   }
 
   @TestFactory
-  Stream<DynamicNode> doubleRegisterListener() {
+  final Stream<DynamicNode> doubleRegisterListener() {
     return composeTests("doubleRegisterListener", (annotated, generator) -> {
       if (annotated) {
         Object annotatedListener = new AnnotatedListener();
@@ -145,12 +159,13 @@ public class RegistrationTest {
         eventManager.register(PLUGIN_A, SimpleEvent.class, handler);
         eventManager.register(PLUGIN_A, SimpleEvent.class, handler);
       }
+
       generator.assertFiredEventValue(2);
     });
   }
 
   @TestFactory
-  Stream<DynamicNode> doubleRegisterListenerDifferentPlugins() {
+  final Stream<DynamicNode> doubleRegisterListenerDifferentPlugins() {
     return composeTests("doubleRegisterListenerDifferentPlugins", (annotated, generator) -> {
       if (annotated) {
         Object annotatedListener = new AnnotatedListener();
@@ -161,12 +176,13 @@ public class RegistrationTest {
         eventManager.register(PLUGIN_A, SimpleEvent.class, handler);
         eventManager.register(PLUGIN_B, SimpleEvent.class, handler);
       }
+
       generator.assertFiredEventValue(2);
     });
   }
 
   @TestFactory
-  Stream<DynamicNode> doubleRegisterListenerThenUnregister() {
+  final Stream<DynamicNode> doubleRegisterListenerThenUnregister() {
     return composeTests("doubleRegisterListenerThenUnregister", (annotated, generator) -> {
       if (annotated) {
         Object annotatedListener = new AnnotatedListener();
@@ -179,12 +195,13 @@ public class RegistrationTest {
         eventManager.register(PLUGIN_A, SimpleEvent.class, handler);
         eventManager.unregister(PLUGIN_A, handler);
       }
+
       generator.assertFiredEventValue(0);
     });
   }
 
   @TestFactory
-  Stream<DynamicNode> doubleUnregisterListener() {
+  final Stream<DynamicNode> doubleUnregisterListener() {
     return composeTests("doubleUnregisterListener", (annotated, generator) -> {
       if (annotated) {
         Object annotatedListener = new AnnotatedListener();
@@ -199,6 +216,7 @@ public class RegistrationTest {
         assertDoesNotThrow(() -> eventManager.unregister(PLUGIN_A, handler),
             "Extra unregister is a no-op");
       }
+
       generator.assertFiredEventValue(0);
     });
   }

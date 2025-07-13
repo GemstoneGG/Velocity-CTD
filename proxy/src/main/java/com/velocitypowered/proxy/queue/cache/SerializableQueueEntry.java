@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,34 +21,28 @@ import java.util.UUID;
 
 /**
  * The serializable queue entry.
+ *
+ * @param uuid the unique identifier of the player
+ * @param connectionAttempts the number of connection attempts made by the player
+ * @param waitingForConnection whether the player is currently waiting for a connection
+ * @param priority the queue priority level of the player
+ * @param fullBypass whether the player can bypass the full server restriction
+ * @param queueBypass whether the player can bypass the queue entirely
  */
-public class SerializableQueueEntry {
-
-  private final UUID uuid;
-  private final int connectionAttempts;
-  private final boolean waitingForConnection;
-  private final int priority;
-  private final boolean fullBypass;
-  private final boolean queueBypass;
+public record SerializableQueueEntry(UUID uuid, int connectionAttempts, boolean waitingForConnection, int priority,
+                                     boolean fullBypass, boolean queueBypass) {
 
   /**
    * Constructs a serializable queue entry.
    *
-   * @param uuid The UUID.
-   * @param connectionAttempts The connection attempts.
+   * @param uuid                 The UUID.
+   * @param connectionAttempts   The connection attempts.
    * @param waitingForConnection Waiting for connection or not.
-   * @param priority The priority.
-   * @param fullBypass The full bypass.
-   * @param queueBypass The queue bypass.
+   * @param priority             The priority.
+   * @param fullBypass           The full bypass.
+   * @param queueBypass          The queue bypass.
    */
-  public SerializableQueueEntry(final UUID uuid, final int connectionAttempts, final boolean waitingForConnection,
-                                final int priority, final boolean fullBypass, final boolean queueBypass) {
-    this.uuid = uuid;
-    this.connectionAttempts = connectionAttempts;
-    this.waitingForConnection = waitingForConnection;
-    this.priority = priority;
-    this.fullBypass = fullBypass;
-    this.queueBypass = queueBypass;
+  public SerializableQueueEntry {
   }
 
   /**
@@ -56,7 +50,8 @@ public class SerializableQueueEntry {
    *
    * @return The UUID.
    */
-  public UUID getUuid() {
+  @Override
+  public UUID uuid() {
     return uuid;
   }
 
@@ -65,7 +60,8 @@ public class SerializableQueueEntry {
    *
    * @return The connection attempts.
    */
-  public int getConnectionAttempts() {
+  @Override
+  public int connectionAttempts() {
     return connectionAttempts;
   }
 
@@ -74,7 +70,8 @@ public class SerializableQueueEntry {
    *
    * @return waiting for connection or not.
    */
-  public boolean isWaitingForConnection() {
+  @Override
+  public boolean waitingForConnection() {
     return waitingForConnection;
   }
 
@@ -83,7 +80,8 @@ public class SerializableQueueEntry {
    *
    * @return The priority.
    */
-  public int getPriority() {
+  @Override
+  public int priority() {
     return priority;
   }
 
@@ -92,7 +90,8 @@ public class SerializableQueueEntry {
    *
    * @return Bypass or not.
    */
-  public boolean isFullBypass() {
+  @Override
+  public boolean fullBypass() {
     return fullBypass;
   }
 
@@ -101,7 +100,8 @@ public class SerializableQueueEntry {
    *
    * @return Queue bypass or not.
    */
-  public boolean isQueueBypass() {
+  @Override
+  public boolean queueBypass() {
     return queueBypass;
   }
 }

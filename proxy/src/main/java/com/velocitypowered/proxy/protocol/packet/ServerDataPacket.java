@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,10 +34,26 @@ import org.jetbrains.annotations.Nullable;
  */
 public class ServerDataPacket implements MinecraftPacket {
 
+  /**
+   * The server description component shown in the server list.
+   */
   private @Nullable ComponentHolder description;
-  private @Nullable Favicon favicon;
-  private boolean secureChatEnforced; // Added in 1.19.1 - Removed in 1.20.5
 
+  /**
+   * The server favicon displayed in the server list.
+   */
+  private @Nullable Favicon favicon;
+
+  /**
+   * Whether secure chat is enforced (only present from 1.19.1 to 1.20.4).
+   */
+  private boolean secureChatEnforced;
+
+  /**
+   * Constructs an empty {@code ServerDataPacket}.
+   *
+   * <p>Fields must be manually set before encoding.</p>
+   */
   public ServerDataPacket() {
   }
 
@@ -56,11 +72,12 @@ public class ServerDataPacket implements MinecraftPacket {
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                           final ProtocolVersion protocolVersion) {
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_19_4) || buf.readBoolean()) {
       this.description = ComponentHolder.read(buf, protocolVersion);
     }
+
     if (buf.readBoolean()) {
       String iconBase64;
       if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_19_4)) {
@@ -69,11 +86,14 @@ public class ServerDataPacket implements MinecraftPacket {
       } else {
         iconBase64 = ProtocolUtils.readString(buf);
       }
+
       this.favicon = new Favicon(iconBase64);
     }
+
     if (protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_19_3)) {
       buf.readBoolean();
     }
+
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_19_1)
             && protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
       this.secureChatEnforced = buf.readBoolean();
@@ -81,12 +101,13 @@ public class ServerDataPacket implements MinecraftPacket {
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                           final ProtocolVersion protocolVersion) {
     boolean hasDescription = this.description != null;
     if (protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_19_4)) {
       buf.writeBoolean(hasDescription);
     }
+
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_19_4) || hasDescription) {
       this.description.write(buf);
     }
@@ -106,6 +127,7 @@ public class ServerDataPacket implements MinecraftPacket {
     if (protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_19_3)) {
       buf.writeBoolean(false);
     }
+
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_19_1)
             && protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
       buf.writeBoolean(this.secureChatEnforced);
@@ -113,22 +135,42 @@ public class ServerDataPacket implements MinecraftPacket {
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
+  /**
+   * Returns the server description component.
+   *
+   * @return the description component, or {@code null} if not set
+   */
   public @Nullable ComponentHolder getDescription() {
     return description;
   }
 
+  /**
+   * Returns the server favicon.
+   *
+   * @return the {@link Favicon}, or {@code null} if not set
+   */
   public @Nullable Favicon getFavicon() {
     return favicon;
   }
 
+  /**
+   * Returns whether secure chat is enforced by the server.
+   *
+   * @return {@code true} if secure chat is enforced, {@code false} otherwise
+   */
   public boolean isSecureChatEnforced() {
     return secureChatEnforced;
   }
 
+  /**
+   * Sets whether secure chat is enforced.
+   *
+   * @param secureChatEnforced {@code true} to enforce secure chat, {@code false} to disable
+   */
   public void setSecureChatEnforced(final boolean secureChatEnforced) {
     this.secureChatEnforced = secureChatEnforced;
   }

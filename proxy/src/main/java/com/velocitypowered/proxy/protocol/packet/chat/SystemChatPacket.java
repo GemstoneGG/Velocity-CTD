@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,27 +30,53 @@ import io.netty.buffer.ByteBuf;
  */
 public class SystemChatPacket implements MinecraftPacket {
 
+  /**
+   * The chat component to display, stored in JSON or NBT format.
+   */
+  private ComponentHolder component;
+
+  /**
+   * The type of chat (e.g., system message, action bar).
+   */
+  private ChatType type;
+
+  /**
+   * Constructs an empty {@code SystemChatPacket} for decoding.
+   */
   public SystemChatPacket() {
   }
 
+  /**
+   * Constructs a {@code SystemChatPacket} with the given component and chat type.
+   *
+   * @param component the chat message to send
+   * @param type the display context for the chat message
+   */
   public SystemChatPacket(final ComponentHolder component, final ChatType type) {
     this.component = component;
     this.type = type;
   }
 
-  private ComponentHolder component;
-  private ChatType type;
-
+  /**
+   * Returns the {@link ChatType} for this system message.
+   *
+   * @return the chat type (e.g., SYSTEM, GAME_INFO)
+   */
   public ChatType getType() {
     return type;
   }
 
+  /**
+   * Returns the {@link ComponentHolder} containing the message.
+   *
+   * @return the text component for this message
+   */
   public ComponentHolder getComponent() {
     return component;
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     component = ComponentHolder.read(buf, version);
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19_1)) {
       type = buf.readBoolean() ? ChatType.GAME_INFO : ChatType.SYSTEM;
@@ -60,7 +86,7 @@ public class SystemChatPacket implements MinecraftPacket {
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     component.write(buf);
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19_1)) {
       switch (type) {
@@ -74,7 +100,7 @@ public class SystemChatPacket implements MinecraftPacket {
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

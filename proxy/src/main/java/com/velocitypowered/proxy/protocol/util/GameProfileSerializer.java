@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,14 @@ import java.util.List;
  */
 public final class GameProfileSerializer implements JsonSerializer<GameProfile>, JsonDeserializer<GameProfile> {
 
+  /**
+   * A shared singleton instance of {@code GameProfileSerializer}.
+   */
   public static final GameProfileSerializer INSTANCE = new GameProfileSerializer();
+
+  /**
+   * The type token representing a list of {@link Property} instances.
+   */
   private static final Type propertyList = new TypeToken<List<Property>>() {
   }.getType();
 

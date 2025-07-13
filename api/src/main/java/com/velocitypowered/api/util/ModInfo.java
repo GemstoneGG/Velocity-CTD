@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -24,7 +24,14 @@ public final class ModInfo {
    */
   public static final ModInfo DEFAULT = new ModInfo("FML", ImmutableList.of());
 
+  /**
+   * The type of mod list, typically "FML" for Forge-compatible clients.
+   */
   private final String type;
+
+  /**
+   * The list of mods to present to the client.
+   */
   private final List<Mod> modList;
 
   /**
@@ -86,8 +93,15 @@ public final class ModInfo {
    */
   public static final class Mod {
 
+    /**
+     * The identifier of the mod (e.g., "examplemod").
+     */
     @SerializedName("modid")
     private final String id;
+
+    /**
+     * The version string of the mod (e.g., "1.0.0").
+     */
     private final String version;
 
     /**
@@ -134,9 +148,11 @@ public final class ModInfo {
       if (this == o) {
         return true;
       }
+
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
+
       Mod mod = (Mod) o;
       return id.equals(mod.id) && version.equals(mod.version);
     }

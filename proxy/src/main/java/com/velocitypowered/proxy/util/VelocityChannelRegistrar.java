@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,10 +35,16 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class VelocityChannelRegistrar implements ChannelRegistrar {
 
+  /**
+   * Map of all registered channel identifiers, keyed by their raw string ID.
+   *
+   * <p>This includes both legacy and modern identifiers, as well as aliases produced
+   * by {@link PluginMessageUtil#transformLegacyToModernChannel(String)}.</p>
+   */
   private final Map<String, ChannelIdentifier> identifierMap = new ConcurrentHashMap<>();
 
   @Override
-  public void register(final ChannelIdentifier... identifiers) {
+  public final void register(final ChannelIdentifier... identifiers) {
     for (ChannelIdentifier identifier : identifiers) {
       Preconditions.checkArgument(identifier instanceof LegacyChannelIdentifier
           || identifier instanceof MinecraftChannelIdentifier, "identifier is unknown");
@@ -56,11 +62,10 @@ public class VelocityChannelRegistrar implements ChannelRegistrar {
   }
 
   @Override
-  public void unregister(final ChannelIdentifier... identifiers) {
+  public final void unregister(final ChannelIdentifier... identifiers) {
     for (ChannelIdentifier identifier : identifiers) {
       Preconditions.checkArgument(identifier instanceof LegacyChannelIdentifier
-          || identifier instanceof MinecraftChannelIdentifier,
-          "identifier is unknown");
+          || identifier instanceof MinecraftChannelIdentifier, "identifier is unknown");
     }
 
     for (ChannelIdentifier identifier : identifiers) {
@@ -84,6 +89,7 @@ public class VelocityChannelRegistrar implements ChannelRegistrar {
     for (ChannelIdentifier value : identifierMap.values()) {
       ids.add(new LegacyChannelIdentifier(value.getId()));
     }
+
     return ids;
   }
 
@@ -101,9 +107,16 @@ public class VelocityChannelRegistrar implements ChannelRegistrar {
         ids.add(MinecraftChannelIdentifier.from(PluginMessageUtil.transformLegacyToModernChannel(value.getId())));
       }
     }
+
     return ids;
   }
 
+  /**
+   * Retrieves a {@link ChannelIdentifier} by its string ID, if it exists in the registry.
+   *
+   * @param id the raw identifier string
+   * @return the matching {@link ChannelIdentifier}, or {@code null} if none found
+   */
   public @Nullable ChannelIdentifier getFromId(final String id) {
     return identifierMap.get(id);
   }
@@ -118,6 +131,7 @@ public class VelocityChannelRegistrar implements ChannelRegistrar {
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_13)) {
       return getModernChannelIds();
     }
+
     return getLegacyChannelIds();
   }
 }

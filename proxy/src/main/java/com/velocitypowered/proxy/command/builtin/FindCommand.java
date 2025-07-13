@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,8 +40,17 @@ import net.kyori.adventure.text.format.NamedTextColor;
  */
 public class FindCommand {
 
+  /**
+   * The {@link VelocityServer} instance used to access players, servers,
+   * and Redis multi-proxy functionality.
+   */
   private final VelocityServer server;
 
+  /**
+   * Constructs a new {@link FindCommand} using the provided {@link VelocityServer} instance.
+   *
+   * @param server the {@link VelocityServer} to use for player and server resolution
+   */
   public FindCommand(final VelocityServer server) {
     this.server = server;
   }
@@ -66,6 +75,7 @@ public class FindCommand {
         .requiredArgumentBuilder("player", StringArgumentType.word())
         .suggests((ctx, builder) -> VelocityCommands.suggestPlayer(server, ctx, builder, true))
         .executes(this::find);
+
     rootNode.then(playerNode);
     return new BrigadierCommand(rootNode);
   }
@@ -81,6 +91,7 @@ public class FindCommand {
       context.getSource().sendMessage(
           CommandMessages.PLAYER_NOT_FOUND.arguments(Component.text(player))
       );
+
       return 0;
     }
 
@@ -91,6 +102,7 @@ public class FindCommand {
       context.getSource().sendMessage(
           Component.translatable("velocity.command.find.no-server", NamedTextColor.YELLOW)
       );
+
       return 0;
     }
 
@@ -99,6 +111,7 @@ public class FindCommand {
       context.getSource().sendMessage(
           Component.translatable("velocity.command.find.no-server", NamedTextColor.YELLOW)
       );
+
       return 0;
     }
 
@@ -106,6 +119,7 @@ public class FindCommand {
         Component.translatable("velocity.command.find.message", NamedTextColor.YELLOW,
             Component.text(p.getUsername()), Component.text(server.getServerInfo().getName()))
     );
+
     return Command.SINGLE_SUCCESS;
   }
 
@@ -115,6 +129,7 @@ public class FindCommand {
       context.getSource().sendMessage(
           CommandMessages.PLAYER_NOT_FOUND.arguments(Component.text(player))
       );
+
       return 0;
     }
 
@@ -124,6 +139,7 @@ public class FindCommand {
       context.getSource().sendMessage(
           Component.translatable("velocity.command.find.no-server", NamedTextColor.YELLOW)
       );
+
       return 0;
     }
 
@@ -132,6 +148,7 @@ public class FindCommand {
       context.getSource().sendMessage(
           Component.translatable("velocity.command.find.no-server", NamedTextColor.YELLOW)
       );
+
       return 0;
     }
 
@@ -140,6 +157,7 @@ public class FindCommand {
             Component.text(info.getName()), Component.text(server.getServerInfo().getName()
                 + " (" + info.getProxyId() + ")"))
     );
+
     return Command.SINGLE_SUCCESS;
   }
 }

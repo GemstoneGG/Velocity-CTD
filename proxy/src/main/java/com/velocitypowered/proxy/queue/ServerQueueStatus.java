@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,12 +41,40 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
  * Holds queue state for a single backend server.
  */
 public class ServerQueueStatus {
+
+  /**
+   * The backend server this queue is associated with.
+   */
   private final VelocityRegisteredServer server;
+
+  /**
+   * The Velocity proxy server instance managing this queue.
+   */
   private final VelocityServer velocityServer;
+
+  /**
+   * The queue-related configuration loaded from the Velocity configuration file.
+   */
   private VelocityConfiguration.@MonotonicNonNull Queue config;
+
+  /**
+   * The collection of {@link ServerQueueEntry} representing the current queue.
+   */
   private final Deque<ServerQueueEntry> queue;
+
+  /**
+   * The current online status of the target server.
+   */
   private ServerStatus online = ServerStatus.ONLINE;
+
+  /**
+   * Whether the queue is currently full (i.e., the backend server has no room).
+   */
   private boolean full = false;
+
+  /**
+   * Whether the queue is currently paused and not accepting or processing players.
+   */
   private boolean paused = false;
 
   /**
@@ -110,10 +138,12 @@ public class ServerQueueStatus {
 
   /**
    * Send the first person in the queue.
+   *
+   * @param entry the {@link ServerQueueEntry} representing the player to send
    */
   public void sendFirstInQueue(final ServerQueueEntry entry) {
-    // check if an entry is being sent (this will set to false automatically
-    // whether it was successful or not)
+    // Check if an entry is being sent (this will set to false automatically
+    // whether it was successful or not).
     if (entry.isWaitingForConnection()) {
       return;
     }
@@ -121,6 +151,11 @@ public class ServerQueueStatus {
     entry.send();
   }
 
+  /**
+   * Returns whether the associated backend server is currently marked as online.
+   *
+   * @return {@code true} if the server status is {@link ServerStatus#ONLINE}, {@code false} otherwise
+   */
   public boolean isOnline() {
     return online == ServerStatus.ONLINE;
   }
@@ -152,6 +187,7 @@ public class ServerQueueStatus {
     } else {
       this.paused = paused;
     }
+
     this.velocityServer.getRedisManager().addOrUpdateQueue(this);
   }
 
@@ -159,7 +195,9 @@ public class ServerQueueStatus {
    * Queues a player for this server.
    *
    * @param playerUuid the UUID of the player to queue
-   * @param priority The priority with which the player should be added.
+   * @param priority the priority with which the player should be added
+   * @param fullBypass {@code true} if the player should bypass full server checks
+   * @param queueBypass {@code true} if the player should bypass the queue entirely
    */
   public void queue(final UUID playerUuid, final int priority, final boolean fullBypass, final boolean queueBypass) {
     if (!config.isEnabled()) {
@@ -168,10 +206,10 @@ public class ServerQueueStatus {
         player.createConnectionRequest(server).connect();
       } else {
         if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
-          this.velocityServer.getRedisManager().send(new RedisQueueSendRequest(playerUuid,
-              server.getServerInfo().getName()));
+          this.velocityServer.getRedisManager().send(new RedisQueueSendRequest(playerUuid, server.getServerInfo().getName()));
         }
       }
+
       return;
     }
 
@@ -185,12 +223,12 @@ public class ServerQueueStatus {
       if (iterator.hasNext()) {
         do {
           ServerQueueEntry currentEntry = iterator.next();
-
           if (currentEntry.getPriority() < priority) {
             insertAtPosition(entry, position);
             inserted = true;
             break;
           }
+
           position++;
         } while (iterator.hasNext());
       }
@@ -234,10 +272,10 @@ public class ServerQueueStatus {
                   .arguments(Component.text(getServerName()),
                       Component.text(this.velocityServer.getConfiguration().getQueue().getMaxSendRetries()))));
         } else {
-          this.velocityServer.getPlayer(player).ifPresent(p
-                  -> p.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached")
-              .arguments(Component.text(getServerName()),
-                  Component.text(this.velocityServer.getConfiguration().getQueue().getMaxSendRetries()))));
+          this.velocityServer.getPlayer(player).ifPresent(p ->
+                  p.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached")
+                      .arguments(Component.text(getServerName()),
+                          Component.text(this.velocityServer.getConfiguration().getQueue().getMaxSendRetries()))));
         }
       }
     }).delay(1, TimeUnit.SECONDS).schedule();
@@ -259,6 +297,7 @@ public class ServerQueueStatus {
         return Optional.of(entry);
       }
     }
+
     return Optional.empty();
   }
 
@@ -276,8 +315,7 @@ public class ServerQueueStatus {
                       Component.text(queue.size()),
                       Component.text(isPaused() ? "True" : "False"),
                       Component.text(isOnline() ? "True" : "False")
-                  ).asHoverEvent()
-              )
+                  ).asHoverEvent())
           );
     } else {
       AtomicBoolean status = new AtomicBoolean(true);
@@ -295,8 +333,7 @@ public class ServerQueueStatus {
                       Component.text(queue.size()),
                       Component.text(isPaused() ? "True" : "False"),
                       Component.text(status.get() ? "True" : "False")
-                  ).asHoverEvent()
-              )
+                  ).asHoverEvent())
           );
     }
   }

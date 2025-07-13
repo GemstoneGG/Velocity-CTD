@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,8 +47,21 @@ import org.jetbrains.annotations.Nullable;
  * MIT Licenced.
  */
 public final class VelocityTranslationRegistry implements TranslationStore.StringBased<MessageFormat> {
+
+  /**
+   * The backing {@link TranslationStore.StringBased} instance that holds all registered
+   * translations and performs locale-specific resolution.
+   *
+   * <p>This delegate is responsible for the actual translation logic and data storage,
+   * while {@code VelocityTranslationRegistry} adds MiniMessage rendering and Adventure integration.</p>
+   */
   private final TranslationStore.StringBased<MessageFormat> backedRegistry;
 
+  /**
+   * Constructs a new {@code VelocityTranslationRegistry} wrapping the given translation store.
+   *
+   * @param backed the delegate {@link TranslationStore.StringBased} instance
+   */
   public VelocityTranslationRegistry(final TranslationStore.StringBased<MessageFormat> backed) {
     this.backedRegistry = backed;
   }
@@ -135,7 +148,15 @@ public final class VelocityTranslationRegistry implements TranslationStore.Strin
   }
 
   private record ArgumentTag(List<? extends ComponentLike> argumentComponents) implements TagResolver {
+
+    /**
+     * The full tag name recognized by the resolver: {@code <argument:x>}.
+     */
     private static final String NAME = "argument";
+
+    /**
+     * The short tag name alias recognized by the resolver: {@code <arg:x>}.
+     */
     private static final String NAME_1 = "arg";
 
     private ArgumentTag(@NotNull final List<? extends ComponentLike> argumentComponents) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,8 +35,19 @@ import org.junit.jupiter.api.condition.EnabledOnOs;
 
 class VelocityCipherTest {
 
+  /**
+   * Size of the test data to encrypt/decrypt (16 KiB).
+   */
   private static final int ENCRYPT_DATA_SIZE = 1 << 14;
+
+  /**
+   * Random test data that will be encrypted and then decrypted.
+   */
   private static final byte[] TEST_DATA = new byte[ENCRYPT_DATA_SIZE];
+
+  /**
+   * AES encryption key (16 bytes).
+   */
   private static final byte[] AES_KEY = new byte[16];
 
   @BeforeAll

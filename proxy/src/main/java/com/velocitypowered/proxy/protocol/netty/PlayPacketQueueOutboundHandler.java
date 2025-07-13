@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,20 +42,28 @@ import org.jetbrains.annotations.NotNull;
  */
 public class PlayPacketQueueOutboundHandler extends ChannelDuplexHandler {
 
+  /**
+   * The CONFIG-state protocol registry used to determine which packets are safe to send early.
+   */
   private final StateRegistry.PacketRegistry.ProtocolRegistry registry;
+
+  /**
+   * The queue of outbound packets to be released once the PLAY state is reached.
+   */
   private final Queue<MinecraftPacket> queue = new ArrayDeque<>();
 
   /**
    * Provides registries for "client" &amp; server bound packets.
    *
    * @param version the protocol version
+   * @param direction the direction of packet flow (typically {@code CLIENTBOUND})
    */
   public PlayPacketQueueOutboundHandler(final ProtocolVersion version, final ProtocolUtils.Direction direction) {
     this.registry = StateRegistry.CONFIG.getProtocolRegistry(direction, version);
   }
 
   @Override
-  public void write(final ChannelHandlerContext ctx, final Object msg, final ChannelPromise promise) throws Exception {
+  public final void write(final ChannelHandlerContext ctx, final Object msg, final ChannelPromise promise) throws Exception {
     if (!(msg instanceof final MinecraftPacket packet)) {
       ctx.write(msg, promise);
       return;
@@ -73,14 +81,14 @@ public class PlayPacketQueueOutboundHandler extends ChannelDuplexHandler {
   }
 
   @Override
-  public void channelInactive(@NotNull final ChannelHandlerContext ctx) throws Exception {
+  public final void channelInactive(@NotNull final ChannelHandlerContext ctx) throws Exception {
     this.releaseQueue(ctx, false);
 
     super.channelInactive(ctx);
   }
 
   @Override
-  public void handlerRemoved(final ChannelHandlerContext ctx) {
+  public final void handlerRemoved(final ChannelHandlerContext ctx) {
     this.releaseQueue(ctx, ctx.channel().isActive());
   }
 

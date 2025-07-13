@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,20 +49,20 @@ public class QueueManagerRedisImpl extends QueueManager {
   private void registerRedisListeners() {
     RedisManagerImpl redisManager = this.server.getRedisManager();
 
-    redisManager.listen(RedisQueueSendRequest.ID, RedisQueueSendRequest.class, it
-        -> server.getPlayer(it.playerUuid()).ifPresent(player -> {
-          RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
-          if (foundServer == null) {
-            throw new IllegalArgumentException("Server not found while attempting to send player in queue. '" + it.serverName() + "'");
-          }
+    redisManager.listen(RedisQueueSendRequest.ID, RedisQueueSendRequest.class, it ->
+            server.getPlayer(it.playerUuid()).ifPresent(player -> {
+              RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
+              if (foundServer == null) {
+                throw new IllegalArgumentException("Server not found while attempting to send player in queue. '" + it.serverName() + "'");
+              }
 
-          ServerQueueEntry entry = getQueue(foundServer.getServerInfo().getName()).getEntry(it.playerUuid()).orElse(null);
-          if (entry == null) {
-            return;
-          }
+              ServerQueueEntry entry = getQueue(foundServer.getServerInfo().getName()).getEntry(it.playerUuid()).orElse(null);
+              if (entry == null) {
+                return;
+              }
 
-          entry.handleSending();
-        }));
+              entry.handleSending();
+            }));
 
     redisManager.listen(RedisSendActionBarRequest.ID, RedisSendActionBarRequest.class, it -> {
       Component component = it.component();
@@ -72,14 +72,13 @@ public class QueueManagerRedisImpl extends QueueManager {
       }
     });
 
-    redisManager.listen(RedisSendMessageToUuidRequest.ID,
-            RedisSendMessageToUuidRequest.class, it -> {
-        Component component = it.component();
+    redisManager.listen(RedisSendMessageToUuidRequest.ID, RedisSendMessageToUuidRequest.class, it -> {
+      Component component = it.component();
 
-        if (component != null) {
-          server.getPlayer(it.player()).ifPresent(player -> player.sendMessage(component));
-        }
-      });
+      if (component != null) {
+        server.getPlayer(it.player()).ifPresent(player -> player.sendMessage(component));
+      }
+    });
   }
 
   /**
@@ -123,9 +122,8 @@ public class QueueManagerRedisImpl extends QueueManager {
   @Override
   public void tickMessageForAllPlayers() {
     for (ServerQueueStatus status : this.cache.getAll()) {
-      status.getActivePlayers().forEach((entry, player)
-          -> this.server.getRedisManager().send(new RedisSendActionBarRequest(player,
-              status.getActionBarComponent(entry))));
+      status.getActivePlayers().forEach((entry, player) ->
+          this.server.getRedisManager().send(new RedisSendActionBarRequest(player, status.getActionBarComponent(entry))));
     }
   }
 }

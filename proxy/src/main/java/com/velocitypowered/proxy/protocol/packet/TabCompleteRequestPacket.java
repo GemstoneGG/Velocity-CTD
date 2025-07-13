@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,12 +34,34 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class TabCompleteRequestPacket implements MinecraftPacket {
 
+  /**
+   * The maximum allowed length of a tab-completion string in vanilla Minecraft.
+   */
   private static final int VANILLA_MAX_TAB_COMPLETE_LEN = 2048;
 
+  /**
+   * The command string for which tab-completion is being requested.
+   */
   private @Nullable String command;
+
+  /**
+   * The transaction ID associated with this tab-completion request.
+   */
   private int transactionId;
+
+  /**
+   * Whether the client assumes the string is a command (introduced in 1.9).
+   */
   private boolean assumeCommand;
+
+  /**
+   * Whether the request includes a block position (introduced in 1.8).
+   */
   private boolean hasPosition;
+
+  /**
+   * The block position associated with the request, if {@code hasPosition} is true.
+   */
   private long position;
 
   /**
@@ -52,47 +74,94 @@ public class TabCompleteRequestPacket implements MinecraftPacket {
     if (command == null) {
       throw new IllegalStateException("Command is not specified");
     }
+
     return command;
   }
 
+  /**
+   * Sets the command to be completed.
+   *
+   * @param command the command string
+   */
   public void setCommand(@Nullable final String command) {
     this.command = command;
   }
 
+  /**
+   * Returns whether the client assumes the string is a command.
+   *
+   * @return {@code true} if the string is assumed to be a command, otherwise {@code false}
+   */
+  @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   public boolean isAssumeCommand() {
     return assumeCommand;
   }
 
+  /**
+   * Sets whether the client assumes the string is a command.
+   *
+   * @param assumeCommand {@code true} if the string is assumed to be a command
+   */
   public void setAssumeCommand(final boolean assumeCommand) {
     this.assumeCommand = assumeCommand;
   }
 
+  /**
+   * Returns whether the tab-completion request includes a block position.
+   *
+   * @return {@code true} if a position is included, otherwise {@code false}
+   */
   public boolean hasPosition() {
     return hasPosition;
   }
 
+  /**
+   * Sets whether the tab-completion request includes a block position.
+   *
+   * @param hasPosition {@code true} if a position should be included
+   */
   public void setHasPosition(final boolean hasPosition) {
     this.hasPosition = hasPosition;
   }
 
+  /**
+   * Gets the block position associated with the request.
+   *
+   * @return the position as a long
+   */
   public long getPosition() {
     return position;
   }
 
+  /**
+   * Sets the block position associated with the request.
+   *
+   * @param position the block position
+   */
   public void setPosition(final long position) {
     this.position = position;
   }
 
+  /**
+   * Gets the transaction ID of the request.
+   *
+   * @return the transaction ID
+   */
   public int getTransactionId() {
     return transactionId;
   }
 
+  /**
+   * Sets the transaction ID for this request.
+   *
+   * @param transactionId the transaction ID
+   */
   public void setTransactionId(final int transactionId) {
     this.transactionId = transactionId;
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return MoreObjects.toStringHelper(this)
         .add("command", command)
         .add("transactionId", transactionId)
@@ -103,7 +172,7 @@ public class TabCompleteRequestPacket implements MinecraftPacket {
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     if (version.noLessThan(MINECRAFT_1_13)) {
       this.transactionId = ProtocolUtils.readVarInt(buf);
       this.command = ProtocolUtils.readString(buf, VANILLA_MAX_TAB_COMPLETE_LEN);
@@ -112,6 +181,7 @@ public class TabCompleteRequestPacket implements MinecraftPacket {
       if (version.noLessThan(MINECRAFT_1_9)) {
         this.assumeCommand = buf.readBoolean();
       }
+
       if (version.noLessThan(MINECRAFT_1_8)) {
         this.hasPosition = buf.readBoolean();
         if (hasPosition) {
@@ -143,6 +213,7 @@ public class TabCompleteRequestPacket implements MinecraftPacket {
       if (version.noLessThan(MINECRAFT_1_9)) {
         buf.writeBoolean(assumeCommand);
       }
+
       if (version.noLessThan(MINECRAFT_1_8)) {
         buf.writeBoolean(hasPosition);
         if (hasPosition) {
@@ -153,7 +224,7 @@ public class TabCompleteRequestPacket implements MinecraftPacket {
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

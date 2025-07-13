@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,10 @@ import java.util.stream.Collectors;
 
 class EventTypeTracker {
 
+  /**
+   * A cache mapping each known event class to a set of "friend" classes,
+   * which includes superclasses and interfaces that may receive the same event.
+   */
   private final ConcurrentMap<Class<?>, ImmutableSet<Class<?>>> friends;
 
   EventTypeTracker() {
@@ -53,6 +57,7 @@ class EventTypeTracker {
               .build()
       );
     }
+
     return types;
   }
 

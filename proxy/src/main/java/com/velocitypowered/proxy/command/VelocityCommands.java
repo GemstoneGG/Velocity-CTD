@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -78,7 +78,7 @@ public final class VelocityCommands {
    * @return the wrapped command node
    */
   public static CommandNode<CommandSource> wrap(final CommandNode<CommandSource> delegate,
-      final @Nullable Object registrant) {
+                                                final @Nullable Object registrant) {
     Preconditions.checkNotNull(delegate, "delegate");
     if (registrant == null) {
       // the registrant is null if the `plugin` was absent when we try to register the command
@@ -100,6 +100,7 @@ public final class VelocityCommands {
       if (delegate.getRedirect() != null) {
         literalBuilder.redirect(wrap(delegate.getRedirect(), registrant));
       }
+
       return literalBuilder.build();
     } else if (delegate instanceof VelocityArgumentCommandNode<CommandSource, ?> vacn) {
       return vacn.withCommand(maybeCommand)
@@ -113,6 +114,7 @@ public final class VelocityCommands {
       if (delegate.getRedirect() != null) {
         argBuilder.redirect(wrap(delegate.getRedirect(), registrant));
       }
+
       return argBuilder.build();
     } else {
       throw new IllegalArgumentException("Unsupported node type: " + delegate.getClass());
@@ -156,6 +158,12 @@ public final class VelocityCommands {
     return nodes.get(0).getNode().getName();
   }
 
+  /**
+   * The fixed name assigned to the arguments node of an {@link InvocableCommand}.
+   *
+   * <p>This name is used internally to distinguish the argument-handling node
+   * from hinting nodes and other literals in the command graph.</p>
+   */
   public static final String ARGS_NODE_NAME = "arguments";
 
   /**
@@ -165,13 +173,13 @@ public final class VelocityCommands {
    * @param arguments the map of parsed arguments, as returned by
    *                  {@link CommandContext#getArguments()} or
    *                  {@link CommandContextBuilder#getArguments()}
-   * @param type      the type class of the arguments
-   * @param fallback  the value to return if no arguments were provided
-   * @param <V>       the type of the arguments
+   * @param type the type class of the arguments
+   * @param fallback the value to return if no arguments were provided
+   * @param <V> the type of the arguments
    * @return the command arguments
    */
   public static <V> V readArguments(final Map<String, ? extends ParsedArgument<?, ?>> arguments,
-      final Class<V> type, final V fallback) {
+                                    final Class<V> type, final V fallback) {
     final ParsedArgument<?, ?> argument = arguments.get(ARGS_NODE_NAME);
     if (argument == null) {
       return fallback; // either no arguments were given or this isn't an InvocableCommand
@@ -208,8 +216,7 @@ public final class VelocityCommands {
    * @param newName  the name of the returned literal node
    * @return a copy of the literal with the given name
    */
-  public static LiteralCommandNode<CommandSource> shallowCopy(
-      final LiteralCommandNode<CommandSource> original, final String newName) {
+  public static LiteralCommandNode<CommandSource> shallowCopy(final LiteralCommandNode<CommandSource> original, final String newName) {
     return shallowCopy(original, newName, original.getCommand());
   }
 
@@ -221,9 +228,8 @@ public final class VelocityCommands {
    * @param newCommand the new command to set on the copied node
    * @return a copy of the literal with the given name
    */
-  private static LiteralCommandNode<CommandSource> shallowCopy(
-      final LiteralCommandNode<CommandSource> original, final String newName,
-      final com.mojang.brigadier.Command<CommandSource> newCommand) {
+  private static LiteralCommandNode<CommandSource> shallowCopy(final LiteralCommandNode<CommandSource> original, final String newName,
+                                                               final com.mojang.brigadier.Command<CommandSource> newCommand) {
     return shallowCopyAsBuilder(original, newName, false).executes(newCommand).build();
   }
 
@@ -231,12 +237,12 @@ public final class VelocityCommands {
    * Creates a copy of the given literal with the specified name.
    *
    * @param original the literal node to copy
-   * @param newName  the name of the returned literal node
+   * @param newName the name of the returned literal node
+   * @param skipChildren if {@code true}, the copied node will not include children of the original
    * @return a copy of the literal with the given name
    */
-  private static LiteralArgumentBuilder<CommandSource> shallowCopyAsBuilder(
-      final LiteralCommandNode<CommandSource> original, final String newName,
-      final boolean skipChildren) {
+  private static LiteralArgumentBuilder<CommandSource> shallowCopyAsBuilder(final LiteralCommandNode<CommandSource> original, final String newName,
+                                                                            final boolean skipChildren) {
     // Brigadier resolves the redirect of a node if further input can be parsed.
     // Let <bar> be a literal node having a redirect to a <foo> literal. Then,
     // the context returned by CommandDispatcher#parseNodes when given the input
@@ -257,6 +263,7 @@ public final class VelocityCommands {
         builder.then(child);
       }
     }
+
     return builder;
   }
 
@@ -270,12 +277,12 @@ public final class VelocityCommands {
    * @param <S>   the type of the command source
    * @return the argument's node, or null if not present
    */
-  static <S> @Nullable VelocityArgumentCommandNode<S, ?> getArgumentsNode(
-      final LiteralCommandNode<S> alias) {
+  static <S> @Nullable VelocityArgumentCommandNode<S, ?> getArgumentsNode(final LiteralCommandNode<S> alias) {
     final CommandNode<S> node = alias.getChild(ARGS_NODE_NAME);
     if (node instanceof VelocityArgumentCommandNode) {
       return (VelocityArgumentCommandNode<S, ?>) node;
     }
+
     return null;
   }
 
@@ -316,8 +323,8 @@ public final class VelocityCommands {
   /**
    * Generates a suggestion provider to complete the name of a server.
    *
-   * @param server            the proxy server
-   * @param argName           the name of the string argument to complete
+   * @param server the proxy server
+   * @param argName the name of the string argument to complete
    * @param allowNonQueueable whether to suggest a server if the server has queueing disabled
    * @return a suggestion provider that completes a server name
    */
@@ -325,7 +332,6 @@ public final class VelocityCommands {
                                                                 final boolean allowNonQueueable) {
     return (ctx, builder) -> {
       boolean allowNonQueueable0 = allowNonQueueable;
-
       final String argument = ctx.getArguments().containsKey(argName)
           ? StringArgumentType.getString(ctx, argName)
           : "";
@@ -338,7 +344,6 @@ public final class VelocityCommands {
 
       for (final RegisteredServer sv : server.getAllServers()) {
         final String serverName = sv.getServerInfo().getName();
-
         if (!allowNonQueueable0 && queueConfig.getNoQueueServers().contains(serverName)) {
           continue;
         }
@@ -357,9 +362,9 @@ public final class VelocityCommands {
   /**
    * Fetches a server from a string in a command context.
    *
-   * @param server            the proxy instance
-   * @param ctx               the command context
-   * @param argName           the name of the argument
+   * @param server the proxy instance
+   * @param ctx the command context
+   * @param argName the name of the argument
    * @param allowNonQueueable whether to return a servers if it can't be queued.
    * @return the found server, or {@code null} if one couldn't be found
    */
@@ -420,8 +425,7 @@ public final class VelocityCommands {
 
     ctx.getSource().sendMessage(
         Component.translatable("velocity.command." + commandName + ".usage", NamedTextColor.YELLOW)
-            .arguments(Component.text(usedName))
-    );
+            .arguments(Component.text(usedName)));
     return com.mojang.brigadier.Command.SINGLE_SUCCESS;
   }
 
@@ -443,6 +447,7 @@ public final class VelocityCommands {
         builder.suggest(proxyId);
       }
     }
+
     return builder.buildFuture();
   }
 
@@ -452,6 +457,7 @@ public final class VelocityCommands {
    * @param server the proxy server instance
    * @param ctx the context passed to the {@code suggests} callback
    * @param builder the builder passed to the {@code builder} callback
+   * @param includeRemote whether to include remote (cross-proxy) players from Redis
    * @return a future that resolves to the suggestions
    */
   public static CompletableFuture<Suggestions> suggestPlayer(final VelocityServer server, final CommandContext<CommandSource> ctx,
@@ -459,7 +465,6 @@ public final class VelocityCommands {
     final String argument = ctx.getArguments().containsKey("player")
         ? ctx.getArgument("player", String.class)
         : "";
-
     if (includeRemote && server.getMultiProxyHandler().isRedisEnabled()) {
       for (RemotePlayerInfo info : server.getMultiProxyHandler().getAllPlayers()) {
         if (info.getName().regionMatches(true, 0, argument, 0, argument.length())) {

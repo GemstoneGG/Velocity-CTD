@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -64,6 +64,7 @@ public enum Tristate {
     if (val == null) {
       return UNDEFINED;
     }
+
     return val ? TRUE : FALSE;
   }
 
@@ -81,7 +82,11 @@ public enum Tristate {
     return val.map(Tristate::fromBoolean).orElse(UNDEFINED);
   }
 
-
+  /**
+   * The underlying boolean representation of the state.
+   *
+   * <p>Used to support {@link #asBoolean()}; {@link #UNDEFINED} maps to {@code false}.</p>
+   */
   private final boolean booleanValue;
 
   Tristate(final boolean booleanValue) {

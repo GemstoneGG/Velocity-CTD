@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,16 +65,56 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
  */
 public class AuthSessionHandler implements MinecraftSessionHandler {
 
+  /**
+   * Logger for textual log messages.
+   */
   private static final Logger logger = LogManager.getLogger(AuthSessionHandler.class, new ParameterizedMessageFactory());
+
+  /**
+   * Logger for Adventure components.
+   */
   private static final ComponentLogger componentLogger = ComponentLogger.logger(AuthSessionHandler.class);
 
+  /**
+   * The proxy server instance.
+   */
   private final VelocityServer server;
+
+  /**
+   * The Minecraft connection associated with this session.
+   */
   private final MinecraftConnection mcConnection;
+
+  /**
+   * The inbound login connection.
+   */
   private final LoginInboundConnection inbound;
+
+  /**
+   * The game profile of the connecting player.
+   */
   private GameProfile profile;
+
+  /**
+   * The connected player, once authentication has completed.
+   */
   private @MonotonicNonNull ConnectedPlayer connectedPlayer;
+
+  /**
+   * Whether the proxy is operating in online mode for this session.
+   */
   private final boolean onlineMode;
-  private State loginState = State.START; // 1.20.2+
+
+  /**
+   * The current login state of this connection.
+   * Was implemented in Minecraft 1.20.2.
+   */
+  private State loginState = State.START;
+
+  /**
+   * The minimum Minecraft version allowed to connect.
+   * Was implemented in Minecraft 1.20.2.
+   */
   private final String minimumVersion;
 
   AuthSessionHandler(final VelocityServer server, final LoginInboundConnection inbound,
@@ -88,12 +128,10 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public void activated() {
+  public final void activated() {
     // Some connection types may need to alter the game profile.
-    profile = mcConnection.getType().addGameProfileTokensIfRequired(profile,
-        server.getConfiguration().getPlayerInfoForwardingMode());
-    GameProfileRequestEvent profileRequestEvent = new GameProfileRequestEvent(inbound, profile,
-        onlineMode);
+    profile = mcConnection.getType().addGameProfileTokensIfRequired(profile, server.getConfiguration().getPlayerInfoForwardingMode());
+    GameProfileRequestEvent profileRequestEvent = new GameProfileRequestEvent(inbound, profile, onlineMode);
     final GameProfile finalProfile = profile;
 
     // Make sure the player is on the minimum version set in configuration or higher
@@ -180,6 +218,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
       mcConnection.write(new SetCompressionPacket(threshold));
       mcConnection.setCompressionThreshold(threshold);
     }
+
     VelocityConfiguration configuration = server.getConfiguration();
     UUID playerUniqueId = player.getUniqueId();
     if (configuration.getPlayerInfoForwardingMode() == PlayerInfoForwarding.NONE) {
@@ -216,7 +255,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public boolean handle(final LoginAcknowledgedPacket packet) {
+  public final boolean handle(final LoginAcknowledgedPacket packet) {
     if (loginState != State.SUCCESS_SENT) {
       inbound.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_data"));
     } else {
@@ -230,17 +269,19 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
           connectedPlayer.setServerLinks(scopedLinks);
         }
       }
+
       server.getEventManager().fire(new PostLoginEvent(connectedPlayer)).thenCompose(ignored -> connectToInitialServer(connectedPlayer))
           .exceptionally((ex) -> {
             logger.error("Exception while connecting {} to initial server", connectedPlayer, ex);
             return null;
           });
     }
+
     return true;
   }
 
   @Override
-  public boolean handle(final ServerboundCookieResponsePacket packet) {
+  public final boolean handle(final ServerboundCookieResponsePacket packet) {
     server.getEventManager()
         .fire(new CookieReceiveEvent(connectedPlayer, packet.getKey(), packet.getPayload()))
         .thenAcceptAsync(event -> {
@@ -327,15 +368,16 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public void handleUnknown(final ByteBuf buf) {
+  public final void handleUnknown(final ByteBuf buf) {
     mcConnection.close(true);
   }
 
   @Override
-  public void disconnected() {
+  public final void disconnected() {
     if (connectedPlayer != null) {
       connectedPlayer.teardown();
     }
+
     this.inbound.cleanup();
   }
 

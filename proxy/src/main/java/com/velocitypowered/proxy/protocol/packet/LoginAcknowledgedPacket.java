@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,13 +43,13 @@ public class LoginAcknowledgedPacket implements MinecraftPacket {
   }
 
   @Override
-  public int expectedMaxLength(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                               final ProtocolVersion version) {
+  public final int expectedMaxLength(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                                     final ProtocolVersion version) {
     return 0;
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

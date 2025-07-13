@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,15 +34,27 @@ import io.netty.buffer.ByteBuf;
  */
 public class KnownPacksPacket implements MinecraftPacket {
 
+  /**
+   * The maximum number of known packs allowed in a serverbound packet.
+   *
+   * <p>This limit is controlled by the {@code velocity.max-known-packs} system property
+   * (defaults to 64) to prevent abuse or protocol overflows.</p>
+   */
   private static final int MAX_LENGTH_PACKS = Integer.getInteger("velocity.max-known-packs", 64);
-  private static final QuietDecoderException TOO_MANY_PACKS =
-      new QuietDecoderException("too many known packs");
 
+  /**
+   * Thrown when too many packs are received in a serverbound packet.
+   */
+  private static final QuietDecoderException TOO_MANY_PACKS = new QuietDecoderException("too many known packs");
+
+  /**
+   * The array of known resource packs being synchronized.
+   */
   private KnownPack[] packs;
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                           final ProtocolVersion protocolVersion) {
     final int packCount = ProtocolUtils.readVarInt(buf);
     if (direction == ProtocolUtils.Direction.SERVERBOUND && packCount > MAX_LENGTH_PACKS) {
       throw TOO_MANY_PACKS;
@@ -58,8 +70,8 @@ public class KnownPacksPacket implements MinecraftPacket {
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                           final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeVarInt(buf, packs.length);
 
     for (KnownPack pack : packs) {
@@ -68,7 +80,7 @@ public class KnownPacksPacket implements MinecraftPacket {
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 

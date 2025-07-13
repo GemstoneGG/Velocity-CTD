@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,10 +36,16 @@ import org.bstats.config.MetricsConfig;
 import org.bstats.json.JsonObjectBuilder;
 
 /**
- * Initializes bStats.
+ * Initializes and manages bStats metrics reporting for the Velocity proxy.
+ *
+ * <p>This class configures the bStats {@link MetricsBase} system and exposes registration
+ * for custom charts and runtime platform details.</p>
  */
 public final class Metrics {
 
+  /**
+   * The bStats metrics core responsible for collecting and submitting data.
+   */
   private MetricsBase metricsBase;
 
   private Metrics(final Logger logger, final int serviceId, final boolean defaultEnabled) {
@@ -101,6 +107,9 @@ public final class Metrics {
 
   static class VelocityMetrics {
 
+    /**
+     * Logger used for bStats-related output during initialization.
+     */
     private static final Logger logger = LogManager.getLogger(Metrics.class);
 
     static void startMetrics(final VelocityServer server, final VelocityConfiguration.Metrics metricsConfig) {
@@ -145,8 +154,10 @@ public final class Metrics {
           if (versionMatcher.find()) {
             majorVersion = versionMatcher.group(0);
           }
+
           release = "Java " + majorVersion;
         }
+
         map.put(release, entry);
 
         return map;

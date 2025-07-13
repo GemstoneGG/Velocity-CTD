@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,10 @@ import java.util.UUID;
  * @param port The port of the new proxy.
  */
 public record RedisTransferCommandRequest(UUID requester, String player, String proxyId, String ip, int port) implements RedisPacket {
+
+  /**
+   * The unique Redis packet identifier for a proxy transfer request.
+   */
   public static final String ID = "transfer-command-request";
 
   @Override

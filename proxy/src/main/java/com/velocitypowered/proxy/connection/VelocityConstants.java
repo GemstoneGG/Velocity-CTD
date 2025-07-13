@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,5 +26,10 @@ public final class VelocityConstants {
     throw new AssertionError();
   }
 
+  /**
+   * A shared, immutable empty byte array instance.
+   *
+   * <p>Used to avoid unnecessary allocations for empty byte arrays.</p>
+   */
   public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 }

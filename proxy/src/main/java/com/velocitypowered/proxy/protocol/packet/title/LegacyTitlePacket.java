@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,17 +36,33 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class LegacyTitlePacket extends GenericTitlePacket {
 
+  /**
+   * The text component (title, subtitle, or action bar), if applicable for the current action.
+   */
   private @Nullable ComponentHolder component;
+
+  /**
+   * Fade-in time in ticks for {@link ActionType#SET_TIMES}.
+   */
   private int fadeIn;
+
+  /**
+   * Duration in ticks the title should remain visible for {@link ActionType#SET_TIMES}.
+   */
   private int stay;
+
+  /**
+   * Fade-out time in ticks for {@link ActionType#SET_TIMES}.
+   */
   private int fadeOut;
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     if (version.lessThan(ProtocolVersion.MINECRAFT_1_11)
         && getAction() == ActionType.SET_ACTION_BAR) {
       throw new IllegalStateException("Action bars are only supported on 1.11 and newer");
     }
+
     ProtocolUtils.writeVarInt(buf, getAction().getAction(version));
 
     switch (getAction()) {
@@ -68,52 +84,52 @@ public class LegacyTitlePacket extends GenericTitlePacket {
   }
 
   @Override
-  public void setAction(final ActionType action) {
+  public final void setAction(final ActionType action) {
     super.setAction(action);
   }
 
   @Override
-  public @Nullable ComponentHolder getComponent() {
+  public final @Nullable ComponentHolder getComponent() {
     return component;
   }
 
   @Override
-  public void setComponent(@Nullable final ComponentHolder component) {
+  public final void setComponent(@Nullable final ComponentHolder component) {
     this.component = component;
   }
 
   @Override
-  public int getFadeIn() {
+  public final int getFadeIn() {
     return fadeIn;
   }
 
   @Override
-  public void setFadeIn(final int fadeIn) {
+  public final void setFadeIn(final int fadeIn) {
     this.fadeIn = fadeIn;
   }
 
   @Override
-  public int getStay() {
+  public final int getStay() {
     return stay;
   }
 
   @Override
-  public void setStay(final int stay) {
+  public final void setStay(final int stay) {
     this.stay = stay;
   }
 
   @Override
-  public int getFadeOut() {
+  public final int getFadeOut() {
     return fadeOut;
   }
 
   @Override
-  public void setFadeOut(final int fadeOut) {
+  public final void setFadeOut(final int fadeOut) {
     this.fadeOut = fadeOut;
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "GenericTitlePacket{"
         + "action=" + getAction()
         + ", component='" + component + '\''
@@ -124,7 +140,7 @@ public class LegacyTitlePacket extends GenericTitlePacket {
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

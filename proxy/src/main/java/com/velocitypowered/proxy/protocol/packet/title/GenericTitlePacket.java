@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,60 +70,132 @@ public abstract class GenericTitlePacket implements MinecraftPacket {
      */
     RESET(5);
 
+    /**
+     * The numeric action ID used in older protocol versions.
+     */
     private final int action;
 
     ActionType(final int action) {
       this.action = action;
     }
 
+    /**
+     * Returns the protocol-dependent action ID.
+     *
+     * <p>In Minecraft versions before 1.11, RESET and HIDE share the same action ID.
+     * This method ensures correct translation for backward compatibility.</p>
+     *
+     * @param version the target protocol version
+     * @return the protocol-specific action ID
+     */
     public int getAction(final ProtocolVersion version) {
       return version.lessThan(ProtocolVersion.MINECRAFT_1_11)
           ? action > 2 ? action - 1 : action : action;
     }
   }
 
+  /**
+   * The action this packet will invoke when sent.
+   */
   private ActionType action;
 
+  /**
+   * Sets the action type for this title packet.
+   *
+   * @param action the title action (e.g., SET_TITLE, HIDE)
+   */
   protected void setAction(final ActionType action) {
     this.action = action;
   }
 
+  /**
+   * Returns the action this packet is configured to perform.
+   *
+   * @return the {@link ActionType}
+   */
   public final ActionType getAction() {
     return action;
   }
 
+  /**
+   * Returns the title component of this packet, if applicable.
+   *
+   * @return the {@link ComponentHolder} used for display
+   * @throws UnsupportedOperationException if not supported for this packet type
+   */
   public ComponentHolder getComponent() {
     throw new UnsupportedOperationException("Invalid function for this TitlePacket ActionType");
   }
 
+  /**
+   * Sets the title component of this packet, if applicable.
+   *
+   * @param component the component to assign
+   * @throws UnsupportedOperationException if not supported for this packet type
+   */
   public void setComponent(final ComponentHolder component) {
     throw new UnsupportedOperationException("Invalid function for this TitlePacket ActionType");
   }
 
+  /**
+   * Returns the fade-in time, if supported.
+   *
+   * @return the fade-in duration in ticks
+   * @throws UnsupportedOperationException if not supported
+   */
   public int getFadeIn() {
     throw new UnsupportedOperationException("Invalid function for this TitlePacket ActionType");
   }
 
+  /**
+   * Sets the fade-in time, if supported.
+   *
+   * @param fadeIn the fade-in duration in ticks
+   * @throws UnsupportedOperationException if not supported
+   */
   public void setFadeIn(final int fadeIn) {
     throw new UnsupportedOperationException("Invalid function for this TitlePacket ActionType");
   }
 
+  /**
+   * Returns the stay duration, if supported.
+   *
+   * @return the stay duration in ticks
+   * @throws UnsupportedOperationException if not supported
+   */
   public int getStay() {
     throw new UnsupportedOperationException("Invalid function for this TitlePacket ActionType");
   }
 
+  /**
+   * Sets the stay duration, if supported.
+   *
+   * @param stay the duration to display the title in ticks
+   * @throws UnsupportedOperationException if not supported
+   */
   public void setStay(final int stay) {
     throw new UnsupportedOperationException("Invalid function for this TitlePacket ActionType");
   }
 
+  /**
+   * Returns the fade-out time, if supported.
+   *
+   * @return the fade-out duration in ticks
+   * @throws UnsupportedOperationException if not supported
+   */
   public int getFadeOut() {
     throw new UnsupportedOperationException("Invalid function for this TitlePacket ActionType");
   }
 
+  /**
+   * Sets the fade-out time, if supported.
+   *
+   * @param fadeOut the fade-out duration in ticks
+   * @throws UnsupportedOperationException if not supported
+   */
   public void setFadeOut(final int fadeOut) {
     throw new UnsupportedOperationException("Invalid function for this TitlePacket ActionType");
   }
-
 
   @Override
   public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
@@ -151,6 +223,7 @@ public abstract class GenericTitlePacket implements MinecraftPacket {
     } else {
       packet = new LegacyTitlePacket();
     }
+
     packet.setAction(type);
     return packet;
   }

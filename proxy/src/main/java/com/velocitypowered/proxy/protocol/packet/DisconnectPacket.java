@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,9 +36,28 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class DisconnectPacket implements MinecraftPacket {
 
+  /**
+   * The component holder containing the disconnection reason to be sent to the client.
+   *
+   * <p>This may be {@code null} until it is explicitly set or populated via decoding.</p>
+   */
   private @Nullable ComponentHolder reason;
+
+  /**
+   * The {@link StateRegistry} representing the protocol state (e.g., LOGIN or PLAY)
+   * during which this packet is processed.
+   *
+   * <p>This value determines how the reason component is serialized.</p>
+   */
   private final StateRegistry state;
 
+  /**
+   * Constructs a new {@code DisconnectPacket} for the specified protocol state.
+   *
+   * <p>The reason for disconnection can be set later via {@link #setReason(ComponentHolder)}.</p>
+   *
+   * @param state the protocol state (e.g., {@link StateRegistry#LOGIN} or {@link StateRegistry#PLAY})
+   */
   public DisconnectPacket(final StateRegistry state) {
     this.state = state;
   }
@@ -58,33 +77,40 @@ public class DisconnectPacket implements MinecraftPacket {
     if (reason == null) {
       throw new IllegalStateException("No reason specified");
     }
+
     return reason;
   }
 
+  /**
+   * Sets the disconnection reason that will be sent to the client.
+   *
+   * @param reason the {@link ComponentHolder} containing the disconnection message,
+   *               or {@code null} to clear it
+   */
   public void setReason(@Nullable final ComponentHolder reason) {
     this.reason = reason;
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "Disconnect{"
         + "reason='" + reason + '\''
         + '}';
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     reason = ComponentHolder.read(buf, state == StateRegistry.LOGIN
         ? ProtocolVersion.MINECRAFT_1_20_2 : version);
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     getReason().write(buf);
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 

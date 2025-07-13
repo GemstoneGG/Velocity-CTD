@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,11 +29,28 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class ClientSettingsWrapper implements PlayerSettings {
 
+  /**
+   * A default fallback {@link PlayerSettings} instance used when no client settings have been received.
+   */
   static final PlayerSettings DEFAULT = new ClientSettingsWrapper(
       new ClientSettingsPacket("en_us", (byte) 2, 0, true, (short) 0, 1, false, false, 0));
 
+  /**
+   * The raw {@link ClientSettingsPacket} received from the client, containing raw configuration
+   * such as language, view distance, and UI preferences.
+   */
   private final ClientSettingsPacket settings;
+
+  /**
+   * The parsed skin parts from the client, representing which visual features are enabled
+   * (e.g., hat, jacket, sleeves).
+   */
   private final SkinParts parts;
+
+  /**
+   * The cached {@link Locale} object derived from the raw language string in the settings packet.
+   * Computed lazily from the {@code settings.getLocale()} field.
+   */
   private @Nullable Locale locale;
 
   ClientSettingsWrapper(final ClientSettingsPacket settings) {
@@ -42,7 +59,7 @@ public class ClientSettingsWrapper implements PlayerSettings {
   }
 
   @Override
-  public Locale getLocale() {
+  public final Locale getLocale() {
     if (locale == null) {
       locale = Locale.forLanguageTag(settings.getLocale().replaceAll("_", "-"));
     }
@@ -51,12 +68,12 @@ public class ClientSettingsWrapper implements PlayerSettings {
   }
 
   @Override
-  public byte getViewDistance() {
+  public final byte getViewDistance() {
     return settings.getViewDistance();
   }
 
   @Override
-  public ChatMode getChatMode() {
+  public final ChatMode getChatMode() {
     return switch (settings.getChatVisibility()) {
       case 1 -> ChatMode.COMMANDS_ONLY;
       case 2 -> ChatMode.HIDDEN;
@@ -65,32 +82,32 @@ public class ClientSettingsWrapper implements PlayerSettings {
   }
 
   @Override
-  public boolean hasChatColors() {
+  public final boolean hasChatColors() {
     return settings.isChatColors();
   }
 
   @Override
-  public SkinParts getSkinParts() {
+  public final SkinParts getSkinParts() {
     return parts;
   }
 
   @Override
-  public MainHand getMainHand() {
+  public final MainHand getMainHand() {
     return settings.getMainHand() == 1 ? MainHand.RIGHT : MainHand.LEFT;
   }
 
   @Override
-  public boolean isClientListingAllowed() {
+  public final boolean isClientListingAllowed() {
     return settings.isClientListingAllowed();
   }
 
   @Override
-  public boolean isTextFilteringEnabled() {
+  public final boolean isTextFilteringEnabled() {
     return settings.isTextFilteringEnabled();
   }
 
   @Override
-  public ParticleStatus getParticleStatus() {
+  public final ParticleStatus getParticleStatus() {
     return switch (settings.getParticleStatus()) {
       case 1 -> ParticleStatus.DECREASED;
       case 2 -> ParticleStatus.MINIMAL;
@@ -99,7 +116,7 @@ public class ClientSettingsWrapper implements PlayerSettings {
   }
 
   @Override
-  public boolean equals(@Nullable final Object o) {
+  public final boolean equals(@Nullable final Object o) {
     if (this == o) {
       return true;
     }
@@ -109,12 +126,11 @@ public class ClientSettingsWrapper implements PlayerSettings {
     }
 
     ClientSettingsWrapper that = (ClientSettingsWrapper) o;
-    return Objects.equals(settings, that.settings) && Objects.equals(parts, that.parts)
-        && Objects.equals(locale, that.locale);
+    return Objects.equals(settings, that.settings) && Objects.equals(parts, that.parts) && Objects.equals(locale, that.locale);
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     return Objects.hash(settings, parts, locale);
   }
 }

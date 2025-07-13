@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,10 @@ import com.velocitypowered.proxy.connection.util.ConnectionTypeImpl;
  */
 public class ModernForgeConnectionType extends ConnectionTypeImpl {
 
-  public final String hostName;
+  /**
+   * The full hostname string received from the client, including Forge tokens and forwarding data.
+   */
+  private final String hostName;
 
   /**
    * initialize the host name into an internal variable.
@@ -36,8 +39,7 @@ public class ModernForgeConnectionType extends ConnectionTypeImpl {
    * @param hostName address from the client
    */
   public ModernForgeConnectionType(final String hostName) {
-    super(ClientConnectionPhases.VANILLA,
-        BackendConnectionPhases.VANILLA);
+    super(ClientConnectionPhases.VANILLA, BackendConnectionPhases.VANILLA);
     this.hostName = hostName;
   }
 
@@ -53,13 +55,12 @@ public class ModernForgeConnectionType extends ConnectionTypeImpl {
       for (var pt : hostName.split("\0")) {
         if (pt.startsWith(MODERN_FORGE_TOKEN)) {
           if (pt.length() > MODERN_FORGE_TOKEN.length()) {
-            natVersion = Integer.parseInt(
-                    pt.substring(MODERN_FORGE_TOKEN.length()));
+            natVersion = Integer.parseInt(pt.substring(MODERN_FORGE_TOKEN.length()));
           }
         }
       }
     }
-    return natVersion == 0 ? "\0" + MODERN_FORGE_TOKEN : "\0"
-            + MODERN_FORGE_TOKEN + natVersion;
+
+    return natVersion == 0 ? "\0" + MODERN_FORGE_TOKEN : "\0" + MODERN_FORGE_TOKEN + natVersion;
   }
 }

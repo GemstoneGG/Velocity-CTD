@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,12 @@ import java.util.concurrent.locks.Lock;
  */
 public final class BrigadierCommandRegistrar extends AbstractCommandRegistrar<BrigadierCommand> {
 
+  /**
+   * Constructs a new {@code BrigadierCommandRegistrar}.
+   *
+   * @param root the root command node of the dispatcher
+   * @param lock the lock protecting access to the root command tree
+   */
   public BrigadierCommandRegistrar(final RootCommandNode<CommandSource> root, final Lock lock) {
     super(root, lock);
   }
@@ -40,8 +46,7 @@ public final class BrigadierCommandRegistrar extends AbstractCommandRegistrar<Br
     // Register it (if valid); since it's probably what the user expects.
     // If invalid, the metadata contains the same alias but in lowercase.
     final LiteralCommandNode<CommandSource> literal = command.getNode();
-    final LiteralCommandNode<CommandSource> wrapped =
-        (LiteralCommandNode<CommandSource>) VelocityCommands.wrap(literal, meta.getPlugin());
+    final LiteralCommandNode<CommandSource> wrapped = (LiteralCommandNode<CommandSource>) VelocityCommands.wrap(literal, meta.getPlugin());
     final String primaryAlias = literal.getName();
     if (VelocityCommands.isValidAlias(primaryAlias)) {
       // Register directly without copying
@@ -52,6 +57,7 @@ public final class BrigadierCommandRegistrar extends AbstractCommandRegistrar<Br
       if (primaryAlias.equals(alias)) {
         continue;
       }
+
       this.register(wrapped, alias);
     }
 

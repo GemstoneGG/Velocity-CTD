@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,8 +31,20 @@ import org.slf4j.LoggerFactory;
  * Encodes a command source over Redis, for sending replies to user commands.
  */
 public final class EncodedCommandSource {
+
+  /**
+   * Logger instance for internal error and debug reporting.
+   */
   private static final Logger logger = LoggerFactory.getLogger(EncodedCommandSource.class);
+
+  /**
+   * The encoded target identifier. Can be a UUID (for players), {@code #console}, or {@code #all}.
+   */
   private final String target;
+
+  /**
+   * The ID of the proxy this source is associated with.
+   */
   private final String targetProxy;
 
   private EncodedCommandSource(final String target, final String targetProxy) {
@@ -75,6 +87,7 @@ public final class EncodedCommandSource {
   /**
    * Returns the encoded command source corresponding to the remote server console.
    *
+   * @param targetProxy the ID of the target proxy
    * @return the encoded command source corresponding to the remote server console.
    */
   public static EncodedCommandSource console(final String targetProxy) {
@@ -113,6 +126,11 @@ public final class EncodedCommandSource {
     }
   }
 
+  /**
+   * Gets the ID of the proxy that this encoded source is associated with.
+   *
+   * @return the proxy ID
+   */
   public String proxy() {
     return this.targetProxy;
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,21 +31,35 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 public class PluginClassLoader extends URLClassLoader {
 
+  /**
+   * The set of all active plugin class loaders.
+   */
   private static final Set<PluginClassLoader> loaders = new CopyOnWriteArraySet<>();
 
   static {
     ClassLoader.registerAsParallelCapable();
   }
 
+  /**
+   * Constructs a new {@code PluginClassLoader} using the given URLs.
+   *
+   * @param urls the URLs from which to load classes and resources
+   */
   public PluginClassLoader(final URL[] urls) {
     super(urls, Velocity.class.getClassLoader());
   }
 
+  /**
+   * Registers this class loader in the global list of plugin class loaders.
+   *
+   * <p>This allows other plugin class loaders to attempt to load classes from this loader
+   * when a class is not found locally.</p>
+   */
   public void addToClassloaders() {
     loaders.add(this);
   }
 
-  void addPath(final Path path) {
+  final void addPath(final Path path) {
     try {
       addURL(path.toUri().toURL());
     } catch (MalformedURLException e) {
@@ -54,18 +68,17 @@ public class PluginClassLoader extends URLClassLoader {
   }
 
   @Override
-  public void close() throws IOException {
+  public final void close() throws IOException {
     loaders.remove(this);
     super.close();
   }
 
   @Override
-  protected Class<?> loadClass(final String name, final boolean resolve) throws ClassNotFoundException {
+  protected final Class<?> loadClass(final String name, final boolean resolve) throws ClassNotFoundException {
     return loadClass0(name, resolve, true);
   }
 
-  private Class<?> loadClass0(final String name, final boolean resolve, final boolean checkOther)
-      throws ClassNotFoundException {
+  private Class<?> loadClass0(final String name, final boolean resolve, final boolean checkOther) throws ClassNotFoundException {
     try {
       return super.loadClass(name, resolve);
     } catch (ClassNotFoundException ignored) {

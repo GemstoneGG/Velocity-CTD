@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,22 +28,33 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
  */
 public class DeferredByteBufHolder implements ByteBufHolder {
 
-  @MonotonicNonNull
-  private ByteBuf backing;
+  /**
+   * The backing {@link ByteBuf} that holds the data for this holder.
+   *
+   * <p>This buffer may be {@code null} until it is explicitly initialized
+   * using {@link #replace(ByteBuf)}.</p>
+   */
+  @MonotonicNonNull private ByteBuf backing;
 
-  public DeferredByteBufHolder(
-      @MonotonicNonNull final ByteBuf backing) {
+  /**
+   * Constructs a new {@code DeferredByteBufHolder} with an optional initial buffer.
+   *
+   * @param backing the initial {@link ByteBuf}, or {@code null} if not yet assigned
+   */
+  public DeferredByteBufHolder(@MonotonicNonNull final ByteBuf backing) {
     this.backing = backing;
   }
 
   @Override
-  public ByteBuf content() {
+  public final ByteBuf content() {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
+
     if (backing.refCnt() <= 0) {
       throw new IllegalReferenceCountException(backing.refCnt());
     }
+
     return backing;
   }
 
@@ -52,6 +63,7 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
+
     return new DeferredByteBufHolder(backing.copy());
   }
 
@@ -60,6 +72,7 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
+
     return new DeferredByteBufHolder(backing.duplicate());
   }
 
@@ -68,6 +81,7 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
+
     return new DeferredByteBufHolder(backing.retainedDuplicate());
   }
 
@@ -76,15 +90,17 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (content == null) {
       throw new NullPointerException("content");
     }
+
     this.backing = content;
     return this;
   }
 
   @Override
-  public int refCnt() {
+  public final int refCnt() {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
+
     return backing.refCnt();
   }
 
@@ -93,6 +109,7 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
+
     backing.retain();
     return this;
   }
@@ -102,6 +119,7 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
+
     backing.retain(increment);
     return this;
   }
@@ -111,6 +129,7 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
+
     backing.touch();
     return this;
   }
@@ -120,23 +139,26 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
+
     backing.touch(hint);
     return this;
   }
 
   @Override
-  public boolean release() {
+  public final boolean release() {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
+
     return backing.release();
   }
 
   @Override
-  public boolean release(final int decrement) {
+  public final boolean release(final int decrement) {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
+
     return backing.release(decrement);
   }
 
@@ -148,6 +170,7 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     } else {
       str += backing.toString();
     }
+
     return str + "]";
   }
 }

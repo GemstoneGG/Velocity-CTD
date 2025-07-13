@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,59 +39,135 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class ResourcePackRequestPacket implements MinecraftPacket {
 
-  private @MonotonicNonNull UUID id; // 1.20.3+
+  /**
+   * The unique identifier of the resource pack request (1.20.3+), or {@code null} if not set.
+   */
+  private @MonotonicNonNull UUID id;
+
+  /**
+   * The URL where the client should download the resource pack.
+   */
   private @MonotonicNonNull String url;
+
+  /**
+   * The SHA1 hash of the resource pack, used to verify its integrity.
+   */
   private @MonotonicNonNull String hash;
-  private boolean isRequired; // 1.17+
-  private @Nullable ComponentHolder prompt; // 1.17+
 
-  private static final Pattern PLAUSIBLE_SHA1_HASH = Pattern.compile("^[a-z0-9]{40}$"); // 1.20.2+
+  /**
+   * Whether the resource pack is required to join the server (1.17+).
+   */
+  private boolean isRequired;
 
+  /**
+   * An optional prompt component displayed to the user (1.17+).
+   */
+  private @Nullable ComponentHolder prompt;
+
+  /**
+   * Pattern used to validate that the provided resource pack SHA1 hash is plausibly correct.
+   * Matches a 40-character lowercase hexadecimal string.
+   *
+   * <p>Introduced for validation starting in Minecraft 1.20.2+.</p>
+   */
+  private static final Pattern PLAUSIBLE_SHA1_HASH = Pattern.compile("^[a-z0-9]{40}$");
+
+  /**
+   * Gets the unique ID for the resource pack request (1.20.3+).
+   *
+   * @return the UUID, or {@code null} if not set
+   */
   public @Nullable UUID getId() {
     return id;
   }
 
+  /**
+   * Sets the unique ID for the resource pack request.
+   *
+   * @param id the UUID to set
+   */
   public void setId(final UUID id) {
     this.id = id;
   }
 
+  /**
+   * Gets the URL of the resource pack.
+   *
+   * @return the URL string, or {@code null} if not set
+   */
   public @Nullable String getUrl() {
     return url;
   }
 
+  /**
+   * Sets the URL where the client should fetch the resource pack.
+   *
+   * @param url the URL string
+   */
   public void setUrl(final String url) {
     this.url = url;
   }
 
+  /**
+   * Returns whether the resource pack is required.
+   *
+   * @return {@code true} if the pack is required, {@code false} otherwise
+   */
   public boolean isRequired() {
     return isRequired;
   }
 
+  /**
+   * Gets the SHA1 hash of the resource pack.
+   *
+   * @return the hash string, or {@code null} if not set
+   */
   public @Nullable String getHash() {
     return hash;
   }
 
+  /**
+   * Sets the SHA1 hash of the resource pack.
+   *
+   * @param hash the hash string
+   */
   public void setHash(final String hash) {
     this.hash = hash;
   }
 
+  /**
+   * Sets whether the resource pack is required.
+   *
+   * @param required {@code true} if required, {@code false} otherwise
+   */
   public void setRequired(final boolean required) {
     isRequired = required;
   }
 
+  /**
+   * Gets the prompt message to display to the player.
+   *
+   * @return the {@link ComponentHolder} representing the prompt, or {@code null} if not present
+   */
   public @Nullable ComponentHolder getPrompt() {
     return prompt;
   }
 
+  /**
+   * Sets the prompt message to display to the player.
+   *
+   * @param prompt the {@link ComponentHolder}, or {@code null} if no prompt should be displayed
+   */
   public void setPrompt(@Nullable final ComponentHolder prompt) {
     this.prompt = prompt;
   }
 
   @Override
-  public void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
+  public final void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       this.id = ProtocolUtils.readUuid(buf);
     }
+
     this.url = ProtocolUtils.readString(buf);
     this.hash = ProtocolUtils.readString(buf);
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_17)) {
@@ -105,16 +181,19 @@ public class ResourcePackRequestPacket implements MinecraftPacket {
   }
 
   @Override
-  public void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
+  public final void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       if (id == null) {
         throw new IllegalStateException("Resource pack proxyId not set yet!");
       }
+
       ProtocolUtils.writeUuid(buf, id);
     }
+
     if (url == null || hash == null) {
       throw new IllegalStateException("Packet not fully filled in yet!");
     }
+
     ProtocolUtils.writeString(buf, url);
     ProtocolUtils.writeString(buf, hash);
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_17)) {
@@ -145,16 +224,17 @@ public class ResourcePackRequestPacket implements MinecraftPacket {
         builder.setHash(ByteBufUtil.decodeHexDump(hash));
       }
     }
+
     return (VelocityResourcePackInfo) builder.build();
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "ResourcePackRequestPacket{"
         + "id=" + id
         + ", url='" + url + '\''

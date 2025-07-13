@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -29,10 +29,30 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 @AwaitingEvent
 public class ServerLoginPluginMessageEvent implements ResultedEvent<ResponseResult> {
+
+  /**
+   * The connection from which the login plugin message was received.
+   */
   private final ServerConnection connection;
+
+  /**
+   * The identifier of the channel the message was sent on.
+   */
   private final ChannelIdentifier identifier;
+
+  /**
+   * The raw contents of the plugin message.
+   */
   private final byte[] contents;
+
+  /**
+   * The unique sequence ID of this plugin message, used for response routing.
+   */
   private final int sequenceId;
+
+  /**
+   * The result representing the response to this login plugin message.
+   */
   private ResponseResult result;
 
   /**
@@ -53,12 +73,12 @@ public class ServerLoginPluginMessageEvent implements ResultedEvent<ResponseResu
   }
 
   @Override
-  public ResponseResult getResult() {
+  public final ResponseResult getResult() {
     return this.result;
   }
 
   @Override
-  public void setResult(final ResponseResult result) {
+  public final void setResult(final ResponseResult result) {
     this.result = checkNotNull(result, "result");
   }
 
@@ -119,7 +139,7 @@ public class ServerLoginPluginMessageEvent implements ResultedEvent<ResponseResu
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "ServerLoginPluginMessageEvent{"
         + "connection=" + connection
         + ", identifier=" + identifier
@@ -134,9 +154,15 @@ public class ServerLoginPluginMessageEvent implements ResultedEvent<ResponseResu
    */
   public static final class ResponseResult implements ResultedEvent.Result {
 
+    /**
+     * A result indicating that no response was provided for the message.
+     */
     private static final ResponseResult UNKNOWN = new ResponseResult(null);
 
-    private final byte@Nullable [] response;
+    /**
+     * The response payload to be sent back to the server, or {@code null} if not handled.
+     */
+    private final byte @Nullable [] response;
 
     private ResponseResult(final byte @Nullable [] response) {
       this.response = response;
@@ -157,6 +183,7 @@ public class ServerLoginPluginMessageEvent implements ResultedEvent<ResponseResu
       if (response == null) {
         throw new IllegalStateException("Fetching response of unknown message result");
       }
+
       return response.clone();
     }
 
@@ -185,9 +212,11 @@ public class ServerLoginPluginMessageEvent implements ResultedEvent<ResponseResu
       if (this == o) {
         return true;
       }
+
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
+
       ResponseResult that = (ResponseResult) o;
       return Arrays.equals(response, that.response);
     }

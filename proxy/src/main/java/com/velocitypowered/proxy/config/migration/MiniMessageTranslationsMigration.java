@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@ import org.apache.logging.log4j.Logger;
  * Also migrates possible use of legacy colors to MiniMessage format.
  */
 public final class MiniMessageTranslationsMigration implements ConfigurationMigration {
+
   @Override
   public boolean shouldMigrate(final CommentedFileConfig config) {
     return configVersion(config) < 2.7;
@@ -56,6 +57,7 @@ public final class MiniMessageTranslationsMigration implements ConfigurationMigr
         Files.writeString(path, content, StandardCharsets.UTF_8);
       }
     }
+
     config.set("config-version", "2.7");
   }
 }

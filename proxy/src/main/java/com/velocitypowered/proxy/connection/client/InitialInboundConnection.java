@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,11 +37,9 @@ import net.kyori.adventure.translation.GlobalTranslator;
 /**
  * Implements {@link InboundConnection} for a newly established connection.
  */
-public final class InitialInboundConnection implements VelocityInboundConnection,
-    MinecraftConnectionAssociation {
+public final class InitialInboundConnection implements VelocityInboundConnection, MinecraftConnectionAssociation {
 
-  private static final ComponentLogger logger = ComponentLogger
-      .logger(InitialInboundConnection.class);
+  private static final ComponentLogger logger = ComponentLogger.logger(InitialInboundConnection.class);
 
   private final MinecraftConnection connection;
   private final String cleanedAddress;
@@ -81,11 +79,8 @@ public final class InitialInboundConnection implements VelocityInboundConnection
 
   @Override
   public String toString() {
-    final boolean isPlayerAddressLoggingEnabled = connection.server.getConfiguration()
-        .isPlayerAddressLoggingEnabled();
-    final String playerIp =
-        isPlayerAddressLoggingEnabled
-            ? connection.getRemoteAddress().toString() : "<ip address withheld>";
+    final boolean isPlayerAddressLoggingEnabled = connection.server.getConfiguration().isPlayerAddressLoggingEnabled();
+    final String playerIp = isPlayerAddressLoggingEnabled ? connection.getRemoteAddress().toString() : "<ip address withheld>";
     return "[initial connection] " + playerIp;
   }
 
@@ -119,6 +114,7 @@ public final class InitialInboundConnection implements VelocityInboundConnection
         logger.info(Component.text(this + " has disconnected: ").append(translated));
       }
     }
+
     connection.closeWith(DisconnectPacket.create(translated, getProtocolVersion(), connection.getState()));
   }
 

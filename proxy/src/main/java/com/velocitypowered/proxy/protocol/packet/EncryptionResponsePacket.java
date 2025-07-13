@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,17 +40,48 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class EncryptionResponsePacket implements MinecraftPacket {
 
+  /**
+   * Exception thrown when a salt value is expected in an encryption response packet
+   * but is not present.
+   *
+   * <p>This typically occurs when handling clients using protocol versions 1.19 to 1.19.2
+   * where the salt is conditionally included based on a boolean flag.</p>
+   */
   private static final QuietDecoderException NO_SALT = new QuietDecoderException(
       "Encryption response didn't contain salt");
 
+  /**
+   * The shared secret key encrypted with the server's public key.
+   * This is used to initialize the secure connection between client and server.
+   */
   private byte[] sharedSecret = EMPTY_BYTE_ARRAY;
+
+  /**
+   * The verification token encrypted with the server's public key.
+   * Used to verify that the client has the correct private key.
+   */
   private byte[] verifyToken = EMPTY_BYTE_ARRAY;
+
+  /**
+   * Optional salt used in the encryption handshake (introduced in 1.19).
+   * If present, indicates the handshake used the newer variant with salt and a boolean marker.
+   */
   private @Nullable Long salt;
 
+  /**
+   * Returns a defensive copy of the encrypted shared secret sent by the client.
+   *
+   * @return the encrypted shared secret
+   */
   public byte[] getSharedSecret() {
     return sharedSecret.clone();
   }
 
+  /**
+   * Returns a defensive copy of the encrypted verify token sent by the client.
+   *
+   * @return the encrypted verify token
+   */
   public byte[] getVerifyToken() {
     return verifyToken.clone();
   }
@@ -66,11 +97,12 @@ public class EncryptionResponsePacket implements MinecraftPacket {
     if (salt == null) {
       throw NO_SALT;
     }
+
     return salt;
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "EncryptionResponse{"
         + "sharedSecret=" + Arrays.toString(sharedSecret)
         + ", verifyToken=" + Arrays.toString(verifyToken)
@@ -78,7 +110,7 @@ public class EncryptionResponsePacket implements MinecraftPacket {
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
       this.sharedSecret = ProtocolUtils.readByteArray(buf, 128);
 
@@ -97,11 +129,10 @@ public class EncryptionResponsePacket implements MinecraftPacket {
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
       ProtocolUtils.writeByteArray(buf, sharedSecret);
-      if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19)
-          && version.lessThan(ProtocolVersion.MINECRAFT_1_19_3)) {
+      if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19) && version.lessThan(ProtocolVersion.MINECRAFT_1_19_3)) {
         if (salt != null) {
           buf.writeBoolean(false);
           buf.writeLong(salt);
@@ -109,6 +140,7 @@ public class EncryptionResponsePacket implements MinecraftPacket {
           buf.writeBoolean(true);
         }
       }
+
       ProtocolUtils.writeByteArray(buf, verifyToken);
     } else {
       ProtocolUtils.writeByteArray17(sharedSecret, buf, false);
@@ -117,12 +149,12 @@ public class EncryptionResponsePacket implements MinecraftPacket {
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
   @Override
-  public int expectedMaxLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
+  public final int expectedMaxLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
     // It turns out these come out to the same length, whether we're talking >=1.8 or not.
     // The length prefix always winds up being 2 bytes.
     int base = 256 + 2 + 2;
@@ -134,16 +166,18 @@ public class EncryptionResponsePacket implements MinecraftPacket {
       // Additional 1 byte for the left <> right and 8 bytes for salt
       base += 128 + 8 + 1;
     }
+
     return base;
   }
 
   @Override
-  public int expectedMinLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
+  public final int expectedMinLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
     int base = expectedMaxLength(buf, direction, version);
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19)) {
       // These are "optional"
       base -= 128 + 8;
     }
+
     return base;
   }
 }

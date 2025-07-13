@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,12 @@ import com.velocitypowered.proxy.plugin.MockPluginManager;
  */
 public class MockEventManager extends VelocityEventManager {
 
+  /**
+   * Constructs a new {@link MockEventManager} using the {@link MockPluginManager} instance.
+   *
+   * <p>This mock implementation is used for testing and must be shut down manually
+   * after use to avoid leaking threads or resources.</p>
+   */
   public MockEventManager() {
     super(MockPluginManager.INSTANCE);
   }

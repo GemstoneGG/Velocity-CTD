@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +33,11 @@ public final class RegistryKeyArgumentList {
    */
   public static class ResourceOrTag extends RegistryKeyArgument {
 
+    /**
+     * Constructs a new {@link ResourceOrTag} argument with the given identifier.
+     *
+     * @param identifier the registry identifier
+     */
     public ResourceOrTag(final String identifier) {
       super(identifier);
     }
@@ -42,15 +47,18 @@ public final class RegistryKeyArgumentList {
      */
     public static class Serializer implements ArgumentPropertySerializer<ResourceOrTag> {
 
+      /**
+       * A shared singleton instance of the {@link ResourceOrTag.Serializer}.
+       */
       static final ResourceOrTag.Serializer REGISTRY = new ResourceOrTag.Serializer();
 
       @Override
-      public ResourceOrTag deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
+      public final ResourceOrTag deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
         return new ResourceOrTag(ProtocolUtils.readString(buf));
       }
 
       @Override
-      public void serialize(final ResourceOrTag object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
+      public final void serialize(final ResourceOrTag object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
         ProtocolUtils.writeString(buf, object.getIdentifier());
       }
     }
@@ -61,6 +69,11 @@ public final class RegistryKeyArgumentList {
    */
   public static class ResourceOrTagKey extends RegistryKeyArgument {
 
+    /**
+     * Constructs a new {@link ResourceOrTagKey} argument with the given identifier.
+     *
+     * @param identifier the registry identifier
+     */
     public ResourceOrTagKey(final String identifier) {
       super(identifier);
     }
@@ -70,15 +83,18 @@ public final class RegistryKeyArgumentList {
      */
     public static class Serializer implements ArgumentPropertySerializer<ResourceOrTagKey> {
 
+      /**
+       * A shared singleton instance of the {@link ResourceOrTagKey.Serializer}.
+       */
       static final ResourceOrTagKey.Serializer REGISTRY = new ResourceOrTagKey.Serializer();
 
       @Override
-      public ResourceOrTagKey deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
+      public final ResourceOrTagKey deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
         return new ResourceOrTagKey(ProtocolUtils.readString(buf));
       }
 
       @Override
-      public void serialize(final ResourceOrTagKey object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
+      public final void serialize(final ResourceOrTagKey object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
         ProtocolUtils.writeString(buf, object.getIdentifier());
       }
     }
@@ -89,6 +105,11 @@ public final class RegistryKeyArgumentList {
    */
   public static class ResourceSelector extends RegistryKeyArgument {
 
+    /**
+     * Constructs a new {@link ResourceSelector} argument with the given identifier.
+     *
+     * @param identifier the registry identifier
+     */
     public ResourceSelector(final String identifier) {
       super(identifier);
     }
@@ -98,15 +119,18 @@ public final class RegistryKeyArgumentList {
      */
     public static class Serializer implements ArgumentPropertySerializer<ResourceSelector> {
 
+      /**
+       * A shared singleton instance of the {@link ResourceSelector.Serializer}.
+       */
       static final ResourceSelector.Serializer REGISTRY = new ResourceSelector.Serializer();
 
       @Override
-      public ResourceSelector deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
+      public final ResourceSelector deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
         return new ResourceSelector(ProtocolUtils.readString(buf));
       }
 
       @Override
-      public void serialize(final ResourceSelector object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
+      public final void serialize(final ResourceSelector object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
         ProtocolUtils.writeString(buf, object.getIdentifier());
       }
     }
@@ -117,6 +141,11 @@ public final class RegistryKeyArgumentList {
    */
   public static class ResourceKey extends RegistryKeyArgument {
 
+    /**
+     * Constructs a new {@link ResourceKey} argument with the given identifier.
+     *
+     * @param identifier the registry identifier
+     */
     public ResourceKey(final String identifier) {
       super(identifier);
     }
@@ -126,15 +155,18 @@ public final class RegistryKeyArgumentList {
      */
     public static class Serializer implements ArgumentPropertySerializer<ResourceKey> {
 
+      /**
+       * A shared singleton instance of the {@link ResourceKey.Serializer}.
+       */
       static final ResourceKey.Serializer REGISTRY = new ResourceKey.Serializer();
 
       @Override
-      public ResourceKey deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
+      public final ResourceKey deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
         return new ResourceKey(ProtocolUtils.readString(buf));
       }
 
       @Override
-      public void serialize(final ResourceKey object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
+      public final void serialize(final ResourceKey object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
         ProtocolUtils.writeString(buf, object.getIdentifier());
       }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -238,7 +238,6 @@ public class SuggestionsProviderTests extends CommandTestSuite {
     assertPlayerSuggestions("hello ", "suggestion");
   }
 
-
   @Test
   void testDoesNotSuggestHintIfHintSuggestionProviderFutureCompletesExceptionally() {
     final var hint = RequiredArgumentBuilder
@@ -271,6 +270,10 @@ public class SuggestionsProviderTests extends CommandTestSuite {
 
   static final class NoSuggestionsCommand implements RawCommand {
 
+    /**
+     * Singleton instance of {@link NoSuggestionsCommand}, used in tests to disable argument suggestions
+     * and ensure suggestion results come from hints or aliases only.
+     */
     static final NoSuggestionsCommand INSTANCE = new NoSuggestionsCommand();
 
     private NoSuggestionsCommand() {

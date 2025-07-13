@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,12 +29,29 @@ import org.jetbrains.annotations.Nullable;
  * Represents a packet used to transfer a player to another server.
  */
 public class TransferPacket implements MinecraftPacket {
+
+  /**
+   * The hostname of the server to transfer the player to.
+   */
   private String host;
+
+  /**
+   * The port of the server to transfer the player to.
+   */
   private int port;
 
+  /**
+   * Constructs an empty {@code TransferPacket}. Used primarily for decoding.
+   */
   public TransferPacket() {
   }
 
+  /**
+   * Constructs a {@code TransferPacket} with the specified host and port.
+   *
+   * @param host the hostname of the destination server
+   * @param port the port of the destination server
+   */
   public TransferPacket(final String host, final int port) {
     this.host = host;
     this.port = port;
@@ -50,23 +67,24 @@ public class TransferPacket implements MinecraftPacket {
     if (host == null) {
       return null;
     }
+
     return new InetSocketAddress(host, port);
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     this.host = ProtocolUtils.readString(buf);
     this.port = ProtocolUtils.readVarInt(buf);
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeString(buf, host);
     ProtocolUtils.writeVarInt(buf, port);
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

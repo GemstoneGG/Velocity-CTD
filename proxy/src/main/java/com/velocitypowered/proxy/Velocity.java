@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,9 @@ import org.apache.logging.log4j.Logger;
  */
 public class Velocity {
 
+  /**
+   * The main logger used throughout the Velocity bootstrap lifecycle.
+   */
   private static final Logger logger;
 
   static {

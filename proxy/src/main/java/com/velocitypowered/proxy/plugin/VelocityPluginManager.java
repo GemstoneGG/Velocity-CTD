@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,12 +58,37 @@ import org.apache.logging.log4j.Logger;
  */
 public class VelocityPluginManager implements PluginManager {
 
+  /**
+   * The logger for this class.
+   */
   private static final Logger logger = LogManager.getLogger(VelocityPluginManager.class);
 
+  /**
+   * A map of all loaded plugins indexed by their plugin ID.
+   *
+   * <p>This is the authoritative source for determining if a plugin is registered,
+   * and is used for lookup by ID.</p>
+   */
   private final Map<String, PluginContainer> pluginsById = new LinkedHashMap<>();
+
+  /**
+   * A map of plugin instances to their corresponding {@link PluginContainer}.
+   *
+   * <p>This is used to resolve plugin containers from loaded plugin instances,
+   * typically used by {@link #fromInstance(Object)}.</p>
+   */
   private final Map<Object, PluginContainer> pluginInstances = new IdentityHashMap<>();
+
+  /**
+   * The reference to the running {@link VelocityServer} instance.
+   */
   private final VelocityServer server;
 
+  /**
+   * Constructs a new {@code VelocityPluginManager} instance.
+   *
+   * @param server the Velocity server instance
+   */
   public VelocityPluginManager(final VelocityServer server) {
     this.server = checkNotNull(server, "server");
   }
@@ -183,7 +208,7 @@ public class VelocityPluginManager implements PluginManager {
   }
 
   @Override
-  public Optional<PluginContainer> fromInstance(final Object instance) {
+  public final Optional<PluginContainer> fromInstance(final Object instance) {
     checkNotNull(instance, "instance");
 
     if (instance instanceof PluginContainer) {
@@ -194,23 +219,23 @@ public class VelocityPluginManager implements PluginManager {
   }
 
   @Override
-  public Optional<PluginContainer> getPlugin(final String id) {
+  public final Optional<PluginContainer> getPlugin(final String id) {
     checkNotNull(id, "id");
     return Optional.ofNullable(pluginsById.get(id));
   }
 
   @Override
-  public Collection<PluginContainer> getPlugins() {
+  public final Collection<PluginContainer> getPlugins() {
     return Collections.unmodifiableCollection(pluginsById.values());
   }
 
   @Override
-  public boolean isLoaded(final String id) {
+  public final boolean isLoaded(final String id) {
     return pluginsById.containsKey(id);
   }
 
   @Override
-  public void addToClasspath(final Object plugin, final Path path) {
+  public final void addToClasspath(final Object plugin, final Path path) {
     checkNotNull(plugin, "instance");
     checkNotNull(path, "path");
     Optional<PluginContainer> optContainer = fromInstance(plugin);

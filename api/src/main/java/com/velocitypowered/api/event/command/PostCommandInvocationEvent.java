@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -23,8 +23,19 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class PostCommandInvocationEvent {
 
+  /**
+   * The source that executed the command.
+   */
   private final CommandSource commandSource;
+
+  /**
+   * The raw command string that was executed, without the leading slash.
+   */
   private final String command;
+
+  /**
+   * The result of the command execution.
+   */
   private final CommandResult result;
 
   /**
@@ -34,11 +45,9 @@ public final class PostCommandInvocationEvent {
    * @param command the command being executed without a first slash
    * @param result the result of this command
    */
-  public PostCommandInvocationEvent(
-          final @NotNull CommandSource commandSource,
-          final @NotNull String command,
-          final @NotNull CommandResult result
-  ) {
+  public PostCommandInvocationEvent(final @NotNull CommandSource commandSource,
+                                    final @NotNull String command,
+                                    final @NotNull CommandResult result) {
     this.commandSource = Preconditions.checkNotNull(commandSource, "commandSource");
     this.command = Preconditions.checkNotNull(command, "command");
     this.result = Preconditions.checkNotNull(result, "result");
@@ -75,8 +84,8 @@ public final class PostCommandInvocationEvent {
   @Override
   public String toString() {
     return "PostCommandInvocationEvent{"
-            + "commandSource=" + commandSource
-            + ", command=" + command
-            + '}';
+        + "commandSource=" + commandSource
+        + ", command=" + command
+        + '}';
   }
 }

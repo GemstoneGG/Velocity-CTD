@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,17 +45,35 @@ import net.kyori.adventure.text.format.NamedTextColor;
  * Implements Velocity's {@code /server} command.
  */
 public final class ServerCommand {
+
+  /**
+   * The name of the server argument.
+   */
   private static final String SERVER_ARG = "server";
+
+  /**
+   * The maximum number of servers to list in the command output before showing an error.
+   */
   public static final int MAX_SERVERS_TO_LIST = 50;
 
+  /**
+   * The instance of {@link VelocityServer} to retrieve configuration and server metadata.
+   */
   private final VelocityServer server;
 
+  /**
+   * Constructs a new {@link ServerCommand} instance.
+   *
+   * @param server the Velocity server instance
+   */
   public ServerCommand(final VelocityServer server) {
     this.server = server;
   }
 
   /**
    * Registers or unregisters the command based on the configuration value.
+   *
+   * @param isServerEnabled whether the server command is enabled in the configuration
    */
   public void register(final boolean isServerEnabled) {
     if (!isServerEnabled) {
@@ -195,6 +213,7 @@ public final class ServerCommand {
                       .append(playersTextComponent))
           );
     }
+
     return serverTextComponent.build();
   }
 }

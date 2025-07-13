@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -18,7 +18,14 @@ import com.velocitypowered.api.util.ModInfo;
  */
 public final class PlayerModInfoEvent {
 
+  /**
+   * The player who sent their mod list to the proxy.
+   */
   private final Player player;
+
+  /**
+   * The mod information reported by the client.
+   */
   private final ModInfo modInfo;
 
   /**

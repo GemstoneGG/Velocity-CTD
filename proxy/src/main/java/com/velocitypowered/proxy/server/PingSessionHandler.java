@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,15 +38,40 @@ import java.util.concurrent.CompletableFuture;
  */
 public class PingSessionHandler implements MinecraftSessionHandler {
 
+  /**
+   * The future that will be completed with the resulting {@link ServerPing},
+   * or exceptionally if the ping fails.
+   */
   private final CompletableFuture<ServerPing> result;
+
+  /**
+   * The target server being pinged.
+   */
   private final RegisteredServer server;
+
+  /**
+   * The underlying Minecraft protocol connection to the server.
+   */
   private final MinecraftConnection connection;
+
+  /**
+   * The protocol version used for the ping.
+   */
   private final ProtocolVersion version;
+
+  /**
+   * Indicates whether the ping operation completed successfully.
+   */
   private boolean completed = false;
+
+  /**
+   * The virtual host string to include in the handshake.
+   * If blank, defaults to the target server's IP.
+   */
   private final String virtualHostString;
 
   PingSessionHandler(final CompletableFuture<ServerPing> result, final RegisteredServer server,
-                     final MinecraftConnection connection, final ProtocolVersion version, String virtualHostString) {
+                     final MinecraftConnection connection, final ProtocolVersion version, final String virtualHostString) {
     this.result = result;
     this.server = server;
     this.connection = connection;
@@ -55,7 +80,7 @@ public class PingSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public void activated() {
+  public final void activated() {
     HandshakePacket handshake = new HandshakePacket();
     handshake.setIntent(HandshakeIntent.STATUS);
     handshake.setServerAddress(this.virtualHostString == null || this.virtualHostString.isEmpty()
@@ -72,7 +97,7 @@ public class PingSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public boolean handle(final StatusResponsePacket packet) {
+  public final boolean handle(final StatusResponsePacket packet) {
     // All good!
     completed = true;
     connection.close(true);
@@ -84,14 +109,14 @@ public class PingSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public void disconnected() {
+  public final void disconnected() {
     if (!completed) {
       result.completeExceptionally(new IOException("Unexpectedly disconnected from remote server"));
     }
   }
 
   @Override
-  public void exception(final Throwable throwable) {
+  public final void exception(final Throwable throwable) {
     completed = true;
     result.completeExceptionally(throwable);
   }

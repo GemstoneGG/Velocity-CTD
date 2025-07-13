@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -208,7 +208,7 @@ public interface Player extends
   /**
    * Sends the specified resource pack from {@code url} to the user. If at all possible, send the
    * resource pack using {@link #sendResourcePack(String, byte[])}. To monitor the status of the
-   * sent resource pack, subscribe to {@link PlayerResourcePackStatusEvent}.
+   * "sent" resource pack, subscribe to {@link PlayerResourcePackStatusEvent}.
    *
    * @param url the URL for the resource pack
    * @deprecated Use {@link #sendResourcePackOffer(ResourcePackInfo)} instead
@@ -218,7 +218,7 @@ public interface Player extends
 
   /**
    * Sends the specified resource pack from {@code url} to the user, using the specified 20-byte
-   * SHA-1 hash. To monitor the status of the sent resource pack, subscribe to
+   * SHA-1 hash. To monitor the status of the "sent" resource pack, subscribe to
    * {@link PlayerResourcePackStatusEvent}.
    *
    * @param url the URL for the resource pack
@@ -230,7 +230,7 @@ public interface Player extends
 
   /**
    * Queues and sends a new Resource-pack offer to the player.
-   * To monitor the status of the sent resource pack, subscribe to
+   * To monitor the status of the "sent" resource pack, subscribe to
    * {@link PlayerResourcePackStatusEvent}.
    * To create a {@link ResourcePackInfo} use the
    * {@link ProxyServer#createResourcePackBuilder(String)} builder.
@@ -332,12 +332,9 @@ public interface Player extends
   }
 
   @Override
-  default @NotNull HoverEvent<HoverEvent.ShowEntity> asHoverEvent(
-          @NotNull UnaryOperator<HoverEvent.ShowEntity> op) {
-    return HoverEvent.showEntity(op.apply(HoverEvent.ShowEntity.showEntity(this, getUniqueId(),
-            Component.text(getUsername()))));
+  default @NotNull HoverEvent<HoverEvent.ShowEntity> asHoverEvent(@NotNull UnaryOperator<HoverEvent.ShowEntity> op) {
+    return HoverEvent.showEntity(op.apply(HoverEvent.ShowEntity.showEntity(this, getUniqueId(), Component.text(getUsername()))));
   }
-
 
   /**
    * Gets the player's client brand.

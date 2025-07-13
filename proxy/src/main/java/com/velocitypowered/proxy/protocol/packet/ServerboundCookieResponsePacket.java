@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,27 +33,55 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class ServerboundCookieResponsePacket implements MinecraftPacket {
 
+  /**
+   * The key representing the type of cookie data.
+   */
   private Key key;
+
+  /**
+   * The optional payload associated with the cookie, if any.
+   */
   private byte @Nullable [] payload;
 
+  /**
+   * Returns the key associated with this cookie response.
+   *
+   * @return the {@link Key} of the cookie response
+   */
   public Key getKey() {
     return key;
   }
 
+  /**
+   * Returns the optional payload included in this cookie response.
+   *
+   * @return the payload as a byte array, or {@code null} if none is present
+   */
   public byte @Nullable [] getPayload() {
     return payload;
   }
 
+  /**
+   * Constructs an empty {@code ServerboundCookieResponsePacket}.
+   *
+   * <p>Fields must be populated manually before encoding.</p>
+   */
   public ServerboundCookieResponsePacket() {
   }
 
+  /**
+   * Constructs a {@code ServerboundCookieResponsePacket} with the given key and optional payload.
+   *
+   * @param key the key associated with the cookie response
+   * @param payload the optional payload, or {@code null} if not provided
+   */
   public ServerboundCookieResponsePacket(final Key key, final byte @Nullable [] payload) {
     this.key = key;
     this.payload = payload;
   }
 
   @Override
-  public void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
+  public final void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     this.key = ProtocolUtils.readKey(buf);
     if (buf.readBoolean()) {
       this.payload = ProtocolUtils.readByteArray(buf, 5120);
@@ -61,7 +89,7 @@ public class ServerboundCookieResponsePacket implements MinecraftPacket {
   }
 
   @Override
-  public void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
+  public final void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeKey(buf, key);
     final boolean hasPayload = payload != null && payload.length > 0;
     buf.writeBoolean(hasPayload);
@@ -71,7 +99,7 @@ public class ServerboundCookieResponsePacket implements MinecraftPacket {
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

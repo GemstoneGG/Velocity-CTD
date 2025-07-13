@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -25,7 +25,14 @@ import com.velocitypowered.api.proxy.Player;
 @AwaitingEvent
 public final class DisconnectEvent {
 
+  /**
+   * The player that disconnected from the proxy.
+   */
   private final Player player;
+
+  /**
+   * The login status of the player at the time of disconnection.
+   */
   private final LoginStatus loginStatus;
 
   /**

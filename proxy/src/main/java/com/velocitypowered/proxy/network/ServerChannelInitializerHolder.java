@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,14 +21,19 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * Holder for the server channel initializer.
  */
 public class ServerChannelInitializerHolder implements Supplier<ChannelInitializer<Channel>> {
 
-  private static final Logger LOGGER = LogManager.getLogger(ConnectionManager.class);
+  static {
+    LogManager.getLogger(ConnectionManager.class);
+  }
+
+  /**
+   * The currently configured {@link ChannelInitializer} instance.
+   */
   private ChannelInitializer<Channel> initializer;
 
   ServerChannelInitializerHolder(final ChannelInitializer<Channel> initializer) {
@@ -36,7 +41,7 @@ public class ServerChannelInitializerHolder implements Supplier<ChannelInitializ
   }
 
   @Override
-  public ChannelInitializer<Channel> get() {
+  public final ChannelInitializer<Channel> get() {
     return this.initializer;
   }
 

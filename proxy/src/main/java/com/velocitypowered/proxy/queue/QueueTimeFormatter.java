@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,17 +41,19 @@ public class QueueTimeFormatter {
     long minutes = (TimeUnit.SECONDS.toMinutes(inputSeconds)
                 - (TimeUnit.SECONDS.toHours(inputSeconds) * 60));
 
-
     Component output = Component.empty();
     if (days != 0) {
       output = output.append(formatComponent("day", days));
     }
+
     if (hours != 0) {
       output = output.append(formatComponent("hour", hours));
     }
+
     if (minutes != 0) {
       output = output.append(formatComponent("minute", minutes));
     }
+
     long seconds = (TimeUnit.SECONDS.toSeconds(inputSeconds)
             - (TimeUnit.SECONDS.toMinutes(inputSeconds) * 60));
 

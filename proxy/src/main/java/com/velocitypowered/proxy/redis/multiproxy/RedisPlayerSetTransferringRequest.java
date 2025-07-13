@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,10 @@ import java.util.UUID;
  * @param currentlyConnectedServer The server they're currently connected to.
  */
 public record RedisPlayerSetTransferringRequest(UUID uuid, boolean transferring, String currentlyConnectedServer) implements RedisPacket {
+
+  /**
+   * The Redis packet ID for this request.
+   */
   public static final String ID = "set-transfer-request";
 
   @Override

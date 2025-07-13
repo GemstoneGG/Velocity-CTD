@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,6 +38,8 @@ public interface QueueCacheRetriever {
    * Gets the queue a player is in.
    *
    * @param uuid The UUID of the player.
+   * @return The {@link ServerQueueStatus} representing the queue the player is currently in,
+   *         or {@code null} if the player is not in any queue.
    */
 
   ServerQueueStatus get(UUID uuid);

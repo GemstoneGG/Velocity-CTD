@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -211,6 +211,10 @@ public class CommandManagerTests extends CommandTestSuite {
 
   static final class DummyCommand implements SimpleCommand {
 
+    /**
+     * Singleton instance of {@link DummyCommand}, used as a placeholder
+     * for command registration tests where execution should fail.
+     */
     static final DummyCommand INSTANCE = new DummyCommand();
 
     private DummyCommand() {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,16 +41,26 @@ import java.util.function.Predicate;
 /**
  * Base class for {@link CommandRegistrar}s capable of registering a subinterface of
  * {@link InvocableCommand} in a root node.
+ *
+ * @param <T> the type of command being registered
+ * @param <I> the type of command invocation
+ * @param <A> the argument type accepted by the command
  */
-abstract class InvocableCommandRegistrar<T extends InvocableCommand<I>,
-    I extends CommandInvocation<A>, A> extends AbstractCommandRegistrar<T> {
+abstract class InvocableCommandRegistrar<T extends InvocableCommand<I>, I extends CommandInvocation<A>, A> extends AbstractCommandRegistrar<T> {
 
+  /**
+   * The factory used to create {@link CommandInvocation} instances.
+   */
   private final CommandInvocationFactory<I> invocationFactory;
+
+  /**
+   * The {@link ArgumentType} used for parsing the argument's node.
+   */
   private final ArgumentType<A> argumentsType;
 
   protected InvocableCommandRegistrar(final RootCommandNode<CommandSource> root, final Lock lock,
-      final CommandInvocationFactory<I> invocationFactory,
-      final ArgumentType<A> argumentsType) {
+                                      final CommandInvocationFactory<I> invocationFactory,
+                                      final ArgumentType<A> argumentsType) {
     super(root, lock);
     this.invocationFactory = Preconditions.checkNotNull(invocationFactory, "invocationFactory");
     this.argumentsType = Preconditions.checkNotNull(argumentsType, "argumentsType");
@@ -61,8 +71,7 @@ abstract class InvocableCommandRegistrar<T extends InvocableCommand<I>,
     final Iterator<String> aliases = meta.getAliases().iterator();
 
     final String primaryAlias = aliases.next();
-    final LiteralCommandNode<CommandSource> literal =
-        this.createLiteral(command, meta, primaryAlias);
+    final LiteralCommandNode<CommandSource> literal = this.createLiteral(command, meta, primaryAlias);
     this.register(literal);
 
     while (aliases.hasNext()) {
@@ -71,8 +80,7 @@ abstract class InvocableCommandRegistrar<T extends InvocableCommand<I>,
     }
   }
 
-  private LiteralCommandNode<CommandSource> createLiteral(final T command, final CommandMeta meta,
-      final String alias) {
+  private LiteralCommandNode<CommandSource> createLiteral(final T command, final CommandMeta meta, final String alias) {
     final Predicate<CommandContextBuilder<CommandSource>> requirement = context -> {
       final I invocation = invocationFactory.create(context);
       return command.hasPermission(invocation);
@@ -93,6 +101,7 @@ abstract class InvocableCommandRegistrar<T extends InvocableCommand<I>,
             // Only check for permissions once parsing is complete.
             return true;
           }
+
           return requirement.test(context);
         })
         .executes(callback)
@@ -109,6 +118,7 @@ abstract class InvocableCommandRegistrar<T extends InvocableCommand<I>,
               Preconditions.checkNotNull(value, "suggestion");
               builder.suggest(value);
             }
+
             return builder.build();
           });
         })

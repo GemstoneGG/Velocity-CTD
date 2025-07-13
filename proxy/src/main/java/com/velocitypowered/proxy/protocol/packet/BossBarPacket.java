@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class BossBarPacket implements MinecraftPacket {
 
+  /**
+   * Maps {@link BossBar.Color} to protocol integer values.
+   */
   private static final Enum2IntMap<BossBar.Color> COLORS_TO_PROTOCOL =
       new Enum2IntMap.Builder<>(BossBar.Color.class)
           .put(BossBar.Color.PINK, 0)
@@ -45,6 +48,10 @@ public class BossBarPacket implements MinecraftPacket {
           .put(BossBar.Color.PURPLE, 5)
           .put(BossBar.Color.WHITE, 6)
           .build();
+
+  /**
+   * Maps {@link BossBar.Overlay} to protocol integer values.
+   */
   private static final Enum2IntMap<BossBar.Overlay> OVERLAY_TO_PROTOCOL =
       new Enum2IntMap.Builder<>(BossBar.Overlay.class)
           .put(BossBar.Overlay.PROGRESS, 0)
@@ -53,6 +60,10 @@ public class BossBarPacket implements MinecraftPacket {
           .put(BossBar.Overlay.NOTCHED_12, 3)
           .put(BossBar.Overlay.NOTCHED_20, 4)
           .build();
+
+  /**
+   * Maps {@link BossBar.Flag} to protocol bit flags.
+   */
   private static final Enum2IntMap<BossBar.Flag> FLAG_BITS_TO_PROTOCOL =
       new Enum2IntMap.Builder<>(BossBar.Flag.class)
           .put(BossBar.Flag.DARKEN_SCREEN, 0x1)
@@ -60,18 +71,69 @@ public class BossBarPacket implements MinecraftPacket {
           .put(BossBar.Flag.CREATE_WORLD_FOG, 0x4)
           .build();
 
+  /**
+   * Action ID for adding a boss bar.
+   */
   public static final int ADD = 0;
+
+  /**
+   * Action ID for removing a boss bar.
+   */
   public static final int REMOVE = 1;
+
+  /**
+   * Action ID for updating the progress of a boss bar.
+   */
   public static final int UPDATE_PERCENT = 2;
+
+  /**
+   * Action ID for updating the name of a boss bar.
+   */
   public static final int UPDATE_NAME = 3;
+
+  /**
+   * Action ID for updating the style (color/overlay) of a boss bar.
+   */
   public static final int UPDATE_STYLE = 4;
+
+  /**
+   * Action ID for updating the flags of a boss bar.
+   */
   public static final int UPDATE_PROPERTIES = 5;
+
+  /**
+   * The UUID identifying the boss bar instance.
+   */
   private @Nullable UUID uuid;
+
+  /**
+   * The current action being performed on the boss bar.
+   */
   private int action;
+
+  /**
+   * The display name of the boss bar.
+   */
   private @Nullable ComponentHolder name;
+
+  /**
+   * The current progress (0.0–1.0) of the boss bar.
+   */
   private float percent;
+
+  /**
+   * The color ID of the boss bar.
+   */
   private int color;
+
+  /**
+   * The overlay ID of the boss bar.
+   */
   private int overlay;
+
+  /**
+   * The combined bit flags for this boss bar.
+   */
   private short flags;
 
   /**
@@ -182,63 +244,129 @@ public class BossBarPacket implements MinecraftPacket {
     if (uuid == null) {
       throw new IllegalStateException("No boss bar UUID specified");
     }
+
     return uuid;
   }
 
+  /**
+   * Sets the UUID for this boss bar packet.
+   *
+   * @param uuid the UUID to assign, or {@code null} if unset
+   */
   public void setUuid(@Nullable final UUID uuid) {
     this.uuid = uuid;
   }
 
+  /**
+   * Returns the current action identifier of this boss bar packet.
+   *
+   * @return the action ID (e.g., {@link #ADD}, {@link #REMOVE})
+   */
   public int getAction() {
     return action;
   }
 
+  /**
+   * Sets the action type for this boss bar packet.
+   *
+   * @param action the action ID (e.g., {@link #ADD}, {@link #REMOVE})
+   */
   public void setAction(final int action) {
     this.action = action;
   }
 
+  /**
+   * Returns the name component of the boss bar.
+   *
+   * @return the boss bar's {@link ComponentHolder}, or {@code null} if not set
+   */
   public @Nullable ComponentHolder getName() {
     return name;
   }
 
+  /**
+   * Sets the display name for the boss bar.
+   *
+   * @param name the {@link ComponentHolder} name, or {@code null} to unset
+   */
   public void setName(@Nullable final ComponentHolder name) {
     this.name = name;
   }
 
+  /**
+   * Returns the progress value of the boss bar.
+   *
+   * @return the progress from 0.0 (empty) to 1.0 (full)
+   */
   public float getPercent() {
     return percent;
   }
 
+  /**
+   * Sets the progress value for the boss bar.
+   *
+   * @param percent the progress value from 0.0 to 1.0
+   */
   public void setPercent(final float percent) {
     this.percent = percent;
   }
 
+  /**
+   * Returns the color ID of the boss bar.
+   *
+   * @return the protocol ID of the color
+   */
   public int getColor() {
     return color;
   }
 
+  /**
+   * Sets the color ID of the boss bar.
+   *
+   * @param color the protocol color ID to set
+   */
   public void setColor(final int color) {
     this.color = color;
   }
 
+  /**
+   * Returns the overlay ID of the boss bar.
+   *
+   * @return the protocol ID of the overlay
+   */
   public int getOverlay() {
     return overlay;
   }
 
+  /**
+   * Sets the overlay ID of the boss bar.
+   *
+   * @param overlay the protocol overlay ID to assign
+   */
   public void setOverlay(final int overlay) {
     this.overlay = overlay;
   }
 
+  /**
+   * Returns the flag bitmask for this boss bar.
+   *
+   * @return the bitmask containing {@link BossBar.Flag} values
+   */
   public short getFlags() {
     return flags;
   }
 
+  /**
+   * Sets the flag bitmask for this boss bar.
+   *
+   * @param flags the short bitmask containing {@link BossBar.Flag} values
+   */
   public void setFlags(final short flags) {
     this.flags = flags;
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "BossBar{"
         + "uuid=" + uuid
         + ", action=" + action
@@ -251,7 +379,7 @@ public class BossBarPacket implements MinecraftPacket {
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     this.uuid = ProtocolUtils.readUuid(buf);
     this.action = ProtocolUtils.readVarInt(buf);
     switch (action) {
@@ -276,7 +404,7 @@ public class BossBarPacket implements MinecraftPacket {
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     if (uuid == null) {
       throw new IllegalStateException("No boss bar UUID specified");
     }
@@ -287,6 +415,7 @@ public class BossBarPacket implements MinecraftPacket {
         if (name == null) {
           throw new IllegalStateException("No name specified!");
         }
+
         name.write(buf);
         buf.writeFloat(percent);
         ProtocolUtils.writeVarInt(buf, color);
@@ -300,12 +429,14 @@ public class BossBarPacket implements MinecraftPacket {
         if (name == null) {
           throw new IllegalStateException("No name specified!");
         }
+
         name.write(buf);
       }
       case UPDATE_STYLE -> {
         ProtocolUtils.writeVarInt(buf, color);
         ProtocolUtils.writeVarInt(buf, overlay);
       }
+
       case UPDATE_PROPERTIES -> buf.writeByte(flags);
       default -> throw new UnsupportedOperationException("Unknown action " + action);
     }
@@ -316,11 +447,12 @@ public class BossBarPacket implements MinecraftPacket {
     for (BossBar.Flag flag : flags) {
       val |= (byte) FLAG_BITS_TO_PROTOCOL.get(flag);
     }
+
     return val;
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,8 +29,24 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
  */
 public interface ChatHandler<T extends MinecraftPacket> {
 
+  /**
+   * Returns the class of packet this handler is responsible for.
+   *
+   * <p>This is used for type matching during dispatch.</p>
+   *
+   * @return the packet class this handler processes
+   */
   Class<T> packetClass();
 
+  /**
+   * Handles a player chat packet after it has been type-checked and cast.
+   *
+   * <p>This method contains the core logic for interpreting and responding to
+   * the packet. It is invoked by {@link #handlePlayerChat(MinecraftPacket)}
+   * when the packet type matches.</p>
+   *
+   * @param packet the incoming player chat packet
+   */
   void handlePlayerChatInternal(T packet);
 
   /**
@@ -46,6 +62,7 @@ public interface ChatHandler<T extends MinecraftPacket> {
       handlePlayerChatInternal(packetClass().cast(packet));
       return true;
     }
+
     return false;
   }
 }

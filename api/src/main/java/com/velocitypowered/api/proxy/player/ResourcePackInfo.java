@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -168,10 +168,12 @@ public interface ResourcePackInfo extends ResourcePackRequestLike {
    * Represents the origin of the resource-pack.
    */
   enum Origin {
+
     /**
      * Resource-pack originated from the downstream server.
      */
     DOWNSTREAM_SERVER,
+
     /**
      * The resource-pack originated from a plugin on this proxy.
      */

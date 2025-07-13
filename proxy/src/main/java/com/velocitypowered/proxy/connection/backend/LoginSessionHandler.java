@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,12 +60,29 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
     LogManager.getLogger(LoginSessionHandler.class);
   }
 
-  private static final Component MODERN_IP_FORWARDING_FAILURE =
-      Component.translatable("velocity.error.modern-forwarding-failed");
+  /**
+   * The message displayed to a player when modern forwarding fails due to missing response.
+   */
+  private static final Component MODERN_IP_FORWARDING_FAILURE = Component.translatable("velocity.error.modern-forwarding-failed");
 
+  /**
+   * The Velocity server instance.
+   */
   private final VelocityServer server;
+
+  /**
+   * The server connection associated with this login session.
+   */
   private final VelocityServerConnection serverConn;
+
+  /**
+   * The future that completes with the connection result or failure.
+   */
   private final CompletableFuture<Impl> resultFuture;
+
+  /**
+   * Whether forwarding data has already been sent to the backend server.
+   */
   private boolean informationForwarded;
 
   LoginSessionHandler(final VelocityServer server, final VelocityServerConnection serverConn,
@@ -76,12 +93,12 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public boolean handle(final EncryptionRequestPacket packet) {
+  public final boolean handle(final EncryptionRequestPacket packet) {
     throw new IllegalStateException("Backend server is online-mode!");
   }
 
   @Override
-  public boolean handle(final LoginPluginMessagePacket packet) {
+  public final boolean handle(final LoginPluginMessagePacket packet) {
     MinecraftConnection mc = serverConn.ensureConnected();
     VelocityConfiguration configuration = server.getConfiguration();
     if (configuration.getServerForwardingMode(serverConn.getServerInfo().getName()) == PlayerInfoForwarding.MODERN
@@ -101,8 +118,7 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
           player.getIdentifiedKey(),
           requestedForwardingVersion);
 
-      LoginPluginResponsePacket response = new LoginPluginResponsePacket(
-              packet.getId(), true, forwardingData);
+      LoginPluginResponsePacket response = new LoginPluginResponsePacket(packet.getId(), true, forwardingData);
       mc.write(response);
       informationForwarded = true;
     } else {
@@ -113,8 +129,7 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
       }
 
       final byte[] contents = ByteBufUtil.getBytes(packet.content());
-      final MinecraftChannelIdentifier identifier = MinecraftChannelIdentifier
-          .from(packet.getChannel());
+      final MinecraftChannelIdentifier identifier = MinecraftChannelIdentifier.from(packet.getChannel());
       this.server.getEventManager().fire(new ServerLoginPluginMessageEvent(serverConn, identifier,
               contents, packet.getId()))
           .thenAcceptAsync(event -> {
@@ -126,24 +141,25 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
             }
           }, mc.eventLoop());
     }
+
     return true;
   }
 
   @Override
-  public boolean handle(final DisconnectPacket packet) {
+  public final boolean handle(final DisconnectPacket packet) {
     resultFuture.complete(ConnectionRequestResults.forDisconnect(packet, serverConn.getServer()));
     serverConn.disconnect();
     return true;
   }
 
   @Override
-  public boolean handle(final SetCompressionPacket packet) {
+  public final boolean handle(final SetCompressionPacket packet) {
     serverConn.ensureConnected().setCompressionThreshold(packet.getThreshold());
     return true;
   }
 
   @Override
-  public boolean handle(final ServerLoginSuccessPacket packet) {
+  public final boolean handle(final ServerLoginSuccessPacket packet) {
     if (server.getConfiguration().getServerForwardingMode(serverConn.getServerInfo().getName()) == PlayerInfoForwarding.MODERN
         && !informationForwarded) {
       resultFuture.complete(ConnectionRequestResults.forDisconnect(MODERN_IP_FORWARDING_FAILURE, serverConn.getServer()));
@@ -165,6 +181,7 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
       if (player.getClientSettingsPacket() != null) {
         smc.write(player.getClientSettingsPacket());
       }
+
       if (player.getConnection().getActiveSessionHandler() instanceof ClientPlaySessionHandler clientPlaySessionHandler) {
         smc.setAutoReading(false);
         clientPlaySessionHandler.doSwitch().thenAcceptAsync((unused) -> smc.setAutoReading(true), smc.eventLoop());
@@ -178,18 +195,17 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public boolean handle(final ClientboundStoreCookiePacket packet) {
+  public final boolean handle(final ClientboundStoreCookiePacket packet) {
     throw new IllegalStateException("Can only store cookie in CONFIGURATION or PLAY protocol");
   }
 
   @Override
-  public boolean handle(final ClientboundCookieRequestPacket packet) {
+  public final boolean handle(final ClientboundCookieRequestPacket packet) {
     server.getEventManager().fire(new CookieRequestEvent(serverConn.getPlayer(), packet.getKey()))
         .thenAcceptAsync(event -> {
           if (event.getResult().isAllowed()) {
             final Key resultedKey = event.getResult().getKey() == null
                 ? event.getOriginalKey() : event.getResult().getKey();
-
             serverConn.getPlayer().getConnection().write(new ClientboundCookieRequestPacket(resultedKey));
           }
         }, serverConn.ensureConnected().eventLoop());
@@ -198,12 +214,12 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
-  public void exception(final Throwable throwable) {
+  public final void exception(final Throwable throwable) {
     resultFuture.completeExceptionally(throwable);
   }
 
   @Override
-  public void disconnected() {
+  public final void disconnected() {
     if (server.getConfiguration().getServerForwardingMode(serverConn.getServerInfo().getName()) == PlayerInfoForwarding.LEGACY) {
       resultFuture.completeExceptionally(new QuietRuntimeException(
               """

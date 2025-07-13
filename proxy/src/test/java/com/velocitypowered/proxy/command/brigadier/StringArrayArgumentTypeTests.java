@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,9 @@ import org.junit.jupiter.api.Test;
  */
 public class StringArrayArgumentTypeTests {
 
+  /**
+   * Singleton instance of {@link StringArrayArgumentType} used for all tests in this class.
+   */
   private static final StringArrayArgumentType TYPE = StringArrayArgumentType.INSTANCE;
 
   @Test

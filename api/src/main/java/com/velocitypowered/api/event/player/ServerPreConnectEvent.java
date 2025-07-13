@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -23,12 +23,26 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * finish firing before initiating the connection.
  */
 @AwaitingEvent
-public final class ServerPreConnectEvent implements
-    ResultedEvent<ServerPreConnectEvent.ServerResult> {
+public final class ServerPreConnectEvent implements ResultedEvent<ServerPreConnectEvent.ServerResult> {
 
+  /**
+   * The player who is attempting to connect to a server.
+   */
   private final Player player;
+
+  /**
+   * The original target server the player was trying to connect to.
+   */
   private final RegisteredServer originalServer;
+
+  /**
+   * The server the player is currently connected to, or {@code null} if none.
+   */
   private final RegisteredServer previousServer;
+
+  /**
+   * The result determining whether and where the player should connect.
+   */
   private ServerResult result;
 
   /**
@@ -38,8 +52,7 @@ public final class ServerPreConnectEvent implements
    * @param originalServer the server the player was trying to connect to
    */
   public ServerPreConnectEvent(final Player player, final RegisteredServer originalServer) {
-    this(player, originalServer,
-        player.getCurrentServer().map(ServerConnection::getServer).orElse(null));
+    this(player, originalServer, player.getCurrentServer().map(ServerConnection::getServer).orElse(null));
   }
 
   /**
@@ -113,8 +126,14 @@ public final class ServerPreConnectEvent implements
    */
   public static final class ServerResult implements ResultedEvent.Result {
 
+    /**
+     * A result indicating that the connection should be denied.
+     */
     private static final ServerResult DENIED = new ServerResult(null);
 
+    /**
+     * The server the player is allowed to connect to, or {@code null} if the connection is denied.
+     */
     private final @Nullable RegisteredServer server;
 
     private ServerResult(@Nullable final RegisteredServer server) {
@@ -140,6 +159,7 @@ public final class ServerPreConnectEvent implements
       if (server != null) {
         return "allowed: connect to " + server.getServerInfo().getName();
       }
+
       return "denied";
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,18 +26,42 @@ import io.netty.channel.Channel;
  */
 public final class Endpoint {
 
+  /**
+   * The Netty channel associated with this endpoint.
+   */
   private final Channel channel;
+
+  /**
+   * The type of listener associated with this endpoint.
+   */
   private final ListenerType type;
 
+  /**
+   * Constructs a new {@link Endpoint} instance.
+   *
+   * @param channel the Netty channel backing this endpoint
+   * @param type the listener type (e.g., Minecraft, Query)
+   * @throws NullPointerException if either argument is null
+   */
   public Endpoint(final Channel channel, final ListenerType type) {
     this.channel = Preconditions.checkNotNull(channel, "channel");
     this.type = Preconditions.checkNotNull(type, "type");
   }
 
+  /**
+   * Returns the Netty channel associated with this endpoint.
+   *
+   * @return the underlying {@link Channel}
+   */
   public Channel getChannel() {
     return channel;
   }
 
+  /**
+   * Returns the type of listener associated with this endpoint.
+   *
+   * @return the {@link ListenerType}
+   */
   public ListenerType getType() {
     return type;
   }

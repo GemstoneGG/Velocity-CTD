@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,9 +40,21 @@ import org.jetbrains.annotations.Nullable;
  * Modern (Minecraft 1.20.3+) ResourcePackHandler.
  */
 public final class ModernResourcePackHandler extends ResourcePackHandler {
+
+  /**
+   * Queue of resource packs to be sent to the player, grouped by unique resource pack ID.
+   */
   private final ListMultimap<UUID, ResourcePackInfo> outstandingResourcePacks =
       Multimaps.newListMultimap(new ConcurrentHashMap<>(), LinkedList::new);
+
+  /**
+   * Map of resource packs that have been accepted but not yet successfully applied.
+   */
   private final Map<UUID, ResourcePackInfo> pendingResourcePacks = new ConcurrentHashMap<>();
+
+  /**
+   * Map of resource packs that have been successfully applied by the client.
+   */
   private final Map<UUID, ResourcePackInfo> appliedResourcePacks = new ConcurrentHashMap<>();
 
   ModernResourcePackHandler(final ConnectedPlayer player, final VelocityServer server) {
@@ -54,6 +66,7 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
     if (appliedResourcePacks.isEmpty()) {
       return null;
     }
+
     return appliedResourcePacks.values().iterator().next();
   }
 
@@ -62,6 +75,7 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
     if (pendingResourcePacks.isEmpty()) {
       return null;
     }
+
     return pendingResourcePacks.values().iterator().next();
   }
 
@@ -90,8 +104,7 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
 
   @Override
   public void queueResourcePack(final @NotNull ResourcePackInfo info) {
-    final List<ResourcePackInfo> outstandingResourcePacks =
-        this.outstandingResourcePacks.get(info.getId());
+    final List<ResourcePackInfo> outstandingResourcePacks = this.outstandingResourcePacks.get(info.getId());
     outstandingResourcePacks.add(info);
     if (outstandingResourcePacks.size() == 1) {
       tickResourcePackQueue(outstandingResourcePacks.get(0).getId());
@@ -108,8 +121,7 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
   }
 
   private void tickResourcePackQueue(final @NotNull UUID uuid) {
-    final List<ResourcePackInfo> outstandingResourcePacks =
-        this.outstandingResourcePacks.get(uuid);
+    final List<ResourcePackInfo> outstandingResourcePacks = this.outstandingResourcePacks.get(uuid);
     if (!outstandingResourcePacks.isEmpty()) {
       sendResourcePackRequestPacket(outstandingResourcePacks.get(0));
     }
@@ -118,8 +130,7 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
   @Override
   public boolean onResourcePackResponse(final @NotNull ResourcePackResponseBundle bundle) {
     final UUID uuid = bundle.uuid();
-    final List<ResourcePackInfo> outstandingResourcePacks =
-        this.outstandingResourcePacks.get(uuid);
+    final List<ResourcePackInfo> outstandingResourcePacks = this.outstandingResourcePacks.get(uuid);
     final boolean peek = bundle.status().isIntermediate();
     final ResourcePackInfo queued = outstandingResourcePacks.isEmpty() ? null
         : peek ? outstandingResourcePacks.get(0) : outstandingResourcePacks.remove(0);
@@ -188,6 +199,7 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
         return true;
       }
     }
+
     return false;
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,9 +27,14 @@ import java.util.concurrent.locks.Lock;
 /**
  * Registers {@link SimpleCommand}s in a root node.
  */
-public final class SimpleCommandRegistrar
-    extends InvocableCommandRegistrar<SimpleCommand, SimpleCommand.Invocation, String[]> {
+public final class SimpleCommandRegistrar extends InvocableCommandRegistrar<SimpleCommand, SimpleCommand.Invocation, String[]> {
 
+  /**
+   * Constructs a new {@code SimpleCommandRegistrar}.
+   *
+   * @param root the root command node of the dispatcher
+   * @param lock the lock guarding access to the command tree
+   */
   public SimpleCommandRegistrar(final RootCommandNode<CommandSource> root, final Lock lock) {
     super(root, lock, SimpleCommandInvocation.FACTORY, StringArrayArgumentType.INSTANCE);
   }

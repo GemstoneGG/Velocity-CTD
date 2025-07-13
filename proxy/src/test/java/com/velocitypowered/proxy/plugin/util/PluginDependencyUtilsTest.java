@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,17 +30,43 @@ import org.junit.jupiter.api.Test;
 
 class PluginDependencyUtilsTest {
 
+  /**
+   * Plugin with no dependencies.
+   */
   private static final PluginDescription NO_DEPENDENCY = testDescription("trivial");
+
+  /**
+   * Another plugin with no dependencies.
+   */
   private static final PluginDescription NO_DEPENDENCY_2 = testDescription("trivial2");
+
+  /**
+   * Plugin that depends on {@code trivial}.
+   */
   private static final PluginDescription HAS_DEPENDENCY_1 = testDescription("dependent1",
       new PluginDependency("trivial", null, false));
+
+  /**
+   * Plugin that depends on {@code dependent1}.
+   */
   private static final PluginDescription HAS_DEPENDENCY_2 = testDescription("dependent2",
       new PluginDependency("dependent1", null, false));
+
+  /**
+   * Another plugin that depends on {@code trivial}.
+   */
   private static final PluginDescription HAS_DEPENDENCY_3 = testDescription("dependent3",
       new PluginDependency("trivial", null, false));
 
+  /**
+   * First plugin involved in a circular dependency (depends on {@code oval}).
+   */
   private static final PluginDescription CIRCULAR_DEPENDENCY_1 = testDescription("circle",
       new PluginDependency("oval", "", false));
+
+  /**
+   * Second plugin involved in a circular dependency (depends on {@code circle}).
+   */
   private static final PluginDescription CIRCULAR_DEPENDENCY_2 = testDescription("oval",
       new PluginDependency("circle", "", false));
 

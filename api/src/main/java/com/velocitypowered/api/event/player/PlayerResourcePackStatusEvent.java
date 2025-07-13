@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -24,10 +24,29 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @AwaitingEvent
 public class PlayerResourcePackStatusEvent {
 
+  /**
+   * The player affected by the resource pack status update.
+   */
   private final Player player;
+
+  /**
+   * The unique identifier of the resource pack, if known.
+   */
   private final @MonotonicNonNull UUID packId;
+
+  /**
+   * The status reported by the client regarding the resource pack.
+   */
   private final Status status;
+
+  /**
+   * Metadata about the resource pack being processed, or {@code null} if not available.
+   */
   private final @MonotonicNonNull ResourcePackInfo packInfo;
+
+  /**
+   * Whether to suppress the default kick behavior if the player declines a forced resource pack.
+   */
   private boolean overwriteKick;
 
   /**
@@ -139,7 +158,7 @@ public class PlayerResourcePackStatusEvent {
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "PlayerResourcePackStatusEvent{"
         + "player=" + player
         + ", status=" + status
@@ -156,30 +175,37 @@ public class PlayerResourcePackStatusEvent {
      * The resource pack was applied successfully.
      */
     SUCCESSFUL,
+
     /**
      * The player declined to download the resource pack.
      */
     DECLINED,
+
     /**
      * The player could not download the resource pack.
      */
     FAILED_DOWNLOAD,
+
     /**
      * The player has accepted the resource pack and is now downloading it.
      */
     ACCEPTED,
+
     /**
      * The player has downloaded the resource pack.
      */
     DOWNLOADED,
+
     /**
      * The URL of the resource pack failed to load.
      */
     INVALID_URL,
+
     /**
      * The player failed to reload the resource pack.
      */
     FAILED_RELOAD,
+
     /**
      * The resource pack was discarded.
      */

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,21 +32,34 @@ import com.velocitypowered.proxy.protocol.packet.chat.ChatHandler;
  */
 public class LegacyChatHandler implements ChatHandler<LegacyChatPacket> {
 
+  /**
+   * The Velocity server instance used to fire events and manage server state.
+   */
   private final VelocityServer server;
+
+  /**
+   * The player sending the legacy chat message.
+   */
   private final ConnectedPlayer player;
 
+  /**
+   * Constructs a new {@code LegacyChatHandler} for the specified server and player.
+   *
+   * @param server the proxy server instance
+   * @param player the player associated with the incoming chat packet
+   */
   public LegacyChatHandler(final VelocityServer server, final ConnectedPlayer player) {
     this.server = server;
     this.player = player;
   }
 
   @Override
-  public Class<LegacyChatPacket> packetClass() {
+  public final Class<LegacyChatPacket> packetClass() {
     return LegacyChatPacket.class;
   }
 
   @Override
-  public void handlePlayerChatInternal(final LegacyChatPacket packet) {
+  public final void handlePlayerChatInternal(final LegacyChatPacket packet) {
     MinecraftConnection serverConnection = player.ensureAndGetCurrentServer().ensureConnected();
     if (serverConnection == null) {
       return;

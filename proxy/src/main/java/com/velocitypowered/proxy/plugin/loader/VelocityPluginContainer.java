@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,40 +29,60 @@ import java.util.concurrent.Executors;
  */
 public class VelocityPluginContainer implements PluginContainer {
 
+  /**
+   * The plugin's metadata, including ID, name, version, and dependencies.
+   */
   private final PluginDescription description;
+
+  /**
+   * The instance of the plugin's main class, set after instantiation.
+   */
   private Object instance;
+
+  /**
+   * Lazily initialized executor service used to run plugin tasks asynchronously.
+   */
   private volatile ExecutorService service;
 
+  /**
+   * Constructs a new {@link VelocityPluginContainer} for the specified plugin.
+   *
+   * @param description the plugin's description metadata
+   */
   public VelocityPluginContainer(final PluginDescription description) {
     this.description = description;
   }
 
   @Override
-  public PluginDescription getDescription() {
+  public final PluginDescription getDescription() {
     return this.description;
   }
 
   @Override
-  public Optional<?> getInstance() {
+  public final Optional<?> getInstance() {
     return Optional.ofNullable(instance);
   }
 
+  /**
+   * Sets the plugin instance created by the plugin loader.
+   *
+   * @param instance the plugin main class instance
+   */
   public void setInstance(final Object instance) {
     this.instance = instance;
   }
 
   @Override
-  public ExecutorService getExecutorService() {
+  public final ExecutorService getExecutorService() {
     if (this.service == null) {
       synchronized (this) {
         if (this.service == null) {
           String name = this.description.getName().orElse(this.description.getId());
           this.service = Executors.unconfigurableExecutorService(
-              Executors.newCachedThreadPool(
-                new ThreadFactoryBuilder().setDaemon(true)
-                    .setNameFormat(name + " - Task Executor #%d")
-                    .setDaemon(true)
-                    .build()
+              Executors.newCachedThreadPool(new ThreadFactoryBuilder().setDaemon(true)
+                  .setNameFormat(name + " - Task Executor #%d")
+                  .setDaemon(true)
+                  .build()
               )
           );
         }
@@ -72,7 +92,12 @@ public class VelocityPluginContainer implements PluginContainer {
     return this.service;
   }
 
-  public boolean hasExecutorService() {
+  /**
+   * Returns whether the executor service has already been created.
+   *
+   * @return {@code true} if the executor service is initialized, {@code false} otherwise
+   */
+  public final boolean hasExecutorService() {
     return this.service != null;
   }
 }

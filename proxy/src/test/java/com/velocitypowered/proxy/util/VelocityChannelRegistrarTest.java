@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,16 +28,33 @@ import org.junit.jupiter.api.Test;
 
 class VelocityChannelRegistrarTest {
 
+  /**
+   * Modern channel identifier for testing: {@code velocity:test}.
+   */
   private static final MinecraftChannelIdentifier MODERN = MinecraftChannelIdentifier
       .create("velocity", "test");
+
+  /**
+   * Legacy channel identifier for testing: {@code VelocityTest}.
+   */
   private static final LegacyChannelIdentifier SIMPLE_LEGACY =
       new LegacyChannelIdentifier("VelocityTest");
 
+  /**
+   * Modern channel identifier for special remap testing: {@code bungeecord:main}.
+   */
   private static final MinecraftChannelIdentifier MODERN_SPECIAL_REMAP = MinecraftChannelIdentifier
       .create("bungeecord", "main");
+
+  /**
+   * Legacy channel identifier for special remap testing: {@code BungeeCord}.
+   */
   private static final LegacyChannelIdentifier SPECIAL_REMAP_LEGACY =
       new LegacyChannelIdentifier("BungeeCord");
 
+  /**
+   * Expected remapped identifier for {@code VelocityTest} legacy channel to modern: {@code legacy:velocitytest}.
+   */
   private static final String SIMPLE_LEGACY_REMAPPED = "legacy:velocitytest";
 
   @Test

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,10 +44,27 @@ import net.kyori.adventure.text.Component;
  * Implements the Velocity default {@code /send} command.
  */
 public class SendCommand {
+
+  /**
+   * The Velocity server instance used to retrieve player and server data.
+   */
   private final VelocityServer server;
+
+  /**
+   * The argument key for specifying the target server.
+   */
   private static final String SERVER_ARG = "server";
+
+  /**
+   * The argument key for specifying the player(s) to send.
+   */
   private static final String PLAYER_ARG = "player";
 
+  /**
+   * Creates a new {@link SendCommand} instance.
+   *
+   * @param server the Velocity server
+   */
   public SendCommand(final VelocityServer server) {
     this.server = server;
   }
@@ -79,15 +96,18 @@ public class SendCommand {
               final String argument = context.getArguments().containsKey(PLAYER_ARG)
                       ? context.getArgument(PLAYER_ARG, String.class)
                       : "";
+
               for (final Player player : server.getAllPlayers()) {
                 final String playerName = player.getUsername();
                 if (playerName.regionMatches(true, 0, argument, 0, argument.length())) {
                   builder.suggest(playerName);
                 }
               }
+
               if ("all".regionMatches(true, 0, argument, 0, argument.length())) {
                 builder.suggest("all");
               }
+
               if ("current".regionMatches(true, 0, argument, 0, argument.length())
                       && context.getSource() instanceof Player) {
                 builder.suggest("current");
@@ -112,16 +132,19 @@ public class SendCommand {
               final String argument = context.getArguments().containsKey(SERVER_ARG)
                       ? context.getArgument(SERVER_ARG, String.class)
                       : "";
+
               for (final RegisteredServer server : server.getAllServers()) {
                 final String serverName = server.getServerInfo().getName();
                 if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
                   builder.suggest(server.getServerInfo().getName());
                 }
               }
+
               return builder.buildFuture();
             })
             .executes(this::send)
             .build();
+
     playerNode.then(serverNode);
     rootNode.then(playerNode.build());
     return new BrigadierCommand(rootNode);
@@ -148,15 +171,18 @@ public class SendCommand {
           final String argument = context.getArguments().containsKey(PLAYER_ARG)
               ? context.getArgument(PLAYER_ARG, String.class)
               : "";
+
           for (RemotePlayerInfo info : server.getMultiProxyHandler().getAllPlayers()) {
             final String playerName = info.getName();
             if (playerName.regionMatches(true, 0, argument, 0, argument.length())) {
               builder.suggest(playerName);
             }
           }
+
           if ("all".regionMatches(true, 0, argument, 0, argument.length())) {
             builder.suggest("all");
           }
+
           if ("current".regionMatches(true, 0, argument, 0, argument.length())
               && context.getSource() instanceof Player) {
             builder.suggest("current");
@@ -165,7 +191,6 @@ public class SendCommand {
           if (argument.isEmpty() || argument.startsWith("+")) {
             for (final RegisteredServer server : server.getAllServers()) {
               final String serverName = server.getServerInfo().getName();
-
               if (serverName.regionMatches(true, 0, argument, 1, argument.length() - 1)) {
                 builder.suggest("+" + serverName);
               }
@@ -181,19 +206,23 @@ public class SendCommand {
           final String argument = context.getArguments().containsKey(SERVER_ARG)
               ? context.getArgument(SERVER_ARG, String.class)
               : "";
+
           for (final RegisteredServer server : server.getAllServers()) {
             final String serverName = server.getServerInfo().getName();
             if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
               builder.suggest(server.getServerInfo().getName());
             }
           }
+
           return builder.buildFuture();
         })
         .executes(this::send)
         .build();
+
     playerNode.then(serverNode);
     rootNode.then(playerNode.build());
     final BrigadierCommand command = new BrigadierCommand(rootNode);
+
     server.getCommandManager().register(
         server.getCommandManager().metaBuilder(command)
             .plugin(VelocityVirtualPlugin.INSTANCE)
@@ -216,6 +245,7 @@ public class SendCommand {
       context.getSource().sendMessage(
           CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Component.text(serverName))
       );
+
       return 0;
     }
 
@@ -229,6 +259,7 @@ public class SendCommand {
       context.getSource().sendMessage(
           CommandMessages.PLAYER_NOT_FOUND.arguments(Component.text(player))
       );
+
       return 0;
     }
 
@@ -267,6 +298,7 @@ public class SendCommand {
             Component.text(targetServer.getServerInfo().getName())));
         return Command.SINGLE_SUCCESS;
       }
+
       return 0;
     }
 
@@ -296,8 +328,8 @@ public class SendCommand {
 
   private void sendPlayer(final CommandContext<CommandSource> context, final Player player0,
                           final RegisteredServer targetServer) {
-    ServerConnection cur = player0.getCurrentServer().orElse(null);
-    if (cur != null && cur.getServerInfo().getName().equalsIgnoreCase(targetServer.getServerInfo().getName())) {
+    ServerConnection current = player0.getCurrentServer().orElse(null);
+    if (current != null && current.getServerInfo().getName().equalsIgnoreCase(targetServer.getServerInfo().getName())) {
       context.getSource().sendMessage(Component.translatable("velocity.command.send-same-server"));
       return;
     }
@@ -328,9 +360,11 @@ public class SendCommand {
           Component.text(name), Component.text(targetServer.getServerInfo().getName())));
       return;
     }
+
     for (Player targetPlayer : server.getPlayersConnected()) {
       targetPlayer.createConnectionRequest(targetServer).fireAndForget();
     }
+
     context.getSource().sendMessage(Component.translatable(playerSize == 1
             ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural",
         Component.text(playerSize), Component.text(name),
@@ -347,6 +381,7 @@ public class SendCommand {
       context.getSource().sendMessage(
           CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Component.text(serverName))
       );
+
       return 0;
     }
 
@@ -359,6 +394,7 @@ public class SendCommand {
       context.getSource().sendMessage(
           CommandMessages.PLAYER_NOT_FOUND.arguments(Component.text(player))
       );
+
       return 0;
     }
 
@@ -367,6 +403,7 @@ public class SendCommand {
       for (final RemotePlayerInfo p : list) {
         this.server.getRedisManager().send(new RedisSwitchServerRequest(p.getName(), targetServer.getServerInfo().getName()));
       }
+
       final int globalCount = list.size();
       context.getSource().sendMessage(Component.translatable(globalCount == 1
               ? "velocity.command.send-all-singular" : "velocity.command.send-all-plural",
@@ -402,6 +439,7 @@ public class SendCommand {
             Component.text(targetServer.getServerInfo().getName())));
         return Command.SINGLE_SUCCESS;
       }
+
       return 0;
     }
 

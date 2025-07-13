@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,10 +27,19 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * A simple rate-limiter based on a Caffeine {@link Cache}.
+ *
+ * @param <T> the type of object to apply rate limiting to
  */
 public class CaffeineCacheRatelimiter<T> implements Ratelimiter<T> {
 
+  /**
+   * The backing Caffeine cache used to store rate-limited keys.
+   */
   private final Cache<T, Long> expiringCache;
+
+  /**
+   * The time in nanoseconds before a key is allowed again.
+   */
   private final long timeoutNanos;
 
   CaffeineCacheRatelimiter(final long time, final TimeUnit unit) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,24 +58,65 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
  * transmitting text components.
  */
 public class ComponentHolder {
+
+  /**
+   * Logger instance for reporting errors during serialization/deserialization.
+   */
   private static final Logger logger = LogManager.getLogger(ComponentHolder.class);
+
+  /**
+   * The maximum allowed size for JSON strings, used when reading components from buffer.
+   */
   public static final int DEFAULT_MAX_STRING_SIZE = 262143;
 
+  /**
+   * The protocol version associated with this component's format.
+   */
   private final ProtocolVersion version;
+
+  /**
+   * The parsed {@link Component} form, lazily initialized.
+   */
   private @MonotonicNonNull Component component;
+
+  /**
+   * The JSON string form of the component, lazily serialized or deserialized.
+   */
   private @MonotonicNonNull String json;
+
+  /**
+   * The binary (NBT) form of the component, lazily serialized or deserialized.
+   */
   private @MonotonicNonNull BinaryTag binaryTag;
 
+  /**
+   * Creates a new {@code ComponentHolder} using a parsed {@link Component}.
+   *
+   * @param version the protocol version
+   * @param component the component to store
+   */
   public ComponentHolder(final ProtocolVersion version, final Component component) {
     this.version = version;
     this.component = component;
   }
 
+  /**
+   * Creates a new {@code ComponentHolder} using a JSON representation.
+   *
+   * @param version the protocol version
+   * @param json the component JSON string
+   */
   public ComponentHolder(final ProtocolVersion version, final String json) {
     this.version = version;
     this.json = json;
   }
 
+  /**
+   * Creates a new {@code ComponentHolder} using a binary tag representation.
+   *
+   * @param version the protocol version
+   * @param binaryTag the binary tag containing the component
+   */
   public ComponentHolder(final ProtocolVersion version, final BinaryTag binaryTag) {
     this.version = version;
     this.binaryTag = binaryTag;
@@ -104,6 +145,7 @@ public class ComponentHolder {
         }
       }
     }
+
     return component;
   }
 
@@ -118,6 +160,7 @@ public class ComponentHolder {
     if (json == null) {
       json = ProtocolUtils.getJsonChatSerializer(version).serialize(getComponent());
     }
+
     return json;
   }
 
@@ -134,6 +177,7 @@ public class ComponentHolder {
       // TODO: replace this with adventure-text-serializer-nbt
       binaryTag = serialize(ProtocolUtils.getJsonChatSerializer(version).serializeToTree(getComponent()));
     }
+
     return binaryTag;
   }
 
@@ -151,7 +195,6 @@ public class ComponentHolder {
     if (json instanceof JsonPrimitive jsonPrimitive) {
       if (jsonPrimitive.isNumber()) {
         Number number = json.getAsNumber();
-
         if (number instanceof Byte) {
           return ByteBinaryTag.byteBinaryTag((Byte) number);
         } else if (number instanceof Short) {

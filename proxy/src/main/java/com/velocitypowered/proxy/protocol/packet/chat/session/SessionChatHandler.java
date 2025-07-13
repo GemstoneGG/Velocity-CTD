@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,23 +39,39 @@ import org.apache.logging.log4j.Logger;
  */
 public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> {
 
+  /**
+   * Logger used for chat processing diagnostics and error reporting.
+   */
   private static final Logger logger = LogManager.getLogger(SessionChatHandler.class);
 
+  /**
+   * The player associated with this chat session.
+   */
   private final ConnectedPlayer player;
+
+  /**
+   * The proxy server instance for accessing events and configuration.
+   */
   private final VelocityServer server;
 
+  /**
+   * Constructs a new {@code SessionChatHandler} for the given player and server.
+   *
+   * @param player the player sending chat messages
+   * @param server the proxy server instance
+   */
   public SessionChatHandler(final ConnectedPlayer player, final VelocityServer server) {
     this.player = player;
     this.server = server;
   }
 
   @Override
-  public Class<SessionPlayerChatPacket> packetClass() {
+  public final Class<SessionPlayerChatPacket> packetClass() {
     return SessionPlayerChatPacket.class;
   }
 
   @Override
-  public void handlePlayerChatInternal(final SessionPlayerChatPacket packet) {
+  public final void handlePlayerChatInternal(final SessionPlayerChatPacket packet) {
     ChatQueue chatQueue = this.player.getChatQueue();
     EventManager eventManager = this.server.getEventManager();
     PlayerChatEvent toSend = new PlayerChatEvent(player, packet.getMessage());
@@ -68,6 +84,7 @@ public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> 
                 if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
                   invalidCancel(logger, player);
                 }
+
                 return null;
               }
 
@@ -77,12 +94,14 @@ public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> 
                   invalidChange(logger, player);
                   return null;
                 }
+
                 return this.player.getChatBuilderFactory().builder()
                     .message(chatResult.getMessage().orElse(packet.getMessage()))
                     .setTimestamp(packet.timestamp)
                     .setLastSeenMessages(newLastSeenMessages)
                     .toServer();
               }
+
               return packet.withLastSeenMessages(newLastSeenMessages);
             })
             .exceptionally((ex) -> {

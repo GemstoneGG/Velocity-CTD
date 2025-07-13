@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,8 +29,15 @@ import java.util.UUID;
  * The non-redis implementation of the redis queue.
  */
 public class StandardRetriever implements QueueCacheRetriever {
+
+  /**
+   * In-memory map of server name to {@link ServerQueueStatus}.
+   */
   private final Map<String, ServerQueueStatus> queues = new HashMap<>();
 
+  /**
+   * The Velocity server instance.
+   */
   private final VelocityServer proxy;
 
   /**
@@ -59,12 +66,13 @@ public class StandardRetriever implements QueueCacheRetriever {
   }
 
   @Override
-  public ServerQueueStatus get(final UUID uuid) {
+  public final ServerQueueStatus get(final UUID uuid) {
     for (ServerQueueStatus status : getAll()) {
       if (status.isQueued(uuid)) {
         return status;
       }
     }
+
     return null;
   }
 

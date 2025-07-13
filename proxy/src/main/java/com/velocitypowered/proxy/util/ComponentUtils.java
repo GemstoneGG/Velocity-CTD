@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,39 +28,79 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Serialize a component to a string.
+ * Utility methods for working with Adventure {@link net.kyori.adventure.text.Component}s
+ * using {@link net.kyori.adventure.text.minimessage.MiniMessage}.
  *
- * @author Elmar Blume
+ * <p>
+ * This utility supports:
+ * <ul>
+ *   <li>Serialization and deserialization of components using MiniMessage</li>
+ *   <li>Support for legacy formatting codes (e.g., {@code &a}, {@code &l})</li>
+ *   <li>Support for boxed and unboxed hex color patterns, including Mojang-style formats</li>
+ *   <li>Pattern normalization and hex stripping utilities</li>
+ * </ul>
+ * </p>
  */
 public final class ComponentUtils {
 
-  // MiniMessage default: <#FFFFFF>
-  private static final Pattern BOXED_HEX_PATTERN = Pattern.compile("<#([A-Fa-f0-9]){6}>");     // <#FFFFFF>
-  private static final Pattern BOXED_MOJANG_PATTERN = Pattern.compile("<&#([A-Fa-f0-9]){6}>"); // <&#FFFFFF>
-  private static final Pattern UNBOXED_HEX_PATTERN = Pattern.compile("#([A-Fa-f0-9]){6}");     // #FFFFFF
-  private static final Pattern UNBOXED_MOJANG_PATTERN = Pattern.compile("&#([A-Fa-f0-9]){6}"); // &#FFFFFF
+  /**
+   * Matches MiniMessage-style boxed hex codes (e.g. {@code <#FFFFFF>}).
+   */
+  private static final Pattern BOXED_HEX_PATTERN = Pattern.compile("<#([A-Fa-f0-9]){6}>");
 
+  /**
+   * Matches Mojang-style boxed hex codes (e.g. {@code <&#FFFFFF>}).
+   */
+  private static final Pattern BOXED_MOJANG_PATTERN = Pattern.compile("<&#([A-Fa-f0-9]){6}>");
+
+  /**
+   * Matches unboxed hex codes (e.g. {@code #FFFFFF}).
+   */
+  private static final Pattern UNBOXED_HEX_PATTERN = Pattern.compile("#([A-Fa-f0-9]){6}");
+
+  /**
+   * Matches Mojang-style unboxed hex codes (e.g. {@code &#FFFFFF}).
+   */
+  private static final Pattern UNBOXED_MOJANG_PATTERN = Pattern.compile("&#([A-Fa-f0-9]){6}");
+
+  /**
+   * Ordered list of hex patterns used to normalize or box color codes.
+   *
+   * <p>The order is significant and determines which formats are parsed first.</p>
+   */
   private static final List<Pattern> ODD_HEX_PATTERNS = Arrays.asList(
-      BOXED_MOJANG_PATTERN,   // <&#FFFFFF>
-      BOXED_HEX_PATTERN,      // <#FFFFFF>
-      UNBOXED_MOJANG_PATTERN, // &#FFFFFF
-      UNBOXED_HEX_PATTERN     // #FFFFFF
-  ); // <!> order matters
+      BOXED_MOJANG_PATTERN,
+      BOXED_HEX_PATTERN,
+      UNBOXED_MOJANG_PATTERN,
+      UNBOXED_HEX_PATTERN
+  );
 
+  /**
+   * Subset of hex patterns considered unboxed and requiring potential wrapping.
+   */
   private static final List<Pattern> UNBOXED_PATTERNS = Arrays.asList(
       UNBOXED_HEX_PATTERN,
       UNBOXED_MOJANG_PATTERN
   );
 
+  /**
+   * Subset of hex patterns considered Mojang-style for cleanup.
+   */
   private static final List<Pattern> MOJANG_PATTERNS = Arrays.asList(
       BOXED_MOJANG_PATTERN,
       UNBOXED_MOJANG_PATTERN
   );
 
+  /**
+   * Shared MiniMessage instance configured with lenient parsing.
+   */
   private static final MiniMessage MINI = MiniMessage.builder()
-          .strict(false)
-          .build();
+      .strict(false)
+      .build();
 
+  /**
+   * Maps legacy formatting codes (e.g. {@code &a}, {@code &l}) to their MiniMessage equivalents.
+   */
   private static final Map<String, String> COLOR_MAP = new HashMap<>();
 
   static {
@@ -131,6 +171,7 @@ public final class ComponentUtils {
     for (final Pattern pattern : ODD_HEX_PATTERNS) {
       parsedStr = colorMatcher(parsedStr, pattern, UNBOXED_PATTERNS.contains(pattern));
     }
+
     return parseComponent(parsedStr.replace("D#DONE", "#"));
   }
 
@@ -146,6 +187,7 @@ public final class ComponentUtils {
     for (Map.Entry<String, String> entry : COLOR_MAP.entrySet()) {
       parsedStr = parsedStr.replace(entry.getKey(), entry.getValue());
     }
+
     return parsedStr;
   }
 
@@ -159,6 +201,7 @@ public final class ComponentUtils {
     for (Pattern pattern : ODD_HEX_PATTERNS) {
       input = pattern.matcher(input).replaceAll("");
     }
+
     return input;
   }
 
@@ -198,6 +241,7 @@ public final class ComponentUtils {
         literal = literal.replace(matched, "<D#DONE" + hexCode + ">");
       }
     }
+
     return literal;
   }
 

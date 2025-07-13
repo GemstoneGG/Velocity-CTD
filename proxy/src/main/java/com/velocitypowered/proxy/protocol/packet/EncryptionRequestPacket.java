@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,29 +34,64 @@ import java.util.Arrays;
  */
 public class EncryptionRequestPacket implements MinecraftPacket {
 
+  /**
+   * The server ID used for legacy authentication. Typically an empty string in modern clients.
+   */
   private String serverId = "";
+
+  /**
+   * The server's public key used to establish encrypted communication.
+   */
   private byte[] publicKey = EMPTY_BYTE_ARRAY;
+
+  /**
+   * A token used to verify the legitimacy of the client's encryption response.
+   */
   private byte[] verifyToken = EMPTY_BYTE_ARRAY;
+
+  /**
+   * Whether the client should authenticate with Mojang session servers.
+   */
   private boolean shouldAuthenticate = true;
 
+  /**
+   * Retrieves a defensive copy of the server's public key.
+   *
+   * @return the public key as a byte array
+   */
   public byte[] getPublicKey() {
     return publicKey.clone();
   }
 
+  /**
+   * Sets the server's public key.
+   *
+   * @param publicKey the public key to use
+   */
   public void setPublicKey(final byte[] publicKey) {
     this.publicKey = publicKey.clone();
   }
 
+  /**
+   * Retrieves a defensive copy of the verification token.
+   *
+   * @return the verification token as a byte array
+   */
   public byte[] getVerifyToken() {
     return verifyToken.clone();
   }
 
+  /**
+   * Sets the verification token.
+   *
+   * @param verifyToken the token used to verify client authenticity
+   */
   public void setVerifyToken(final byte[] verifyToken) {
     this.verifyToken = verifyToken.clone();
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "EncryptionRequest{"
         + "publicKey=" + Arrays.toString(publicKey)
         + ", verifyToken=" + Arrays.toString(verifyToken)
@@ -64,7 +99,7 @@ public class EncryptionRequestPacket implements MinecraftPacket {
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     this.serverId = ProtocolUtils.readString(buf, 20);
 
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
@@ -80,7 +115,7 @@ public class EncryptionRequestPacket implements MinecraftPacket {
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     ProtocolUtils.writeString(buf, this.serverId);
 
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
@@ -96,7 +131,7 @@ public class EncryptionRequestPacket implements MinecraftPacket {
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

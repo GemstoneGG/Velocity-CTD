@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +33,9 @@ import io.netty.buffer.ByteBuf;
  */
 public final class BundleDelimiterPacket implements MinecraftPacket {
 
+  /**
+   * Singleton instance of the {@code BundleDelimiterPacket}.
+   */
   public static final BundleDelimiterPacket INSTANCE = new BundleDelimiterPacket();
 
   private BundleDelimiterPacket() {

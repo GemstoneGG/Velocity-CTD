@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -21,8 +21,19 @@ import net.kyori.adventure.key.Key;
 @AwaitingEvent
 public final class CookieRequestEvent implements ResultedEvent<CookieRequestEvent.ForwardResult> {
 
+  /**
+   * The player from whom the cookie is being requested.
+   */
   private final Player player;
+
+  /**
+   * The original identifier of the cookie being requested.
+   */
   private final Key originalKey;
+
+  /**
+   * The result determining whether the cookie request should be forwarded or handled.
+   */
   private ForwardResult result;
 
   /**
@@ -78,10 +89,24 @@ public final class CookieRequestEvent implements ResultedEvent<CookieRequestEven
    */
   public static final class ForwardResult implements Result {
 
+    /**
+     * A result indicating the cookie request should be forwarded to the client unchanged.
+     */
     private static final ForwardResult ALLOWED = new ForwardResult(true, null);
+
+    /**
+     * A result indicating the cookie request has been handled by the proxy and should not be forwarded.
+     */
     private static final ForwardResult DENIED = new ForwardResult(false, null);
 
+    /**
+     * Whether the cookie request should be forwarded to the client.
+     */
     private final boolean status;
+
+    /**
+     * A replacement key for the cookie request, or {@code null} if the original key should be used.
+     */
     private final Key key;
 
     private ForwardResult(final boolean status, final Key key) {

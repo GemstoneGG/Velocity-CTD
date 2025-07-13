@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,8 +31,30 @@ import io.netty.handler.codec.MessageToByteEncoder;
  */
 public class MinecraftEncoder extends MessageToByteEncoder<MinecraftPacket> {
 
+  /**
+   * The direction this encoder is targeting.
+   *
+   * <p>This determines whether packets are being encoded for the
+   * {@link ProtocolUtils.Direction#CLIENTBOUND} or {@link ProtocolUtils.Direction#SERVERBOUND}
+   * direction.</p>
+   */
   private final ProtocolUtils.Direction direction;
+
+  /**
+   * The current connection state this encoder is operating under.
+   *
+   * <p>This affects the set of packets that are valid to send, and how they
+   * are serialized to the output buffer.</p>
+   */
   private StateRegistry state;
+
+  /**
+   * The active protocol registry used for encoding packet IDs and resolving
+   * version-specific serialization behaviors.
+   *
+   * <p>This registry is derived from the current {@link #state} and {@link #direction}
+   * for a given {@link ProtocolVersion}.</p>
+   */
   private StateRegistry.PacketRegistry.ProtocolRegistry registry;
 
   /**
@@ -42,27 +64,47 @@ public class MinecraftEncoder extends MessageToByteEncoder<MinecraftPacket> {
    */
   public MinecraftEncoder(final ProtocolUtils.Direction direction) {
     this.direction = Preconditions.checkNotNull(direction, "direction");
-    this.registry = StateRegistry.HANDSHAKE.getProtocolRegistry(
-        direction, ProtocolVersion.MINIMUM_VERSION);
+    this.registry = StateRegistry.HANDSHAKE.getProtocolRegistry(direction, ProtocolVersion.MINIMUM_VERSION);
     this.state = StateRegistry.HANDSHAKE;
   }
 
   @Override
-  protected void encode(final ChannelHandlerContext ctx, final MinecraftPacket msg, final ByteBuf out) {
+  protected final void encode(final ChannelHandlerContext ctx, final MinecraftPacket msg, final ByteBuf out) {
     int packetId = this.registry.getPacketId(msg);
     ProtocolUtils.writeVarInt(out, packetId);
     msg.encode(out, direction, registry.version);
   }
 
+  /**
+   * Updates the protocol version used by this encoder.
+   *
+   * <p>This method re-initializes the protocol registry to match the given version
+   * under the current {@link #state} and {@link #direction}.</p>
+   *
+   * @param protocolVersion the new protocol version to encode against
+   */
   public void setProtocolVersion(final ProtocolVersion protocolVersion) {
     this.registry = state.getProtocolRegistry(direction, protocolVersion);
   }
 
+  /**
+   * Updates the connection state used by this encoder.
+   *
+   * <p>This method also resets the protocol registry using the current version from
+   * the previous registry and the newly provided state.</p>
+   *
+   * @param state the new connection state
+   */
   public void setState(final StateRegistry state) {
     this.state = state;
     this.setProtocolVersion(registry.version);
   }
 
+  /**
+   * Gets the direction this encoder is targeting.
+   *
+   * @return the encoder's target direction
+   */
   public ProtocolUtils.Direction getDirection() {
     return direction;
   }

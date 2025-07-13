@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,11 +29,22 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class StatusResponsePacket implements MinecraftPacket {
 
+  /**
+   * The status message to be sent to the client, usually a JSON string representing server info.
+   */
   private @Nullable CharSequence status;
 
+  /**
+   * Creates a new, empty {@code StatusResponsePacket}.
+   */
   public StatusResponsePacket() {
   }
 
+  /**
+   * Creates a new {@code StatusResponsePacket} with the specified status message.
+   *
+   * @param status the server status message as a {@link CharSequence}
+   */
   public StatusResponsePacket(@Nullable final CharSequence status) {
     this.status = status;
   }
@@ -48,31 +59,33 @@ public class StatusResponsePacket implements MinecraftPacket {
     if (status == null) {
       throw new IllegalStateException("Status is not specified");
     }
+
     return status.toString();
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "StatusResponse{"
         + "status='" + status + '\''
         + '}';
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     status = ProtocolUtils.readString(buf, Short.MAX_VALUE);
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     if (status == null) {
       throw new IllegalStateException("Status is not specified");
     }
+
     ProtocolUtils.writeString(buf, status);
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

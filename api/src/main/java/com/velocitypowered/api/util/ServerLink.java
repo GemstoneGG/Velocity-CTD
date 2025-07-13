@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -19,8 +19,19 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class ServerLink {
 
+  /**
+   * The predefined link type, if one is used.
+   */
   private @Nullable Type type;
+
+  /**
+   * The custom text label shown to the user, if no built-in type is used.
+   */
   private @Nullable Component label;
+
+  /**
+   * The URL the player will be directed to when clicking the link.
+   */
   private final URI url;
 
   private ServerLink(final Component label, final String url) {
@@ -85,7 +96,7 @@ public final class ServerLink {
   /**
    * Built-in types of server links.
    *
-   * @apiNote {@link Type#BUG_REPORT} links are shown on the connection error screen
+   * <p>Note: {@link Type#BUG_REPORT} links are shown on the connection error screen.</p>
    */
   public enum Type {
 

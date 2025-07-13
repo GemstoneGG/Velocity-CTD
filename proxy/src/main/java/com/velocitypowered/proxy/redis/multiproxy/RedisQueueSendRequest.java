@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,10 @@ import java.util.UUID;
  * @param serverName The name of the server which the player is being de-queued for.
  */
 public record RedisQueueSendRequest(UUID playerUuid, String serverName) implements RedisPacket {
+
+  /**
+   * The identifier for this Redis packet type.
+   */
   public static final String ID = "redis-queue-send";
 
   @Override

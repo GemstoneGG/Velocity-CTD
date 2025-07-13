@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,21 @@ import javax.crypto.SecretKey;
  */
 public interface VelocityCipherFactory {
 
+  /**
+   * Creates a {@link VelocityCipher} configured for encryption using the given key.
+   *
+   * @param key the secret key used for encryption
+   * @return a new {@link VelocityCipher} instance for encryption
+   * @throws GeneralSecurityException if the cipher cannot be initialized
+   */
   VelocityCipher forEncryption(SecretKey key) throws GeneralSecurityException;
 
+  /**
+   * Creates a {@link VelocityCipher} configured for decryption using the given key.
+   *
+   * @param key the secret key used for decryption
+   * @return a new {@link VelocityCipher} instance for decryption
+   * @throws GeneralSecurityException if the cipher cannot be initialized
+   */
   VelocityCipher forDecryption(SecretKey key) throws GeneralSecurityException;
 }

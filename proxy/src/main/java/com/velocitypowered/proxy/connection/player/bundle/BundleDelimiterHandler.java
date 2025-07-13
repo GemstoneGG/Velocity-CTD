@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,17 +25,42 @@ import com.velocitypowered.proxy.protocol.packet.BundleDelimiterPacket;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * BundleDelimiterHandler.
+ * Handles bundling of multiple outgoing packets using {@link BundleDelimiterPacket}.
+ *
+ * <p>This is used during the configuration state to wrap groups of packets
+ * between start and end delimiters for clients supporting packet bundling.</p>
  */
 public final class BundleDelimiterHandler {
+
+  /**
+   * The player whose connection this handler is managing.
+   */
   private final ConnectedPlayer player;
+
+  /**
+   * Whether the player is currently in a bundle session.
+   */
   private boolean inBundleSession = false;
+
+  /**
+   * A future that completes once the current bundle session ends.
+   */
   private CompletableFuture<Void> finishedBundleSessionFuture;
 
+  /**
+   * Constructs a new bundle delimiter handler.
+   *
+   * @param player the player connection to use
+   */
   public BundleDelimiterHandler(final ConnectedPlayer player) {
     this.player = player;
   }
 
+  /**
+   * Returns whether the player is currently in a bundle session.
+   *
+   * @return {@code true} if in a bundle session, {@code false} otherwise
+   */
   public boolean isInBundleSession() {
     return this.inBundleSession;
   }
@@ -51,20 +76,24 @@ public final class BundleDelimiterHandler {
     } else {
       this.finishedBundleSessionFuture = new CompletableFuture<>();
     }
+
     this.inBundleSession = !this.inBundleSession;
   }
 
   /**
-   * Bundles all packets sent in the given Runnable.
+   * Wraps a block of packet writes within a bundle delimiter if the client is in a bundle session.
+   *
+   * @param sendPackets the logic that sends packets to the player
+   * @return a future that completes when the packets have been sent
    */
   public CompletableFuture<Void> bundlePackets(final Runnable sendPackets) {
     VelocityServerConnection connectedServer = player.getConnectedServer();
-    MinecraftConnection connection = connectedServer == null
-        ? null : connectedServer.getConnection();
+    MinecraftConnection connection = connectedServer == null ? null : connectedServer.getConnection();
     if (connection == null) {
       sendPackets(sendPackets);
       return CompletableFuture.completedFuture(null);
     }
+
     CompletableFuture<Void> future = new CompletableFuture<>();
     connection.eventLoop().execute(() -> {
       if (inBundleSession) {
@@ -78,9 +107,11 @@ public final class BundleDelimiterHandler {
         } else {
           sendPackets.run();
         }
+
         future.complete(null);
       }
     });
+
     return future;
   }
 

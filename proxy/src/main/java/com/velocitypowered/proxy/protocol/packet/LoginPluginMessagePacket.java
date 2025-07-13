@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,9 +32,23 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class LoginPluginMessagePacket extends DeferredByteBufHolder implements MinecraftPacket {
 
+  /**
+   * The plugin message ID, used to track the response from the client.
+   */
   private int id;
+
+  /**
+   * The channel this plugin message is being sent on.
+   * This may be {@code null} during deserialization until explicitly set.
+   */
   private @Nullable String channel;
 
+  /**
+   * Constructs an empty {@code LoginPluginMessagePacket} with no pre-initialized buffer.
+   *
+   * <p>This constructor is primarily used during decoding. The buffer content will be set later
+   * via {@link #decode(ByteBuf, ProtocolUtils.Direction, ProtocolVersion)}.</p>
+   */
   public LoginPluginMessagePacket() {
     super(null);
   }
@@ -52,6 +66,11 @@ public class LoginPluginMessagePacket extends DeferredByteBufHolder implements M
     this.channel = channel;
   }
 
+  /**
+   * Returns the plugin message ID.
+   *
+   * @return the plugin message ID
+   */
   public int getId() {
     return id;
   }
@@ -66,6 +85,7 @@ public class LoginPluginMessagePacket extends DeferredByteBufHolder implements M
     if (channel == null) {
       throw new IllegalStateException("Channel is not specified!");
     }
+
     return channel;
   }
 
@@ -79,7 +99,7 @@ public class LoginPluginMessagePacket extends DeferredByteBufHolder implements M
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     this.id = ProtocolUtils.readVarInt(buf);
     this.channel = ProtocolUtils.readString(buf);
     if (buf.isReadable()) {
@@ -90,17 +110,18 @@ public class LoginPluginMessagePacket extends DeferredByteBufHolder implements M
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     ProtocolUtils.writeVarInt(buf, id);
     if (channel == null) {
       throw new IllegalStateException("Channel is not specified!");
     }
+
     ProtocolUtils.writeString(buf, channel);
     buf.writeBytes(content());
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

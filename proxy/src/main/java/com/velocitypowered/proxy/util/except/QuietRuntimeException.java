@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,12 +23,17 @@ package com.velocitypowered.proxy.util.except;
  */
 public class QuietRuntimeException extends RuntimeException {
 
+  /**
+   * Constructs a new {@code QuietRuntimeException} with the specified message.
+   *
+   * @param message the detail message describing the error
+   */
   public QuietRuntimeException(final String message) {
     super(message);
   }
 
   @Override
-  public synchronized Throwable fillInStackTrace() {
+  public final synchronized Throwable fillInStackTrace() {
     return this;
   }
 }

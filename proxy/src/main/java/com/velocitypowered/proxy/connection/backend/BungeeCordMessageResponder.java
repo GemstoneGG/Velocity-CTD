@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,11 +60,25 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 )
 public class BungeeCordMessageResponder {
 
+  /**
+   * Modern plugin channel identifier for BungeeCord messaging, used on Minecraft 1.13+.
+   */
   private static final MinecraftChannelIdentifier MODERN_CHANNEL = MinecraftChannelIdentifier
       .create("bungeecord", "main");
+
+  /**
+   * Legacy plugin channel identifier for BungeeCord messaging, used on Minecraft versions before 1.13.
+   */
   private static final LegacyChannelIdentifier LEGACY_CHANNEL = new LegacyChannelIdentifier("BungeeCord");
 
+  /**
+   * The Velocity proxy server instance used to query players, servers, and configuration.
+   */
   private final VelocityServer proxy;
+
+  /**
+   * The player associated with this BungeeCord message responder.
+   */
   private final ConnectedPlayer player;
 
   BungeeCordMessageResponder(final VelocityServer proxy, final ConnectedPlayer player) {
@@ -72,9 +86,14 @@ public class BungeeCordMessageResponder {
     this.player = player;
   }
 
+  /**
+   * Determines whether the given plugin message is sent on the BungeeCord channel.
+   *
+   * @param message the plugin message
+   * @return {@code true} if the message is on the BungeeCord plugin channel
+   */
   public static boolean isBungeeCordMessage(final PluginMessagePacket message) {
-    return MODERN_CHANNEL.getId().equals(message.getChannel()) || LEGACY_CHANNEL.getId()
-        .equals(message.getChannel());
+    return MODERN_CHANNEL.getId().equals(message.getChannel()) || LEGACY_CHANNEL.getId().equals(message.getChannel());
   }
 
   private void processConnect(final ByteBufDataInput in, final boolean queue) {
@@ -92,6 +111,7 @@ public class BungeeCordMessageResponder {
           player.createConnectionRequest(server).connectWithIndication();
           return;
         }
+
         if (player.hasPermission("velocity.queue.bypass")) {
           player.createConnectionRequest(server).connectWithIndication();
         } else {
@@ -140,6 +160,7 @@ public class BungeeCordMessageResponder {
       out.writeUTF(player.getRemoteAddress().getHostString());
       out.writeInt(player.getRemoteAddress().getPort());
     }
+
     sendResponseOnConnection(buf);
   }
 
@@ -191,10 +212,12 @@ public class BungeeCordMessageResponder {
     UUID playerUuid = UUID.fromString(in.readUTF());
 
     ByteBuf buf = Unpooled.buffer();
+
     Player player = this.proxy.getPlayer(playerUuid).orElse(null);
     if (player == null) {
       return;
     }
+
     try (ByteBufDataOutput out = new ByteBufDataOutput(buf)) {
       out.writeUTF("Ping");
       out.writeUTF(player.getUniqueId().toString());
@@ -239,6 +262,7 @@ public class BungeeCordMessageResponder {
     UUID playerUuid = UUID.fromString(in.readUTF());
 
     ByteBuf buf = Unpooled.buffer();
+
     int position = -1;
 
     for (ServerQueueStatus status : proxy.getQueueManager().getAll()) {
@@ -265,6 +289,7 @@ public class BungeeCordMessageResponder {
     UUID playerUuid = UUID.fromString(in.readUTF());
 
     ByteBuf buf = Unpooled.buffer();
+
     int position = -1;
 
     for (ServerQueueStatus status : proxy.getQueueManager().getAll()) {
@@ -316,6 +341,7 @@ public class BungeeCordMessageResponder {
 
   private void processPlayerList(final ByteBufDataInput in) {
     ByteBuf buf = Unpooled.buffer();
+
     try (ByteBufDataOutput out = new ByteBufDataOutput(buf)) {
 
       String target = in.readUTF();
@@ -327,6 +353,7 @@ public class BungeeCordMessageResponder {
         for (Player online : proxy.getAllPlayers()) {
           joiner.add(online.getUsername());
         }
+
         out.writeUTF(joiner.toString());
       } else {
         proxy.getServer(target).ifPresent(info -> {
@@ -337,6 +364,7 @@ public class BungeeCordMessageResponder {
           for (Player online : info.getPlayersConnected()) {
             joiner.add(online.getUsername());
           }
+
           out.writeUTF(joiner.toString());
         });
       }
@@ -356,6 +384,7 @@ public class BungeeCordMessageResponder {
     }
 
     ByteBuf buf = Unpooled.buffer();
+
     try (ByteBufDataOutput out = new ByteBufDataOutput(buf)) {
       out.writeUTF("GetServers");
       out.writeUTF(joiner.toString());
@@ -387,6 +416,7 @@ public class BungeeCordMessageResponder {
 
   private void processGetServer() {
     ByteBuf buf = Unpooled.buffer();
+
     try (ByteBufDataOutput out = new ByteBufDataOutput(buf)) {
       out.writeUTF("GetServer");
       out.writeUTF(player.ensureAndGetCurrentServer().getServerInfo().getName());
@@ -397,6 +427,7 @@ public class BungeeCordMessageResponder {
 
   private void processUuid() {
     ByteBuf buf = Unpooled.buffer();
+
     try (ByteBufDataOutput out = new ByteBufDataOutput(buf)) {
       out.writeUTF("UUID");
       out.writeUTF(UuidUtils.toUndashed(player.getUniqueId()));
@@ -506,8 +537,7 @@ public class BungeeCordMessageResponder {
   }
 
   static ChannelIdentifier getBungeeCordChannel(final ProtocolVersion version) {
-    return version.noLessThan(ProtocolVersion.MINECRAFT_1_13) ? MODERN_CHANNEL
-        : LEGACY_CHANNEL;
+    return version.noLessThan(ProtocolVersion.MINECRAFT_1_13) ? MODERN_CHANNEL : LEGACY_CHANNEL;
   }
 
   // Note: this method will always release the buffer!
@@ -523,7 +553,7 @@ public class BungeeCordMessageResponder {
     serverConnection.write(msg);
   }
 
-  boolean process(final PluginMessagePacket message) {
+  final boolean process(final PluginMessagePacket message) {
     if (!proxy.getConfiguration().isBungeePluginChannelEnabled()) {
       return false;
     }
@@ -540,12 +570,10 @@ public class BungeeCordMessageResponder {
       case "Forward" -> this.processForwardToServer(in);
       case "ConnectDirect" -> this.processConnect(in, false);
       case "ConnectQueue" -> this.processConnect(in, true);
-      case "Connect" ->
-          this.processConnect(in, proxy.getConfiguration().getQueue().shouldOverrideBungeeMessaging());
+      case "Connect" -> this.processConnect(in, proxy.getConfiguration().getQueue().shouldOverrideBungeeMessaging());
       case "ConnectOtherDirect" -> this.processConnectOther(in, false);
       case "ConnectOtherQueue" -> this.processConnectOther(in, true);
-      case "ConnectOther" ->
-          this.processConnectOther(in, proxy.getConfiguration().getQueue().shouldOverrideBungeeMessaging());
+      case "ConnectOther" -> this.processConnectOther(in, proxy.getConfiguration().getQueue().shouldOverrideBungeeMessaging());
       case "IP" -> this.processIp(in);
       case "PlayerCount" -> this.processPlayerCount(in);
       case "PlayerList" -> this.processPlayerList(in);

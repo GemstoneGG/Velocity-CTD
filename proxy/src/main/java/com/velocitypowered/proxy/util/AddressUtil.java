@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,9 @@ import java.net.URI;
  */
 public final class AddressUtil {
 
+  /**
+   * The default Minecraft server port, used when none is explicitly specified.
+   */
   private static final int DEFAULT_MINECRAFT_PORT = 25565;
 
   private AddressUtil() {

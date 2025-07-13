@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,14 +61,49 @@ import org.jetbrains.annotations.NotNull;
  */
 public class VelocityServerConnection implements MinecraftConnectionAssociation, ServerConnection {
 
+  /**
+   * The server this connection is targeting.
+   */
   private final VelocityRegisteredServer registeredServer;
+
+  /**
+   * The server the player was previously connected to, if any.
+   */
   private final @Nullable VelocityRegisteredServer previousServer;
+
+  /**
+   * The player using this server connection.
+   */
   private final ConnectedPlayer proxyPlayer;
+
+  /**
+   * The main Velocity server instance.
+   */
   private final VelocityServer server;
+
+  /**
+   * The underlying Minecraft connection to the backend server.
+   */
   private @Nullable MinecraftConnection connection;
+
+  /**
+   * Whether the server connection has fully completed the JoinGame phase.
+   */
   private boolean hasCompletedJoin = false;
+
+  /**
+   * Whether the connection was disconnected gracefully (as opposed to a crash or forced close).
+   */
   private boolean gracefulDisconnect = false;
+
+  /**
+   * The current backend connection phase for this server connection.
+   */
   private BackendConnectionPhase connectionPhase = BackendConnectionPhases.UNKNOWN;
+
+  /**
+   * Pending ping IDs and the time they were sent (used for latency measurement).
+   */
   private final Map<Long, Long> pendingPings = new HashMap<>();
 
   /**
@@ -126,10 +161,11 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
             result.completeExceptionally(future.cause());
           }
         });
+
     return result;
   }
 
-  String getPlayerRemoteAddressAsString() {
+  final String getPlayerRemoteAddressAsString() {
     final String addr = proxyPlayer.getRemoteAddress().getAddress().getHostAddress();
     int ipv6ScopeIdx = addr.indexOf('%');
     if (ipv6ScopeIdx == -1) {
@@ -165,8 +201,8 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     // Initiate the handshake.
     ProtocolVersion protocolVersion = proxyPlayer.getConnection().getProtocolVersion();
     String playerVhost = proxyPlayer.getVirtualHost()
-                .orElseGet(() -> registeredServer.getServerInfo().getAddress())
-                .getHostString();
+        .orElseGet(() -> registeredServer.getServerInfo().getAddress())
+        .getHostString();
 
     HandshakePacket handshake = new HandshakePacket();
     handshake.setIntent(HandshakeIntent.LOGIN);
@@ -180,14 +216,14 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
       handshake.setServerAddress(playerVhost + HANDSHAKE_HOSTNAME_TOKEN);
     } else if (proxyPlayer.getConnection().getType() instanceof ModernForgeConnectionType) {
       handshake.setServerAddress(playerVhost + ((ModernForgeConnectionType) proxyPlayer
-              .getConnection().getType()).getModernToken());
+          .getConnection().getType()).getModernToken());
     } else {
       handshake.setServerAddress(playerVhost);
     }
 
     handshake.setPort(proxyPlayer.getVirtualHost()
-            .orElseGet(() -> registeredServer.getServerInfo().getAddress())
-            .getPort());
+        .orElseGet(() -> registeredServer.getServerInfo().getAddress())
+        .getPort());
     mc.delayedWrite(handshake);
 
     mc.setProtocolVersion(protocolVersion);
@@ -196,12 +232,16 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
         && proxyPlayer.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_19_3)) {
       mc.delayedWrite(new ServerLoginPacket(proxyPlayer.getUsername(), proxyPlayer.getUniqueId()));
     } else {
-      mc.delayedWrite(new ServerLoginPacket(proxyPlayer.getUsername(),
-              proxyPlayer.getIdentifiedKey()));
+      mc.delayedWrite(new ServerLoginPacket(proxyPlayer.getUsername(), proxyPlayer.getIdentifiedKey()));
     }
     mc.flush();
   }
 
+  /**
+   * Gets the current Minecraft connection to the backend server.
+   *
+   * @return the Minecraft connection, or {@code null} if not yet connected
+   */
   public @Nullable MinecraftConnection getConnection() {
     return connection;
   }
@@ -216,26 +256,27 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     if (connection == null) {
       throw new IllegalStateException("Not connected to server!");
     }
+
     return connection;
   }
 
   @Override
-  public VelocityRegisteredServer getServer() {
+  public final VelocityRegisteredServer getServer() {
     return registeredServer;
   }
 
   @Override
-  public Optional<RegisteredServer> getPreviousServer() {
+  public final Optional<RegisteredServer> getPreviousServer() {
     return Optional.ofNullable(this.previousServer);
   }
 
   @Override
-  public ServerInfo getServerInfo() {
+  public final ServerInfo getServerInfo() {
     return registeredServer.getServerInfo();
   }
 
   @Override
-  public ConnectedPlayer getPlayer() {
+  public final ConnectedPlayer getPlayer() {
     return proxyPlayer;
   }
 
@@ -251,18 +292,18 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "[server connection] " + proxyPlayer.getGameProfile().getName() + " -> "
         + registeredServer.getServerInfo().getName();
   }
 
   @Override
-  public boolean sendPluginMessage(final @NotNull ChannelIdentifier identifier, final byte @NotNull [] data) {
+  public final boolean sendPluginMessage(final @NotNull ChannelIdentifier identifier, final byte @NotNull [] data) {
     return sendPluginMessage(identifier, Unpooled.wrappedBuffer(data));
   }
 
   @Override
-  public boolean sendPluginMessage(final @NotNull ChannelIdentifier identifier, final @NotNull PluginMessageEncoder dataEncoder) {
+  public final boolean sendPluginMessage(final @NotNull ChannelIdentifier identifier, final @NotNull PluginMessageEncoder dataEncoder) {
     requireNonNull(identifier);
     requireNonNull(dataEncoder);
     final ByteBuf buf = Unpooled.buffer();
@@ -310,10 +351,17 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     }
   }
 
-  boolean isGracefulDisconnect() {
+  final boolean isGracefulDisconnect() {
     return gracefulDisconnect;
   }
 
+  /**
+   * Gets the map of pending keep-alive pings sent to the backend server.
+   * The map keys represent the ping ID and the values are the timestamps
+   * (in nanoseconds) of when the ping was sent.
+   *
+   * @return the map of pending ping IDs and their send times
+   */
   public Map<Long, Long> getPendingPings() {
     return pendingPings;
   }
@@ -325,8 +373,7 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
    * @return whether the player is online
    */
   public boolean isActive() {
-    return connection != null && !connection.isClosed() && !gracefulDisconnect
-        && proxyPlayer.isActive();
+    return connection != null && !connection.isClosed() && !gracefulDisconnect && proxyPlayer.isActive();
   }
 
   /**

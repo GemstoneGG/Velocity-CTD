@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -37,23 +37,39 @@ import javax.tools.StandardLocation;
 @SupportedAnnotationTypes({"com.velocitypowered.api.plugin.Plugin"})
 public class PluginAnnotationProcessor extends AbstractProcessor {
 
+  /**
+   * The annotation processing environment.
+   *
+   * <p>Used to access utilities for messaging, file generation, and element inspection.</p>
+   */
   private ProcessingEnvironment environment;
+
+  /**
+   * The fully qualified name of the plugin class discovered during processing.
+   *
+   * <p>Only one class annotated with {@link Plugin} is supported. If multiple are present,
+   * a warning is issued and only the first is used.</p>
+   */
   private String pluginClassFound;
+
+  /**
+   * Tracks whether a warning has already been issued for multiple {@link Plugin} annotations.
+   */
   private boolean warnedAboutMultiplePlugins;
 
   @Override
-  public synchronized void init(final ProcessingEnvironment processingEnv) {
+  public final synchronized void init(final ProcessingEnvironment processingEnv) {
     this.environment = processingEnv;
   }
 
   @Override
-  public SourceVersion getSupportedSourceVersion() {
+  public final SourceVersion getSupportedSourceVersion() {
     return SourceVersion.latestSupported();
   }
 
   @Override
-  public synchronized boolean process(final Set<? extends TypeElement> annotations,
-                                      final RoundEnvironment roundEnv) {
+  public final synchronized boolean process(final Set<? extends TypeElement> annotations,
+                                            final RoundEnvironment roundEnv) {
     if (roundEnv.processingOver()) {
       return false;
     }

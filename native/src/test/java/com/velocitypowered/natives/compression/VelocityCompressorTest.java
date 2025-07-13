@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,9 @@ import org.junit.jupiter.api.condition.EnabledOnOs;
 
 class VelocityCompressorTest {
 
+  /**
+   * Test data buffer filled with random bytes for compression testing.
+   */
   private static final byte[] TEST_DATA = new byte[1 << 14];
 
   @BeforeAll

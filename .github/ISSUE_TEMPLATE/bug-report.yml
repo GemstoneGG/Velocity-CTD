@@ -42,8 +42,8 @@ body:
         <summary>Example</summary>
         
         ```
-        [17:44:10 INFO]: Velocity 3.3.0-SNAPSHOT (git-9d25d309-b400)  
-        [17:44:10 INFO]: Copyright 2018-2023 Velocity Contributors. Velocity is licensed under the terms of the GNU General Public License v3.  
+        [17:44:10 INFO]: Velocity 3.4.0-SNAPSHOT (git-81deb1ff-b521)  
+        [17:44:10 INFO]: Copyright 2018-2025 Velocity Contributors. Velocity is licensed under the terms of the GNU General Public License v3.  
         [17:44:10 INFO]: PaperMC - GitHub  
         ```
         </details>

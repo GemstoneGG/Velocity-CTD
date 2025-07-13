@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,31 +34,36 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class UnsignedPlayerCommandPacket extends SessionPlayerCommandPacket {
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     this.command = ProtocolUtils.readString(buf, 256);
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeString(buf, this.command);
   }
 
   @Override
-  public SessionPlayerCommandPacket withLastSeenMessages(@Nullable final LastSeenMessages lastSeenMessages) {
+  public final SessionPlayerCommandPacket withLastSeenMessages(@Nullable final LastSeenMessages lastSeenMessages) {
     return this;
   }
 
+  /**
+   * Returns {@code false}, indicating the packet is not signed.
+   *
+   * @return {@code false}
+   */
   public boolean isSigned() {
     return false;
   }
 
   @Override
-  public CommandExecuteEvent.SignedState getEventSignedState() {
+  public final CommandExecuteEvent.SignedState getEventSignedState() {
     return CommandExecuteEvent.SignedState.UNSIGNED;
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "UnsignedPlayerCommandPacket{"
         + "command='" + command + '\''
         + '}';

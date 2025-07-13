@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -69,14 +69,45 @@ import org.jetbrains.annotations.VisibleForTesting;
  */
 public class VelocityCommandManager implements CommandManager {
 
+  /**
+   * The command dispatcher that holds the full Brigadier command graph.
+   * Guarded by the {@linkplain #lock read/write lock}.
+   */
   private final @GuardedBy("lock") CommandDispatcher<CommandSource> dispatcher;
+
+  /**
+   * The lock guarding concurrent access to {@link #dispatcher}.
+   */
   private final ReadWriteLock lock;
 
+  /**
+   * The event manager used to dispatch command-related events.
+   */
   private final VelocityEventManager eventManager;
+
+  /**
+   * A list of all command registrars supported by the proxy.
+   */
   private final List<CommandRegistrar<?>> registrars;
+
+  /**
+   * The suggestion provider responsible for computing command completions.
+   */
   private final SuggestionsProvider<CommandSource> suggestionsProvider;
+
+  /**
+   * The injector used to dynamically inject a player's command graph.
+   */
   private final CommandGraphInjector<CommandSource> injector;
+
+  /**
+   * A mapping of all known aliases to their corresponding {@link CommandMeta}.
+   */
   private final Map<String, CommandMeta> commandMetas;
+
+  /**
+   * The plugin manager used to retrieve plugin containers and executor services.
+   */
   private final PluginManager pluginManager;
 
   /**
@@ -100,30 +131,38 @@ public class VelocityCommandManager implements CommandManager {
     this.commandMetas = new ConcurrentHashMap<>();
   }
 
-  public void setAnnounceProxyCommands(final boolean announceProxyCommands) {
+  /**
+   * Sets whether the proxy's commands should be suggested to players.
+   *
+   * <p>When {@code false}, suggestions for proxy-level commands will be hidden
+   * from players (e.g., to avoid suggesting `/velocity` to regular users).
+   *
+   * @param announceProxyCommands {@code true} to suggest proxy commands, {@code false} otherwise
+   */
+  public final void setAnnounceProxyCommands(final boolean announceProxyCommands) {
     this.suggestionsProvider.setAnnounceProxyCommands(announceProxyCommands);
   }
 
   @Override
-  public CommandMeta.Builder metaBuilder(final String alias) {
+  public final CommandMeta.Builder metaBuilder(final String alias) {
     Preconditions.checkNotNull(alias, "alias");
     return new VelocityCommandMeta.Builder(alias);
   }
 
   @Override
-  public CommandMeta.Builder metaBuilder(final BrigadierCommand command) {
+  public final CommandMeta.Builder metaBuilder(final BrigadierCommand command) {
     Preconditions.checkNotNull(command, "command");
     return new VelocityCommandMeta.Builder(command.getNode().getName());
   }
 
   @Override
-  public void register(final BrigadierCommand command) {
+  public final void register(final BrigadierCommand command) {
     Preconditions.checkNotNull(command, "command");
     register(metaBuilder(command).build(), command);
   }
 
   @Override
-  public void register(final CommandMeta meta, final Command command) {
+  public final void register(final CommandMeta meta, final Command command) {
     Preconditions.checkNotNull(meta, "meta");
     Preconditions.checkNotNull(command, "command");
 
@@ -156,7 +195,7 @@ public class VelocityCommandManager implements CommandManager {
    * @throws IllegalArgumentException if the registrar cannot register the command
    */
   private <T extends Command> void internalRegister(final CommandRegistrar<T> registrar,
-      final Command command, final CommandMeta meta) {
+                                                    final Command command, final CommandMeta meta) {
     final Class<T> superInterface = registrar.registrableSuperInterface();
     registrar.register(meta, superInterface.cast(command));
     for (String alias : meta.getAliases()) {
@@ -172,11 +211,12 @@ public class VelocityCommandManager implements CommandManager {
         registrarsFound.add(registrar);
       }
     }
+
     return registrarsFound;
   }
 
   @Override
-  public void unregister(final String alias) {
+  public final void unregister(final String alias) {
     Preconditions.checkNotNull(alias, "alias");
     lock.writeLock().lock();
     try {
@@ -190,7 +230,7 @@ public class VelocityCommandManager implements CommandManager {
   }
 
   @Override
-  public void unregister(final CommandMeta meta) {
+  public final void unregister(final CommandMeta meta) {
     Preconditions.checkNotNull(meta, "meta");
     lock.writeLock().lock();
     try {
@@ -208,7 +248,7 @@ public class VelocityCommandManager implements CommandManager {
   }
 
   @Override
-  public @Nullable CommandMeta getCommandMeta(final String alias) {
+  public final @Nullable CommandMeta getCommandMeta(final String alias) {
     Preconditions.checkNotNull(alias, "alias");
     return commandMetas.get(alias);
   }
@@ -222,7 +262,7 @@ public class VelocityCommandManager implements CommandManager {
    * @return the {@link CompletableFuture} of the event
    */
   public CompletableFuture<CommandExecuteEvent> callCommandEvent(final CommandSource source,
-      final String cmdLine, final CommandExecuteEvent.InvocationInfo invocationInfo) {
+                                                                 final String cmdLine, final CommandExecuteEvent.InvocationInfo invocationInfo) {
     Preconditions.checkNotNull(source, "source");
     Preconditions.checkNotNull(cmdLine, "cmdLine");
     return eventManager.fire(new CommandExecuteEvent(source, cmdLine, invocationInfo));
@@ -247,6 +287,7 @@ public class VelocityCommandManager implements CommandManager {
         } else {
           source.sendMessage(Component.text(e.getMessage(), NamedTextColor.RED));
         }
+
         result = com.velocitypowered.api.command.CommandResult.SYNTAX_ERROR;
         // This is, of course, a lie, but the API will need to change...
         return true;
@@ -264,7 +305,7 @@ public class VelocityCommandManager implements CommandManager {
   }
 
   @Override
-  public CompletableFuture<Boolean> executeAsync(final CommandSource source, final String cmdLine) {
+  public final CompletableFuture<Boolean> executeAsync(final CommandSource source, final String cmdLine) {
     Preconditions.checkNotNull(source, "source");
     Preconditions.checkNotNull(cmdLine, "cmdLine");
 
@@ -280,20 +321,18 @@ public class VelocityCommandManager implements CommandManager {
       }
       final ParseResults<CommandSource> parsed = this.parse(
           commandResult.getCommand().orElse(cmdLine), source);
-      return CompletableFuture.supplyAsync(
-          () -> executeImmediately0(source, parsed), this.getAsyncExecutor(parsed)
+      return CompletableFuture.supplyAsync(() -> executeImmediately0(source, parsed), this.getAsyncExecutor(parsed)
       );
     }, figureAsyncExecutorForParsing());
   }
 
   @Override
-  public CompletableFuture<Boolean> executeImmediatelyAsync(
+  public final CompletableFuture<Boolean> executeImmediatelyAsync(
       final CommandSource source, final String cmdLine) {
     Preconditions.checkNotNull(source, "source");
     Preconditions.checkNotNull(cmdLine, "cmdLine");
 
-    return CompletableFuture.supplyAsync(
-        () -> this.parse(cmdLine, source), figureAsyncExecutorForParsing()
+    return CompletableFuture.supplyAsync(() -> this.parse(cmdLine, source), figureAsyncExecutorForParsing()
     ).thenCompose(
         parsed -> CompletableFuture.supplyAsync(
             () -> executeImmediately0(source, parsed), this.getAsyncExecutor(parsed)
@@ -302,15 +341,13 @@ public class VelocityCommandManager implements CommandManager {
   }
 
   @Override
-  public CompletableFuture<List<String>> offerSuggestions(final CommandSource source,
-      final String cmdLine) {
+  public final CompletableFuture<List<String>> offerSuggestions(final CommandSource source, final String cmdLine) {
     return offerBrigadierSuggestions(source, cmdLine)
         .thenApply(suggestions -> Lists.transform(suggestions.getList(), Suggestion::getText));
   }
 
   @Override
-  public CompletableFuture<Suggestions> offerBrigadierSuggestions(
-      final CommandSource source, final String cmdLine) {
+  public final CompletableFuture<Suggestions> offerBrigadierSuggestions(final CommandSource source, final String cmdLine) {
     Preconditions.checkNotNull(source, "source");
     Preconditions.checkNotNull(cmdLine, "cmdLine");
 
@@ -320,8 +357,7 @@ public class VelocityCommandManager implements CommandManager {
     } catch (final Throwable e) {
       // Again, plugins are naughty
       return CompletableFuture.failedFuture(
-          new RuntimeException("Unable to provide suggestions for " + cmdLine + " for " + source,
-              e));
+          new RuntimeException("Unable to provide suggestions for " + cmdLine + " for " + source, e));
     }
   }
 
@@ -343,7 +379,7 @@ public class VelocityCommandManager implements CommandManager {
   }
 
   @Override
-  public Collection<String> getAliases() {
+  public final Collection<String> getAliases() {
     lock.readLock().lock();
     try {
       // A RootCommandNode may only contain LiteralCommandNode children instances
@@ -356,28 +392,39 @@ public class VelocityCommandManager implements CommandManager {
   }
 
   @Override
-  public boolean hasCommand(final String alias) {
+  public final boolean hasCommand(final String alias) {
     return getCommand(alias) != null;
   }
 
   @Override
-  public boolean hasCommand(final String alias, final CommandSource source) {
+  public final boolean hasCommand(final String alias, final CommandSource source) {
     Preconditions.checkNotNull(source, "source");
     CommandNode<CommandSource> command = getCommand(alias);
     return command != null && command.canUse(source);
   }
 
-  public CommandNode<CommandSource> getCommand(final String alias) {
+  /**
+   * Gets the command node associated with the given alias.
+   *
+   * @param alias the command alias to look up
+   * @return the command node, or {@code null} if none exists
+   */
+  public final CommandNode<CommandSource> getCommand(final String alias) {
     Preconditions.checkNotNull(alias, "alias");
     return dispatcher.getRoot().getChild(alias.toLowerCase(Locale.ENGLISH));
   }
 
   @VisibleForTesting // this constitutes unsafe publication
-  RootCommandNode<CommandSource> getRoot() {
+  final RootCommandNode<CommandSource> getRoot() {
     return dispatcher.getRoot();
   }
 
-  public CommandGraphInjector<CommandSource> getInjector() {
+  /**
+   * Returns the {@link CommandGraphInjector} used to populate per-source command trees.
+   *
+   * @return the command graph injector
+   */
+  public final CommandGraphInjector<CommandSource> getInjector() {
     return injector;
   }
 
@@ -388,6 +435,7 @@ public class VelocityCommandManager implements CommandManager {
     } else {
       registrant = VelocityVirtualPlugin.INSTANCE;
     }
+
     return pluginManager.ensurePluginContainer(registrant).getExecutorService();
   }
 

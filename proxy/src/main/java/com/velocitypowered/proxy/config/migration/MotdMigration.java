@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@ import org.apache.logging.log4j.Logger;
  * Migrates MOTD builtin configuration from legacy or JSON format to MiniMessage.
  */
 public final class MotdMigration implements ConfigurationMigration {
+
   @Override
   public boolean shouldMigrate(final CommentedFileConfig config) {
     return configVersion(config) < 2.6;
@@ -47,7 +48,6 @@ public final class MotdMigration implements ConfigurationMigration {
     }
 
     config.set("motd", migratedMotd);
-
     config.setComment("motd",
             " What should be the MOTD? This gets displayed when the player adds your server to\n"
                     + " their server list. Only MiniMessage format is accepted.");

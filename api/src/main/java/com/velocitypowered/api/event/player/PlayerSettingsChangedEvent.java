@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -19,7 +19,14 @@ import com.velocitypowered.api.proxy.player.PlayerSettings;
  */
 public final class PlayerSettingsChangedEvent {
 
+  /**
+   * The player whose client settings have changed.
+   */
   private final Player player;
+
+  /**
+   * The new client settings sent by the player.
+   */
   private final PlayerSettings playerSettings;
 
   /**

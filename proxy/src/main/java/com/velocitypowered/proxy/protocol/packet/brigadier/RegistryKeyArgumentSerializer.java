@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,15 +29,18 @@ import io.netty.buffer.ByteBuf;
  */
 public class RegistryKeyArgumentSerializer implements ArgumentPropertySerializer<RegistryKeyArgument> {
 
+  /**
+   * A shared singleton instance of {@code RegistryKeyArgumentSerializer}.
+   */
   static final RegistryKeyArgumentSerializer REGISTRY = new RegistryKeyArgumentSerializer();
 
   @Override
-  public RegistryKeyArgument deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
+  public final RegistryKeyArgument deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
     return new RegistryKeyArgument(ProtocolUtils.readString(buf));
   }
 
   @Override
-  public void serialize(final RegistryKeyArgument object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
+  public final void serialize(final RegistryKeyArgument object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeString(buf, object.getIdentifier());
   }
 }

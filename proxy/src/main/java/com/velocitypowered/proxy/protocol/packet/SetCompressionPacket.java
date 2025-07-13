@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,42 +29,67 @@ import io.netty.buffer.ByteBuf;
  */
 public class SetCompressionPacket implements MinecraftPacket {
 
+  /**
+   * The compression threshold in bytes.
+   *
+   * <p>Any packets larger than this threshold will be compressed.</p>
+   */
   private int threshold;
 
+  /**
+   * Constructs an empty {@code SetCompressionPacket}.
+   *
+   * <p>Fields must be populated before encoding.</p>
+   */
   public SetCompressionPacket() {
   }
 
+  /**
+   * Constructs a {@code SetCompressionPacket} with the given compression threshold.
+   *
+   * @param threshold the compression threshold in bytes
+   */
   public SetCompressionPacket(final int threshold) {
     this.threshold = threshold;
   }
 
+  /**
+   * Gets the compression threshold value.
+   *
+   * @return the compression threshold in bytes
+   */
   public int getThreshold() {
     return threshold;
   }
 
+  /**
+   * Sets the compression threshold value.
+   *
+   * @param threshold the compression threshold in bytes
+   */
   public void setThreshold(final int threshold) {
     this.threshold = threshold;
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "SetCompression{"
         + "threshold=" + threshold
         + '}';
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     this.threshold = ProtocolUtils.readVarInt(buf);
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     ProtocolUtils.writeVarInt(buf, threshold);
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

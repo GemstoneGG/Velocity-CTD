@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,9 +37,19 @@ import org.junit.jupiter.api.BeforeEach;
 
 abstract class CommandTestSuite {
 
+  /**
+   * Shared mock event manager used for command registration and dispatch during tests.
+   */
   private static VelocityEventManager eventManager;
 
+  /**
+   * The command manager under test, re-initialized before each test method.
+   */
   protected VelocityCommandManager manager;
+
+  /**
+   * The default {@link CommandSource} used when executing test commands.
+   */
   protected final CommandSource source = MockCommandSource.INSTANCE;
 
   @BeforeAll

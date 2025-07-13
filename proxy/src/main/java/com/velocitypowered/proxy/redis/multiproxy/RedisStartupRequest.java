@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,10 @@ import com.velocitypowered.proxy.redis.RedisPacket;
  * @param proxyId The ID of the proxy.
  */
 public record RedisStartupRequest(String proxyId) implements RedisPacket {
+
+  /**
+   * The unique Redis packet identifier for a proxy startup announcement.
+   */
   public static final String ID = "redis-startup";
 
   @Override

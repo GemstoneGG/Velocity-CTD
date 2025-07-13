@@ -6,7 +6,7 @@ Compression is based on the `libdeflate` library, which is wire-compatible with 
 
 Encryption is based on OpenSSL for Linux, which is the most widely-used encryption library in the world.
 OpenSSL has had several different ABIs over the years, so we provide multiple versions of the native
-library. Currently we compile against OpenSSL 1.1.x and OpenSSL 3.x.x. For macOS, we use the built-in
+library. Currently, we compile against OpenSSL 1.1.x and OpenSSL 3.x.x. For macOS, we use the built-in
 CommonCrypto library.
 
 ## Supported Platforms

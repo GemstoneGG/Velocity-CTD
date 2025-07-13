@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,13 +34,43 @@ import org.jetbrains.annotations.NotNull;
  */
 public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
 
+  /**
+   * Enables debug logging for packet decode failures.
+   */
   public static final boolean DEBUG = Boolean.getBoolean("velocity.packet-decode-logging");
+
+  /**
+   * Shared quiet exception thrown when a packet decode fails and debug is disabled.
+   */
   private static final QuietRuntimeException DECODE_FAILED =
       new QuietRuntimeException("A packet did not decode successfully (invalid data). For more "
           + "information, launch Velocity with -Dvelocity.packet-decode-logging=true to see more.");
 
+  /**
+   * The direction of the packet flow this decoder is handling.
+   *
+   * <p>This defines whether packets are being decoded in the {@code SERVERBOUND}
+   * or {@code CLIENTBOUND} direction, and is used to resolve the correct
+   * {@link StateRegistry.PacketRegistry} for decoding.</p>
+   */
   private final ProtocolUtils.Direction direction;
+
+  /**
+   * The current connection state this decoder is operating under.
+   *
+   * <p>This state affects which packet types are expected and how they
+   * are decoded. States typically include {@code HANDSHAKE}, {@code STATUS},
+   * {@code LOGIN}, and {@code PLAY}.</p>
+   */
   private StateRegistry state;
+
+  /**
+   * The active protocol registry for the current state and direction.
+   *
+   * <p>This registry provides packet ID mappings and decoder constructors
+   * for the selected {@link ProtocolVersion} in the current {@link #state}
+   * and {@link #direction}.</p>
+   */
   private StateRegistry.PacketRegistry.ProtocolRegistry registry;
 
   /**
@@ -50,13 +80,12 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
    */
   public MinecraftDecoder(final ProtocolUtils.Direction direction) {
     this.direction = Preconditions.checkNotNull(direction, "direction");
-    this.registry = StateRegistry.HANDSHAKE.getProtocolRegistry(
-        direction, ProtocolVersion.MINIMUM_VERSION);
+    this.registry = StateRegistry.HANDSHAKE.getProtocolRegistry(direction, ProtocolVersion.MINIMUM_VERSION);
     this.state = StateRegistry.HANDSHAKE;
   }
 
   @Override
-  public void channelRead(@NotNull final ChannelHandlerContext ctx, @NotNull final Object msg) throws Exception {
+  public final void channelRead(@NotNull final ChannelHandlerContext ctx, @NotNull final Object msg) throws Exception {
     if (msg instanceof ByteBuf buf) {
       tryDecode(ctx, buf);
     } else {
@@ -89,6 +118,7 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
         if (buf.isReadable()) {
           throw handleOverflow(packet, buf.readerIndex(), buf.writerIndex());
         }
+
         ctx.fireChannelRead(packet);
       } finally {
         buf.release();
@@ -102,6 +132,7 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
     if (expectedMaxLen != -1 && buf.readableBytes() > expectedMaxLen) {
       throw handleOverflow(packet, expectedMaxLen, buf.readableBytes());
     }
+
     if (buf.readableBytes() < expectedMinLen) {
       throw handleUnderflow(packet, expectedMaxLen, buf.readableBytes());
     }
@@ -139,15 +170,30 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
         + " ID 0x" + Integer.toHexString(packetId);
   }
 
+  /**
+   * Sets the protocol version used to look up packet codecs.
+   *
+   * @param protocolVersion the new protocol version
+   */
   public void setProtocolVersion(final ProtocolVersion protocolVersion) {
     this.registry = state.getProtocolRegistry(direction, protocolVersion);
   }
 
+  /**
+   * Sets the current protocol state and updates the packet registry.
+   *
+   * @param state the new connection state
+   */
   public void setState(final StateRegistry state) {
     this.state = state;
     this.setProtocolVersion(registry.version);
   }
 
+  /**
+   * Gets the packet direction handled by this decoder.
+   *
+   * @return the decode direction
+   */
   public ProtocolUtils.Direction getDirection() {
     return direction;
   }

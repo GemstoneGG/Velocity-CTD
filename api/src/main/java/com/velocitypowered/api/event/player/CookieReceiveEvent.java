@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -24,9 +24,24 @@ import org.jetbrains.annotations.Nullable;
 @AwaitingEvent
 public final class CookieReceiveEvent implements ResultedEvent<CookieReceiveEvent.ForwardResult> {
 
+  /**
+   * The player who sent the cookie response.
+   */
   private final Player player;
+
+  /**
+   * The original identifier of the cookie sent by the client.
+   */
   private final Key originalKey;
+
+  /**
+   * The original cookie payload sent by the client, or {@code null} if not present.
+   */
   private final byte @Nullable [] originalData;
+
+  /**
+   * The result determining how the cookie should be handled.
+   */
   private ForwardResult result;
 
   /**
@@ -94,11 +109,29 @@ public final class CookieReceiveEvent implements ResultedEvent<CookieReceiveEven
    */
   public static final class ForwardResult implements ResultedEvent.Result {
 
+    /**
+     * A result indicating the cookie should be forwarded to the backend server unchanged.
+     */
     private static final ForwardResult ALLOWED = new ForwardResult(true, null, null);
+
+    /**
+     * A result indicating the cookie has been handled by the proxy and should not be forwarded.
+     */
     private static final ForwardResult DENIED = new ForwardResult(false, null, null);
 
+    /**
+     * Whether the cookie should be forwarded to the backend server.
+     */
     private final boolean status;
+
+    /**
+     * A replacement key to forward, or {@code null} to use the original key.
+     */
     private final Key key;
+
+    /**
+     * A replacement payload to forward, or {@code null} to use the original data.
+     */
     private final byte[] data;
 
     private ForwardResult(final boolean status, final Key key, final byte[] data) {

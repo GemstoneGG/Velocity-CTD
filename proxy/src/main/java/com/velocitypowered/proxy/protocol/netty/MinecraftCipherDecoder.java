@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,14 +30,26 @@ import java.util.List;
  */
 public class MinecraftCipherDecoder extends MessageToMessageDecoder<ByteBuf> {
 
+  /**
+   * The {@link VelocityCipher} used to decrypt incoming {@link ByteBuf} packets.
+   *
+   * <p>This cipher performs symmetric decryption and is closed when the handler is removed
+   * from the Netty pipeline.</p>
+   */
   private final VelocityCipher cipher;
 
+  /**
+   * Constructs a new {@code MinecraftCipherDecoder} using the specified {@link VelocityCipher}.
+   *
+   * @param cipher the cipher to use for decrypting incoming packets
+   * @throws NullPointerException if {@code cipher} is {@code null}
+   */
   public MinecraftCipherDecoder(final VelocityCipher cipher) {
     this.cipher = Preconditions.checkNotNull(cipher, "cipher");
   }
 
   @Override
-  protected void decode(final ChannelHandlerContext ctx, final ByteBuf in, final List<Object> out) throws Exception {
+  protected final void decode(final ChannelHandlerContext ctx, final ByteBuf in, final List<Object> out) throws Exception {
     ByteBuf compatible = MoreByteBufUtils.ensureCompatible(ctx.alloc(), cipher, in).slice();
     try {
       cipher.process(compatible);
@@ -49,7 +61,7 @@ public class MinecraftCipherDecoder extends MessageToMessageDecoder<ByteBuf> {
   }
 
   @Override
-  public void handlerRemoved(final ChannelHandlerContext ctx) {
+  public final void handlerRemoved(final ChannelHandlerContext ctx) {
     cipher.close();
   }
 }

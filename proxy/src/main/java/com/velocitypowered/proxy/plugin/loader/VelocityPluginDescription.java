@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,13 +36,44 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class VelocityPluginDescription implements PluginDescription {
 
+  /**
+   * The plugin's unique ID.
+   */
   private final String id;
+
+  /**
+   * The human-readable name of the plugin.
+   */
   private final @Nullable String name;
+
+  /**
+   * The plugin's version.
+   */
   private final @Nullable String version;
+
+  /**
+   * A short description of the plugin.
+   */
   private final @Nullable String description;
+
+  /**
+   * The plugin's website or documentation URL.
+   */
   private final @Nullable String url;
+
+  /**
+   * The list of plugin authors.
+   */
   private final List<String> authors;
+
+  /**
+   * The plugin's declared dependencies, indexed by their ID.
+   */
   private final Map<String, PluginDependency> dependencies;
+
+  /**
+   * The path to the source file the plugin was loaded from.
+   */
   private final Path source;
 
   /**
@@ -71,52 +102,52 @@ public class VelocityPluginDescription implements PluginDescription {
   }
 
   @Override
-  public String getId() {
+  public final String getId() {
     return id;
   }
 
   @Override
-  public Optional<String> getName() {
+  public final Optional<String> getName() {
     return Optional.ofNullable(name);
   }
 
   @Override
-  public Optional<String> getVersion() {
+  public final Optional<String> getVersion() {
     return Optional.ofNullable(version);
   }
 
   @Override
-  public Optional<String> getDescription() {
+  public final Optional<String> getDescription() {
     return Optional.ofNullable(description);
   }
 
   @Override
-  public Optional<String> getUrl() {
+  public final Optional<String> getUrl() {
     return Optional.ofNullable(url);
   }
 
   @Override
-  public List<String> getAuthors() {
+  public final List<String> getAuthors() {
     return authors;
   }
 
   @Override
-  public Collection<PluginDependency> getDependencies() {
+  public final Collection<PluginDependency> getDependencies() {
     return dependencies.values();
   }
 
   @Override
-  public Optional<PluginDependency> getDependency(final String id) {
+  public final Optional<PluginDependency> getDependency(final String id) {
     return Optional.ofNullable(dependencies.get(id));
   }
 
   @Override
-  public Optional<Path> getSource() {
+  public final Optional<Path> getSource() {
     return Optional.ofNullable(source);
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "VelocityPluginDescription{"
         + "proxyId='" + id + '\''
         + ", name='" + name + '\''

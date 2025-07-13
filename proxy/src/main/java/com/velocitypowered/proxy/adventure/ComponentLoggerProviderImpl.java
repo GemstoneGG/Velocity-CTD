@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,15 +31,19 @@ import org.slf4j.LoggerFactory;
 @AutoService(ComponentLoggerProvider.class)
 @SuppressWarnings("UnstableApiUsage")
 public final class ComponentLoggerProviderImpl implements ComponentLoggerProvider {
+
+  /**
+   * An ANSI component serializer configured with Velocity’s {@link TranslatableMapper} flattener.
+   *
+   * <p>Used to convert Adventure {@link net.kyori.adventure.text.Component}s to ANSI-encoded
+   * strings for output to the console or logging systems.</p>
+   */
   private static final ANSIComponentSerializer SERIALIZER = ANSIComponentSerializer.builder()
           .flattener(TranslatableMapper.FLATTENER)
           .build();
 
   @Override
-  public @NotNull ComponentLogger logger(
-          final @NotNull LoggerHelper helper,
-          final @NotNull String name
-  ) {
+  public @NotNull ComponentLogger logger(final @NotNull LoggerHelper helper, final @NotNull String name) {
     return helper.delegating(LoggerFactory.getLogger(name), SERIALIZER::serialize);
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@ import com.velocitypowered.api.proxy.crypto.IdentifiedKey;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
+import com.velocitypowered.proxy.protocol.packet.chat.ChatHandler;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -37,21 +38,36 @@ import org.apache.logging.log4j.Logger;
  * messages that keys identify. It implements the required interface or class
  * to handle key-based chat processing.</p>
  */
-public class KeyedChatHandler implements
-    com.velocitypowered.proxy.protocol.packet.chat.ChatHandler<KeyedPlayerChatPacket> {
+public class KeyedChatHandler implements ChatHandler<KeyedPlayerChatPacket> {
 
+  /**
+   * Logger instance for reporting chat handling errors, warnings, and plugin violations.
+   */
   private static final Logger logger = LogManager.getLogger(KeyedChatHandler.class);
 
+  /**
+   * The Velocity server instance used to access configuration and event systems.
+   */
   private final VelocityServer server;
+
+  /**
+   * The player associated with this chat handler instance.
+   */
   private final ConnectedPlayer player;
 
+  /**
+   * Constructs a new {@code KeyedChatHandler} for the given server and player.
+   *
+   * @param server the Velocity server instance
+   * @param player the player this handler is associated with
+   */
   public KeyedChatHandler(final VelocityServer server, final ConnectedPlayer player) {
     this.server = server;
     this.player = player;
   }
 
   @Override
-  public Class<KeyedPlayerChatPacket> packetClass() {
+  public final Class<KeyedPlayerChatPacket> packetClass() {
     return KeyedPlayerChatPacket.class;
   }
 
@@ -90,7 +106,7 @@ public class KeyedChatHandler implements
   }
 
   @Override
-  public void handlePlayerChatInternal(final KeyedPlayerChatPacket packet) {
+  public final void handlePlayerChatInternal(final KeyedPlayerChatPacket packet) {
     ChatQueue chatQueue = this.player.getChatQueue();
     EventManager eventManager = this.server.getEventManager();
     PlayerChatEvent toSend = new PlayerChatEvent(player, packet.getMessage());
@@ -120,8 +136,7 @@ public class KeyedChatHandler implements
           logger.error("Exception while handling player chat for {}", player, ex);
           return null;
         }),
-        packet.getExpiry(),
-        null
+        packet.getExpiry(), null
     );
   }
 
@@ -135,6 +150,7 @@ public class KeyedChatHandler implements
           // Bad, very bad.
           invalidCancel(logger, player);
         }
+
         return null;
       }
 
@@ -150,6 +166,7 @@ public class KeyedChatHandler implements
               .toServer();
         }
       }
+
       return packet;
     };
   }

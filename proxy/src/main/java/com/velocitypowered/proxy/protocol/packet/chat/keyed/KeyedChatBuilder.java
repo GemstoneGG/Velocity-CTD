@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,19 +34,24 @@ import net.kyori.adventure.text.Component;
  */
 public class KeyedChatBuilder extends ChatBuilderV2 {
 
+  /**
+   * Constructs a new {@code KeyedChatBuilder} for the given protocol version.
+   *
+   * @param version the protocol version this builder targets
+   */
   public KeyedChatBuilder(final ProtocolVersion version) {
     super(version);
   }
 
   @Override
-  public MinecraftPacket toClient() {
-    // This is temporary
+  public final MinecraftPacket toClient() {
+    // This is temporary (but doesn't seem so temporary)
     Component msg = component == null ? Component.text(message) : component;
     return new SystemChatPacket(new ComponentHolder(version, msg), type == ChatType.CHAT ? ChatType.SYSTEM : type);
   }
 
   @Override
-  public MinecraftPacket toServer() {
+  public final MinecraftPacket toServer() {
     if (message.startsWith("/")) {
       return new KeyedPlayerCommandPacket(message.substring(1), ImmutableList.of(), timestamp);
     } else {

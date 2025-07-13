@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,10 +29,30 @@ import java.util.concurrent.ConcurrentLinkedDeque;
  * Represents a serializable queue.
  */
 public class SerializableQueue {
+
+  /**
+   * The serialized queue entries representing players currently in the queue.
+   */
   private final Deque<SerializableQueueEntry> queue = new ConcurrentLinkedDeque<>();
+
+  /**
+   * The name of the server this queue belongs to.
+   */
   private final String serverName;
+
+  /**
+   * The online status of the server when the queue was serialized.
+   */
   private final ServerStatus online;
+
+  /**
+   * Indicates whether the queue is full at the time of serialization.
+   */
   private final boolean full;
+
+  /**
+   * Indicates whether the queue is currently paused.
+   */
   private final boolean paused;
 
   /**
@@ -41,14 +61,13 @@ public class SerializableQueue {
    * @param status The real queue.
    */
   public SerializableQueue(final ServerQueueStatus status) {
-    status.getQueue().forEach(e -> {
-      queue.add(new SerializableQueueEntry(e.getPlayer(),
-          e.getConnectionAttempts(),
-          e.isWaitingForConnection(),
-          e.getPriority(),
-          e.isFullBypass(),
-          e.isQueueBypass()));
-    });
+    status.getQueue().forEach(e -> queue.add(new SerializableQueueEntry(e.getPlayer(),
+        e.getConnectionAttempts(),
+        e.isWaitingForConnection(),
+        e.getPriority(),
+        e.isFullBypass(),
+        e.isQueueBypass())));
+
     online = status.getStatus();
     this.full = status.isFull();
     this.paused = status.isPaused();
@@ -65,16 +84,14 @@ public class SerializableQueue {
   public ServerQueueStatus convert(final VelocityServer proxy,
                                    final VelocityRegisteredServer server) {
     final Deque<ServerQueueEntry> entries = new ConcurrentLinkedDeque<>();
-    queue.forEach(q -> {
-      entries.add(new ServerQueueEntry(q.getUuid(),
-          server,
-          proxy,
-          q.getConnectionAttempts(),
-          q.isWaitingForConnection(),
-          q.getPriority(),
-          q.isFullBypass(),
-          q.isQueueBypass()));
-    });
+    queue.forEach(q -> entries.add(new ServerQueueEntry(q.uuid(),
+        server,
+        proxy,
+        q.connectionAttempts(),
+        q.waitingForConnection(),
+        q.priority(),
+        q.fullBypass(),
+        q.queueBypass())));
     return new ServerQueueStatus(server, proxy, entries, online, full, paused);
   }
 

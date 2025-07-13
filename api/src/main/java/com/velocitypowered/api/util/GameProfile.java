@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -17,9 +17,24 @@ import java.util.UUID;
  */
 public final class GameProfile {
 
+  /**
+   * The UUID of the profile.
+   */
   private final UUID id;
+
+  /**
+   * The Mojang-style undashed UUID (32-character lowercase hex string).
+   */
   private final String undashedId;
+
+  /**
+   * The player's username.
+   */
   private final String name;
+
+  /**
+   * The list of Mojang properties (e.g., skin data) associated with the profile.
+   */
   private final List<Property> properties;
 
   /**
@@ -183,8 +198,19 @@ public final class GameProfile {
    */
   public static final class Property {
 
+    /**
+     * The name of the property (e.g., "textures").
+     */
     private final String name;
+
+    /**
+     * The Base64-encoded value of the property.
+     */
     private final String value;
+
+    /**
+     * The Mojang-signed signature of the property value.
+     */
     private final String signature;
 
     /**

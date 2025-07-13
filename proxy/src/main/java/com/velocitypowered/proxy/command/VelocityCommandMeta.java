@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,14 +40,24 @@ public final class VelocityCommandMeta implements CommandMeta {
 
   static final class Builder implements CommandMeta.Builder {
 
+    /**
+     * Builder for the command aliases, in lowercase.
+     */
     private final ImmutableSet.Builder<String> aliases;
+
+    /**
+     * Builder for the hint nodes to attach to this command.
+     */
     private final ImmutableList.Builder<CommandNode<CommandSource>> hints;
+
+    /**
+     * The plugin associated with the command, or {@code null} if not set.
+     */
     private @MonotonicNonNull Object plugin;
 
     Builder(final String alias) {
       Preconditions.checkNotNull(alias, "alias");
-      this.aliases = ImmutableSet.<String>builder()
-          .add(alias.toLowerCase(Locale.ENGLISH));
+      this.aliases = ImmutableSet.<String>builder().add(alias.toLowerCase(Locale.ENGLISH));
       this.hints = ImmutableList.builder();
       this.plugin = null;
     }
@@ -60,6 +70,7 @@ public final class VelocityCommandMeta implements CommandMeta {
         Preconditions.checkNotNull(alias, "alias at index %s", i);
         this.aliases.add(alias.toLowerCase(Locale.ENGLISH));
       }
+
       return this;
     }
 
@@ -69,9 +80,11 @@ public final class VelocityCommandMeta implements CommandMeta {
       if (node.getCommand() != null) {
         throw new IllegalArgumentException("Cannot use executable node for hinting");
       }
+
       if (node.getRedirect() != null) {
         throw new IllegalArgumentException("Cannot use a node with a redirect for hinting");
       }
+
       this.hints.add(node);
       return this;
     }
@@ -109,6 +122,7 @@ public final class VelocityCommandMeta implements CommandMeta {
     for (final CommandNode<CommandSource> child : hint.getChildren()) {
       builder.then(copyForHinting(child));
     }
+
     return builder.build();
   }
 
@@ -123,15 +137,24 @@ public final class VelocityCommandMeta implements CommandMeta {
     return meta.getHints().stream().map(VelocityCommandMeta::copyForHinting);
   }
 
+  /**
+   * The set of all command aliases associated with this command, stored in lowercase.
+   */
   private final Set<String> aliases;
+
+  /**
+   * A list of Brigadier nodes used for providing suggestions (hints) to clients.
+   */
   private final List<CommandNode<CommandSource>> hints;
+
+  /**
+   * The plugin that registered the command, or {@code null} if unknown.
+   */
   private final Object plugin;
 
-  private VelocityCommandMeta(
-      final Set<String> aliases,
-      final List<CommandNode<CommandSource>> hints,
-      final @Nullable Object plugin
-  ) {
+  private VelocityCommandMeta(final Set<String> aliases,
+                              final List<CommandNode<CommandSource>> hints,
+                              final @Nullable Object plugin) {
     this.aliases = aliases;
     this.hints = hints;
     this.plugin = plugin;
@@ -157,6 +180,7 @@ public final class VelocityCommandMeta implements CommandMeta {
     if (this == o) {
       return true;
     }
+
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
@@ -166,6 +190,7 @@ public final class VelocityCommandMeta implements CommandMeta {
     if (!this.aliases.equals(that.aliases)) {
       return false;
     }
+
     return this.hints.equals(that.hints);
   }
 

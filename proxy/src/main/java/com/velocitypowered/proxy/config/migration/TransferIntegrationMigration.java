@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ import org.apache.logging.log4j.Logger;
  * Creation of the configuration option "accepts-transfers".
  */
 public final class TransferIntegrationMigration implements ConfigurationMigration {
+
   @Override
   public boolean shouldMigrate(final CommentedFileConfig config) {
     return configVersion(config) < 2.7;

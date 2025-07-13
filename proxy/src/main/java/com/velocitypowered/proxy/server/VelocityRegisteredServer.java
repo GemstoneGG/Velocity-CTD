@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -75,8 +75,21 @@ import org.jetbrains.annotations.NotNull;
  */
 public class VelocityRegisteredServer implements RegisteredServer, ForwardingAudience {
 
+  /**
+   * The Velocity server instance associated with this registered server,
+   * or {@code null} if constructed without full proxy context (e.g., testing).
+   */
   private final @Nullable VelocityServer server;
+
+  /**
+   * The information identifying this backend server, including name and address.
+   */
   private final ServerInfo serverInfo;
+
+  /**
+   * The players currently connected to this server from this proxy instance,
+   * indexed by their UUIDs.
+   */
   private final Map<UUID, ConnectedPlayer> players = new ConcurrentHashMap<>();
 
   /**
@@ -91,17 +104,17 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
   }
 
   @Override
-  public ServerInfo getServerInfo() {
+  public final ServerInfo getServerInfo() {
     return serverInfo;
   }
 
   @Override
-  public Collection<Player> getPlayersConnected() {
+  public final Collection<Player> getPlayersConnected() {
     return ImmutableList.copyOf(players.values());
   }
 
   @Override
-  public long getTotalPlayerCount() {
+  public final long getTotalPlayerCount() {
     if (this.server.getMultiProxyHandler().isRedisEnabled()) {
       int amount = 0;
 
@@ -118,7 +131,7 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
   }
 
   @Override
-  public List<PlayerInfo> getPlayerInfo() {
+  public final List<PlayerInfo> getPlayerInfo() {
     if (this.server == null || !this.server.getMultiProxyHandler().isRedisEnabled()) {
       List<PlayerInfo> info = new ArrayList<>();
       players.forEach((uuid, player) -> info.add(new PlayerInfo(player.getUsername(), player.getUniqueId())));
@@ -135,21 +148,34 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
     return info;
   }
 
+  /**
+   * Returns the number of players currently connected to this server
+   * from this proxy instance only (does not include Redis-based players).
+   *
+   * @return the local player count
+   */
   public long getPlayerCount() {
     return this.players.size();
   }
 
+  /**
+   * Gets the {@link ConnectedPlayer} associated with the given UUID
+   * on this registered server.
+   *
+   * @param uuid the UUID of the player
+   * @return the connected player, or {@code null} if not found
+   */
   public ConnectedPlayer getPlayer(final UUID uuid) {
     return players.get(uuid);
   }
 
   @Override
-  public CompletableFuture<ServerPing> ping(final PingOptions pingOptions) {
+  public final CompletableFuture<ServerPing> ping(final PingOptions pingOptions) {
     return ping(null, pingOptions);
   }
 
   @Override
-  public CompletableFuture<ServerPing> ping() {
+  public final CompletableFuture<ServerPing> ping() {
     return ping(null, PingOptions.DEFAULT);
   }
 
@@ -165,6 +191,7 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
     if (server == null) {
       throw new IllegalStateException("No Velocity proxy instance available");
     }
+
     CompletableFuture<ServerPing> pingFuture = new CompletableFuture<>();
     server.createBootstrap(loop).handler(new ChannelInitializer<>() {
       @Override
@@ -190,26 +217,37 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
         pingFuture.completeExceptionally(future.cause());
       }
     });
+
     return pingFuture;
   }
 
+  /**
+   * Adds the specified player to this server's local player list.
+   *
+   * @param player the player to add
+   */
   public void addPlayer(final ConnectedPlayer player) {
     players.put(player.getUniqueId(), player);
   }
 
+  /**
+   * Removes the specified player from this server's local player list.
+   *
+   * @param player the player to remove
+   */
   public void removePlayer(final ConnectedPlayer player) {
     players.remove(player.getUniqueId(), player);
   }
 
   @Override
-  public boolean sendPluginMessage(final @NotNull ChannelIdentifier identifier, final byte @NotNull [] data) {
+  public final boolean sendPluginMessage(final @NotNull ChannelIdentifier identifier, final byte @NotNull [] data) {
     requireNonNull(identifier);
     requireNonNull(data);
     return sendPluginMessage(identifier, Unpooled.wrappedBuffer(data));
   }
 
   @Override
-  public boolean sendPluginMessage(final @NotNull ChannelIdentifier identifier, final @NotNull PluginMessageEncoder dataEncoder) {
+  public final boolean sendPluginMessage(final @NotNull ChannelIdentifier identifier, final @NotNull PluginMessageEncoder dataEncoder) {
     requireNonNull(identifier);
     requireNonNull(dataEncoder);
     final ByteBuf buf = Unpooled.buffer();
@@ -245,12 +283,12 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return "registered server: " + serverInfo;
   }
 
   @Override
-  public @NonNull Iterable<? extends Audience> audiences() {
+  public final @NonNull Iterable<? extends Audience> audiences() {
     return this.getPlayersConnected();
   }
 

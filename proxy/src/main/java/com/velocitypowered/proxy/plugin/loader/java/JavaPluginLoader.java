@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,14 +49,23 @@ import java.util.jar.JarInputStream;
  */
 public class JavaPluginLoader implements PluginLoader {
 
+  /**
+   * The base directory used for plugin-specific storage.
+   */
   private final Path baseDirectory;
 
+  /**
+   * Constructs a new Java plugin loader.
+   *
+   * @param ignoredServer  the proxy server instance (unused)
+   * @param baseDirectory  the base directory for plugins
+   */
   public JavaPluginLoader(final ProxyServer ignoredServer, final Path baseDirectory) {
     this.baseDirectory = baseDirectory;
   }
 
   @Override
-  public PluginDescription loadCandidate(final Path source) throws Exception {
+  public final PluginDescription loadCandidate(final Path source) throws Exception {
     Optional<SerializedPluginDescription> serialized = getSerializedPluginInfo(source);
 
     if (serialized.isEmpty()) {
@@ -80,32 +89,29 @@ public class JavaPluginLoader implements PluginLoader {
   }
 
   @Override
-  public PluginDescription createPluginFromCandidate(final PluginDescription candidate) throws Exception {
+  public final PluginDescription createPluginFromCandidate(final PluginDescription candidate) throws Exception {
     if (!(candidate instanceof JavaVelocityPluginDescriptionCandidate)) {
       throw new IllegalArgumentException("Description provided isn't of the Java plugin loader");
     }
 
     URL pluginJarUrl = candidate.getSource().orElseThrow(
-        () -> new InvalidPluginException("Description provided does not have a source path")
-    ).toUri().toURL();
+        () -> new InvalidPluginException("Description provided does not have a source path")).toUri().toURL();
     PluginClassLoader loader = new PluginClassLoader(new URL[]{pluginJarUrl});
     loader.addToClassloaders();
 
-    JavaVelocityPluginDescriptionCandidate candidateInst =
-        (JavaVelocityPluginDescriptionCandidate) candidate;
+    JavaVelocityPluginDescriptionCandidate candidateInst = (JavaVelocityPluginDescriptionCandidate) candidate;
     Class<?> mainClass = loader.loadClass(candidateInst.getMainClass());
     return createDescription(candidateInst, mainClass);
   }
 
   @Override
-  public Module createModule(final PluginContainer container) {
+  public final Module createModule(final PluginContainer container) {
     PluginDescription description = container.getDescription();
     if (!(description instanceof JavaVelocityPluginDescription javaDescription)) {
       throw new IllegalArgumentException("Description provided isn't of the Java plugin loader");
     }
 
     Optional<Path> source = javaDescription.getSource();
-
     if (source.isEmpty()) {
       throw new IllegalArgumentException("No path in plugin description");
     }
@@ -114,22 +120,21 @@ public class JavaPluginLoader implements PluginLoader {
   }
 
   @Override
-  public void createPlugin(final PluginContainer container, final Module... modules) {
+  public final void createPlugin(final PluginContainer container, final Module... modules) {
     if (!(container instanceof VelocityPluginContainer)) {
       throw new IllegalArgumentException("Container provided isn't of the Java plugin loader");
     }
+
     PluginDescription description = container.getDescription();
     if (!(description instanceof JavaVelocityPluginDescription)) {
       throw new IllegalArgumentException("Description provided isn't of the Java plugin loader");
     }
 
     Injector injector = Guice.createInjector(modules);
-    Object instance = injector
-        .getInstance(((JavaVelocityPluginDescription) description).getMainClass());
+    Object instance = injector.getInstance(((JavaVelocityPluginDescription) description).getMainClass());
 
     if (instance == null) {
-      throw new IllegalStateException(
-          "Got nothing from injector for plugin " + description.getId());
+      throw new IllegalStateException("Got nothing from injector for plugin " + description.getId());
     }
 
     ((VelocityPluginContainer) container).setInstance(instance);
@@ -138,8 +143,7 @@ public class JavaPluginLoader implements PluginLoader {
   private Optional<SerializedPluginDescription> getSerializedPluginInfo(final Path source)
       throws Exception {
     boolean foundBungeeBukkitPluginFile = false;
-    try (JarInputStream in = new JarInputStream(
-        new BufferedInputStream(Files.newInputStream(source)))) {
+    try (JarInputStream in = new JarInputStream(new BufferedInputStream(Files.newInputStream(source)))) {
       JarEntry entry;
       while ((entry = in.getNextJarEntry()) != null) {
         if (entry.getName().equals("velocity-plugin.json")) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,18 +46,50 @@ import org.jspecify.annotations.Nullable;
  * @since 3.3.0
  */
 public final class PlayerDataForwarding {
+
+  /**
+   * The HMAC algorithm used to sign modern forwarding payloads.
+   */
   private static final String ALGORITHM = "HmacSHA256";
 
+  /**
+   * The channel name used for Velocity's modern player forwarding.
+   */
   public static final String CHANNEL = "velocity:player_info";
 
+  /**
+   * Modern forwarding version 1: basic forwarding with profile and address.
+   */
   public static final int MODERN_DEFAULT = 1;
+
+  /**
+   * Modern forwarding version 2: includes an {@link IdentifiedKey} for secure forwarding.
+   */
   public static final int MODERN_WITH_KEY = 2;
+
+  /**
+   * Modern forwarding version 3: includes {@link IdentifiedKey} and signer UUID.
+   */
   public static final int MODERN_WITH_KEY_V2 = 3;
+
+  /**
+   * Modern forwarding version 4: lazy session forwarding introduced in Minecraft 1.19.3+.
+   */
   public static final int MODERN_LAZY_SESSION = 4;
+
+  /**
+   * The highest supported modern forwarding version.
+   */
   public static final int MODERN_MAX_VERSION = MODERN_LAZY_SESSION;
 
+  /**
+   * The character used to separate fields in legacy forwarding strings.
+   */
   private static final char LEGACY_SEPARATOR = '\0';
 
+  /**
+   * The property key used to embed a BungeeGuard token in the profile properties.
+   */
   private static final String BUNGEE_GUARD_TOKEN_PROPERTY_NAME = "bungeeguard-token";
 
   private PlayerDataForwarding() {
@@ -151,6 +183,7 @@ public final class PlayerDataForwarding {
         return MODERN_DEFAULT;
       }
     }
+
     return MODERN_DEFAULT;
   }
 
@@ -198,8 +231,7 @@ public final class PlayerDataForwarding {
         .append(LEGACY_SEPARATOR)
         .append(profile.getUndashedId())
         .append(LEGACY_SEPARATOR);
-    GENERAL_GSON
-        .toJson(propertiesTransform.apply(profile.getProperties()), data);
+    GENERAL_GSON.toJson(propertiesTransform.apply(profile.getProperties()), data);
     return data.toString();
   }
 

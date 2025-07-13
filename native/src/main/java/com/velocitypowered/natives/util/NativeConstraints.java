@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,11 +26,35 @@ import java.util.function.BooleanSupplier;
  * Statically computed constraints for native code.
  */
 public class NativeConstraints {
+
+  /**
+   * Whether native support is explicitly enabled (not disabled via system property).
+   */
   private static final boolean NATIVES_ENABLED = !Boolean.getBoolean("velocity.natives-disabled");
+
+  /**
+   * Whether the system architecture is amd64 or x86_64.
+   */
   private static final boolean IS_AMD64;
+
+  /**
+   * Whether the system architecture is AArch64 or ARM64.
+   */
   private static final boolean IS_AARCH64;
+
+  /**
+   * Whether Netty reports that buffers have memory addresses (i.e., are direct).
+   */
   private static final boolean CAN_GET_MEMORYADDRESS;
+
+  /**
+   * Whether the operating system is Linux.
+   */
   private static final boolean IS_LINUX;
+
+  /**
+   * Whether the system uses musl libc (instead of glibc).
+   */
   private static final boolean IS_MUSL_LIBC;
 
   static {
@@ -69,20 +93,38 @@ public class NativeConstraints {
     }
   }
 
+  /**
+   * Base constraint for native features: enabled and has memory address support.
+   */
   static final BooleanSupplier NATIVE_BASE = () -> NATIVES_ENABLED && CAN_GET_MEMORYADDRESS;
 
+  /**
+   * Constraint for Linux on x86_64 with glibc.
+   */
   static final BooleanSupplier LINUX_X86_64 = () -> NATIVE_BASE.getAsBoolean()
       && IS_LINUX && IS_AMD64 && !IS_MUSL_LIBC;
 
+  /**
+   * Constraint for Linux on x86_64 with musl libc.
+   */
   static final BooleanSupplier LINUX_X86_64_MUSL = () -> NATIVE_BASE.getAsBoolean()
       && IS_LINUX && IS_AMD64 && IS_MUSL_LIBC;
 
+  /**
+   * Constraint for Linux on AArch64 with glibc.
+   */
   static final BooleanSupplier LINUX_AARCH64 = () -> NATIVE_BASE.getAsBoolean()
       && IS_LINUX && IS_AARCH64 && !IS_MUSL_LIBC;
 
+  /**
+   * Constraint for Linux on AArch64 with musl libc.
+   */
   static final BooleanSupplier LINUX_AARCH64_MUSL = () -> NATIVE_BASE.getAsBoolean()
       && IS_LINUX && IS_AARCH64 && IS_MUSL_LIBC;
 
+  /**
+   * Constraint for macOS on AArch64 (e.g., Apple Silicon).
+   */
   static final BooleanSupplier MACOS_AARCH64 = () -> NATIVE_BASE.getAsBoolean()
       && System.getProperty("os.name", "").equalsIgnoreCase("Mac OS X")
       && IS_AARCH64;

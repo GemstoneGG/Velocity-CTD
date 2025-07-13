@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -62,19 +62,91 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class AvailableCommandsPacket implements MinecraftPacket {
 
+  /**
+   * Placeholder command used to mark a node as executable during deserialization.
+   *
+   * <p>This command does nothing and returns {@code 0}, and is used as a stand-in
+   * when reconstructing {@link CommandNode} objects from the packet data.</p>
+   */
   private static final Command<CommandSource> PLACEHOLDER_COMMAND = source -> 0;
+
+  /**
+   * Placeholder requirement predicate that always evaluates to {@code true}.
+   *
+   * <p>This predicate is used to mark a node as "restricted" during deserialization
+   * by assigning it a dummy requirement.</p>
+   */
   private static final Predicate<CommandSource> PLACEHOLDER_REQUIREMENT = source -> true;
 
+  /**
+   * Denotes a root command node during deserialization.
+   *
+   * <p>This value is applied to the lower two bits of the flags byte to identify
+   * the node type.</p>
+   */
   private static final byte NODE_TYPE_ROOT = 0x00;
+
+  /**
+   * Denotes a literal command node during deserialization.
+   *
+   * <p>This value is applied to the lower two bits of the flags byte to identify
+   * the node type.</p>
+   */
   private static final byte NODE_TYPE_LITERAL = 0x01;
+
+  /**
+   * Denotes an argument command node during deserialization.
+   *
+   * <p>This value is applied to the lower two bits of the flags byte to identify
+   * the node type.</p>
+   */
   private static final byte NODE_TYPE_ARGUMENT = 0x02;
 
+  /**
+   * Mask used to extract the node type from the flag's byte.
+   *
+   * <p>This is applied via bitwise AND to isolate {@code NODE_TYPE_*} values.</p>
+   */
   private static final byte FLAG_NODE_TYPE = 0x03;
+
+  /**
+   * Flag indicating that the node is executable.
+   *
+   * <p>If set, the node is assigned the {@link #PLACEHOLDER_COMMAND} on deserialization.</p>
+   */
   private static final byte FLAG_EXECUTABLE = 0x04;
+
+  /**
+   * Flag indicating that the node has a redirect to another node.
+   *
+   * <p>If set, a redirect index will be read and resolved after the node graph is built.</p>
+   */
   private static final byte FLAG_IS_REDIRECT = 0x08;
+
+  /**
+   * Flag indicating that the node has a custom suggestion provider.
+   *
+   * <p>If set, a string representing the suggestion provider's ID will follow
+   * the argument data during deserialization.</p>
+   */
   private static final byte FLAG_HAS_SUGGESTIONS = 0x10;
+
+  /**
+   * Flag indicating that the node is restricted.
+   *
+   * <p>If set, the {@link #PLACEHOLDER_REQUIREMENT} will be applied to the node
+   * to simulate restricted access behavior.</p>
+   */
   private static final byte FLAG_IS_RESTRICTED = 0x20;
 
+  /**
+   * The root node of the command tree represented by this packet.
+   *
+   * <p>This field is populated during deserialization and represents the entry point
+   * of the reconstructed Brigadier command graph. It is marked {@link MonotonicNonNull}
+   * because it is guaranteed to be non-null after {@link #decode(ByteBuf, Direction, ProtocolVersion)}
+   * completes successfully, but is initially {@code null}.</p>
+   */
   private @MonotonicNonNull RootCommandNode<CommandSource> rootNode;
 
   /**
@@ -86,11 +158,12 @@ public class AvailableCommandsPacket implements MinecraftPacket {
     if (rootNode == null) {
       throw new IllegalStateException("Packet not yet deserialized");
     }
+
     return rootNode;
   }
 
   @Override
-  public void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
+  public final void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     int commands = ProtocolUtils.readVarInt(buf);
     WireNode[] wireNodes = new WireNode[commands];
     for (int i = 0; i < commands; i++) {
@@ -103,7 +176,8 @@ public class AvailableCommandsPacket implements MinecraftPacket {
     while (!nodeQueue.isEmpty()) {
       boolean cycling = false;
 
-      for (Iterator<WireNode> it = nodeQueue.iterator(); it.hasNext(); ) {
+      Iterator<WireNode> it = nodeQueue.iterator();
+      while (it.hasNext()) {
         WireNode node = it.next();
         if (node.toNode(wireNodes)) {
           cycling = true;
@@ -122,7 +196,7 @@ public class AvailableCommandsPacket implements MinecraftPacket {
   }
 
   @Override
-  public void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
+  public final void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     // Assign all the children an index.
     Deque<CommandNode<CommandSource>> childrenQueue = new ArrayDeque<>(ImmutableList.of(rootNode));
     Object2IntMap<CommandNode<CommandSource>> idMappings = new Object2IntLinkedOpenCustomHashMap<>(
@@ -152,9 +226,11 @@ public class AvailableCommandsPacket implements MinecraftPacket {
     if (node.getRedirect() != null) {
       flags |= FLAG_IS_REDIRECT;
     }
+
     if (node.getCommand() != null) {
       flags |= FLAG_EXECUTABLE;
     }
+
     if (node.getRequirement() == PLACEHOLDER_REQUIREMENT) {
       flags |= FLAG_IS_RESTRICTED;
     }
@@ -175,6 +251,7 @@ public class AvailableCommandsPacket implements MinecraftPacket {
     for (CommandNode<CommandSource> child : node.getChildren()) {
       ProtocolUtils.writeVarInt(buf, idMappings.getInt(child));
     }
+
     if (node.getRedirect() != null) {
       ProtocolUtils.writeVarInt(buf, idMappings.getInt(node.getRedirect()));
     }
@@ -187,6 +264,7 @@ public class AvailableCommandsPacket implements MinecraftPacket {
       if (((ArgumentCommandNode<CommandSource, ?>) node).getCustomSuggestions() != null) {
         SuggestionProvider<CommandSource> provider = ((ArgumentCommandNode<CommandSource, ?>) node)
             .getCustomSuggestions();
+
         String name = "minecraft:ask_server";
         if (provider instanceof ProtocolSuggestionProvider) {
           name = ((ProtocolSuggestionProvider) provider).name;
@@ -199,7 +277,7 @@ public class AvailableCommandsPacket implements MinecraftPacket {
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
@@ -234,12 +312,46 @@ public class AvailableCommandsPacket implements MinecraftPacket {
 
   private static final class WireNode {
 
+    /**
+     * The index of this node in the serialized node array.
+     */
     private final int idx;
+
+    /**
+     * Bit flags encoding this node's type and properties.
+     *
+     * <p>Includes flags for node type (literal, argument, root), executable status,
+     * redirect presence, suggestion support, and restriction requirement.</p>
+     */
     private final byte flags;
+
+    /**
+     * Indices of this node’s child nodes in the full node array.
+     *
+     * <p>Used to resolve the child node references during tree reconstruction.</p>
+     */
     private final int[] children;
+
+    /**
+     * Index of the node this node redirects to, or {@code -1} if not applicable.
+     */
     private final int redirectTo;
+
+    /**
+     * The argument builder associated with this node, if it is a literal or argument node.
+     *
+     * <p>{@code null} for root nodes.</p>
+     */
     private final @Nullable ArgumentBuilder<CommandSource, ?> args;
+
+    /**
+     * The constructed Brigadier {@link CommandNode} once this node has been resolved.
+     */
     private @MonotonicNonNull CommandNode<CommandSource> built;
+
+    /**
+     * Whether this node has passed basic validation checks.
+     */
     private boolean validated;
 
     private WireNode(final int idx, final byte flags, final int[] children, final int redirectTo,
@@ -357,15 +469,26 @@ public class AvailableCommandsPacket implements MinecraftPacket {
    */
   public static class ProtocolSuggestionProvider implements SuggestionProvider<CommandSource> {
 
+    /**
+     * The identifier name of the suggestion provider (e.g., {@code "minecraft:ask_server"}).
+     *
+     * <p>This value is preserved from the original command graph and used when serializing
+     * the node back to the wire format.</p>
+     */
     private final String name;
 
+    /**
+     * Constructs a new {@link ProtocolSuggestionProvider} with the given suggestion provider name.
+     *
+     * @param name the suggestion provider identifier to retain
+     */
     public ProtocolSuggestionProvider(final String name) {
       this.name = name;
     }
 
     @Override
-    public CompletableFuture<Suggestions> getSuggestions(final CommandContext<CommandSource> context,
-                                                         final SuggestionsBuilder builder) {
+    public final CompletableFuture<Suggestions> getSuggestions(final CommandContext<CommandSource> context,
+                                                               final SuggestionsBuilder builder) {
       return builder.buildFuture();
     }
   }

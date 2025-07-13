@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -18,7 +18,14 @@ import com.velocitypowered.api.proxy.InboundConnection;
  */
 public final class ConnectionHandshakeEvent {
 
+  /**
+   * The inbound connection that initiated the handshake.
+   */
   private final InboundConnection connection;
+
+  /**
+   * The intent of the handshake, such as login or status.
+   */
   private final HandshakeIntent intent;
 
   /**

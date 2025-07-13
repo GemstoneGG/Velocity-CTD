@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,39 +33,67 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class LegacyPingPacket implements MinecraftPacket {
 
+  /**
+   * The legacy Minecraft ping protocol version used in this packet.
+   */
   private final LegacyMinecraftPingVersion version;
+
+  /**
+   * The virtual host address for the ping, if applicable. May be {@code null}.
+   */
   private final @Nullable InetSocketAddress vhost;
 
+  /**
+   * Constructs a legacy ping packet with the specified ping protocol version.
+   *
+   * @param version the {@link LegacyMinecraftPingVersion} being used
+   */
   public LegacyPingPacket(final LegacyMinecraftPingVersion version) {
     this.version = version;
     this.vhost = null;
   }
 
+  /**
+   * Constructs a legacy ping packet with the specified ping protocol version and virtual host.
+   *
+   * @param version the {@link LegacyMinecraftPingVersion} being used
+   * @param vhost the virtual host address, or {@code null} if not specified
+   */
   public LegacyPingPacket(final LegacyMinecraftPingVersion version, @Nullable final InetSocketAddress vhost) {
     this.version = version;
     this.vhost = vhost;
   }
 
+  /**
+   * Returns the legacy Minecraft ping version.
+   *
+   * @return the {@link LegacyMinecraftPingVersion} in use
+   */
   public LegacyMinecraftPingVersion getVersion() {
     return version;
   }
 
+  /**
+   * Returns the virtual host associated with the ping, if available.
+   *
+   * @return the {@link InetSocketAddress} for the virtual host, or {@code null} if not present
+   */
   public @Nullable InetSocketAddress getVhost() {
     return vhost;
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public final void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public final boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

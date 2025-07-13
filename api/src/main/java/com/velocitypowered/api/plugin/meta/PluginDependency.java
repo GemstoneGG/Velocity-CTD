@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -20,9 +20,19 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class PluginDependency {
 
+  /**
+   * The ID of the plugin this dependency refers to.
+   */
   private final String id;
+
+  /**
+   * The version of the plugin this dependency should match, or {@code null} if not specified.
+   */
   private final @Nullable String version;
 
+  /**
+   * Whether this dependency is optional.
+   */
   private final boolean optional;
 
   /**
@@ -71,9 +81,11 @@ public final class PluginDependency {
     if (this == o) {
       return true;
     }
+
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
+
     PluginDependency that = (PluginDependency) o;
     return optional == that.optional
         && Objects.equals(id, that.id)

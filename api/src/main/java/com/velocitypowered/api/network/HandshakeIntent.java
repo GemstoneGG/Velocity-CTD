@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -27,6 +27,9 @@ public enum HandshakeIntent {
    */
   TRANSFER(3);
 
+  /**
+   * The numeric ID associated with this handshake intent.
+   */
   private final int id;
 
   HandshakeIntent(final int id) {

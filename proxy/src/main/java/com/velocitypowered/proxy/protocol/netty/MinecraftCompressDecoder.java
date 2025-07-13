@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,24 +33,55 @@ import java.util.List;
  */
 public class MinecraftCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
 
-  private static final int VANILLA_MAXIMUM_UNCOMPRESSED_SIZE = 8 * 1024 * 1024; // 8MiB
-  private static final int HARD_MAXIMUM_UNCOMPRESSED_SIZE = 128 * 1024 * 1024; // 128MiB
+  /**
+   * Default maximum allowed uncompressed packet size (8 MiB).
+   */
+  private static final int VANILLA_MAXIMUM_UNCOMPRESSED_SIZE = 8 * 1024 * 1024;
 
+  /**
+   * Hard upper limit for uncompressed size (128 MiB), used if override is enabled.
+   */
+  private static final int HARD_MAXIMUM_UNCOMPRESSED_SIZE = 128 * 1024 * 1024;
+
+  /**
+   * Maximum uncompressed size permitted during decompression.
+   *
+   * <p>Can be overridden with {@code -Dvelocity.increased-compression-cap=true} to allow up to 128 MiB.</p>
+   */
   private static final int UNCOMPRESSED_CAP =
       Boolean.getBoolean("velocity.increased-compression-cap")
           ? HARD_MAXIMUM_UNCOMPRESSED_SIZE : VANILLA_MAXIMUM_UNCOMPRESSED_SIZE;
+
+  /**
+   * If {@code true}, disables strict threshold validation of uncompressed sizes.
+   *
+   * <p>Set via {@code -Dvelocity.skip-uncompressed-packet-size-validation=true}.</p>
+   */
   private static final boolean SKIP_COMPRESSION_VALIDATION = Boolean.getBoolean("velocity.skip-uncompressed-packet-size-validation");
 
+  /**
+   * Compression threshold. Packets smaller than this are not compressed.
+   */
   private int threshold;
+
+  /**
+   * The {@link VelocityCompressor} responsible for decompressing incoming packets.
+   */
   private final VelocityCompressor compressor;
 
+  /**
+   * Constructs a new {@code MinecraftCompressDecoder}.
+   *
+   * @param threshold  the compression threshold (packets below this are not compressed)
+   * @param compressor the compressor to use for decompression
+   */
   public MinecraftCompressDecoder(final int threshold, final VelocityCompressor compressor) {
     this.threshold = threshold;
     this.compressor = compressor;
   }
 
   @Override
-  protected void decode(final ChannelHandlerContext ctx, final ByteBuf in, final List<Object> out) throws Exception {
+  protected final void decode(final ChannelHandlerContext ctx, final ByteBuf in, final List<Object> out) throws Exception {
     int claimedUncompressedSize = ProtocolUtils.readVarInt(in);
     if (claimedUncompressedSize == 0) {
       if (!SKIP_COMPRESSION_VALIDATION) {
@@ -58,6 +89,7 @@ public class MinecraftCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
         checkFrame(actualUncompressedSize < threshold, "Actual uncompressed size %s is greater than"
             + " threshold %s", actualUncompressedSize, threshold);
       }
+
       // This message is not compressed.
       out.add(in.retain());
       return;
@@ -83,10 +115,15 @@ public class MinecraftCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
   }
 
   @Override
-  public void handlerRemoved(final ChannelHandlerContext ctx) {
+  public final void handlerRemoved(final ChannelHandlerContext ctx) {
     compressor.close();
   }
 
+  /**
+   * Updates the compression threshold.
+   *
+   * @param threshold the new compression threshold
+   */
   public void setThreshold(final int threshold) {
     this.threshold = threshold;
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,11 +34,36 @@ import org.lanternpowered.lmbda.LambdaType;
 
 final class CustomHandlerAdapter<F> {
 
+  /**
+   * The name of this handler adapter, typically identifying its purpose or usage style.
+   */
   final String name;
+
+  /**
+   * A function that converts an instance of the functional interface {@code F}
+   * into a handler function that consumes a target and an event and returns an {@link EventTask}.
+   */
   private final Function<F, BiFunction<Object, Object, EventTask>> handlerBuilder;
+
+  /**
+   * A predicate used to determine if a method should be handled by this adapter.
+   */
   final Predicate<Method> filter;
+
+  /**
+   * A validator function that performs custom checks on candidate methods.
+   * It may add error messages to the provided list if validation fails.
+   */
   final BiConsumer<Method, List<String>> validator;
+
+  /**
+   * The lambda type associated with the functional interface {@code F}.
+   */
   private final LambdaType<F> functionType;
+
+  /**
+   * The {@link MethodHandles.Lookup} used to access the target method.
+   */
   private final MethodHandles.Lookup methodHandlesLookup;
 
   @SuppressWarnings("unchecked")

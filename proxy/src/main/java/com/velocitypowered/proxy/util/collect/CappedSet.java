@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,11 +25,20 @@ import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * An unsynchronized collection that puts an upper bound on the size of the collection.
+ * A non-synchronized collection that puts an upper bound on the size of the collection.
+ *
+ * @param <T> the type of elements maintained by this set
  */
 public final class CappedSet<T> extends ForwardingSet<T> {
 
+  /**
+   * The backing set that holds the actual elements.
+   */
   private final Set<T> delegate;
+
+  /**
+   * The maximum number of elements allowed in this set.
+   */
   private final int upperSize;
 
   private CappedSet(final Set<T> delegate, final int upperSize) {
@@ -61,6 +70,7 @@ public final class CappedSet<T> extends ForwardingSet<T> {
           this.delegate.size(), this.upperSize);
       return false;
     }
+
     return this.delegate.add(element);
   }
 
