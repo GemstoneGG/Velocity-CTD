@@ -974,6 +974,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       } else {
         logger.error("{}: unable to connect to server {}", this, server.getServerInfo().getName(), wrapped);
       }
+
       friendlyError = Component.translatable("velocity.error.connecting-server-error",
           Component.text(server.getServerInfo().getName()));
     }
@@ -1594,7 +1595,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   @Override
-  public final void removeResourcePacks(@NotNull final UUID id, @NotNull final UUID @NotNull ... others) {
+  public final void removeResourcePacks(@NotNull final UUID id, @NotNull final UUID @NotNull... others) {
     if (this.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       Preconditions.checkNotNull(id, "packUUID");
       if (this.resourcePackHandler.remove(id)) {
@@ -1623,7 +1624,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   @Override
   public final void removeResourcePacks(@NotNull final ResourcePackInfoLike request,
-                                  @NotNull final ResourcePackInfoLike @NotNull ... others) {
+                                        @NotNull final ResourcePackInfoLike @NotNull... others) {
     removeResourcePacks(request.asResourcePackInfo().id());
     for (final ResourcePackInfoLike other : others) {
       removeResourcePacks(other.asResourcePackInfo().id());
