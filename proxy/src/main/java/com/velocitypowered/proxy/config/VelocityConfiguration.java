@@ -1550,9 +1550,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         Map<String, String> servers = new HashMap<>();
         Map<String, PlayerInfoForwarding> serverForwardingModes = new HashMap<>();
         for (UnmodifiableConfig.Entry entry : config.entrySet()) {
-          if (entry.getKey().equalsIgnoreCase("dynamic-fallbacks-filter")
-              || entry.getKey().equalsIgnoreCase("try")
-              || entry.getKey().equalsIgnoreCase("server-aliases")) {
+          if (entry.getKey().equalsIgnoreCase("dynamic-fallbacks-filter")) {
             continue;
           }
 
