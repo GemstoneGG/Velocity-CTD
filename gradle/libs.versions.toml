@@ -5,7 +5,7 @@ flare = "2.0.1"
 junit = "5.13.3"
 junit-platform = "1.13.3"
 log4j = "2.25.1"
-netty = "4.2.1.Final"
+netty = "4.2.3.Final"
 
 [plugins]
 fill = "io.papermc.fill.gradle:1.0.6"
