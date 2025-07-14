@@ -12,6 +12,7 @@ import com.velocitypowered.api.event.annotation.AwaitingEvent;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import java.util.Optional;
+import net.kyori.adventure.text.Component;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -34,6 +35,11 @@ public class PlayerChooseInitialServerEvent {
   private @Nullable RegisteredServer initialServer;
 
   /**
+   * The reason shown to the player if they are disconnected without an initial server.
+   */
+  private @Nullable Component reason;
+
+  /**
    * Constructs a PlayerChooseInitialServerEvent.
    *
    * @param player the player that was connected
@@ -42,6 +48,7 @@ public class PlayerChooseInitialServerEvent {
   public PlayerChooseInitialServerEvent(final Player player, @Nullable final RegisteredServer initialServer) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.initialServer = initialServer;
+    this.reason = null;
   }
 
   /**
@@ -71,11 +78,31 @@ public class PlayerChooseInitialServerEvent {
     this.initialServer = server;
   }
 
+  /**
+   * Returns the reason the player will be disconnected if no initial server is selected.
+   *
+   * @return the disconnect reason, or {@code Optional.empty()} if not set
+   */
+  public Optional<Component> getReason() {
+    return Optional.ofNullable(reason);
+  }
+
+  /**
+   * Sets a custom disconnect reason for the player.
+   * Passing {@code null} will show the default reason.
+   *
+   * @param reason the disconnect reason to show to the player
+   */
+  public void setReason(@Nullable final Component reason) {
+    this.reason = reason;
+  }
+
   @Override
   public final String toString() {
     return "PlayerChooseInitialServerEvent{"
         + "player=" + player
         + ", initialServer=" + initialServer
+        + ", reason=" + reason
         + '}';
   }
 }
