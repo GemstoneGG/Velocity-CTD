@@ -1550,6 +1550,12 @@ public final class VelocityConfiguration implements ProxyConfig {
         Map<String, String> servers = new HashMap<>();
         Map<String, PlayerInfoForwarding> serverForwardingModes = new HashMap<>();
         for (UnmodifiableConfig.Entry entry : config.entrySet()) {
+          if (entry.getKey().equalsIgnoreCase("dynamic-fallbacks-filter")
+              || entry.getKey().equalsIgnoreCase("try")
+              || entry.getKey().equalsIgnoreCase("server-aliases")) {
+            continue;
+          }
+
           if (entry.getValue() instanceof String) {
             servers.put(cleanServerName(entry.getKey()), entry.getValue());
           } else if (entry.getValue() instanceof UnmodifiableConfig) {
@@ -1706,9 +1712,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       if (config != null) {
         Map<String, List<String>> forcedHosts = new HashMap<>();
         for (UnmodifiableConfig.Entry entry : config.entrySet()) {
-          if (entry.getKey().equalsIgnoreCase("dynamic-fallbacks-filter")) {
-            continue; // Intended despite uselessness.
-          } else if (entry.getValue() instanceof String) {
+          if (entry.getValue() instanceof String) {
             forcedHosts.put(entry.getKey().toLowerCase(Locale.ROOT),
                 ImmutableList.of(entry.getValue()));
           } else if (entry.getValue() instanceof List) {
