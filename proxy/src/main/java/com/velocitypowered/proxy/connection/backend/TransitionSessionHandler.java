@@ -197,8 +197,8 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public final boolean handle(final DisconnectPacket packet) {
-    final MinecraftConnection connection = serverConn.getPlayer().getConnection();
-    connection.closeWith(DisconnectPacket.create(packet.getReason().getComponent(), connection.getProtocolVersion(), connection.getState()));
+    final MinecraftConnection connection = serverConn.ensureConnected();
+    serverConn.disconnect();
 
     // If we were in the middle of the Forge handshake, it is not safe to proceed. We must kick
     // the client.

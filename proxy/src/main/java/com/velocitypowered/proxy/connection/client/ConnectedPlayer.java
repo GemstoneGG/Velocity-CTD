@@ -1820,7 +1820,14 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           VelocityRegisteredServer vrs = (VelocityRegisteredServer) realDestination;
           VelocityServerConnection con = new VelocityServerConnection(vrs, previousServer, ConnectedPlayer.this, server);
           connectionInFlight = con;
-          return con.connect().whenCompleteAsync((result, exception) -> this.resetIfInFlightIs(con), connection.eventLoop());
+          return con.connect().whenCompleteAsync((result, exception) -> {
+            if (result != null && !result.isSuccessful() && !result.isSafe()) {
+              result.getReasonComponent()
+                  .ifPresent(reason -> handleConnectionException(result.getAttemptedConnection(),
+                      DisconnectPacket.create(reason, getProtocolVersion(), connection.getState()), false));
+            }
+            this.resetIfInFlightIs(con);
+          }, connection.eventLoop());
         }, connection.eventLoop());
       });
     }
