@@ -1194,8 +1194,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       } else {
         serversToTry = server.getConfiguration().getAttemptConnectionOrder();
       }
-
-      tryIndex = 0;
     }
 
     String strategy = server.getConfiguration().getDynamicFallbackFilter().toUpperCase(Locale.ROOT);
@@ -1235,12 +1233,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           tryIndex = i;
         }
       }
-    }
-
-    if (selectedServer.isEmpty() && !serversToTry.equals(server.getConfiguration().getAttemptConnectionOrder())) {
-      serversToTry = server.getConfiguration().getAttemptConnectionOrder();
-      tryIndex = 0;
-      return getNextServerToTry(current);
     }
 
     return selectedServer;
