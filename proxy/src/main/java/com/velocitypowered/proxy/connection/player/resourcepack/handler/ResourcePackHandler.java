@@ -166,7 +166,7 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
     }
 
     request.setRequired(queued.getShouldForce());
-    request.setPrompt(queued.getPrompt() == null ? null : new ComponentHolder(player.getProtocolVersion(), queued.getPrompt()));
+    request.setPrompt(queued.getPrompt() == null ? null : new ComponentHolder(player.getProtocolVersion(), player.translateMessage(queued.getPrompt())));
 
     player.getConnection().write(request);
   }
