@@ -1706,7 +1706,9 @@ public final class VelocityConfiguration implements ProxyConfig {
       if (config != null) {
         Map<String, List<String>> forcedHosts = new HashMap<>();
         for (UnmodifiableConfig.Entry entry : config.entrySet()) {
-          if (entry.getValue() instanceof String) {
+          if (entry.getKey().equalsIgnoreCase("dynamic-fallbacks-filter")) {
+            continue; // Intended despite uselessness.
+          } else if (entry.getValue() instanceof String) {
             forcedHosts.put(entry.getKey().toLowerCase(Locale.ROOT),
                 ImmutableList.of(entry.getValue()));
           } else if (entry.getValue() instanceof List) {
