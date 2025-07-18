@@ -106,7 +106,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
   /**
    * The player associated with this session.
    */
-  private final ConnectedPlayer player;
+  public final ConnectedPlayer player;
 
   /**
    * Whether the player has received a JoinGame packet and is considered spawned.
@@ -538,7 +538,11 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
 
   @Override
   public final void exception(final Throwable throwable) {
-    player.disconnect(Component.translatable("velocity.error.player-connection-error", NamedTextColor.RED));
+    disconnect(Component.translatable("velocity.error.player-connection-error", NamedTextColor.RED));
+  }
+
+  public final void disconnect(Component component) {
+    player.disconnect(component);
   }
 
   @Override
