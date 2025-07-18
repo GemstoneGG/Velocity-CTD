@@ -34,7 +34,11 @@ import com.velocitypowered.natives.encryption.VelocityCipherFactory;
 import com.velocitypowered.natives.util.Natives;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
-import com.velocitypowered.proxy.connection.client.*;
+import com.velocitypowered.proxy.connection.client.ClientPlaySessionHandler;
+import com.velocitypowered.proxy.connection.client.HandshakeSessionHandler;
+import com.velocitypowered.proxy.connection.client.InitialInboundConnection;
+import com.velocitypowered.proxy.connection.client.InitialLoginSessionHandler;
+import com.velocitypowered.proxy.connection.client.StatusSessionHandler;
 import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.StateRegistry;
@@ -71,7 +75,6 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.logging.log4j.LogManager;
@@ -214,14 +217,15 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
         this.remoteAddress = new InetSocketAddress(proxyMessage.sourceAddress(),
             proxyMessage.sourcePort());
       } else if (msg instanceof ByteBuf buf) {
-        if (activeSessionHandler instanceof ClientPlaySessionHandler playSessionHandler) {
-          int limit = VelocityConfiguration.PACKET_SIZE_LIMIT;
+        if (activeSessionHandler instanceof ClientPlaySessionHandler) {
+          int limit = Integer.getInteger("velocity.max-client-packet-size", 2097152);
           if (limit > 0 && buf.readableBytes() > limit) {
-            logger.error("Booting player '{}' for exceeding packet size limit. {} > {}", playSessionHandler.player, buf.readableBytes(), limit);
-            playSessionHandler.disconnect(Component.text("Exceeded packet rate limit on velocity proxy", NamedTextColor.RED));
+            logger.error("{}: received oversized packet ({} bytes > {} byte limit)", association, buf.readableBytes(), limit);
+            closeWith(Component.translatable("velocity.kick.oversized-packet"));
             return;
           }
         }
+
         activeSessionHandler.handleUnknown(buf);
       }
     } finally {

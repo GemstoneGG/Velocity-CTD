@@ -64,7 +64,6 @@ import org.jetbrains.annotations.NotNull;
  */
 @SuppressWarnings("unchecked")
 public final class VelocityConfiguration implements ProxyConfig {
-  public static int PACKET_SIZE_LIMIT = Integer.getInteger("CTD.PacketSizeLimit", 2_097_152);
 
   /**
    * The logger used to print configuration-related warnings and errors.
@@ -509,12 +508,6 @@ public final class VelocityConfiguration implements ProxyConfig {
     if (advanced.commandRateLimit < 0) {
       logger.error("Invalid command rate limit {}", advanced.commandRateLimit);
       valid = false;
-    }
-
-    if (PACKET_SIZE_LIMIT <= 0) {
-      logger.warn("Packet size limit is disabled. For servers with 1.20.3/4 protocol enabled, this can leave your proxy unprotected against OOM exploits");
-    } else {
-      logger.info("Packet size limit set to {}b", PACKET_SIZE_LIMIT);
     }
 
     loadFavicon();
