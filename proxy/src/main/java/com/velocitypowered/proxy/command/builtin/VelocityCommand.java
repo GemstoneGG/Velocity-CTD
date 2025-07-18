@@ -44,7 +44,6 @@ import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSudo;
 import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.util.InformationUtils;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -514,6 +513,7 @@ public final class VelocityCommand {
      * Primary color used for Velocity branding in info output.
      */
     private static final TextColor VELOCITY_COLOR = TextColor.color(0xff3a4c);
+    private static final int DISTANCE_LATEST = 0;
     private static final int DISTANCE_ERROR = -1;
     private static final int DISTANCE_UNKNOWN = -2;
 
@@ -560,27 +560,22 @@ public final class VelocityCommand {
                   .build();
           infoBuilder.appendNewline().append(embellishment);
         }
+
         infoBuilder.appendNewline();
         if (version.getVersion().equalsIgnoreCase("<unknown>") || version.getVersion().contains("SNAPSHOT")) {
-          // dev build
-          infoBuilder.append(Component.text("You are running a development build of Velocity"));
+          infoBuilder.append(Component.text("You are running a development build of Velocity.", NamedTextColor.RED));
         } else {
           int dist = fetchDistanceFromGitHub("GemstoneGG/Velocity-CTD", "libdeflate", version.getVersion().split("-")[1]);
           switch (dist) {
-            case DISTANCE_ERROR -> infoBuilder.append(Component.text(
-                    "There was an error when attempting to fetch Velocity version information",
-                    NamedTextColor.RED
-            ));
-            case DISTANCE_UNKNOWN -> infoBuilder.append(Component.text(
-                    "Unable to fetch Velocity version information, unknown distance", NamedTextColor.WHITE
-            ));
-            case 0 -> infoBuilder.append(Component.text(
-                    "You are running the latest version of Velocity", NamedTextColor.GREEN
-            ));
-            default -> infoBuilder.append(Component.text(
-                    "You are " + dist + " version(s) behind",
-                    NamedTextColor.YELLOW
-            ));
+            case DISTANCE_ERROR -> infoBuilder.append(Component.translatable(
+                "velocity.command.version-error", NamedTextColor.RED));
+            case DISTANCE_UNKNOWN -> infoBuilder.append(Component.translatable(
+                "velocity.command.version-unknown", NamedTextColor.RED));
+            case DISTANCE_LATEST -> infoBuilder.append(Component.translatable(
+                "velocity.command.version-latest", NamedTextColor.GREEN));
+            default -> infoBuilder.append(Component.translatable(
+                "velocity.command.version-behind", NamedTextColor.YELLOW,
+                Component.text(dist)));
           }
         }
 
@@ -592,8 +587,11 @@ public final class VelocityCommand {
       try {
         final HttpURLConnection connection = (HttpURLConnection) URI.create("https://api.github.com/repos/%s/compare/%s...%s".formatted(repo, branch, hash)).toURL().openConnection();
         connection.connect();
-        if (connection.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) return DISTANCE_UNKNOWN; // Unknown commit
-        try (final BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+        if (connection.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
+          return DISTANCE_UNKNOWN; // Unidentifiable commit
+        }
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
           final JsonObject obj = new Gson().fromJson(reader, JsonObject.class);
           final String status = obj.get("status").getAsString();
           return switch (status) {
