@@ -18,8 +18,10 @@
 package com.velocitypowered.proxy.command.builtin;
 
 import com.google.common.base.Suppliers;
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
@@ -42,12 +44,17 @@ import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSudo;
 import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.util.InformationUtils;
+
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.management.ManagementFactory;
+import java.net.HttpURLConnection;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -507,6 +514,8 @@ public final class VelocityCommand {
      * Primary color used for Velocity branding in info output.
      */
     private static final TextColor VELOCITY_COLOR = TextColor.color(0xff3a4c);
+    private static final int DISTANCE_ERROR = -1;
+    private static final int DISTANCE_UNKNOWN = -2;
 
     /**
      * Memoized supplier that builds the {@code /velocity info} output component.
@@ -551,9 +560,53 @@ public final class VelocityCommand {
                   .build();
           infoBuilder.appendNewline().append(embellishment);
         }
+        infoBuilder.appendNewline();
+        if (version.getVersion().equalsIgnoreCase("<unknown>") || version.getVersion().contains("SNAPSHOT")) {
+          // dev build
+          infoBuilder.append(Component.text("You are running a development build of Velocity"));
+        } else {
+          int dist = fetchDistanceFromGitHub("GemstoneGG/Velocity-CTD", "libdeflate", version.getVersion().split("-")[1]);
+          switch (dist) {
+            case DISTANCE_ERROR -> infoBuilder.append(Component.text(
+                    "There was an error when attempting to fetch Velocity version information",
+                    NamedTextColor.RED
+            ));
+            case DISTANCE_UNKNOWN -> infoBuilder.append(Component.text(
+                    "Unable to fetch Velocity version information, unknown distance", NamedTextColor.WHITE
+            ));
+            case 0 -> infoBuilder.append(Component.text(
+                    "You are running the latest version of Velocity", NamedTextColor.GREEN
+            ));
+            default -> infoBuilder.append(Component.text(
+                    "You are " + dist + " version(s) behind",
+                    NamedTextColor.YELLOW
+            ));
+          }
+        }
 
         return infoBuilder.build();
       });
+    }
+
+    private static int fetchDistanceFromGitHub(final String repo, final String branch, final String hash) {
+      try {
+        final HttpURLConnection connection = (HttpURLConnection) URI.create("https://api.github.com/repos/%s/compare/%s...%s".formatted(repo, branch, hash)).toURL().openConnection();
+        connection.connect();
+        if (connection.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) return DISTANCE_UNKNOWN; // Unknown commit
+        try (final BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+          final JsonObject obj = new Gson().fromJson(reader, JsonObject.class);
+          final String status = obj.get("status").getAsString();
+          return switch (status) {
+            case "identical" -> 0;
+            case "behind" -> obj.get("behind_by").getAsInt();
+            default -> DISTANCE_ERROR;
+          };
+        } catch (final JsonSyntaxException | NumberFormatException e) {
+          return DISTANCE_ERROR;
+        }
+      } catch (final IOException e) {
+        return DISTANCE_ERROR;
+      }
     }
 
     @Override
