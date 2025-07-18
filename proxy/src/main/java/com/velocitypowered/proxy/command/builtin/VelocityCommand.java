@@ -513,8 +513,20 @@ public final class VelocityCommand {
      * Primary color used for Velocity branding in info output.
      */
     private static final TextColor VELOCITY_COLOR = TextColor.color(0xff3a4c);
+
+    /**
+     * Version distance constant indicating the current version is up to date with GitHub.
+     */
     private static final int DISTANCE_LATEST = 0;
+
+    /**
+     * Version distance constant indicating an error occurred during GitHub comparison.
+     */
     private static final int DISTANCE_ERROR = -1;
+
+    /**
+     * Version distance constant indicating the specified commit hash was not found.
+     */
     private static final int DISTANCE_UNKNOWN = -2;
 
     /**
@@ -595,7 +607,7 @@ public final class VelocityCommand {
           final JsonObject obj = new Gson().fromJson(reader, JsonObject.class);
           final String status = obj.get("status").getAsString();
           return switch (status) {
-            case "identical" -> 0;
+            case "identical" -> DISTANCE_LATEST;
             case "behind" -> obj.get("behind_by").getAsInt();
             default -> DISTANCE_ERROR;
           };
