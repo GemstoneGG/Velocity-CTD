@@ -437,6 +437,7 @@ public class RespawnPacket implements MinecraftPacket {
     } else {
       buf.writeInt(dimension);
     }
+
     if (version.noGreaterThan(ProtocolVersion.MINECRAFT_1_13_2)) {
       buf.writeByte(difficulty);
     }

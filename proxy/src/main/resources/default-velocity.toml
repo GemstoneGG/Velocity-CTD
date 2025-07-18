@@ -279,9 +279,6 @@ tab-complete-rate-limit = 10
 # Setting this to 0 or lower will disable this feature.
 kick-after-rate-limited-tab-completes = 0
 
-# How many channels a player can (un)register.
-channel-register-limit = 1024
-
 # Enables the execution of illegal characters in chat and only allows
 # or denies illegal characters that are executed through the proxy.
 allow-illegal-characters-in-chat = false

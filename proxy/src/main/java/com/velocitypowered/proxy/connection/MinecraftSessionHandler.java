@@ -769,4 +769,3 @@ public interface MinecraftSessionHandler {
     return false;
   }
 }
-
