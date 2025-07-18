@@ -93,6 +93,14 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
   private static final Logger logger = LogManager.getLogger(MinecraftConnection.class);
 
   /**
+   * The maximum size in bytes for an incoming packet from the client before disconnection.
+   *
+   * <p>This value is configurable via the {@code velocity.max-client-packet-size} system property.</p>
+   * Defaults to {@code 2097152} (2 MiB).
+   */
+  public static final int MAX_CLIENT_PACKET_SIZE = Integer.getInteger("velocity.max-client-packet-size", 2097152);
+
+  /**
    * The underlying Netty channel backing this Minecraft connection.
    */
   private final Channel channel;
@@ -217,9 +225,8 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
             proxyMessage.sourcePort());
       } else if (msg instanceof ByteBuf buf) {
         if (activeSessionHandler instanceof ClientPlaySessionHandler) {
-          if (ConnectedPlayer.MAX_CLIENT_PACKET_SIZE > 0 && buf.readableBytes() > ConnectedPlayer.MAX_CLIENT_PACKET_SIZE) {
-            logger.error("{}: received oversized packet ({} bytes > {} byte limit)",
-                association, buf.readableBytes(), ConnectedPlayer.MAX_CLIENT_PACKET_SIZE);
+          if (MAX_CLIENT_PACKET_SIZE > 0 && buf.readableBytes() > MAX_CLIENT_PACKET_SIZE) {
+            logger.error("{}: received oversized packet ({} bytes > {} byte limit)", association, buf.readableBytes(), MAX_CLIENT_PACKET_SIZE);
             closeWith(Component.translatable("velocity.kick.oversized-packet"));
             return;
           }
