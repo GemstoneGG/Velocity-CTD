@@ -33,8 +33,8 @@ import com.velocitypowered.natives.encryption.VelocityCipher;
 import com.velocitypowered.natives.encryption.VelocityCipherFactory;
 import com.velocitypowered.natives.util.Natives;
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ClientPlaySessionHandler;
+import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.connection.client.HandshakeSessionHandler;
 import com.velocitypowered.proxy.connection.client.InitialInboundConnection;
 import com.velocitypowered.proxy.connection.client.InitialLoginSessionHandler;
@@ -76,7 +76,6 @@ import java.util.concurrent.TimeUnit;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -218,9 +217,9 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
             proxyMessage.sourcePort());
       } else if (msg instanceof ByteBuf buf) {
         if (activeSessionHandler instanceof ClientPlaySessionHandler) {
-          int limit = Integer.getInteger("velocity.max-client-packet-size", 2097152);
-          if (limit > 0 && buf.readableBytes() > limit) {
-            logger.error("{}: received oversized packet ({} bytes > {} byte limit)", association, buf.readableBytes(), limit);
+          if (ConnectedPlayer.MAX_CLIENT_PACKET_SIZE > 0 && buf.readableBytes() > ConnectedPlayer.MAX_CLIENT_PACKET_SIZE) {
+            logger.error("{}: received oversized packet ({} bytes > {} byte limit)",
+                association, buf.readableBytes(), ConnectedPlayer.MAX_CLIENT_PACKET_SIZE);
             closeWith(Component.translatable("velocity.kick.oversized-packet"));
             return;
           }

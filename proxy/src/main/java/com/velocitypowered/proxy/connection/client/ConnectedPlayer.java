@@ -151,6 +151,14 @@ import org.jetbrains.annotations.NotNull;
 public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, KeyIdentifiable, VelocityInboundConnection {
 
   /**
+   * The maximum size in bytes for an incoming packet from the client before disconnection.
+   *
+   * <p>This value is configurable via the {@code velocity.max-client-packet-size} system property.</p>
+   * Defaults to {@code 2097152} (2 MiB).
+   */
+  public static final int MAX_CLIENT_PACKET_SIZE = Integer.getInteger("velocity.max-client-packet-size", 2097152);
+
+  /**
    * The maximum number of plugin message channels a client may register before being rejected.
    *
    * <p>This value is configurable via the {@code velocity.max-clientside-plugin-channels} system property.</p>
