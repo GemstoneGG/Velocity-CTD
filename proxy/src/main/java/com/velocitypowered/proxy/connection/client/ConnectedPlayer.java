@@ -1072,6 +1072,14 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   /**
+   * Internal access to the player's boss bars, used for system-level resending logic.
+   * Not intended for plugin or external use.
+   */
+  Set<VelocityBossBarImplementation> getBossBar() {
+    return bossBars;
+  }
+
+  /**
    * Sets whether the disconnect event should remove the player from the Redis cache.
    *
    * @param remove Whether to remove the player or not.

@@ -30,6 +30,7 @@ import com.velocitypowered.api.event.player.configuration.PlayerEnteredConfigura
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.adventure.VelocityBossBarImplementation;
 import com.velocitypowered.proxy.connection.ConnectionTypes;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
@@ -789,6 +790,16 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     }
 
     serverBossBars.clear();
+
+    // Resend the boss bar upon server switch for 1.20.2+ to ensure plugins
+    // can passively remove the boss bar (for the client) on server switch
+    // or resend the adequate action bar to the user.
+    if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
+      for (VelocityBossBarImplementation bar : player.getBossBar()) {
+        bar.viewerRemove(player);
+        bar.viewerAdd(player);
+      }
+    }
 
     // Tell the server about the proxy's plugin message channels.
     ProtocolVersion serverVersion = serverMc.getProtocolVersion();
