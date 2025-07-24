@@ -263,34 +263,32 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
 
     buffer.markReaderIndex();
 
-    byte first = buffer.readByte();
-    if (first >= 0) {
-      return first;
+    byte tmp = buffer.readByte();
+    if (tmp >= 0) {
+      return tmp;
     }
 
-    int result = first & 0x7F;
+    int result = tmp & 0x7F;
     if (!buffer.isReadable()) {
       buffer.resetReaderIndex();
       return 0;
     }
 
-    byte second = buffer.readByte();
-    if (second >= 0) {
-      return result | (second << 7);
+    if ((tmp = buffer.readByte()) >= 0) {
+      return result | tmp << 7;
     }
 
-    result |= (second & 0x7F) << 7;
+    result |= (tmp & 0x7F) << 7;
     if (!buffer.isReadable()) {
       buffer.resetReaderIndex();
       return 0;
     }
 
-    byte third = buffer.readByte();
-    if (third >= 0) {
-      return result | (third << 14);
+    if ((tmp = buffer.readByte()) >= 0) {
+      return result | tmp << 14;
     }
 
-    return result | ((third & 0x7F) << 14);
+    return result | (tmp & 0x7F) << 14;
   }
 
   private Exception handleOverflow(final MinecraftPacket packet, final int expected, final int actual) {

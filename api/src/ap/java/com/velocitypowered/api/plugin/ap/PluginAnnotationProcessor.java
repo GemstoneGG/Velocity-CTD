@@ -57,19 +57,38 @@ public class PluginAnnotationProcessor extends AbstractProcessor {
    */
   private boolean warnedAboutMultiplePlugins;
 
+  /**
+   * Initializes the annotation processor with the provided processing environment.
+   *
+   * @param processingEnv the annotation processing environment
+   */
   @Override
-  public final synchronized void init(final ProcessingEnvironment processingEnv) {
+  public synchronized void init(final ProcessingEnvironment processingEnv) {
     this.environment = processingEnv;
   }
 
+  /**
+   * Returns the latest source version supported by this annotation processor.
+   *
+   * @return the latest supported source version
+   */
   @Override
-  public final SourceVersion getSupportedSourceVersion() {
+  public SourceVersion getSupportedSourceVersion() {
     return SourceVersion.latestSupported();
   }
 
+  /**
+   * Processes the {@link Plugin} annotation to generate the {@code velocity-plugin.json} metadata file.
+   *
+   * <p>If multiple plugin classes are found, a warning is issued and only the first is used.</p>
+   *
+   * @param annotations the annotation types requested to be processed
+   * @param roundEnv the environment for information about the current and prior round
+   * @return {@code true} if the annotations are claimed by this processor, {@code false} otherwise
+   */
   @Override
-  public final synchronized boolean process(final Set<? extends TypeElement> annotations,
-                                            final RoundEnvironment roundEnv) {
+  public synchronized boolean process(final Set<? extends TypeElement> annotations,
+                                      final RoundEnvironment roundEnv) {
     if (roundEnv.processingOver()) {
       return false;
     }
@@ -92,6 +111,7 @@ public class PluginAnnotationProcessor extends AbstractProcessor {
                   + " for your plugin's main class.");
           warnedAboutMultiplePlugins = true;
         }
+
         return false;
       }
 
