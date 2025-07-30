@@ -16,7 +16,7 @@ spotless = "com.diffplug.spotless:7.2.1"
 [libraries]
 adventure-bom = "net.kyori:adventure-bom:4.23.0"
 adventure-text-serializer-json-legacy-impl = "net.kyori:adventure-text-serializer-json-legacy-impl:4.23.0"
-adventure-facet = "net.kyori:adventure-platform-facet:4.4.0"
+adventure-facet = "net.kyori:adventure-platform-facet:4.4.1"
 asm = "org.ow2.asm:asm:9.8"
 auto-service = "com.google.auto.service:auto-service:1.1.1"
 auto-service-annotations = "com.google.auto.service:auto-service-annotations:1.1.1"
