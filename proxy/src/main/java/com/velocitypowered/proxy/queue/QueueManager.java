@@ -20,6 +20,7 @@ package com.velocitypowered.proxy.queue;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.scheduler.ScheduledTask;
+import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -32,6 +33,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 /**
  * The interface (abstract class) that will provide methods for the Queue Manager implementations.
@@ -346,6 +348,11 @@ public abstract class QueueManager {
 
     String targetServerName = server.getServerInfo().getName();
 
+    // Check if the player's version is compatible with the server's minimum version
+    if (!checkVersionCompatibility(player, server)) {
+      return;
+    }
+
     ServerQueueStatus targetQueueStatus = getQueue(targetServerName);
     if (targetQueueStatus != null && targetQueueStatus.isQueued(player.getUniqueId())) {
       player.sendMessage(Component.translatable("velocity.queue.error.already-queued")
@@ -383,6 +390,35 @@ public abstract class QueueManager {
 
     player.sendMessage(Component.translatable("velocity.queue.command.queued")
         .arguments(Component.text(targetServerName)));
+  }
+
+  /**
+   * Checks if the player's protocol version is compatible with the server's minimum version requirement.
+   *
+   * @param player the player to check compatibility for
+   * @param server the server to check compatibility with
+   * @return {@code true} if the player's version is compatible, {@code false} otherwise
+   */
+  private boolean checkVersionCompatibility(final Player player, final VelocityRegisteredServer server) {
+    String serverName = server.getServerInfo().getName();
+    String serverMinimumVersion = this.server.getConfiguration().getMinimumVersionForServer(serverName);
+    
+    ProtocolVersion minimumProtocolVersion = ProtocolVersion.getVersionByName(serverMinimumVersion);
+    ProtocolVersion maximumProtocolVersion = ProtocolVersion.MAXIMUM_VERSION;
+    ProtocolVersion clientProtocolVersion = player.getProtocolVersion();
+
+    // Compare the client's protocol version with the server's minimum required version
+    if (clientProtocolVersion.lessThan(minimumProtocolVersion)
+        || clientProtocolVersion.greaterThan(maximumProtocolVersion)) {
+      // Send a message to the player instead of allowing them to queue
+      player.sendMessage(Component.translatable("velocity.error.modern-forwarding-needs-new-client", 
+          NamedTextColor.RED)
+          .arguments(Component.text(serverMinimumVersion), 
+              Component.text(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
+      return false;
+    }
+
+    return true;
   }
 
   /**

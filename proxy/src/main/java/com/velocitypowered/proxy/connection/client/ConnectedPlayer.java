@@ -2216,6 +2216,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
             return completedFuture(plainResult(check.get(), realDestination));
           }
 
+          // Check if the player's version is compatible with the server's minimum version
+          if (!checkVersionCompatibility(realDestination)) {
+            return completedFuture(plainResult(ConnectionRequestBuilder.Status.CONNECTION_CANCELLED, realDestination));
+          }
+
           VelocityRegisteredServer vrs = (VelocityRegisteredServer) realDestination;
           VelocityServerConnection con = new VelocityServerConnection(vrs, previousServer, ConnectedPlayer.this, server);
           connectionInFlight = con;
@@ -2326,5 +2331,31 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     }
 
     return false;
+  }
+
+  /**
+   * Checks if the player's protocol version is compatible with the server's minimum version requirement.
+   *
+   * @param server the server to check compatibility with
+   * @return {@code true} if the player's version is compatible, {@code false} otherwise
+   */
+  private boolean checkVersionCompatibility(final RegisteredServer server) {
+    String serverName = server.getServerInfo().getName();
+    String serverMinimumVersion = ConnectedPlayer.this.server.getConfiguration().getMinimumVersionForServer(serverName);
+    
+    ProtocolVersion minimumProtocolVersion = ProtocolVersion.getVersionByName(serverMinimumVersion);
+    ProtocolVersion maximumProtocolVersion = ProtocolVersion.MAXIMUM_VERSION;
+    ProtocolVersion clientProtocolVersion = getProtocolVersion();
+
+    // Compare the client's protocol version with the server's minimum required version
+    if (clientProtocolVersion.lessThan(minimumProtocolVersion)
+        || clientProtocolVersion.greaterThan(maximumProtocolVersion)) {
+      // Send a message to the player instead of disconnecting them from the proxy
+      sendMessage(Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
+          .arguments(Component.text(serverMinimumVersion), Component.text(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
+      return false;
+    }
+
+    return true;
   }
 }
