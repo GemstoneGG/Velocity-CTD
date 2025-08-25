@@ -155,12 +155,22 @@ public class RedisManagerImpl {
         return;
       }
 
-      try {
-        RedisCommands<String, String> commands = connection.sync();
-        commands.setex("PROXY_HEARTBEAT:" + proxyId, 30, "online");
-      } catch (Exception e) {
-        logger.error("Keepalive failed for Proxy ID '{}'.", proxyId, e);
-      }
+      // Use async operations to prevent blocking
+      CompletableFuture.runAsync(() -> {
+        try {
+          RedisAsyncCommands<String, String> commands = connection.async();
+          commands.setex("PROXY_HEARTBEAT:" + proxyId, 30, "online")
+              .thenAccept(result -> {
+                // Success - no action needed
+              })
+              .exceptionally(throwable -> {
+                logger.error("Keepalive failed for Proxy ID '{}'.", proxyId, throwable);
+                return null;
+              });
+        } catch (Exception e) {
+          logger.error("Keepalive failed for Proxy ID '{}'.", proxyId, e);
+        }
+      });
     }, 0, 30, TimeUnit.SECONDS);
   }
 
@@ -233,12 +243,22 @@ public class RedisManagerImpl {
       return;
     }
 
-    try {
-      RedisCommands<String, String> commands = connection.sync();
-      commands.sadd("PAUSED_QUEUES", serverName);
-    } catch (Exception e) {
-      logger.error("Failed to add paused queue: {}", serverName, e);
-    }
+    // Use async operations to prevent blocking
+    CompletableFuture.runAsync(() -> {
+      try {
+        RedisAsyncCommands<String, String> commands = connection.async();
+        commands.sadd("PAUSED_QUEUES", serverName)
+            .thenAccept(result -> {
+              // Success - no action needed
+            })
+            .exceptionally(throwable -> {
+              logger.error("Failed to add paused queue: {}", serverName, throwable);
+              return null;
+            });
+      } catch (Exception e) {
+        logger.error("Failed to add paused queue: {}", serverName, e);
+      }
+    });
   }
 
   /**
@@ -251,12 +271,22 @@ public class RedisManagerImpl {
       return;
     }
 
-    try {
-      RedisCommands<String, String> commands = connection.sync();
-      commands.srem("PAUSED_QUEUES", serverName);
-    } catch (Exception e) {
-      logger.error("Failed to remove paused queue: {}", serverName, e);
-    }
+    // Use async operations to prevent blocking
+    CompletableFuture.runAsync(() -> {
+      try {
+        RedisAsyncCommands<String, String> commands = connection.async();
+        commands.srem("PAUSED_QUEUES", serverName)
+            .thenAccept(result -> {
+              // Success - no action needed
+            })
+            .exceptionally(throwable -> {
+              logger.error("Failed to remove paused queue: {}", serverName, throwable);
+              return null;
+            });
+      } catch (Exception e) {
+        logger.error("Failed to remove paused queue: {}", serverName, e);
+      }
+    });
   }
 
   /**
@@ -309,12 +339,22 @@ public class RedisManagerImpl {
       return;
     }
 
-    try {
-      RedisCommands<String, String> commands = connection.sync();
-      commands.del("PROXY_HEARTBEAT:" + proxyId);
-    } catch (Exception e) {
-      logger.error("Failed to remove proxy ID: {}", proxyId, e);
-    }
+    // Use async operations to prevent blocking
+    CompletableFuture.runAsync(() -> {
+      try {
+        RedisAsyncCommands<String, String> commands = connection.async();
+        commands.del("PROXY_HEARTBEAT:" + proxyId)
+            .thenAccept(result -> {
+              // Success - no action needed
+            })
+            .exceptionally(throwable -> {
+              logger.error("Failed to remove proxy ID: {}", proxyId, throwable);
+              return null;
+            });
+      } catch (Exception e) {
+        logger.error("Failed to remove proxy ID: {}", proxyId, e);
+      }
+    });
   }
 
   /**
@@ -329,12 +369,22 @@ public class RedisManagerImpl {
 
     String json = gson.toJson(player);
 
-    try {
-      RedisCommands<String, String> commands = connection.sync();
-      commands.hset(CACHE_KEY, player.getUuid().toString(), json);
-    } catch (Exception e) {
-      logger.error("Failed to add/update player: {}", player.getUuid(), e);
-    }
+    // Use async operations to prevent blocking
+    CompletableFuture.runAsync(() -> {
+      try {
+        RedisAsyncCommands<String, String> commands = connection.async();
+        commands.hset(CACHE_KEY, player.getUuid().toString(), json)
+            .thenAccept(result -> {
+              // Success - no action needed
+            })
+            .exceptionally(throwable -> {
+              logger.error("Failed to add/update player: {}", player.getUuid(), throwable);
+              return null;
+            });
+      } catch (Exception e) {
+        logger.error("Failed to add/update player: {}", player.getUuid(), e);
+      }
+    });
   }
 
   /**
@@ -347,12 +397,22 @@ public class RedisManagerImpl {
       return;
     }
 
-    try {
-      RedisCommands<String, String> commands = connection.sync();
-      commands.hdel(CACHE_KEY, info.getUuid().toString());
-    } catch (Exception e) {
-      logger.error("Failed to remove player: {}", info.getUuid(), e);
-    }
+    // Use async operations to prevent blocking
+    CompletableFuture.runAsync(() -> {
+      try {
+        RedisAsyncCommands<String, String> commands = connection.async();
+        commands.hdel(CACHE_KEY, info.getUuid().toString())
+            .thenAccept(result -> {
+              // Success - no action needed
+            })
+            .exceptionally(throwable -> {
+              logger.error("Failed to remove player: {}", info.getUuid(), throwable);
+              return null;
+            });
+      } catch (Exception e) {
+        logger.error("Failed to remove player: {}", info.getUuid(), e);
+      }
+    });
   }
 
   /**
@@ -413,10 +473,12 @@ public class RedisManagerImpl {
       try {
         RedisAsyncCommands<String, String> commands = connection.async();
         commands.hset(QUEUE_CACHE_KEY, queue.getServerName(), gson.toJson(new SerializableQueue(queue)))
-            .orTimeout(5, TimeUnit.SECONDS)
+            .thenAccept(result -> {
+              // Success - no action needed
+            })
             .exceptionally(throwable -> {
               logger.error("Failed to add/update queue: {}", queue.getServerName(), throwable);
-              return false;
+              return null;
             });
       } catch (Exception e) {
         logger.error("Failed to add/update queue: {}", queue.getServerName(), e);
@@ -534,8 +596,15 @@ public class RedisManagerImpl {
       // Start pub/sub subscription asynchronously with timeout
       CompletableFuture.runAsync(() -> {
         try {
-          RedisPubSubCommands<String, String> commands = pubSubConnection.sync();
-          commands.subscribe(CHANNEL);
+          RedisPubSubAsyncCommands<String, String> commands = pubSubConnection.async();
+          commands.subscribe(CHANNEL)
+              .thenAccept(result -> {
+                // Success - no action needed
+              })
+              .exceptionally(throwable -> {
+                logger.error("Failed to subscribe to Redis channel", throwable);
+                return null;
+              });
         } catch (Exception e) {
           logger.error("Error in pubsub listener", e);
         }
@@ -604,9 +673,12 @@ public class RedisManagerImpl {
         
         RedisAsyncCommands<String, String> commands = connection.async();
         commands.publish(CHANNEL, gson.toJson(object))
+            .thenAccept(result -> {
+              // Success - no action needed
+            })
             .exceptionally(throwable -> {
               logger.error("Failed to send Redis pubsub message", throwable);
-              return 0L;
+              return null;
             });
       } catch (Exception e) {
         logger.error("Failed to send Redis pubsub message", e);
