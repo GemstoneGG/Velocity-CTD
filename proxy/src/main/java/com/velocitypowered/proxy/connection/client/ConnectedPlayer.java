@@ -1769,14 +1769,16 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       return 0;
     }
 
+    // First check for global permissions (higher priority for staff members)
     for (int i = 100; i > 0; i--) {
-      if (hasPermission("velocity.queue.priority." + serverName + "." + i)) {
+      if (hasPermission("velocity.queue.priority.all." + i)) {
         return i;
       }
     }
 
+    // Then check for server-specific permissions (lower priority)
     for (int i = 100; i > 0; i--) {
-      if (hasPermission("velocity.queue.priority.all." + i)) {
+      if (hasPermission("velocity.queue.priority." + serverName + "." + i)) {
         return i;
       }
     }
