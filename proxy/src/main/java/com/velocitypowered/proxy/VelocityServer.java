@@ -1187,9 +1187,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       if (multiProxyHandler != null) {
         multiProxyHandler.shutdown();
       }
-      if (redisManager != null) {
-        redisManager.shutdown();
-      }
 
       ImmutableList<ConnectedPlayer> players = ImmutableList.copyOf(connectionsByUuid.values());
 
