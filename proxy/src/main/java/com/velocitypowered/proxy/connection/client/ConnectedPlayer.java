@@ -2216,7 +2216,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
           // Check if the player's version is compatible with the server's minimum version
           if (!checkVersionCompatibility(realDestination)) {
-            return completedFuture(plainResult(ConnectionRequestBuilder.Status.SERVER_DISCONNECTED, realDestination));
+            return completedFuture(plainResult(ConnectionRequestBuilder.Status.CONNECTION_CANCELLED, realDestination));
           }
 
           VelocityRegisteredServer vrs = (VelocityRegisteredServer) realDestination;
@@ -2348,8 +2348,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     // Compare the client's protocol version with the server's minimum required version
     if (clientProtocolVersion.lessThan(minimumProtocolVersion)
         || clientProtocolVersion.greaterThan(maximumProtocolVersion)) {
-      // Disconnect the player with an error message if their client version is incompatible
-      disconnect(Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
+      // Send a message to the player instead of disconnecting them from the proxy
+      sendMessage(Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
           .arguments(Component.text(serverMinimumVersion), Component.text(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
       return false;
     }
