@@ -28,10 +28,10 @@ import com.velocitypowered.proxy.queue.cache.QueueCacheRetriever;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * The interface (abstract class) that will provide methods for the Queue Manager implementations.

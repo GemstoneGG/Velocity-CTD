@@ -273,6 +273,8 @@ public class ServerQueueEntry {
 
   /**
    * Gets the full bypass status.
+   *
+   * @return whether the player can bypass full server restrictions
    */
   public boolean isFullBypass() {
     return fullBypass;
