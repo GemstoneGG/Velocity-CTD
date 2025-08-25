@@ -564,7 +564,7 @@ public class RedisManagerImpl {
       RedisURI.Builder uriBuilder = RedisURI.builder()
           .withHost(redisConfig.getHost())
           .withPort(redisConfig.getPort())
-          .withTimeout(Duration.ofSeconds(5)) // Reduced timeout for faster failure detection
+          .withTimeout(Duration.ofSeconds(redisConfig.getConnectionTimeout()))
           .withDatabase(0);
 
       if (redisConfig.getUsername() != null && !redisConfig.getUsername().isEmpty()) {
@@ -605,7 +605,7 @@ public class RedisManagerImpl {
         } catch (Exception e) {
           logger.error("Error in pubsub listener", e);
         }
-      }).orTimeout(10, TimeUnit.SECONDS).exceptionally(throwable -> {
+      }).orTimeout(redisConfig.getReadTimeout(), TimeUnit.SECONDS).exceptionally(throwable -> {
         logger.error("Failed to subscribe to Redis channel within timeout", throwable);
         return null;
       });
