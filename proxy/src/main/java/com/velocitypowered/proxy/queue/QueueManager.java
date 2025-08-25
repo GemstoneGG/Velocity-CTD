@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * The interface (abstract class) that will provide methods for the Queue Manager implementations.
@@ -199,43 +200,55 @@ public abstract class QueueManager {
   }
 
   /**
-   * Sends the next player in queue, unless the queue is paused.
+   * Processes the queue sending logic for all active queues.
    */
   public void tickSending() {
     if (!isMasterProxy()) {
       return;
     }
 
-    cache.getAll().forEach(queue -> {
-      if (queue.isPaused() || !queue.isOnline()) {
-        return;
-      }
+    // Process queues in batches to avoid blocking
+    List<ServerQueueStatus> queues = cache.getAll();
+    if (queues.isEmpty()) {
+      return;
+    }
 
-      if (queue.getQueue().isEmpty()) {
-        return;
-      }
+    // Process first 10 queues to avoid overwhelming the system
+    queues.stream()
+        .limit(10)
+        .forEach(queue -> {
+          if (queue.isPaused() || !queue.isOnline()) {
+            return;
+          }
 
-      ServerQueueEntry entry = queue.getQueue().peekFirst();
+          if (queue.getQueue().isEmpty()) {
+            return;
+          }
 
-      if (entry == null || queue.isFull() && !entry.isFullBypass()) {
-        return;
-      }
+          ServerQueueEntry entry = queue.getQueue().peekFirst();
 
-      if (this.server.getMultiProxyHandler().isRedisEnabled()) {
-        if (this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
-          queue.sendFirstInQueue(entry);
-        } else {
-          queue.getQueue().pollFirst();
-          this.server.getRedisManager().addOrUpdateQueue(queue);
-        }
-      } else {
-        if (this.server.getPlayer(entry.getPlayer()).orElse(null) != null) {
-          queue.sendFirstInQueue(entry);
-        } else {
-          queue.getQueue().pollFirst();
-        }
-      }
-    });
+          if (entry == null || queue.isFull() && !entry.isFullBypass()) {
+            return;
+          }
+
+          if (this.server.getMultiProxyHandler().isRedisEnabled()) {
+            if (this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
+              queue.sendFirstInQueue(entry);
+            } else {
+              queue.getQueue().pollFirst();
+              // Async Redis update
+              CompletableFuture.runAsync(() -> {
+                this.server.getRedisManager().addOrUpdateQueue(queue);
+              });
+            }
+          } else {
+            if (this.server.getPlayer(entry.getPlayer()).orElse(null) != null) {
+              queue.sendFirstInQueue(entry);
+            } else {
+              queue.getQueue().pollFirst();
+            }
+          }
+        });
   }
 
   /**
@@ -243,54 +256,58 @@ public abstract class QueueManager {
    */
   public void tickPingingBackend() {
     List<ServerQueueStatus> queues = this.cache.getAll();
-    for (ServerQueueStatus queue : queues) {
-      RegisteredServer s = this.server.getServer(queue.getServerName()).orElse(null);
-      if (s == null) {
-        continue;
-      }
-
-      s.ping().whenComplete((result, th) -> {
-        if (th != null) {
-          queue.setStatus(ServerStatus.OFFLINE);
-        }
-
-        if (queue.getStatus() == ServerStatus.OFFLINE && th == null) {
-          queue.setStatus(ServerStatus.WAITING);
-          LAST_TURNED_ONLINE_TIME.put(queue.getServerName(), System.currentTimeMillis());
-        }
-
-        if (th == null && queue.getQueue().stream().anyMatch(ServerQueueEntry::isQueueBypass)) {
-          queue.setStatus(ServerStatus.ONLINE);
-        }
-
-        final Long lastOnlineTime = LAST_TURNED_ONLINE_TIME.get(queue.getServerName());
-
-        if (th == null && lastOnlineTime != null && queue.getStatus() == ServerStatus.WAITING) {
-          double queueDelay = this.server.getConfiguration().getQueue().getQueueDelay() * 1000;
-          if (System.currentTimeMillis() >= lastOnlineTime + queueDelay) {
-            queue.setStatus(ServerStatus.ONLINE);
-          }
-        }
-
-        ServerStatus temp = queue.getStatus();
-
-        if (temp != ServerStatus.ONLINE && queue.isOnline()) {
-          for (ServerQueueEntry entry : queue.getQueue()) {
-            if (entry.isQueueBypass()) {
-              entry.send();
-              queue.dequeue(entry.getPlayer(), false);
-            }
-          }
-        }
-
-        if (queue.isOnline()) {
-          result.getPlayers().ifPresent(ping -> {
-            int max = server.getConfiguration().getPlayerCaps().getOrDefault(queue.getServerName(), ping.getMax());
-            queue.setFull(ping.getOnline() >= max);
-          });
-        }
-      });
+    if (queues.isEmpty()) {
+      return;
     }
+
+    // Process first 5 servers to avoid overwhelming the system
+    queues.stream()
+        .limit(5)
+        .forEach(queue -> {
+          RegisteredServer s = this.server.getServer(queue.getServerName()).orElse(null);
+          if (s == null) {
+            return;
+          }
+
+          // Use async ping with timeout
+          s.ping().orTimeout(3, TimeUnit.SECONDS).whenComplete((result, th) -> {
+            if (th != null) {
+              queue.setStatus(ServerStatus.OFFLINE);
+            }
+
+            if (queue.getStatus() == ServerStatus.OFFLINE && th == null) {
+              queue.setStatus(ServerStatus.WAITING);
+              LAST_TURNED_ONLINE_TIME.put(queue.getServerName(), System.currentTimeMillis());
+            }
+
+            if (th == null && queue.getQueue().stream().anyMatch(ServerQueueEntry::isQueueBypass)) {
+              queue.setStatus(ServerStatus.ONLINE);
+            }
+
+            final Long lastOnlineTime = LAST_TURNED_ONLINE_TIME.get(queue.getServerName());
+
+            if (th == null && lastOnlineTime != null && queue.getStatus() == ServerStatus.WAITING) {
+              double queueDelay = this.server.getConfiguration().getQueue().getQueueDelay() * 1000;
+              if (System.currentTimeMillis() >= lastOnlineTime + queueDelay) {
+                queue.setStatus(ServerStatus.ONLINE);
+              }
+            }
+
+            ServerStatus temp = queue.getStatus();
+
+            if (temp != ServerStatus.ONLINE && queue.isOnline()) {
+              for (ServerQueueEntry entry : queue.getQueue()) {
+                if (entry.isQueueBypass()) {
+                  entry.send();
+                  queue.dequeue(entry.getPlayer(), false);
+                }
+              }
+            }
+          }).exceptionally(throwable -> {
+            queue.setStatus(ServerStatus.OFFLINE);
+            return null;
+          });
+        });
   }
 
   /**

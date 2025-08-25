@@ -24,6 +24,7 @@ import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * The redis implementation of the queue cache.
@@ -72,8 +73,11 @@ public class RedisRetriever implements QueueCacheRetriever {
     if (status == null) {
       status = new ServerQueueStatus(server, proxy);
 
-      // Make the queue if it doesn't exist.
-      redisManager.addOrUpdateQueue(status);
+      // Make the queue if it doesn't exist - async to prevent blocking
+      final ServerQueueStatus finalStatus = status;
+      CompletableFuture.runAsync(() -> {
+        redisManager.addOrUpdateQueue(finalStatus);
+      });
     }
 
     return status;

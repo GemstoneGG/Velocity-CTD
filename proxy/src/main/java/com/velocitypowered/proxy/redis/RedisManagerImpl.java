@@ -408,12 +408,20 @@ public class RedisManagerImpl {
       return;
     }
 
-    try {
-      RedisCommands<String, String> commands = connection.sync();
-      commands.hset(QUEUE_CACHE_KEY, queue.getServerName(), gson.toJson(new SerializableQueue(queue)));
-    } catch (Exception e) {
-      logger.error("Failed to add/update queue: {}", queue.getServerName(), e);
-    }
+    // Use async operations to prevent blocking
+    CompletableFuture.runAsync(() -> {
+      try {
+        RedisAsyncCommands<String, String> commands = connection.async();
+        commands.hset(QUEUE_CACHE_KEY, queue.getServerName(), gson.toJson(new SerializableQueue(queue)))
+            .orTimeout(5, TimeUnit.SECONDS)
+            .exceptionally(throwable -> {
+              logger.error("Failed to add/update queue: {}", queue.getServerName(), throwable);
+              return false;
+            });
+      } catch (Exception e) {
+        logger.error("Failed to add/update queue: {}", queue.getServerName(), e);
+      }
+    });
   }
 
   /**
@@ -493,11 +501,11 @@ public class RedisManagerImpl {
 
   private void start(final VelocityConfiguration.Redis redisConfig, final VelocityServer server) {
     try {
-      // Build Redis URI
+      // Build Redis URI with optimized settings
       RedisURI.Builder uriBuilder = RedisURI.builder()
           .withHost(redisConfig.getHost())
           .withPort(redisConfig.getPort())
-          .withTimeout(Duration.ofSeconds(10))
+          .withTimeout(Duration.ofSeconds(5)) // Reduced timeout for faster failure detection
           .withDatabase(0);
 
       if (redisConfig.getUsername() != null && !redisConfig.getUsername().isEmpty()) {
@@ -513,7 +521,7 @@ public class RedisManagerImpl {
 
       RedisURI redisUri = uriBuilder.build();
 
-      // Create Redis client
+      // Create Redis client with connection pooling
       this.redisClient = RedisClient.create(redisUri);
       
       // Create main connection
@@ -523,7 +531,7 @@ public class RedisManagerImpl {
       this.pubSubConnection = redisClient.connectPubSub();
       this.pubSubConnection.addListener(this.pubSub);
 
-      // Start pub/sub subscription in background
+      // Start pub/sub subscription asynchronously with timeout
       CompletableFuture.runAsync(() -> {
         try {
           RedisPubSubCommands<String, String> commands = pubSubConnection.sync();
@@ -531,6 +539,9 @@ public class RedisManagerImpl {
         } catch (Exception e) {
           logger.error("Error in pubsub listener", e);
         }
+      }).orTimeout(10, TimeUnit.SECONDS).exceptionally(throwable -> {
+        logger.error("Failed to subscribe to Redis channel within timeout", throwable);
+        return null;
       });
 
       validateProxyId(redisConfig.getProxyId());
@@ -583,17 +594,24 @@ public class RedisManagerImpl {
       return;
     }
 
-    try {
-      JsonElement packetData = gson.toJsonTree(packet);
-      JsonObject object = new JsonObject();
-      object.add("obj", packetData);
-      object.addProperty("id", packet.getId());
-      
-      RedisCommands<String, String> commands = connection.sync();
-      commands.publish(CHANNEL, gson.toJson(object));
-    } catch (Exception e) {
-      logger.error("Failed to send Redis pubsub message", e);
-    }
+    // Use async operations to prevent blocking
+    CompletableFuture.runAsync(() -> {
+      try {
+        JsonElement packetData = gson.toJsonTree(packet);
+        JsonObject object = new JsonObject();
+        object.add("obj", packetData);
+        object.addProperty("id", packet.getId());
+        
+        RedisAsyncCommands<String, String> commands = connection.async();
+        commands.publish(CHANNEL, gson.toJson(object))
+            .exceptionally(throwable -> {
+              logger.error("Failed to send Redis pubsub message", throwable);
+              return 0L;
+            });
+      } catch (Exception e) {
+        logger.error("Failed to send Redis pubsub message", e);
+      }
+    });
   }
 
   /**

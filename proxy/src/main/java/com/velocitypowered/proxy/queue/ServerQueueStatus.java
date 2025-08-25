@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import net.kyori.adventure.text.Component;
@@ -215,6 +216,7 @@ public class ServerQueueStatus {
 
     ServerQueueEntry entry = new ServerQueueEntry(playerUuid, this.server, this.velocityServer, priority, fullBypass, queueBypass);
 
+    // Separate queue operations from Redis updates to prevent blocking
     synchronized (queue) {
       var iterator = queue.iterator();
       boolean inserted = false;
@@ -236,9 +238,12 @@ public class ServerQueueStatus {
       if (!inserted) {
         queue.addLast(entry);
       }
-
-      this.velocityServer.getRedisManager().addOrUpdateQueue(this);
     }
+
+    // Redis update outside synchronized block to prevent blocking
+    CompletableFuture.runAsync(() -> {
+      this.velocityServer.getRedisManager().addOrUpdateQueue(this);
+    });
   }
 
   private void insertAtPosition(final ServerQueueEntry newEntry, final int position) {
@@ -280,8 +285,13 @@ public class ServerQueueStatus {
       }
     }).delay(1, TimeUnit.SECONDS).schedule();
 
+    // Queue operation
     this.queue.removeIf(entry -> entry.getPlayer().equals(player));
-    this.velocityServer.getRedisManager().addOrUpdateQueue(this);
+    
+    // Redis update outside to prevent blocking
+    CompletableFuture.runAsync(() -> {
+      this.velocityServer.getRedisManager().addOrUpdateQueue(this);
+    });
   }
 
   /**
@@ -318,21 +328,14 @@ public class ServerQueueStatus {
                   ).asHoverEvent())
           );
     } else {
-      AtomicBoolean status = new AtomicBoolean(true);
-
-      server.ping().whenComplete((result, th)
-          -> status.set(th == null)).exceptionally(e -> {
-            status.set(false);
-            return null;
-          }).join();
-
+      // Use cached status instead of blocking ping
       return Component.translatable("velocity.queue.command.listqueues.item")
           .arguments(Component.text(server.getServerInfo().getName())
               .hoverEvent(Component.translatable("velocity.queue.command.listqueues.hover")
                   .arguments(
                       Component.text(queue.size()),
                       Component.text(isPaused() ? "True" : "False"),
-                      Component.text(status.get() ? "True" : "False")
+                      Component.text(isOnline() ? "True" : "False")
                   ).asHoverEvent())
           );
     }

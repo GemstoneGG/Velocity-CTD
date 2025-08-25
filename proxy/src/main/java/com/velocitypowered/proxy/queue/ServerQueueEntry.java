@@ -170,7 +170,7 @@ public class ServerQueueEntry {
         future = p.createConnectionRequest(foundServer).connect();
       }
 
-      future.thenAccept(result -> {
+      future.whenComplete((result, throwable) -> {
         boolean success = false;
         if (result instanceof Boolean b) {
           success = b;
@@ -195,7 +195,7 @@ public class ServerQueueEntry {
         }
 
         return null;
-      }).join();
+      });
     });
   }
 
