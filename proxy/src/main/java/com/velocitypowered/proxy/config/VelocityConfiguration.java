@@ -1483,6 +1483,19 @@ public final class VelocityConfiguration implements ProxyConfig {
   }
 
   /**
+   * Gets the minimum allowed Minecraft version for a specific server.
+   *
+   * <p>If the server has a specific minimum version configured, that value is returned.
+   * Otherwise, the global minimum version is returned.
+   *
+   * @param serverName the name of the server to check
+   * @return the minimum supported version string for the server (e.g., {@code "1.7.2"})
+   */
+  public String getMinimumVersionForServer(final String serverName) {
+    return servers.getServerMinimumVersions().getOrDefault(serverName, minimumVersion);
+  }
+
+  /**
    * Gets a list of aliases that invoke the {@code /server} command or its variations.
    *
    * <p>These aliases are registered for convenience (e.g. {@code /queue}, {@code /joinqueue}).
@@ -1525,6 +1538,14 @@ public final class VelocityConfiguration implements ProxyConfig {
     private Map<String, PlayerInfoForwarding> serverForwardingModes = ImmutableMap.of();
 
     /**
+     * Per-server overrides for minimum version requirements.
+     *
+     * <p>If a server is listed here, it uses the specified minimum version
+     * instead of the global configuration.
+     */
+    private Map<String, String> serverMinimumVersions = ImmutableMap.of();
+
+    /**
      * The strategy used for choosing a fallback server when {@code attemptConnectionOrder}
      * fails or is bypassed (e.g., in multi-proxy setups).
      *
@@ -1549,6 +1570,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       if (config != null) {
         Map<String, String> servers = new HashMap<>();
         Map<String, PlayerInfoForwarding> serverForwardingModes = new HashMap<>();
+        Map<String, String> serverMinimumVersions = new HashMap<>();
         for (UnmodifiableConfig.Entry entry : config.entrySet()) {
           if (entry.getKey().equalsIgnoreCase("dynamic-fallbacks-filter")) {
             continue;
@@ -1570,6 +1592,11 @@ public final class VelocityConfiguration implements ProxyConfig {
               serverForwardingModes.put(name, mode);
             }
 
+            String minimumVersion = unmodifiableConfig.get("minimum-version");
+            if (minimumVersion != null) {
+              serverMinimumVersions.put(name, minimumVersion);
+            }
+
             servers.put(cleanServerName(name), address);
           } else {
             if (!entry.getKey().equalsIgnoreCase("try")
@@ -1583,6 +1610,7 @@ public final class VelocityConfiguration implements ProxyConfig {
 
         this.servers = ImmutableMap.copyOf(servers);
         this.serverForwardingModes = ImmutableMap.copyOf(serverForwardingModes);
+        this.serverMinimumVersions = ImmutableMap.copyOf(serverMinimumVersions);
         this.attemptConnectionOrder = config.getOrElse("try", attemptConnectionOrder).stream().toList();
         this.dynamicFallbackFilter = config.getOrElse("dynamic-fallbacks-filter", "FIRST_AVAILABLE");
         this.serverAliases = config.getOrElse("server-aliases", List.of("joinqueue", "queue", "server"));
@@ -1628,6 +1656,14 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.serverForwardingModes = serverForwardingModes;
     }
 
+    public Map<String, String> getServerMinimumVersions() {
+      return serverMinimumVersions;
+    }
+
+    public void setServerMinimumVersions(final Map<String, String> serverMinimumVersions) {
+      this.serverMinimumVersions = serverMinimumVersions;
+    }
+
     /**
      * TOML requires keys to match a regex of {@code [A-Za-z0-9_-]} unless it is wrapped in quotes;
      * however, the TOML parser returns the key with the quotes so we need to clean the server name
@@ -1646,6 +1682,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           + "servers=" + servers
           + ", attemptConnectionOrder=" + attemptConnectionOrder
           + ", serverForwardingModes=" + serverForwardingModes
+          + ", serverMinimumVersions=" + serverMinimumVersions
           + '}';
     }
   }

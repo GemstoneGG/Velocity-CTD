@@ -148,6 +148,10 @@ lobby = "127.0.0.1:30066"
 factions = "127.0.0.1:30067"
 minigames = "127.0.0.1:30068"
 
+# You can also specify a minimum-version for individual servers to override the global setting:
+# legacy = { address = "127.0.0.1:30069", minimum-version = "1.7.2" }
+# modern = { address = "127.0.0.1:30070", minimum-version = "1.20" }
+
 # If you need a different forwarding mode, specify as shown:
 #
 # To remove this line, either remove the line or comment it out.
