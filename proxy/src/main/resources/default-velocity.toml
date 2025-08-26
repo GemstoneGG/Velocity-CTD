@@ -76,6 +76,11 @@ disable-forge = false
 # any existing player who is online if a duplicate connection attempt is made.
 kick-existing-players = false
 
+# If enabled (default is false), when kick-existing-players is enabled, Velocity will also
+# check for duplicate connections from the same IP address in addition to username and UUID checks.
+# This provides additional protection against connection loss scenarios.
+kick-existing-players-check-ip = false
+
 # Should Velocity pass server list ping requests to a backend server?
 # Available options:
 # - "disabled":    No pass-through will be done. The velocity.toml and server-icon.png

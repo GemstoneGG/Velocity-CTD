@@ -268,6 +268,11 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private final Map<String, ConnectedPlayer> connectionsByName = new ConcurrentHashMap<>();
 
   /**
+   * Maps online players by their IP address for duplicate connection detection.
+   */
+  private final Map<InetAddress, ConnectedPlayer> connectionsByIp = new ConcurrentHashMap<>();
+
+  /**
    * The proxy's console interface, providing command input and logging output.
    */
   private final VelocityConsole console;
@@ -1396,8 +1401,18 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       return true;
     }
     String lowerName = connection.getUsername().toLowerCase(Locale.US);
-    return !(connectionsByName.containsKey(lowerName)
-        || connectionsByUuid.containsKey(connection.getUniqueId()));
+    InetAddress playerIp = connection.getRemoteAddress().getAddress();
+    
+    // Check for existing connections by username, UUID, and optionally IP
+    boolean hasExistingConnection = connectionsByName.containsKey(lowerName)
+        || connectionsByUuid.containsKey(connection.getUniqueId());
+    
+    // If IP checking is enabled, also check for existing connections from the same IP
+    if (configuration.isKickExistingPlayersCheckIp()) {
+      hasExistingConnection = hasExistingConnection || connectionsByIp.containsKey(playerIp);
+    }
+    
+    return !hasExistingConnection;
   }
 
   /**
@@ -1408,6 +1423,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    */
   public boolean registerConnection(final ConnectedPlayer connection) {
     String lowerName = connection.getUsername().toLowerCase(Locale.US);
+    InetAddress playerIp = connection.getRemoteAddress().getAddress();
 
     if (!this.configuration.isOnlineModeKickExistingPlayers()) {
       if (connectionsByName.putIfAbsent(lowerName, connection) != null) {
@@ -1418,15 +1434,36 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         connectionsByName.remove(lowerName, connection);
         return false;
       }
+      
+      // If IP checking is enabled, also check for IP conflicts
+      if (this.configuration.isKickExistingPlayersCheckIp()) {
+        if (connectionsByIp.putIfAbsent(playerIp, connection) != null) {
+          connectionsByName.remove(lowerName, connection);
+          connectionsByUuid.remove(connection.getUniqueId(), connection);
+          return false;
+        }
+      }
     } else {
+      // Handle existing connections by UUID
       ConnectedPlayer existing = connectionsByUuid.get(connection.getUniqueId());
       if (existing != null) {
         existing.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
+      }
+      
+      // Handle existing connections by IP if IP checking is enabled
+      if (this.configuration.isKickExistingPlayersCheckIp()) {
+        ConnectedPlayer existingByIp = connectionsByIp.get(playerIp);
+        if (existingByIp != null && !existingByIp.equals(existing)) {
+          existingByIp.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
+        }
       }
 
       // We can now replace the entries as needed.
       connectionsByName.put(lowerName, connection);
       connectionsByUuid.put(connection.getUniqueId(), connection);
+      if (this.configuration.isKickExistingPlayersCheckIp()) {
+        connectionsByIp.put(playerIp, connection);
+      }
     }
 
     return true;
@@ -1440,6 +1477,9 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   public void unregisterConnection(final ConnectedPlayer connection) {
     connectionsByName.remove(connection.getUsername().toLowerCase(Locale.US), connection);
     connectionsByUuid.remove(connection.getUniqueId(), connection);
+    if (configuration.isKickExistingPlayersCheckIp()) {
+      connectionsByIp.remove(connection.getRemoteAddress().getAddress(), connection);
+    }
     connection.disconnected();
   }
 

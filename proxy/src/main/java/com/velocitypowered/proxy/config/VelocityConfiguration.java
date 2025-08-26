@@ -141,6 +141,13 @@ public final class VelocityConfiguration implements ProxyConfig {
   private boolean onlineModeKickExistingPlayers = false;
 
   /**
+   * If {@code true}, when kick-existing-players is enabled, also check for duplicate connections
+   * from the same IP address in addition to username and UUID checks.
+   */
+  @Expose
+  private boolean kickExistingPlayersCheckIp = false;
+
+  /**
    * Defines how ping data (e.g. MOTD, players, mods) is forwarded to clients.
    */
   @Expose
@@ -317,7 +324,8 @@ public final class VelocityConfiguration implements ProxyConfig {
                                 final int showMaxPlayers, final boolean onlineMode,
                                 final boolean preventClientProxyConnections, final boolean announceForge,
                                 final PlayerInfoForwarding playerInfoForwardingMode, final byte[] forwardingSecret,
-                                final boolean onlineModeKickExistingPlayers, final PingPassthroughMode pingPassthrough,
+                                final boolean onlineModeKickExistingPlayers, final boolean kickExistingPlayersCheckIp,
+                                final PingPassthroughMode pingPassthrough,
                                 final boolean samplePlayersInPing, final boolean enablePlayerAddressLogging,
                                 final Servers servers, final ForcedHosts forcedHosts, final CommandAliases commandAliases,
                                 final Commands commands, final Advanced advanced, final Query query,
@@ -339,6 +347,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     this.playerInfoForwardingMode = playerInfoForwardingMode;
     this.forwardingSecret = forwardingSecret;
     this.onlineModeKickExistingPlayers = onlineModeKickExistingPlayers;
+    this.kickExistingPlayersCheckIp = kickExistingPlayersCheckIp;
     this.pingPassthrough = pingPassthrough;
     this.samplePlayersInPing = samplePlayersInPing;
     this.enablePlayerAddressLogging = enablePlayerAddressLogging;
@@ -1237,6 +1246,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       final boolean preventClientProxyConnections = config.getOrElse(
               "prevent-client-proxy-connections", false);
       final boolean kickExisting = config.getOrElse("kick-existing-players", false);
+      final boolean kickExistingCheckIp = config.getOrElse("kick-existing-players-check-ip", false);
       final boolean enablePlayerAddressLogging = config.getOrElse(
               "enable-player-address-logging", true);
       final boolean logPlayerConnections = config.getOrElse(
@@ -1339,6 +1349,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           forwardingMode,
           forwardingSecret,
           kickExisting,
+          kickExistingCheckIp,
           pingPassthroughMode,
           samplePlayersInPing,
           enablePlayerAddressLogging,
@@ -1396,6 +1407,19 @@ public final class VelocityConfiguration implements ProxyConfig {
    */
   public boolean isOnlineModeKickExistingPlayers() {
     return onlineModeKickExistingPlayers;
+  }
+
+  /**
+   * Determines whether Velocity should also check for duplicate connections from the same IP address
+   * when kick-existing-players is enabled.
+   *
+   * <p>This provides additional protection against connection loss scenarios where a player
+   * might reconnect from the same IP address with a different username or UUID.
+   *
+   * @return true if IP address checking should be performed for duplicate connections
+   */
+  public boolean isKickExistingPlayersCheckIp() {
+    return kickExistingPlayersCheckIp;
   }
 
   /**
