@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * The redis implementation of the queue cache.
@@ -65,23 +66,83 @@ public class RedisRetriever implements QueueCacheRetriever {
       return null;
     }
 
-    SerializableQueue ser = this.redisManager.getQueue(serverName);
-    ServerQueueStatus status = null;
-    if (ser != null) {
-      status = ser.convert(this.proxy, server);
+    // Use async operation to prevent blocking
+    try {
+      SerializableQueue ser = this.redisManager.getQueueAsync(serverName).get(5, TimeUnit.SECONDS);
+      ServerQueueStatus status = null;
+      if (ser != null) {
+        status = ser.convert(this.proxy, server);
+      }
+
+      if (status == null) {
+        status = new ServerQueueStatus(server, proxy);
+
+        // Make the queue if it doesn't exist - async to prevent blocking
+        final ServerQueueStatus finalStatus = status;
+        CompletableFuture.runAsync(() -> {
+          redisManager.addOrUpdateQueue(finalStatus);
+        });
+      }
+
+      return status;
+    } catch (Exception e) {
+      // Fallback to synchronous operation if async fails
+      SerializableQueue ser = this.redisManager.getQueue(serverName);
+      ServerQueueStatus status = null;
+      if (ser != null) {
+        status = ser.convert(this.proxy, server);
+      }
+
+      if (status == null) {
+        status = new ServerQueueStatus(server, proxy);
+
+        // Make the queue if it doesn't exist - async to prevent blocking
+        final ServerQueueStatus finalStatus = status;
+        CompletableFuture.runAsync(() -> {
+          redisManager.addOrUpdateQueue(finalStatus);
+        });
+      }
+
+      return status;
+    }
+  }
+
+  /**
+   * Gets the queue asynchronously.
+   *
+   * @param serverName The name of the server.
+   * @return A CompletableFuture containing the queue.
+   */
+  @Override
+  public CompletableFuture<ServerQueueStatus> getAsync(final String serverName) {
+    VelocityRegisteredServer server = (VelocityRegisteredServer) proxy.getServer(serverName).orElse(null);
+    if (server == null) {
+      return CompletableFuture.completedFuture(null);
     }
 
-    if (status == null) {
-      status = new ServerQueueStatus(server, proxy);
+    return this.redisManager.getQueueAsync(serverName)
+        .thenApply(ser -> {
+          ServerQueueStatus status = null;
+          if (ser != null) {
+            status = ser.convert(this.proxy, server);
+          }
 
-      // Make the queue if it doesn't exist - async to prevent blocking
-      final ServerQueueStatus finalStatus = status;
-      CompletableFuture.runAsync(() -> {
-        redisManager.addOrUpdateQueue(finalStatus);
-      });
-    }
+          if (status == null) {
+            status = new ServerQueueStatus(server, proxy);
 
-    return status;
+            // Make the queue if it doesn't exist - async to prevent blocking
+            final ServerQueueStatus finalStatus = status;
+            CompletableFuture.runAsync(() -> {
+              redisManager.addOrUpdateQueue(finalStatus);
+            });
+          }
+
+          return status;
+        })
+        .exceptionally(throwable -> {
+          // Fallback to synchronous operation if async fails
+          return get(serverName);
+        });
   }
 
   @Override
@@ -102,32 +163,106 @@ public class RedisRetriever implements QueueCacheRetriever {
    */
   @Override
   public List<ServerQueueStatus> getAll() {
-    List<SerializableQueue> ser = redisManager.getAllQueues();
-    List<ServerQueueStatus> queue = new ArrayList<>();
-    
-    // If Redis returns empty list, create queues for all registered servers
-    if (ser.isEmpty()) {
-      for (RegisteredServer registeredServer : proxy.getAllServers()) {
-        VelocityRegisteredServer server = (VelocityRegisteredServer) registeredServer;
-        ServerQueueStatus status = new ServerQueueStatus(server, proxy);
-        queue.add(status);
-        
-        // Async update to Redis
-        final ServerQueueStatus finalStatus = status;
-        CompletableFuture.runAsync(() -> {
-          redisManager.addOrUpdateQueue(finalStatus);
+    // Use async operation to prevent blocking
+    try {
+      List<SerializableQueue> ser = redisManager.getAllQueuesAsync().get(5, TimeUnit.SECONDS);
+      List<ServerQueueStatus> queue = new ArrayList<>();
+      
+      // If Redis returns empty list, create queues for all registered servers
+      if (ser.isEmpty()) {
+        for (RegisteredServer registeredServer : proxy.getAllServers()) {
+          VelocityRegisteredServer server = (VelocityRegisteredServer) registeredServer;
+          ServerQueueStatus status = new ServerQueueStatus(server, proxy);
+          queue.add(status);
+          
+          // Async update to Redis
+          final ServerQueueStatus finalStatus = status;
+          CompletableFuture.runAsync(() -> {
+            redisManager.addOrUpdateQueue(finalStatus);
+          });
+        }
+      } else {
+        ser.forEach(s -> {
+          VelocityRegisteredServer server = (VelocityRegisteredServer) proxy.getServer(s.getServerName()).orElse(null);
+
+          if (server != null) {
+            queue.add(s.convert(proxy, server));
+          }
         });
       }
-    } else {
-      ser.forEach(s -> {
-        VelocityRegisteredServer server = (VelocityRegisteredServer) proxy.getServer(s.getServerName()).orElse(null);
 
-        if (server != null) {
-          queue.add(s.convert(proxy, server));
+      return queue;
+    } catch (Exception e) {
+      // Fallback to synchronous operation if async fails
+      List<SerializableQueue> ser = redisManager.getAllQueues();
+      List<ServerQueueStatus> queue = new ArrayList<>();
+      
+      // If Redis returns empty list, create queues for all registered servers
+      if (ser.isEmpty()) {
+        for (RegisteredServer registeredServer : proxy.getAllServers()) {
+          VelocityRegisteredServer server = (VelocityRegisteredServer) registeredServer;
+          ServerQueueStatus status = new ServerQueueStatus(server, proxy);
+          queue.add(status);
+          
+          // Async update to Redis
+          final ServerQueueStatus finalStatus = status;
+          CompletableFuture.runAsync(() -> {
+            redisManager.addOrUpdateQueue(finalStatus);
+          });
         }
-      });
-    }
+      } else {
+        ser.forEach(s -> {
+          VelocityRegisteredServer server = (VelocityRegisteredServer) proxy.getServer(s.getServerName()).orElse(null);
 
-    return queue;
+          if (server != null) {
+            queue.add(s.convert(proxy, server));
+          }
+        });
+      }
+
+      return queue;
+    }
+  }
+
+  /**
+   * Gets all the queues asynchronously.
+   *
+   * @return A CompletableFuture containing all the queues.
+   */
+  @Override
+  public CompletableFuture<List<ServerQueueStatus>> getAllAsync() {
+    return this.redisManager.getAllQueuesAsync()
+        .thenApply(ser -> {
+          List<ServerQueueStatus> queue = new ArrayList<>();
+          
+          // If Redis returns empty list, create queues for all registered servers
+          if (ser.isEmpty()) {
+            for (RegisteredServer registeredServer : proxy.getAllServers()) {
+              VelocityRegisteredServer server = (VelocityRegisteredServer) registeredServer;
+              ServerQueueStatus status = new ServerQueueStatus(server, proxy);
+              queue.add(status);
+              
+              // Async update to Redis
+              final ServerQueueStatus finalStatus = status;
+              CompletableFuture.runAsync(() -> {
+                redisManager.addOrUpdateQueue(finalStatus);
+              });
+            }
+          } else {
+            ser.forEach(s -> {
+              VelocityRegisteredServer server = (VelocityRegisteredServer) proxy.getServer(s.getServerName()).orElse(null);
+
+              if (server != null) {
+                queue.add(s.convert(proxy, server));
+              }
+            });
+          }
+
+          return queue;
+        })
+        .exceptionally(throwable -> {
+          // Fallback to synchronous operation if async fails
+          return getAll();
+        });
   }
 }

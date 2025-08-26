@@ -20,6 +20,7 @@ package com.velocitypowered.proxy.queue.cache;
 import com.velocitypowered.proxy.queue.ServerQueueStatus;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Represents the cache of all the queues.
@@ -35,14 +36,34 @@ public interface QueueCacheRetriever {
   ServerQueueStatus get(String serverName);
 
   /**
+   * Gets a queue asynchronously.
+   *
+   * @param serverName The name of the server.
+   * @return A CompletableFuture containing the queue.
+   */
+  default CompletableFuture<ServerQueueStatus> getAsync(String serverName) {
+    return CompletableFuture.completedFuture(get(serverName));
+  }
+
+  /**
    * Gets the queue a player is in.
    *
    * @param uuid The UUID of the player.
    * @return The {@link ServerQueueStatus} representing the queue the player is currently in,
    *         or {@code null} if the player is not in any queue.
    */
-
   ServerQueueStatus get(UUID uuid);
+
+  /**
+   * Gets the queue a player is in asynchronously.
+   *
+   * @param uuid The UUID of the player.
+   * @return A CompletableFuture containing the {@link ServerQueueStatus} representing the queue the player is currently in,
+   *         or {@code null} if the player is not in any queue.
+   */
+  default CompletableFuture<ServerQueueStatus> getAsync(UUID uuid) {
+    return CompletableFuture.completedFuture(get(uuid));
+  }
 
   /**
    * Gets all the queues.
@@ -50,4 +71,13 @@ public interface QueueCacheRetriever {
    * @return All the queues.
    */
   List<ServerQueueStatus> getAll();
+
+  /**
+   * Gets all the queues asynchronously.
+   *
+   * @return A CompletableFuture containing all the queues.
+   */
+  default CompletableFuture<List<ServerQueueStatus>> getAllAsync() {
+    return CompletableFuture.completedFuture(getAll());
+  }
 }

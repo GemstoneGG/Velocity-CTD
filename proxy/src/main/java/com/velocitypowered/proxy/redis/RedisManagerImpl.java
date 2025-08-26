@@ -287,6 +287,141 @@ public class RedisManagerImpl {
   }
 
   /**
+   * Get a queue from the cache based on username.
+   *
+   * @param serverName The name of the server.
+   * @return The queue from the cache.
+   */
+  public SerializableQueue getQueue(final String serverName) {
+    if (this.connection == null) {
+      return null;
+    }
+
+    try {
+      // Use async operation with timeout to prevent blocking
+      return getQueueAsync(serverName).get(5, TimeUnit.SECONDS);
+    } catch (Exception e) {
+      logger.error("Failed to get queue: {}", serverName, e);
+      return null; // Return null in case of an error
+    }
+  }
+
+  /**
+   * Get a queue from the cache asynchronously.
+   *
+   * @param serverName The name of the server.
+   * @return A CompletableFuture containing the queue from the cache.
+   */
+  public CompletableFuture<SerializableQueue> getQueueAsync(final String serverName) {
+    if (this.connection == null) {
+      return CompletableFuture.completedFuture(null);
+    }
+
+    return CompletableFuture.supplyAsync(() -> {
+      try {
+        RedisAsyncCommands<String, String> commands = connection.async();
+        return commands.hget(QUEUE_CACHE_KEY, serverName)
+            .thenApply(json -> {
+              if (json == null) {
+                return null; // Key does not exist
+              }
+              return gson.fromJson(json, SerializableQueue.class);
+            })
+            .toCompletableFuture()
+            .get(5, TimeUnit.SECONDS);
+      } catch (Exception e) {
+        logger.error("Failed to get queue async: {}", serverName, e);
+        return null;
+      }
+    });
+  }
+
+  /**
+   * Get all the queues from the cache.
+   *
+   * @return All the queues from the cache.
+   */
+  public List<SerializableQueue> getAllQueues() {
+    if (this.connection == null) {
+      return new ArrayList<>();
+    }
+
+    try {
+      // Use async operation with timeout to prevent blocking
+      return getAllQueuesAsync().get(5, TimeUnit.SECONDS);
+    } catch (Exception e) {
+      logger.error("Failed to get all queues", e);
+      return new ArrayList<>();
+    }
+  }
+
+  /**
+   * Get all the queues from the cache asynchronously.
+   *
+   * @return A CompletableFuture containing all the queues from the cache.
+   */
+  public CompletableFuture<List<SerializableQueue>> getAllQueuesAsync() {
+    if (this.connection == null) {
+      return CompletableFuture.completedFuture(new ArrayList<>());
+    }
+
+    return CompletableFuture.supplyAsync(() -> {
+      try {
+        RedisAsyncCommands<String, String> commands = connection.async();
+        return commands.hgetall(QUEUE_CACHE_KEY)
+            .thenApply(queueMap -> queueMap.values().stream()
+                .map(json -> gson.fromJson(json, SerializableQueue.class))
+                .collect(Collectors.toList()))
+            .toCompletableFuture()
+            .get(5, TimeUnit.SECONDS);
+      } catch (Exception e) {
+        logger.error("Failed to get all queues async", e);
+        return new ArrayList<>();
+      }
+    });
+  }
+
+  /**
+   * Updates the entry.
+   *
+   * @param serverQueueEntry The entry to update.
+   */
+  public void addOrUpdateEntry(final ServerQueueEntry serverQueueEntry) {
+    if (this.connection == null) {
+      return;
+    }
+
+    // Use async operation to prevent blocking
+    getQueueAsync(serverQueueEntry.getTarget().getServerInfo().getName())
+        .thenAccept(serializableQueue -> {
+          if (serializableQueue == null) {
+            return;
+          }
+          
+          ServerQueueStatus status = serializableQueue.convert(serverQueueEntry.getProxy(), serverQueueEntry.getTarget());
+          if (status == null) {
+            return;
+          }
+
+          ServerQueueEntry entry = status.getEntry(serverQueueEntry.getPlayer()).orElse(null);
+          if (entry == null) {
+            return;
+          }
+
+          entry.update(serverQueueEntry.getConnectionAttempts(), serverQueueEntry.isWaitingForConnection(),
+              serverQueueEntry.getPriority(),
+              serverQueueEntry.isFullBypass(),
+              serverQueueEntry.isQueueBypass());
+
+          addOrUpdateQueue(status);
+        })
+        .exceptionally(throwable -> {
+          logger.error("Failed to update entry for player: {}", serverQueueEntry.getPlayer(), throwable);
+          return null;
+        });
+  }
+
+  /**
    * Get all the paused queues.
    *
    * @return All the paused queues.
@@ -297,12 +432,36 @@ public class RedisManagerImpl {
     }
 
     try {
-      RedisCommands<String, String> commands = connection.sync();
-      return new ArrayList<>(commands.smembers("PAUSED_QUEUES"));
+      // Use async operation with timeout to prevent blocking
+      return getPausedQueuesAsync().get(5, TimeUnit.SECONDS);
     } catch (Exception e) {
       logger.error("Failed to get paused queues", e);
       return new ArrayList<>();
     }
+  }
+
+  /**
+   * Get all the paused queues asynchronously.
+   *
+   * @return A CompletableFuture containing all the paused queues.
+   */
+  public CompletableFuture<List<String>> getPausedQueuesAsync() {
+    if (this.connection == null) {
+      return CompletableFuture.completedFuture(new ArrayList<>());
+    }
+
+    return CompletableFuture.supplyAsync(() -> {
+      try {
+        RedisAsyncCommands<String, String> commands = connection.async();
+        return commands.smembers("PAUSED_QUEUES")
+            .thenApply(members -> new ArrayList<>(members))
+            .toCompletableFuture()
+            .get(5, TimeUnit.SECONDS);
+      } catch (Exception e) {
+        logger.error("Failed to get paused queues async", e);
+        return new ArrayList<>();
+      }
+    });
   }
 
   /**
@@ -316,10 +475,8 @@ public class RedisManagerImpl {
     }
 
     try {
-      RedisCommands<String, String> commands = connection.sync();
-      return commands.keys("PROXY_HEARTBEAT:*").stream()
-          .map(key -> key.replace("PROXY_HEARTBEAT:", ""))
-          .collect(Collectors.toList());
+      // Use async operation with timeout to prevent blocking
+      return getProxyIdsAsync().get(5, TimeUnit.SECONDS);
     } catch (Exception e) {
       logger.error("Failed to get proxy IDs", e);
       return new ArrayList<>();
@@ -327,29 +484,117 @@ public class RedisManagerImpl {
   }
 
   /**
-   * Remove the proxy ID from the redis cache.
+   * Gets all proxy ids from the cache asynchronously.
    *
-   * @param proxyId The proxy ID.
+   * @return A CompletableFuture containing all the proxy ids.
    */
-  public void removeProxyId(final String proxyId) {
-    if (connection == null) {
-      return;
+  public CompletableFuture<List<String>> getProxyIdsAsync() {
+    if (this.connection == null) {
+      return CompletableFuture.completedFuture(new ArrayList<>());
     }
 
-    // Use async operations to prevent blocking
-    CompletableFuture.runAsync(() -> {
+    return CompletableFuture.supplyAsync(() -> {
       try {
         RedisAsyncCommands<String, String> commands = connection.async();
-        commands.del("PROXY_HEARTBEAT:" + proxyId)
-            .thenAccept(result -> {
-              // Success - no action needed
-            })
-            .exceptionally(throwable -> {
-              logger.error("Failed to remove proxy ID: {}", proxyId, throwable);
-              return null;
-            });
+        return commands.keys("PROXY_HEARTBEAT:*")
+            .thenApply(keys -> keys.stream()
+                .map(key -> key.replace("PROXY_HEARTBEAT:", ""))
+                .collect(Collectors.toList()))
+            .toCompletableFuture()
+            .get(5, TimeUnit.SECONDS);
       } catch (Exception e) {
-        logger.error("Failed to remove proxy ID: {}", proxyId, e);
+        logger.error("Failed to get proxy IDs async", e);
+        return new ArrayList<>();
+      }
+    });
+  }
+
+  /**
+   * Checks if a player exists in the Redis cache.
+   *
+   * @param uniqueId the players UUID.
+   *
+   * @return whether the player exists or not.
+   */
+  public boolean containsPlayer(final UUID uniqueId) {
+    if (connection == null) {
+      return false;
+    }
+
+    try {
+      // Use async operation with timeout to prevent blocking
+      return containsPlayerAsync(uniqueId).get(5, TimeUnit.SECONDS);
+    } catch (Exception e) {
+      logger.error("Failed to check if player exists: {}", uniqueId, e);
+      return false;
+    }
+  }
+
+  /**
+   * Checks if a player exists in the Redis cache asynchronously.
+   *
+   * @param uniqueId the players UUID.
+   * @return A CompletableFuture containing whether the player exists or not.
+   */
+  public CompletableFuture<Boolean> containsPlayerAsync(final UUID uniqueId) {
+    if (connection == null) {
+      return CompletableFuture.completedFuture(false);
+    }
+
+    return CompletableFuture.supplyAsync(() -> {
+      try {
+        RedisAsyncCommands<String, String> commands = connection.async();
+        return commands.hexists(CACHE_KEY, uniqueId.toString())
+            .toCompletableFuture()
+            .get(5, TimeUnit.SECONDS);
+      } catch (Exception e) {
+        logger.error("Failed to check if player exists async: {}", uniqueId, e);
+        return false;
+      }
+    });
+  }
+
+  /**
+   * Get the cache of players.
+   *
+   * @return the list of players.
+   */
+  public List<RemotePlayerInfo> getCache() {
+    if (connection == null) {
+      return new ArrayList<>();
+    }
+
+    try {
+      // Use async operation with timeout to prevent blocking
+      return getCacheAsync().get(5, TimeUnit.SECONDS);
+    } catch (Exception e) {
+      logger.error("Failed to get player cache", e);
+      return new ArrayList<>();
+    }
+  }
+
+  /**
+   * Get the cache of players asynchronously.
+   *
+   * @return A CompletableFuture containing the list of players.
+   */
+  public CompletableFuture<List<RemotePlayerInfo>> getCacheAsync() {
+    if (connection == null) {
+      return CompletableFuture.completedFuture(new ArrayList<>());
+    }
+
+    return CompletableFuture.supplyAsync(() -> {
+      try {
+        RedisAsyncCommands<String, String> commands = connection.async();
+        return commands.hgetall(CACHE_KEY)
+            .thenApply(playerMap -> playerMap.values().stream()
+                .map(json -> gson.fromJson(json, RemotePlayerInfo.class))
+                .collect(Collectors.toList()))
+            .toCompletableFuture()
+            .get(5, TimeUnit.SECONDS);
+      } catch (Exception e) {
+        logger.error("Failed to get player cache async", e);
+        return new ArrayList<>();
       }
     });
   }
@@ -413,49 +658,6 @@ public class RedisManagerImpl {
   }
 
   /**
-   * Checks if a player exists in the Redis cache.
-   *
-   * @param uniqueId the players UUID.
-   *
-   * @return whether the player exists or not.
-   */
-  public boolean containsPlayer(final UUID uniqueId) {
-    if (connection == null) {
-      return false;
-    }
-
-    try {
-      RedisCommands<String, String> commands = connection.sync();
-      return commands.hexists(CACHE_KEY, uniqueId.toString());
-    } catch (Exception e) {
-      logger.error("Failed to check if player exists: {}", uniqueId, e);
-      return false;
-    }
-  }
-
-  /**
-   * Get the cache of players.
-   *
-   * @return the list of players.
-   */
-  public List<RemotePlayerInfo> getCache() {
-    if (connection == null) {
-      return new ArrayList<>();
-    }
-
-    try {
-      RedisCommands<String, String> commands = connection.sync();
-      Map<String, String> playerMap = commands.hgetall(CACHE_KEY);
-      return playerMap.values().stream()
-          .map(json -> gson.fromJson(json, RemotePlayerInfo.class))
-          .collect(Collectors.toList());
-    } catch (Exception e) {
-      logger.error("Failed to get player cache", e);
-      return new ArrayList<>();
-    }
-  }
-
-  /**
    * Add or update a queue in the cache.
    *
    * @param queue The queue to add or update.
@@ -481,81 +683,6 @@ public class RedisManagerImpl {
         logger.error("Failed to add/update queue: {}", queue.getServerName(), e);
       }
     });
-  }
-
-  /**
-   * Updates the entry.
-   *
-   * @param serverQueueEntry The entry to update.
-   */
-  public void addOrUpdateEntry(final ServerQueueEntry serverQueueEntry) {
-    if (this.connection == null) {
-      return;
-    }
-
-    ServerQueueStatus status = getQueue(serverQueueEntry.getTarget().getServerInfo().getName())
-        .convert(serverQueueEntry.getProxy(), serverQueueEntry.getTarget());
-    if (status == null) {
-      return;
-    }
-
-    ServerQueueEntry entry = status.getEntry(serverQueueEntry.getPlayer()).orElse(null);
-    if (entry == null) {
-      return;
-    }
-
-    entry.update(serverQueueEntry.getConnectionAttempts(), serverQueueEntry.isWaitingForConnection(),
-        serverQueueEntry.getPriority(),
-        serverQueueEntry.isFullBypass(),
-        serverQueueEntry.isQueueBypass());
-
-    addOrUpdateQueue(status);
-  }
-
-  /**
-   * Get a queue from the cache based on username.
-   *
-   * @param serverName The name of the server.
-   * @return The queue from the cache.
-   */
-  public SerializableQueue getQueue(final String serverName) {
-    if (this.connection == null) {
-      return null;
-    }
-
-    try {
-      RedisCommands<String, String> commands = connection.sync();
-      String json = commands.hget(QUEUE_CACHE_KEY, serverName);
-      if (json == null) {
-        return null; // Key does not exist
-      }
-      return gson.fromJson(json, SerializableQueue.class);
-    } catch (Exception e) {
-      logger.error("Failed to get queue: {}", serverName, e);
-      return null; // Return null in case of an error
-    }
-  }
-
-  /**
-   * Get all the queues from the cache.
-   *
-   * @return All the queues from the cache.
-   */
-  public List<SerializableQueue> getAllQueues() {
-    if (this.connection == null) {
-      return new ArrayList<>();
-    }
-
-    try {
-      RedisCommands<String, String> commands = connection.sync();
-      Map<String, String> queueMap = commands.hgetall(QUEUE_CACHE_KEY);
-      return queueMap.values().stream()
-          .map(json -> gson.fromJson(json, SerializableQueue.class))
-          .collect(Collectors.toList());
-    } catch (Exception e) {
-      logger.error("Failed to get all queues", e);
-      return new ArrayList<>();
-    }
   }
 
   private void start(final VelocityConfiguration.Redis redisConfig, final VelocityServer server) {
@@ -622,13 +749,19 @@ public class RedisManagerImpl {
 
   private void startKeepalivePlayers(final VelocityServer proxy) {
     scheduler.scheduleAtFixedRate(() -> {
-      for (RemotePlayerInfo info : this.getCache()) {
-        if (info.getProxyId().equalsIgnoreCase(proxy.getConfiguration().getRedis().getProxyId())) {
-          if (proxy.getPlayer(info.getUuid()).isEmpty()) {
-            removePlayer(info);
+      // Use async operation to prevent blocking
+      getCacheAsync().thenAccept(playerCache -> {
+        for (RemotePlayerInfo info : playerCache) {
+          if (info.getProxyId().equalsIgnoreCase(proxy.getConfiguration().getRedis().getProxyId())) {
+            if (proxy.getPlayer(info.getUuid()).isEmpty()) {
+              removePlayer(info);
+            }
           }
         }
-      }
+      }).exceptionally(throwable -> {
+        logger.error("Failed to process player keepalive", throwable);
+        return null;
+      });
     }, 30, 30, TimeUnit.SECONDS);
   }
 
@@ -637,17 +770,31 @@ public class RedisManagerImpl {
       throw new IllegalStateException("Redis connection is not initialized.");
     }
 
-    try {
-      RedisCommands<String, String> commands = connection.sync();
-      if (commands.exists("PROXY_HEARTBEAT:" + proxyId) > 0) {
-        logger.error("Proxy ID '{}' is still marked as running. Killing"
-            + " your proxies with Redis enabled is not suggested. Please wait"
-            + " for Redis to automatically determine whether the proxy is online or not.", proxyId);
-        System.exit(0);
+    // Use async operation to prevent blocking
+    CompletableFuture.runAsync(() -> {
+      try {
+        RedisAsyncCommands<String, String> commands = connection.async();
+        commands.exists("PROXY_HEARTBEAT:" + proxyId)
+            .thenAccept(exists -> {
+              if (exists > 0) {
+                logger.error("Proxy ID '{}' is still marked as running. Killing"
+                    + " your proxies with Redis enabled is not suggested. Please wait"
+                    + " for Redis to automatically determine whether the proxy is online or not.", proxyId);
+                System.exit(0);
+              }
+            })
+            .exceptionally(throwable -> {
+              logger.error("Failed to validate Proxy ID", throwable);
+              throw new IllegalStateException("Failed to validate Proxy ID.", throwable);
+            });
+      } catch (Exception e) {
+        logger.error("Failed to validate Proxy ID", e);
+        throw new IllegalStateException("Failed to validate Proxy ID.", e);
       }
-    } catch (Exception e) {
-      throw new IllegalStateException("Failed to validate Proxy ID.", e);
-    }
+    }).exceptionally(throwable -> {
+      logger.error("Failed to validate Proxy ID", throwable);
+      throw new IllegalStateException("Failed to validate Proxy ID.", throwable);
+    });
   }
 
   /**

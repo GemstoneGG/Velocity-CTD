@@ -34,6 +34,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.util.ArrayList;
 
 /**
  * The interface (abstract class) that will provide methods for the Queue Manager implementations.
@@ -83,6 +86,8 @@ public abstract class QueueManager {
    * to their destination servers, respecting full, paused, or offline states.
    */
   private ScheduledTask sendingTaskHandle = null;
+
+  private static final Logger logger = LoggerFactory.getLogger(QueueManager.class);
 
   /**
    * Initializes a new Queue Manager with the proxy and config.
@@ -209,107 +214,210 @@ public abstract class QueueManager {
       return;
     }
 
-    // Process queues in batches to avoid blocking
-    List<ServerQueueStatus> queues = cache.getAll();
-    if (queues.isEmpty()) {
-      return;
-    }
+    // Use async cache operation to prevent blocking
+    cache.getAllAsync().thenAccept(queues -> {
+      if (queues.isEmpty()) {
+        return;
+      }
 
-    // Process first 10 queues to avoid overwhelming the system
-    queues.stream()
-        .limit(10)
-        .forEach(queue -> {
-          if (queue.isPaused() || !queue.isOnline()) {
-            return;
-          }
-
-          if (queue.getQueue().isEmpty()) {
-            return;
-          }
-
-          ServerQueueEntry entry = queue.getQueue().peekFirst();
-
-          if (entry == null || queue.isFull() && !entry.isFullBypass()) {
-            return;
-          }
-
-          if (this.server.getMultiProxyHandler().isRedisEnabled()) {
-            if (this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
-              queue.sendFirstInQueue(entry);
-            } else {
-              queue.getQueue().pollFirst();
-              // Async Redis update
-              CompletableFuture.runAsync(() -> {
-                this.server.getRedisManager().addOrUpdateQueue(queue);
-              });
+      // Process first 10 queues to avoid overwhelming the system
+      queues.stream()
+          .limit(10)
+          .forEach(queue -> {
+            if (queue.isPaused() || !queue.isOnline()) {
+              return;
             }
-          } else {
-            if (this.server.getPlayer(entry.getPlayer()).orElse(null) != null) {
-              queue.sendFirstInQueue(entry);
-            } else {
-              queue.getQueue().pollFirst();
+
+            if (queue.getQueue().isEmpty()) {
+              return;
             }
-          }
-        });
+
+            ServerQueueEntry entry = queue.getQueue().peekFirst();
+
+            if (entry == null || queue.isFull() && !entry.isFullBypass()) {
+              return;
+            }
+
+            if (this.server.getMultiProxyHandler().isRedisEnabled()) {
+              if (this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
+                queue.sendFirstInQueue(entry);
+              } else {
+                queue.getQueue().pollFirst();
+                // Async Redis update
+                CompletableFuture.runAsync(() -> {
+                  this.server.getRedisManager().addOrUpdateQueue(queue);
+                });
+              }
+            } else {
+              if (this.server.getPlayer(entry.getPlayer()).orElse(null) != null) {
+                queue.sendFirstInQueue(entry);
+              } else {
+                queue.getQueue().pollFirst();
+              }
+            }
+          });
+    }).exceptionally(throwable -> {
+      // Fallback to synchronous operation if async fails
+      List<ServerQueueStatus> queues = cache.getAll();
+      if (queues.isEmpty()) {
+        return null;
+      }
+
+      // Process first 10 queues to avoid overwhelming the system
+      queues.stream()
+          .limit(10)
+          .forEach(queue -> {
+            if (queue.isPaused() || !queue.isOnline()) {
+              return;
+            }
+
+            if (queue.getQueue().isEmpty()) {
+              return;
+            }
+
+            ServerQueueEntry entry = queue.getQueue().peekFirst();
+
+            if (entry == null || queue.isFull() && !entry.isFullBypass()) {
+              return;
+            }
+
+            if (this.server.getMultiProxyHandler().isRedisEnabled()) {
+              if (this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
+                queue.sendFirstInQueue(entry);
+              } else {
+                queue.getQueue().pollFirst();
+                // Async Redis update
+                CompletableFuture.runAsync(() -> {
+                  this.server.getRedisManager().addOrUpdateQueue(queue);
+                });
+              }
+            } else {
+              if (this.server.getPlayer(entry.getPlayer()).orElse(null) != null) {
+                queue.sendFirstInQueue(entry);
+              } else {
+                queue.getQueue().pollFirst();
+              }
+            }
+          });
+      return null;
+    });
   }
 
   /**
    * Pings the backend to update the online flag.
    */
   public void tickPingingBackend() {
-    List<ServerQueueStatus> queues = this.cache.getAll();
-    if (queues.isEmpty()) {
-      return;
-    }
+    // Use async cache operation to prevent blocking
+    cache.getAllAsync().thenAccept(queues -> {
+      if (queues.isEmpty()) {
+        return;
+      }
 
-    // Process first 5 servers to avoid overwhelming the system
-    queues.stream()
-        .limit(5)
-        .forEach(queue -> {
-          RegisteredServer s = this.server.getServer(queue.getServerName()).orElse(null);
-          if (s == null) {
-            return;
-          }
-
-          // Use async ping with timeout
-          s.ping().orTimeout(3, TimeUnit.SECONDS).whenComplete((result, th) -> {
-            if (th != null) {
-              queue.setStatus(ServerStatus.OFFLINE);
+      // Process first 5 servers to avoid overwhelming the system
+      queues.stream()
+          .limit(5)
+          .forEach(queue -> {
+            RegisteredServer s = this.server.getServer(queue.getServerName()).orElse(null);
+            if (s == null) {
+              return;
             }
 
-            if (queue.getStatus() == ServerStatus.OFFLINE && th == null) {
-              queue.setStatus(ServerStatus.WAITING);
-              LAST_TURNED_ONLINE_TIME.put(queue.getServerName(), System.currentTimeMillis());
-            }
+            // Use async ping with timeout
+            s.ping().orTimeout(3, TimeUnit.SECONDS).whenComplete((result, th) -> {
+              if (th != null) {
+                queue.setStatus(ServerStatus.OFFLINE);
+              }
 
-            if (th == null && queue.getQueue().stream().anyMatch(ServerQueueEntry::isQueueBypass)) {
-              queue.setStatus(ServerStatus.ONLINE);
-            }
+              if (queue.getStatus() == ServerStatus.OFFLINE && th == null) {
+                queue.setStatus(ServerStatus.WAITING);
+                LAST_TURNED_ONLINE_TIME.put(queue.getServerName(), System.currentTimeMillis());
+              }
 
-            final Long lastOnlineTime = LAST_TURNED_ONLINE_TIME.get(queue.getServerName());
-
-            if (th == null && lastOnlineTime != null && queue.getStatus() == ServerStatus.WAITING) {
-              double queueDelay = this.server.getConfiguration().getQueue().getQueueDelay() * 1000;
-              if (System.currentTimeMillis() >= lastOnlineTime + queueDelay) {
+              if (th == null && queue.getQueue().stream().anyMatch(ServerQueueEntry::isQueueBypass)) {
                 queue.setStatus(ServerStatus.ONLINE);
               }
-            }
 
-            ServerStatus temp = queue.getStatus();
+              final Long lastOnlineTime = LAST_TURNED_ONLINE_TIME.get(queue.getServerName());
 
-            if (temp != ServerStatus.ONLINE && queue.isOnline()) {
-              for (ServerQueueEntry entry : queue.getQueue()) {
-                if (entry.isQueueBypass()) {
-                  entry.send();
-                  queue.dequeue(entry.getPlayer(), false);
+              if (th == null && lastOnlineTime != null && queue.getStatus() == ServerStatus.WAITING) {
+                double queueDelay = this.server.getConfiguration().getQueue().getQueueDelay() * 1000;
+                if (System.currentTimeMillis() >= lastOnlineTime + queueDelay) {
+                  queue.setStatus(ServerStatus.ONLINE);
                 }
               }
-            }
-          }).exceptionally(throwable -> {
-            queue.setStatus(ServerStatus.OFFLINE);
-            return null;
+
+              ServerStatus temp = queue.getStatus();
+
+              if (temp != ServerStatus.ONLINE && queue.isOnline()) {
+                for (ServerQueueEntry entry : queue.getQueue()) {
+                  if (entry.isQueueBypass()) {
+                    entry.send();
+                    queue.dequeue(entry.getPlayer(), false);
+                  }
+                }
+              }
+            }).exceptionally(throwable -> {
+              queue.setStatus(ServerStatus.OFFLINE);
+              return null;
+            });
           });
-        });
+    }).exceptionally(throwable -> {
+      // Fallback to synchronous operation if async fails
+      List<ServerQueueStatus> queues = this.cache.getAll();
+      if (queues.isEmpty()) {
+        return null;
+      }
+
+      // Process first 5 servers to avoid overwhelming the system
+      queues.stream()
+          .limit(5)
+          .forEach(queue -> {
+            RegisteredServer s = this.server.getServer(queue.getServerName()).orElse(null);
+            if (s == null) {
+              return;
+            }
+
+            // Use async ping with timeout
+            s.ping().orTimeout(3, TimeUnit.SECONDS).whenComplete((result, th) -> {
+              if (th != null) {
+                queue.setStatus(ServerStatus.OFFLINE);
+              }
+
+              if (queue.getStatus() == ServerStatus.OFFLINE && th == null) {
+                queue.setStatus(ServerStatus.WAITING);
+                LAST_TURNED_ONLINE_TIME.put(queue.getServerName(), System.currentTimeMillis());
+              }
+
+              if (th == null && queue.getQueue().stream().anyMatch(ServerQueueEntry::isQueueBypass)) {
+                queue.setStatus(ServerStatus.ONLINE);
+              }
+
+              final Long lastOnlineTime = LAST_TURNED_ONLINE_TIME.get(queue.getServerName());
+
+              if (th == null && lastOnlineTime != null && queue.getStatus() == ServerStatus.WAITING) {
+                double queueDelay = this.server.getConfiguration().getQueue().getQueueDelay() * 1000;
+                if (System.currentTimeMillis() >= lastOnlineTime + queueDelay) {
+                  queue.setStatus(ServerStatus.ONLINE);
+                }
+              }
+
+              ServerStatus temp = queue.getStatus();
+
+              if (temp != ServerStatus.ONLINE && queue.isOnline()) {
+                for (ServerQueueEntry entry : queue.getQueue()) {
+                  if (entry.isQueueBypass()) {
+                    entry.send();
+                    queue.dequeue(entry.getPlayer(), false);
+                  }
+                }
+              }
+            }).exceptionally(throwable2 -> {
+              queue.setStatus(ServerStatus.OFFLINE);
+              return null;
+            });
+          });
+      return null;
+    });
   }
 
   /**
@@ -361,18 +469,46 @@ public abstract class QueueManager {
     }
 
     if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
-      for (ServerQueueStatus status : this.cache.getAll()) {
-        if (status.isQueued(player.getUniqueId())) {
-          status.dequeue(player.getUniqueId(), false);
-          player.sendMessage(Component.translatable("velocity.queue.error.queued-swap")
-              .arguments(
-                  Component.text(status.getServerName()),
-                  Component.text(targetServerName)));
-          break;
+      // Use async cache operation to prevent blocking, but ensure synchronous completion
+      try {
+        List<ServerQueueStatus> queues = cache.getAllAsync().get(5, TimeUnit.SECONDS);
+        for (ServerQueueStatus status : queues) {
+          if (status.isQueued(player.getUniqueId())) {
+            status.dequeue(player.getUniqueId(), false);
+            player.sendMessage(Component.translatable("velocity.queue.error.queued-swap")
+                .arguments(
+                    Component.text(status.getServerName()),
+                    Component.text(targetServerName)));
+            break;
+          }
+        }
+      } catch (Exception e) {
+        // Fallback to synchronous operation if async fails
+        for (ServerQueueStatus status : this.cache.getAll()) {
+          if (status.isQueued(player.getUniqueId())) {
+            status.dequeue(player.getUniqueId(), false);
+            player.sendMessage(Component.translatable("velocity.queue.error.queued-swap")
+                .arguments(
+                    Component.text(status.getServerName()),
+                    Component.text(targetServerName)));
+            break;
+          }
         }
       }
     }
+    
+    // Complete queueing synchronously to prevent race conditions
+    completeQueueing(player, server, targetServerName);
+  }
 
+  /**
+   * Completes the queueing process after multi-queue checks.
+   *
+   * @param player The player to add to the queue.
+   * @param server The server to add the player to the queue to.
+   * @param targetServerName The name of the target server.
+   */
+  private void completeQueueing(final Player player, final VelocityRegisteredServer server, final String targetServerName) {
     ServerQueueStatus status = getQueue(targetServerName);
     if (status == null) {
       throw new IllegalArgumentException("No queue found for server '" + targetServerName + "'");
@@ -431,9 +567,18 @@ public abstract class QueueManager {
    */
   public void reloadConfig() {
     this.config = this.server.getConfiguration().getQueue();
-    for (ServerQueueStatus server : this.cache.getAll()) {
-      server.reloadConfig();
-    }
+    // Use async cache operation to prevent blocking
+    cache.getAllAsync().thenAccept(queues -> {
+      for (ServerQueueStatus server : queues) {
+        server.reloadConfig();
+      }
+    }).exceptionally(throwable -> {
+      // Fallback to synchronous operation if async fails
+      for (ServerQueueStatus server : this.cache.getAll()) {
+        server.reloadConfig();
+      }
+      return null;
+    });
 
     restartTasks();
   }
@@ -442,9 +587,18 @@ public abstract class QueueManager {
    * Clears all the queues and stops the tasks.
    */
   public void clearQueue() {
-    for (ServerQueueStatus status : this.cache.getAll()) {
-      status.stop();
-    }
+    // Use async cache operation to prevent blocking
+    cache.getAllAsync().thenAccept(queues -> {
+      for (ServerQueueStatus status : queues) {
+        status.stop();
+      }
+    }).exceptionally(throwable -> {
+      // Fallback to synchronous operation if async fails
+      for (ServerQueueStatus status : this.cache.getAll()) {
+        status.stop();
+      }
+      return null;
+    });
 
     if (tickMessageTaskHandle != null) {
       tickMessageTaskHandle.cancel();
@@ -458,10 +612,32 @@ public abstract class QueueManager {
   /**
    * Return all the queues.
    *
+   * @return A CompletableFuture containing all the queues.
+   */
+  public CompletableFuture<List<ServerQueueStatus>> getAllAsync() {
+    return this.cache.getAllAsync();
+  }
+
+  /**
+   * Return all the queues synchronously (for backward compatibility).
+   *
    * @return All the queues.
    */
   public List<ServerQueueStatus> getAll() {
-    return this.cache.getAll();
+    try {
+      // Use async operation with timeout to prevent blocking
+      return this.cache.getAllAsync().get(5, TimeUnit.SECONDS);
+    } catch (Exception e) {
+      logger.error("Failed to get all queues asynchronously, falling back to synchronous operation", e);
+      try {
+        // Fallback to synchronous operation if async fails
+        return this.cache.getAll();
+      } catch (Exception fallbackException) {
+        logger.error("Both async and sync getAll operations failed", fallbackException);
+        // Return empty list as last resort to prevent system failure
+        return new ArrayList<>();
+      }
+    }
   }
 
   /**
@@ -479,10 +655,21 @@ public abstract class QueueManager {
    * @param player The player to remove.
    */
   public void removeFromAll(final ConnectedPlayer player) {
-    for (ServerQueueStatus status : this.cache.getAll()) {
-      if (status.isQueued(player.getUniqueId())) {
-        status.dequeue(player.getUniqueId(), false);
+    // Use async cache operation to prevent blocking
+    cache.getAllAsync().thenAccept(queues -> {
+      for (ServerQueueStatus status : queues) {
+        if (status.isQueued(player.getUniqueId())) {
+          status.dequeue(player.getUniqueId(), false);
+        }
       }
-    }
+    }).exceptionally(throwable -> {
+      // Fallback to synchronous operation if async fails
+      for (ServerQueueStatus status : this.cache.getAll()) {
+        if (status.isQueued(player.getUniqueId())) {
+          status.dequeue(player.getUniqueId(), false);
+        }
+      }
+      return null;
+    });
   }
 }
