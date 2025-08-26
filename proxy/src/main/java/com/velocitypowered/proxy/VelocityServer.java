@@ -1405,15 +1405,15 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     // Check for existing connections by username first
     ConnectedPlayer existingByName = connectionsByName.get(lowerName);
     if (existingByName != null) {
-      // If IP checking is enabled, check if it's the same IP (which allows kicking)
-      if (configuration.isKickExistingPlayersCheckIp()) {
+      // IP checking only works if kick-existing-players is also enabled
+      if (configuration.isOnlineModeKickExistingPlayers() && configuration.isKickExistingPlayersCheckIp()) {
         InetAddress newPlayerIp = connection.getRemoteAddress().getAddress();
         InetAddress existingPlayerIp = existingByName.getRemoteAddress().getAddress();
         // Allow connection if same username AND same IP (will kick existing)
         // Block connection if same username but different IP
         return newPlayerIp.equals(existingPlayerIp);
       } else {
-        // IP checking disabled, block any username conflict
+        // IP checking disabled or kick-existing-players disabled, block any username conflict
         return false;
       }
     }
@@ -1440,8 +1440,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       // Check for existing username connection
       ConnectedPlayer existingByName = connectionsByName.get(lowerName);
       if (existingByName != null) {
-        // If IP checking is enabled and same IP, kick the existing player
-        if (this.configuration.isKickExistingPlayersCheckIp()) {
+        // IP checking only works if kick-existing-players is also enabled
+        if (this.configuration.isOnlineModeKickExistingPlayers() && this.configuration.isKickExistingPlayersCheckIp()) {
           InetAddress newPlayerIp = connection.getRemoteAddress().getAddress();
           InetAddress existingPlayerIp = existingByName.getRemoteAddress().getAddress();
           if (newPlayerIp.equals(existingPlayerIp)) {
@@ -1456,7 +1456,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
             return false;
           }
         } else {
-          // IP checking disabled, block any username conflict
+          // IP checking disabled or kick-existing-players disabled, block any username conflict
           return false;
         }
       }
@@ -1470,8 +1470,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         return false;
       }
       
-      // Register in IP map if enabled
-      if (this.configuration.isKickExistingPlayersCheckIp()) {
+      // Register in IP map if both kick-existing-players and IP checking are enabled
+      if (this.configuration.isOnlineModeKickExistingPlayers() && this.configuration.isKickExistingPlayersCheckIp()) {
         InetAddress playerIp = connection.getRemoteAddress().getAddress();
         connectionsByIp.put(playerIp, connection);
       }
@@ -1496,7 +1496,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       // We can now replace the entries as needed.
       connectionsByName.put(lowerName, connection);
       connectionsByUuid.put(connection.getUniqueId(), connection);
-      if (this.configuration.isKickExistingPlayersCheckIp()) {
+      if (this.configuration.isOnlineModeKickExistingPlayers() && this.configuration.isKickExistingPlayersCheckIp()) {
         InetAddress playerIp = connection.getRemoteAddress().getAddress();
         connectionsByIp.put(playerIp, connection);
       }
@@ -1513,7 +1513,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   public void unregisterConnection(final ConnectedPlayer connection) {
     connectionsByName.remove(connection.getUsername().toLowerCase(Locale.US), connection);
     connectionsByUuid.remove(connection.getUniqueId(), connection);
-    if (configuration.isKickExistingPlayersCheckIp()) {
+    if (configuration.isOnlineModeKickExistingPlayers() && configuration.isKickExistingPlayersCheckIp()) {
       InetAddress playerIp = connection.getRemoteAddress().getAddress();
       connectionsByIp.remove(playerIp, connection);
     }
