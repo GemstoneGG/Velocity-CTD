@@ -1397,15 +1397,23 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    * @return {@code true} if we can register the connection, {@code false} if not
    */
   public boolean canRegisterConnection(final ConnectedPlayer connection) {
-    if (configuration.isOnlineMode() && configuration.isOnlineModeKickExistingPlayers()) {
+    // When IP checking is disabled, kick-existing-players only works in online mode
+    if (!configuration.isKickExistingPlayersCheckIp() && 
+        configuration.isOnlineMode() && configuration.isOnlineModeKickExistingPlayers()) {
       return true;
     }
+    
+    // When IP checking is enabled, kick-existing-players works in both online and offline mode
+    if (configuration.isKickExistingPlayersCheckIp() && configuration.isOnlineModeKickExistingPlayers()) {
+      return true;
+    }
+    
     String lowerName = connection.getUsername().toLowerCase(Locale.US);
     
     // Check for existing connections by username first
     ConnectedPlayer existingByName = connectionsByName.get(lowerName);
     if (existingByName != null) {
-      // IP checking only works if kick-existing-players is also enabled
+      // IP checking works when both kick-existing-players and IP checking are enabled
       if (configuration.isOnlineModeKickExistingPlayers() && configuration.isKickExistingPlayersCheckIp()) {
         InetAddress newPlayerIp = connection.getRemoteAddress().getAddress();
         InetAddress existingPlayerIp = existingByName.getRemoteAddress().getAddress();
@@ -1436,11 +1444,15 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   public boolean registerConnection(final ConnectedPlayer connection) {
     String lowerName = connection.getUsername().toLowerCase(Locale.US);
 
-    if (!this.configuration.isOnlineModeKickExistingPlayers()) {
-      // Check for existing username connection
+    // Determine if we should use kick-existing-players behavior
+    boolean useKickExistingBehavior = this.configuration.isOnlineModeKickExistingPlayers() && 
+        (this.configuration.isKickExistingPlayersCheckIp() || this.configuration.isOnlineMode());
+
+    if (!useKickExistingBehavior) {
+      // Standard behavior: block duplicate connections
       ConnectedPlayer existingByName = connectionsByName.get(lowerName);
       if (existingByName != null) {
-        // IP checking only works if kick-existing-players is also enabled
+        // IP checking works when both kick-existing-players and IP checking are enabled
         if (this.configuration.isOnlineModeKickExistingPlayers() && this.configuration.isKickExistingPlayersCheckIp()) {
           InetAddress newPlayerIp = connection.getRemoteAddress().getAddress();
           InetAddress existingPlayerIp = existingByName.getRemoteAddress().getAddress();
@@ -1476,19 +1488,26 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         connectionsByIp.put(playerIp, connection);
       }
     } else {
-      // Handle existing connections by UUID (online mode kick existing)
+      // Kick-existing-players behavior: handle conflicts by kicking existing players
       ConnectedPlayer existing = connectionsByUuid.get(connection.getUniqueId());
       if (existing != null) {
         existing.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
       }
       
-      // Check for same username, same IP scenario
+      // Check for same username conflicts
       ConnectedPlayer existingByName = connectionsByName.get(lowerName);
-      if (existingByName != null && this.configuration.isKickExistingPlayersCheckIp()) {
-        InetAddress newPlayerIp = connection.getRemoteAddress().getAddress();
-        InetAddress existingPlayerIp = existingByName.getRemoteAddress().getAddress();
-        if (newPlayerIp.equals(existingPlayerIp)) {
-          // Same username, same IP - kick existing player
+      if (existingByName != null) {
+        if (this.configuration.isKickExistingPlayersCheckIp()) {
+          // With IP checking: only kick if same IP
+          InetAddress newPlayerIp = connection.getRemoteAddress().getAddress();
+          InetAddress existingPlayerIp = existingByName.getRemoteAddress().getAddress();
+          if (newPlayerIp.equals(existingPlayerIp)) {
+            // Same username, same IP - kick existing player
+            existingByName.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
+          }
+          // If different IP, both players can coexist (different usernames will be handled by map replacement)
+        } else {
+          // Without IP checking: kick any existing player with same username
           existingByName.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
         }
       }
