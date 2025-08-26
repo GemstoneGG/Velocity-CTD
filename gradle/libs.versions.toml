@@ -6,7 +6,7 @@ junit = "5.13.4"
 junit-platform = "1.13.4"
 log4j = "2.25.1"
 netty = "4.2.4.Final"
-lettuce = "6.7.0.RELEASE"
+lettuce = "6.8.0.RELEASE"
 micrometer = "1.12.5"
 
 [plugins]
