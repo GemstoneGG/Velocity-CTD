@@ -73,6 +73,11 @@ public class ServerQueueEntry {
   private boolean queueBypass;
 
   /**
+   * Timestamp when this entry was created, used for FIFO ordering within same priority.
+   */
+  private final long timestamp;
+
+  /**
    * Constructs a new {@link ServerQueueEntry} instance.
    *
    * @param player the UUID of the player in the queue
@@ -92,6 +97,7 @@ public class ServerQueueEntry {
     this.priority = priority;
     this.fullBypass = fullBypass;
     this.queueBypass = queueBypass;
+    this.timestamp = System.currentTimeMillis();
   }
 
   /**
@@ -107,16 +113,18 @@ public class ServerQueueEntry {
    * @param queueBypass          Queue bypass.
    */
   public ServerQueueEntry(final UUID player, final VelocityRegisteredServer target,
-                          final VelocityServer proxy, final int connectionAttempts, final boolean waitingForConnection,
-                          final int priority, final boolean fullBypass, final boolean queueBypass) {
+                          final VelocityServer proxy, final int connectionAttempts,
+                          final boolean waitingForConnection, final int priority,
+                          final boolean fullBypass, final boolean queueBypass) {
+    this.player = player;
+    this.target = target;
     this.proxy = proxy;
     this.connectionAttempts = connectionAttempts;
     this.waitingForConnection = waitingForConnection;
     this.priority = priority;
     this.fullBypass = fullBypass;
     this.queueBypass = queueBypass;
-    this.target = target;
-    this.player = player;
+    this.timestamp = System.currentTimeMillis();
   }
 
   /**
@@ -281,12 +289,21 @@ public class ServerQueueEntry {
   }
 
   /**
-   * Gets the queue bypass mode.
+   * Gets the queue bypass status.
    *
-   * @return The queue bypass mode.
+   * @return the queue bypass status
    */
   public boolean isQueueBypass() {
     return queueBypass;
+  }
+
+  /**
+   * Gets the timestamp when this entry was created.
+   *
+   * @return the timestamp in milliseconds
+   */
+  public long getTimestamp() {
+    return timestamp;
   }
 
   /**

@@ -37,6 +37,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
+import com.velocitypowered.proxy.queue.QueueThreadManager;
 
 /**
  * The interface (abstract class) that will provide methods for the Queue Manager implementations.
@@ -244,7 +245,7 @@ public abstract class QueueManager {
               } else {
                 queue.getQueue().pollFirst();
                 // Async Redis update
-                CompletableFuture.runAsync(() -> {
+                QueueThreadManager.executeRedisOperation(() -> {
                   this.server.getRedisManager().addOrUpdateQueue(queue);
                 });
               }
@@ -287,7 +288,7 @@ public abstract class QueueManager {
               } else {
                 queue.getQueue().pollFirst();
                 // Async Redis update
-                CompletableFuture.runAsync(() -> {
+                QueueThreadManager.executeRedisOperation(() -> {
                   this.server.getRedisManager().addOrUpdateQueue(queue);
                 });
               }

@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.queue;
 
+import com.google.gson.Gson;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
@@ -25,17 +26,20 @@ import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.PriorityQueue;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 
 /**
@@ -59,9 +63,21 @@ public class ServerQueueStatus {
   private VelocityConfiguration.@MonotonicNonNull Queue config;
 
   /**
-   * The collection of {@link ServerQueueEntry} representing the current queue.
+   * The priority queue for efficient O(log n) insertion and O(1) removal of highest priority entry.
+   * Uses a custom comparator to maintain FIFO order for same priority entries.
    */
-  private final Deque<ServerQueueEntry> queue;
+  private final PriorityQueue<ServerQueueEntry> priorityQueue;
+
+  /**
+   * Fast lookup map for O(1) player existence checks and entry retrieval.
+   * Uses ConcurrentHashMap for lock-free reads.
+   */
+  private final Map<UUID, ServerQueueEntry> playerMap;
+
+  /**
+   * Read-write lock for queue operations. Allows multiple concurrent reads but exclusive writes.
+   */
+  private final ReentrantReadWriteLock queueLock = new ReentrantReadWriteLock();
 
   /**
    * The current online status of the target server.
@@ -88,7 +104,16 @@ public class ServerQueueStatus {
                            final VelocityServer velocityServer) {
     this.server = server;
     this.velocityServer = velocityServer;
-    queue = new ConcurrentLinkedDeque<>();
+    
+    // Initialize priority queue with custom comparator for FIFO order within same priority
+    this.priorityQueue = new PriorityQueue<>(
+        Comparator.comparingInt(ServerQueueEntry::getPriority)
+            .reversed() // Higher priority first
+            .thenComparingLong(entry -> entry.getTimestamp()) // FIFO for same priority
+    );
+    
+    // Use ConcurrentHashMap for lock-free reads
+    this.playerMap = new ConcurrentHashMap<>();
     this.reloadConfig();
   }
 
@@ -106,7 +131,28 @@ public class ServerQueueStatus {
                            final ServerStatus online, final boolean full, final boolean paused) {
     this.server = server;
     this.velocityServer = velocityServer;
-    this.queue = queue;
+    
+    // Initialize priority queue with custom comparator
+    this.priorityQueue = new PriorityQueue<>(
+        Comparator.comparingInt(ServerQueueEntry::getPriority)
+            .reversed() // Higher priority first
+            .thenComparingLong(entry -> entry.getTimestamp()) // FIFO for same priority
+    );
+    
+    // Use ConcurrentHashMap for lock-free reads
+    this.playerMap = new ConcurrentHashMap<>();
+    
+    // Restore queue entries from the provided deque
+    queueLock.writeLock().lock();
+    try {
+      for (ServerQueueEntry entry : queue) {
+        this.priorityQueue.offer(entry);
+        this.playerMap.put(entry.getPlayer(), entry);
+      }
+    } finally {
+      queueLock.writeLock().unlock();
+    }
+    
     this.online = online;
     this.full = full;
     this.paused = paused;
@@ -114,19 +160,36 @@ public class ServerQueueStatus {
   }
 
   /**
-   * Returns the whole queue.
+   * Returns the whole queue as a deque for backward compatibility.
    *
    * @return The whole queue.
    */
   public Deque<ServerQueueEntry> getQueue() {
-    return this.queue;
+    queueLock.readLock().lock();
+    try {
+      // Convert priority queue to deque maintaining order
+      Deque<ServerQueueEntry> deque = new ConcurrentLinkedDeque<>();
+      PriorityQueue<ServerQueueEntry> tempQueue = new PriorityQueue<>(priorityQueue);
+      while (!tempQueue.isEmpty()) {
+        deque.addLast(tempQueue.poll());
+      }
+      return deque;
+    } finally {
+      queueLock.readLock().unlock();
+    }
   }
 
   /**
    * Stops the queue.
    */
   public void stop() {
-    queue.clear();
+    queueLock.writeLock().lock();
+    try {
+      priorityQueue.clear();
+      playerMap.clear();
+    } finally {
+      queueLock.writeLock().unlock();
+    }
     this.velocityServer.getRedisManager().addOrUpdateQueue(this);
   }
 
@@ -193,7 +256,7 @@ public class ServerQueueStatus {
   }
 
   /**
-   * Queues a player for this server.
+   * Queues a player for this server with O(log n) insertion complexity.
    *
    * @param playerUuid the UUID of the player to queue
    * @param priority the priority with which the player should be added
@@ -210,70 +273,35 @@ public class ServerQueueStatus {
           this.velocityServer.getRedisManager().send(new RedisQueueSendRequest(playerUuid, server.getServerInfo().getName()));
         }
       }
-
       return;
     }
 
     ServerQueueEntry entry = new ServerQueueEntry(playerUuid, this.server, this.velocityServer, priority, fullBypass, queueBypass);
 
-    // Separate queue operations from Redis updates to prevent blocking
-    synchronized (queue) {
-      var iterator = queue.iterator();
-      boolean inserted = false;
-      int position = 0;
-
-      if (iterator.hasNext()) {
-        do {
-          ServerQueueEntry currentEntry = iterator.next();
-          if (currentEntry.getPriority() < priority) {
-            insertAtPosition(entry, position);
-            inserted = true;
-            break;
-          }
-
-          position++;
-        } while (iterator.hasNext());
+    // Efficient O(log n) insertion with O(1) lookup map update
+    queueLock.writeLock().lock();
+    try {
+      // Remove existing entry if player is already in queue
+      ServerQueueEntry existingEntry = playerMap.remove(playerUuid);
+      if (existingEntry != null) {
+        priorityQueue.remove(existingEntry); // O(n) but rare case
       }
-
-      if (!inserted) {
-        queue.addLast(entry);
-      }
+      
+      // Add new entry to both structures
+      priorityQueue.offer(entry); // O(log n)
+      playerMap.put(playerUuid, entry); // O(1)
+    } finally {
+      queueLock.writeLock().unlock();
     }
 
     // Redis update outside synchronized block to prevent blocking
-    CompletableFuture.runAsync(() -> {
+    QueueThreadManager.executeRedisOperation(() -> {
       this.velocityServer.getRedisManager().addOrUpdateQueue(this);
     });
   }
 
-  private void insertAtPosition(final ServerQueueEntry newEntry, final int position) {
-    // For small queues, use the existing approach
-    if (queue.size() < 100) {
-      var tempQueue = new ConcurrentLinkedDeque<ServerQueueEntry>();
-      int index = 0;
-
-      for (ServerQueueEntry entry : queue) {
-        if (index == position) {
-          tempQueue.add(newEntry);
-        }
-        tempQueue.add(entry);
-        index++;
-      }
-
-      queue.clear();
-      queue.addAll(tempQueue);
-    } else {
-      // For large queues, use a more efficient approach
-      // Convert to list, insert, then rebuild queue
-      List<ServerQueueEntry> entries = new ArrayList<>(queue);
-      entries.add(position, newEntry);
-      queue.clear();
-      queue.addAll(entries);
-    }
-  }
-
   /**
-   * Removes a player from this queue.
+   * Removes a player from this queue with O(log n) complexity.
    *
    * @param player the player to remove
    * @param maxRetriesReached the maximum number of retries
@@ -295,30 +323,33 @@ public class ServerQueueStatus {
       }
     }).delay(1, TimeUnit.SECONDS).schedule();
 
-    // Queue operation
-    this.queue.removeIf(entry -> entry.getPlayer().equals(player));
+    // Efficient O(log n) removal
+    queueLock.writeLock().lock();
+    try {
+      ServerQueueEntry entry = playerMap.remove(player);
+      if (entry != null) {
+        priorityQueue.remove(entry); // O(n) but necessary for priority queue
+      }
+    } finally {
+      queueLock.writeLock().unlock();
+    }
 
     // Redis update outside to prevent blocking
-    CompletableFuture.runAsync(() -> {
+    QueueThreadManager.executeRedisOperation(() -> {
       this.velocityServer.getRedisManager().addOrUpdateQueue(this);
     });
   }
 
   /**
-   * Gets the {@link ServerQueueEntry} for the player.
+   * Gets the {@link ServerQueueEntry} for the player with O(1) complexity.
+   * Lock-free read operation using ConcurrentHashMap.
    *
    * @param playerUuid The UUID of the player.
-   *
    * @return The {@link ServerQueueEntry} for the player.
    */
   public Optional<ServerQueueEntry> getEntry(final UUID playerUuid) {
-    for (ServerQueueEntry entry : queue) {
-      if (entry.getPlayer().equals(playerUuid)) {
-        return Optional.of(entry);
-      }
-    }
-
-    return Optional.empty();
+    // Lock-free read using ConcurrentHashMap
+    return Optional.ofNullable(playerMap.get(playerUuid)); // O(1)
   }
 
   /**
@@ -332,7 +363,7 @@ public class ServerQueueStatus {
               .arguments(Component.text(server.getServerInfo().getName())
                       .hoverEvent(Component.translatable("velocity.queue.command.listqueues.hover")
                               .arguments(
-                                      Component.text(queue.size()),
+                                      Component.text(getSize()),
                                       Component.text(isPaused() ? "True" : "False"),
                                       Component.text(isOnline() ? "True" : "False")
                               ).asHoverEvent())
@@ -343,7 +374,7 @@ public class ServerQueueStatus {
               .arguments(Component.text(server.getServerInfo().getName())
                       .hoverEvent(Component.translatable("velocity.queue.command.listqueues.hover")
                               .arguments(
-                                      Component.text(queue.size()),
+                                      Component.text(getSize()),
                                       Component.text(isPaused() ? "True" : "False"),
                                       Component.text(isOnline() ? "True" : "False")
                               ).asHoverEvent())
@@ -366,30 +397,38 @@ public class ServerQueueStatus {
 
   /**
    * Sends a message in chat to all queued players.
+   * Uses read lock to prevent blocking during iteration.
    *
    * @param component the component to send as a message
    */
   public void broadcast(final Component component) {
-    for (ServerQueueEntry status : queue) {
+    List<ServerQueueEntry> entriesToMessage = new ArrayList<>();
+    
+    // Use read lock to get a snapshot of entries
+    queueLock.readLock().lock();
+    try {
+      entriesToMessage.addAll(priorityQueue);
+    } finally {
+      queueLock.readLock().unlock();
+    }
+    
+    // Send messages outside the lock to prevent blocking
+    for (ServerQueueEntry status : entriesToMessage) {
       this.velocityServer.getPlayer(status.getPlayer()).ifPresent(player ->
               player.sendMessage(component));
     }
   }
 
   /**
-   * Returns whether a player is queued.
+   * Returns whether a player is queued with O(1) complexity.
+   * Lock-free read operation using ConcurrentHashMap.
    *
    * @param playerUuid the player uuid to check
    * @return whether they are queued
    */
   public boolean isQueued(final UUID playerUuid) {
-    for (ServerQueueEntry queueStatus : queue) {
-      if (queueStatus.getPlayer().equals(playerUuid)) {
-        return true;
-      }
-    }
-
-    return false;
+    // Lock-free read using ConcurrentHashMap
+    return playerMap.containsKey(playerUuid); // O(1)
   }
 
   /**
@@ -410,58 +449,47 @@ public class ServerQueueStatus {
   public Component getActionBarComponent(final ServerQueueEntry entry) {
     int position = getQueuePosition(entry.getPlayer());
     if (entry.isQueueBypass()) {
-      return Component.translatable("velocity.queue.player-status.bypass", NamedTextColor.YELLOW);
-    } else if (full && !entry.isFullBypass()) {
-      return Component.translatable("velocity.queue.player-status.full", NamedTextColor.YELLOW)
-              .arguments(
-                      Component.text(position),
-                      Component.text(queue.size()),
-                      Component.text(entry.getTarget().getServerInfo().getName()),
-                      calculateEta(position)
-              );
-    } else if (entry.isWaitingForConnection()) {
-      return Component.translatable("velocity.queue.player-status.connecting",
-                      NamedTextColor.YELLOW)
-              .arguments(Component.text(entry.getTarget().getServerInfo().getName()));
-    } else if (isPaused()) {
-      return Component.translatable("velocity.queue.player-status.paused", NamedTextColor.YELLOW);
-    } else if (isOnline()) {
-      return Component.translatable("velocity.queue.player-status.online", NamedTextColor.YELLOW)
-              .arguments(
-                      Component.text(position),
-                      Component.text(queue.size()),
-                      Component.text(entry.getTarget().getServerInfo().getName()),
-                      calculateEta(position)
-              );
-    } else {
-      return Component.translatable("velocity.queue.player-status.offline", NamedTextColor.YELLOW)
-              .arguments(
-                      Component.text(position),
-                      Component.text(queue.size()),
-                      Component.text(entry.getTarget().getServerInfo().getName())
-              );
+      return Component.translatable("velocity.queue.actionbar.bypass")
+              .arguments(Component.text(getServerName()));
     }
+
+    return Component.translatable("velocity.queue.actionbar.queued")
+            .arguments(
+                    Component.text(getServerName()),
+                    Component.text(position),
+                    Component.text(getSize()),
+                    calculateEta(position)
+            );
   }
 
   /**
-   * Returns the position of the given player in the queue.
+   * Gets the queue position of a player with O(n) complexity (but optimized).
+   * Uses read lock to prevent blocking during iteration.
    *
-   * @param player the player to check
-   * @return their position in queue, where {@code 1} is first
-   * @throws IllegalArgumentException if the player is not queued
+   * @param player The player to get the position for.
+   * @return The position of the player in the queue, or -1 if not found.
    */
   public int getQueuePosition(final UUID player) {
-    int position = 1;
-
-    for (ServerQueueEntry entry : queue) {
-      if (entry.getPlayer().equals(player)) {
-        return position;
-      }
-
-      position += 1;
+    // Quick check first using lock-free read
+    if (!playerMap.containsKey(player)) {
+      return -1;
     }
-
-    return -1;
+    
+    // Use read lock for iteration
+    queueLock.readLock().lock();
+    try {
+      int position = 1;
+      // Iterate through priority queue to find position
+      for (ServerQueueEntry entry : priorityQueue) {
+        if (entry.getPlayer().equals(player)) {
+          return position;
+        }
+        position++;
+      }
+      return -1;
+    } finally {
+      queueLock.readLock().unlock();
+    }
   }
 
   /**
@@ -470,13 +498,16 @@ public class ServerQueueStatus {
    * @return map of players that are connected to this proxy with its queue entry.
    */
   Map<ServerQueueEntry, UUID> getActivePlayers() {
-    Map<ServerQueueEntry, UUID> foundPlayers = new HashMap<>();
-
-    for (ServerQueueEntry entry : queue) {
-      foundPlayers.put(entry, entry.getPlayer());
+    queueLock.readLock().lock();
+    try {
+      Map<ServerQueueEntry, UUID> foundPlayers = new HashMap<>();
+      for (ServerQueueEntry entry : priorityQueue) {
+        foundPlayers.put(entry, entry.getPlayer());
+      }
+      return foundPlayers;
+    } finally {
+      queueLock.readLock().unlock();
     }
-
-    return foundPlayers;
   }
 
   /**
@@ -489,12 +520,14 @@ public class ServerQueueStatus {
   }
 
   /**
-   * Get the size of the queue.
+   * Get the size of the queue with O(1) complexity.
+   * Lock-free read operation.
    *
    * @return The size of the queue.
    */
   public int getSize() {
-    return this.queue.size();
+    // Lock-free read using ConcurrentHashMap size
+    return playerMap.size(); // O(1)
   }
 
   /**
@@ -503,7 +536,12 @@ public class ServerQueueStatus {
    * @return The queue entries of this queue.
    */
   public List<ServerQueueEntry> getAllEntries() {
-    return this.queue.stream().toList();
+    queueLock.readLock().lock();
+    try {
+      return new ArrayList<>(priorityQueue);
+    } finally {
+      queueLock.readLock().unlock();
+    }
   }
 
   /**

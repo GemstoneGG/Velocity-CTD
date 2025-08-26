@@ -27,6 +27,11 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import com.velocitypowered.proxy.queue.QueueThreadManager;
+import java.util.Map;
+import java.util.HashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The redis implementation of the queue cache.
@@ -42,6 +47,8 @@ public class RedisRetriever implements QueueCacheRetriever {
    * The Redis manager implementation for interacting with the Redis backend.
    */
   private final RedisManagerImpl redisManager;
+
+  private static final Logger logger = LoggerFactory.getLogger(RedisRetriever.class);
 
   /**
    * Constructs a new redis retriever.
@@ -79,7 +86,7 @@ public class RedisRetriever implements QueueCacheRetriever {
 
         // Make the queue if it doesn't exist - async to prevent blocking
         final ServerQueueStatus finalStatus = status;
-        CompletableFuture.runAsync(() -> {
+        QueueThreadManager.executeRedisOperation(() -> {
           redisManager.addOrUpdateQueue(finalStatus);
         });
       }
@@ -98,7 +105,7 @@ public class RedisRetriever implements QueueCacheRetriever {
 
         // Make the queue if it doesn't exist - async to prevent blocking
         final ServerQueueStatus finalStatus = status;
-        CompletableFuture.runAsync(() -> {
+        QueueThreadManager.executeRedisOperation(() -> {
           redisManager.addOrUpdateQueue(finalStatus);
         });
       }
@@ -132,7 +139,7 @@ public class RedisRetriever implements QueueCacheRetriever {
 
             // Make the queue if it doesn't exist - async to prevent blocking
             final ServerQueueStatus finalStatus = status;
-            CompletableFuture.runAsync(() -> {
+            QueueThreadManager.executeRedisOperation(() -> {
               redisManager.addOrUpdateQueue(finalStatus);
             });
           }
@@ -152,7 +159,6 @@ public class RedisRetriever implements QueueCacheRetriever {
         return status;
       }
     }
-
     return null;
   }
 
@@ -168,7 +174,16 @@ public class RedisRetriever implements QueueCacheRetriever {
       List<SerializableQueue> ser = redisManager.getAllQueuesAsync().get(5, TimeUnit.SECONDS);
       List<ServerQueueStatus> queue = new ArrayList<>();
       
-      // If Redis returns empty list, create queues for all registered servers
+      // Process existing queues from Redis first
+      for (SerializableQueue s : ser) {
+        VelocityRegisteredServer server = (VelocityRegisteredServer) proxy.getServer(s.getServerName()).orElse(null);
+        if (server != null) {
+          queue.add(s.convert(proxy, server));
+        }
+      }
+      
+      // Only create new ServerQueueStatus objects for servers that don't have queues in Redis
+      // and are actually registered servers - this prevents memory leaks
       if (ser.isEmpty()) {
         for (RegisteredServer registeredServer : proxy.getAllServers()) {
           VelocityRegisteredServer server = (VelocityRegisteredServer) registeredServer;
@@ -177,50 +192,16 @@ public class RedisRetriever implements QueueCacheRetriever {
           
           // Async update to Redis
           final ServerQueueStatus finalStatus = status;
-          CompletableFuture.runAsync(() -> {
+          QueueThreadManager.executeRedisOperation(() -> {
             redisManager.addOrUpdateQueue(finalStatus);
           });
         }
-      } else {
-        ser.forEach(s -> {
-          VelocityRegisteredServer server = (VelocityRegisteredServer) proxy.getServer(s.getServerName()).orElse(null);
-
-          if (server != null) {
-            queue.add(s.convert(proxy, server));
-          }
-        });
       }
-
+      
       return queue;
     } catch (Exception e) {
-      // Fallback to synchronous operation if async fails
-      List<SerializableQueue> ser = redisManager.getAllQueues();
-      List<ServerQueueStatus> queue = new ArrayList<>();
-      
-      // If Redis returns empty list, create queues for all registered servers
-      if (ser.isEmpty()) {
-        for (RegisteredServer registeredServer : proxy.getAllServers()) {
-          VelocityRegisteredServer server = (VelocityRegisteredServer) registeredServer;
-          ServerQueueStatus status = new ServerQueueStatus(server, proxy);
-          queue.add(status);
-          
-          // Async update to Redis
-          final ServerQueueStatus finalStatus = status;
-          CompletableFuture.runAsync(() -> {
-            redisManager.addOrUpdateQueue(finalStatus);
-          });
-        }
-      } else {
-        ser.forEach(s -> {
-          VelocityRegisteredServer server = (VelocityRegisteredServer) proxy.getServer(s.getServerName()).orElse(null);
-
-          if (server != null) {
-            queue.add(s.convert(proxy, server));
-          }
-        });
-      }
-
-      return queue;
+      logger.warn("Failed to get all queues asynchronously, falling back to synchronous method", e);
+      return getAllSync();
     }
   }
 
@@ -235,7 +216,16 @@ public class RedisRetriever implements QueueCacheRetriever {
         .thenApply(ser -> {
           List<ServerQueueStatus> queue = new ArrayList<>();
           
-          // If Redis returns empty list, create queues for all registered servers
+          // Process existing queues from Redis first
+          for (SerializableQueue s : ser) {
+            VelocityRegisteredServer server = (VelocityRegisteredServer) proxy.getServer(s.getServerName()).orElse(null);
+            if (server != null) {
+              queue.add(s.convert(proxy, server));
+            }
+          }
+          
+          // Only create new ServerQueueStatus objects for servers that don't have queues in Redis
+          // and are actually registered servers - this prevents memory leaks
           if (ser.isEmpty()) {
             for (RegisteredServer registeredServer : proxy.getAllServers()) {
               VelocityRegisteredServer server = (VelocityRegisteredServer) registeredServer;
@@ -244,25 +234,53 @@ public class RedisRetriever implements QueueCacheRetriever {
               
               // Async update to Redis
               final ServerQueueStatus finalStatus = status;
-              CompletableFuture.runAsync(() -> {
+              QueueThreadManager.executeRedisOperation(() -> {
                 redisManager.addOrUpdateQueue(finalStatus);
               });
             }
-          } else {
-            ser.forEach(s -> {
-              VelocityRegisteredServer server = (VelocityRegisteredServer) proxy.getServer(s.getServerName()).orElse(null);
-
-              if (server != null) {
-                queue.add(s.convert(proxy, server));
-              }
-            });
           }
-
+          
           return queue;
         })
         .exceptionally(throwable -> {
-          // Fallback to synchronous operation if async fails
+          logger.warn("Failed to get all queues asynchronously, falling back to synchronous method", throwable);
           return getAll();
         });
+  }
+
+  /**
+   * Synchronous fallback method for getAll().
+   *
+   * @return All the queues using synchronous Redis operations.
+   */
+  private List<ServerQueueStatus> getAllSync() {
+    List<SerializableQueue> ser = redisManager.getAllQueues();
+    List<ServerQueueStatus> queue = new ArrayList<>();
+    
+    // Process existing queues from Redis first
+    for (SerializableQueue s : ser) {
+      VelocityRegisteredServer server = (VelocityRegisteredServer) proxy.getServer(s.getServerName()).orElse(null);
+      if (server != null) {
+        queue.add(s.convert(proxy, server));
+      }
+    }
+    
+    // Only create new ServerQueueStatus objects for servers that don't have queues in Redis
+    // and are actually registered servers - this prevents memory leaks
+    if (ser.isEmpty()) {
+      for (RegisteredServer registeredServer : proxy.getAllServers()) {
+        VelocityRegisteredServer server = (VelocityRegisteredServer) registeredServer;
+        ServerQueueStatus status = new ServerQueueStatus(server, proxy);
+        queue.add(status);
+        
+        // Async update to Redis
+        final ServerQueueStatus finalStatus = status;
+        QueueThreadManager.executeRedisOperation(() -> {
+          redisManager.addOrUpdateQueue(finalStatus);
+        });
+      }
+    }
+    
+    return queue;
   }
 }

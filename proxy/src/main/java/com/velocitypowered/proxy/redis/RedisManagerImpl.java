@@ -64,6 +64,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.velocitypowered.proxy.queue.QueueThreadManager;
 
 /**
  * Manages Redis connectivity and communication within the Velocity proxy using Lettuce.
@@ -153,7 +154,7 @@ public class RedisManagerImpl {
       }
 
       // Use async operations to prevent blocking
-      CompletableFuture.runAsync(() -> {
+      QueueThreadManager.executeRedisOperation(() -> {
         try {
           RedisAsyncCommands<String, String> commands = connection.async();
           commands.setex("PROXY_HEARTBEAT:" + proxyId, 30, "online")
@@ -241,7 +242,7 @@ public class RedisManagerImpl {
     }
 
     // Use async operations to prevent blocking
-    CompletableFuture.runAsync(() -> {
+    QueueThreadManager.executeRedisOperation(() -> {
       try {
         RedisAsyncCommands<String, String> commands = connection.async();
         commands.sadd("PAUSED_QUEUES", serverName)
@@ -269,7 +270,7 @@ public class RedisManagerImpl {
     }
 
     // Use async operations to prevent blocking
-    CompletableFuture.runAsync(() -> {
+    QueueThreadManager.executeRedisOperation(() -> {
       try {
         RedisAsyncCommands<String, String> commands = connection.async();
         commands.srem("PAUSED_QUEUES", serverName)
@@ -317,7 +318,7 @@ public class RedisManagerImpl {
       return CompletableFuture.completedFuture(null);
     }
 
-    return CompletableFuture.supplyAsync(() -> {
+    return QueueThreadManager.executeRedisOperation(() -> {
       try {
         RedisAsyncCommands<String, String> commands = connection.async();
         return commands.hget(QUEUE_CACHE_KEY, serverName)
@@ -365,7 +366,7 @@ public class RedisManagerImpl {
       return CompletableFuture.completedFuture(new ArrayList<>());
     }
 
-    return CompletableFuture.supplyAsync(() -> {
+    return QueueThreadManager.executeRedisOperation(() -> {
       try {
         RedisAsyncCommands<String, String> commands = connection.async();
         return commands.hgetall(QUEUE_CACHE_KEY)
@@ -450,7 +451,7 @@ public class RedisManagerImpl {
       return CompletableFuture.completedFuture(new ArrayList<>());
     }
 
-    return CompletableFuture.supplyAsync(() -> {
+    return QueueThreadManager.executeRedisOperation(() -> {
       try {
         RedisAsyncCommands<String, String> commands = connection.async();
         return commands.smembers("PAUSED_QUEUES")
@@ -493,7 +494,7 @@ public class RedisManagerImpl {
       return CompletableFuture.completedFuture(new ArrayList<>());
     }
 
-    return CompletableFuture.supplyAsync(() -> {
+    return QueueThreadManager.executeRedisOperation(() -> {
       try {
         RedisAsyncCommands<String, String> commands = connection.async();
         return commands.keys("PROXY_HEARTBEAT:*")
@@ -541,7 +542,7 @@ public class RedisManagerImpl {
       return CompletableFuture.completedFuture(false);
     }
 
-    return CompletableFuture.supplyAsync(() -> {
+    return QueueThreadManager.executeRedisOperation(() -> {
       try {
         RedisAsyncCommands<String, String> commands = connection.async();
         return commands.hexists(CACHE_KEY, uniqueId.toString())
@@ -583,7 +584,7 @@ public class RedisManagerImpl {
       return CompletableFuture.completedFuture(new ArrayList<>());
     }
 
-    return CompletableFuture.supplyAsync(() -> {
+    return QueueThreadManager.executeRedisOperation(() -> {
       try {
         RedisAsyncCommands<String, String> commands = connection.async();
         return commands.hgetall(CACHE_KEY)
@@ -612,7 +613,7 @@ public class RedisManagerImpl {
     String json = gson.toJson(player);
 
     // Use async operations to prevent blocking
-    CompletableFuture.runAsync(() -> {
+    QueueThreadManager.executeRedisOperation(() -> {
       try {
         RedisAsyncCommands<String, String> commands = connection.async();
         commands.hset(CACHE_KEY, player.getUuid().toString(), json)
@@ -640,7 +641,7 @@ public class RedisManagerImpl {
     }
 
     // Use async operations to prevent blocking
-    CompletableFuture.runAsync(() -> {
+    QueueThreadManager.executeRedisOperation(() -> {
       try {
         RedisAsyncCommands<String, String> commands = connection.async();
         commands.hdel(CACHE_KEY, info.getUuid().toString())
@@ -668,7 +669,7 @@ public class RedisManagerImpl {
     }
 
     // Use async operations to prevent blocking
-    CompletableFuture.runAsync(() -> {
+    QueueThreadManager.executeRedisOperation(() -> {
       try {
         RedisAsyncCommands<String, String> commands = connection.async();
         commands.hset(QUEUE_CACHE_KEY, queue.getServerName(), gson.toJson(new SerializableQueue(queue)))
@@ -718,7 +719,7 @@ public class RedisManagerImpl {
       this.pubSubConnection.addListener(this.pubSub);
 
       // Start pub/sub subscription asynchronously with timeout
-      CompletableFuture.runAsync(() -> {
+      QueueThreadManager.executeRedisOperation(() -> {
         try {
           RedisPubSubAsyncCommands<String, String> commands = pubSubConnection.async();
           commands.subscribe(CHANNEL)
@@ -771,7 +772,7 @@ public class RedisManagerImpl {
     }
 
     // Use async operation to prevent blocking, but handle System.exit more gracefully
-    CompletableFuture.runAsync(() -> {
+    QueueThreadManager.executeRedisOperation(() -> {
       try {
         RedisAsyncCommands<String, String> commands = connection.async();
         commands.exists("PROXY_HEARTBEAT:" + proxyId)
@@ -780,13 +781,15 @@ public class RedisManagerImpl {
                 logger.error("Proxy ID '{}' is still marked as running. Killing"
                     + " your proxies with Redis enabled is not suggested. Please wait"
                     + " for Redis to automatically determine whether the proxy is online or not.", proxyId);
-                // Schedule shutdown on main thread to avoid async context issues
-                CompletableFuture.runAsync(() -> {
+                // Use a more graceful shutdown approach
+                QueueThreadManager.executeQueueOperation(() -> {
                   try {
                     Thread.sleep(100); // Brief delay to allow logging to complete
+                    logger.info("Shutting down due to duplicate Proxy ID: {}", proxyId);
                     System.exit(0);
                   } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                    logger.info("Shutting down due to duplicate Proxy ID: {}", proxyId);
                     System.exit(0);
                   }
                 });
@@ -817,7 +820,7 @@ public class RedisManagerImpl {
     }
 
     // Use async operations to prevent blocking
-    CompletableFuture.runAsync(() -> {
+    QueueThreadManager.executeRedisOperation(() -> {
       try {
         JsonElement packetData = gson.toJsonTree(packet);
         JsonObject object = new JsonObject();
