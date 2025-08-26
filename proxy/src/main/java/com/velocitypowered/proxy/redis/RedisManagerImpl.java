@@ -770,7 +770,7 @@ public class RedisManagerImpl {
       throw new IllegalStateException("Redis connection is not initialized.");
     }
 
-    // Use async operation to prevent blocking
+    // Use async operation to prevent blocking, but handle System.exit more gracefully
     CompletableFuture.runAsync(() -> {
       try {
         RedisAsyncCommands<String, String> commands = connection.async();
@@ -780,7 +780,16 @@ public class RedisManagerImpl {
                 logger.error("Proxy ID '{}' is still marked as running. Killing"
                     + " your proxies with Redis enabled is not suggested. Please wait"
                     + " for Redis to automatically determine whether the proxy is online or not.", proxyId);
-                System.exit(0);
+                // Schedule shutdown on main thread to avoid async context issues
+                CompletableFuture.runAsync(() -> {
+                  try {
+                    Thread.sleep(100); // Brief delay to allow logging to complete
+                    System.exit(0);
+                  } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    System.exit(0);
+                  }
+                });
               }
             })
             .exceptionally(throwable -> {

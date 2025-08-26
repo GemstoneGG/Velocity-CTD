@@ -132,9 +132,19 @@ public class QueueManagerRedisImpl extends QueueManager {
    */
   @Override
   public void tickMessageForAllPlayers() {
-    for (ServerQueueStatus status : this.cache.getAll()) {
-      status.getActivePlayers().forEach((entry, player) ->
-          this.server.getRedisManager().send(new RedisSendActionBarRequest(player, status.getActionBarComponent(entry))));
-    }
+    // Use async cache operation for consistency with other methods
+    this.cache.getAllAsync().thenAccept(queues -> {
+      for (ServerQueueStatus status : queues) {
+        status.getActivePlayers().forEach((entry, player) ->
+            this.server.getRedisManager().send(new RedisSendActionBarRequest(player, status.getActionBarComponent(entry))));
+      }
+    }).exceptionally(throwable -> {
+      // Fallback to synchronous operation if async fails
+      for (ServerQueueStatus status : this.cache.getAll()) {
+        status.getActivePlayers().forEach((entry, player) ->
+            this.server.getRedisManager().send(new RedisSendActionBarRequest(player, status.getActionBarComponent(entry))));
+      }
+      return null;
+    });
   }
 }
