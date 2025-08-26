@@ -24,7 +24,6 @@ import com.velocitypowered.api.network.HandshakeIntent;
 import com.velocitypowered.api.network.ProtocolState;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.config.PlayerInfoForwarding;
 import com.velocitypowered.proxy.connection.ConnectionType;
 import com.velocitypowered.proxy.connection.ConnectionTypes;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
@@ -197,16 +196,9 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
 
     connection.setType(this.getHandshakeConnectionType(handshake));
 
-    // If the proxy is configured for modern forwarding, we must deny connections from 1.12.2
-    // and lower otherwise IP information will never get forwarded.
-    if (server.getConfiguration().getPlayerInfoForwardingMode() == PlayerInfoForwarding.MODERN
-        && handshake.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_13)) {
-      // Bump connection into the correct protocol state so that we can send the disconnect packet.
-      connection.setState(StateRegistry.LOGIN);
-      ic.disconnectQuietly(Component.translatable("velocity.error.modern-forwarding-needs-new-client")
-          .arguments(Component.text(minimumVersion), Component.text(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
-      return;
-    }
+    // Note: We defer the modern forwarding version check until we actually know which server
+    // the player is connecting to. This allows 1.7 clients to connect to servers using legacy forwarding
+    // even when the global default is modern forwarding.
 
     final LoginInboundConnection lic = new LoginInboundConnection(ic);
     server.getEventManager().fireAndForget(new ConnectionHandshakeEvent(lic, handshake.getIntent()));

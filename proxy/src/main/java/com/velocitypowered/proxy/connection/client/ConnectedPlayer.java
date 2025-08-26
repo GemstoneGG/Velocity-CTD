@@ -59,6 +59,7 @@ import com.velocitypowered.api.util.ModInfo;
 import com.velocitypowered.api.util.ServerLink;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.adventure.VelocityBossBarImplementation;
+import com.velocitypowered.proxy.config.PlayerInfoForwarding;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftConnectionAssociation;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
@@ -2334,7 +2335,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   /**
-   * Checks if the player's protocol version is compatible with the server's minimum version requirement.
+   * Checks if the player's protocol version is compatible with the server's minimum version requirement
+   * and modern forwarding compatibility.
    *
    * @param server the server to check compatibility with
    * @return {@code true} if the player's version is compatible, {@code false} otherwise
@@ -2353,6 +2355,16 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       // Send a message to the player instead of disconnecting them from the proxy
       sendMessage(Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
           .arguments(Component.text(serverMinimumVersion), Component.text(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
+      return false;
+    }
+
+    // Check if the server uses modern forwarding and the client is too old
+    PlayerInfoForwarding serverForwardingMode = ConnectedPlayer.this.server.getConfiguration().getServerForwardingMode(serverName);
+    if (serverForwardingMode == PlayerInfoForwarding.MODERN
+        && clientProtocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_13)) {
+      // Disconnect the player with an appropriate message
+      disconnect(Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
+          .arguments(Component.text("1.13"), Component.text(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
       return false;
     }
 
