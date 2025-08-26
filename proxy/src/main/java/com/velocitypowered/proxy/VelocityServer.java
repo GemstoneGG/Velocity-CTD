@@ -1401,15 +1401,15 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       return true;
     }
     String lowerName = connection.getUsername().toLowerCase(Locale.US);
-    InetAddress playerIp = connection.getRemoteAddress().getAddress();
     
-    // Check for existing connections by username, UUID, and optionally IP
+    // Check for existing connections by username and UUID first
     boolean hasExistingConnection = connectionsByName.containsKey(lowerName)
         || connectionsByUuid.containsKey(connection.getUniqueId());
     
-    // If IP checking is enabled, also check for existing connections from the same IP
-    if (configuration.isKickExistingPlayersCheckIp()) {
-      hasExistingConnection = hasExistingConnection || connectionsByIp.containsKey(playerIp);
+    // Only retrieve IP address if we need to check it and no conflicts found yet
+    if (!hasExistingConnection && configuration.isKickExistingPlayersCheckIp()) {
+      InetAddress playerIp = connection.getRemoteAddress().getAddress();
+      hasExistingConnection = connectionsByIp.containsKey(playerIp);
     }
     
     return !hasExistingConnection;
@@ -1423,7 +1423,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    */
   public boolean registerConnection(final ConnectedPlayer connection) {
     String lowerName = connection.getUsername().toLowerCase(Locale.US);
-    InetAddress playerIp = connection.getRemoteAddress().getAddress();
 
     if (!this.configuration.isOnlineModeKickExistingPlayers()) {
       if (connectionsByName.putIfAbsent(lowerName, connection) != null) {
@@ -1435,8 +1434,9 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         return false;
       }
       
-      // If IP checking is enabled, also check for IP conflicts
+      // Only retrieve IP address if IP checking is enabled
       if (this.configuration.isKickExistingPlayersCheckIp()) {
+        InetAddress playerIp = connection.getRemoteAddress().getAddress();
         if (connectionsByIp.putIfAbsent(playerIp, connection) != null) {
           connectionsByName.remove(lowerName, connection);
           connectionsByUuid.remove(connection.getUniqueId(), connection);
@@ -1450,19 +1450,22 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         existing.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
       }
       
-      // Handle existing connections by IP if IP checking is enabled
+      // Only retrieve IP address if IP checking is enabled
       if (this.configuration.isKickExistingPlayersCheckIp()) {
+        InetAddress playerIp = connection.getRemoteAddress().getAddress();
         ConnectedPlayer existingByIp = connectionsByIp.get(playerIp);
         if (existingByIp != null && !existingByIp.equals(existing)) {
           existingByIp.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
         }
-      }
 
-      // We can now replace the entries as needed.
-      connectionsByName.put(lowerName, connection);
-      connectionsByUuid.put(connection.getUniqueId(), connection);
-      if (this.configuration.isKickExistingPlayersCheckIp()) {
+        // We can now replace the entries as needed.
+        connectionsByName.put(lowerName, connection);
+        connectionsByUuid.put(connection.getUniqueId(), connection);
         connectionsByIp.put(playerIp, connection);
+      } else {
+        // We can now replace the entries as needed.
+        connectionsByName.put(lowerName, connection);
+        connectionsByUuid.put(connection.getUniqueId(), connection);
       }
     }
 
@@ -1478,7 +1481,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     connectionsByName.remove(connection.getUsername().toLowerCase(Locale.US), connection);
     connectionsByUuid.remove(connection.getUniqueId(), connection);
     if (configuration.isKickExistingPlayersCheckIp()) {
-      connectionsByIp.remove(connection.getRemoteAddress().getAddress(), connection);
+      InetAddress playerIp = connection.getRemoteAddress().getAddress();
+      connectionsByIp.remove(playerIp, connection);
     }
     connection.disconnected();
   }
