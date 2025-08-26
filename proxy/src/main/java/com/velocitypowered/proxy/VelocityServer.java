@@ -1402,17 +1402,29 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     }
     String lowerName = connection.getUsername().toLowerCase(Locale.US);
     
-    // Check for existing connections by username and UUID first
-    boolean hasExistingConnection = connectionsByName.containsKey(lowerName)
-        || connectionsByUuid.containsKey(connection.getUniqueId());
-    
-    // Only retrieve IP address if we need to check it and no conflicts found yet
-    if (!hasExistingConnection && configuration.isKickExistingPlayersCheckIp()) {
-      InetAddress playerIp = connection.getRemoteAddress().getAddress();
-      hasExistingConnection = connectionsByIp.containsKey(playerIp);
+    // Check for existing connections by username first
+    ConnectedPlayer existingByName = connectionsByName.get(lowerName);
+    if (existingByName != null) {
+      // If IP checking is enabled, check if it's the same IP (which allows kicking)
+      if (configuration.isKickExistingPlayersCheckIp()) {
+        InetAddress newPlayerIp = connection.getRemoteAddress().getAddress();
+        InetAddress existingPlayerIp = existingByName.getRemoteAddress().getAddress();
+        // Allow connection if same username AND same IP (will kick existing)
+        // Block connection if same username but different IP
+        return newPlayerIp.equals(existingPlayerIp);
+      } else {
+        // IP checking disabled, block any username conflict
+        return false;
+      }
     }
     
-    return !hasExistingConnection;
+    // Check for UUID conflicts (always block)
+    if (connectionsByUuid.containsKey(connection.getUniqueId())) {
+      return false;
+    }
+    
+    // No username or UUID conflicts, allow connection
+    return true;
   }
 
   /**
@@ -1425,47 +1437,68 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     String lowerName = connection.getUsername().toLowerCase(Locale.US);
 
     if (!this.configuration.isOnlineModeKickExistingPlayers()) {
-      if (connectionsByName.putIfAbsent(lowerName, connection) != null) {
-        return false;
+      // Check for existing username connection
+      ConnectedPlayer existingByName = connectionsByName.get(lowerName);
+      if (existingByName != null) {
+        // If IP checking is enabled and same IP, kick the existing player
+        if (this.configuration.isKickExistingPlayersCheckIp()) {
+          InetAddress newPlayerIp = connection.getRemoteAddress().getAddress();
+          InetAddress existingPlayerIp = existingByName.getRemoteAddress().getAddress();
+          if (newPlayerIp.equals(existingPlayerIp)) {
+            // Same username, same IP - kick existing player
+            existingByName.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
+            // Remove existing player from all maps
+            connectionsByName.remove(lowerName, existingByName);
+            connectionsByUuid.remove(existingByName.getUniqueId(), existingByName);
+            connectionsByIp.remove(existingPlayerIp, existingByName);
+          } else {
+            // Same username, different IP - block new connection
+            return false;
+          }
+        } else {
+          // IP checking disabled, block any username conflict
+          return false;
+        }
       }
 
+      // Register in name map first
+      connectionsByName.put(lowerName, connection);
+      
+      // Check UUID conflicts (always block)
       if (connectionsByUuid.putIfAbsent(connection.getUniqueId(), connection) != null) {
         connectionsByName.remove(lowerName, connection);
         return false;
       }
       
-      // Only retrieve IP address if IP checking is enabled
+      // Register in IP map if enabled
       if (this.configuration.isKickExistingPlayersCheckIp()) {
         InetAddress playerIp = connection.getRemoteAddress().getAddress();
-        if (connectionsByIp.putIfAbsent(playerIp, connection) != null) {
-          connectionsByName.remove(lowerName, connection);
-          connectionsByUuid.remove(connection.getUniqueId(), connection);
-          return false;
-        }
+        connectionsByIp.put(playerIp, connection);
       }
     } else {
-      // Handle existing connections by UUID
+      // Handle existing connections by UUID (online mode kick existing)
       ConnectedPlayer existing = connectionsByUuid.get(connection.getUniqueId());
       if (existing != null) {
         existing.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
       }
       
-      // Only retrieve IP address if IP checking is enabled
+      // Check for same username, same IP scenario
+      ConnectedPlayer existingByName = connectionsByName.get(lowerName);
+      if (existingByName != null && this.configuration.isKickExistingPlayersCheckIp()) {
+        InetAddress newPlayerIp = connection.getRemoteAddress().getAddress();
+        InetAddress existingPlayerIp = existingByName.getRemoteAddress().getAddress();
+        if (newPlayerIp.equals(existingPlayerIp)) {
+          // Same username, same IP - kick existing player
+          existingByName.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
+        }
+      }
+
+      // We can now replace the entries as needed.
+      connectionsByName.put(lowerName, connection);
+      connectionsByUuid.put(connection.getUniqueId(), connection);
       if (this.configuration.isKickExistingPlayersCheckIp()) {
         InetAddress playerIp = connection.getRemoteAddress().getAddress();
-        ConnectedPlayer existingByIp = connectionsByIp.get(playerIp);
-        if (existingByIp != null && !existingByIp.equals(existing)) {
-          existingByIp.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
-        }
-
-        // We can now replace the entries as needed.
-        connectionsByName.put(lowerName, connection);
-        connectionsByUuid.put(connection.getUniqueId(), connection);
         connectionsByIp.put(playerIp, connection);
-      } else {
-        // We can now replace the entries as needed.
-        connectionsByName.put(lowerName, connection);
-        connectionsByUuid.put(connection.getUniqueId(), connection);
       }
     }
 
