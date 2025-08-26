@@ -1567,6 +1567,9 @@ public final class VelocityConfiguration implements ProxyConfig {
     }
 
     private Servers(final CommentedConfig config) {
+      this.serverAliases = List.of("joinqueue", "queue", "server");
+      this.dynamicFallbackFilter = "FIRST_AVAILABLE";
+      
       if (config != null) {
         Map<String, String> servers = new HashMap<>();
         Map<String, PlayerInfoForwarding> serverForwardingModes = new HashMap<>();
@@ -1621,10 +1624,13 @@ public final class VelocityConfiguration implements ProxyConfig {
                     final Map<String, PlayerInfoForwarding> serverForwardingModes) {
       this.servers = servers;
       this.attemptConnectionOrder = attemptConnectionOrder;
+      this.serverForwardingModes = serverForwardingModes;
+      this.serverAliases = List.of("joinqueue", "queue", "server");
+      this.dynamicFallbackFilter = "FIRST_AVAILABLE";
     }
 
     public List<String> getServerAliases() {
-      return serverAliases;
+      return serverAliases != null ? serverAliases : List.of("joinqueue", "queue", "server");
     }
 
     private Map<String, String> getServers() {
