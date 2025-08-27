@@ -24,11 +24,16 @@ import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The redis implementation of the queue cache.
  */
 public class RedisRetriever implements QueueCacheRetriever {
+
+  private static final Logger logger = LoggerFactory.getLogger(RedisRetriever.class);
 
   /**
    * The Velocity proxy instance.
@@ -39,6 +44,12 @@ public class RedisRetriever implements QueueCacheRetriever {
    * The Redis manager implementation for interacting with the Redis backend.
    */
   private final RedisManagerImpl redisManager;
+
+  /**
+   * Instance cache to ensure the same ServerQueueStatus instance is returned for the same server.
+   * This prevents the issue where each getQueueStatus() call creates a new instance.
+   */
+  private final ConcurrentHashMap<String, ServerQueueStatus> instanceCache = new ConcurrentHashMap<>();
 
   /**
    * Constructs a new redis retriever.
@@ -63,19 +74,38 @@ public class RedisRetriever implements QueueCacheRetriever {
       return null;
     }
 
+    // Check if we have a cached instance first
+    ServerQueueStatus cachedInstance = instanceCache.get(serverName);
+    if (cachedInstance != null) {
+      logger.debug("Returning cached ServerQueueStatus instance for server: {}", serverName);
+      return cachedInstance;
+    }
+
+    // If no cached instance, try to get from Redis
     SerializableQueue ser = this.redisManager.getQueue(serverName);
     ServerQueueStatus status = null;
     if (ser != null) {
       status = ser.convert(this.proxy, server);
+      logger.debug("Created new ServerQueueStatus instance from Redis for server: {}", serverName);
     }
 
     if (status == null) {
       status = new ServerQueueStatus(server, proxy);
+      logger.debug("Created new empty ServerQueueStatus instance for server: {}", serverName);
 
       // Make the queue if it doesn't exist.
       redisManager.addOrUpdateQueue(status);
     }
 
+    // Cache the instance for future use
+    ServerQueueStatus existingInstance = instanceCache.putIfAbsent(serverName, status);
+    if (existingInstance != null) {
+      // Another thread created an instance while we were processing, use that one
+      logger.debug("Another thread created ServerQueueStatus instance for server: {}, using existing", serverName);
+      return existingInstance;
+    }
+
+    logger.debug("Cached new ServerQueueStatus instance for server: {}", serverName);
     return status;
   }
 
@@ -103,10 +133,24 @@ public class RedisRetriever implements QueueCacheRetriever {
       VelocityRegisteredServer server = (VelocityRegisteredServer) proxy.getServer(s.getServerName()).orElse(null);
 
       if (server != null) {
-        queue.add(s.convert(proxy, server));
+        // Use the cached instance if available, otherwise create new one
+        ServerQueueStatus status = instanceCache.get(s.getServerName());
+        if (status == null) {
+          status = s.convert(proxy, server);
+          instanceCache.putIfAbsent(s.getServerName(), status);
+        }
+        queue.add(status);
       }
     });
 
     return queue;
+  }
+
+  /**
+   * Clears the instance cache. This should be called when the queue system is being reset.
+   */
+  public void clearCache() {
+    logger.debug("Clearing RedisRetriever instance cache");
+    instanceCache.clear();
   }
 }

@@ -47,11 +47,15 @@ import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implements the {@code /queueadmin} command.
  */
 public class QueueAdminCommand {
+
+  private static final Logger logger = LoggerFactory.getLogger(QueueAdminCommand.class);
 
   /**
    * The main Velocity server instance used to access server, queue, and configuration data.
@@ -533,21 +537,41 @@ public class QueueAdminCommand {
     }
 
     List<Player> connected = new ArrayList<>();
+    int totalPlayersChecked = 0;
+    int playersOnFromServer = 0;
+    int playersAlreadyQueued = 0;
+    int playersAlreadyInTargetQueue = 0;
+    
+    logger.debug("Starting addall command: {} -> {}", from.getServerInfo().getName(), to.getServerInfo().getName());
+    
     for (Player player : this.server.getAllPlayers()) {
+      totalPlayersChecked++;
       ServerConnection conn = player.getCurrentServer().orElse(null);
       if (conn != null && conn.getServerInfo().getName().equalsIgnoreCase(from.getServerInfo().getName())) {
+        playersOnFromServer++;
+        logger.debug("Found player {} on server {}", player.getUsername(), from.getServerInfo().getName());
+        
         if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
           boolean alreadyQueued = this.server.getQueueManager().getAll().stream()
               .anyMatch(status -> status.isQueued(player.getUniqueId()));
           if (alreadyQueued) {
+            playersAlreadyQueued++;
+            logger.debug("Player {} already queued elsewhere, skipping", player.getUsername());
             continue;
           }
         }
         if (!to.getQueueStatus().isQueued(player.getUniqueId())) {
           connected.add(player);
+          logger.debug("Adding player {} to connected list for queueing", player.getUsername());
+        } else {
+          playersAlreadyInTargetQueue++;
+          logger.debug("Player {} already in target queue {}, skipping", player.getUsername(), to.getServerInfo().getName());
         }
       }
     }
+
+    logger.debug("Addall summary: Total players checked: {}, Players on {}: {}, Already queued elsewhere: {}, Already in target queue: {}, To be added: {}", 
+        totalPlayersChecked, from.getServerInfo().getName(), playersOnFromServer, playersAlreadyQueued, playersAlreadyInTargetQueue, connected.size());
 
     if (connected.isEmpty()) {
       ctx.getSource()
@@ -557,19 +581,44 @@ public class QueueAdminCommand {
                   Component.text(to.getServerInfo().getName())));
       return -1;
     }
+    
+    int successfullyQueued = 0;
+    
+    // Cache the queue status instance to ensure all players are added to the same queue
+    ServerQueueStatus targetQueueStatus = to.getQueueStatus();
+    logger.debug("Using cached queue status instance for server {}: {}", to.getServerInfo().getName(), targetQueueStatus);
+    
     for (Player player : connected) {
-      to.getQueueStatus().queue(player.getUniqueId(), player.getQueuePriority(to.getServerInfo().getName()),
+      logger.debug("Attempting to queue player {} to server {}", player.getUsername(), to.getServerInfo().getName());
+      
+      // Check queue status before adding using the cached instance
+      boolean wasQueuedBefore = targetQueueStatus.isQueued(player.getUniqueId());
+      logger.debug("Player {} queue status before adding: {}", player.getUsername(), wasQueuedBefore);
+      
+      targetQueueStatus.queue(player.getUniqueId(), player.getQueuePriority(to.getServerInfo().getName()),
           player.hasPermission("velocity.queue.full.bypass"),
           player.hasPermission("velocity.queue.bypass")
       );
+      
+      // Check queue status after adding using the cached instance
+      boolean isQueuedAfter = targetQueueStatus.isQueued(player.getUniqueId());
+      logger.debug("Player {} queue status after adding: {}", player.getUsername(), isQueuedAfter);
+      
+      if (isQueuedAfter && !wasQueuedBefore) {
+        successfullyQueued++;
+        logger.debug("Successfully queued player {} to server {}", player.getUsername(), to.getServerInfo().getName());
+      } else {
+        logger.warn("Failed to queue player {} to server {} (wasQueuedBefore: {}, isQueuedAfter: {})", 
+            player.getUsername(), to.getServerInfo().getName(), wasQueuedBefore, isQueuedAfter);
+      }
     }
 
-    int connectedSize = connected.size();
+    logger.debug("Final addall result: {} players successfully queued out of {} attempted", successfullyQueued, connected.size());
 
     ctx.getSource()
-        .sendMessage(Component.translatable("velocity.queue.command.addedall-player" + (connectedSize == 1 ? "" : "s"))
+        .sendMessage(Component.translatable("velocity.queue.command.addedall-player" + (connected.size() == 1 ? "" : "s"))
             .arguments(
-                Component.text(connectedSize),
+                Component.text(connected.size()),
                 Component.text(to.getServerInfo().getName())));
 
     return Command.SINGLE_SUCCESS;
