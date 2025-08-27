@@ -17,7 +17,6 @@
 
 package com.velocitypowered.proxy.queue;
 
-import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.scheduler.ScheduledTask;
@@ -29,11 +28,9 @@ import com.velocitypowered.proxy.queue.cache.QueueCacheRetriever;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 
 /**
  * The interface (abstract class) that will provide methods for the Queue Manager implementations.
@@ -202,55 +199,43 @@ public abstract class QueueManager {
   }
 
   /**
-   * Processes the queue sending logic for all active queues.
+   * Sends the next player in queue, unless the queue is paused.
    */
   public void tickSending() {
     if (!isMasterProxy()) {
       return;
     }
 
-    // Process queues in batches to avoid blocking
-    List<ServerQueueStatus> queues = cache.getAll();
-    if (queues.isEmpty()) {
-      return;
-    }
+    cache.getAll().forEach(queue -> {
+      if (queue.isPaused() || !queue.isOnline()) {
+        return;
+      }
 
-    // Process first 10 queues to avoid overwhelming the system
-    queues.stream()
-        .limit(10)
-        .forEach(queue -> {
-          if (queue.isPaused() || !queue.isOnline()) {
-            return;
-          }
+      if (queue.getQueue().isEmpty()) {
+        return;
+      }
 
-          if (queue.getQueue().isEmpty()) {
-            return;
-          }
+      ServerQueueEntry entry = queue.getQueue().peekFirst();
 
-          ServerQueueEntry entry = queue.getQueue().peekFirst();
+      if (entry == null || queue.isFull() && !entry.isFullBypass()) {
+        return;
+      }
 
-          if (entry == null || queue.isFull() && !entry.isFullBypass()) {
-            return;
-          }
-
-          if (this.server.getMultiProxyHandler().isRedisEnabled()) {
-            if (this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
-              queue.sendFirstInQueue(entry);
-            } else {
-              queue.getQueue().pollFirst();
-              // Async Redis update
-              CompletableFuture.runAsync(() -> {
-                this.server.getRedisManager().addOrUpdateQueue(queue);
-              });
-            }
-          } else {
-            if (this.server.getPlayer(entry.getPlayer()).orElse(null) != null) {
-              queue.sendFirstInQueue(entry);
-            } else {
-              queue.getQueue().pollFirst();
-            }
-          }
-        });
+      if (this.server.getMultiProxyHandler().isRedisEnabled()) {
+        if (this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
+          queue.sendFirstInQueue(entry);
+        } else {
+          queue.getQueue().pollFirst();
+          this.server.getRedisManager().addOrUpdateQueue(queue);
+        }
+      } else {
+        if (this.server.getPlayer(entry.getPlayer()).orElse(null) != null) {
+          queue.sendFirstInQueue(entry);
+        } else {
+          queue.getQueue().pollFirst();
+        }
+      }
+    });
   }
 
   /**
@@ -258,58 +243,54 @@ public abstract class QueueManager {
    */
   public void tickPingingBackend() {
     List<ServerQueueStatus> queues = this.cache.getAll();
-    if (queues.isEmpty()) {
-      return;
-    }
+    for (ServerQueueStatus queue : queues) {
+      RegisteredServer s = this.server.getServer(queue.getServerName()).orElse(null);
+      if (s == null) {
+        continue;
+      }
 
-    // Process first 5 servers to avoid overwhelming the system
-    queues.stream()
-        .limit(5)
-        .forEach(queue -> {
-          RegisteredServer s = this.server.getServer(queue.getServerName()).orElse(null);
-          if (s == null) {
-            return;
+      s.ping().whenComplete((result, th) -> {
+        if (th != null) {
+          queue.setStatus(ServerStatus.OFFLINE);
+        }
+
+        if (queue.getStatus() == ServerStatus.OFFLINE && th == null) {
+          queue.setStatus(ServerStatus.WAITING);
+          LAST_TURNED_ONLINE_TIME.put(queue.getServerName(), System.currentTimeMillis());
+        }
+
+        if (th == null && queue.getQueue().stream().anyMatch(ServerQueueEntry::isQueueBypass)) {
+          queue.setStatus(ServerStatus.ONLINE);
+        }
+
+        final Long lastOnlineTime = LAST_TURNED_ONLINE_TIME.get(queue.getServerName());
+
+        if (th == null && lastOnlineTime != null && queue.getStatus() == ServerStatus.WAITING) {
+          double queueDelay = this.server.getConfiguration().getQueue().getQueueDelay() * 1000;
+          if (System.currentTimeMillis() >= lastOnlineTime + queueDelay) {
+            queue.setStatus(ServerStatus.ONLINE);
           }
+        }
 
-          // Use async ping with timeout
-          s.ping().orTimeout(3, TimeUnit.SECONDS).whenComplete((result, th) -> {
-            if (th != null) {
-              queue.setStatus(ServerStatus.OFFLINE);
+        ServerStatus temp = queue.getStatus();
+
+        if (temp != ServerStatus.ONLINE && queue.isOnline()) {
+          for (ServerQueueEntry entry : queue.getQueue()) {
+            if (entry.isQueueBypass()) {
+              entry.send();
+              queue.dequeue(entry.getPlayer(), false);
             }
+          }
+        }
 
-            if (queue.getStatus() == ServerStatus.OFFLINE && th == null) {
-              queue.setStatus(ServerStatus.WAITING);
-              LAST_TURNED_ONLINE_TIME.put(queue.getServerName(), System.currentTimeMillis());
-            }
-
-            if (th == null && queue.getQueue().stream().anyMatch(ServerQueueEntry::isQueueBypass)) {
-              queue.setStatus(ServerStatus.ONLINE);
-            }
-
-            final Long lastOnlineTime = LAST_TURNED_ONLINE_TIME.get(queue.getServerName());
-
-            if (th == null && lastOnlineTime != null && queue.getStatus() == ServerStatus.WAITING) {
-              double queueDelay = this.server.getConfiguration().getQueue().getQueueDelay() * 1000;
-              if (System.currentTimeMillis() >= lastOnlineTime + queueDelay) {
-                queue.setStatus(ServerStatus.ONLINE);
-              }
-            }
-
-            ServerStatus temp = queue.getStatus();
-
-            if (temp != ServerStatus.ONLINE && queue.isOnline()) {
-              for (ServerQueueEntry entry : queue.getQueue()) {
-                if (entry.isQueueBypass()) {
-                  entry.send();
-                  queue.dequeue(entry.getPlayer(), false);
-                }
-              }
-            }
-          }).exceptionally(throwable -> {
-            queue.setStatus(ServerStatus.OFFLINE);
-            return null;
+        if (queue.isOnline()) {
+          result.getPlayers().ifPresent(ping -> {
+            int max = server.getConfiguration().getPlayerCaps().getOrDefault(queue.getServerName(), ping.getMax());
+            queue.setFull(ping.getOnline() >= max);
           });
-        });
+        }
+      });
+    }
   }
 
   /**
@@ -348,11 +329,6 @@ public abstract class QueueManager {
 
     String targetServerName = server.getServerInfo().getName();
 
-    // Check if the player's version is compatible with the server's minimum version
-    if (!checkVersionCompatibility(player, server)) {
-      return;
-    }
-
     ServerQueueStatus targetQueueStatus = getQueue(targetServerName);
     if (targetQueueStatus != null && targetQueueStatus.isQueued(player.getUniqueId())) {
       player.sendMessage(Component.translatable("velocity.queue.error.already-queued")
@@ -390,35 +366,6 @@ public abstract class QueueManager {
 
     player.sendMessage(Component.translatable("velocity.queue.command.queued")
         .arguments(Component.text(targetServerName)));
-  }
-
-  /**
-   * Checks if the player's protocol version is compatible with the server's minimum version requirement.
-   *
-   * @param player the player to check compatibility for
-   * @param server the server to check compatibility with
-   * @return {@code true} if the player's version is compatible, {@code false} otherwise
-   */
-  private boolean checkVersionCompatibility(final Player player, final VelocityRegisteredServer server) {
-    String serverName = server.getServerInfo().getName();
-    String serverMinimumVersion = this.server.getConfiguration().getMinimumVersionForServer(serverName);
-    
-    ProtocolVersion minimumProtocolVersion = ProtocolVersion.getVersionByName(serverMinimumVersion);
-    ProtocolVersion maximumProtocolVersion = ProtocolVersion.MAXIMUM_VERSION;
-    ProtocolVersion clientProtocolVersion = player.getProtocolVersion();
-
-    // Compare the client's protocol version with the server's minimum required version
-    if (clientProtocolVersion.lessThan(minimumProtocolVersion)
-        || clientProtocolVersion.greaterThan(maximumProtocolVersion)) {
-      // Send a message to the player instead of allowing them to queue
-      player.sendMessage(Component.translatable("velocity.error.modern-forwarding-needs-new-client", 
-          NamedTextColor.RED)
-          .arguments(Component.text(serverMinimumVersion), 
-              Component.text(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
-      return false;
-    }
-
-    return true;
   }
 
   /**

@@ -404,12 +404,6 @@ use-ssl = false
 # of connections to your Redis instance will massively depreciate performance.
 max-concurrent-connections = 50
 
-# Connection timeout in seconds for Redis operations
-connection-timeout = 5
-
-# Read timeout in seconds for Redis operations
-read-timeout = 3
-
 # The ID of this proxy and is only needed for multi-proxy setups.
 # Leave blank if you do not use Redis and is left blank by
 # default to ensure you assign a qualitative proxy ID.
