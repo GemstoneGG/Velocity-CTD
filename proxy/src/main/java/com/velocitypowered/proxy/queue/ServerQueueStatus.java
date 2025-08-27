@@ -422,21 +422,17 @@ public class ServerQueueStatus {
                   ).asHoverEvent())
           );
     } else {
-      AtomicBoolean status = new AtomicBoolean(true);
-
-      server.ping().whenComplete((result, th)
-          -> status.set(th == null)).exceptionally(e -> {
-            status.set(false);
-            return null;
-          }).join();
-
+      // Use cached status for non-master proxies to avoid blocking
+      // The status will be updated asynchronously by the master proxy
+      boolean serverStatus = this.online == ServerStatus.ONLINE;
+      
       return Component.translatable("velocity.queue.command.listqueues.item")
           .arguments(Component.text(server.getServerInfo().getName())
               .hoverEvent(Component.translatable("velocity.queue.command.listqueues.hover")
                   .arguments(
                       Component.text(queue.size()),
                       Component.text(isPaused() ? "True" : "False"),
-                      Component.text(status.get() ? "True" : "False")
+                      Component.text(serverStatus ? "True" : "False")
                   ).asHoverEvent())
           );
     }
