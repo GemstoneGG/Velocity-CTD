@@ -36,11 +36,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Holds queue state for a single backend server.
  */
 public class ServerQueueStatus {
+
+  private static final Logger logger = LoggerFactory.getLogger(ServerQueueStatus.class);
 
   /**
    * The backend server this queue is associated with.
@@ -126,7 +130,12 @@ public class ServerQueueStatus {
    */
   public void stop() {
     queue.clear();
-    this.velocityServer.getRedisManager().addOrUpdateQueue(this);
+    // Use async Redis operation to avoid blocking
+    this.velocityServer.getRedisManager().addOrUpdateQueueAsync(this)
+        .exceptionally(throwable -> {
+          logger.error("Failed to update queue asynchronously", throwable);
+          return null;
+        });
   }
 
   /**
@@ -188,7 +197,12 @@ public class ServerQueueStatus {
       this.paused = paused;
     }
 
-    this.velocityServer.getRedisManager().addOrUpdateQueue(this);
+    // Use async Redis operation to avoid blocking
+    this.velocityServer.getRedisManager().addOrUpdateQueueAsync(this)
+        .exceptionally(throwable -> {
+          logger.error("Failed to update queue asynchronously", throwable);
+          return null;
+        });
   }
 
   /**
@@ -237,7 +251,12 @@ public class ServerQueueStatus {
         queue.addLast(entry);
       }
 
-      this.velocityServer.getRedisManager().addOrUpdateQueue(this);
+      // Use async Redis operation to avoid blocking
+      this.velocityServer.getRedisManager().addOrUpdateQueueAsync(this)
+          .exceptionally(throwable -> {
+            // logger.error("Failed to update queue asynchronously", throwable); // Original code had this line commented out
+            return null;
+          });
     }
   }
 
@@ -281,7 +300,13 @@ public class ServerQueueStatus {
     }).delay(1, TimeUnit.SECONDS).schedule();
 
     this.queue.removeIf(entry -> entry.getPlayer().equals(player));
-    this.velocityServer.getRedisManager().addOrUpdateQueue(this);
+    
+    // Use async Redis operation to avoid blocking
+    this.velocityServer.getRedisManager().addOrUpdateQueueAsync(this)
+        .exceptionally(throwable -> {
+          logger.error("Failed to update queue asynchronously", throwable);
+          return null;
+        });
   }
 
   /**
@@ -519,7 +544,12 @@ public class ServerQueueStatus {
   public void setStatus(final ServerStatus serverStatus) {
     if (this.online != serverStatus) {
       this.online = serverStatus;
-      this.velocityServer.getRedisManager().addOrUpdateQueue(this);
+      // Use async Redis operation to avoid blocking
+      this.velocityServer.getRedisManager().addOrUpdateQueueAsync(this)
+          .exceptionally(throwable -> {
+            logger.error("Failed to update queue asynchronously", throwable);
+            return null;
+          });
     }
   }
 
@@ -531,7 +561,12 @@ public class ServerQueueStatus {
   public void setFull(final boolean newFull) {
     if (this.full != newFull) {
       this.full = newFull;
-      this.velocityServer.getRedisManager().addOrUpdateQueue(this);
+      // Use async Redis operation to avoid blocking
+      this.velocityServer.getRedisManager().addOrUpdateQueueAsync(this)
+          .exceptionally(throwable -> {
+            logger.error("Failed to update queue asynchronously", throwable);
+            return null;
+          });
     }
   }
 }

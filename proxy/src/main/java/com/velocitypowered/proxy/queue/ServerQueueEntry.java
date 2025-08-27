@@ -26,11 +26,15 @@ import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Stores the status of a single server queue entry for a specific player.
  */
 public class ServerQueueEntry {
+
+  private static final Logger logger = LoggerFactory.getLogger(ServerQueueEntry.class);
 
   /**
    * The UUID of the player associated with this queue entry.
@@ -259,7 +263,12 @@ public class ServerQueueEntry {
   public void updateStatus() {
     this.waitingForConnection = false;
     this.connectionAttempts++;
-    this.proxy.getRedisManager().addOrUpdateEntry(this);
+    // Use async Redis operation to avoid blocking
+    this.proxy.getRedisManager().addOrUpdateEntryAsync(this)
+        .exceptionally(throwable -> {
+          logger.error("Failed to update entry asynchronously", throwable);
+          return null;
+        });
   }
 
   /**

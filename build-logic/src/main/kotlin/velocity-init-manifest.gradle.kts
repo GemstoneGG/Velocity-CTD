@@ -22,9 +22,9 @@ tasks.withType<Jar> {
         val velocityHumanVersion: String =
             if (project.version.toString().endsWith("-SNAPSHOT")) {
                 if (buildNumber == null) {
-                    "${project.version} (git-$currentShortRevision)"
+                    "${project.version}-git-$currentShortRevision"
                 } else {
-                    "${project.version} (git-$currentShortRevision-b$buildNumber)"
+                    "${project.version}-git-$currentShortRevision-b$buildNumber"
                 }
             } else {
                 archiveVersion.get()

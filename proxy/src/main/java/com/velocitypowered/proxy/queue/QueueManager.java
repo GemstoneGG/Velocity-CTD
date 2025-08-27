@@ -32,6 +32,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The interface (abstract class) that will provide methods for the Queue Manager implementations.
@@ -81,6 +83,8 @@ public abstract class QueueManager {
    * to their destination servers, respecting full, paused, or offline states.
    */
   private ScheduledTask sendingTaskHandle = null;
+
+  private static final Logger logger = LoggerFactory.getLogger(QueueManager.class);
 
   /**
    * Initializes a new Queue Manager with the proxy and config.
@@ -227,7 +231,12 @@ public abstract class QueueManager {
           queue.sendFirstInQueue(entry);
         } else {
           queue.getQueue().pollFirst();
-          this.server.getRedisManager().addOrUpdateQueue(queue);
+          // Use async Redis operation to avoid blocking
+          this.server.getRedisManager().addOrUpdateQueueAsync(queue)
+              .exceptionally(throwable -> {
+                logger.error("Failed to update queue asynchronously", throwable);
+                return null;
+              });
         }
       } else {
         if (this.server.getPlayer(entry.getPlayer()).orElse(null) != null) {
