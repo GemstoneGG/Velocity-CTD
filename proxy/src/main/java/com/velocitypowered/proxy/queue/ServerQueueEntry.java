@@ -199,7 +199,7 @@ public class ServerQueueEntry {
         }
 
         return null;
-      }).join();
+      });
     });
   }
 
