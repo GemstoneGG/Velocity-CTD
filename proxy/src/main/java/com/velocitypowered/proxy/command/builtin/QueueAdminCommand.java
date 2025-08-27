@@ -31,6 +31,7 @@ import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
+import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.queue.ServerQueueEntry;
 import com.velocitypowered.proxy.queue.ServerQueueStatus;
@@ -436,6 +437,15 @@ public class QueueAdminCommand {
       return -1;
     }
 
+    // Check if the player's version is compatible with the server's minimum version
+    if (player instanceof ConnectedPlayer connectedPlayer && !connectedPlayer.checkVersionCompatibility(server)) {
+      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.version-incompatible")
+          .arguments(
+              Component.text(player.getUsername()),
+              Component.text(server.getServerInfo().getName())));
+      return -1;
+    }
+    
     server.getQueueStatus().queue(player.getUniqueId(), player.getQueuePriority(server.getServerInfo().getName()),
         player.hasPermission("velocity.queue.full.bypass"),
         player.hasPermission("velocity.queue.bypass"));

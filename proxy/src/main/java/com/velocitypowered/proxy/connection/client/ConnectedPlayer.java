@@ -2346,7 +2346,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @param server the server to check compatibility with
    * @return {@code true} if the player's version is compatible, {@code false} otherwise
    */
-  private boolean checkVersionCompatibility(final RegisteredServer server) {
+  public boolean checkVersionCompatibility(final RegisteredServer server) {
     String serverName = server.getServerInfo().getName();
     String serverMinimumVersion = ConnectedPlayer.this.server.getConfiguration().getMinimumVersionForServer(serverName);
     

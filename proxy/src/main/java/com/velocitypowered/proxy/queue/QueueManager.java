@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.queue;
 
+import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.scheduler.ScheduledTask;
@@ -357,6 +358,11 @@ public abstract class QueueManager {
     if (status.isPaused() && !this.server.getConfiguration().getQueue().isAllowPausedQueueJoining()) {
       player.sendMessage(Component.translatable("velocity.queue.error.paused")
           .arguments(Component.text(targetServerName)));
+      return;
+    }
+
+    // Check if the player's version is compatible with the server's minimum version
+    if (player instanceof ConnectedPlayer connectedPlayer && !connectedPlayer.checkVersionCompatibility(server)) {
       return;
     }
 
