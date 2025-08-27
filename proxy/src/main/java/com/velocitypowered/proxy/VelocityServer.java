@@ -1605,12 +1605,18 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
   /**
    * Gets the number of players currently connected to the proxy.
+   * If Redis is enabled, this returns the total player count across all proxies.
+   * Otherwise, this returns only the local proxy's player count.
    *
    * @return the number of connected players
    */
   @Override
   public int getPlayerCount() {
-    return connectionsByUuid.size();
+    if (getMultiProxyHandler().isRedisEnabled()) {
+      return getMultiProxyHandler().getTotalPlayerCount();
+    } else {
+      return connectionsByUuid.size();
+    }
   }
 
   /**
