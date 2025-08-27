@@ -570,8 +570,10 @@ public class QueueAdminCommand {
       }
     }
 
-    logger.debug("Addall summary: Total players checked: {}, Players on {}: {}, Already queued elsewhere: {}, Already in target queue: {}, To be added: {}", 
-        totalPlayersChecked, from.getServerInfo().getName(), playersOnFromServer, playersAlreadyQueued, playersAlreadyInTargetQueue, connected.size());
+    logger.debug("Addall summary: Total players checked: {}, Players on {}: {}, Already queued elsewhere: {}, "
+        + "Already in target queue: {}, To be added: {}", 
+        totalPlayersChecked, from.getServerInfo().getName(), playersOnFromServer, playersAlreadyQueued, 
+        playersAlreadyInTargetQueue, connected.size());
 
     if (connected.isEmpty()) {
       ctx.getSource()

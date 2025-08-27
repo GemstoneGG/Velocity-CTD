@@ -693,8 +693,8 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
   @Override
   public void exception(final Throwable throwable) {
     exceptionTriggered = true;
-    boolean safe = !(throwable instanceof ReadTimeoutException) ||
-                   server.getConfiguration().isFailoverOnUnexpectedServerDisconnect();
+    boolean safe = !(throwable instanceof ReadTimeoutException)
+        || server.getConfiguration().isFailoverOnUnexpectedServerDisconnect();
     serverConn.getPlayer().handleConnectionException(serverConn.getServer(), throwable, safe);
   }
 

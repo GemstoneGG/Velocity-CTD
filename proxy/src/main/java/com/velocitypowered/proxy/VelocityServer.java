@@ -1398,8 +1398,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    */
   public boolean canRegisterConnection(final ConnectedPlayer connection) {
     // When IP checking is disabled, kick-existing-players only works in online mode
-    if (!configuration.isKickExistingPlayersCheckIp() && 
-        configuration.isOnlineMode() && configuration.isOnlineModeKickExistingPlayers()) {
+    if (!configuration.isKickExistingPlayersCheckIp() 
+        && configuration.isOnlineMode() && configuration.isOnlineModeKickExistingPlayers()) {
       return true;
     }
     
@@ -1445,8 +1445,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     String lowerName = connection.getUsername().toLowerCase(Locale.US);
 
     // Determine if we should use kick-existing-players behavior
-    boolean useKickExistingBehavior = this.configuration.isOnlineModeKickExistingPlayers() && 
-        (this.configuration.isKickExistingPlayersCheckIp() || this.configuration.isOnlineMode());
+    boolean useKickExistingBehavior = this.configuration.isOnlineModeKickExistingPlayers() 
+        && (this.configuration.isKickExistingPlayersCheckIp() || this.configuration.isOnlineMode());
 
     if (!useKickExistingBehavior) {
       // Standard behavior: block duplicate connections

@@ -287,8 +287,6 @@ public class ServerQueueStatus {
       return;
     }
 
-    ServerQueueEntry entry = new ServerQueueEntry(playerUuid, this.server, this.velocityServer, priority, fullBypass, queueBypass);
-
     // Thread-safe queue insertion using atomic operations
     // First, check if player is already in the queue (not just the index)
     boolean alreadyInIndex = playerIndex.containsKey(playerUuid);
@@ -308,6 +306,7 @@ public class ServerQueueStatus {
 
     // Add to priority queue first - this is thread-safe and maintains priority order
     logger.debug("Attempting to add player {} to priority queue", playerUuid);
+    ServerQueueEntry entry = new ServerQueueEntry(playerUuid, this.server, this.velocityServer, priority, fullBypass, queueBypass);
     boolean added = queue.offer(entry);
     logger.debug("Priority queue offer result for player {}: {}", playerUuid, added);
     
@@ -660,7 +659,7 @@ public class ServerQueueStatus {
   }
 
   /**
-   * Debug method to dump current queue contents
+   * Debug method to dump current queue contents.
    */
   private void dumpQueueContents(String operation) {
     logger.debug("=== Queue dump after {} ===", operation);
