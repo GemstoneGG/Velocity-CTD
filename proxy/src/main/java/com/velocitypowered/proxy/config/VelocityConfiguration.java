@@ -313,9 +313,11 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Expose
   private Map<String, Integer> playerCaps;
 
-  private VelocityConfiguration(final Servers servers, final ForcedHosts forcedHosts, final CommandAliases commandAliases,
-                                final ProxyCommandAliases proxyCommandAliases, final Commands commands, final Advanced advanced, final Query query, final Metrics metrics, final Redis redis,
-                                final Queue queue) {
+  private VelocityConfiguration(final Servers servers, final ForcedHosts forcedHosts, 
+                                final CommandAliases commandAliases,
+                                final ProxyCommandAliases proxyCommandAliases, final Commands commands, 
+                                final Advanced advanced, final Query query, final Metrics metrics, 
+                                final Redis redis, final Queue queue) {
     this.servers = servers;
     this.forcedHosts = forcedHosts;
     this.commandAliases = commandAliases;

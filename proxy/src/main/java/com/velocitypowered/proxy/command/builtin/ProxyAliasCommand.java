@@ -20,14 +20,13 @@ package com.velocitypowered.proxy.command.builtin;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.proxy.ProxyServer;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.NonNull;
-
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * A command that executes other commands as aliases.
