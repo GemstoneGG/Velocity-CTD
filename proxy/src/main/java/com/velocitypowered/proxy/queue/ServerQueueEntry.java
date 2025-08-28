@@ -184,24 +184,27 @@ public class ServerQueueEntry {
         }
 
         if (success) {
-          // For cross-proxy scenarios, send a dequeue request to the master proxy
+          // For cross-proxy scenarios, the entry is already removed from the master proxy's queue
+          // when sendFirstInQueue was called, so we don't need to send a dequeue request
           if (proxy.getMultiProxyHandler().isRedisEnabled() && !proxy.getQueueManager().isMasterProxy()) {
-            // Send dequeue request to master proxy
-            proxy.getRedisManager().send(new RedisQueueDequeueRequest(player, target.getServerInfo().getName(), false));
-            logger.debug("Sent cross-proxy dequeue request for player {} from server {}", player, target.getServerInfo().getName());
+            // Entry already removed from master proxy's queue, no need to send dequeue request
+            logger.debug("Cross-proxy connection successful for player {} to server {} (entry already removed from master queue)", 
+                player, target.getServerInfo().getName());
           } else {
             // Local dequeue
+            logger.debug("Performing local dequeue for player {} from server {}", player, target.getServerInfo().getName());
             proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, false);
           }
         } else {
           updateStatus();
 
           if (getConnectionAttempts() == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
-            // For cross-proxy scenarios, send a dequeue request to the master proxy
+            // For cross-proxy scenarios, the entry is already removed from the master proxy's queue
+            // when sendFirstInQueue was called, so we don't need to send a dequeue request
             if (proxy.getMultiProxyHandler().isRedisEnabled() && !proxy.getQueueManager().isMasterProxy()) {
-              // Send dequeue request to master proxy with max retries reached
-              proxy.getRedisManager().send(new RedisQueueDequeueRequest(player, target.getServerInfo().getName(), true));
-              logger.debug("Sent cross-proxy dequeue request (max retries) for player {} from server {}", player, target.getServerInfo().getName());
+              // Entry already removed from master proxy's queue, no need to send dequeue request
+              logger.debug("Cross-proxy connection failed (max retries) for player {} to server {} (entry already removed from master queue)", 
+                  player, target.getServerInfo().getName());
             } else {
               // Local dequeue
               proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, true);
@@ -212,11 +215,12 @@ public class ServerQueueEntry {
         updateStatus();
 
         if (getConnectionAttempts() == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
-          // For cross-proxy scenarios, send a dequeue request to the master proxy
+          // For cross-proxy scenarios, the entry is already removed from the master proxy's queue
+          // when sendFirstInQueue was called, so we don't need to send a dequeue request
           if (proxy.getMultiProxyHandler().isRedisEnabled() && !proxy.getQueueManager().isMasterProxy()) {
-            // Send dequeue request to master proxy with max retries reached
-            proxy.getRedisManager().send(new RedisQueueDequeueRequest(player, target.getServerInfo().getName(), true));
-            logger.debug("Sent cross-proxy dequeue request (max retries, exception) for player {} from server {}", player, target.getServerInfo().getName());
+            // Entry already removed from master proxy's queue, no need to send dequeue request
+            logger.debug("Cross-proxy connection failed (max retries, exception) for player {} to server {} (entry already removed from master queue)", 
+                player, target.getServerInfo().getName());
           } else {
             // Local dequeue
             proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, true);

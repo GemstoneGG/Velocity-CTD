@@ -214,6 +214,16 @@ public class ServerQueueStatus {
     }
 
     entry.send();
+    
+    // For cross-proxy scenarios, remove the entry from the queue immediately when sent
+    // This prevents the entry from being processed multiple times
+    if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
+      // Remove from queue immediately to prevent race conditions
+      queue.remove(entry);
+      playerIndex.remove(entry.getPlayer());
+      logger.debug("Removed queue entry for player {} from server {} queue immediately after sending", 
+          entry.getPlayer(), getServerName());
+    }
   }
 
   /**
@@ -361,6 +371,9 @@ public class ServerQueueStatus {
    * @param maxRetriesReached the maximum number of retries
    */
   public void dequeue(final UUID player, final boolean maxRetriesReached) {
+    logger.debug("Dequeue operation started for player {} on server {} (maxRetriesReached: {})", 
+        player, getServerName(), maxRetriesReached);
+    
     this.velocityServer.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
       if (maxRetriesReached) {
         if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
@@ -382,6 +395,10 @@ public class ServerQueueStatus {
     if (removedEntry != null) {
       // Remove from priority queue - this is thread-safe
       queue.remove(removedEntry);
+      logger.debug("Successfully removed player {} from queue for server {} (queue size: {}, index size: {})", 
+          player, getServerName(), queue.size(), playerIndex.size());
+    } else {
+      logger.warn("Player {} not found in queue index for server {}", player, getServerName());
     }
     
     // Use async Redis operation to avoid blocking

@@ -82,18 +82,32 @@ public class QueueManagerRedisImpl extends QueueManager {
             }));
 
     redisManager.listen(RedisQueueDequeueRequest.ID, RedisQueueDequeueRequest.class, it -> {
+      logger.debug("Received RedisQueueDequeueRequest for player {} on server {} (maxRetriesReached: {})", 
+          it.playerUuid(), it.serverName(), it.maxRetriesReached());
+      
       if (!server.getQueueManager().isMasterProxy()) {
+        logger.debug("Ignoring dequeue request - not master proxy");
         return;
       }
 
       RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
       if (foundServer == null) {
+        logger.error("Server not found while attempting to dequeue player. '{}'", it.serverName());
         throw new IllegalArgumentException("Server not found while attempting to dequeue player. '" + it.serverName() + "'");
       }
 
       ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
       if (queueStatus != null) {
-        queueStatus.dequeue(it.playerUuid(), it.maxRetriesReached());
+        // Check if the player is still in the queue before attempting to dequeue
+        if (queueStatus.isQueued(it.playerUuid())) {
+          logger.debug("Dequeuing player {} from server {} queue", it.playerUuid(), it.serverName());
+          queueStatus.dequeue(it.playerUuid(), it.maxRetriesReached());
+        } else {
+          logger.debug("Player {} not found in queue for server {} (may have been already removed)", 
+              it.playerUuid(), it.serverName());
+        }
+      } else {
+        logger.warn("Queue status not found for server {}", it.serverName());
       }
     });
 
