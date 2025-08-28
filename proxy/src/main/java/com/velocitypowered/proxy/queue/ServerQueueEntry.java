@@ -29,6 +29,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import net.kyori.adventure.text.Component;
+import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 
 /**
  * Stores the status of a single server queue entry for a specific player.
@@ -184,30 +186,26 @@ public class ServerQueueEntry {
         }
 
         if (success) {
-          // For cross-proxy scenarios, the entry is already removed from the master proxy's queue
-          // when sendFirstInQueue was called, so we don't need to send a dequeue request
-          if (proxy.getMultiProxyHandler().isRedisEnabled() && !proxy.getQueueManager().isMasterProxy()) {
-            // Entry already removed from master proxy's queue, no need to send dequeue request
-            logger.debug("Cross-proxy connection successful for player {} to server {} (entry already removed from master queue)", 
-                player, target.getServerInfo().getName());
-          } else {
-            // Local dequeue
-            logger.debug("Performing local dequeue for player {} from server {}", player, target.getServerInfo().getName());
-            proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, false);
-          }
+          // Connection successful - entry was already removed from queue before sending
+          logger.debug("Connection successful for player {} to server {} (entry already removed from queue)", 
+              player, target.getServerInfo().getName());
         } else {
           updateStatus();
 
           if (getConnectionAttempts() == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
-            // For cross-proxy scenarios, the entry is already removed from the master proxy's queue
-            // when sendFirstInQueue was called, so we don't need to send a dequeue request
-            if (proxy.getMultiProxyHandler().isRedisEnabled() && !proxy.getQueueManager().isMasterProxy()) {
-              // Entry already removed from master proxy's queue, no need to send dequeue request
-              logger.debug("Cross-proxy connection failed (max retries) for player {} to server {} (entry already removed from master queue)", 
-                  player, target.getServerInfo().getName());
+            // Max retries reached - send error message to player
+            logger.debug("Max retries reached for player {} to server {}", player, target.getServerInfo().getName());
+            
+            if (this.proxy.getMultiProxyHandler().isRedisEnabled()) {
+              this.proxy.getRedisManager().send(new RedisSendMessageToUuidRequest(player,
+                  Component.translatable("velocity.queue.error.max-send-retries-reached")
+                      .arguments(Component.text(target.getServerInfo().getName()),
+                          Component.text(this.proxy.getConfiguration().getQueue().getMaxSendRetries()))));
             } else {
-              // Local dequeue
-              proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, true);
+              this.proxy.getPlayer(player).ifPresent(playerInstance ->
+                  playerInstance.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached")
+                      .arguments(Component.text(target.getServerInfo().getName()),
+                          Component.text(this.proxy.getConfiguration().getQueue().getMaxSendRetries()))));
             }
           }
         }
@@ -215,15 +213,19 @@ public class ServerQueueEntry {
         updateStatus();
 
         if (getConnectionAttempts() == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
-          // For cross-proxy scenarios, the entry is already removed from the master proxy's queue
-          // when sendFirstInQueue was called, so we don't need to send a dequeue request
-          if (proxy.getMultiProxyHandler().isRedisEnabled() && !proxy.getQueueManager().isMasterProxy()) {
-            // Entry already removed from master proxy's queue, no need to send dequeue request
-            logger.debug("Cross-proxy connection failed (max retries, exception) for player {} to server {} (entry already removed from master queue)", 
-                player, target.getServerInfo().getName());
+          // Max retries reached due to exception - send error message to player
+          logger.debug("Max retries reached (exception) for player {} to server {}", player, target.getServerInfo().getName());
+          
+          if (this.proxy.getMultiProxyHandler().isRedisEnabled()) {
+            this.proxy.getRedisManager().send(new RedisSendMessageToUuidRequest(player,
+                Component.translatable("velocity.queue.error.max-send-retries-reached")
+                    .arguments(Component.text(target.getServerInfo().getName()),
+                        Component.text(this.proxy.getConfiguration().getQueue().getMaxSendRetries()))));
           } else {
-            // Local dequeue
-            proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, true);
+            this.proxy.getPlayer(player).ifPresent(playerInstance ->
+                playerInstance.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached")
+                    .arguments(Component.text(target.getServerInfo().getName()),
+                        Component.text(this.proxy.getConfiguration().getQueue().getMaxSendRetries()))));
           }
         }
 

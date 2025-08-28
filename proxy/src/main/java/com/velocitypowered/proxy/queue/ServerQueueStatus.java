@@ -213,17 +213,21 @@ public class ServerQueueStatus {
       return;
     }
 
-    entry.send();
+    // Remove from queue before sending to prevent race conditions
+    // This ensures consistent behavior between Redis and non-Redis scenarios
+    boolean removed = queue.remove(entry);
+    playerIndex.remove(entry.getPlayer());
     
-    // For cross-proxy scenarios, remove the entry from the queue immediately when sent
-    // This prevents the entry from being processed multiple times
-    if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
-      // Remove from queue immediately to prevent race conditions
-      queue.remove(entry);
-      playerIndex.remove(entry.getPlayer());
-      logger.debug("Removed queue entry for player {} from server {} queue immediately after sending", 
+    if (removed) {
+      logger.debug("Removed queue entry for player {} from server {} queue before sending", 
+          entry.getPlayer(), getServerName());
+    } else {
+      logger.warn("Failed to remove queue entry for player {} from server {} queue", 
           entry.getPlayer(), getServerName());
     }
+
+    // Now send the player
+    entry.send();
   }
 
   /**

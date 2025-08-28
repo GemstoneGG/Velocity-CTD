@@ -287,8 +287,7 @@ public abstract class QueueManager {
         if (temp != ServerStatus.ONLINE && queue.isOnline()) {
           for (ServerQueueEntry entry : queue.getQueue()) {
             if (entry.isQueueBypass()) {
-              entry.send();
-              queue.dequeue(entry.getPlayer(), false);
+              queue.sendFirstInQueue(entry);
             }
           }
         }
