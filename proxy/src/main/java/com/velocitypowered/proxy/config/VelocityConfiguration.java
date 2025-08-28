@@ -338,8 +338,8 @@ public final class VelocityConfiguration implements ProxyConfig {
                                 final PingPassthroughMode pingPassthrough,
                                 final boolean samplePlayersInPing, final boolean enablePlayerAddressLogging,
                                 final Servers servers, final ForcedHosts forcedHosts, final CommandAliases commandAliases,
-                                final ProxyCommandAliases proxyCommandAliases, final Commands commands, final Advanced advanced, final Query query,
-                                final Metrics metrics, final boolean forceKeyAuthentication,
+                                final ProxyCommandAliases proxyCommandAliases, final Commands commands, final Advanced advanced,
+                                final Query query, final Metrics metrics, final boolean forceKeyAuthentication,
                                 final boolean logPlayerConnections, final boolean logPlayerDisconnections,
                                 final boolean logOfflineConnections, final boolean disableForge,
                                 final boolean enforceChatSigning, final boolean translateHeaderFooter,
@@ -1778,7 +1778,9 @@ public final class VelocityConfiguration implements ProxyConfig {
 
     @Override
     public String toString() {
-      return "CommandAliases{" + "aliases=" + aliases + '}';
+      return "CommandAliases{"
+          + "aliases=" + aliases
+          + '}';
     }
   }
 
@@ -1787,8 +1789,8 @@ public final class VelocityConfiguration implements ProxyConfig {
     /**
      * A map of proxy command aliases defined in the configuration.
      *
-     * <p>Each key is a new command name (e.g., "scoreboard"), and the value is a list of
-     * commands to execute when this command is invoked (e.g., ["btab scoreboard toggle"]).</p>
+     * <p>Each key is a new command name (e.g., "help"), and the value is a list of
+     * commands to execute when this command is invoked (e.g., ["velocity info"]).</p>
      *
      * <p>This allows creating new commands that execute other commands, similar to Bukkit's commands.yml.</p>
      */
@@ -1818,7 +1820,9 @@ public final class VelocityConfiguration implements ProxyConfig {
 
     @Override
     public String toString() {
-      return "ProxyCommandAliases{" + "aliases=" + aliases + '}';
+      return "ProxyCommandAliases{"
+          + "aliases=" + aliases
+          + '}';
     }
   }
 

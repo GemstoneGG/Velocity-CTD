@@ -23,70 +23,41 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
  * A command that executes other commands as aliases.
  * This allows for creating simple command aliases that execute more complex commands.
+ *
+ * @param server   the proxy server instance
+ * @param alias    the alias name for this command
+ * @param commands the list of commands to execute when this alias is invoked
  */
-public class ProxyAliasCommand implements SimpleCommand {
-
-  private static final Logger logger = LogManager.getLogger(ProxyAliasCommand.class);
-
-  private final ProxyServer server;
-  private final String alias;
-  private final List<String> commands;
-
-  /**
-   * Creates a new proxy alias command.
-   *
-   * @param server the proxy server instance
-   * @param alias the alias name for this command
-   * @param commands the list of commands to execute when this alias is invoked
-   */
-  public ProxyAliasCommand(ProxyServer server, String alias, List<String> commands) {
-    this.server = server;
-    this.alias = alias;
-    this.commands = commands;
-  }
+public record ProxyAliasCommand(ProxyServer server, String alias, List<String> commands) implements SimpleCommand {
 
   @Override
-  public void execute(@NonNull Invocation invocation) {
+  public void execute(@NonNull final Invocation invocation) {
     CommandSource source = invocation.source();
     String[] args = invocation.arguments();
-
-    // Execute each command in the list
     for (String command : commands) {
-      // Replace {args} placeholder with the actual arguments
       String finalCommand = command.replace("{args}", String.join(" ", args));
-      
-      logger.debug("Executing proxy alias '{}': {} -> {}", alias, command, finalCommand);
-      
-      // Execute the command asynchronously
       server.getCommandManager().executeAsync(source, finalCommand)
-          .whenComplete((result, throwable) -> {
-            if (throwable != null) {
-              logger.warn("Failed to execute proxy alias '{}' command: {}", alias, command, throwable);
-              source.sendMessage(Component.text("Error executing alias command '" + alias + "': " + command, NamedTextColor.RED));
-            }
-          });
+            .whenComplete((result, throwable) -> {
+              if (throwable != null) {
+                source.sendMessage(Component.translatable("velocity.error.aliases")
+                    .arguments(Component.text(alias), Component.text(command)));
+              }
+            });
     }
   }
 
   @Override
-  public CompletableFuture<List<String>> suggestAsync(@NonNull Invocation invocation) {
-    // For now, we don't provide suggestions for alias commands
-    // This could be enhanced to provide suggestions based on the target commands
+  public CompletableFuture<List<String>> suggestAsync(@NonNull final Invocation invocation) {
     return CompletableFuture.completedFuture(List.of());
   }
 
   @Override
-  public boolean hasPermission(@NonNull Invocation invocation) {
-    // By default, proxy aliases have no permission requirements
-    // This can be overridden by the configuration if needed
+  public boolean hasPermission(@NonNull final Invocation invocation) {
     return true;
   }
 
@@ -95,7 +66,8 @@ public class ProxyAliasCommand implements SimpleCommand {
    *
    * @return the alias name
    */
-  public String getAlias() {
+  @Override
+  public String alias() {
     return alias;
   }
 
@@ -104,7 +76,8 @@ public class ProxyAliasCommand implements SimpleCommand {
    *
    * @return the list of commands
    */
-  public List<String> getCommands() {
+  @Override
+  public List<String> commands() {
     return commands;
   }
 }
