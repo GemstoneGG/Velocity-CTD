@@ -217,8 +217,13 @@ public final class VelocityCommand {
       );
     }
 
+    final LiteralCommandNode<CommandSource> configcheck = BrigadierCommand.literalArgumentBuilder("configcheck")
+        .requires(source -> source.getPermissionValue("velocity.command.configcheck") == Tristate.TRUE)
+        .executes(new ConfigCheck(server))
+        .build();
+
     final List<LiteralCommandNode<CommandSource>> commands = List
-            .of(dump, heap, info, plugins, reload.build(), sudo, uptime.build());
+            .of(dump, heap, info, plugins, reload.build(), sudo, uptime.build(), configcheck);
     return new BrigadierCommand(
       commands.stream()
         .reduce(

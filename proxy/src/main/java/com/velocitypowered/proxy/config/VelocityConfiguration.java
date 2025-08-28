@@ -1198,6 +1198,11 @@ public final class VelocityConfiguration implements ProxyConfig {
       Files.writeString(defaultForwardingSecretPath, generateRandomString(12));
     }
 
+    ConfigDetector detector = new ConfigDetector(logger);
+    if (Files.exists(path)) {
+      detector.checkAndLogConfiguration(path);
+    }
+
     try (CommentedFileConfig config = CommentedFileConfig.builder(path)
             .defaultData(defaultConfigLocation)
             .autosave()
