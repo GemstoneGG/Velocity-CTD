@@ -42,6 +42,7 @@ import com.velocitypowered.api.util.ProxyVersion;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.config.ConfigDetector;
+import com.velocitypowered.proxy.config.ConfigDetector.ConfigAnalysis;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSudo;
 import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.util.InformationUtils;
@@ -849,6 +850,64 @@ public final class VelocityCommand {
             NamedTextColor.RED));
         logger.error("Could not write heap", t);
       }
+      return Command.SINGLE_SUCCESS;
+    }
+  }
+
+  private record ConfigCheck(VelocityServer server) implements Command<CommandSource> {
+
+    /**
+     * Logger instance for logging configuration analysis errors.
+     */
+    private static final Logger logger = LogManager.getLogger(ConfigCheck.class);
+
+    @Override
+    public int run(final CommandContext<CommandSource> context) {
+      final CommandSource source = context.getSource();
+      
+      // Get the default config path
+      Path configPath = Path.of("velocity.toml");
+      
+      try {
+        ConfigDetector detector = new ConfigDetector(logger);
+        ConfigAnalysis analysis = detector.analyzeConfiguration(configPath);
+        
+        // Send formatted results to the command source
+        source.sendMessage(Component.text("=== Configuration Analysis ===", NamedTextColor.GOLD));
+        
+        if (!analysis.isOutdated()) {
+          source.sendMessage(Component.text("✓ Configuration is up to date (version " + 
+              analysis.getCurrentVersion() + ")", NamedTextColor.GREEN));
+        } else {
+          source.sendMessage(Component.text("⚠ Configuration needs updates:", NamedTextColor.YELLOW));
+          source.sendMessage(Component.text("  Current version: " + analysis.getCurrentVersion(), NamedTextColor.GRAY));
+          source.sendMessage(Component.text("  Latest version: " + analysis.getLatestVersion(), NamedTextColor.GRAY));
+          
+          if (!analysis.getMissingOptions().isEmpty()) {
+            source.sendMessage(Component.text("  Missing options:", NamedTextColor.RED));
+            for (String option : analysis.getMissingOptions()) {
+              source.sendMessage(Component.text("    - " + option, NamedTextColor.RED));
+            }
+          }
+          
+          if (!analysis.getDeprecatedOptions().isEmpty()) {
+            source.sendMessage(Component.text("  Deprecated options:", NamedTextColor.YELLOW));
+            for (String option : analysis.getDeprecatedOptions()) {
+              source.sendMessage(Component.text("    - " + option, NamedTextColor.YELLOW));
+            }
+          }
+          
+          source.sendMessage(Component.text("  Recommendations:", NamedTextColor.GOLD));
+          for (String recommendation : analysis.getRecommendations()) {
+            source.sendMessage(Component.text("    - " + recommendation, NamedTextColor.WHITE));
+          }
+        }
+        
+      } catch (IOException e) {
+        source.sendMessage(Component.text("Error analyzing configuration: " + e.getMessage(), NamedTextColor.RED));
+        logger.error("Failed to analyze configuration file: {}", configPath, e);
+      }
+      
       return Command.SINGLE_SUCCESS;
     }
   }
