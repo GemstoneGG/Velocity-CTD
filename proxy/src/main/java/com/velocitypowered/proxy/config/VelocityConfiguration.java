@@ -1198,9 +1198,16 @@ public final class VelocityConfiguration implements ProxyConfig {
       Files.writeString(defaultForwardingSecretPath, generateRandomString(12));
     }
 
-    ConfigDetector detector = new ConfigDetector(logger);
-    if (Files.exists(path)) {
-      detector.checkAndLogConfiguration(path);
+    try {
+      ConfigDetector detector = new ConfigDetector(logger);
+      ConfigDetector.ConfigAnalysis analysis = detector.analyzeConfiguration(path);
+
+      if (!analysis.getMissingOptions().isEmpty()) {
+        logger.warn("Missing configuration options: " + String.join(", ", analysis.getMissingOptions()));
+        logger.warn("Run /velocity configcheck for full details");
+      }
+    } catch (IOException e) {
+      logger.debug("Could not perform configuration check during configuration loading", e);
     }
 
     try (CommentedFileConfig config = CommentedFileConfig.builder(path)

@@ -473,22 +473,6 @@ public final class VelocityCommand {
         if (server.reloadConfiguration()) {
           source.sendMessage(Component.translatable("velocity.command.reload-success",
               NamedTextColor.GREEN));
-          
-          // Perform a quick configuration check and show missing fields
-          try {
-            Path configPath = Path.of("velocity.toml");
-            ConfigDetector detector = new ConfigDetector(logger);
-            ConfigDetector.ConfigAnalysis analysis = detector.analyzeConfiguration(configPath);
-            
-            if (!analysis.getMissingOptions().isEmpty()) {
-              source.sendMessage(Component.text("Missing configuration options: " + 
-                  String.join(", ", analysis.getMissingOptions()), NamedTextColor.RED));
-              source.sendMessage(Component.text("Run /velocity configcheck for full details", NamedTextColor.GRAY));
-            }
-          } catch (IOException e) {
-            // Silently ignore config check errors during reload
-            logger.debug("Could not perform configuration check during reload", e);
-          }
         } else {
           source.sendMessage(Component.translatable("velocity.command.reload-failure",
               NamedTextColor.RED));
