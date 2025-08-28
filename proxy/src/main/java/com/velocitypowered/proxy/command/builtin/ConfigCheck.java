@@ -48,7 +48,7 @@ public final class ConfigCheck implements Command<CommandSource> {
     final CommandSource source = context.getSource();
     
     // Get the default config path
-    Path configPath = server.getConfigDirectory().resolve("velocity.toml");
+    Path configPath = Path.of("velocity.toml");
     
     try {
       ConfigDetector detector = new ConfigDetector(logger);
