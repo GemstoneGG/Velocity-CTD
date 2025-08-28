@@ -20,8 +20,6 @@ package com.velocitypowered.proxy.config;
 import com.electronwill.nightconfig.core.CommentedConfig;
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.electronwill.nightconfig.toml.TomlParser;
-import org.apache.logging.log4j.Logger;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -34,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Detects outdated configuration files by comparing them to the default embedded configuration.
@@ -45,7 +44,9 @@ public final class ConfigDetector {
   
   // Configuration sections that should be ignored during analysis
   // These are user-specific and shouldn't be flagged as missing or deprecated
-  private static final Set<String> IGNORED_SECTIONS = Set.of("servers", "server-links", "forced-hosts", "slash-servers", "playercaps", "proxy-addresses", "command-aliases", "proxy-command-aliases");
+  private static final Set<String> IGNORED_SECTIONS = Set.of("servers", "server-links", 
+      "forced-hosts", "slash-servers", "playercaps", "proxy-addresses", "command-aliases", 
+      "proxy-command-aliases");
   
   private final Logger logger;
 
@@ -64,6 +65,16 @@ public final class ConfigDetector {
     private final List<String> deprecatedOptions;
     private final List<String> recommendations;
 
+    /**
+     * Creates a new configuration analysis result.
+     *
+     * @param isOutdated whether the configuration is outdated
+     * @param currentVersion the current configuration version
+     * @param latestVersion the latest available configuration version
+     * @param missingOptions list of missing configuration options
+     * @param deprecatedOptions list of deprecated configuration options
+     * @param recommendations list of recommendations for configuration improvements
+     */
     public ConfigAnalysis(boolean isOutdated, String currentVersion, String latestVersion,
                          List<String> missingOptions, List<String> deprecatedOptions,
                          List<String> recommendations) {
@@ -171,8 +182,8 @@ public final class ConfigDetector {
     List<String> recommendations = generateRecommendations(currentVersion, latestVersion, 
         missingOptions, deprecatedOptions);
 
-    boolean isOutdated = !currentVersion.equals(latestVersion) || 
-        !missingOptions.isEmpty() || !deprecatedOptions.isEmpty();
+    boolean isOutdated = !currentVersion.equals(latestVersion)
+        || !missingOptions.isEmpty() || !deprecatedOptions.isEmpty();
 
     return new ConfigAnalysis(isOutdated, currentVersion, latestVersion, 
         missingOptions, deprecatedOptions, recommendations);

@@ -876,8 +876,8 @@ public final class VelocityCommand {
         source.sendMessage(Component.text("=== Configuration Analysis ===", NamedTextColor.GOLD));
         
         if (!analysis.isOutdated()) {
-          source.sendMessage(Component.text("✓ Configuration is up to date (version " + 
-              analysis.getCurrentVersion() + ")", NamedTextColor.GREEN));
+          source.sendMessage(Component.text("✓ Configuration is up to date (version "
+              + analysis.getCurrentVersion() + ")", NamedTextColor.GREEN));
         } else {
           source.sendMessage(Component.text("⚠ Configuration needs updates:", NamedTextColor.YELLOW));
           source.sendMessage(Component.text("  Current version: " + analysis.getCurrentVersion(), NamedTextColor.GRAY));
