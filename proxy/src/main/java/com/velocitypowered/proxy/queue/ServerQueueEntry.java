@@ -21,16 +21,15 @@ import com.velocitypowered.api.proxy.ConnectionRequestBuilder;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.redis.multiproxy.RedisQueueDequeueRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import net.kyori.adventure.text.Component;
-import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 
 /**
  * Stores the status of a single server queue entry for a specific player.
