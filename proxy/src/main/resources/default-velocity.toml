@@ -207,6 +207,15 @@ hub = [
     "return"
 ]
 
+[proxy-command-aliases]
+# Proxy command aliases create new commands that execute other commands when invoked.
+# This is similar to Bukkit's commands.yml functionality.
+#
+# Adding multiple aliases executes multiple commands.
+help = [
+    "velocity help"
+]
+
 [advanced]
 # Whether the proxy should cache Mojang profile results (reduces API load and improves login speed).
 # This may also resolve random occurrences where the user is flagged for an invalid session.

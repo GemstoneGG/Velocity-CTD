@@ -52,6 +52,7 @@ import com.velocitypowered.proxy.command.builtin.HubCommand;
 import com.velocitypowered.proxy.command.builtin.LeaveQueueCommand;
 import com.velocitypowered.proxy.command.builtin.PingCommand;
 import com.velocitypowered.proxy.command.builtin.PlistCommand;
+import com.velocitypowered.proxy.command.builtin.ProxyAliasCommand;
 import com.velocitypowered.proxy.command.builtin.QueueAdminCommand;
 import com.velocitypowered.proxy.command.builtin.SendCommand;
 import com.velocitypowered.proxy.command.builtin.ServerCommand;
@@ -938,6 +939,10 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         unregisterCommand(alias);
       }
     }
+
+    for (String alias : configuration.getProxyCommandAliases().keySet()) {
+      unregisterCommand(alias);
+    }
   }
 
   private void unregisterCommand(final String command) {
@@ -1122,6 +1127,24 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
               .plugin(VelocityVirtualPlugin.INSTANCE)
               .build(),
           commandAlias
+      );
+    }
+
+    for (Map.Entry<String, List<String>> entry : configuration.getProxyCommandAliases().entrySet()) {
+      String alias = entry.getKey();
+      List<String> commands = entry.getValue();
+
+      if (commandManager.hasCommand(alias)) {
+        logger.warn("Proxy command alias '{}' conflicts with existing command, skipping", alias);
+        continue;
+      }
+
+      ProxyAliasCommand proxyAliasCommand = new ProxyAliasCommand(this, alias, commands);
+      commandManager.register(
+          commandManager.metaBuilder(alias)
+              .plugin(VelocityVirtualPlugin.INSTANCE)
+              .build(),
+          proxyAliasCommand
       );
     }
   }
