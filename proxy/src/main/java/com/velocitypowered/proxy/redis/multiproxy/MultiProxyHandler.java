@@ -187,7 +187,8 @@ public class MultiProxyHandler {
       );
     });
 
-    redisManager.send(new RedisStartupRequest(config.getProxyId()));
+    redisManager.send(new RedisStartupRequest(config.getProxyId()));    
+    validateMasterProxyConfiguration();
   }
 
   private void resyncPlayers() {
@@ -425,6 +426,33 @@ public class MultiProxyHandler {
     return this.server.getRedisManager().getCache().stream()
         .filter(info -> info.getProxyId().equalsIgnoreCase(proxyId))
         .toList();
+  }
+
+  /**
+   * Validates the master proxy configuration after Redis connection is established.
+   * If no master proxy IDs are configured and multiple proxies are running, logs a warning.
+   */
+  private void validateMasterProxyConfiguration() {
+    if (!this.isRedisEnabled()) {
+      return;
+    }
+
+    List<String> masterProxyIds = this.server.getConfiguration().getQueue().getMasterProxyIds();
+    if (masterProxyIds == null || masterProxyIds.isEmpty()
+        || (masterProxyIds.size() == 1 && masterProxyIds.get(0).trim().isEmpty())) {
+      
+      // Wait a bit for other proxies to register
+      this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+        List<String> activeProxies = getAllProxyIds();
+        if (activeProxies.size() > 1) {
+          logger.warn("Multiple proxies detected ({}) but no master proxy IDs configured. "
+              + "Queue functionality may not work correctly. Consider configuring 'master-proxy-ids' "
+              + "in your velocity.toml file.", activeProxies.size());
+        } else if (activeProxies.size() == 1) {
+          logger.info("Single proxy detected. This proxy will act as the master proxy for queue management.");
+        }
+      }).delay(5, TimeUnit.SECONDS).schedule();
+    }
   }
 
   /**

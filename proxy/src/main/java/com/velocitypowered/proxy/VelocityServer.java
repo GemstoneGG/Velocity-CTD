@@ -508,9 +508,16 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       throw new IllegalArgumentException("'proxy-id' cannot be null when redis is enabled!");
     }
 
-    if ((getConfiguration().getQueue().getMasterProxyIds() == null
-        || getConfiguration().getQueue().getMasterProxyIds().isEmpty()) && getConfiguration().getQueue().isEnabled()) {
-      throw new IllegalArgumentException("'master-proxy-ids' cannot be empty when queues is enabled!");
+    if (getConfiguration().getQueue().isEnabled()) {
+      List<String> masterProxyIds = getConfiguration().getQueue().getMasterProxyIds();
+      if (masterProxyIds == null || masterProxyIds.isEmpty()
+          || (masterProxyIds.size() == 1 && masterProxyIds.get(0).trim().isEmpty())) {
+        if (getConfiguration().getRedis().isEnabled()) {
+          logger.info("No master proxy IDs configured. Will automatically detect master proxy if only one proxy is running.");
+        } else {
+          logger.info("No master proxy IDs configured. Single proxy will act as master.");
+        }
+      }
     }
 
     // Initialize commands first

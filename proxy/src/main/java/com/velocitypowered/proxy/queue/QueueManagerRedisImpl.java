@@ -139,6 +139,16 @@ public class QueueManagerRedisImpl extends QueueManager {
             .getAllProxyIds().stream().toList());
     Collections.sort(activeProxies);
 
+    if (masterProxies == null || masterProxies.isEmpty()
+        || (masterProxies.size() == 1 && masterProxies.get(0).trim().isEmpty())) {
+      if (activeProxies.size() == 1) {
+        String singleProxyId = activeProxies.get(0);
+        String ownProxy = this.server.getMultiProxyHandler().getOwnProxyId();
+        return singleProxyId.equalsIgnoreCase(ownProxy);
+      }
+      return false;
+    }
+
     activeProxies.retainAll(masterProxies);
 
     String ownProxy = this.server.getMultiProxyHandler().getOwnProxyId();
