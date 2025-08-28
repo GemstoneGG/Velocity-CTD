@@ -521,7 +521,7 @@ public class MultiProxyHandler {
    * @return Whether the player is connected to any proxy or not.
    */
   public boolean isPlayerOnline(final String username) {
-    return this.server.getRedisManager().getCache().stream().noneMatch(info -> info.getUsername().equalsIgnoreCase(username));
+    return this.server.getRedisManager().getCache().stream().anyMatch(info -> info.getUsername().equalsIgnoreCase(username));
   }
 
   /**

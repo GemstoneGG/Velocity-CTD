@@ -21,18 +21,26 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.queue.cache.RedisRetriever;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
+import com.velocitypowered.proxy.redis.multiproxy.RedisQueueDequeueRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendActionBarRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import net.kyori.adventure.text.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Manages the queue system with Redis.
  */
 public class QueueManagerRedisImpl extends QueueManager {
+
+  private static final Logger logger = LoggerFactory.getLogger(QueueManagerRedisImpl.class);
 
   /**
    * Constructs a {@link QueueManagerRedisImpl}.
@@ -56,13 +64,38 @@ public class QueueManagerRedisImpl extends QueueManager {
                 throw new IllegalArgumentException("Server not found while attempting to send player in queue. '" + it.serverName() + "'");
               }
 
-              ServerQueueEntry entry = getQueue(foundServer.getServerInfo().getName()).getEntry(it.playerUuid()).orElse(null);
+              ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
+              ServerQueueEntry entry = queueStatus.getEntry(it.playerUuid()).orElse(null);
+              
               if (entry == null) {
-                return;
+                // Cross-proxy: create a minimal temporary entry to perform the send locally.
+                logger.debug("Creating temporary queue entry for cross-proxy player {} on server {}", it.playerUuid(), it.serverName());
+                RemotePlayerInfo playerInfo = server.getMultiProxyHandler().getPlayerInfo(it.playerUuid());
+                int priority = playerInfo != null ? playerInfo.getQueuePriority().getOrDefault(it.serverName(), 0) : 0;
+                boolean fullBypass = playerInfo != null && playerInfo.isFullQueueBypass();
+                boolean queueBypass = playerInfo != null && playerInfo.isQueueBypass();
+                entry = new ServerQueueEntry(it.playerUuid(), (VelocityRegisteredServer) foundServer, server,
+                    priority, fullBypass, queueBypass);
               }
 
               entry.handleSending();
             }));
+
+    redisManager.listen(RedisQueueDequeueRequest.ID, RedisQueueDequeueRequest.class, it -> {
+      if (!server.getQueueManager().isMasterProxy()) {
+        return;
+      }
+
+      RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
+      if (foundServer == null) {
+        throw new IllegalArgumentException("Server not found while attempting to dequeue player. '" + it.serverName() + "'");
+      }
+
+      ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
+      if (queueStatus != null) {
+        queueStatus.dequeue(it.playerUuid(), it.maxRetriesReached());
+      }
+    });
 
     redisManager.listen(RedisSendActionBarRequest.ID, RedisSendActionBarRequest.class, it -> {
       Component component = it.component();

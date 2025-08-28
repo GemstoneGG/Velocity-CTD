@@ -504,7 +504,14 @@ public class QueueAdminCommand {
       return -1;
     }
 
-    server.getQueueStatus().queue(player.getUuid(), player.getQueuePriority().get(server.getServerInfo().getName()),
+    // Get queue priority for this server, defaulting to 0 if not found
+    Integer priority = player.getQueuePriority().get(server.getServerInfo().getName());
+    if (priority == null) {
+      priority = 0;
+      logger.debug("Player {} has no priority set for server {}, using default 0", player.getUsername(), server.getServerInfo().getName());
+    }
+    
+    server.getQueueStatus().queue(player.getUuid(), priority,
         player.isFullQueueBypass(),
         player.isQueueBypass());
 
@@ -643,21 +650,43 @@ public class QueueAdminCommand {
     }
 
     List<RemotePlayerInfo> connected = new ArrayList<>();
+    int totalPlayersChecked = 0;
+    int playersOnFromServer = 0;
+    int playersAlreadyQueued = 0;
+    int playersAlreadyInTargetQueue = 0;
+    
+    logger.debug("Starting addall Redis command: {} -> {}", from.getServerInfo().getName(), to.getServerInfo().getName());
+    
     for (RemotePlayerInfo player : this.server.getMultiProxyHandler().getAllPlayers()) {
+      totalPlayersChecked++;
       String conn = player.getServerName();
       if (conn != null && conn.equalsIgnoreCase(from.getServerInfo().getName())) {
+        playersOnFromServer++;
+        logger.debug("Found player {} on server {} (proxy: {})", player.getUsername(), from.getServerInfo().getName(), player.getProxyId());
+        
         if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
           boolean alreadyQueued = this.server.getQueueManager().getAll().stream()
               .anyMatch(status -> status.isQueued(player.getUuid()));
           if (alreadyQueued) {
+            playersAlreadyQueued++;
+            logger.debug("Player {} already queued elsewhere, skipping", player.getUsername());
             continue;
           }
         }
         if (!to.getQueueStatus().isQueued(player.getUuid())) {
           connected.add(player);
+          logger.debug("Adding player {} to connected list for queueing", player.getUsername());
+        } else {
+          playersAlreadyInTargetQueue++;
+          logger.debug("Player {} already in target queue {}, skipping", player.getUsername(), to.getServerInfo().getName());
         }
       }
     }
+
+    logger.debug("Addall Redis summary: Total players checked: {}, Players on {}: {}, Already queued elsewhere: {}, "
+        + "Already in target queue: {}, To be added: {}", 
+        totalPlayersChecked, from.getServerInfo().getName(), playersOnFromServer, playersAlreadyQueued, 
+        playersAlreadyInTargetQueue, connected.size());
 
     if (connected.isEmpty()) {
       ctx.getSource()
@@ -667,18 +696,50 @@ public class QueueAdminCommand {
                   Component.text(to.getServerInfo().getName())));
       return -1;
     }
+    
+    int successfullyQueued = 0;
+    
+    // Cache the queue status instance to ensure all players are added to the same queue
+    ServerQueueStatus targetQueueStatus = to.getQueueStatus();
+    logger.debug("Using cached queue status instance for server {}: {}", to.getServerInfo().getName(), targetQueueStatus);
+    
     for (RemotePlayerInfo player : connected) {
-      to.getQueueStatus().queue(player.getUuid(), player.getQueuePriority().get(to.getServerInfo().getName()),
+      logger.debug("Attempting to queue player {} to server {}", player.getUsername(), to.getServerInfo().getName());
+      
+      // Check queue status before adding using the cached instance
+      boolean wasQueuedBefore = targetQueueStatus.isQueued(player.getUuid());
+      logger.debug("Player {} queue status before adding: {}", player.getUsername(), wasQueuedBefore);
+      
+      // Get queue priority for this server, defaulting to 0 if not found
+      Integer priority = player.getQueuePriority().get(to.getServerInfo().getName());
+      if (priority == null) {
+        priority = 0;
+        logger.debug("Player {} has no priority set for server {}, using default 0", player.getUsername(), to.getServerInfo().getName());
+      }
+      
+      targetQueueStatus.queue(player.getUuid(), priority,
           player.isFullQueueBypass(),
           player.isQueueBypass());
+      
+      // Check queue status after adding using the cached instance
+      boolean isQueuedAfter = targetQueueStatus.isQueued(player.getUuid());
+      logger.debug("Player {} queue status after adding: {}", player.getUsername(), isQueuedAfter);
+      
+      if (isQueuedAfter && !wasQueuedBefore) {
+        successfullyQueued++;
+        logger.debug("Successfully queued player {} to server {}", player.getUsername(), to.getServerInfo().getName());
+      } else {
+        logger.warn("Failed to queue player {} to server {} (wasQueuedBefore: {}, isQueuedAfter: {})", 
+            player.getUsername(), to.getServerInfo().getName(), wasQueuedBefore, isQueuedAfter);
+      }
     }
 
-    int connectedSize = connected.size();
+    logger.debug("Final addall Redis result: {} players successfully queued out of {} attempted", successfullyQueued, connected.size());
 
     ctx.getSource()
-        .sendMessage(Component.translatable("velocity.queue.command.addedall-player" + (connectedSize == 1 ? "" : "s"))
+        .sendMessage(Component.translatable("velocity.queue.command.addedall-player" + (connected.size() == 1 ? "" : "s"))
             .arguments(
-                Component.text(connectedSize),
+                Component.text(connected.size()),
                 Component.text(to.getServerInfo().getName())));
 
     return Command.SINGLE_SUCCESS;
@@ -692,7 +753,7 @@ public class QueueAdminCommand {
     String playerName = ctx.getArgument("player", String.class);
 
     if (this.server.getMultiProxyHandler().isRedisEnabled()) {
-      if (this.server.getMultiProxyHandler().isPlayerOnline(playerName)) {
+      if (!this.server.getMultiProxyHandler().isPlayerOnline(playerName)) {
         ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
             .arguments(Component.text(playerName)));
         return -1;
@@ -761,7 +822,7 @@ public class QueueAdminCommand {
     String playerName = ctx.getArgument("player", String.class);
 
     if (this.server.getMultiProxyHandler().isRedisEnabled()) {
-      if (this.server.getMultiProxyHandler().isPlayerOnline(playerName)) {
+      if (!this.server.getMultiProxyHandler().isPlayerOnline(playerName)) {
         ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
             .arguments(Component.text(playerName)));
         return -1;

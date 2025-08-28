@@ -21,6 +21,7 @@ import com.velocitypowered.api.proxy.ConnectionRequestBuilder;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.redis.multiproxy.RedisQueueDequeueRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
@@ -183,19 +184,43 @@ public class ServerQueueEntry {
         }
 
         if (success) {
-          proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, false);
+          // For cross-proxy scenarios, send a dequeue request to the master proxy
+          if (proxy.getMultiProxyHandler().isRedisEnabled() && !proxy.getQueueManager().isMasterProxy()) {
+            // Send dequeue request to master proxy
+            proxy.getRedisManager().send(new RedisQueueDequeueRequest(player, target.getServerInfo().getName(), false));
+            logger.debug("Sent cross-proxy dequeue request for player {} from server {}", player, target.getServerInfo().getName());
+          } else {
+            // Local dequeue
+            proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, false);
+          }
         } else {
           updateStatus();
 
           if (getConnectionAttempts() == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
-            proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, true);
+            // For cross-proxy scenarios, send a dequeue request to the master proxy
+            if (proxy.getMultiProxyHandler().isRedisEnabled() && !proxy.getQueueManager().isMasterProxy()) {
+              // Send dequeue request to master proxy with max retries reached
+              proxy.getRedisManager().send(new RedisQueueDequeueRequest(player, target.getServerInfo().getName(), true));
+              logger.debug("Sent cross-proxy dequeue request (max retries) for player {} from server {}", player, target.getServerInfo().getName());
+            } else {
+              // Local dequeue
+              proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, true);
+            }
           }
         }
       }).exceptionally(ex -> {
         updateStatus();
 
         if (getConnectionAttempts() == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
-          proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, true);
+          // For cross-proxy scenarios, send a dequeue request to the master proxy
+          if (proxy.getMultiProxyHandler().isRedisEnabled() && !proxy.getQueueManager().isMasterProxy()) {
+            // Send dequeue request to master proxy with max retries reached
+            proxy.getRedisManager().send(new RedisQueueDequeueRequest(player, target.getServerInfo().getName(), true));
+            logger.debug("Sent cross-proxy dequeue request (max retries, exception) for player {} from server {}", player, target.getServerInfo().getName());
+          } else {
+            // Local dequeue
+            proxy.getQueueManager().getQueue(target.getServerInfo().getName()).dequeue(player, true);
+          }
         }
 
         return null;
