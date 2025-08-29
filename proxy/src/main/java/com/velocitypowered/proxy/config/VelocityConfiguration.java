@@ -1202,8 +1202,8 @@ public final class VelocityConfiguration implements ProxyConfig {
       ConfigDetector detector = new ConfigDetector(logger);
       ConfigDetector.ConfigAnalysis analysis = detector.analyzeConfiguration(path);
 
-      if (!analysis.getMissingOptions().isEmpty()) {
-        logger.warn("Missing configuration options: " + String.join(", ", analysis.getMissingOptions()));
+      if (!analysis.missingOptions().isEmpty()) {
+        logger.warn("Missing configuration options: " + String.join(", ", analysis.missingOptions()));
         logger.warn("Run /velocity configcheck for full details");
       }
     } catch (IOException e) {

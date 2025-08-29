@@ -877,28 +877,28 @@ public final class VelocityCommand {
         
         if (!analysis.isOutdated()) {
           source.sendMessage(Component.text("✓ Configuration is up to date (version "
-              + analysis.getCurrentVersion() + ")", NamedTextColor.GREEN));
+              + analysis.currentVersion() + ")", NamedTextColor.GREEN));
         } else {
           source.sendMessage(Component.text("⚠ Configuration needs updates:", NamedTextColor.YELLOW));
-          source.sendMessage(Component.text("  Current version: " + analysis.getCurrentVersion(), NamedTextColor.GRAY));
-          source.sendMessage(Component.text("  Latest version: " + analysis.getLatestVersion(), NamedTextColor.GRAY));
+          source.sendMessage(Component.text("  Current version: " + analysis.currentVersion(), NamedTextColor.GRAY));
+          source.sendMessage(Component.text("  Latest version: " + analysis.latestVersion(), NamedTextColor.GRAY));
           
-          if (!analysis.getMissingOptions().isEmpty()) {
+          if (!analysis.missingOptions().isEmpty()) {
             source.sendMessage(Component.text("  Missing options:", NamedTextColor.RED));
-            for (String option : analysis.getMissingOptions()) {
+            for (String option : analysis.missingOptions()) {
               source.sendMessage(Component.text("    - " + option, NamedTextColor.RED));
             }
           }
           
-          if (!analysis.getDeprecatedOptions().isEmpty()) {
+          if (!analysis.deprecatedOptions().isEmpty()) {
             source.sendMessage(Component.text("  Deprecated options:", NamedTextColor.YELLOW));
-            for (String option : analysis.getDeprecatedOptions()) {
+            for (String option : analysis.deprecatedOptions()) {
               source.sendMessage(Component.text("    - " + option, NamedTextColor.YELLOW));
             }
           }
           
           source.sendMessage(Component.text("  Recommendations:", NamedTextColor.GOLD));
-          for (String recommendation : analysis.getRecommendations()) {
+          for (String recommendation : analysis.recommendations()) {
             source.sendMessage(Component.text("    - " + recommendation, NamedTextColor.WHITE));
           }
         }

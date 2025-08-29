@@ -24,121 +24,79 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Detects outdated configuration files by comparing them to the default embedded configuration.
  * This class provides detailed analysis of configuration differences and missing options.
+ *
+ * @param logger the logger used to output configuration analysis results
  */
-public final class ConfigDetector {
+public record ConfigDetector(Logger logger) {
 
+  /**
+   * Path to the embedded default Velocity configuration resource.
+   */
   private static final String DEFAULT_CONFIG_RESOURCE = "default-velocity.toml";
-  
-  // Configuration sections that should be ignored during analysis
-  // These are user-specific and shouldn't be flagged as missing or deprecated
-  private static final Set<String> IGNORED_SECTIONS = Set.of("servers", "server-links", 
-      "forced-hosts", "slash-servers", "playercaps", "proxy-addresses", "command-aliases", 
-      "proxy-command-aliases");
-  
-  private final Logger logger;
 
-  public ConfigDetector(Logger logger) {
-    this.logger = logger;
-  }
+  /**
+   * Configuration sections that are ignored during analysis.
+   *
+   * <p>These sections are user-specific and should not be flagged
+   * as missing or deprecated when comparing configurations.</p>
+   */
+  private static final Set<String> IGNORED_SECTIONS = Set.of("servers", "server-links",
+          "forced-hosts", "slash-servers", "playercaps", "proxy-addresses",
+          "command-aliases", "proxy-command-aliases");
 
   /**
    * Configuration analysis result containing details about outdated configurations.
+   *
+   * @param isOutdated        whether the configuration is outdated
+   * @param currentVersion    the current configuration version
+   * @param latestVersion     the latest available configuration version
+   * @param missingOptions    list of missing configuration options
+   * @param deprecatedOptions list of deprecated configuration options
+   * @param recommendations   list of recommendations for configuration improvements
    */
-  public static final class ConfigAnalysis {
-    private final boolean isOutdated;
-    private final String currentVersion;
-    private final String latestVersion;
-    private final List<String> missingOptions;
-    private final List<String> deprecatedOptions;
-    private final List<String> recommendations;
-
-    /**
-     * Creates a new configuration analysis result.
-     *
-     * @param isOutdated whether the configuration is outdated
-     * @param currentVersion the current configuration version
-     * @param latestVersion the latest available configuration version
-     * @param missingOptions list of missing configuration options
-     * @param deprecatedOptions list of deprecated configuration options
-     * @param recommendations list of recommendations for configuration improvements
-     */
-    public ConfigAnalysis(boolean isOutdated, String currentVersion, String latestVersion,
-                         List<String> missingOptions, List<String> deprecatedOptions,
-                         List<String> recommendations) {
-      this.isOutdated = isOutdated;
-      this.currentVersion = currentVersion;
-      this.latestVersion = latestVersion;
-      this.missingOptions = missingOptions;
-      this.deprecatedOptions = deprecatedOptions;
-      this.recommendations = recommendations;
-    }
-
-    public boolean isOutdated() {
-      return isOutdated;
-    }
-
-    public String getCurrentVersion() {
-      return currentVersion;
-    }
-
-    public String getLatestVersion() {
-      return latestVersion;
-    }
-
-    public List<String> getMissingOptions() {
-      return missingOptions;
-    }
-
-    public List<String> getDeprecatedOptions() {
-      return deprecatedOptions;
-    }
-
-    public List<String> getRecommendations() {
-      return recommendations;
-    }
+  public record ConfigAnalysis(boolean isOutdated, String currentVersion, String latestVersion,
+                               List<String> missingOptions, List<String> deprecatedOptions,
+                               List<String> recommendations) {
 
     @Override
-    public String toString() {
+    public @NotNull String toString() {
       StringBuilder sb = new StringBuilder();
       sb.append("Configuration Analysis:\n");
       sb.append("  Current Version: ").append(currentVersion).append("\n");
       sb.append("  Latest Version: ").append(latestVersion).append("\n");
       sb.append("  Is Outdated: ").append(isOutdated).append("\n");
-      
+
       if (!missingOptions.isEmpty()) {
         sb.append("  Missing Options:\n");
         for (String option : missingOptions) {
           sb.append("    - ").append(option).append("\n");
         }
       }
-      
+
       if (!deprecatedOptions.isEmpty()) {
         sb.append("  Deprecated Options:\n");
         for (String option : deprecatedOptions) {
           sb.append("    - ").append(option).append("\n");
         }
       }
-      
+
       if (!recommendations.isEmpty()) {
         sb.append("  Recommendations:\n");
         for (String rec : recommendations) {
           sb.append("    - ").append(rec).append("\n");
         }
       }
-      
+
       return sb.toString();
     }
   }
@@ -150,7 +108,7 @@ public final class ConfigDetector {
    * @return a ConfigAnalysis object containing the analysis results
    * @throws IOException if there's an error reading the configuration files
    */
-  public ConfigAnalysis analyzeConfiguration(Path configPath) throws IOException {
+  public ConfigAnalysis analyzeConfiguration(final Path configPath) throws IOException {
     // Load the default embedded configuration
     CommentedConfig defaultConfig = loadDefaultConfig();
     if (defaultConfig == null) {
@@ -164,7 +122,7 @@ public final class ConfigDetector {
         .sync()
         .build();
     currentConfig.load();
-    
+
     // Merge with default config to ensure all options are present
     for (CommentedConfig.Entry entry : defaultConfig.entrySet()) {
       if (!currentConfig.contains(entry.getKey())) {
@@ -179,13 +137,12 @@ public final class ConfigDetector {
     // Analyze differences
     List<String> missingOptions = findMissingOptions(defaultConfig, currentConfig);
     List<String> deprecatedOptions = findDeprecatedOptions(defaultConfig, currentConfig);
-    List<String> recommendations = generateRecommendations(currentVersion, latestVersion, 
-        missingOptions, deprecatedOptions);
+    List<String> recommendations = generateRecommendations(currentVersion, latestVersion, missingOptions, deprecatedOptions);
 
     boolean isOutdated = !currentVersion.equals(latestVersion)
         || !missingOptions.isEmpty() || !deprecatedOptions.isEmpty();
 
-    return new ConfigAnalysis(isOutdated, currentVersion, latestVersion, 
+    return new ConfigAnalysis(isOutdated, currentVersion, latestVersion,
         missingOptions, deprecatedOptions, recommendations);
   }
 
@@ -216,7 +173,7 @@ public final class ConfigDetector {
    * @param currentConfig the current configuration
    * @return list of missing option paths
    */
-  private List<String> findMissingOptions(CommentedConfig defaultConfig, CommentedConfig currentConfig) {
+  private List<String> findMissingOptions(final CommentedConfig defaultConfig, final CommentedConfig currentConfig) {
     List<String> missingOptions = new ArrayList<>();
     findMissingOptionsRecursive(defaultConfig, currentConfig, "", missingOptions);
     return missingOptions;
@@ -225,33 +182,32 @@ public final class ConfigDetector {
   /**
    * Recursively finds missing options by traversing the configuration tree.
    *
-   * @param defaultConfig the default configuration
-   * @param currentConfig the current configuration
-   * @param currentPath the current path being checked
+   * @param defaultConfig  the default configuration
+   * @param currentConfig  the current configuration
+   * @param currentPath    the current path being checked
    * @param missingOptions list to collect missing options
    */
-  private void findMissingOptionsRecursive(CommentedConfig defaultConfig, CommentedConfig currentConfig,
-                                          String currentPath, List<String> missingOptions) {
+  private void findMissingOptionsRecursive(final CommentedConfig defaultConfig, final CommentedConfig currentConfig,
+                                           final String currentPath, final List<String> missingOptions) {
     for (CommentedConfig.Entry entry : defaultConfig.entrySet()) {
       String key = entry.getKey();
       String fullPath = currentPath.isEmpty() ? key : currentPath + "." + key;
-      
+
       // Skip ignored sections
       if (IGNORED_SECTIONS.contains(key)) {
         continue;
       }
-      
+
       if (!currentConfig.contains(key)) {
         // Option is completely missing
         missingOptions.add(fullPath);
       } else {
-        Object defaultValue = entry.getValue();
-        Object currentValue = currentConfig.get(key);
-        
-        if (defaultValue instanceof CommentedConfig && currentValue instanceof CommentedConfig) {
+        CommentedConfig defaultValue = entry.getValue();
+        CommentedConfig currentValue = currentConfig.get(key);
+
+        if (defaultValue != null && currentValue != null) {
           // Both are configs, recurse into them
-          findMissingOptionsRecursive((CommentedConfig) defaultValue, 
-              (CommentedConfig) currentValue, fullPath, missingOptions);
+          findMissingOptionsRecursive(defaultValue, currentValue, fullPath, missingOptions);
         }
         // If they're not both configs, we assume the option exists and skip
       }
@@ -265,7 +221,7 @@ public final class ConfigDetector {
    * @param currentConfig the current configuration
    * @return list of deprecated option paths
    */
-  private List<String> findDeprecatedOptions(CommentedConfig defaultConfig, CommentedConfig currentConfig) {
+  private List<String> findDeprecatedOptions(final CommentedConfig defaultConfig, final CommentedConfig currentConfig) {
     List<String> deprecatedOptions = new ArrayList<>();
     findDeprecatedOptionsRecursive(defaultConfig, currentConfig, "", deprecatedOptions);
     return deprecatedOptions;
@@ -279,28 +235,27 @@ public final class ConfigDetector {
    * @param currentPath the current path being checked
    * @param deprecatedOptions list to collect deprecated options
    */
-  private void findDeprecatedOptionsRecursive(CommentedConfig defaultConfig, CommentedConfig currentConfig,
-                                             String currentPath, List<String> deprecatedOptions) {
+  private void findDeprecatedOptionsRecursive(final CommentedConfig defaultConfig, final CommentedConfig currentConfig,
+                                              final String currentPath, final List<String> deprecatedOptions) {
     for (CommentedConfig.Entry entry : currentConfig.entrySet()) {
       String key = entry.getKey();
       String fullPath = currentPath.isEmpty() ? key : currentPath + "." + key;
-      
+
       // Skip ignored sections
       if (IGNORED_SECTIONS.contains(key)) {
         continue;
       }
-      
+
       if (!defaultConfig.contains(key)) {
         // Option exists in current but not in default - likely deprecated
         deprecatedOptions.add(fullPath);
       } else {
-        Object defaultValue = defaultConfig.get(key);
-        Object currentValue = entry.getValue();
-        
-        if (defaultValue instanceof CommentedConfig && currentValue instanceof CommentedConfig) {
+        CommentedConfig defaultValue = defaultConfig.get(key);
+        CommentedConfig currentValue = entry.getValue();
+
+        if (defaultValue != null && currentValue != null) {
           // Both are configs, recurse into them
-          findDeprecatedOptionsRecursive((CommentedConfig) defaultValue, 
-              (CommentedConfig) currentValue, fullPath, deprecatedOptions);
+          findDeprecatedOptionsRecursive(defaultValue, currentValue, fullPath, deprecatedOptions);
         }
       }
     }
@@ -315,26 +270,26 @@ public final class ConfigDetector {
    * @param deprecatedOptions list of deprecated options
    * @return list of recommendations
    */
-  private List<String> generateRecommendations(String currentVersion, String latestVersion,
-                                              List<String> missingOptions, List<String> deprecatedOptions) {
+  private List<String> generateRecommendations(final String currentVersion, final String latestVersion,
+                                               final List<String> missingOptions, final List<String> deprecatedOptions) {
     List<String> recommendations = new ArrayList<>();
-    
+
     if (!currentVersion.equals(latestVersion)) {
       recommendations.add("Update config-version from " + currentVersion + " to " + latestVersion);
     }
-    
+
     if (!missingOptions.isEmpty()) {
       recommendations.add("Add missing configuration options: " + String.join(", ", missingOptions));
     }
-    
+
     if (!deprecatedOptions.isEmpty()) {
       recommendations.add("Remove deprecated configuration options: " + String.join(", ", deprecatedOptions));
     }
-    
+
     if (recommendations.isEmpty()) {
       recommendations.add("Configuration is up to date");
     }
-    
+
     return recommendations;
   }
 
@@ -343,26 +298,26 @@ public final class ConfigDetector {
    *
    * @param analysis the configuration analysis results
    */
-  public void logAnalysis(ConfigAnalysis analysis) {
+  public void logAnalysis(final ConfigAnalysis analysis) {
     if (!analysis.isOutdated()) {
-      logger.info("Configuration is up to date (version {})", analysis.getCurrentVersion());
+      logger.info("Configuration is up to date (version {})", analysis.currentVersion());
       return;
     }
 
     logger.warn("Configuration analysis detected outdated configuration:");
-    logger.warn("  Current version: {}", analysis.getCurrentVersion());
-    logger.warn("  Latest version: {}", analysis.getLatestVersion());
+    logger.warn("  Current version: {}", analysis.currentVersion());
+    logger.warn("  Latest version: {}", analysis.latestVersion());
 
-    if (!analysis.getMissingOptions().isEmpty()) {
-      logger.warn("  Missing options: {}", String.join(", ", analysis.getMissingOptions()));
+    if (!analysis.missingOptions().isEmpty()) {
+      logger.warn("  Missing options: {}", String.join(", ", analysis.missingOptions()));
     }
 
-    if (!analysis.getDeprecatedOptions().isEmpty()) {
-      logger.warn("  Deprecated options: {}", String.join(", ", analysis.getDeprecatedOptions()));
+    if (!analysis.deprecatedOptions().isEmpty()) {
+      logger.warn("  Deprecated options: {}", String.join(", ", analysis.deprecatedOptions()));
     }
 
     logger.warn("  Recommendations:");
-    for (String recommendation : analysis.getRecommendations()) {
+    for (String recommendation : analysis.recommendations()) {
       logger.warn("    - {}", recommendation);
     }
   }
@@ -373,7 +328,7 @@ public final class ConfigDetector {
    * @param configPath the path to the configuration file
    * @return true if the configuration is outdated, false otherwise
    */
-  public boolean checkAndLogConfiguration(Path configPath) {
+  public boolean checkAndLogConfiguration(final Path configPath) {
     try {
       ConfigAnalysis analysis = analyzeConfiguration(configPath);
       logAnalysis(analysis);

@@ -933,7 +933,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     unregisterCommand("send");
     unregisterCommand("hub");
     unregisterCommand("transfer");
-    unregisterCommand("configcheck");
 
     for (Map.Entry<String, List<String>> entry : configuration.getCommandAliases().entrySet()) {
       for (String alias : entry.getValue()) {
