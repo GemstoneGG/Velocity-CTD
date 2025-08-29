@@ -21,19 +21,23 @@ import com.velocitypowered.proxy.redis.RedisPacket;
 import java.util.UUID;
 
 /**
- * Represents a packet to handle the removal of a user from a queue of a server.
- * This is used for cross-proxy queue synchronization.
+ * Represents a packet to handle adding a player to a queue across all proxies.
+ * This ensures queue synchronization in multi-proxy setups.
  *
- * @param playerUuid The UUID of the player that's being removed from the queue.
- * @param serverName The name of the server which the player is being removed from.
- * @param maxRetriesReached Whether the maximum number of retries has been reached.
+ * @param playerUuid The UUID of the player that's being added to the queue.
+ * @param serverName The name of the server which the player is being queued for.
+ * @param priority The priority level for the player in the queue.
+ * @param fullBypass Whether the player should bypass full server checks.
+ * @param queueBypass Whether the player should bypass the queue entirely.
+ * @param username The username of the player for display purposes.
  */
-public record RedisQueueDequeueRequest(UUID playerUuid, String serverName, boolean maxRetriesReached) implements RedisPacket {
+public record RedisQueueAddRequest(UUID playerUuid, String serverName, int priority, 
+                                  boolean fullBypass, boolean queueBypass, String username) implements RedisPacket {
 
   /**
    * The identifier for this Redis packet type.
    */
-  public static final String ID = "redis-queue-dequeue";
+  public static final String ID = "redis-queue-add";
 
   @Override
   public String getId() {

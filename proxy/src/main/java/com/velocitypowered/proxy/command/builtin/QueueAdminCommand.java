@@ -35,6 +35,8 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.queue.ServerQueueEntry;
 import com.velocitypowered.proxy.queue.ServerQueueStatus;
+import com.velocitypowered.proxy.queue.cache.SerializableQueue;
+import com.velocitypowered.proxy.redis.multiproxy.RedisQueueUpdateRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
@@ -617,6 +619,19 @@ public record QueueAdminCommand(VelocityServer server) {
 
     logger.debug("Final addall result: {} players successfully queued out of {} attempted", successfullyQueued, connected.size());
 
+    // Send a bulk queue update to ensure all proxies are synchronized
+    if (this.server.getMultiProxyHandler().isRedisEnabled() && successfullyQueued > 0) {
+      try {
+        this.server.getRedisManager().send(new RedisQueueUpdateRequest(
+            new SerializableQueue(targetQueueStatus)));
+        logger.debug("Sent bulk RedisQueueUpdateRequest for server {} after adding {} players", 
+            to.getServerInfo().getName(), successfullyQueued);
+      } catch (Exception e) {
+        logger.error("Failed to send bulk RedisQueueUpdateRequest for server {}", 
+            to.getServerInfo().getName(), e);
+      }
+    }
+
     ctx.getSource()
         .sendMessage(Component.translatable("velocity.queue.command.addedall-player" + (connected.size() == 1 ? "" : "s"))
             .arguments(
@@ -730,6 +745,19 @@ public record QueueAdminCommand(VelocityServer server) {
     }
 
     logger.debug("Final addall Redis result: {} players successfully queued out of {} attempted", successfullyQueued, connected.size());
+
+    // Send a bulk queue update to ensure all proxies are synchronized
+    if (this.server.getMultiProxyHandler().isRedisEnabled() && successfullyQueued > 0) {
+      try {
+        this.server.getRedisManager().send(new RedisQueueUpdateRequest(
+            new SerializableQueue(targetQueueStatus)));
+        logger.debug("Sent bulk RedisQueueUpdateRequest for server {} after adding {} players", 
+            to.getServerInfo().getName(), successfullyQueued);
+      } catch (Exception e) {
+        logger.error("Failed to send bulk RedisQueueUpdateRequest for server {}", 
+            to.getServerInfo().getName(), e);
+      }
+    }
 
     ctx.getSource()
         .sendMessage(Component.translatable("velocity.queue.command.addedall-player" + (connected.size() == 1 ? "" : "s"))

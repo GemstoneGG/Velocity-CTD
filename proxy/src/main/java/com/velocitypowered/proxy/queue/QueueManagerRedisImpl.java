@@ -21,8 +21,10 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.queue.cache.RedisRetriever;
 import com.velocitypowered.proxy.redis.RedisManagerImpl;
-import com.velocitypowered.proxy.redis.multiproxy.RedisQueueDequeueRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisQueueAddRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisQueueRemoveRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisQueueUpdateRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendActionBarRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
@@ -84,35 +86,7 @@ public class QueueManagerRedisImpl extends QueueManager {
       });
     });
 
-    redisManager.listen(RedisQueueDequeueRequest.ID, RedisQueueDequeueRequest.class, it -> {
-      logger.debug("Received RedisQueueDequeueRequest for player {} on server {} (maxRetriesReached: {})",
-          it.playerUuid(), it.serverName(), it.maxRetriesReached());
 
-      if (!server.getQueueManager().isMasterProxy()) {
-        logger.debug("Ignoring dequeue request - not master proxy");
-        return;
-      }
-
-      RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
-      if (foundServer == null) {
-        logger.error("Server not found while attempting to dequeue player. '{}'", it.serverName());
-        throw new IllegalArgumentException("Server not found while attempting to dequeue player. '" + it.serverName() + "'");
-      }
-
-      ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
-      if (queueStatus != null) {
-        // Check if the player is still in the queue before attempting to dequeue
-        if (queueStatus.isQueued(it.playerUuid())) {
-          logger.debug("Dequeuing player {} from server {} queue", it.playerUuid(), it.serverName());
-          queueStatus.dequeue(it.playerUuid(), it.maxRetriesReached());
-        } else {
-          logger.debug("Player {} not found in queue for server {} (may have been already removed)",
-              it.playerUuid(), it.serverName());
-        }
-      } else {
-        logger.warn("Queue status not found for server {}", it.serverName());
-      }
-    });
 
     redisManager.listen(RedisSendActionBarRequest.ID, RedisSendActionBarRequest.class, it -> {
       Component component = it.component();
@@ -127,6 +101,89 @@ public class QueueManagerRedisImpl extends QueueManager {
 
       if (component != null) {
         server.getPlayer(it.player()).ifPresent(player -> player.sendMessage(component));
+      }
+    });
+
+    // Handle queue add requests from other proxies
+    redisManager.listen(RedisQueueAddRequest.ID, RedisQueueAddRequest.class, it -> {
+      logger.debug("Received RedisQueueAddRequest for player {} on server {} from another proxy", 
+          it.playerUuid(), it.serverName());
+
+      RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
+      if (foundServer == null) {
+        logger.error("Server not found while attempting to add player to queue. '{}'", it.serverName());
+        return;
+      }
+
+      ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
+      if (queueStatus != null) {
+        // Only add if not already in queue
+        if (!queueStatus.isQueued(it.playerUuid())) {
+          logger.debug("Adding player {} to queue for server {} from Redis request", 
+              it.playerUuid(), it.serverName());
+          queueStatus.queue(it.playerUuid(), it.priority(), it.fullBypass(), it.queueBypass());
+        } else {
+          logger.debug("Player {} already in queue for server {}, skipping Redis add request", 
+              it.playerUuid(), it.serverName());
+        }
+      } else {
+        logger.warn("Queue status not found for server {}", it.serverName());
+      }
+    });
+
+    // Handle queue remove requests from other proxies
+    redisManager.listen(RedisQueueRemoveRequest.ID, RedisQueueRemoveRequest.class, it -> {
+      logger.debug("Received RedisQueueRemoveRequest for player {} on server {} from another proxy", 
+          it.playerUuid(), it.serverName());
+
+      RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
+      if (foundServer == null) {
+        logger.error("Server not found while attempting to remove player from queue. '{}'", it.serverName());
+        return;
+      }
+
+      ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
+      if (queueStatus != null) {
+        if (queueStatus.isQueued(it.playerUuid())) {
+          logger.debug("Removing player {} from queue for server {} from Redis request", 
+              it.playerUuid(), it.serverName());
+          queueStatus.dequeue(it.playerUuid(), it.maxRetriesReached());
+        } else {
+          logger.debug("Player {} not in queue for server {}, skipping Redis remove request", 
+              it.playerUuid(), it.serverName());
+        }
+      } else {
+        logger.warn("Queue status not found for server {}", it.serverName());
+      }
+    });
+
+    // Handle queue update requests from other proxies
+    redisManager.listen(RedisQueueUpdateRequest.ID, RedisQueueUpdateRequest.class, it -> {
+      logger.debug("Received RedisQueueUpdateRequest for server {} from another proxy", 
+          it.queueData().getServerName());
+
+      // Clear the cache for this server to force a fresh load
+      if (this.cache instanceof RedisRetriever redisRetriever) {
+        redisRetriever.clearCacheForServer(it.queueData().getServerName());
+      }
+
+      // Update the local queue cache with the received data
+      try {
+        RegisteredServer foundServer = server.getServer(it.queueData().getServerName()).orElse(null);
+        if (foundServer == null) {
+          logger.error("Server not found while attempting to update queue. '{}'", it.queueData().getServerName());
+          return;
+        }
+
+        ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
+        if (queueStatus != null) {
+          // Update the queue with the received data
+          queueStatus.updateFromSerializableQueue(it.queueData());
+          logger.debug("Updated queue for server {} from Redis request", it.queueData().getServerName());
+        }
+      } catch (Exception e) {
+        logger.error("Error processing RedisQueueUpdateRequest for server {}", 
+            it.queueData().getServerName(), e);
       }
     });
   }

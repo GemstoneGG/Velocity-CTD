@@ -156,4 +156,17 @@ public class RedisRetriever implements QueueCacheRetriever {
     logger.debug("Clearing RedisRetriever instance cache");
     instanceCache.clear();
   }
+
+  /**
+   * Clears the cached instance for a specific server. This should be called when the queue
+   * for that server is updated from another proxy.
+   *
+   * @param serverName The name of the server to clear the cache for
+   */
+  public void clearCacheForServer(final String serverName) {
+    ServerQueueStatus removed = instanceCache.remove(serverName);
+    if (removed != null) {
+      logger.debug("Cleared cached ServerQueueStatus instance for server: {}", serverName);
+    }
+  }
 }

@@ -21,6 +21,10 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import com.velocitypowered.proxy.queue.cache.SerializableQueue;
+import com.velocitypowered.proxy.queue.cache.SerializableQueueEntry;
+import com.velocitypowered.proxy.redis.multiproxy.RedisQueueAddRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisQueueRemoveRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
@@ -368,6 +372,29 @@ public class ServerQueueStatus {
           // logger.error("Failed to update queue asynchronously", throwable); // Original code had this line commented out
           return null;
         });
+
+    // Send Redis packet to notify other proxies about the queue addition
+    if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
+      try {
+        // Get player username for the packet
+        String username = "Unknown";
+        if (this.velocityServer.getPlayer(playerUuid).isPresent()) {
+          username = this.velocityServer.getPlayer(playerUuid).get().getUsername();
+        } else {
+          // Try to get from remote player info
+          var remotePlayer = this.velocityServer.getMultiProxyHandler().getPlayerInfo(playerUuid);
+          if (remotePlayer != null) {
+            username = remotePlayer.getUsername();
+          }
+        }
+
+        this.velocityServer.getRedisManager().send(new RedisQueueAddRequest(
+            playerUuid, getServerName(), priority, fullBypass, queueBypass, username));
+        logger.debug("Sent RedisQueueAddRequest for player {} to server {}", playerUuid, getServerName());
+      } catch (Exception e) {
+        logger.error("Failed to send RedisQueueAddRequest for player {} to server {}", playerUuid, getServerName(), e);
+      }
+    }
   }
 
   /**
@@ -380,6 +407,13 @@ public class ServerQueueStatus {
   public void dequeue(final UUID player, final boolean maxRetriesReached) {
     logger.debug("Dequeue operation started for player {} on server {} (maxRetriesReached: {})",
         player, getServerName(), maxRetriesReached);
+
+    // Check if player is actually in the queue before attempting to dequeue
+    if (!playerIndex.containsKey(player)) {
+      logger.debug("Player {} not found in queue index for server {} - already removed or never queued", 
+          player, getServerName());
+      return;
+    }
 
     this.velocityServer.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
       if (maxRetriesReached) {
@@ -405,7 +439,8 @@ public class ServerQueueStatus {
       logger.debug("Successfully removed player {} from queue for server {} (queue size: {}, index size: {})",
           player, getServerName(), queue.size(), playerIndex.size());
     } else {
-      logger.warn("Player {} not found in queue index for server {}", player, getServerName());
+      // This should rarely happen now due to the check above, but keep as safety net
+      logger.debug("Player {} not found in queue index for server {} during removal", player, getServerName());
     }
 
     // Use async Redis operation to avoid blocking
@@ -414,6 +449,17 @@ public class ServerQueueStatus {
           logger.error("Failed to update queue asynchronously", throwable);
           return null;
         });
+
+    // Send Redis packet to notify other proxies about the queue removal
+    if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
+      try {
+        this.velocityServer.getRedisManager().send(new RedisQueueRemoveRequest(
+            player, getServerName(), maxRetriesReached));
+        logger.debug("Sent RedisQueueRemoveRequest for player {} from server {}", player, getServerName());
+      } catch (Exception e) {
+        logger.error("Failed to send RedisQueueRemoveRequest for player {} from server {}", player, getServerName(), e);
+      }
+    }
   }
 
   /**
@@ -702,5 +748,51 @@ public class ServerQueueStatus {
       logger.debug("  Player: {}, Priority: {}", entry.getKey(), entry.getValue().getPriority());
     }
     logger.debug("=== End queue dump ===");
+  }
+
+  /**
+   * Updates the queue from serialized queue data received from another proxy.
+   * This method is used for cross-proxy queue synchronization.
+   *
+   * @param serializableQueue The serialized queue data to update from
+   */
+  public void updateFromSerializableQueue(final SerializableQueue serializableQueue) {
+    logger.debug("Updating queue for server {} from serialized data", getServerName());
+
+    // Clear current queue and index
+    queue.clear();
+    playerIndex.clear();
+
+    // Update server status
+    this.online = serializableQueue.getOnline();
+    this.full = serializableQueue.isFull();
+    this.paused = serializableQueue.isPaused();
+
+    // Add all entries from the serialized data
+    for (SerializableQueueEntry entry : serializableQueue.getQueue()) {
+      try {
+        ServerQueueEntry queueEntry = new ServerQueueEntry(
+            entry.uuid(),
+            this.server,
+            this.velocityServer,
+            entry.connectionAttempts(),
+            entry.waitingForConnection(),
+            entry.priority(),
+            entry.fullBypass(),
+            entry.queueBypass()
+        );
+
+        // Add to both queue and index
+        queue.offer(queueEntry);
+        playerIndex.put(entry.uuid(), queueEntry);
+
+        logger.debug("Added player {} to queue from serialized data with priority {}", 
+            entry.uuid(), entry.priority());
+      } catch (Exception e) {
+        logger.error("Error adding player {} to queue from serialized data", entry.uuid(), e);
+      }
+    }
+
+    logger.debug("Updated queue for server {} with {} entries", getServerName(), queue.size());
   }
 }
