@@ -52,24 +52,15 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Implements the {@code /queueadmin} command.
+ *
+ * @param server The main Velocity server instance used to access server, queue, and configuration data.
  */
-public class QueueAdminCommand {
+public record QueueAdminCommand(VelocityServer server) {
 
+  /**
+   * The logger for queue admin commands.
+   */
   private static final Logger logger = LoggerFactory.getLogger(QueueAdminCommand.class);
-
-  /**
-   * The main Velocity server instance used to access server, queue, and configuration data.
-   */
-  private final VelocityServer server;
-
-  /**
-   * Constructs a new {@link QueueAdminCommand} with the given Velocity server instance.
-   *
-   * @param server the Velocity server
-   */
-  public QueueAdminCommand(final VelocityServer server) {
-    this.server = server;
-  }
 
   /**
    * Registers or unregisters the command based on the configuration value.
@@ -449,7 +440,7 @@ public class QueueAdminCommand {
               Component.text(server.getServerInfo().getName())));
       return -1;
     }
-    
+
     server.getQueueStatus().queue(player.getUniqueId(), player.getQueuePriority(server.getServerInfo().getName()),
         player.hasPermission("velocity.queue.full.bypass"),
         player.hasPermission("velocity.queue.bypass"));
@@ -510,7 +501,7 @@ public class QueueAdminCommand {
       priority = 0;
       logger.debug("Player {} has no priority set for server {}, using default 0", player.getUsername(), server.getServerInfo().getName());
     }
-    
+
     server.getQueueStatus().queue(player.getUuid(), priority,
         player.isFullQueueBypass(),
         player.isQueueBypass());
@@ -548,25 +539,27 @@ public class QueueAdminCommand {
     int playersOnFromServer = 0;
     int playersAlreadyQueued = 0;
     int playersAlreadyInTargetQueue = 0;
-    
+
     logger.debug("Starting addall command: {} -> {}", from.getServerInfo().getName(), to.getServerInfo().getName());
-    
+
     for (Player player : this.server.getAllPlayers()) {
       totalPlayersChecked++;
       ServerConnection conn = player.getCurrentServer().orElse(null);
       if (conn != null && conn.getServerInfo().getName().equalsIgnoreCase(from.getServerInfo().getName())) {
         playersOnFromServer++;
         logger.debug("Found player {} on server {}", player.getUsername(), from.getServerInfo().getName());
-        
+
         if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
           boolean alreadyQueued = this.server.getQueueManager().getAll().stream()
               .anyMatch(status -> status.isQueued(player.getUniqueId()));
+
           if (alreadyQueued) {
             playersAlreadyQueued++;
             logger.debug("Player {} already queued elsewhere, skipping", player.getUsername());
             continue;
           }
         }
+
         if (!to.getQueueStatus().isQueued(player.getUniqueId())) {
           connected.add(player);
           logger.debug("Adding player {} to connected list for queueing", player.getUsername());
@@ -578,8 +571,8 @@ public class QueueAdminCommand {
     }
 
     logger.debug("Addall summary: Total players checked: {}, Players on {}: {}, Already queued elsewhere: {}, "
-        + "Already in target queue: {}, To be added: {}", 
-        totalPlayersChecked, from.getServerInfo().getName(), playersOnFromServer, playersAlreadyQueued, 
+        + "Already in target queue: {}, To be added: {}",
+        totalPlayersChecked, from.getServerInfo().getName(), playersOnFromServer, playersAlreadyQueued,
         playersAlreadyInTargetQueue, connected.size());
 
     if (connected.isEmpty()) {
@@ -590,34 +583,34 @@ public class QueueAdminCommand {
                   Component.text(to.getServerInfo().getName())));
       return -1;
     }
-    
+
     int successfullyQueued = 0;
-    
+
     // Cache the queue status instance to ensure all players are added to the same queue
     ServerQueueStatus targetQueueStatus = to.getQueueStatus();
     logger.debug("Using cached queue status instance for server {}: {}", to.getServerInfo().getName(), targetQueueStatus);
-    
+
     for (Player player : connected) {
       logger.debug("Attempting to queue player {} to server {}", player.getUsername(), to.getServerInfo().getName());
-      
+
       // Check queue status before adding using the cached instance
       boolean wasQueuedBefore = targetQueueStatus.isQueued(player.getUniqueId());
       logger.debug("Player {} queue status before adding: {}", player.getUsername(), wasQueuedBefore);
-      
+
       targetQueueStatus.queue(player.getUniqueId(), player.getQueuePriority(to.getServerInfo().getName()),
           player.hasPermission("velocity.queue.full.bypass"),
           player.hasPermission("velocity.queue.bypass")
       );
-      
+
       // Check queue status after adding using the cached instance
       boolean isQueuedAfter = targetQueueStatus.isQueued(player.getUniqueId());
       logger.debug("Player {} queue status after adding: {}", player.getUsername(), isQueuedAfter);
-      
+
       if (isQueuedAfter && !wasQueuedBefore) {
         successfullyQueued++;
         logger.debug("Successfully queued player {} to server {}", player.getUsername(), to.getServerInfo().getName());
       } else {
-        logger.warn("Failed to queue player {} to server {} (wasQueuedBefore: {}, isQueuedAfter: {})", 
+        logger.warn("Failed to queue player {} to server {} (wasQueuedBefore: {}, isQueuedAfter: {})",
             player.getUsername(), to.getServerInfo().getName(), wasQueuedBefore, isQueuedAfter);
       }
     }
@@ -654,25 +647,27 @@ public class QueueAdminCommand {
     int playersOnFromServer = 0;
     int playersAlreadyQueued = 0;
     int playersAlreadyInTargetQueue = 0;
-    
+
     logger.debug("Starting addall Redis command: {} -> {}", from.getServerInfo().getName(), to.getServerInfo().getName());
-    
+
     for (RemotePlayerInfo player : this.server.getMultiProxyHandler().getAllPlayers()) {
       totalPlayersChecked++;
       String conn = player.getServerName();
       if (conn != null && conn.equalsIgnoreCase(from.getServerInfo().getName())) {
         playersOnFromServer++;
         logger.debug("Found player {} on server {} (proxy: {})", player.getUsername(), from.getServerInfo().getName(), player.getProxyId());
-        
+
         if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
           boolean alreadyQueued = this.server.getQueueManager().getAll().stream()
               .anyMatch(status -> status.isQueued(player.getUuid()));
+
           if (alreadyQueued) {
             playersAlreadyQueued++;
             logger.debug("Player {} already queued elsewhere, skipping", player.getUsername());
             continue;
           }
         }
+
         if (!to.getQueueStatus().isQueued(player.getUuid())) {
           connected.add(player);
           logger.debug("Adding player {} to connected list for queueing", player.getUsername());
@@ -684,8 +679,8 @@ public class QueueAdminCommand {
     }
 
     logger.debug("Addall Redis summary: Total players checked: {}, Players on {}: {}, Already queued elsewhere: {}, "
-        + "Already in target queue: {}, To be added: {}", 
-        totalPlayersChecked, from.getServerInfo().getName(), playersOnFromServer, playersAlreadyQueued, 
+        + "Already in target queue: {}, To be added: {}",
+        totalPlayersChecked, from.getServerInfo().getName(), playersOnFromServer, playersAlreadyQueued,
         playersAlreadyInTargetQueue, connected.size());
 
     if (connected.isEmpty()) {
@@ -696,40 +691,40 @@ public class QueueAdminCommand {
                   Component.text(to.getServerInfo().getName())));
       return -1;
     }
-    
+
     int successfullyQueued = 0;
-    
+
     // Cache the queue status instance to ensure all players are added to the same queue
     ServerQueueStatus targetQueueStatus = to.getQueueStatus();
     logger.debug("Using cached queue status instance for server {}: {}", to.getServerInfo().getName(), targetQueueStatus);
-    
+
     for (RemotePlayerInfo player : connected) {
       logger.debug("Attempting to queue player {} to server {}", player.getUsername(), to.getServerInfo().getName());
-      
+
       // Check queue status before adding using the cached instance
       boolean wasQueuedBefore = targetQueueStatus.isQueued(player.getUuid());
       logger.debug("Player {} queue status before adding: {}", player.getUsername(), wasQueuedBefore);
-      
+
       // Get queue priority for this server, defaulting to 0 if not found
       Integer priority = player.getQueuePriority().get(to.getServerInfo().getName());
       if (priority == null) {
         priority = 0;
         logger.debug("Player {} has no priority set for server {}, using default 0", player.getUsername(), to.getServerInfo().getName());
       }
-      
+
       targetQueueStatus.queue(player.getUuid(), priority,
           player.isFullQueueBypass(),
           player.isQueueBypass());
-      
+
       // Check queue status after adding using the cached instance
       boolean isQueuedAfter = targetQueueStatus.isQueued(player.getUuid());
       logger.debug("Player {} queue status after adding: {}", player.getUsername(), isQueuedAfter);
-      
+
       if (isQueuedAfter && !wasQueuedBefore) {
         successfullyQueued++;
         logger.debug("Successfully queued player {} to server {}", player.getUsername(), to.getServerInfo().getName());
       } else {
-        logger.warn("Failed to queue player {} to server {} (wasQueuedBefore: {}, isQueuedAfter: {})", 
+        logger.warn("Failed to queue player {} to server {} (wasQueuedBefore: {}, isQueuedAfter: {})",
             player.getUsername(), to.getServerInfo().getName(), wasQueuedBefore, isQueuedAfter);
       }
     }

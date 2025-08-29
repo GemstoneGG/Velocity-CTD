@@ -580,7 +580,7 @@ public class RedisManagerImpl {
       }
 
       if (redisConfig.getUsername() != null && !redisConfig.getUsername().isEmpty()) {
-        uriBuilder.withAuthentication(redisConfig.getUsername(), 
+        uriBuilder.withAuthentication(redisConfig.getUsername(),
             redisConfig.getPassword().equalsIgnoreCase("") ? null : redisConfig.getPassword());
       } else if (!redisConfig.getPassword().equalsIgnoreCase("")) {
         uriBuilder.withPassword(redisConfig.getPassword());
@@ -590,10 +590,10 @@ public class RedisManagerImpl {
 
       // Create Redis client
       this.redisClient = RedisClient.create(redisUri);
-      
+
       // Create main connection
       this.connection = redisClient.connect();
-      
+
       // Create pub/sub connection
       this.pubSubConnection = redisClient.connectPubSub();
       this.pubSubConnection.addListener(this.pubSubListener);
@@ -655,7 +655,7 @@ public class RedisManagerImpl {
       JsonObject object = new JsonObject();
       object.add("obj", packetData);
       object.addProperty("id", packet.getId());
-      
+
       RedisPubSubAsyncCommands<String, String> commands = pubSubConnection.async();
       commands.publish(CHANNEL, gson.toJson(object))
           .toCompletableFuture()
@@ -743,8 +743,18 @@ public class RedisManagerImpl {
      */
     private final Map<String, ChannelRegistration<?>> listeners = new ConcurrentHashMap<>();
 
+    /**
+     * Handles an incoming Redis pub/sub message.
+     *
+     * <p>The message is deserialized into a JSON object, the packet ID is extracted,
+     * and the appropriate {@link ChannelRegistration} is looked up. If a matching
+     * registration exists, the message is dispatched via {@link #onMessage0(ChannelRegistration, String, JsonObject)}.</p>
+     *
+     * @param channel the Redis channel the message was published on
+     * @param message the raw JSON message payload
+     */
     @Override
-    public void message(String channel, String message) {
+    public void message(final String channel, final String message) {
       try {
         JsonObject obj = gson.fromJson(message, JsonObject.class);
         String packetId = obj.getAsJsonPrimitive("id").getAsString();

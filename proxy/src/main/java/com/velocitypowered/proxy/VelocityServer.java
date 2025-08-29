@@ -1351,11 +1351,20 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     shutdown(explicitExit, Component.translatable("velocity.kick.shutdown"));
   }
 
+  /**
+    * Calls {@link #shutdown(boolean, Component)} with {@code explicitExit} set to {@code true}.
+    *
+    * @param reason the reason component to display to players when the proxy shuts down
+    */
   @Override
   public void shutdown(final Component reason) {
     shutdown(true, reason);
   }
 
+  /**
+    * Calls {@link #shutdown(boolean, Component)} with {@code explicitExit} set to {@code true}
+    * and the default reason "Proxy shutting down.".
+    */
   @Override
   public void shutdown() {
     shutdown(true);
@@ -1402,6 +1411,9 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     return addresses.get(0);
   }
 
+  /**
+    * Closes all active proxy listeners and endpoints.
+    */
   @Override
   public void closeListeners() {
     this.cm.closeEndpoints(false);
@@ -1451,18 +1463,18 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    */
   public boolean canRegisterConnection(final ConnectedPlayer connection) {
     // When IP checking is disabled, kick-existing-players only works in online mode
-    if (!configuration.isKickExistingPlayersCheckIp() 
+    if (!configuration.isKickExistingPlayersCheckIp()
         && configuration.isOnlineMode() && configuration.isOnlineModeKickExistingPlayers()) {
       return true;
     }
-    
+
     // When IP checking is enabled, kick-existing-players works in both online and offline mode
     if (configuration.isKickExistingPlayersCheckIp() && configuration.isOnlineModeKickExistingPlayers()) {
       return true;
     }
-    
+
     String lowerName = connection.getUsername().toLowerCase(Locale.US);
-    
+
     // Check for existing connections by username first
     ConnectedPlayer existingByName = connectionsByName.get(lowerName);
     if (existingByName != null) {
@@ -1478,14 +1490,9 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         return false;
       }
     }
-    
+
     // Check for UUID conflicts (always block)
-    if (connectionsByUuid.containsKey(connection.getUniqueId())) {
-      return false;
-    }
-    
-    // No username or UUID conflicts, allow connection
-    return true;
+    return !connectionsByUuid.containsKey(connection.getUniqueId());
   }
 
   /**
@@ -1498,7 +1505,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     String lowerName = connection.getUsername().toLowerCase(Locale.US);
 
     // Determine if we should use kick-existing-players behavior
-    boolean useKickExistingBehavior = this.configuration.isOnlineModeKickExistingPlayers() 
+    boolean useKickExistingBehavior = this.configuration.isOnlineModeKickExistingPlayers()
         && (this.configuration.isKickExistingPlayersCheckIp() || this.configuration.isOnlineMode());
 
     if (!useKickExistingBehavior) {
@@ -1528,13 +1535,13 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
       // Register in name map first
       connectionsByName.put(lowerName, connection);
-      
+
       // Check UUID conflicts (always block)
       if (connectionsByUuid.putIfAbsent(connection.getUniqueId(), connection) != null) {
         connectionsByName.remove(lowerName, connection);
         return false;
       }
-      
+
       // Register in IP map if both kick-existing-players and IP checking are enabled
       if (this.configuration.isOnlineModeKickExistingPlayers() && this.configuration.isKickExistingPlayersCheckIp()) {
         InetAddress playerIp = connection.getRemoteAddress().getAddress();
@@ -1546,7 +1553,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       if (existing != null) {
         existing.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
       }
-      
+
       // Check for same username conflicts
       ConnectedPlayer existingByName = connectionsByName.get(lowerName);
       if (existingByName != null) {

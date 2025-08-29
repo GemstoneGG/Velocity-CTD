@@ -83,6 +83,9 @@ public abstract class QueueManager {
    */
   private ScheduledTask sendingTaskHandle = null;
 
+  /**
+   * Logger for queue manager diagnostics.
+   */
   private static final Logger logger = LoggerFactory.getLogger(QueueManager.class);
 
   /**

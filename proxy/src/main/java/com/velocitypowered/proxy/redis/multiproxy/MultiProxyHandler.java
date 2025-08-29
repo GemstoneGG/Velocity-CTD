@@ -187,7 +187,7 @@ public class MultiProxyHandler {
       );
     });
 
-    redisManager.send(new RedisStartupRequest(config.getProxyId()));    
+    redisManager.send(new RedisStartupRequest(config.getProxyId()));
     validateMasterProxyConfiguration();
   }
 
@@ -307,6 +307,7 @@ public class MultiProxyHandler {
    * Handles the event when a player joins the proxy.
    *
    * @param player the {@link ConnectedPlayer} that joined
+   * @return {@code true} if the player was successfully accepted, {@code false} if the join was rejected
    */
   public boolean onPlayerJoin(final ConnectedPlayer player) {
     if (shuttingDown) {
@@ -336,6 +337,7 @@ public class MultiProxyHandler {
     for (RegisteredServer s : this.server.getAllServers()) {
       queuePriorities.put(s.getServerInfo().getName(), player.getQueuePriority(s.getServerInfo().getName()));
     }
+
     queuePriorities.put("all", player.getQueuePriority("all"));
 
     RemotePlayerInfo info = new RemotePlayerInfo(
@@ -440,7 +442,7 @@ public class MultiProxyHandler {
     List<String> masterProxyIds = this.server.getConfiguration().getQueue().getMasterProxyIds();
     if (masterProxyIds == null || masterProxyIds.isEmpty()
         || (masterProxyIds.size() == 1 && masterProxyIds.get(0).trim().isEmpty())) {
-      
+
       // Wait a bit for other proxies to register
       this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
         List<String> activeProxies = getAllProxyIds();

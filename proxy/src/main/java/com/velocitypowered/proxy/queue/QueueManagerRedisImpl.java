@@ -39,6 +39,9 @@ import org.slf4j.LoggerFactory;
  */
 public class QueueManagerRedisImpl extends QueueManager {
 
+  /**
+   * Logger for Redis queue manager operations.
+   */
   private static final Logger logger = LoggerFactory.getLogger(QueueManagerRedisImpl.class);
 
   /**
@@ -56,34 +59,35 @@ public class QueueManagerRedisImpl extends QueueManager {
   private void registerRedisListeners() {
     RedisManagerImpl redisManager = this.server.getRedisManager();
 
-    redisManager.listen(RedisQueueSendRequest.ID, RedisQueueSendRequest.class, it ->
-            server.getPlayer(it.playerUuid()).ifPresent(player -> {
-              RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
-              if (foundServer == null) {
-                throw new IllegalArgumentException("Server not found while attempting to send player in queue. '" + it.serverName() + "'");
-              }
+    redisManager.listen(RedisQueueSendRequest.ID, RedisQueueSendRequest.class, it -> {
+      server.getPlayer(it.playerUuid()).ifPresent(player -> {
+        RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
+        if (foundServer == null) {
+          throw new IllegalArgumentException("Server not found while attempting to send player in queue. '" + it.serverName() + "'");
+        }
 
-              ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
-              ServerQueueEntry entry = queueStatus.getEntry(it.playerUuid()).orElse(null);
-              
-              if (entry == null) {
-                // Cross-proxy: create a minimal temporary entry to perform the send locally.
-                logger.debug("Creating temporary queue entry for cross-proxy player {} on server {}", it.playerUuid(), it.serverName());
-                RemotePlayerInfo playerInfo = server.getMultiProxyHandler().getPlayerInfo(it.playerUuid());
-                int priority = playerInfo != null ? playerInfo.getQueuePriority().getOrDefault(it.serverName(), 0) : 0;
-                boolean fullBypass = playerInfo != null && playerInfo.isFullQueueBypass();
-                boolean queueBypass = playerInfo != null && playerInfo.isQueueBypass();
-                entry = new ServerQueueEntry(it.playerUuid(), (VelocityRegisteredServer) foundServer, server,
-                    priority, fullBypass, queueBypass);
-              }
+        ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
+        ServerQueueEntry entry = queueStatus.getEntry(it.playerUuid()).orElse(null);
 
-              entry.handleSending();
-            }));
+        if (entry == null) {
+          // Cross-proxy: create a minimal temporary entry to perform the send locally.
+          logger.debug("Creating temporary queue entry for cross-proxy player {} on server {}", it.playerUuid(), it.serverName());
+          RemotePlayerInfo playerInfo = server.getMultiProxyHandler().getPlayerInfo(it.playerUuid());
+          int priority = playerInfo != null ? playerInfo.getQueuePriority().getOrDefault(it.serverName(), 0) : 0;
+          boolean fullBypass = playerInfo != null && playerInfo.isFullQueueBypass();
+          boolean queueBypass = playerInfo != null && playerInfo.isQueueBypass();
+          entry = new ServerQueueEntry(it.playerUuid(), (VelocityRegisteredServer) foundServer, server,
+                priority, fullBypass, queueBypass);
+        }
+
+        entry.handleSending();
+      });
+    });
 
     redisManager.listen(RedisQueueDequeueRequest.ID, RedisQueueDequeueRequest.class, it -> {
-      logger.debug("Received RedisQueueDequeueRequest for player {} on server {} (maxRetriesReached: {})", 
+      logger.debug("Received RedisQueueDequeueRequest for player {} on server {} (maxRetriesReached: {})",
           it.playerUuid(), it.serverName(), it.maxRetriesReached());
-      
+
       if (!server.getQueueManager().isMasterProxy()) {
         logger.debug("Ignoring dequeue request - not master proxy");
         return;
@@ -102,7 +106,7 @@ public class QueueManagerRedisImpl extends QueueManager {
           logger.debug("Dequeuing player {} from server {} queue", it.playerUuid(), it.serverName());
           queueStatus.dequeue(it.playerUuid(), it.maxRetriesReached());
         } else {
-          logger.debug("Player {} not found in queue for server {} (may have been already removed)", 
+          logger.debug("Player {} not found in queue for server {} (may have been already removed)",
               it.playerUuid(), it.serverName());
         }
       } else {
@@ -146,6 +150,7 @@ public class QueueManagerRedisImpl extends QueueManager {
         String ownProxy = this.server.getMultiProxyHandler().getOwnProxyId();
         return singleProxyId.equalsIgnoreCase(ownProxy);
       }
+
       return false;
     }
 

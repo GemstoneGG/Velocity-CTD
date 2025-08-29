@@ -33,6 +33,9 @@ import org.slf4j.LoggerFactory;
  */
 public class RedisRetriever implements QueueCacheRetriever {
 
+  /**
+   * The logger instance for this retriever.
+   */
   private static final Logger logger = LoggerFactory.getLogger(RedisRetriever.class);
 
   /**

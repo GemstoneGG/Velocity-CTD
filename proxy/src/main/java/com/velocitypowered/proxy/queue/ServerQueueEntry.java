@@ -36,6 +36,9 @@ import org.slf4j.LoggerFactory;
  */
 public class ServerQueueEntry {
 
+  /**
+   * Logger for queue entry operations.
+   */
   private static final Logger logger = LoggerFactory.getLogger(ServerQueueEntry.class);
 
   /**
@@ -186,7 +189,7 @@ public class ServerQueueEntry {
 
         if (success) {
           // Connection successful - entry was already removed from queue before sending
-          logger.debug("Connection successful for player {} to server {} (entry already removed from queue)", 
+          logger.debug("Connection successful for player {} to server {} (entry already removed from queue)",
               player, target.getServerInfo().getName());
         } else {
           updateStatus();
@@ -194,7 +197,7 @@ public class ServerQueueEntry {
           if (getConnectionAttempts() == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
             // Max retries reached - send error message to player
             logger.debug("Max retries reached for player {} to server {}", player, target.getServerInfo().getName());
-            
+
             if (this.proxy.getMultiProxyHandler().isRedisEnabled()) {
               this.proxy.getRedisManager().send(new RedisSendMessageToUuidRequest(player,
                   Component.translatable("velocity.queue.error.max-send-retries-reached")
@@ -214,7 +217,7 @@ public class ServerQueueEntry {
         if (getConnectionAttempts() == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
           // Max retries reached due to exception - send error message to player
           logger.debug("Max retries reached (exception) for player {} to server {}", player, target.getServerInfo().getName());
-          
+
           if (this.proxy.getMultiProxyHandler().isRedisEnabled()) {
             this.proxy.getRedisManager().send(new RedisSendMessageToUuidRequest(player,
                 Component.translatable("velocity.queue.error.max-send-retries-reached")
@@ -312,6 +315,8 @@ public class ServerQueueEntry {
 
   /**
    * Gets the full bypass status.
+   *
+   * @return {@code true} if this entry bypasses full server checks, {@code false} otherwise
    */
   public boolean isFullBypass() {
     return fullBypass;
