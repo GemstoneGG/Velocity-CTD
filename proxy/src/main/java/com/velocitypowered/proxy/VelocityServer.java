@@ -26,6 +26,7 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.Command;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
+import com.velocitypowered.api.event.proxy.ProxyPreShutdownEvent;
 import com.velocitypowered.api.event.proxy.ProxyReloadEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.network.ProtocolState;
@@ -143,6 +144,7 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Implementation of {@link ProxyServer}.
@@ -159,6 +161,13 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    * Shared logger used throughout proxy lifecycle events.
    */
   private static final Logger logger = LogManager.getLogger(VelocityServer.class);
+
+  /**
+   * Timeout in seconds for {@link ProxyPreShutdownEvent} listeners
+   * before the proxy proceeds with shutdown. Configurable via the
+   * {@code velocity.pre-shutdown-timeout} system property.
+   */
+  private static final int PRE_SHUTDOWN_TIMEOUT = Integer.getInteger("velocity.pre-shutdown-timeout", 10);
 
   /**
    * The primary Gson instance used for general JSON serialization tasks.
@@ -1212,11 +1221,25 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       // Shutdown the connection manager, this should be
       // done first to refuse new connections
       cm.shutdown();
+
       if (multiProxyHandler != null) {
         multiProxyHandler.shutdown();
       }
 
-      ImmutableList<ConnectedPlayer> players = ImmutableList.copyOf(connectionsByUuid.values());
+      try {
+        eventManager.fire(new ProxyPreShutdownEvent())
+            .toCompletableFuture()
+            .get(PRE_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS);
+      } catch (TimeoutException ignored) {
+        logger.warn("Your plugins took over {} seconds during pre shutdown.", PRE_SHUTDOWN_TIMEOUT);
+      } catch (ExecutionException ee) {
+        logger.error("Exception in ProxyPreShutdownEvent handler; continuing shutdown.", ee);
+      } catch (InterruptedException ignored) {
+        Thread.currentThread().interrupt();
+        logger.warn("Interrupted while waiting for ProxyPreShutdownEvent; continuing shutdown.");
+      }
+
+      ImmutableList<@NotNull ConnectedPlayer> players = ImmutableList.copyOf(connectionsByUuid.values());
 
       if (this.getQueueManager().isQueueEnabled()) {
         players.forEach(p -> this.getQueueManager().removeFromAll(p));
