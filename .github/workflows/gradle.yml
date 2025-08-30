@@ -28,6 +28,9 @@ jobs:
     - name: Generate Release Tag
       id: release_tag
       run: |
+        # Fetch all tags from remote
+        git fetch --tags
+          
         # Get the latest build number from existing releases
         LATEST_BUILD=0
         
@@ -36,6 +39,13 @@ jobs:
           LATEST_BUILD=$(git tag | grep -E "^build-[0-9]+$" | sed 's/build-//' | sort -n | tail -1)
         fi
         
+        # Debug output
+        echo "All tags:"
+        git tag
+        echo "Build tags found:"
+        git tag | grep -E "^build-[0-9]+$" || echo "No build tags found"
+        echo "Latest build number found: $LATEST_BUILD"
+          
         # Increment the build number
         NEW_BUILD=$((LATEST_BUILD + 1))
         
