@@ -426,7 +426,8 @@ public class RedisManagerImpl {
       RedisCommands<String, String> commands = connection.sync();
       commands.hset(QUEUE_CACHE_KEY, queue.getServerName(), gson.toJson(new SerializableQueue(queue)));
     } catch (Exception e) {
-      logger.error("Failed to add/update queue: {}", queue.getServerName(), e);
+      logger.warn("Redis queue update failed for server {} (will retry later): {}",
+          queue.getServerName(), e.getMessage());
     }
   }
 
@@ -446,9 +447,10 @@ public class RedisManagerImpl {
         RedisAsyncCommands<String, String> commands = connection.async();
         commands.hset(QUEUE_CACHE_KEY, queue.getServerName(), gson.toJson(new SerializableQueue(queue)))
             .toCompletableFuture()
-            .get(5, TimeUnit.SECONDS); // 5 second timeout
+            .get(15, TimeUnit.SECONDS); // Increased timeout from 5 to 15 seconds for high load
       } catch (Exception e) {
-        logger.error("Failed to add/update queue async: {}", queue.getServerName(), e);
+        logger.warn("Redis queue update failed for server {} (will retry later): {}",
+            queue.getServerName(), e.getMessage());
       }
     }, asyncExecutor);
   }
@@ -514,9 +516,10 @@ public class RedisManagerImpl {
         RedisAsyncCommands<String, String> commands = connection.async();
         commands.hset(QUEUE_CACHE_KEY, status.getServerName(), gson.toJson(new SerializableQueue(status)))
             .toCompletableFuture()
-            .get(5, TimeUnit.SECONDS); // 5 second timeout
+            .get(15, TimeUnit.SECONDS); // Increased timeout from 5 to 15 seconds for high load
       } catch (Exception e) {
-        logger.error("Failed to update entry async: {}", serverQueueEntry.getPlayer(), e);
+        logger.warn("Redis entry update failed for player {} (will retry later): {}",
+            serverQueueEntry.getPlayer(), e.getMessage());
       }
     }, asyncExecutor);
   }
@@ -540,7 +543,7 @@ public class RedisManagerImpl {
       }
       return gson.fromJson(json, SerializableQueue.class);
     } catch (Exception e) {
-      logger.error("Failed to get queue: {}", serverName, e);
+      logger.warn("Failed to get queue from Redis for server {}: {}", serverName, e.getMessage());
       return null; // Return null in case of an error
     }
   }
@@ -562,7 +565,7 @@ public class RedisManagerImpl {
           .map(json -> gson.fromJson(json, SerializableQueue.class))
           .collect(Collectors.toList());
     } catch (Exception e) {
-      logger.error("Failed to get all queues", e);
+      logger.warn("Failed to get all queues from Redis: {}", e.getMessage());
       return new ArrayList<>();
     }
   }
@@ -573,7 +576,7 @@ public class RedisManagerImpl {
       RedisURI.Builder uriBuilder = RedisURI.builder()
           .withHost(redisConfig.getHost())
           .withPort(redisConfig.getPort())
-          .withTimeout(Duration.ofSeconds(30));
+          .withTimeout(Duration.ofSeconds(60));
 
       if (redisConfig.isUseSsl()) {
         uriBuilder.withSsl(true);
