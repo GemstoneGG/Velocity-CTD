@@ -108,7 +108,7 @@ public class ServerQueueStatus {
     this.velocityServer = velocityServer;
     // Use PriorityBlockingQueue with custom comparator for thread-safe priority ordering
     // Compare by priority first (higher priority first), then by UUID for consistent ordering
-    this.queue = new PriorityBlockingQueue<>(1000, (a, b) -> {
+    this.queue = new PriorityBlockingQueue<>(10000, (a, b) -> {
       int priorityCompare = Integer.compare(b.getPriority(), a.getPriority());
       if (priorityCompare != 0) {
         return priorityCompare;
@@ -136,7 +136,7 @@ public class ServerQueueStatus {
     this.velocityServer = velocityServer;
     // Convert existing deque to PriorityBlockingQueue for thread safety
     // Compare by priority first (higher priority first), then by UUID for consistent ordering
-    this.queue = new PriorityBlockingQueue<>(1000, (a, b) -> {
+    this.queue = new PriorityBlockingQueue<>(10000, (a, b) -> {
       int priorityCompare = Integer.compare(b.getPriority(), a.getPriority());
       if (priorityCompare != 0) {
         return priorityCompare;
