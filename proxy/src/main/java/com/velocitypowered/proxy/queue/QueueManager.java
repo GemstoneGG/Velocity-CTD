@@ -218,15 +218,17 @@ public abstract class QueueManager {
         return;
       }
 
-      queue.getQueue().removeIf(entry -> {
-        if ("N/A".equals(entry.getUsername())) {
-          logger.debug("Removing stale entry {} from queue for server {}", 
-              entry.getPlayer(), queue.getServerName());
-          queue.getPlayerIndex().remove(entry.getPlayer());
-          return true;
-        }
-        return false;
-      });
+      // Only check for stale entries if Redis is enabled (where N/A can occur)
+      if (this.server.getMultiProxyHandler().isRedisEnabled()) {
+        queue.getQueue().removeIf(entry -> {
+          // Use the more efficient isPlayerOnline check instead of getUsername
+          if (!this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
+            queue.getPlayerIndex().remove(entry.getPlayer());
+            return true;
+          }
+          return false;
+        });
+      }
 
       if (queue.getQueue().isEmpty()) {
         return;
@@ -235,13 +237,6 @@ public abstract class QueueManager {
       ServerQueueEntry entry = queue.getQueue().peekFirst();
 
       if (entry == null || queue.isFull() && !entry.isFullBypass()) {
-        return;
-      }
-
-      if ("N/A".equals(entry.getUsername())) {
-        logger.debug("Skipping stale entry {} for server {}", 
-            entry.getPlayer(), queue.getServerName());
-        queue.dequeue(entry.getPlayer(), false);
         return;
       }
 

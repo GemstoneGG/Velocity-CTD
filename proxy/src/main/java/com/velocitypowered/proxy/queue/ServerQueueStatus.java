@@ -108,18 +108,13 @@ public class ServerQueueStatus {
     this.velocityServer = velocityServer;
     // Use PriorityBlockingQueue with custom comparator for thread-safe priority ordering
     // Compare by priority first (higher priority first), then by UUID for consistent ordering
-    this.queue = new PriorityBlockingQueue<>(100, (a, b) -> {
+    this.queue = new PriorityBlockingQueue<>(1000, (a, b) -> {
       int priorityCompare = Integer.compare(b.getPriority(), a.getPriority());
-      logger.debug("Comparator called: {} (priority {}) vs {} (priority {}), priorityCompare: {}",
-          a.getPlayer(), a.getPriority(), b.getPlayer(), b.getPriority(), priorityCompare);
       if (priorityCompare != 0) {
         return priorityCompare;
       }
       // If priorities are equal, use UUID for consistent ordering
-      int uuidCompare = a.getPlayer().compareTo(b.getPlayer());
-      logger.debug("UUID comparison for equal priorities: {} vs {}, result: {}",
-          a.getPlayer(), b.getPlayer(), uuidCompare);
-      return uuidCompare;
+      return a.getPlayer().compareTo(b.getPlayer());
     });
     this.playerIndex = new ConcurrentHashMap<>();
     this.reloadConfig();
@@ -141,18 +136,13 @@ public class ServerQueueStatus {
     this.velocityServer = velocityServer;
     // Convert existing deque to PriorityBlockingQueue for thread safety
     // Compare by priority first (higher priority first), then by UUID for consistent ordering
-    this.queue = new PriorityBlockingQueue<>(100, (a, b) -> {
+    this.queue = new PriorityBlockingQueue<>(1000, (a, b) -> {
       int priorityCompare = Integer.compare(b.getPriority(), a.getPriority());
-      logger.debug("Comparator called: {} (priority {}) vs {} (priority {}), priorityCompare: {}",
-          a.getPlayer(), a.getPriority(), b.getPlayer(), b.getPriority(), priorityCompare);
       if (priorityCompare != 0) {
         return priorityCompare;
       }
       // If priorities are equal, use UUID for consistent ordering
-      int uuidCompare = a.getPlayer().compareTo(b.getPlayer());
-      logger.debug("UUID comparison for equal priorities: {} vs {}, result: {}",
-          a.getPlayer(), b.getPlayer(), uuidCompare);
-      return uuidCompare;
+      return a.getPlayer().compareTo(b.getPlayer());
     });
     this.playerIndex = new ConcurrentHashMap<>();
 
@@ -292,10 +282,7 @@ public class ServerQueueStatus {
    * @param queueBypass {@code true} if the player should bypass the queue entirely
    */
   public void queue(final UUID playerUuid, final int priority, final boolean fullBypass, final boolean queueBypass) {
-    logger.debug("Queue operation started for player {} on server {} with priority {}", playerUuid, getServerName(), priority);
-
     if (!config.isEnabled()) {
-      logger.debug("Queue system disabled for server {}, connecting player {} directly", getServerName(), playerUuid);
       Player player = server.getPlayer(playerUuid);
       if (player != null) {
         player.createConnectionRequest(server).connect();
