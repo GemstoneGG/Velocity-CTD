@@ -72,7 +72,6 @@ public class QueueManagerRedisImpl extends QueueManager {
         ServerQueueEntry entry = queueStatus.getEntry(it.playerUuid()).orElse(null);
 
         if (entry == null) {
-          // Cross-proxy: create a minimal temporary entry to perform the send locally.
           logger.debug("Creating temporary queue entry for cross-proxy player {} on server {}", it.playerUuid(), it.serverName());
           RemotePlayerInfo playerInfo = server.getMultiProxyHandler().getPlayerInfo(it.playerUuid());
           int priority = playerInfo != null ? playerInfo.getQueuePriority().getOrDefault(it.serverName(), 0) : 0;
@@ -104,7 +103,6 @@ public class QueueManagerRedisImpl extends QueueManager {
       }
     });
 
-    // Handle queue add requests from other proxies
     redisManager.listen(RedisQueueAddRequest.ID, RedisQueueAddRequest.class, it -> {
       logger.debug("Received RedisQueueAddRequest for player {} on server {} from another proxy", 
           it.playerUuid(), it.serverName());
@@ -117,7 +115,6 @@ public class QueueManagerRedisImpl extends QueueManager {
 
       ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
       if (queueStatus != null) {
-        // Only add if not already in queue
         if (!queueStatus.isQueued(it.playerUuid())) {
           logger.debug("Adding player {} to queue for server {} from Redis request", 
               it.playerUuid(), it.serverName());
@@ -131,7 +128,6 @@ public class QueueManagerRedisImpl extends QueueManager {
       }
     });
 
-    // Handle queue remove requests from other proxies
     redisManager.listen(RedisQueueRemoveRequest.ID, RedisQueueRemoveRequest.class, it -> {
       logger.debug("Received RedisQueueRemoveRequest for player {} on server {} from another proxy", 
           it.playerUuid(), it.serverName());
@@ -157,17 +153,14 @@ public class QueueManagerRedisImpl extends QueueManager {
       }
     });
 
-    // Handle queue update requests from other proxies
     redisManager.listen(RedisQueueUpdateRequest.ID, RedisQueueUpdateRequest.class, it -> {
       logger.debug("Received RedisQueueUpdateRequest for server {} from another proxy", 
           it.queueData().getServerName());
 
-      // Clear the cache for this server to force a fresh load
       if (this.cache instanceof RedisRetriever redisRetriever) {
         redisRetriever.clearCacheForServer(it.queueData().getServerName());
       }
 
-      // Update the local queue cache with the received data
       try {
         RegisteredServer foundServer = server.getServer(it.queueData().getServerName()).orElse(null);
         if (foundServer == null) {
@@ -177,7 +170,6 @@ public class QueueManagerRedisImpl extends QueueManager {
 
         ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
         if (queueStatus != null) {
-          // Update the queue with the received data
           queueStatus.updateFromSerializableQueue(it.queueData());
           logger.debug("Updated queue for server {} from Redis request", it.queueData().getServerName());
         }

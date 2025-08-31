@@ -106,14 +106,11 @@ public class ServerQueueStatus {
                            final VelocityServer velocityServer) {
     this.server = server;
     this.velocityServer = velocityServer;
-    // Use PriorityBlockingQueue with custom comparator for thread-safe priority ordering
-    // Compare by priority first (higher priority first), then by UUID for consistent ordering
     this.queue = new PriorityBlockingQueue<>(10000, (a, b) -> {
       int priorityCompare = Integer.compare(b.getPriority(), a.getPriority());
       if (priorityCompare != 0) {
         return priorityCompare;
       }
-      // If priorities are equal, use UUID for consistent ordering
       return a.getPlayer().compareTo(b.getPlayer());
     });
     this.playerIndex = new ConcurrentHashMap<>();
@@ -134,19 +131,15 @@ public class ServerQueueStatus {
                            final ServerStatus online, final boolean full, final boolean paused) {
     this.server = server;
     this.velocityServer = velocityServer;
-    // Convert existing deque to PriorityBlockingQueue for thread safety
-    // Compare by priority first (higher priority first), then by UUID for consistent ordering
     this.queue = new PriorityBlockingQueue<>(10000, (a, b) -> {
       int priorityCompare = Integer.compare(b.getPriority(), a.getPriority());
       if (priorityCompare != 0) {
         return priorityCompare;
       }
-      // If priorities are equal, use UUID for consistent ordering
       return a.getPlayer().compareTo(b.getPlayer());
     });
     this.playerIndex = new ConcurrentHashMap<>();
 
-    // Populate the new queue and index from the existing deque
     for (ServerQueueEntry entry : queue) {
       this.queue.offer(entry);
       this.playerIndex.put(entry.getPlayer(), entry);
@@ -165,9 +158,7 @@ public class ServerQueueStatus {
    * @return The whole queue as a deque.
    */
   public Deque<ServerQueueEntry> getQueue() {
-    // Create a snapshot of the current queue state for backward compatibility
     Deque<ServerQueueEntry> snapshot = new ConcurrentLinkedDeque<>();
-    // Use toArray to avoid concurrent modification issues
     Object[] entries = queue.toArray();
     for (Object entry : entries) {
       if (entry instanceof ServerQueueEntry) {
@@ -183,7 +174,6 @@ public class ServerQueueStatus {
   public void stop() {
     queue.clear();
     playerIndex.clear();
-    // Use async Redis operation to avoid blocking
     this.velocityServer.getRedisManager().addOrUpdateQueueAsync(this)
         .exceptionally(throwable -> {
           logger.error("Failed to update queue asynchronously", throwable);
@@ -204,14 +194,10 @@ public class ServerQueueStatus {
    * @param entry the {@link ServerQueueEntry} representing the player to send
    */
   public void sendFirstInQueue(final ServerQueueEntry entry) {
-    // Check if an entry is being sent (this will set to false automatically
-    // whether it was successful or not).
     if (entry.isWaitingForConnection()) {
       return;
     }
 
-    // Remove from queue before sending to prevent race conditions
-    // This ensures consistent behavior between Redis and non-Redis scenarios
     boolean removed = queue.remove(entry);
     playerIndex.remove(entry.getPlayer());
 
@@ -223,7 +209,6 @@ public class ServerQueueStatus {
           entry.getPlayer(), getServerName());
     }
 
-    // Now send the player
     entry.send();
   }
 
@@ -264,7 +249,6 @@ public class ServerQueueStatus {
       this.paused = paused;
     }
 
-    // Use async Redis operation to avoid blocking
     this.velocityServer.getRedisManager().addOrUpdateQueueAsync(this)
         .exceptionally(throwable -> {
           logger.error("Failed to update queue asynchronously", throwable);
@@ -295,24 +279,19 @@ public class ServerQueueStatus {
       return;
     }
 
-    // Thread-safe queue insertion using atomic operations
-    // First, check if player is already in the queue (not just the index)
     boolean alreadyInIndex = playerIndex.containsKey(playerUuid);
     logger.debug("Player {} already in index: {}", playerUuid, alreadyInIndex);
 
     if (alreadyInIndex) {
-      // Player already exists in queue, don't add duplicate
       logger.debug("Player {} already exists in queue index, skipping", playerUuid);
       return;
     }
 
-    // Log queue state before adding
     int queueSizeBefore = queue.size();
     int indexSizeBefore = playerIndex.size();
     logger.debug("Queue state before adding player {}: queue size={}, index size={}", playerUuid, queueSizeBefore, indexSizeBefore);
     dumpQueueContents("before adding " + playerUuid);
 
-    // Add to priority queue first - this is thread-safe and maintains priority order
     logger.debug("Attempting to add player {} to priority queue", playerUuid);
     ServerQueueEntry entry = new ServerQueueEntry(playerUuid, this.server, this.velocityServer, priority, fullBypass, queueBypass);
     boolean added = queue.offer(entry);
@@ -323,29 +302,24 @@ public class ServerQueueStatus {
       return;
     }
 
-    // Log queue state after adding to queue but before adding to index
     int queueSizeAfterQueue = queue.size();
     logger.debug("Queue state after adding to queue but before index: queue size={}", queueSizeAfterQueue);
     dumpQueueContents("after adding to queue " + playerUuid);
 
-    // Only add to index after successful queue insertion to prevent race conditions
     logger.debug("Adding player {} to index after successful queue insertion", playerUuid);
     ServerQueueEntry existingEntry = playerIndex.putIfAbsent(playerUuid, entry);
     if (existingEntry != null) {
-      // Another thread added the player while we were processing, remove our entry
       logger.warn("Race condition detected for player {} in queue for server {}, removing duplicate entry", playerUuid, getServerName());
       queue.remove(entry);
       return;
     }
 
-    // Log final queue state
     int queueSizeAfter = queue.size();
     int indexSizeAfter = playerIndex.size();
     logger.debug("Successfully queued player {} to server {} (queue size: {}, index size: {})",
         playerUuid, getServerName(), queueSizeAfter, indexSizeAfter);
     dumpQueueContents("after adding to index " + playerUuid);
 
-    // Additional verification
     if (queueSizeAfter != queueSizeBefore + 1) {
       logger.warn("Queue size mismatch! Expected: {}, Actual: {}", queueSizeBefore + 1, queueSizeAfter);
     }
@@ -353,22 +327,17 @@ public class ServerQueueStatus {
       logger.warn("Index size mismatch! Expected: {}, Actual: {}", indexSizeBefore + 1, indexSizeAfter);
     }
 
-    // Use async Redis operation to avoid blocking
     this.velocityServer.getRedisManager().addOrUpdateQueueAsync(this)
         .exceptionally(throwable -> {
-          // logger.error("Failed to update queue asynchronously", throwable); // Original code had this line commented out
           return null;
         });
 
-    // Send Redis packet to notify other proxies about the queue addition
     if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
       try {
-        // Get player username for the packet
         String username = "Unknown";
         if (this.velocityServer.getPlayer(playerUuid).isPresent()) {
           username = this.velocityServer.getPlayer(playerUuid).get().getUsername();
         } else {
-          // Try to get from remote player info
           var remotePlayer = this.velocityServer.getMultiProxyHandler().getPlayerInfo(playerUuid);
           if (remotePlayer != null) {
             username = remotePlayer.getUsername();
@@ -395,7 +364,6 @@ public class ServerQueueStatus {
     logger.debug("Dequeue operation started for player {} on server {} (maxRetriesReached: {})",
         player, getServerName(), maxRetriesReached);
 
-    // Check if player is actually in the queue before attempting to dequeue
     if (!playerIndex.containsKey(player)) {
       logger.debug("Player {} not found in queue index for server {} - already removed or never queued", 
           player, getServerName());
@@ -418,26 +386,21 @@ public class ServerQueueStatus {
       }
     }).delay(1, TimeUnit.SECONDS).schedule();
 
-    // Thread-safe removal using atomic operations
     ServerQueueEntry removedEntry = playerIndex.remove(player);
     if (removedEntry != null) {
-      // Remove from priority queue - this is thread-safe
       queue.remove(removedEntry);
       logger.debug("Successfully removed player {} from queue for server {} (queue size: {}, index size: {})",
           player, getServerName(), queue.size(), playerIndex.size());
     } else {
-      // This should rarely happen now due to the check above, but keep as safety net
       logger.debug("Player {} not found in queue index for server {} during removal", player, getServerName());
     }
 
-    // Use async Redis operation to avoid blocking
     this.velocityServer.getRedisManager().addOrUpdateQueueAsync(this)
         .exceptionally(throwable -> {
           logger.error("Failed to update queue asynchronously", throwable);
           return null;
         });
 
-    // Send Redis packet to notify other proxies about the queue removal
     if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
       try {
         this.velocityServer.getRedisManager().send(new RedisQueueRemoveRequest(
@@ -479,8 +442,6 @@ public class ServerQueueStatus {
                   ).asHoverEvent())
           );
     } else {
-      // Use cached status for non-master proxies to avoid blocking
-      // The status will be updated asynchronously by the master proxy
       boolean serverStatus = this.online == ServerStatus.ONLINE;
 
       return Component.translatable("velocity.queue.command.listqueues.item")
@@ -514,7 +475,6 @@ public class ServerQueueStatus {
    * @param component the component to send as a message
    */
   public void broadcast(final Component component) {
-    // Use playerIndex for thread-safe iteration
     for (ServerQueueEntry entry : playerIndex.values()) {
       this.velocityServer.getPlayer(entry.getPlayer()).ifPresent(player ->
           player.sendMessage(component));
@@ -610,7 +570,6 @@ public class ServerQueueStatus {
     }
 
     int position = 1;
-    // Create a snapshot of the queue for position calculation
     Object[] entries = queue.toArray();
 
     for (Object obj : entries) {
@@ -633,7 +592,6 @@ public class ServerQueueStatus {
   Map<ServerQueueEntry, UUID> getActivePlayers() {
     Map<ServerQueueEntry, UUID> foundPlayers = new HashMap<>();
 
-    // Use playerIndex for thread-safe iteration
     for (Map.Entry<UUID, ServerQueueEntry> entry : playerIndex.entrySet()) {
       foundPlayers.put(entry.getValue(), entry.getKey());
     }
@@ -665,7 +623,6 @@ public class ServerQueueStatus {
    * @return The queue entries of this queue.
    */
   public List<ServerQueueEntry> getAllEntries() {
-    // Return a snapshot of all entries from the player index
     return List.copyOf(playerIndex.values());
   }
 
@@ -695,7 +652,6 @@ public class ServerQueueStatus {
   public void setStatus(final ServerStatus serverStatus) {
     if (this.online != serverStatus) {
       this.online = serverStatus;
-      // Use async Redis operation to avoid blocking
       this.velocityServer.getRedisManager().addOrUpdateQueueAsync(this)
           .exceptionally(throwable -> {
             logger.error("Failed to update queue asynchronously", throwable);
@@ -712,7 +668,6 @@ public class ServerQueueStatus {
   public void setFull(final boolean newFull) {
     if (this.full != newFull) {
       this.full = newFull;
-      // Use async Redis operation to avoid blocking
       this.velocityServer.getRedisManager().addOrUpdateQueueAsync(this)
           .exceptionally(throwable -> {
             logger.error("Failed to update queue asynchronously", throwable);
@@ -730,7 +685,6 @@ public class ServerQueueStatus {
     logger.debug("=== Queue dump after {} ===", operation);
     logger.debug("Queue size: {}, Index size: {}", queue.size(), playerIndex.size());
 
-    // Dump queue contents
     Object[] queueArray = queue.toArray();
     logger.debug("Queue contents ({} items):", queueArray.length);
     for (int i = 0; i < queueArray.length; i++) {
@@ -739,7 +693,6 @@ public class ServerQueueStatus {
       }
     }
 
-    // Dump index contents
     logger.debug("Index contents ({} items):", playerIndex.size());
     for (Map.Entry<UUID, ServerQueueEntry> entry : playerIndex.entrySet()) {
       logger.debug("  Player: {}, Priority: {}", entry.getKey(), entry.getValue().getPriority());
@@ -756,16 +709,13 @@ public class ServerQueueStatus {
   public void updateFromSerializableQueue(final SerializableQueue serializableQueue) {
     logger.debug("Updating queue for server {} from serialized data", getServerName());
 
-    // Clear current queue and index
     queue.clear();
     playerIndex.clear();
 
-    // Update server status
     this.online = serializableQueue.getOnline();
     this.full = serializableQueue.isFull();
     this.paused = serializableQueue.isPaused();
 
-    // Add all entries from the serialized data
     for (SerializableQueueEntry entry : serializableQueue.getQueue()) {
       try {
         ServerQueueEntry queueEntry = new ServerQueueEntry(
@@ -779,7 +729,6 @@ public class ServerQueueStatus {
             entry.queueBypass()
         );
 
-        // Add to both queue and index
         queue.offer(queueEntry);
         playerIndex.put(entry.uuid(), queueEntry);
 

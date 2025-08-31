@@ -77,14 +77,12 @@ public class RedisRetriever implements QueueCacheRetriever {
       return null;
     }
 
-    // Check if we have a cached instance first
     ServerQueueStatus cachedInstance = instanceCache.get(serverName);
     if (cachedInstance != null) {
       logger.debug("Returning cached ServerQueueStatus instance for server: {}", serverName);
       return cachedInstance;
     }
 
-    // If no cached instance, try to get from Redis
     SerializableQueue ser = this.redisManager.getQueue(serverName);
     ServerQueueStatus status = null;
     if (ser != null) {
@@ -96,14 +94,11 @@ public class RedisRetriever implements QueueCacheRetriever {
       status = new ServerQueueStatus(server, proxy);
       logger.debug("Created new empty ServerQueueStatus instance for server: {}", serverName);
 
-      // Make the queue if it doesn't exist.
       redisManager.addOrUpdateQueue(status);
     }
 
-    // Cache the instance for future use
     ServerQueueStatus existingInstance = instanceCache.putIfAbsent(serverName, status);
     if (existingInstance != null) {
-      // Another thread created an instance while we were processing, use that one
       logger.debug("Another thread created ServerQueueStatus instance for server: {}, using existing", serverName);
       return existingInstance;
     }
@@ -136,7 +131,6 @@ public class RedisRetriever implements QueueCacheRetriever {
       VelocityRegisteredServer server = (VelocityRegisteredServer) proxy.getServer(s.getServerName()).orElse(null);
 
       if (server != null) {
-        // Use the cached instance if available, otherwise create new one
         ServerQueueStatus status = instanceCache.get(s.getServerName());
         if (status == null) {
           status = s.convert(proxy, server);

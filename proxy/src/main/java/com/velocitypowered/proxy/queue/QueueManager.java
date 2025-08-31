@@ -218,10 +218,8 @@ public abstract class QueueManager {
         return;
       }
 
-      // Only check for stale entries if Redis is enabled (where N/A can occur)
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         queue.getQueue().removeIf(entry -> {
-          // Use the more efficient isPlayerOnline check instead of getUsername
           if (!this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
             queue.getPlayerIndex().remove(entry.getPlayer());
             return true;
@@ -377,7 +375,6 @@ public abstract class QueueManager {
       return;
     }
 
-    // Check if the player's version is compatible with the server's minimum version
     if (player instanceof ConnectedPlayer connectedPlayer && !connectedPlayer.checkVersionCompatibility(server)) {
       return;
     }

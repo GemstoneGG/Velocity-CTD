@@ -188,14 +188,12 @@ public class ServerQueueEntry {
         }
 
         if (success) {
-          // Connection successful - entry was already removed from queue before sending
           logger.debug("Connection successful for player {} to server {} (entry already removed from queue)",
               player, target.getServerInfo().getName());
         } else {
           updateStatus();
 
           if (getConnectionAttempts() == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
-            // Max retries reached - send error message to player
             logger.debug("Max retries reached for player {} to server {}", player, target.getServerInfo().getName());
 
             if (this.proxy.getMultiProxyHandler().isRedisEnabled()) {
@@ -215,7 +213,6 @@ public class ServerQueueEntry {
         updateStatus();
 
         if (getConnectionAttempts() == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
-          // Max retries reached due to exception - send error message to player
           logger.debug("Max retries reached (exception) for player {} to server {}", player, target.getServerInfo().getName());
 
           if (this.proxy.getMultiProxyHandler().isRedisEnabled()) {
@@ -296,7 +293,6 @@ public class ServerQueueEntry {
   public void updateStatus() {
     this.waitingForConnection = false;
     this.connectionAttempts++;
-    // Use async Redis operation to avoid blocking
     this.proxy.getRedisManager().addOrUpdateEntryAsync(this)
         .exceptionally(throwable -> {
           logger.error("Failed to update entry asynchronously", throwable);
