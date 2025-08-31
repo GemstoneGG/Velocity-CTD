@@ -548,6 +548,16 @@ public class ServerQueueStatus {
   }
 
   /**
+   * Returns the player index for direct access to player UUIDs.
+   * This is used internally for cleanup operations.
+   *
+   * @return the concurrent player index
+   */
+  public ConcurrentHashMap<UUID, ServerQueueEntry> getPlayerIndex() {
+    return playerIndex;
+  }
+
+  /**
    * Returns whether this queue is active (not in the {@code no-queue-servers} list).
    *
    * @return whether this queue is active

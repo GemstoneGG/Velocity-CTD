@@ -110,12 +110,6 @@ public class MultiProxyHandler {
 
     redisManager.listen(RedisShuttingDownAnnouncement.ID, RedisShuttingDownAnnouncement.class, it -> {
       handleShutdown(it.proxyId());
-
-      if (this.server.getQueueManager().isMasterProxy()) {
-        this.server.getQueueManager().schedulePingingBackend();
-        this.server.getQueueManager().scheduleTickMessage();
-        this.server.getQueueManager().rescheduleTimerTask();
-      }
     });
 
     redisManager.listen(RedisStartupRequest.ID, RedisStartupRequest.class, it -> {
@@ -229,6 +223,15 @@ public class MultiProxyHandler {
         this.server.getRedisManager().removePlayer(player);
       }
     }
+    
+    // If we become the new master proxy after this shutdown, restart tasks
+    this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+      if (this.server.getQueueManager().isMasterProxy()) {
+        this.server.getQueueManager().schedulePingingBackend();
+        this.server.getQueueManager().scheduleTickMessage();
+        this.server.getQueueManager().rescheduleTimerTask();
+      }
+    }).delay(2, TimeUnit.SECONDS).schedule();
   }
 
   private void handleLeave(final UUID player) {

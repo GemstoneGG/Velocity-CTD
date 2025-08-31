@@ -218,6 +218,16 @@ public abstract class QueueManager {
         return;
       }
 
+      queue.getQueue().removeIf(entry -> {
+        if ("N/A".equals(entry.getUsername())) {
+          logger.debug("Removing stale entry {} from queue for server {}", 
+              entry.getPlayer(), queue.getServerName());
+          queue.getPlayerIndex().remove(entry.getPlayer());
+          return true;
+        }
+        return false;
+      });
+
       if (queue.getQueue().isEmpty()) {
         return;
       }
@@ -228,23 +238,24 @@ public abstract class QueueManager {
         return;
       }
 
+      if ("N/A".equals(entry.getUsername())) {
+        logger.debug("Skipping stale entry {} for server {}", 
+            entry.getPlayer(), queue.getServerName());
+        queue.dequeue(entry.getPlayer(), false);
+        return;
+      }
+
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         if (this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
           queue.sendFirstInQueue(entry);
         } else {
-          queue.getQueue().pollFirst();
-          // Use async Redis operation to avoid blocking
-          this.server.getRedisManager().addOrUpdateQueueAsync(queue)
-              .exceptionally(throwable -> {
-                logger.error("Failed to update queue asynchronously", throwable);
-                return null;
-              });
+          queue.dequeue(entry.getPlayer(), false);
         }
       } else {
         if (this.server.getPlayer(entry.getPlayer()).orElse(null) != null) {
           queue.sendFirstInQueue(entry);
         } else {
-          queue.getQueue().pollFirst();
+          queue.dequeue(entry.getPlayer(), false);
         }
       }
     });
@@ -415,6 +426,10 @@ public abstract class QueueManager {
 
     if (tickPingingBackendTaskHandle != null) {
       tickPingingBackendTaskHandle.cancel();
+    }
+
+    if (sendingTaskHandle != null) {
+      sendingTaskHandle.cancel();
     }
   }
 
