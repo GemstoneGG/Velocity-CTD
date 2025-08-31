@@ -25,6 +25,7 @@ import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.queue.cache.QueueCacheRetriever;
+import com.velocitypowered.proxy.redis.multiproxy.RedisQueueRemoveRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.List;
 import java.util.Map;
@@ -222,6 +223,15 @@ public abstract class QueueManager {
         queue.getQueue().removeIf(entry -> {
           if (!this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
             queue.getPlayerIndex().remove(entry.getPlayer());
+            try {
+              this.server.getRedisManager().send(new RedisQueueRemoveRequest(
+                  entry.getPlayer(), queue.getServerName(), false));
+              logger.debug("Sent RedisQueueRemoveRequest for offline player {} from server {}",
+                  entry.getPlayer(), queue.getServerName());
+            } catch (Exception e) {
+              logger.error("Failed to send RedisQueueRemoveRequest for offline player {} from server {}",
+                  entry.getPlayer(), queue.getServerName(), e);
+            }
             return true;
           }
           return false;

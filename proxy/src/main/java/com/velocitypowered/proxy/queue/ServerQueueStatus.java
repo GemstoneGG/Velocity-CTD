@@ -209,6 +209,24 @@ public class ServerQueueStatus {
           entry.getPlayer(), getServerName());
     }
 
+    if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
+      try {
+        this.velocityServer.getRedisManager().send(new RedisQueueRemoveRequest(
+            entry.getPlayer(), getServerName(), false));
+        logger.debug("Sent RedisQueueRemoveRequest for player {} from server {} after sending",
+            entry.getPlayer(), getServerName());
+      } catch (Exception e) {
+        logger.error("Failed to send RedisQueueRemoveRequest for player {} from server {} after sending",
+            entry.getPlayer(), getServerName(), e);
+      }
+    }
+
+    this.velocityServer.getRedisManager().addOrUpdateQueueAsync(this)
+        .exceptionally(throwable -> {
+          logger.error("Failed to update queue asynchronously after sending player", throwable);
+          return null;
+        });
+
     entry.send();
   }
 
