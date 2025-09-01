@@ -17,8 +17,8 @@
 
 package com.velocitypowered.proxy.redis.multiproxy;
 
-import com.velocitypowered.proxy.redis.RedisPacket;
 import com.velocitypowered.proxy.queue.cache.SerializableQueue;
+import com.velocitypowered.proxy.redis.RedisPacket;
 
 /**
  * Represents a packet to handle updating queue status across all proxies.
