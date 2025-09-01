@@ -109,34 +109,34 @@ public record ConfigDetector(Logger logger) {
    * @throws IOException if there's an error reading the configuration files
    */
   public ConfigAnalysis analyzeConfiguration(final Path configPath) throws IOException {
-    // Load the default embedded configuration
     CommentedConfig defaultConfig = loadDefaultConfig();
     if (defaultConfig == null) {
       throw new IOException("Could not load default configuration from resources");
     }
 
-    // Load the current configuration
     CommentedFileConfig currentConfig = CommentedFileConfig.builder(configPath)
-        .autosave()
         .preserveInsertionOrder()
         .sync()
         .build();
     currentConfig.load();
 
-    // Merge with default config to ensure all options are present
+    CommentedConfig analysisConfig = CommentedConfig.inMemory();
+    
+    for (CommentedConfig.Entry entry : currentConfig.entrySet()) {
+      analysisConfig.set(entry.getKey(), entry.getValue());
+    }
+    
     for (CommentedConfig.Entry entry : defaultConfig.entrySet()) {
-      if (!currentConfig.contains(entry.getKey())) {
-        currentConfig.set(entry.getKey(), entry.getValue());
+      if (!analysisConfig.contains(entry.getKey())) {
+        analysisConfig.set(entry.getKey(), entry.getValue());
       }
     }
 
-    // Get versions
     String currentVersion = currentConfig.getOrElse("config-version", "1.0");
     String latestVersion = defaultConfig.getOrElse("config-version", "1.0");
 
-    // Analyze differences
-    List<String> missingOptions = findMissingOptions(defaultConfig, currentConfig);
-    List<String> deprecatedOptions = findDeprecatedOptions(defaultConfig, currentConfig);
+    List<String> missingOptions = findMissingOptions(defaultConfig, analysisConfig);
+    List<String> deprecatedOptions = findDeprecatedOptions(defaultConfig, analysisConfig);
     List<String> recommendations = generateRecommendations(currentVersion, latestVersion, missingOptions, deprecatedOptions);
 
     boolean isOutdated = !currentVersion.equals(latestVersion)
@@ -193,23 +193,19 @@ public record ConfigDetector(Logger logger) {
       String key = entry.getKey();
       String fullPath = currentPath.isEmpty() ? key : currentPath + "." + key;
 
-      // Skip ignored sections
       if (IGNORED_SECTIONS.contains(key)) {
         continue;
       }
 
       if (!currentConfig.contains(key)) {
-        // Option is completely missing
         missingOptions.add(fullPath);
       } else {
         Object defaultValue = entry.getValue();
         Object currentValue = currentConfig.get(key);
 
         if (defaultValue instanceof CommentedConfig && currentValue instanceof CommentedConfig) {
-          // Both are configs, recurse into them
           findMissingOptionsRecursive((CommentedConfig) defaultValue, (CommentedConfig) currentValue, fullPath, missingOptions);
         }
-        // If they're not both configs, we assume the option exists and skip
       }
     }
   }
@@ -241,20 +237,17 @@ public record ConfigDetector(Logger logger) {
       String key = entry.getKey();
       String fullPath = currentPath.isEmpty() ? key : currentPath + "." + key;
 
-      // Skip ignored sections
       if (IGNORED_SECTIONS.contains(key)) {
         continue;
       }
 
       if (!defaultConfig.contains(key)) {
-        // Option exists in current but not in default - likely deprecated
         deprecatedOptions.add(fullPath);
       } else {
         Object defaultValue = defaultConfig.get(key);
         Object currentValue = entry.getValue();
 
         if (defaultValue instanceof CommentedConfig && currentValue instanceof CommentedConfig) {
-          // Both are configs, recurse into them
           findDeprecatedOptionsRecursive((CommentedConfig) defaultValue, (CommentedConfig) currentValue, fullPath, deprecatedOptions);
         }
       }
