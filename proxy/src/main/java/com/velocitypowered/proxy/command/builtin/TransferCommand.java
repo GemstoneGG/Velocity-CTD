@@ -155,7 +155,7 @@ public class TransferCommand {
         .orElse(null);
 
     if (this.server.getMultiProxyHandler().isRedisEnabled()) {
-      if (this.server.getMultiProxyHandler().isPlayerOnline(player) && !player.equalsIgnoreCase("all")
+      if (!this.server.getMultiProxyHandler().isPlayerOnline(player) && !player.equalsIgnoreCase("all")
           && !player.equalsIgnoreCase("current") && !player.startsWith("+")) {
         context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
             .arguments(Component.text(player)));
