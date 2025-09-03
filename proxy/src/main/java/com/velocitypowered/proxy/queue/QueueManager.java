@@ -232,8 +232,10 @@ public abstract class QueueManager {
               logger.error("Failed to send RedisQueueRemoveRequest for offline player {} from server {}",
                   entry.getPlayer(), queue.getServerName(), e);
             }
+
             return true;
           }
+
           return false;
         });
       }

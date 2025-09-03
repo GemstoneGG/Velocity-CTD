@@ -624,10 +624,10 @@ public record QueueAdminCommand(VelocityServer server) {
       try {
         this.server.getRedisManager().send(new RedisQueueUpdateRequest(
             new SerializableQueue(targetQueueStatus)));
-        logger.debug("Sent bulk RedisQueueUpdateRequest for server {} after adding {} players", 
+        logger.debug("Sent bulk RedisQueueUpdateRequest for server {} after adding {} players",
             to.getServerInfo().getName(), successfullyQueued);
       } catch (Exception e) {
-        logger.error("Failed to send bulk RedisQueueUpdateRequest for server {}", 
+        logger.error("Failed to send bulk RedisQueueUpdateRequest for server {}",
             to.getServerInfo().getName(), e);
       }
     }
@@ -751,10 +751,10 @@ public record QueueAdminCommand(VelocityServer server) {
       try {
         this.server.getRedisManager().send(new RedisQueueUpdateRequest(
             new SerializableQueue(targetQueueStatus)));
-        logger.debug("Sent bulk RedisQueueUpdateRequest for server {} after adding {} players", 
+        logger.debug("Sent bulk RedisQueueUpdateRequest for server {} after adding {} players",
             to.getServerInfo().getName(), successfullyQueued);
       } catch (Exception e) {
-        logger.error("Failed to send bulk RedisQueueUpdateRequest for server {}", 
+        logger.error("Failed to send bulk RedisQueueUpdateRequest for server {}",
             to.getServerInfo().getName(), e);
       }
     }

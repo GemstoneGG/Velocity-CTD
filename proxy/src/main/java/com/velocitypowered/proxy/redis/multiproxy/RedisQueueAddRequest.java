@@ -31,7 +31,7 @@ import java.util.UUID;
  * @param queueBypass Whether the player should bypass the queue entirely.
  * @param username The username of the player for display purposes.
  */
-public record RedisQueueAddRequest(UUID playerUuid, String serverName, int priority, 
+public record RedisQueueAddRequest(UUID playerUuid, String serverName, int priority,
                                   boolean fullBypass, boolean queueBypass, String username) implements RedisPacket {
 
   /**

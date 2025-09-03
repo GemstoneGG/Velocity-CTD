@@ -61,31 +61,27 @@ public class QueueManagerRedisImpl extends QueueManager {
   private void registerRedisListeners() {
     RedisManagerImpl redisManager = this.server.getRedisManager();
 
-    redisManager.listen(RedisQueueSendRequest.ID, RedisQueueSendRequest.class, it -> {
-      server.getPlayer(it.playerUuid()).ifPresent(player -> {
-        RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
-        if (foundServer == null) {
-          throw new IllegalArgumentException("Server not found while attempting to send player in queue. '" + it.serverName() + "'");
-        }
+    redisManager.listen(RedisQueueSendRequest.ID, RedisQueueSendRequest.class, it -> server.getPlayer(it.playerUuid()).ifPresent(player -> {
+      RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
+      if (foundServer == null) {
+        throw new IllegalArgumentException("Server not found while attempting to send player in queue. '" + it.serverName() + "'");
+      }
 
-        ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
-        ServerQueueEntry entry = queueStatus.getEntry(it.playerUuid()).orElse(null);
+      ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
+      ServerQueueEntry entry = queueStatus.getEntry(it.playerUuid()).orElse(null);
 
-        if (entry == null) {
-          logger.debug("Creating temporary queue entry for cross-proxy player {} on server {}", it.playerUuid(), it.serverName());
-          RemotePlayerInfo playerInfo = server.getMultiProxyHandler().getPlayerInfo(it.playerUuid());
-          int priority = playerInfo != null ? playerInfo.getQueuePriority().getOrDefault(it.serverName(), 0) : 0;
-          boolean fullBypass = playerInfo != null && playerInfo.isFullQueueBypass();
-          boolean queueBypass = playerInfo != null && playerInfo.isQueueBypass();
-          entry = new ServerQueueEntry(it.playerUuid(), (VelocityRegisteredServer) foundServer, server,
-                priority, fullBypass, queueBypass);
-        }
+      if (entry == null) {
+        logger.debug("Creating temporary queue entry for cross-proxy player {} on server {}", it.playerUuid(), it.serverName());
+        RemotePlayerInfo playerInfo = server.getMultiProxyHandler().getPlayerInfo(it.playerUuid());
+        int priority = playerInfo != null ? playerInfo.getQueuePriority().getOrDefault(it.serverName(), 0) : 0;
+        boolean fullBypass = playerInfo != null && playerInfo.isFullQueueBypass();
+        boolean queueBypass = playerInfo != null && playerInfo.isQueueBypass();
+        entry = new ServerQueueEntry(it.playerUuid(), (VelocityRegisteredServer) foundServer, server,
+              priority, fullBypass, queueBypass);
+      }
 
-        entry.handleSending();
-      });
-    });
-
-
+      entry.handleSending();
+    }));
 
     redisManager.listen(RedisSendActionBarRequest.ID, RedisSendActionBarRequest.class, it -> {
       Component component = it.component();
@@ -104,7 +100,7 @@ public class QueueManagerRedisImpl extends QueueManager {
     });
 
     redisManager.listen(RedisQueueAddRequest.ID, RedisQueueAddRequest.class, it -> {
-      logger.debug("Received RedisQueueAddRequest for player {} on server {} from another proxy", 
+      logger.debug("Received RedisQueueAddRequest for player {} on server {} from another proxy",
           it.playerUuid(), it.serverName());
 
       RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
@@ -116,11 +112,11 @@ public class QueueManagerRedisImpl extends QueueManager {
       ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
       if (queueStatus != null) {
         if (!queueStatus.isQueued(it.playerUuid())) {
-          logger.debug("Adding player {} to queue for server {} from Redis request", 
+          logger.debug("Adding player {} to queue for server {} from Redis request",
               it.playerUuid(), it.serverName());
           queueStatus.queue(it.playerUuid(), it.priority(), it.fullBypass(), it.queueBypass());
         } else {
-          logger.debug("Player {} already in queue for server {}, skipping Redis add request", 
+          logger.debug("Player {} already in queue for server {}, skipping Redis add request",
               it.playerUuid(), it.serverName());
         }
       } else {
@@ -129,7 +125,7 @@ public class QueueManagerRedisImpl extends QueueManager {
     });
 
     redisManager.listen(RedisQueueRemoveRequest.ID, RedisQueueRemoveRequest.class, it -> {
-      logger.debug("Received RedisQueueRemoveRequest for player {} on server {} from another proxy", 
+      logger.debug("Received RedisQueueRemoveRequest for player {} on server {} from another proxy",
           it.playerUuid(), it.serverName());
 
       RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
@@ -141,11 +137,11 @@ public class QueueManagerRedisImpl extends QueueManager {
       ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
       if (queueStatus != null) {
         if (queueStatus.isQueued(it.playerUuid())) {
-          logger.debug("Removing player {} from queue for server {} from Redis request", 
+          logger.debug("Removing player {} from queue for server {} from Redis request",
               it.playerUuid(), it.serverName());
           queueStatus.dequeue(it.playerUuid(), it.maxRetriesReached());
         } else {
-          logger.debug("Player {} not in queue for server {}, skipping Redis remove request", 
+          logger.debug("Player {} not in queue for server {}, skipping Redis remove request",
               it.playerUuid(), it.serverName());
         }
       } else {
@@ -154,7 +150,7 @@ public class QueueManagerRedisImpl extends QueueManager {
     });
 
     redisManager.listen(RedisQueueUpdateRequest.ID, RedisQueueUpdateRequest.class, it -> {
-      logger.debug("Received RedisQueueUpdateRequest for server {} from another proxy", 
+      logger.debug("Received RedisQueueUpdateRequest for server {} from another proxy",
           it.queueData().getServerName());
 
       if (this.cache instanceof RedisRetriever redisRetriever) {
@@ -174,7 +170,7 @@ public class QueueManagerRedisImpl extends QueueManager {
           logger.debug("Updated queue for server {} from Redis request", it.queueData().getServerName());
         }
       } catch (Exception e) {
-        logger.error("Error processing RedisQueueUpdateRequest for server {}", 
+        logger.error("Error processing RedisQueueUpdateRequest for server {}",
             it.queueData().getServerName(), e);
       }
     });

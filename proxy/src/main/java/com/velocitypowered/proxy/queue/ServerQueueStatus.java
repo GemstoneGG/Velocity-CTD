@@ -383,7 +383,7 @@ public class ServerQueueStatus {
         player, getServerName(), maxRetriesReached);
 
     if (!playerIndex.containsKey(player)) {
-      logger.debug("Player {} not found in queue index for server {} - already removed or never queued", 
+      logger.debug("Player {} not found in queue index for server {} - already removed or never queued",
           player, getServerName());
       return;
     }
@@ -750,7 +750,7 @@ public class ServerQueueStatus {
         queue.offer(queueEntry);
         playerIndex.put(entry.uuid(), queueEntry);
 
-        logger.debug("Added player {} to queue from serialized data with priority {}", 
+        logger.debug("Added player {} to queue from serialized data with priority {}",
             entry.uuid(), entry.priority());
       } catch (Exception e) {
         logger.error("Error adding player {} to queue from serialized data", entry.uuid(), e);

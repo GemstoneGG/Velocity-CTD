@@ -223,7 +223,7 @@ public class MultiProxyHandler {
         this.server.getRedisManager().removePlayer(player);
       }
     }
-    
+
     // If we become the new master proxy after this shutdown, restart tasks
     this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
       if (this.server.getQueueManager().isMasterProxy()) {
