@@ -5,7 +5,7 @@ flare = "2.0.1"
 junit = "5.13.4"
 junit-platform = "1.13.4"
 log4j = "2.25.1"
-netty = "4.2.4.Final"
+netty = "4.2.5.Final"
 lettuce = "6.8.1.RELEASE"
 micrometer = "1.15.3"
 
