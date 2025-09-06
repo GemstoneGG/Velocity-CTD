@@ -836,13 +836,13 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
     this.configuration = newConfiguration;
 
+    reloadServerList();
+
     registerCommands();
 
     unregisterTranslations();
 
     registerTranslations(false);
-
-    reloadServerList();
 
     // Re-register servers. If a server is being replaced, make sure to note what players need to
     // move back to a fallback server.
@@ -958,6 +958,12 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
     for (String alias : configuration.getProxyCommandAliases().keySet()) {
       unregisterCommand(alias);
+    }
+
+    for (Map.Entry<String, List<String>> entry : configuration.getSlashServers().entrySet()) {
+      for (String alias : entry.getValue()) {
+        unregisterCommand(alias);
+      }
     }
   }
 
