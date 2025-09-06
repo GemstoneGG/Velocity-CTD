@@ -587,14 +587,16 @@ public class ServerQueueStatus {
       return -1;
     }
 
+    ServerQueueEntry targetEntry = playerIndex.get(player);
     int position = 1;
-    Object[] entries = queue.toArray();
 
-    for (Object obj : entries) {
-      if (obj instanceof ServerQueueEntry entry) {
-        if (entry.getPlayer().equals(player)) {
-          return position;
-        }
+    for (ServerQueueEntry entry : queue) {
+      if (entry.getPlayer().equals(player)) {
+        return position;
+      }
+      
+      int priorityCompare = Integer.compare(entry.getPriority(), targetEntry.getPriority());
+      if (priorityCompare > 0 || (priorityCompare == 0 && entry.getPlayer().compareTo(player) < 0)) {
         position++;
       }
     }
