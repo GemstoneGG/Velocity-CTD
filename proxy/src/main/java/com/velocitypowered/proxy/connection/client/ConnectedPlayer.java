@@ -1390,6 +1390,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       return this.server.getServer(this.server.getMultiProxyHandler().getTransferringServers().get(getUniqueId()));
     }
 
+    if (connectedServer != null && connectedServer.hasCompletedJoin()) {
+      return Optional.empty();
+    }
+
     return this.getNextServerToTry(null);
   }
 
