@@ -26,6 +26,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.queue.cache.QueueCacheRetriever;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueRemoveRequest;
+import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.List;
 import java.util.Map;
@@ -222,7 +223,7 @@ public abstract class QueueManager {
 
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         queue.getQueue().removeIf(entry -> {
-          if (!this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
+          if (!isPlayerOnline(entry.getPlayer())) {
             queue.getPlayerIndex().remove(entry.getPlayer());
             try {
               this.server.getRedisManager().send(new RedisQueueRemoveRequest(
@@ -472,6 +473,26 @@ public abstract class QueueManager {
       if (status.isQueued(player.getUniqueId())) {
         status.dequeue(player.getUniqueId(), false);
       }
+    }
+  }
+
+  /**
+   * Sends the max retries reached message to a player.
+   * This is a utility method to avoid code duplication across queue classes.
+   *
+   * @param server the Velocity server instance
+   * @param playerUuid the UUID of the player to send the message to
+   * @param serverName the name of the server the player was trying to connect to
+   */
+  public static void sendMaxRetriesMessage(final VelocityServer server, final UUID playerUuid, final String serverName) {
+    Component message = Component.translatable("velocity.queue.error.max-send-retries-reached")
+        .arguments(Component.text(serverName),
+            Component.text(server.getConfiguration().getQueue().getMaxSendRetries()));
+
+    if (server.getMultiProxyHandler().isRedisEnabled()) {
+      server.getRedisManager().send(new RedisSendMessageToUuidRequest(playerUuid, message));
+    } else {
+      server.getPlayer(playerUuid).ifPresent(player -> player.sendMessage(message));
     }
   }
 }

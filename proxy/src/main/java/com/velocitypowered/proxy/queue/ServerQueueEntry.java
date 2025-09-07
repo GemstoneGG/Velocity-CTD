@@ -22,12 +22,10 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
-import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -195,7 +193,7 @@ public class ServerQueueEntry {
 
           if (getConnectionAttempts() == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
             logger.debug("Max retries reached for player {} to server {}", player, target.getServerInfo().getName());
-            sendMaxRetriesMessage();
+            QueueManager.sendMaxRetriesMessage(this.proxy, player, target.getServerInfo().getName());
           }
         }
       }).exceptionally(ex -> {
@@ -203,7 +201,7 @@ public class ServerQueueEntry {
 
         if (getConnectionAttempts() == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
           logger.debug("Max retries reached (exception) for player {} to server {}", player, target.getServerInfo().getName());
-          sendMaxRetriesMessage();
+          QueueManager.sendMaxRetriesMessage(this.proxy, player, target.getServerInfo().getName());
         }
 
         return null;
@@ -211,20 +209,6 @@ public class ServerQueueEntry {
     });
   }
 
-  /**
-   * Sends the max retries reached message to the player.
-   */
-  private void sendMaxRetriesMessage() {
-    Component message = Component.translatable("velocity.queue.error.max-send-retries-reached")
-        .arguments(Component.text(target.getServerInfo().getName()),
-            Component.text(this.proxy.getConfiguration().getQueue().getMaxSendRetries()));
-
-    if (this.proxy.getMultiProxyHandler().isRedisEnabled()) {
-      this.proxy.getRedisManager().send(new RedisSendMessageToUuidRequest(player, message));
-    } else {
-      this.proxy.getPlayer(player).ifPresent(playerInstance -> playerInstance.sendMessage(message));
-    }
-  }
 
   /**
    * Get the UUID of the player.

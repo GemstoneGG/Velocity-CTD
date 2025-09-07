@@ -26,7 +26,7 @@ import com.velocitypowered.proxy.queue.cache.StandardRetriever;
 public class QueueManagerNoRedisImpl extends QueueManager {
 
   /**
-   * Constructs a {@link QueueManagerRedisImpl}.
+   * Constructs a {@link QueueManagerNoRedisImpl}.
    *
    * @param server the proxy server
    */

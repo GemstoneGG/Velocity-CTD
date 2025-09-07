@@ -26,7 +26,6 @@ import com.velocitypowered.proxy.queue.cache.SerializableQueueEntry;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueAddRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueRemoveRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
-import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Deque;
 import java.util.HashMap;
@@ -379,17 +378,7 @@ public class ServerQueueStatus {
 
     this.velocityServer.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
       if (maxRetriesReached) {
-        if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
-          this.velocityServer.getRedisManager().send(new RedisSendMessageToUuidRequest(player,
-              Component.translatable("velocity.queue.error.max-send-retries-reached")
-                  .arguments(Component.text(getServerName()),
-                      Component.text(this.velocityServer.getConfiguration().getQueue().getMaxSendRetries()))));
-        } else {
-          this.velocityServer.getPlayer(player).ifPresent(p ->
-                  p.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached")
-                      .arguments(Component.text(getServerName()),
-                          Component.text(this.velocityServer.getConfiguration().getQueue().getMaxSendRetries()))));
-        }
+        QueueManager.sendMaxRetriesMessage(this.velocityServer, player, getServerName());
       }
     }).delay(1, TimeUnit.SECONDS).schedule();
 
