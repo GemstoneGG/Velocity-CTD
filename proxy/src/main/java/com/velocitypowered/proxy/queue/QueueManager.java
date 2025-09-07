@@ -29,6 +29,7 @@ import com.velocitypowered.proxy.redis.multiproxy.RedisQueueRemoveRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
@@ -250,20 +251,26 @@ public abstract class QueueManager {
         return;
       }
 
-      if (this.server.getMultiProxyHandler().isRedisEnabled()) {
-        if (this.server.getMultiProxyHandler().isPlayerOnline(entry.getPlayer())) {
-          queue.sendFirstInQueue(entry);
-        } else {
-          queue.dequeue(entry.getPlayer(), false);
-        }
+      if (isPlayerOnline(entry.getPlayer())) {
+        queue.sendFirstInQueue(entry);
       } else {
-        if (this.server.getPlayer(entry.getPlayer()).orElse(null) != null) {
-          queue.sendFirstInQueue(entry);
-        } else {
-          queue.dequeue(entry.getPlayer(), false);
-        }
+        queue.dequeue(entry.getPlayer(), false);
       }
     });
+  }
+
+  /**
+   * Checks if a player is online, handling both Redis and non-Redis modes.
+   *
+   * @param playerUuid the UUID of the player to check
+   * @return true if the player is online, false otherwise
+   */
+  private boolean isPlayerOnline(final UUID playerUuid) {
+    if (this.server.getMultiProxyHandler().isRedisEnabled()) {
+      return this.server.getMultiProxyHandler().isPlayerOnline(playerUuid);
+    } else {
+      return this.server.getPlayer(playerUuid).orElse(null) != null;
+    }
   }
 
   /**

@@ -308,7 +308,6 @@ public class ServerQueueStatus {
     int queueSizeBefore = queue.size();
     int indexSizeBefore = playerIndex.size();
     logger.debug("Queue state before adding player {}: queue size={}, index size={}", playerUuid, queueSizeBefore, indexSizeBefore);
-    dumpQueueContents("before adding " + playerUuid);
 
     logger.debug("Attempting to add player {} to priority queue", playerUuid);
     ServerQueueEntry entry = new ServerQueueEntry(playerUuid, this.server, this.velocityServer, priority, fullBypass, queueBypass);
@@ -322,7 +321,6 @@ public class ServerQueueStatus {
 
     int queueSizeAfterQueue = queue.size();
     logger.debug("Queue state after adding to queue but before index: queue size={}", queueSizeAfterQueue);
-    dumpQueueContents("after adding to queue " + playerUuid);
 
     logger.debug("Adding player {} to index after successful queue insertion", playerUuid);
     ServerQueueEntry existingEntry = playerIndex.putIfAbsent(playerUuid, entry);
@@ -336,7 +334,6 @@ public class ServerQueueStatus {
     int indexSizeAfter = playerIndex.size();
     logger.debug("Successfully queued player {} to server {} (queue size: {}, index size: {})",
         playerUuid, getServerName(), queueSizeAfter, indexSizeAfter);
-    dumpQueueContents("after adding to index " + playerUuid);
 
     if (queueSizeAfter != queueSizeBefore + 1) {
       logger.warn("Queue size mismatch! Expected: {}, Actual: {}", queueSizeBefore + 1, queueSizeAfter);
@@ -352,15 +349,7 @@ public class ServerQueueStatus {
 
     if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
       try {
-        String username = "Unknown";
-        if (this.velocityServer.getPlayer(playerUuid).isPresent()) {
-          username = this.velocityServer.getPlayer(playerUuid).get().getUsername();
-        } else {
-          var remotePlayer = this.velocityServer.getMultiProxyHandler().getPlayerInfo(playerUuid);
-          if (remotePlayer != null) {
-            username = remotePlayer.getUsername();
-          }
-        }
+        String username = getPlayerUsername(playerUuid);
 
         this.velocityServer.getRedisManager().send(new RedisQueueAddRequest(
             playerUuid, getServerName(), priority, fullBypass, queueBypass, username));
@@ -697,27 +686,18 @@ public class ServerQueueStatus {
   }
 
   /**
-   * Debug method to dump current queue contents.
+   * Gets the username for a player, handling both local and remote players.
    *
-   * @param operation a descriptive label of the operation that triggered the dump
+   * @param playerUuid the UUID of the player
+   * @return the username, or "Unknown" if not found
    */
-  private void dumpQueueContents(final String operation) {
-    logger.debug("=== Queue dump after {} ===", operation);
-    logger.debug("Queue size: {}, Index size: {}", queue.size(), playerIndex.size());
-
-    Object[] queueArray = queue.toArray();
-    logger.debug("Queue contents ({} items):", queueArray.length);
-    for (int i = 0; i < queueArray.length; i++) {
-      if (queueArray[i] instanceof ServerQueueEntry entry) {
-        logger.debug("  [{}] Player: {}, Priority: {}", i, entry.getPlayer(), entry.getPriority());
-      }
+  private String getPlayerUsername(final UUID playerUuid) {
+    if (this.velocityServer.getPlayer(playerUuid).isPresent()) {
+      return this.velocityServer.getPlayer(playerUuid).get().getUsername();
+    } else {
+      var remotePlayer = this.velocityServer.getMultiProxyHandler().getPlayerInfo(playerUuid);
+      return remotePlayer != null ? remotePlayer.getUsername() : "Unknown";
     }
-
-    logger.debug("Index contents ({} items):", playerIndex.size());
-    for (Map.Entry<UUID, ServerQueueEntry> entry : playerIndex.entrySet()) {
-      logger.debug("  Player: {}, Priority: {}", entry.getKey(), entry.getValue().getPriority());
-    }
-    logger.debug("=== End queue dump ===");
   }
 
   /**

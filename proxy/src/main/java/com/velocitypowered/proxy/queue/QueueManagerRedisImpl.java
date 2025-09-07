@@ -62,10 +62,8 @@ public class QueueManagerRedisImpl extends QueueManager {
     RedisManagerImpl redisManager = this.server.getRedisManager();
 
     redisManager.listen(RedisQueueSendRequest.ID, RedisQueueSendRequest.class, it -> server.getPlayer(it.playerUuid()).ifPresent(player -> {
-      RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
-      if (foundServer == null) {
-        throw new IllegalArgumentException("Server not found while attempting to send player in queue. '" + it.serverName() + "'");
-      }
+      RegisteredServer foundServer = validateServer(it.serverName(), "send player in queue");
+      if (foundServer == null) return;
 
       ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
       ServerQueueEntry entry = queueStatus.getEntry(it.playerUuid()).orElse(null);
@@ -103,11 +101,8 @@ public class QueueManagerRedisImpl extends QueueManager {
       logger.debug("Received RedisQueueAddRequest for player {} on server {} from another proxy",
           it.playerUuid(), it.serverName());
 
-      RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
-      if (foundServer == null) {
-        logger.error("Server not found while attempting to add player to queue. '{}'", it.serverName());
-        return;
-      }
+      RegisteredServer foundServer = validateServer(it.serverName(), "add player to queue");
+      if (foundServer == null) return;
 
       ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
       if (queueStatus != null) {
@@ -128,11 +123,8 @@ public class QueueManagerRedisImpl extends QueueManager {
       logger.debug("Received RedisQueueRemoveRequest for player {} on server {} from another proxy",
           it.playerUuid(), it.serverName());
 
-      RegisteredServer foundServer = server.getServer(it.serverName()).orElse(null);
-      if (foundServer == null) {
-        logger.error("Server not found while attempting to remove player from queue. '{}'", it.serverName());
-        return;
-      }
+      RegisteredServer foundServer = validateServer(it.serverName(), "remove player from queue");
+      if (foundServer == null) return;
 
       ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
       if (queueStatus != null) {
@@ -158,11 +150,8 @@ public class QueueManagerRedisImpl extends QueueManager {
       }
 
       try {
-        RegisteredServer foundServer = server.getServer(it.queueData().getServerName()).orElse(null);
-        if (foundServer == null) {
-          logger.error("Server not found while attempting to update queue. '{}'", it.queueData().getServerName());
-          return;
-        }
+        RegisteredServer foundServer = validateServer(it.queueData().getServerName(), "update queue");
+        if (foundServer == null) return;
 
         ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
         if (queueStatus != null) {
@@ -174,6 +163,21 @@ public class QueueManagerRedisImpl extends QueueManager {
             it.queueData().getServerName(), e);
       }
     });
+  }
+
+  /**
+   * Validates that a server exists and returns it, or logs an error and returns null.
+   *
+   * @param serverName the name of the server to validate
+   * @param operation a description of the operation being performed for error messages
+   * @return the server if found, null otherwise
+   */
+  private RegisteredServer validateServer(final String serverName, final String operation) {
+    RegisteredServer foundServer = server.getServer(serverName).orElse(null);
+    if (foundServer == null) {
+      logger.error("Server not found while attempting to {}: '{}'", operation, serverName);
+    }
+    return foundServer;
   }
 
   /**

@@ -143,13 +143,6 @@ public class RedisRetriever implements QueueCacheRetriever {
     return queue;
   }
 
-  /**
-   * Clears the instance cache. This should be called when the queue system is being reset.
-   */
-  public void clearCache() {
-    logger.debug("Clearing RedisRetriever instance cache");
-    instanceCache.clear();
-  }
 
   /**
    * Clears the cached instance for a specific server. This should be called when the queue

@@ -195,18 +195,7 @@ public class ServerQueueEntry {
 
           if (getConnectionAttempts() == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
             logger.debug("Max retries reached for player {} to server {}", player, target.getServerInfo().getName());
-
-            if (this.proxy.getMultiProxyHandler().isRedisEnabled()) {
-              this.proxy.getRedisManager().send(new RedisSendMessageToUuidRequest(player,
-                  Component.translatable("velocity.queue.error.max-send-retries-reached")
-                      .arguments(Component.text(target.getServerInfo().getName()),
-                          Component.text(this.proxy.getConfiguration().getQueue().getMaxSendRetries()))));
-            } else {
-              this.proxy.getPlayer(player).ifPresent(playerInstance ->
-                  playerInstance.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached")
-                      .arguments(Component.text(target.getServerInfo().getName()),
-                          Component.text(this.proxy.getConfiguration().getQueue().getMaxSendRetries()))));
-            }
+            sendMaxRetriesMessage();
           }
         }
       }).exceptionally(ex -> {
@@ -214,23 +203,27 @@ public class ServerQueueEntry {
 
         if (getConnectionAttempts() == this.proxy.getConfiguration().getQueue().getMaxSendRetries()) {
           logger.debug("Max retries reached (exception) for player {} to server {}", player, target.getServerInfo().getName());
-
-          if (this.proxy.getMultiProxyHandler().isRedisEnabled()) {
-            this.proxy.getRedisManager().send(new RedisSendMessageToUuidRequest(player,
-                Component.translatable("velocity.queue.error.max-send-retries-reached")
-                    .arguments(Component.text(target.getServerInfo().getName()),
-                        Component.text(this.proxy.getConfiguration().getQueue().getMaxSendRetries()))));
-          } else {
-            this.proxy.getPlayer(player).ifPresent(playerInstance ->
-                playerInstance.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached")
-                    .arguments(Component.text(target.getServerInfo().getName()),
-                        Component.text(this.proxy.getConfiguration().getQueue().getMaxSendRetries()))));
-          }
+          sendMaxRetriesMessage();
         }
 
         return null;
       });
     });
+  }
+
+  /**
+   * Sends the max retries reached message to the player.
+   */
+  private void sendMaxRetriesMessage() {
+    Component message = Component.translatable("velocity.queue.error.max-send-retries-reached")
+        .arguments(Component.text(target.getServerInfo().getName()),
+            Component.text(this.proxy.getConfiguration().getQueue().getMaxSendRetries()));
+
+    if (this.proxy.getMultiProxyHandler().isRedisEnabled()) {
+      this.proxy.getRedisManager().send(new RedisSendMessageToUuidRequest(player, message));
+    } else {
+      this.proxy.getPlayer(player).ifPresent(playerInstance -> playerInstance.sendMessage(message));
+    }
   }
 
   /**
@@ -330,16 +323,15 @@ public class ServerQueueEntry {
   /**
    * Get the username of the player.
    *
-   * @return The username of the player.
+   * @return The username of the player, or null if player not found
    */
   public String getUsername() {
-    if (this.proxy.getRedisManager().isEnabled()) {
+    if (this.proxy.getMultiProxyHandler().isRedisEnabled()) {
       RemotePlayerInfo info = this.proxy.getMultiProxyHandler().getPlayerInfo(player);
       if (info == null) {
         this.proxy.getQueueManager().getQueue(this.target.getServerInfo().getName()).dequeue(player, false);
         return null;
       }
-
       return info.getUsername();
     } else {
       Player p = this.proxy.getPlayer(player).orElse(null);
@@ -347,7 +339,6 @@ public class ServerQueueEntry {
         this.proxy.getQueueManager().getQueue(this.target.getServerInfo().getName()).dequeue(player, false);
         return null;
       }
-
       return p.getUsername();
     }
   }
