@@ -128,6 +128,9 @@ public class RedisManagerImpl {
    * Executor service for handling async Redis operations.
    */
   private final ExecutorService asyncExecutor;
+  private volatile Set<String> pausedQueuesCache = new HashSet<>();
+  private volatile long lastPausedQueuesUpdate = 0;
+  private static final long PAUSED_QUEUES_CACHE_TTL = 5000;
 
   /**
    * Flag indicating if the Redis manager is shutting down.
@@ -263,6 +266,29 @@ public class RedisManagerImpl {
   }
 
   /**
+   * Add paused queue asynchronously.
+   *
+   * @param serverName The name of the server.
+   * @return CompletableFuture that completes when the operation is done
+   */
+  public CompletableFuture<Void> addPausedQueueAsync(final String serverName) {
+    if (this.redisClient == null) {
+      return CompletableFuture.completedFuture(null);
+    }
+
+    return CompletableFuture.runAsync(() -> {
+      try {
+        RedisAsyncCommands<String, String> commands = connection.async();
+        commands.sadd("PAUSED_QUEUES", serverName)
+            .toCompletableFuture()
+            .get(5, TimeUnit.SECONDS);
+      } catch (Exception e) {
+        logger.error("Failed to add paused queue asynchronously: {}", serverName, e);
+      }
+    }, asyncExecutor);
+  }
+
+  /**
    * Remove paused queue.
    *
    * @param serverName The name of the server.
@@ -278,6 +304,29 @@ public class RedisManagerImpl {
     } catch (Exception e) {
       logger.error("Failed to remove paused queue: {}", serverName, e);
     }
+  }
+
+  /**
+   * Remove paused queue asynchronously.
+   *
+   * @param serverName The name of the server.
+   * @return CompletableFuture that completes when the operation is done
+   */
+  public CompletableFuture<Void> removePausedQueueAsync(final String serverName) {
+    if (this.redisClient == null) {
+      return CompletableFuture.completedFuture(null);
+    }
+
+    return CompletableFuture.runAsync(() -> {
+      try {
+        RedisAsyncCommands<String, String> commands = connection.async();
+        commands.srem("PAUSED_QUEUES", serverName)
+            .toCompletableFuture()
+            .get(5, TimeUnit.SECONDS);
+      } catch (Exception e) {
+        logger.error("Failed to remove paused queue asynchronously: {}", serverName, e);
+      }
+    }, asyncExecutor);
   }
 
   /**
@@ -297,6 +346,54 @@ public class RedisManagerImpl {
       logger.error("Failed to get paused queues", e);
       return new ArrayList<>();
     }
+  }
+
+  /**
+   * Get all the paused queues asynchronously.
+   *
+   * @return CompletableFuture with all the paused queues.
+   */
+  public CompletableFuture<List<String>> getPausedQueuesAsync() {
+    if (this.redisClient == null) {
+      return CompletableFuture.completedFuture(new ArrayList<>());
+    }
+
+    return CompletableFuture.supplyAsync(() -> {
+      try {
+        RedisAsyncCommands<String, String> commands = connection.async();
+        return new ArrayList<>(commands.smembers("PAUSED_QUEUES")
+            .toCompletableFuture()
+            .get(5, TimeUnit.SECONDS));
+      } catch (Exception e) {
+        logger.error("Failed to get paused queues asynchronously", e);
+        return new ArrayList<>();
+      }
+    }, asyncExecutor);
+  }
+
+  /**
+   * Check if a queue is paused using cached data.
+   * This method is non-blocking and uses a 5-second cache.
+   *
+   * @param serverName the server name to check
+   * @return true if the queue is paused, false otherwise
+   */
+  public boolean isQueuePausedCached(final String serverName) {
+    long currentTime = System.currentTimeMillis();
+    
+    // Check if cache is stale and refresh asynchronously
+    if (currentTime - lastPausedQueuesUpdate > PAUSED_QUEUES_CACHE_TTL) {
+      getPausedQueuesAsync().thenAccept(queues -> {
+        pausedQueuesCache = new HashSet<>(queues);
+        lastPausedQueuesUpdate = currentTime;
+      }).exceptionally(throwable -> {
+        logger.error("Failed to refresh paused queues cache", throwable);
+        return null;
+      });
+    }
+    
+    // Return cached result (may be stale for up to 5 seconds)
+    return pausedQueuesCache.contains(serverName);
   }
 
   /**
@@ -676,6 +773,34 @@ public class RedisManagerImpl {
     } catch (Exception e) {
       logger.error("Failed to send Redis pubsub message", e);
     }
+  }
+
+  /**
+   * Sends an object on the given channel asynchronously.
+   *
+   * @param packet the object to send
+   * @return CompletableFuture that completes when the message is sent
+   */
+  public CompletableFuture<Void> sendAsync(final RedisPacket packet) {
+    if (this.redisClient == null) {
+      return CompletableFuture.completedFuture(null);
+    }
+
+    return CompletableFuture.runAsync(() -> {
+      try {
+        JsonElement packetData = gson.toJsonTree(packet);
+        JsonObject object = new JsonObject();
+        object.add("obj", packetData);
+        object.addProperty("id", packet.getId());
+
+        RedisPubSubAsyncCommands<String, String> commands = pubSubConnection.async();
+        commands.publish(CHANNEL, gson.toJson(object))
+            .toCompletableFuture()
+            .get(5, TimeUnit.SECONDS);
+      } catch (Exception e) {
+        logger.error("Failed to send Redis pubsub message asynchronously", e);
+      }
+    }, asyncExecutor);
   }
 
   /**

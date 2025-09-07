@@ -152,7 +152,12 @@ public class ServerQueueEntry {
     setWaitingForConnection(true);
 
     if (proxy.getMultiProxyHandler().isRedisEnabled()) {
-      proxy.getRedisManager().send(new RedisQueueSendRequest(player, target.getServerInfo().getName()));
+      proxy.getRedisManager().sendAsync(new RedisQueueSendRequest(player, target.getServerInfo().getName()))
+          .thenRun(() -> logger.debug("Sent RedisQueueSendRequest for player {} to server {}", player, target.getServerInfo().getName()))
+          .exceptionally(throwable -> {
+            logger.error("Failed to send RedisQueueSendRequest for player {} to server {}", player, target.getServerInfo().getName(), throwable);
+            return null;
+          });
     } else {
       handleSending();
     }

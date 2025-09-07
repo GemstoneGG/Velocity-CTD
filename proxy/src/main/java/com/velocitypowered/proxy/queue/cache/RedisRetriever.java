@@ -94,7 +94,11 @@ public class RedisRetriever implements QueueCacheRetriever {
       status = new ServerQueueStatus(server, proxy);
       logger.debug("Created new empty ServerQueueStatus instance for server: {}", serverName);
 
-      redisManager.addOrUpdateQueue(status);
+      redisManager.addOrUpdateQueueAsync(status)
+          .exceptionally(throwable -> {
+            logger.error("Failed to add new queue to Redis cache for server: {}", serverName, throwable);
+            return null;
+          });
     }
 
     ServerQueueStatus existingInstance = instanceCache.putIfAbsent(serverName, status);

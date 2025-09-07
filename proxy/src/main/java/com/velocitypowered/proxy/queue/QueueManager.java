@@ -225,15 +225,16 @@ public abstract class QueueManager {
         queue.getQueue().removeIf(entry -> {
           if (!isPlayerOnline(entry.getPlayer())) {
             queue.getPlayerIndex().remove(entry.getPlayer());
-            try {
-              this.server.getRedisManager().send(new RedisQueueRemoveRequest(
-                  entry.getPlayer(), queue.getServerName(), false));
-              logger.debug("Sent RedisQueueRemoveRequest for offline player {} from server {}",
-                  entry.getPlayer(), queue.getServerName());
-            } catch (Exception e) {
-              logger.error("Failed to send RedisQueueRemoveRequest for offline player {} from server {}",
-                  entry.getPlayer(), queue.getServerName(), e);
-            }
+            
+            this.server.getRedisManager().sendAsync(new RedisQueueRemoveRequest(
+                entry.getPlayer(), queue.getServerName(), false))
+                .thenRun(() -> logger.debug("Sent RedisQueueRemoveRequest for offline player {} from server {}",
+                    entry.getPlayer(), queue.getServerName()))
+                .exceptionally(throwable -> {
+                  logger.error("Failed to send RedisQueueRemoveRequest for offline player {} from server {}",
+                      entry.getPlayer(), queue.getServerName(), throwable);
+                  return null;
+                });
 
             return true;
           }

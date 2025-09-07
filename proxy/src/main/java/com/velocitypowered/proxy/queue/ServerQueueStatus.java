@@ -209,15 +209,15 @@ public class ServerQueueStatus {
     }
 
     if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
-      try {
-        this.velocityServer.getRedisManager().send(new RedisQueueRemoveRequest(
-            entry.getPlayer(), getServerName(), false));
-        logger.debug("Sent RedisQueueRemoveRequest for player {} from server {} after sending",
-            entry.getPlayer(), getServerName());
-      } catch (Exception e) {
-        logger.error("Failed to send RedisQueueRemoveRequest for player {} from server {} after sending",
-            entry.getPlayer(), getServerName(), e);
-      }
+      this.velocityServer.getRedisManager().sendAsync(new RedisQueueRemoveRequest(
+          entry.getPlayer(), getServerName(), false))
+          .thenRun(() -> logger.debug("Sent RedisQueueRemoveRequest for player {} from server {} after sending",
+              entry.getPlayer(), getServerName()))
+          .exceptionally(throwable -> {
+            logger.error("Failed to send RedisQueueRemoveRequest for player {} from server {} after sending",
+                entry.getPlayer(), getServerName(), throwable);
+            return null;
+          });
     }
 
     this.velocityServer.getRedisManager().addOrUpdateQueueAsync(this)
@@ -258,9 +258,17 @@ public class ServerQueueStatus {
   public void setPaused(final boolean paused) {
     if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
       if (paused) {
-        this.velocityServer.getRedisManager().addPausedQueue(getServerName());
+        this.velocityServer.getRedisManager().addPausedQueueAsync(getServerName())
+            .exceptionally(throwable -> {
+              logger.error("Failed to add paused queue asynchronously", throwable);
+              return null;
+            });
       } else {
-        this.velocityServer.getRedisManager().removePausedQueue(getServerName());
+        this.velocityServer.getRedisManager().removePausedQueueAsync(getServerName())
+            .exceptionally(throwable -> {
+              logger.error("Failed to remove paused queue asynchronously", throwable);
+              return null;
+            });
       }
     } else {
       this.paused = paused;
@@ -289,7 +297,12 @@ public class ServerQueueStatus {
         player.createConnectionRequest(server).connect();
       } else {
         if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
-          this.velocityServer.getRedisManager().send(new RedisQueueSendRequest(playerUuid, server.getServerInfo().getName()));
+          this.velocityServer.getRedisManager().sendAsync(new RedisQueueSendRequest(playerUuid, server.getServerInfo().getName()))
+              .thenRun(() -> logger.debug("Sent RedisQueueSendRequest for player {} to server {}", playerUuid, server.getServerInfo().getName()))
+              .exceptionally(throwable -> {
+                logger.error("Failed to send RedisQueueSendRequest for player {} to server {}", playerUuid, server.getServerInfo().getName(), throwable);
+                return null;
+              });
         }
       }
 
@@ -347,15 +360,15 @@ public class ServerQueueStatus {
         });
 
     if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
-      try {
-        String username = getPlayerUsername(playerUuid);
+      String username = getPlayerUsername(playerUuid);
 
-        this.velocityServer.getRedisManager().send(new RedisQueueAddRequest(
-            playerUuid, getServerName(), priority, fullBypass, queueBypass, username));
-        logger.debug("Sent RedisQueueAddRequest for player {} to server {}", playerUuid, getServerName());
-      } catch (Exception e) {
-        logger.error("Failed to send RedisQueueAddRequest for player {} to server {}", playerUuid, getServerName(), e);
-      }
+      this.velocityServer.getRedisManager().sendAsync(new RedisQueueAddRequest(
+          playerUuid, getServerName(), priority, fullBypass, queueBypass, username))
+          .thenRun(() -> logger.debug("Sent RedisQueueAddRequest for player {} to server {}", playerUuid, getServerName()))
+          .exceptionally(throwable -> {
+            logger.error("Failed to send RedisQueueAddRequest for player {} to server {}", playerUuid, getServerName(), throwable);
+            return null;
+          });
     }
   }
 
@@ -398,13 +411,13 @@ public class ServerQueueStatus {
         });
 
     if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
-      try {
-        this.velocityServer.getRedisManager().send(new RedisQueueRemoveRequest(
-            player, getServerName(), maxRetriesReached));
-        logger.debug("Sent RedisQueueRemoveRequest for player {} from server {}", player, getServerName());
-      } catch (Exception e) {
-        logger.error("Failed to send RedisQueueRemoveRequest for player {} from server {}", player, getServerName(), e);
-      }
+      this.velocityServer.getRedisManager().sendAsync(new RedisQueueRemoveRequest(
+          player, getServerName(), maxRetriesReached))
+          .thenRun(() -> logger.debug("Sent RedisQueueRemoveRequest for player {} from server {}", player, getServerName()))
+          .exceptionally(throwable -> {
+            logger.error("Failed to send RedisQueueRemoveRequest for player {} from server {}", player, getServerName(), throwable);
+            return null;
+          });
     }
   }
 
@@ -459,7 +472,7 @@ public class ServerQueueStatus {
    */
   public boolean isPaused() {
     if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
-      return this.velocityServer.getRedisManager().getPausedQueues().contains(getServerName());
+      return this.velocityServer.getRedisManager().isQueuePausedCached(getServerName());
     } else {
       return this.paused;
     }
