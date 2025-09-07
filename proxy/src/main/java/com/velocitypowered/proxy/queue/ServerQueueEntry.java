@@ -336,14 +336,16 @@ public class ServerQueueEntry {
     if (this.proxy.getRedisManager().isEnabled()) {
       RemotePlayerInfo info = this.proxy.getMultiProxyHandler().getPlayerInfo(player);
       if (info == null) {
-        return "N/A";
+        this.proxy.getQueueManager().getQueue(this.target.getServerInfo().getName()).dequeue(player, false);
+        return null;
       }
 
       return info.getUsername();
     } else {
       Player p = this.proxy.getPlayer(player).orElse(null);
       if (p == null) {
-        return "N/A";
+        this.proxy.getQueueManager().getQueue(this.target.getServerInfo().getName()).dequeue(player, false);
+        return null;
       }
 
       return p.getUsername();

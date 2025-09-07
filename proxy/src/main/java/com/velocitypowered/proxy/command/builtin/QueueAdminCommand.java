@@ -266,7 +266,10 @@ public record QueueAdminCommand(VelocityServer server) {
         List<Component> players = new ArrayList<>();
 
         for (ServerQueueEntry entry : velocityRegisteredServer.getQueueStatus().getAllEntries()) {
-          players.add(Component.text(entry.getUsername()));
+          String username = entry.getUsername();
+          if (username != null) {
+            players.add(Component.text(username));
+          }
         }
 
         players.stream()
@@ -305,7 +308,10 @@ public record QueueAdminCommand(VelocityServer server) {
     }
 
     for (ServerQueueEntry entry : server.getQueueStatus().getAllEntries()) {
-      players.add(Component.text(entry.getUsername()));
+      String username = entry.getUsername();
+      if (username != null) {
+        players.add(Component.text(username));
+      }
     }
 
     VelocityRegisteredServer finalServer = server;
