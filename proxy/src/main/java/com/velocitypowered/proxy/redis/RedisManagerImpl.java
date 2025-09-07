@@ -213,8 +213,15 @@ public class RedisManagerImpl {
         if (connectedPlayer.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
           connectedPlayer.transferToHost(new InetSocketAddress(it.ip(), it.port()));
         } else {
-          send(new RedisSendMessageToUuidRequest(it.requester(), Component.translatable("velocity.command.transfer.invalid-version")
-              .arguments(Component.text(connectedPlayer.getUsername()))));
+          Component message = Component.translatable("velocity.command.transfer.invalid-version")
+              .arguments(Component.text(connectedPlayer.getUsername()));
+          
+          ConnectedPlayer requester = (ConnectedPlayer) proxy.getPlayer(it.requester()).orElse(null);
+          if (requester != null) {
+            requester.sendMessage(message);
+          } else {
+            send(new RedisSendMessageToUuidRequest(it.requester(), message));
+          }
         }
       }).delay(1, TimeUnit.SECONDS).schedule();
     });

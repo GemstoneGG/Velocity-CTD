@@ -25,13 +25,11 @@ import com.velocitypowered.proxy.redis.multiproxy.RedisQueueAddRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueRemoveRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueUpdateRequest;
-import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,13 +79,6 @@ public class QueueManagerRedisImpl extends QueueManager {
     }));
 
 
-    redisManager.listen(RedisSendMessageToUuidRequest.ID, RedisSendMessageToUuidRequest.class, it -> {
-      Component component = it.component();
-
-      if (component != null) {
-        server.getPlayer(it.player()).ifPresent(player -> player.sendMessage(component));
-      }
-    });
 
     redisManager.listen(RedisQueueAddRequest.ID, RedisQueueAddRequest.class, it -> {
       logger.debug("Received RedisQueueAddRequest for player {} on server {} from another proxy",

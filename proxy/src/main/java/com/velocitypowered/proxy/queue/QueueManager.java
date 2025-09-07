@@ -26,7 +26,6 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.queue.cache.QueueCacheRetriever;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueRemoveRequest;
-import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.List;
 import java.util.Map;
@@ -490,10 +489,6 @@ public abstract class QueueManager {
         .arguments(Component.text(serverName),
             Component.text(server.getConfiguration().getQueue().getMaxSendRetries()));
 
-    if (server.getMultiProxyHandler().isRedisEnabled()) {
-      server.getRedisManager().send(new RedisSendMessageToUuidRequest(playerUuid, message));
-    } else {
-      server.getPlayer(playerUuid).ifPresent(player -> player.sendMessage(message));
-    }
+    server.getPlayer(playerUuid).ifPresent(player -> player.sendMessage(message));
   }
 }
