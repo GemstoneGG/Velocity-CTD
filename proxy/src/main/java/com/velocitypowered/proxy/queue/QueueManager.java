@@ -27,6 +27,7 @@ import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.queue.cache.QueueCacheRetriever;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueRemoveRequest;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -222,25 +223,26 @@ public abstract class QueueManager {
       }
 
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
-        queue.getQueue().removeIf(entry -> {
+        List<UUID> offlinePlayers = new ArrayList<>();
+        for (ServerQueueEntry entry : queue.getQueue()) {
           if (!isPlayerOnline(entry.getPlayer())) {
-            queue.getPlayerIndex().remove(entry.getPlayer());
-            
-            this.server.getRedisManager().sendAsync(new RedisQueueRemoveRequest(
-                entry.getPlayer(), queue.getServerName(), false))
-                .thenRun(() -> logger.debug("Sent RedisQueueRemoveRequest for offline player {} from server {}",
-                    entry.getPlayer(), queue.getServerName()))
-                .exceptionally(throwable -> {
-                  logger.error("Failed to send RedisQueueRemoveRequest for offline player {} from server {}",
-                      entry.getPlayer(), queue.getServerName(), throwable);
-                  return null;
-                });
-
-            return true;
+            offlinePlayers.add(entry.getPlayer());
           }
-
-          return false;
-        });
+        }
+        
+        for (UUID offlinePlayer : offlinePlayers) {
+          queue.dequeue(offlinePlayer, false);
+          
+          this.server.getRedisManager().sendAsync(new RedisQueueRemoveRequest(
+              offlinePlayer, queue.getServerName(), false))
+              .thenRun(() -> logger.debug("Sent RedisQueueRemoveRequest for offline player {} from server {}",
+                  offlinePlayer, queue.getServerName()))
+              .exceptionally(throwable -> {
+                logger.error("Failed to send RedisQueueRemoveRequest for offline player {} from server {}",
+                    offlinePlayer, queue.getServerName(), throwable);
+                return null;
+              });
+        }
       }
 
       if (queue.getQueue().isEmpty()) {
