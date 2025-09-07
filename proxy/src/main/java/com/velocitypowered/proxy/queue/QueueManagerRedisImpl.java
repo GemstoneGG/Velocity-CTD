@@ -25,7 +25,6 @@ import com.velocitypowered.proxy.redis.multiproxy.RedisQueueAddRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueRemoveRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueSendRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisQueueUpdateRequest;
-import com.velocitypowered.proxy.redis.multiproxy.RedisSendActionBarRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RedisSendMessageToUuidRequest;
 import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
@@ -81,13 +80,6 @@ public class QueueManagerRedisImpl extends QueueManager {
       entry.handleSending();
     }));
 
-    redisManager.listen(RedisSendActionBarRequest.ID, RedisSendActionBarRequest.class, it -> {
-      Component component = it.component();
-
-      if (component != null) {
-        server.getPlayer(it.playerUuid()).ifPresent(player -> player.sendActionBar(component));
-      }
-    });
 
     redisManager.listen(RedisSendMessageToUuidRequest.ID, RedisSendMessageToUuidRequest.class, it -> {
       Component component = it.component();
@@ -232,8 +224,13 @@ public class QueueManagerRedisImpl extends QueueManager {
   @Override
   public void tickMessageForAllPlayers() {
     for (ServerQueueStatus status : this.cache.getAll()) {
-      status.getActivePlayers().forEach((entry, player) ->
-          this.server.getRedisManager().send(new RedisSendActionBarRequest(player, status.getActionBarComponent(entry))));
+      status.getActivePlayers().forEach((entry, playerUuid) ->
+          server.getPlayer(playerUuid).ifPresent(player ->
+              status.getEntry(player.getUniqueId()).ifPresent(queueEntry ->
+                  player.sendActionBar(status.getActionBarComponent(queueEntry))
+              )
+          )
+      );
     }
   }
 }

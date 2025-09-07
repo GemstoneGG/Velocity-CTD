@@ -112,12 +112,13 @@ public abstract class QueueManager {
    * Restarts all scheduled tasks for the queue manager.
    */
   public void restartTasks() {
+    this.scheduleTickMessage();
+    
     if (!this.isMasterProxy()) {
       return;
     }
 
     this.schedulePingingBackend();
-    this.scheduleTickMessage();
     this.rescheduleTimerTask();
   }
 
