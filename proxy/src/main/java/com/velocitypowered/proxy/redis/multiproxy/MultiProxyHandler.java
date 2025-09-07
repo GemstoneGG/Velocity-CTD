@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -63,6 +64,12 @@ public class MultiProxyHandler {
    * Indicates whether this proxy is shutting down. Used to suppress updates during shutdown.
    */
   private boolean shuttingDown = false;
+
+  /**
+   * Scheduled executor for multi-proxy operations. Uses a small thread pool to handle
+   * player count updates and resync operations efficiently.
+   */
+  private ScheduledExecutorService scheduledExecutor;
 
   /**
    * Stores UUIDs of players being transferred between servers, mapped to the server name.
@@ -103,10 +110,27 @@ public class MultiProxyHandler {
 
     RedisManagerImpl redisManager = this.server.getRedisManager();
 
-    Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() ->
-            totalPlayerCount = redisManager.getCache().size(), 100, 100, TimeUnit.MILLISECONDS);
+    this.scheduledExecutor = Executors.newScheduledThreadPool(2, r -> {
+      Thread t = new Thread(r, "Velocity MultiProxy Scheduled Thread");
+      t.setDaemon(true);
+      return t;
+    });
 
-    Executors.newScheduledThreadPool(1).scheduleAtFixedRate(this::resyncPlayers, 1, 1, TimeUnit.MINUTES);
+    this.scheduledExecutor.scheduleAtFixedRate(() -> {
+      try {
+        totalPlayerCount = redisManager.getCache().size();
+      } catch (Exception e) {
+        logger.error("Error updating total player count", e);
+      }
+    }, 100, 100, TimeUnit.MILLISECONDS);
+
+    this.scheduledExecutor.scheduleAtFixedRate(() -> {
+      try {
+        this.resyncPlayers();
+      } catch (Exception e) {
+        logger.error("Error during player resync", e);
+      }
+    }, 1, 1, TimeUnit.MINUTES);
 
     redisManager.listen(RedisShuttingDownAnnouncement.ID, RedisShuttingDownAnnouncement.class, it -> {
       handleShutdown(it.proxyId());
@@ -378,6 +402,20 @@ public class MultiProxyHandler {
    */
   public void shutdown() {
     shuttingDown = true;
+
+    if (scheduledExecutor != null && !scheduledExecutor.isShutdown()) {
+      scheduledExecutor.shutdown();
+      try {
+        if (!scheduledExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+          logger.warn("Scheduled executor did not terminate gracefully, forcing shutdown");
+          scheduledExecutor.shutdownNow();
+        }
+      } catch (InterruptedException e) {
+        logger.warn("Interrupted while waiting for scheduled executor to terminate");
+        scheduledExecutor.shutdownNow();
+        Thread.currentThread().interrupt();
+      }
+    }
 
     if (this.server.getMultiProxyHandler().isRedisEnabled()) {
       this.server.getRedisManager().removeProxyId(this.config.getProxyId());
