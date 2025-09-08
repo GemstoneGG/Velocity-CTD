@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -53,6 +54,23 @@ public class ServerQueueStatus {
    * and error conditions within {@link ServerQueueStatus}.
    */
   private static final Logger logger = LoggerFactory.getLogger(ServerQueueStatus.class);
+
+  /**
+   * The capacity for the priority queue.
+   */
+  private static final int QUEUE_CAPACITY = 10000;
+
+  /**
+   * Comparator for ordering queue entries by priority (higher first), then by join time (earlier first).
+   * This ensures priority-based ordering with FIFO as a tiebreaker for equal priorities.
+   */
+  private static final Comparator<ServerQueueEntry> QUEUE_COMPARATOR = (a, b) -> {
+    int priorityCompare = Integer.compare(b.getPriority(), a.getPriority());
+    if (priorityCompare != 0) {
+      return priorityCompare;
+    }
+    return Long.compare(a.getQueueOrder(), b.getQueueOrder());
+  };
 
   /**
    * The backend server this queue is associated with.
@@ -105,13 +123,7 @@ public class ServerQueueStatus {
                            final VelocityServer velocityServer) {
     this.server = server;
     this.velocityServer = velocityServer;
-    this.queue = new PriorityBlockingQueue<>(10000, (a, b) -> {
-      int priorityCompare = Integer.compare(b.getPriority(), a.getPriority());
-      if (priorityCompare != 0) {
-        return priorityCompare;
-      }
-      return Long.compare(a.getQueueOrder(), b.getQueueOrder());
-    });
+    this.queue = new PriorityBlockingQueue<>(QUEUE_CAPACITY, QUEUE_COMPARATOR);
     this.playerIndex = new ConcurrentHashMap<>();
     this.reloadConfig();
   }
@@ -130,13 +142,7 @@ public class ServerQueueStatus {
                            final ServerStatus online, final boolean full, final boolean paused) {
     this.server = server;
     this.velocityServer = velocityServer;
-    this.queue = new PriorityBlockingQueue<>(10000, (a, b) -> {
-      int priorityCompare = Integer.compare(b.getPriority(), a.getPriority());
-      if (priorityCompare != 0) {
-        return priorityCompare;
-      }
-      return Long.compare(a.getQueueOrder(), b.getQueueOrder());
-    });
+    this.queue = new PriorityBlockingQueue<>(QUEUE_CAPACITY, QUEUE_COMPARATOR);
     this.playerIndex = new ConcurrentHashMap<>();
 
     for (ServerQueueEntry entry : queue) {
