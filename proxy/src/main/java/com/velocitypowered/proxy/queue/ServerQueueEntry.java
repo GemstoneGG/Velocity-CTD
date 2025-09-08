@@ -214,7 +214,6 @@ public class ServerQueueEntry {
     });
   }
 
-
   /**
    * Get the UUID of the player.
    *
@@ -321,6 +320,7 @@ public class ServerQueueEntry {
         this.proxy.getQueueManager().getQueue(this.target.getServerInfo().getName()).dequeue(player, false);
         return null;
       }
+
       return info.getUsername();
     } else {
       Player p = this.proxy.getPlayer(player).orElse(null);
@@ -328,6 +328,7 @@ public class ServerQueueEntry {
         this.proxy.getQueueManager().getQueue(this.target.getServerInfo().getName()).dequeue(player, false);
         return null;
       }
+
       return p.getUsername();
     }
   }
