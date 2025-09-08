@@ -49,7 +49,12 @@ import io.lettuce.core.pubsub.api.async.RedisPubSubAsyncCommands;
 import io.lettuce.core.pubsub.api.sync.RedisPubSubCommands;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -125,8 +130,20 @@ public class RedisManagerImpl {
    * Executor service for handling async Redis operations.
    */
   private final ExecutorService asyncExecutor;
+
+  /**
+   * Local cache of paused queue names to reduce Redis lookups.
+   */
   private volatile Set<String> pausedQueuesCache = new HashSet<>();
+
+  /**
+   * The last system time (in ms) the paused queue cache was refreshed.
+   */
   private volatile long lastPausedQueuesUpdate = 0;
+
+  /**
+   * Time-to-live for the paused queues cache, in milliseconds.
+   */
   private static final long PAUSED_QUEUES_CACHE_TTL = 5000;
 
   /**

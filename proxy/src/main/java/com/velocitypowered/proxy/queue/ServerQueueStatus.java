@@ -300,7 +300,8 @@ public class ServerQueueStatus {
           this.velocityServer.getRedisManager().sendAsync(new RedisQueueSendRequest(playerUuid, server.getServerInfo().getName()))
               .thenRun(() -> logger.debug("Sent RedisQueueSendRequest for player {} to server {}", playerUuid, server.getServerInfo().getName()))
               .exceptionally(throwable -> {
-                logger.error("Failed to send RedisQueueSendRequest for player {} to server {}", playerUuid, server.getServerInfo().getName(), throwable);
+                logger.error("Failed to send RedisQueueSendRequest for player {} to server {}", playerUuid, server.getServerInfo().getName(),
+                    throwable);
                 return null;
               });
         }
@@ -355,9 +356,7 @@ public class ServerQueueStatus {
     }
 
     this.velocityServer.getRedisManager().addOrUpdateQueueAsync(this)
-        .exceptionally(throwable -> {
-          return null;
-        });
+        .exceptionally(throwable -> null);
 
     if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
       String username = getPlayerUsername(playerUuid);

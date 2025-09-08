@@ -60,7 +60,9 @@ public class QueueManagerRedisImpl extends QueueManager {
 
     redisManager.listen(RedisQueueSendRequest.ID, RedisQueueSendRequest.class, it -> server.getPlayer(it.playerUuid()).ifPresent(player -> {
       RegisteredServer foundServer = validateServer(it.serverName(), "send player in queue");
-      if (foundServer == null) return;
+      if (foundServer == null) {
+        return;
+      }
 
       ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
       ServerQueueEntry entry = queueStatus.getEntry(it.playerUuid()).orElse(null);
@@ -78,14 +80,14 @@ public class QueueManagerRedisImpl extends QueueManager {
       entry.handleSending();
     }));
 
-
-
     redisManager.listen(RedisQueueAddRequest.ID, RedisQueueAddRequest.class, it -> {
       logger.debug("Received RedisQueueAddRequest for player {} on server {} from another proxy",
           it.playerUuid(), it.serverName());
 
       RegisteredServer foundServer = validateServer(it.serverName(), "add player to queue");
-      if (foundServer == null) return;
+      if (foundServer == null) {
+        return;
+      }
 
       ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
       if (queueStatus != null) {
@@ -107,7 +109,9 @@ public class QueueManagerRedisImpl extends QueueManager {
           it.playerUuid(), it.serverName());
 
       RegisteredServer foundServer = validateServer(it.serverName(), "remove player from queue");
-      if (foundServer == null) return;
+      if (foundServer == null) {
+        return;
+      }
 
       ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
       if (queueStatus != null) {
@@ -134,7 +138,9 @@ public class QueueManagerRedisImpl extends QueueManager {
 
       try {
         RegisteredServer foundServer = validateServer(it.queueData().getServerName(), "update queue");
-        if (foundServer == null) return;
+        if (foundServer == null) {
+          return;
+        }
 
         ServerQueueStatus queueStatus = getQueue(foundServer.getServerInfo().getName());
         if (queueStatus != null) {
