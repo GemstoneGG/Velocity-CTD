@@ -28,8 +28,9 @@ import java.util.UUID;
  * @param priority the queue priority level of the player
  * @param fullBypass whether the player can bypass the full server restriction
  * @param queueBypass whether the player can bypass the queue entirely
+ * @param queueOrder the order in which this entry was added to the queue (for FIFO ordering)
  */
 public record SerializableQueueEntry(UUID uuid, int connectionAttempts, boolean waitingForConnection, int priority,
-                                     boolean fullBypass, boolean queueBypass) {
+                                     boolean fullBypass, boolean queueBypass, long queueOrder) {
 
 }

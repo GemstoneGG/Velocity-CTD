@@ -80,6 +80,11 @@ public class ServerQueueEntry {
   private boolean queueBypass;
 
   /**
+   * The order in which this entry was added to the queue (for FIFO ordering when priorities are equal).
+   */
+  private final long queueOrder;
+
+  /**
    * Constructs a new {@link ServerQueueEntry} instance.
    *
    * @param player the UUID of the player in the queue
@@ -99,6 +104,7 @@ public class ServerQueueEntry {
     this.priority = priority;
     this.fullBypass = fullBypass;
     this.queueBypass = queueBypass;
+    this.queueOrder = System.nanoTime();
   }
 
   /**
@@ -124,6 +130,34 @@ public class ServerQueueEntry {
     this.queueBypass = queueBypass;
     this.target = target;
     this.player = player;
+    this.queueOrder = System.nanoTime();
+  }
+
+  /**
+   * Constructs a new queue entry with a specific queue order (used for deserialization).
+   *
+   * @param player               The UUID of the player.
+   * @param target               The target server.
+   * @param proxy                The proxy.
+   * @param connectionAttempts   The number of connection attempts.
+   * @param waitingForConnection Waiting for connection.
+   * @param priority             Priority.
+   * @param fullBypass           Full bypass.
+   * @param queueBypass          Queue bypass.
+   * @param queueOrder           The specific queue order to use.
+   */
+  public ServerQueueEntry(final UUID player, final VelocityRegisteredServer target,
+                          final VelocityServer proxy, final int connectionAttempts, final boolean waitingForConnection,
+                          final int priority, final boolean fullBypass, final boolean queueBypass, final long queueOrder) {
+    this.proxy = proxy;
+    this.connectionAttempts = connectionAttempts;
+    this.waitingForConnection = waitingForConnection;
+    this.priority = priority;
+    this.fullBypass = fullBypass;
+    this.queueBypass = queueBypass;
+    this.target = target;
+    this.player = player;
+    this.queueOrder = queueOrder;
   }
 
   /**
@@ -306,6 +340,15 @@ public class ServerQueueEntry {
    */
   public boolean isQueueBypass() {
     return queueBypass;
+  }
+
+  /**
+   * Gets the queue order for FIFO ordering when priorities are equal.
+   *
+   * @return The queue order timestamp.
+   */
+  public long getQueueOrder() {
+    return queueOrder;
   }
 
   /**

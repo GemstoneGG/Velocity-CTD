@@ -110,7 +110,7 @@ public class ServerQueueStatus {
       if (priorityCompare != 0) {
         return priorityCompare;
       }
-      return a.getPlayer().compareTo(b.getPlayer());
+      return Long.compare(a.getQueueOrder(), b.getQueueOrder());
     });
     this.playerIndex = new ConcurrentHashMap<>();
     this.reloadConfig();
@@ -135,7 +135,7 @@ public class ServerQueueStatus {
       if (priorityCompare != 0) {
         return priorityCompare;
       }
-      return a.getPlayer().compareTo(b.getPlayer());
+      return Long.compare(a.getQueueOrder(), b.getQueueOrder());
     });
     this.playerIndex = new ConcurrentHashMap<>();
 
@@ -586,7 +586,7 @@ public class ServerQueueStatus {
       }
       
       int priorityCompare = Integer.compare(entry.getPriority(), targetEntry.getPriority());
-      if (priorityCompare > 0 || (priorityCompare == 0 && entry.getPlayer().compareTo(player) < 0)) {
+      if (priorityCompare > 0 || (priorityCompare == 0 && entry.getQueueOrder() < targetEntry.getQueueOrder())) {
         position++;
       }
     }
@@ -727,7 +727,8 @@ public class ServerQueueStatus {
             entry.waitingForConnection(),
             entry.priority(),
             entry.fullBypass(),
-            entry.queueBypass()
+            entry.queueBypass(),
+            entry.queueOrder()
         );
 
         queue.offer(queueEntry);

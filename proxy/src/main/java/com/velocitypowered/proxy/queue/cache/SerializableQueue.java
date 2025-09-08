@@ -66,7 +66,8 @@ public class SerializableQueue {
         e.isWaitingForConnection(),
         e.getPriority(),
         e.isFullBypass(),
-        e.isQueueBypass())));
+        e.isQueueBypass(),
+        e.getQueueOrder())));
 
     online = status.getStatus();
     this.full = status.isFull();
@@ -84,14 +85,18 @@ public class SerializableQueue {
   public ServerQueueStatus convert(final VelocityServer proxy,
                                    final VelocityRegisteredServer server) {
     final Deque<ServerQueueEntry> entries = new ConcurrentLinkedDeque<>();
-    queue.forEach(q -> entries.add(new ServerQueueEntry(q.uuid(),
-        server,
-        proxy,
-        q.connectionAttempts(),
-        q.waitingForConnection(),
-        q.priority(),
-        q.fullBypass(),
-        q.queueBypass())));
+    queue.forEach(q -> {
+      ServerQueueEntry entry = new ServerQueueEntry(q.uuid(),
+          server,
+          proxy,
+          q.connectionAttempts(),
+          q.waitingForConnection(),
+          q.priority(),
+          q.fullBypass(),
+          q.queueBypass(),
+          q.queueOrder());
+      entries.add(entry);
+    });
     return new ServerQueueStatus(server, proxy, entries, online, full, paused);
   }
 
