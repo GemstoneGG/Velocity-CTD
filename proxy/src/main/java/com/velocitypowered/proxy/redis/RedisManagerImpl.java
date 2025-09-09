@@ -160,7 +160,9 @@ public class RedisManagerImpl {
   public RedisManagerImpl(final VelocityServer velocityServer) {
     VelocityConfiguration.Redis redisConfig = velocityServer.getConfiguration().getRedis();
     this.pubSubListener = new VelocityPubSubListener();
-    this.asyncExecutor = Executors.newCachedThreadPool(r -> {
+    // Find alternative approach to newFixedThreadPool
+    // that doesn't cause the proxy to utterly implode.
+    this.asyncExecutor = Executors.newFixedThreadPool(4, r -> {
       Thread t = new Thread(r, "Velocity Redis Async Thread");
       t.setDaemon(true);
       return t;
