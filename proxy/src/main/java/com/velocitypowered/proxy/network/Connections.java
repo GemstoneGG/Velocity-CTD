@@ -78,9 +78,9 @@ public final class Connections {
   public static final String MINECRAFT_DECODER = "minecraft-decoder";
 
   /**
-   * Name for the Minecraft protocol encoder.
+   * Name for the Minecraft protocol pre-encoder.
    */
-  public static final String MINECRAFT_ENCODER = "minecraft-encoder";
+  public static final String MINECRAFT_PRE_ENCODER = "minecraft-pre-encoder";
 
   /**
    * Name for the read timeout handler.

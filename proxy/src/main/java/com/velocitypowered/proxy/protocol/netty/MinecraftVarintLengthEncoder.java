@@ -22,6 +22,7 @@ import static io.netty.channel.ChannelHandler.Sharable;
 import com.velocitypowered.natives.encryption.JavaVelocityCipher;
 import com.velocitypowered.natives.util.Natives;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
+import com.velocitypowered.proxy.protocol.netty.data.UncompressedPacket;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageEncoder;
@@ -31,7 +32,7 @@ import java.util.List;
  * Handler for appending a length for Minecraft packets.
  */
 @Sharable
-public final class MinecraftVarintLengthEncoder extends MessageToMessageEncoder<ByteBuf> {
+public final class MinecraftVarintLengthEncoder extends MessageToMessageEncoder<UncompressedPacket> {
 
   /**
    * A shared singleton instance of this encoder.
@@ -48,15 +49,15 @@ public final class MinecraftVarintLengthEncoder extends MessageToMessageEncoder<
   }
 
   @Override
-  protected void encode(final ChannelHandlerContext ctx, final ByteBuf buf,
+  protected void encode(final ChannelHandlerContext ctx, final UncompressedPacket msg,
                         final List<Object> list) throws Exception {
-    final int length = buf.readableBytes();
+    final int length = msg.getPacketBuf().readableBytes();
     final int varintLength = ProtocolUtils.varIntBytes(length);
 
     final ByteBuf lenBuf = IS_JAVA_CIPHER ? ctx.alloc().heapBuffer(varintLength) : ctx.alloc().directBuffer(varintLength);
 
     ProtocolUtils.writeVarInt(lenBuf, length);
     list.add(lenBuf);
-    list.add(buf.retain());
+    list.add(msg.getPacketBuf().retain());
   }
 }

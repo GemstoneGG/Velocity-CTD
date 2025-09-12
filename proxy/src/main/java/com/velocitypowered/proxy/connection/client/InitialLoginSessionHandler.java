@@ -43,7 +43,6 @@ import com.velocitypowered.proxy.protocol.packet.EncryptionResponsePacket;
 import com.velocitypowered.proxy.protocol.packet.LoginPluginResponsePacket;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginPacket;
 import com.velocitypowered.proxy.util.VelocityProperties;
-import io.netty.buffer.ByteBuf;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -263,6 +262,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
    * @return {@code true} if the encryption response was processed
    * @throws IllegalStateException if required preconditions are not met (e.g., missing verify token or login packet)
    */
+  @SuppressWarnings("checkstyle:MatchXpath")
   @Override
   public boolean handle(final EncryptionResponsePacket packet) {
     assertState(LoginState.ENCRYPTION_REQUEST_SENT);
@@ -403,14 +403,15 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
   }
 
   /**
-   * Handles any unknown or unexpected packet received during login.
+   * Handles an unknown packet received during login.
    *
-   * <p>Since no additional packets are expected, the connection is immediately closed.</p>
+   * <p>Since no other packets are valid during the login phase,
+   * the connection is immediately closed.</p>
    *
-   * @param buf the unrecognized packet buffer
+   * @param obj the unexpected packet
    */
   @Override
-  public void handleUnknown(final ByteBuf buf) {
+  public void handleUnknown(final Object obj) {
     mcConnection.close(true);
   }
 

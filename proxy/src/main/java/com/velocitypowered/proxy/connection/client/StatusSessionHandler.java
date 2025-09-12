@@ -28,7 +28,6 @@ import com.velocitypowered.proxy.protocol.packet.StatusPingPacket;
 import com.velocitypowered.proxy.protocol.packet.StatusRequestPacket;
 import com.velocitypowered.proxy.protocol.packet.StatusResponsePacket;
 import com.velocitypowered.proxy.util.except.QuietRuntimeException;
-import io.netty.buffer.ByteBuf;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -178,16 +177,16 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
   }
 
   /**
-   * Called when an unknown packet is received during a status ping session.
+   * Handles an unknown packet received during a status session.
    *
-   * <p>This forcefully closes the connection because status sessions only expect a
-   * small, fixed set of packet types.</p>
+   * <p>Since only a limited set of packets is valid during the status phase,
+   * receiving any other type results in the connection being forcefully closed.</p>
    *
-   * @param buf the buffer containing the unknown packet
+   * @param obj the unknown packet object
    */
   @Override
-  public void handleUnknown(final ByteBuf buf) {
-    // what even is going on?
+  public void handleUnknown(final Object obj) {
+    // What even is going on?
     connection.close(true);
   }
 

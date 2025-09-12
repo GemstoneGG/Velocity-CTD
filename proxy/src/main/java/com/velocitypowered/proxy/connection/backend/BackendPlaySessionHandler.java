@@ -69,7 +69,6 @@ import com.velocitypowered.proxy.protocol.packet.UpsertPlayerInfoPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
 import com.velocitypowered.proxy.protocol.packet.config.StartUpdatePacket;
 import com.velocitypowered.proxy.protocol.util.PluginMessageUtil;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -659,13 +658,13 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
   }
 
   /**
-   * Forwards raw unhandled packet buffers to the client connection.
+   * Forwards unknown packet data to the client connection.
    *
-   * @param buf the raw packet buffer
+   * @param obj the unknown packet object
    */
   @Override
-  public void handleUnknown(final ByteBuf buf) {
-    playerConnection.delayedWrite(buf.retain());
+  public void handleUnknown(final Object obj) {
+    playerConnection.delayedWrite(obj);
     if (++packetsFlushed >= MAXIMUM_PACKETS_TO_FLUSH) {
       playerConnection.flush();
       packetsFlushed = 0;

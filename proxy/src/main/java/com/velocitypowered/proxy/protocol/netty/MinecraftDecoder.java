@@ -22,17 +22,20 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
+import com.velocitypowered.proxy.protocol.netty.data.CompressedPacket;
+import com.velocitypowered.proxy.protocol.netty.data.IdentifiedPacket;
+import com.velocitypowered.proxy.protocol.netty.data.UncompressedPacket;
 import com.velocitypowered.proxy.util.except.QuietRuntimeException;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.CorruptedFrameException;
-import org.jetbrains.annotations.NotNull;
+import io.netty.handler.codec.MessageToMessageDecoder;
+import java.util.List;
 
 /**
  * Decodes Minecraft packets.
  */
-public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
+public class MinecraftDecoder extends MessageToMessageDecoder<IdentifiedPacket> {
 
   /**
    * Enables debug logging for packet decode failures.
@@ -85,54 +88,57 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
   }
 
   /**
-   * Handles inbound messages from the Netty pipeline.
+   * Decodes an {@link IdentifiedPacket} into a {@link MinecraftPacket} and forwards it downstream.
    *
-   * <p>If the message is a {@link ByteBuf}, it is treated as a raw Minecraft packet
-   * and passed to {@link #tryDecode(ChannelHandlerContext, ByteBuf)} for decoding.
-   * Otherwise, the message is forwarded through the pipeline unchanged.</p>
+   * <p>If the packet type is unknown for the current state/registry, the original message is
+   * passed through unchanged. For compressed packets, the payload is decompressed before
+   * decoding. When debug logging is enabled, detailed errors are surfaced via
+   * {@link CorruptedFrameException}; otherwise a quiet exception is propagated.</p>
    *
    * @param ctx the Netty channel context
-   * @param msg the inbound message to process
-   * @throws Exception if an error occurs during decoding
+   * @param msg the identified packet to decode
+   * @param out the output list to add decoded messages to
+   * @throws Exception if an error occurs during decompression or decoding
    */
   @Override
-  public void channelRead(@NotNull final ChannelHandlerContext ctx, @NotNull final Object msg) throws Exception {
-    if (msg instanceof ByteBuf buf) {
-      tryDecode(ctx, buf);
-    } else {
-      ctx.fireChannelRead(msg);
-    }
-  }
-
-  private void tryDecode(final ChannelHandlerContext ctx, final ByteBuf buf) throws Exception {
-    if (!ctx.channel().isActive() || !buf.isReadable()) {
-      buf.release();
-      return;
-    }
-
-    int originalReaderIndex = buf.readerIndex();
-    int packetId = ProtocolUtils.readVarInt(buf);
-    MinecraftPacket packet = this.registry.createPacket(packetId);
+  protected void decode(final ChannelHandlerContext ctx, final IdentifiedPacket msg, final List<Object> out)
+      throws Exception {
+    int packetId = msg.getPacketId();
+    MinecraftPacket packet = registry.createPacket(packetId);
     if (packet == null) {
-      buf.readerIndex(originalReaderIndex);
-      ctx.fireChannelRead(buf);
+      ctx.fireChannelRead(msg);
     } else {
+      ByteBuf uncompressedBuf;
+      if (msg instanceof UncompressedPacket uncompressedPacket) {
+        uncompressedBuf = uncompressedPacket.getPacketBuf();
+      } else if (msg instanceof CompressedPacket compressedPacket) {
+        uncompressedBuf = compressedPacket.decompress(ctx.alloc());
+      } else {
+        throw new IllegalArgumentException("Unsupported identified packet type.");
+      }
+
+      if (!ctx.channel().isActive() || !uncompressedBuf.isReadable()) {
+        uncompressedBuf.release();
+        return;
+      }
+
       try {
-        doLengthSanityChecks(buf, packet);
+        ProtocolUtils.readVarInt(uncompressedBuf);
+        doLengthSanityChecks(uncompressedBuf, packet);
 
         try {
-          packet.decode(buf, direction, registry.version);
+          packet.decode(uncompressedBuf, direction, registry.version);
         } catch (Exception e) {
           throw handleDecodeFailure(e, packet, packetId);
         }
 
-        if (buf.isReadable()) {
-          throw handleOverflow(packet, buf.readerIndex(), buf.writerIndex());
+        if (uncompressedBuf.isReadable()) {
+          throw handleOverflow(packet, uncompressedBuf.readerIndex(), uncompressedBuf.writerIndex());
         }
 
         ctx.fireChannelRead(packet);
       } finally {
-        buf.release();
+        uncompressedBuf.release();
       }
     }
   }

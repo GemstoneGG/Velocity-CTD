@@ -22,6 +22,9 @@ import static com.velocitypowered.proxy.protocol.netty.MinecraftVarintLengthEnco
 import com.velocitypowered.natives.compression.VelocityCompressor;
 import com.velocitypowered.natives.util.MoreByteBufUtils;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
+import com.velocitypowered.proxy.protocol.netty.data.CompressedPacket;
+import com.velocitypowered.proxy.protocol.netty.data.IdentifiedPacket;
+import com.velocitypowered.proxy.protocol.netty.data.UncompressedPacket;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
@@ -30,7 +33,7 @@ import java.util.zip.DataFormatException;
 /**
  * Handler for compressing Minecraft packets.
  */
-public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<ByteBuf> {
+public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<IdentifiedPacket> {
 
   /**
    * The compression threshold. Packets smaller than this will not be compressed.
@@ -54,47 +57,61 @@ public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<By
   }
 
   /**
-   * Compresses the given {@link ByteBuf} if it exceeds the configured compression threshold.
+   * Compresses and length-prefixes the packet according to the configured threshold.
    *
-   * <p>If the input is smaller than the threshold, the packet is written uncompressed with a 0 marker.
-   * Otherwise, it is compressed and prefixed with its uncompressed size and compressed length.</p>
+   * <p>If the packet is smaller than the threshold, or compression is disabled
+   * (threshold ≤ 0), it is written uncompressed with a compressed-length marker of {@code 0}.
+   * Otherwise, the packet is written in compressed form with its uncompressed size
+   * varInt prefixed before the compressed bytes.</p>
+   *
+   * <p>When {@code msg} is an {@link UncompressedPacket}, the encoder may compress it
+   * in-place if it meets the threshold. When {@code msg} is a {@link CompressedPacket},
+   * the encoder forwards the compressed bytes if the uncompressed length meets the threshold,
+   * or transparently emits the decompressed bytes if it does not.</p>
    *
    * @param ctx the Netty channel context
-   * @param msg the uncompressed Minecraft packet
-   * @param out the output buffer to write the encoded packet to
-   * @throws Exception if compression fails
+   * @param msg the identified packet (compressed or uncompressed)
+   * @param out the output buffer to write the encoded frame to
+   * @throws Exception if compression or decompression fails
    */
   @Override
-  protected void encode(final ChannelHandlerContext ctx, final ByteBuf msg, final ByteBuf out) throws Exception {
-    int uncompressed = msg.readableBytes();
-    if (uncompressed < threshold) {
-      // Under the threshold, there is nothing to do.
-      ProtocolUtils.writeVarInt(out, uncompressed + 1);
-      ProtocolUtils.writeVarInt(out, 0);
-      out.writeBytes(msg);
-    } else {
-      handleCompressed(ctx, msg, out);
+  protected void encode(final ChannelHandlerContext ctx, final IdentifiedPacket msg, final ByteBuf out)
+      throws Exception {
+    if (msg instanceof UncompressedPacket uncompressed) {
+      int uncompressedLength = uncompressed.getPacketBuf().readableBytes();
+      if (uncompressedLength < threshold || threshold <= 0) {
+        // Under the threshold, there is nothing to do.
+        ProtocolUtils.writeVarInt(out, uncompressedLength + 1);
+        ProtocolUtils.writeVarInt(out, 0);
+        out.writeBytes(uncompressed.getPacketBuf());
+        uncompressed.getPacketBuf().release();
+      } else {
+        handleCompressed(ctx, uncompressed, out);
+      }
+    } else if (msg instanceof CompressedPacket compressed) {
+      if (compressed.getUncompressedLength() < threshold || threshold <= 0) {
+        ProtocolUtils.writeVarInt(out, compressed.getUncompressedLength() + 1);
+        ProtocolUtils.writeVarInt(out, 0);
+        ByteBuf decompressed = compressed.decompress(ctx.alloc());
+        out.writeBytes(decompressed);
+        decompressed.release();
+      } else {
+        ProtocolUtils.writeVarInt(out, compressed.getCompressedBuf().readableBytes()
+            + ProtocolUtils.varIntBytes(compressed.getUncompressedLength()));
+        ProtocolUtils.writeVarInt(out, compressed.getUncompressedLength());
+        out.writeBytes(compressed.getCompressedBuf());
+        compressed.getCompressedBuf().release();
+      }
     }
   }
 
-  private void handleCompressed(final ChannelHandlerContext ctx, final ByteBuf msg, final ByteBuf out) throws DataFormatException {
-    int uncompressed = msg.readableBytes();
+  private void handleCompressed(final ChannelHandlerContext ctx, final UncompressedPacket msg, final ByteBuf out) throws DataFormatException {
+    int uncompressed = msg.getPacketBuf().readableBytes();
 
     ProtocolUtils.write21BitVarInt(out, 0); // Stub packet length
     ProtocolUtils.writeVarInt(out, uncompressed);
-    ByteBuf compatibleIn = MoreByteBufUtils.ensureCompatible(ctx.alloc(), compressor, msg);
 
-    int startCompressed = out.writerIndex();
-    try {
-      compressor.deflate(compatibleIn, out);
-    } finally {
-      compatibleIn.release();
-    }
-
-    int compressedLength = out.writerIndex() - startCompressed;
-    if (compressedLength >= 1 << 21) {
-      throw new DataFormatException("The server sent a very large (over 2MiB compressed) packet.");
-    }
+    msg.compress(this.compressor, ctx.alloc(), out);
 
     int writerIndex = out.writerIndex();
     int packetLength = out.readableBytes() - 3;
@@ -104,20 +121,29 @@ public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<By
   }
 
   /**
-   * Allocates a new output {@link ByteBuf} for compression, sized based on the estimated result.
+   * Allocates a new output buffer sized for the packet.
    *
-   * <p>If the packet is smaller than the threshold, a small heap or direct buffer is allocated.
-   * If compression is expected, a larger pre-sized buffer is used based on the expected
-   * compression ratio and uncompressed length.</p>
+   * <p>If the uncompressed length is below the threshold, a small buffer is allocated
+   * to hold the raw data plus length prefixes. If compression is used, a larger buffer
+   * is allocated based on the uncompressed size and expected overhead.</p>
    *
    * @param ctx the Netty channel context
-   * @param msg the input packet
-   * @param preferDirect whether to prefer direct buffer allocation
-   * @return a newly allocated output buffer
+   * @param msg the identified packet
+   * @param preferDirect whether to prefer a direct buffer
+   * @return the allocated buffer
    */
   @Override
-  protected ByteBuf allocateBuffer(final ChannelHandlerContext ctx, final ByteBuf msg, final boolean preferDirect) {
-    int uncompressed = msg.readableBytes();
+  protected ByteBuf allocateBuffer(final ChannelHandlerContext ctx, final IdentifiedPacket msg,
+                                   final boolean preferDirect) {
+    int uncompressed;
+    if (msg instanceof UncompressedPacket uncompressedPacket) {
+      uncompressed = uncompressedPacket.getPacketBuf().readableBytes();
+    } else if (msg instanceof CompressedPacket compressedPacket) {
+      uncompressed = compressedPacket.getUncompressedLength();
+    } else {
+      throw new IllegalArgumentException("Unsupported identified packet type.");
+    }
+
     if (uncompressed < threshold) {
       int finalBufferSize = uncompressed + 1;
       finalBufferSize += ProtocolUtils.varIntBytes(finalBufferSize);

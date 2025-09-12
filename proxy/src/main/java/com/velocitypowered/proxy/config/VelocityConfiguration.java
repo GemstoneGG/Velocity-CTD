@@ -712,6 +712,11 @@ public final class VelocityConfiguration implements ProxyConfig {
   }
 
   @Override
+  public int getDecompressionThreshold() {
+    return advanced.getDecompressionThreshold();
+  }
+
+  @Override
   public int getLoginRatelimit() {
     return advanced.getLoginRatelimit();
   }
@@ -2080,6 +2085,13 @@ public final class VelocityConfiguration implements ProxyConfig {
     private int compressionLevel = -1;
 
     /**
+     * The size threshold (in bytes) at which packets are decompressed.
+     * -1 disables decompression, values > 0 control the minimum size.
+     */
+    @Expose
+    private int decompressionThreshold = 2048;
+
+    /**
      * The time (in milliseconds) that must pass before a player can log in again.
      */
     @Expose
@@ -2241,6 +2253,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.profileCacheExpiryMinutes = config.getOrElse("cache-profile-expiry-minutes", 1440);
         this.compressionThreshold = config.getIntOrElse("compression-threshold", 256);
         this.compressionLevel = config.getIntOrElse("compression-level", -1);
+        this.decompressionThreshold = config.getIntOrElse("decompression-threshold", 2048);
         this.loginRatelimit = config.getIntOrElse("login-ratelimit", 3000);
         this.connectionTimeout = config.getIntOrElse("connection-timeout", 5000);
         this.readTimeout = config.getIntOrElse("read-timeout", 30000);
@@ -2291,6 +2304,10 @@ public final class VelocityConfiguration implements ProxyConfig {
 
     public int getCompressionLevel() {
       return compressionLevel;
+    }
+
+    public int getDecompressionThreshold() {
+      return decompressionThreshold;
     }
 
     public int getLoginRatelimit() {
@@ -2396,6 +2413,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", profileCacheExpiryMinutes=" + profileCacheExpiryMinutes
           + ", compressionThreshold=" + compressionThreshold
           + ", compressionLevel=" + compressionLevel
+          + ", decompressionThreshold=" + decompressionThreshold
           + ", loginRatelimit=" + loginRatelimit
           + ", connectionTimeout=" + connectionTimeout
           + ", readTimeout=" + readTimeout

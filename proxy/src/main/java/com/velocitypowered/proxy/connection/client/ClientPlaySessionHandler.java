@@ -73,7 +73,6 @@ import com.velocitypowered.proxy.protocol.packet.title.GenericTitlePacket;
 import com.velocitypowered.proxy.protocol.util.PluginMessageUtil;
 import com.velocitypowered.proxy.util.CharacterUtil;
 import com.velocitypowered.proxy.util.except.QuietRuntimeException;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
@@ -655,12 +654,12 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
   }
 
   /**
-   * Forwards unknown byte-level packet data to the backend server.
+   * Forwards unknown packet data to the backend server.
    *
-   * @param buf the raw packet buffer
+   * @param obj the unknown packet object
    */
   @Override
-  public void handleUnknown(final ByteBuf buf) {
+  public void handleUnknown(final Object obj) {
     VelocityServerConnection serverConnection = player.getConnectedServer();
     if (serverConnection == null) {
       // No server connection yet, probably transitioning.
@@ -669,7 +668,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
 
     MinecraftConnection smc = serverConnection.getConnection();
     if (smc != null && !smc.isClosed() && serverConnection.getPhase().consideredComplete()) {
-      smc.write(buf.retain());
+      smc.write(obj);
     }
   }
 

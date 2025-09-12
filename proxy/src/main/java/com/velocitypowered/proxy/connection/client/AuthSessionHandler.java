@@ -46,7 +46,6 @@ import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccessPacket;
 import com.velocitypowered.proxy.protocol.packet.ServerboundCookieResponsePacket;
 import com.velocitypowered.proxy.protocol.packet.SetCompressionPacket;
 import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetTransferringRequest;
-import io.netty.buffer.ByteBuf;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -397,14 +396,14 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
   }
 
   /**
-   * Handles an unknown or unexpected packet during the login phase.
+   * Handles an unknown packet received during the login phase.
    *
-   * <p>The connection is immediately closed as unexpected input indicates a protocol violation.</p>
+   * <p>Unexpected input indicates a protocol violation; the connection is closed.</p>
    *
-   * @param buf the raw packet data
+   * @param obj the unexpected packet
    */
   @Override
-  public void handleUnknown(final ByteBuf buf) {
+  public void handleUnknown(final Object obj) {
     mcConnection.close(true);
   }
 

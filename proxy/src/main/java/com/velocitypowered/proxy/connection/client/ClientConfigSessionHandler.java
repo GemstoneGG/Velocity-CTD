@@ -33,7 +33,7 @@ import com.velocitypowered.proxy.connection.player.resourcepack.ResourcePackResp
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
-import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
+import com.velocitypowered.proxy.protocol.netty.MinecraftPreEncoder;
 import com.velocitypowered.proxy.protocol.packet.ClientSettingsPacket;
 import com.velocitypowered.proxy.protocol.packet.KeepAlivePacket;
 import com.velocitypowered.proxy.protocol.packet.PingIdentifyPacket;
@@ -351,13 +351,12 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   }
 
   /**
-   * Handles an unknown or unregistered packet type by forwarding its raw {@link ByteBuf}
-   * to the backend if available.
+   * Forwards unknown packet data to the backend if available.
    *
-   * @param buf the raw packet buffer
+   * @param obj the unknown packet object
    */
   @Override
-  public void handleUnknown(final ByteBuf buf) {
+  public void handleUnknown(final Object obj) {
     final VelocityServerConnection serverConnection = player.getConnectedServer();
     if (serverConnection == null) {
       // No server connection yet, probably transitioning.
@@ -366,7 +365,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
 
     final MinecraftConnection smc = serverConnection.getConnection();
     if (smc != null && !smc.isClosed() && serverConnection.getPhase().consideredComplete()) {
-      smc.write(buf.retain());
+      smc.write(obj);
     }
   }
 
@@ -436,7 +435,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
     callConfigurationEvent().thenCompose(v -> server.getEventManager().fire(new PlayerFinishConfigurationEvent(player, serverConn))
         .completeOnTimeout(null, 5, TimeUnit.SECONDS)).thenRunAsync(() -> {
           player.getConnection().write(FinishedUpdatePacket.INSTANCE);
-          player.getConnection().getChannel().pipeline().get(MinecraftEncoder.class).setState(StateRegistry.PLAY);
+          player.getConnection().getChannel().pipeline().get(MinecraftPreEncoder.class).setState(StateRegistry.PLAY);
           server.getEventManager().fireAndForget(new PlayerFinishedConfigurationEvent(player, serverConn));
         }, player.getConnection().eventLoop()).exceptionally(ex -> {
           logger.error("Error finishing configuration state:", ex);

@@ -22,7 +22,7 @@ import static com.velocitypowered.proxy.network.Connections.FRAME_ENCODER;
 import static com.velocitypowered.proxy.network.Connections.LEGACY_PING_DECODER;
 import static com.velocitypowered.proxy.network.Connections.LEGACY_PING_ENCODER;
 import static com.velocitypowered.proxy.network.Connections.MINECRAFT_DECODER;
-import static com.velocitypowered.proxy.network.Connections.MINECRAFT_ENCODER;
+import static com.velocitypowered.proxy.network.Connections.MINECRAFT_PRE_ENCODER;
 import static com.velocitypowered.proxy.network.Connections.READ_TIMEOUT;
 
 import com.velocitypowered.proxy.VelocityServer;
@@ -33,7 +33,7 @@ import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.LegacyPingDecoder;
 import com.velocitypowered.proxy.protocol.netty.LegacyPingEncoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
-import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
+import com.velocitypowered.proxy.protocol.netty.MinecraftPreEncoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintFrameDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintLengthEncoder;
 import io.netty.channel.Channel;
@@ -72,7 +72,7 @@ public class ServerChannelInitializer extends ChannelInitializer<Channel> {
    *   <li>{@code LEGACY_PING_ENCODER} – encodes legacy ping responses</li>
    *   <li>{@code FRAME_ENCODER} – encodes outgoing packets with VarInt length prefix</li>
    *   <li>{@code MINECRAFT_DECODER} – decodes Minecraft protocol packets (serverbound)</li>
-   *   <li>{@code MINECRAFT_ENCODER} – encodes Minecraft protocol packets (clientbound)</li>
+   *   <li>{@code MINECRAFT_PRE_ENCODER} – encodes Minecraft protocol packets (clientbound)</li>
    *   <li>{@code HANDLER} – wraps the connection in a {@link MinecraftConnection}</li>
    * </ul>
    *
@@ -90,7 +90,7 @@ public class ServerChannelInitializer extends ChannelInitializer<Channel> {
         .addLast(LEGACY_PING_ENCODER, LegacyPingEncoder.INSTANCE)
         .addLast(FRAME_ENCODER, MinecraftVarintLengthEncoder.INSTANCE)
         .addLast(MINECRAFT_DECODER, new MinecraftDecoder(ProtocolUtils.Direction.SERVERBOUND))
-        .addLast(MINECRAFT_ENCODER, new MinecraftEncoder(ProtocolUtils.Direction.CLIENTBOUND));
+        .addLast(MINECRAFT_PRE_ENCODER, new MinecraftPreEncoder(ProtocolUtils.Direction.CLIENTBOUND));
 
     final MinecraftConnection connection = new MinecraftConnection(ch, this.server);
     connection.setActiveSessionHandler(StateRegistry.HANDSHAKE, new HandshakeSessionHandler(connection, this.server));

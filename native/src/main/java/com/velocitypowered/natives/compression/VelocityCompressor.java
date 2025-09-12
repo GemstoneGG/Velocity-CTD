@@ -39,6 +39,21 @@ public interface VelocityCompressor extends Disposable, Native {
   void inflate(ByteBuf source, ByteBuf destination, int uncompressedSize) throws DataFormatException;
 
   /**
+   * Attempts to decompress a portion of the provided compressed {@code source} buffer into
+   * the {@code destination} buffer.
+   *
+   * @param source the compressed input buffer
+   * @param destination the buffer to write decompressed data into
+   * @param size the maximum number of uncompressed bytes to write into the destination
+   * @throws DataFormatException if decompression fails due to corrupted or invalid data
+   * @throws UnsupportedOperationException if the implementation does not support partial inflation
+   */
+  default void inflatePartial(final ByteBuf source, final ByteBuf destination, final int size)
+      throws DataFormatException {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
    * Compresses the data from the {@code source} buffer and writes the compressed result into
    * the {@code destination} buffer.
    *

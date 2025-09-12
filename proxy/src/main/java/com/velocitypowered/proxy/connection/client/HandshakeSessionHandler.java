@@ -38,7 +38,6 @@ import com.velocitypowered.proxy.protocol.packet.HandshakePacket;
 import com.velocitypowered.proxy.protocol.packet.LegacyDisconnect;
 import com.velocitypowered.proxy.protocol.packet.LegacyHandshakePacket;
 import com.velocitypowered.proxy.protocol.packet.LegacyPingPacket;
-import io.netty.buffer.ByteBuf;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Optional;
@@ -270,14 +269,14 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
   }
 
   /**
-   * Handles an unrecognized raw byte buffer during packet decoding.
+   * Handles an unknown packet received during the handshake phase.
    *
-   * <p>This method closes the connection to prevent further processing.</p>
+   * <p>Since no additional packets are valid at this stage, the connection is closed.</p>
    *
-   * @param buf the unknown buffer contents
+   * @param obj the unexpected packet
    */
   @Override
-  public void handleUnknown(final ByteBuf buf) {
+  public void handleUnknown(final Object obj) {
     // Unknown packet received. Better to close the connection.
     connection.close(true);
   }

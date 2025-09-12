@@ -24,10 +24,11 @@ import static com.velocitypowered.proxy.network.Connections.COMPRESSION_ENCODER;
 import static com.velocitypowered.proxy.network.Connections.FRAME_DECODER;
 import static com.velocitypowered.proxy.network.Connections.FRAME_ENCODER;
 import static com.velocitypowered.proxy.network.Connections.MINECRAFT_DECODER;
-import static com.velocitypowered.proxy.network.Connections.MINECRAFT_ENCODER;
+import static com.velocitypowered.proxy.network.Connections.MINECRAFT_PRE_ENCODER;
 
 import com.google.common.base.Preconditions;
 import com.velocitypowered.api.network.ProtocolVersion;
+import com.velocitypowered.natives.compression.JavaVelocityCompressor;
 import com.velocitypowered.natives.compression.VelocityCompressor;
 import com.velocitypowered.natives.encryption.VelocityCipher;
 import com.velocitypowered.natives.encryption.VelocityCipherFactory;
@@ -44,10 +45,10 @@ import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.VelocityConnectionEvent;
 import com.velocitypowered.proxy.protocol.netty.MinecraftCipherDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftCipherEncoder;
-import com.velocitypowered.proxy.protocol.netty.MinecraftCompressDecoder;
+import com.velocitypowered.proxy.protocol.netty.MinecraftCompressAndIdDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftCompressorAndLengthEncoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
-import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
+import com.velocitypowered.proxy.protocol.netty.MinecraftPreEncoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintFrameDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintLengthEncoder;
 import com.velocitypowered.proxy.protocol.netty.PlayPacketQueueInboundHandler;
@@ -558,11 +559,11 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     if (frameDecoder != null) {
       frameDecoder.setState(state);
     }
-    // If the connection is LEGACY (<1.6), the decoder and encoder are not set.
-    final MinecraftEncoder minecraftEncoder = this.channel.pipeline()
-        .get(MinecraftEncoder.class);
-    if (minecraftEncoder != null) {
-      minecraftEncoder.setState(state);
+    // If the connection is LEGACY (<1.6), the decoder and pre-encoder are not set.
+    final MinecraftPreEncoder minecraftPreEncoder = this.channel.pipeline()
+        .get(MinecraftPreEncoder.class);
+    if (minecraftPreEncoder != null) {
+      minecraftPreEncoder.setState(state);
     }
     final MinecraftDecoder minecraftDecoder = this.channel.pipeline()
         .get(MinecraftDecoder.class);
@@ -589,8 +590,8 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
    */
   public void addPlayPacketQueueHandler() {
     if (this.channel.pipeline().get(Connections.PLAY_PACKET_QUEUE_OUTBOUND) == null) {
-      this.channel.pipeline().addAfter(Connections.MINECRAFT_ENCODER, Connections.PLAY_PACKET_QUEUE_OUTBOUND,
-           new PlayPacketQueueOutboundHandler(this.protocolVersion, channel.pipeline().get(MinecraftEncoder.class).getDirection()));
+      this.channel.pipeline().addAfter(Connections.MINECRAFT_PRE_ENCODER, Connections.PLAY_PACKET_QUEUE_OUTBOUND,
+           new PlayPacketQueueOutboundHandler(this.protocolVersion, channel.pipeline().get(MinecraftPreEncoder.class).getDirection()));
     }
     if (this.channel.pipeline().get(Connections.PLAY_PACKET_QUEUE_INBOUND) == null) {
       this.channel.pipeline().addAfter(Connections.MINECRAFT_DECODER, Connections.PLAY_PACKET_QUEUE_INBOUND,
@@ -618,11 +619,11 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     boolean changed = this.protocolVersion != protocolVersion;
     this.protocolVersion = protocolVersion;
     if (protocolVersion != ProtocolVersion.LEGACY) {
-      this.channel.pipeline().get(MinecraftEncoder.class).setProtocolVersion(protocolVersion);
+      this.channel.pipeline().get(MinecraftPreEncoder.class).setProtocolVersion(protocolVersion);
       this.channel.pipeline().get(MinecraftDecoder.class).setProtocolVersion(protocolVersion);
     } else {
       // Legacy handshake handling
-      this.channel.pipeline().remove(MINECRAFT_ENCODER);
+      this.channel.pipeline().remove(MINECRAFT_PRE_ENCODER);
       this.channel.pipeline().remove(MINECRAFT_DECODER);
     }
 
@@ -731,16 +732,17 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     ensureInEventLoop();
 
     if (threshold == -1) {
-      final ChannelHandler removedDecoder = channel.pipeline().remove(COMPRESSION_DECODER);
+      channel.pipeline().replace(COMPRESSION_DECODER, COMPRESSION_DECODER,
+          new MinecraftCompressAndIdDecoder(server));
       final ChannelHandler removedEncoder = channel.pipeline().remove(COMPRESSION_ENCODER);
 
-      if (removedDecoder != null && removedEncoder != null) {
+      if (removedEncoder != null) {
         channel.pipeline().addBefore(MINECRAFT_DECODER, FRAME_ENCODER,
             MinecraftVarintLengthEncoder.INSTANCE);
         channel.pipeline().fireUserEventTriggered(VelocityConnectionEvent.COMPRESSION_DISABLED);
       }
     } else {
-      MinecraftCompressDecoder decoder = (MinecraftCompressDecoder) channel.pipeline()
+      MinecraftCompressAndIdDecoder decoder = (MinecraftCompressAndIdDecoder) channel.pipeline()
           .get(COMPRESSION_DECODER);
       MinecraftCompressorAndLengthEncoder encoder =
           (MinecraftCompressorAndLengthEncoder) channel.pipeline().get(COMPRESSION_ENCODER);
@@ -752,11 +754,12 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
         VelocityCompressor compressor = Natives.compress.get().create(level);
 
         encoder = new MinecraftCompressorAndLengthEncoder(threshold, compressor);
-        decoder = new MinecraftCompressDecoder(threshold, compressor);
+        decoder = new MinecraftCompressAndIdDecoder(threshold, compressor,
+            JavaVelocityCompressor.FACTORY.create(1), server);
 
         channel.pipeline().remove(FRAME_ENCODER);
-        channel.pipeline().addBefore(MINECRAFT_DECODER, COMPRESSION_DECODER, decoder);
-        channel.pipeline().addBefore(MINECRAFT_ENCODER, COMPRESSION_ENCODER, encoder);
+        channel.pipeline().replace(COMPRESSION_DECODER, COMPRESSION_DECODER, decoder);
+        channel.pipeline().addBefore(MINECRAFT_PRE_ENCODER, COMPRESSION_ENCODER, encoder);
 
         channel.pipeline().fireUserEventTriggered(VelocityConnectionEvent.COMPRESSION_ENABLED);
       }
