@@ -227,8 +227,8 @@ public class ComponentHolder {
         List<BinaryTag> tagItems = new ArrayList<>(jsonArray.size());
         BinaryTagType<? extends BinaryTag> listType = null;
 
-        for (JsonElement el : jsonArray) {
-          BinaryTag tag = serialize(el);
+        for (JsonElement jsonEl : jsonArray) {
+          BinaryTag tag = serialize(jsonEl);
           tagItems.add(tag);
 
           if (listType == null) {
