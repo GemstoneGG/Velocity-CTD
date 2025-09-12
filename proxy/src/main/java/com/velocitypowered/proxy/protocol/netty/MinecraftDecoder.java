@@ -101,8 +101,7 @@ public class MinecraftDecoder extends MessageToMessageDecoder<IdentifiedPacket> 
    * @throws Exception if an error occurs during decompression or decoding
    */
   @Override
-  protected void decode(final ChannelHandlerContext ctx, final IdentifiedPacket msg, final List<Object> out)
-      throws Exception {
+  protected void decode(final ChannelHandlerContext ctx, final IdentifiedPacket msg, final List<Object> out) throws Exception {
     int packetId = msg.getPacketId();
     MinecraftPacket packet = registry.createPacket(packetId);
     if (packet == null) {

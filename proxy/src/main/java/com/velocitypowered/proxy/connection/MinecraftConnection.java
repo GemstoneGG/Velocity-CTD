@@ -265,7 +265,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
             }
           }
 
-          activeSessionHandler.handleUnknown(buf);
+          activeSessionHandler.handleUnknown(msg);
         }
         default -> {
             // Do nothing, unknown handler

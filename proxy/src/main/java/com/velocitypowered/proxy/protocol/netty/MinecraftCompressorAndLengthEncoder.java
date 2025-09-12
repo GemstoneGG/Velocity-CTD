@@ -75,8 +75,7 @@ public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<Id
    * @throws Exception if compression or decompression fails
    */
   @Override
-  protected void encode(final ChannelHandlerContext ctx, final IdentifiedPacket msg, final ByteBuf out)
-      throws Exception {
+  protected void encode(final ChannelHandlerContext ctx, final IdentifiedPacket msg, final ByteBuf out) throws Exception {
     if (msg instanceof UncompressedPacket uncompressed) {
       int uncompressedLength = uncompressed.getPacketBuf().readableBytes();
       if (uncompressedLength < threshold || threshold <= 0) {
