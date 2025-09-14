@@ -26,6 +26,9 @@ tasks {
 
     shadowJar {
         transform(Log4j2PluginsCacheFileTransformer::class.java)
+        filesMatching("META-INF/org/apache/logging/log4j/core/config/plugins/**") {
+            duplicatesStrategy = DuplicatesStrategy.INCLUDE
+        }
 
         // Exclude all the collection types we don't intend to use
         exclude("it/unimi/dsi/fastutil/booleans/**")
@@ -106,6 +109,15 @@ tasks {
         workingDir = file("run").also(File::mkdirs)
         standardInput = System.`in` // Doesn't work?
     }
+
+    withType<JavaCompile>().configureEach {
+        options.compilerArgs.addAll(
+            listOf(
+                "-Alog4j.graalvm.groupId=${project.group}",
+                "-Alog4j.graalvm.artifactId=${project.name}"
+            )
+        )
+    }
 }
 
 val projectVersion = version as String
@@ -129,7 +141,6 @@ fill {
 dependencies {
     implementation(project(":velocity-api"))
     implementation(project(":velocity-native"))
-    implementation(project(":velocity-proxy-log4j2-plugin"))
 
     implementation(libs.bundles.log4j)
     implementation(libs.kyori.ansi)
@@ -167,4 +178,5 @@ dependencies {
     testImplementation(libs.mockito)
 
     annotationProcessor(libs.auto.service)
+    annotationProcessor(libs.log4j.core)
 }

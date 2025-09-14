@@ -36,23 +36,42 @@ import org.apache.logging.log4j.core.pattern.PatternParser;
 @Plugin(name = "stripAnsi", category = PatternConverter.CATEGORY)
 @ConverterKeys("stripAnsi")
 public class StripAnsiConverter extends LogEventPatternConverter {
+
+  /**
+   * Pattern to match ANSI escape codes used for coloring or formatting.
+   */
   private static final Pattern ANSI_PATTERN = Pattern.compile("\u001B\\[[;\\d]*m");
+
+  /**
+   * List of {@link PatternFormatter}s used to format the log event before
+   * stripping ANSI escape codes.
+   */
   private final List<PatternFormatter> formatters;
 
   /**
-   * Constructs an instance of StripAnsiConverter.
+   * Constructs a new {@code StripAnsiConverter}.
+   *
+   * @param formatters the formatters that produce the original message content
    */
-  protected StripAnsiConverter(List<PatternFormatter> formatters) {
+  protected StripAnsiConverter(final List<PatternFormatter> formatters) {
     super("stripAnsi", null);
     this.formatters = formatters;
   }
 
+  /**
+   * Formats the given {@link LogEvent}, strips ANSI escape codes,
+   * and appends the sanitized message to the provided {@link StringBuilder}.
+   *
+   * @param event the log event to format
+   * @param toAppendTo the buffer to append the formatted message to
+   */
   @Override
   public void format(final LogEvent event, final StringBuilder toAppendTo) {
     int start = toAppendTo.length();
     for (final PatternFormatter formatter : formatters) {
       formatter.format(event, toAppendTo);
     }
+
     String content = toAppendTo.substring(start);
     content = ANSI_PATTERN.matcher(content).replaceAll("");
 
@@ -61,18 +80,20 @@ public class StripAnsiConverter extends LogEventPatternConverter {
   }
 
   /**
-   * Creates a new Instance of this Converter.
+   * Creates a new instance of {@code StripAnsiConverter}.
    *
-   * @param config the configuration
-   * @param options the options
-   * @return a new instance
+   * @param config  the current Log4j configuration
+   * @param options the options passed in the log4j configuration file
+   * @return a new {@link StripAnsiConverter} instance, or {@code null}
+   *         if the provided options are invalid
    */
-  public static StripAnsiConverter newInstance(Configuration config, String[] options) {
+  public static StripAnsiConverter newInstance(final Configuration config, final String[] options) {
     if (options.length != 1) {
-      LOGGER.error("Incorrect number of options on stripFormat. Expected 1 received "
-              + options.length);
+      LOGGER.error("Incorrect number of options on stripFormat. Expected 1 received {}",
+          options.length);
       return null;
     }
+
     PatternParser parser = PatternLayout.createPatternParser(config);
     List<PatternFormatter> formatters = parser.parse(options[0]);
     return new StripAnsiConverter(formatters);

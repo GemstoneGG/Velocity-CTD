@@ -11,7 +11,7 @@ lettuce = "6.8.1.RELEASE"
 [plugins]
 fill = "io.papermc.fill.gradle:1.0.7"
 indra-publishing = "net.kyori.indra.publishing:3.2.0"
-shadow = "com.gradleup.shadow:8.3.9"
+shadow = "com.gradleup.shadow:9.1.0"
 spotless = "com.diffplug.spotless:7.2.1"
 
 [libraries]
