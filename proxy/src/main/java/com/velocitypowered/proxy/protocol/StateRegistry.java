@@ -566,7 +566,8 @@ public enum StateRegistry {
           map(0x43, MINECRAFT_1_20_3, false),
           map(0x45, MINECRAFT_1_20_5, false),
           map(0x4A, MINECRAFT_1_21_2, false),
-          map(0x49, MINECRAFT_1_21_5, false));
+          map(0x49, MINECRAFT_1_21_5, false),
+          map(0x4E, MINECRAFT_1_21_9, false));
       clientbound.register(
           ResourcePackRequestPacket.class,
           ResourcePackRequestPacket::new,
