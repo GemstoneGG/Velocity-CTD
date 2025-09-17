@@ -46,7 +46,7 @@ junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.re
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
 jspecify = "org.jspecify:jspecify:1.0.0"
 kyori-ansi = "net.kyori:ansi:1.1.1"
-guava = "com.google.guava:guava:33.4.8-jre"
+guava = "com.google.guava:guava:33.5.0-jre"
 gson = "com.google.code.gson:gson:2.13.2"
 guice = "com.google.inject:guice:7.0.0"
 lmbda = "org.lanternpowered:lmbda:2.0.0"
