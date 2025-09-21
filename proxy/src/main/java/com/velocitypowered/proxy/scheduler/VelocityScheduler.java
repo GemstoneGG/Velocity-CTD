@@ -332,7 +332,7 @@ public class VelocityScheduler implements Scheduler {
 
     @Override
     public @NotNull Object plugin() {
-      //noinspection OptionalGetWithoutIsPresent
+      // noinspection OptionalGetWithoutIsPresent
       return container.getInstance().get();
     }
 
@@ -378,7 +378,7 @@ public class VelocityScheduler implements Scheduler {
             consumer.accept(this);
           }
         } catch (Throwable e) {
-          //noinspection ConstantConditions
+          // noinspection ConstantConditions
           if (e instanceof InterruptedException) {
             Thread.currentThread().interrupt();
           } else {

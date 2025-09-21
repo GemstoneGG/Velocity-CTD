@@ -105,6 +105,8 @@ import com.velocitypowered.proxy.protocol.packet.chat.session.UnsignedPlayerComm
 import com.velocitypowered.proxy.protocol.packet.config.ActiveFeaturesPacket;
 import com.velocitypowered.proxy.protocol.packet.config.ClientboundCustomReportDetailsPacket;
 import com.velocitypowered.proxy.protocol.packet.config.ClientboundServerLinksPacket;
+import com.velocitypowered.proxy.protocol.packet.config.CodeOfConductAcceptPacket;
+import com.velocitypowered.proxy.protocol.packet.config.CodeOfConductPacket;
 import com.velocitypowered.proxy.protocol.packet.config.FinishedUpdatePacket;
 import com.velocitypowered.proxy.protocol.packet.config.KnownPacksPacket;
 import com.velocitypowered.proxy.protocol.packet.config.RegistrySyncPacket;
@@ -204,6 +206,9 @@ public enum StateRegistry {
           map(0x07, MINECRAFT_1_20_5, false));
       serverbound.register(ServerboundCustomClickActionPacket.class, ServerboundCustomClickActionPacket::new,
           map(0x08, MINECRAFT_1_21_6, false));
+      serverbound.register(
+          CodeOfConductAcceptPacket.class, () -> CodeOfConductAcceptPacket.INSTANCE,
+          map(0x09, MINECRAFT_1_21_9, false));
 
       clientbound.register(
           ClientboundCookieRequestPacket.class, ClientboundCookieRequestPacket::new,
@@ -262,6 +267,8 @@ public enum StateRegistry {
           map(0x11, MINECRAFT_1_21_6, false));
       clientbound.register(DialogShowPacket.class, () -> new DialogShowPacket(this),
           map(0x12, MINECRAFT_1_21_6, false));
+      clientbound.register(CodeOfConductPacket.class, CodeOfConductPacket::new,
+          map(0x13, MINECRAFT_1_21_9, false));
     }
   },
 
