@@ -44,8 +44,6 @@ public final class CodeOfConductAcceptPacket implements MinecraftPacket {
 
   /**
    * Decodes this packet from the given buffer.
-   *
-   * <p>No-op: this packet has no payload.</p>
    */
   @Override
   public void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
@@ -53,8 +51,6 @@ public final class CodeOfConductAcceptPacket implements MinecraftPacket {
 
   /**
    * Encodes this packet into the given buffer.
-   *
-   * <p>No-op: this packet has no payload.</p>
    */
   @Override
   public void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
