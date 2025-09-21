@@ -19,6 +19,10 @@ import org.jetbrains.annotations.NotNull;
  * <p>Commands can be canceled or forwarded to backend servers in {@link CommandExecuteEvent}.
  * This will prevent firing this event.</p>
  *
+ * <p><strong>Rate limiting:</strong> This event only fires for commands that the proxy actually
+ * processed. If a command was forwarded due to rate limiting or the player was kicked for
+ * exceeding limits, this event will not be emitted.</p>
+ *
  * @since 3.3.0
  */
 public final class PostCommandInvocationEvent {

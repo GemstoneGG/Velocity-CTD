@@ -109,6 +109,7 @@ public final class SerializedPluginDescription {
     for (com.velocitypowered.api.plugin.Dependency dependency : plugin.dependencies()) {
       dependencies.add(new Dependency(dependency.id(), dependency.optional()));
     }
+
     return new SerializedPluginDescription(plugin.id(), plugin.name(), plugin.version(),
         plugin.description(), plugin.url(),
         Arrays.stream(plugin.authors()).filter(author -> !author.isEmpty())
@@ -290,9 +291,11 @@ public final class SerializedPluginDescription {
       if (this == o) {
         return true;
       }
+
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
+
       Dependency that = (Dependency) o;
       return optional == that.optional
           && Objects.equals(id, that.id);
