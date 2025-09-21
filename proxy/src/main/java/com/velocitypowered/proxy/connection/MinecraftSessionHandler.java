@@ -804,10 +804,22 @@ public interface MinecraftSessionHandler {
     return false;
   }
 
+  /**
+   * Handles {@link CodeOfConductPacket}.
+   *
+   * @param packet the code-of-conduct packet
+   * @return {@code true} if the packet was handled, {@code false} otherwise
+   */
   default boolean handle(final CodeOfConductPacket packet) {
     return false;
   }
 
+  /**
+   * Handles {@link CodeOfConductAcceptPacket}.
+   *
+   * @param packet the code-of-conduct accept packet
+   * @return {@code true} if the packet was handled, {@code false} otherwise
+   */
   default boolean handle(final CodeOfConductAcceptPacket packet) {
     return false;
   }
