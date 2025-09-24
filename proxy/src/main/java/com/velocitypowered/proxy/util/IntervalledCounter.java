@@ -148,7 +148,7 @@ public final class IntervalledCounter {
   public void addTime(final long currTime, final long count) {
     // guard against overflow by using subtraction
     if (currTime - this.minTime < 0) {
-        return;
+      return;
     }
 
     int nextTail = (this.tail + 1) % this.times.length;
