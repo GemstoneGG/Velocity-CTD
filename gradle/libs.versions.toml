@@ -12,7 +12,7 @@ lettuce = "6.8.1.RELEASE"
 fill = "io.papermc.fill.gradle:1.0.7"
 indra-publishing = "net.kyori.indra.publishing:3.2.0"
 shadow = "com.gradleup.shadow:9.2.1"
-spotless = "com.diffplug.spotless:7.2.1"
+spotless = "com.diffplug.spotless:8.0.0"
 
 [libraries]
 adventure-bom = "net.kyori:adventure-bom:4.24.0"
