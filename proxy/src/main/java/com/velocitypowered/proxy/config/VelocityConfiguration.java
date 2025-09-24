@@ -315,10 +315,10 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Expose
   private Map<String, Integer> playerCaps;
 
-  private VelocityConfiguration(final Servers servers, final ForcedHosts forcedHosts, 
+  private VelocityConfiguration(final Servers servers, final ForcedHosts forcedHosts,
                                 final CommandAliases commandAliases,
-                                final ProxyCommandAliases proxyCommandAliases, final Commands commands, 
-                                final Advanced advanced, final Query query, final Metrics metrics, 
+                                final ProxyCommandAliases proxyCommandAliases, final Commands commands,
+                                final Advanced advanced, final Query query, final Metrics metrics,
                                 final Redis redis, final Queue queue) {
     this.servers = servers;
     this.forcedHosts = forcedHosts;
@@ -1616,7 +1616,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     private Servers(final CommentedConfig config) {
       this.serverAliases = List.of("joinqueue", "queue", "server");
       this.dynamicFallbackFilter = "FIRST_AVAILABLE";
-      
+
       if (config != null) {
         Map<String, BackendServerConfig> servers = new HashMap<>();
         Map<String, String> serverMinimumVersions = new HashMap<>();
