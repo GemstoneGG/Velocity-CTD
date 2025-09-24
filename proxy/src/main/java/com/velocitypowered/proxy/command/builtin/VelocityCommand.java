@@ -79,6 +79,7 @@ import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -137,7 +138,7 @@ public final class VelocityCommand {
         .executes(ctx -> {
           ctx.getSource().sendMessage(
               Component.translatable("velocity.command.sudo.usage", NamedTextColor.YELLOW)
-                  .arguments(Component.text("velocity sudo"))
+                      .arguments(Argument.string("command", "velocity sudo"))
           );
 
           return Command.SINGLE_SUCCESS;
@@ -264,11 +265,11 @@ public final class VelocityCommand {
     long seconds = TimeUnit.SECONDS.toSeconds(timeInSeconds) - (TimeUnit.SECONDS.toMinutes(timeInSeconds) * 60);
 
     return Component.translatable("velocity.command.uptime",
-        NamedTextColor.GREEN,
-        Component.text(days),
-        Component.text(hours),
-        Component.text(minutes),
-        Component.text(seconds)
+      NamedTextColor.GREEN).arguments(
+      Argument.numeric("days", days),
+      Argument.numeric("hours", hours),
+      Argument.numeric("minutes", minutes),
+      Argument.numeric("seconds", seconds)
     );
   }
 
@@ -298,12 +299,12 @@ public final class VelocityCommand {
 
       if (!server.getMultiProxyHandler().getAllProxyIdsLowerCase().contains(proxyId.toLowerCase())) {
         source.sendMessage(Component.translatable("velocity.command.proxy-does-not-exist")
-            .arguments(Component.text(realId)));
+                .arguments(Argument.string("proxy", realId)));
         return -1;
       }
 
       source.sendMessage(Component.translatable("velocity.command.uptime-remote")
-          .arguments(Component.text(realId)));
+              .arguments(Argument.string("proxy", realId)));
 
       server.getMultiProxyHandler().requestUptime(realId, source);
       return Command.SINGLE_SUCCESS;
@@ -331,7 +332,8 @@ public final class VelocityCommand {
             context.getSource().sendMessage(Component.translatable("velocity.command.sudo.no-players"));
           } else {
             context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
-                .arguments(Component.text("everyone"), Component.text(messageOrCommand)));
+                    .arguments(Argument.string("target", "everyone"),
+                            Argument.string("message", messageOrCommand)));
           }
           return Command.SINGLE_SUCCESS;
         } else {
@@ -435,7 +437,8 @@ public final class VelocityCommand {
 
           this.server.getRedisManager().send(new RedisSudo(info.getProxyId(), info.getUuid(), messageOrCommand));
           context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
-              .arguments(Component.text(info.getUsername()), Component.text(messageOrCommand)));
+                  .arguments(Argument.string("target", info.getUsername()),
+                          Argument.string("message", messageOrCommand)));
           return Command.SINGLE_SUCCESS;
         } else {
           Player player = this.server.getPlayer(playerName).orElse(null);
@@ -502,12 +505,12 @@ public final class VelocityCommand {
 
       if (realId == null || !server.getMultiProxyHandler().getAllProxyIdsLowerCase().contains(proxyId.toLowerCase())) {
         source.sendMessage(Component.translatable("velocity.command.proxy-does-not-exist")
-            .arguments(Component.text(proxyId)));
+                .arguments(Argument.string("proxy", proxyId)));
         return -1;
       }
 
       source.sendMessage(Component.translatable("velocity.command.reload-remote")
-          .arguments(Component.text(realId)));
+              .arguments(Argument.string("proxy", realId)));
 
       server.getMultiProxyHandler().requestReload(realId, source);
       return Command.SINGLE_SUCCESS;
@@ -555,9 +558,9 @@ public final class VelocityCommand {
             .build();
         final Component copyright = Component
             .translatable("velocity.command.version-copyright",
-                Component.text(version.getVendor()),
-                Component.text(version.getName()),
-                Component.text(LocalDate.now().getYear()));
+                  Argument.string("vendor", version.getVendor()),
+                  Argument.string("name", version.getName()),
+                  Argument.component("year", Component.text(LocalDate.now().getYear())));
         infoBuilder.append(velocity)
             .appendNewline()
             .append(copyright);
@@ -593,8 +596,8 @@ public final class VelocityCommand {
             case DISTANCE_LATEST -> infoBuilder.append(Component.translatable(
                 "velocity.command.version-latest", NamedTextColor.GREEN));
             default -> infoBuilder.append(Component.translatable(
-                "velocity.command.version-behind", NamedTextColor.YELLOW,
-                Component.text(dist)));
+                    "velocity.command.version-behind", NamedTextColor.YELLOW)
+                    .arguments(Argument.numeric("distance", dist)));
           }
         }
 
@@ -661,7 +664,7 @@ public final class VelocityCommand {
       final TranslatableComponent output = Component.translatable()
           .key("velocity.command.plugins-list")
           .color(NamedTextColor.YELLOW)
-          .arguments(listBuilder.build())
+          .arguments(Argument.component("plugins", listBuilder.build()))
           .build();
       source.sendMessage(output);
       return Command.SINGLE_SUCCESS;
@@ -677,17 +680,17 @@ public final class VelocityCommand {
         hoverText.append(Component.newline());
         hoverText.append(Component.translatable(
             "velocity.command.plugin-tooltip-website",
-            Component.text(url)));
+            Argument.component("url", Component.text(url))));
       });
       if (!description.getAuthors().isEmpty()) {
         hoverText.append(Component.newline());
         if (description.getAuthors().size() == 1) {
-          hoverText.append(Component.translatable("velocity.command.plugin-tooltip-author",
-              Component.text(description.getAuthors().getFirst())));
+          hoverText.append(Component.translatable("velocity.command.plugin-tooltip-author")
+                  .arguments(Argument.string("author", description.getAuthors().getFirst())));
         } else {
           hoverText.append(
               Component.translatable("velocity.command.plugin-tooltip-author",
-                  Component.text(String.join(", ", description.getAuthors()))
+                  Argument.string("authors", String.join(", ", description.getAuthors()))
               )
           );
         }
