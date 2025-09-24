@@ -20,6 +20,7 @@ package com.velocitypowered.proxy.protocol.netty;
 import static io.netty.util.ByteProcessor.FIND_NON_NUL;
 
 import com.velocitypowered.api.network.ProtocolVersion;
+import com.velocitypowered.proxy.network.limiter.PacketLimiter;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
@@ -30,6 +31,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.CorruptedFrameException;
 import java.util.List;
+import javax.annotation.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -88,6 +90,18 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
    * <p>This is updated externally when a state transition occurs.</p>
    */
   private StateRegistry state;
+
+  /**
+   * Optional but recommended rate limiter applied to serverbound packet frames.
+   *
+   * <p>If set, this limiter enforces average packets-per-second and/or bytes-per-second
+   * thresholds based on the frame length. Exceeding configured limits causes the decoder
+   * to throw a {@link QuietDecoderException} and disconnect the client.</p>
+   *
+   * <p>This field may be {@code null}, in which case no packet-level rate limiting is applied.</p>
+   */
+  @Nullable
+  private PacketLimiter packetLimiter;
 
   /**
    * Creates a new {@code MinecraftVarintFrameDecoder} decoding packets from the specified {@code Direction}.
@@ -184,6 +198,15 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
 
     // note that zero-length packets are ignored
     if (length > 0) {
+      // If enabled, rate-limit serverbound payload bytes based on frame length
+      if (packetLimiter != null) {
+        if (!packetLimiter.account(length)) {
+          throw new QuietDecoderException(
+              "Rate limit exceeded while processing packets for %s".formatted(
+                  ctx.channel().remoteAddress()));
+        }
+      }
+
       if (in.readableBytes() < length) {
         in.resetReaderIndex();
       } else {
@@ -319,6 +342,19 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
    */
   public void setState(final StateRegistry stateRegistry) {
     this.state = stateRegistry;
+  }
+
+  /**
+   * Sets the {@link PacketLimiter} to apply when decoding frames.
+   *
+   * <p>Passing {@code null} disables rate limiting. When enabled, the limiter
+   * receives each decoded frame length via {@link PacketLimiter#account(int)},
+   * and may reject frames if limits are exceeded.</p>
+   *
+   * @param packetLimiter the limiter to enforce, or {@code null} to disable
+   */
+  public void setPacketLimiter(@Nullable final PacketLimiter packetLimiter) {
+    this.packetLimiter = packetLimiter;
   }
 
   /**

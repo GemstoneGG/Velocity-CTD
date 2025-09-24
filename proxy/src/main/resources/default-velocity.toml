@@ -149,6 +149,18 @@ transfer-enabled = true
 # Whether to use the default "/server" output, or whether to override it with the "velocity.command.server.usage" key.
 override-server-command-usage = false
 
+[packet-limiter]
+# Controls a moving-window limiter for serverbound frames.
+# - interval: Window length in seconds.
+#
+# - packets-per-second: Average packets per second cap (<= 0 disables).
+#
+# - bytes-per-second: Average bytes per second cap (<= 0 disables).
+#
+interval = 7
+packets-per-second = 500
+bytes-per-second = -1
+
 [servers]
 # Configure your servers here. Each key represents the server's name, and the value
 # represents the IP address of the server to connect to.

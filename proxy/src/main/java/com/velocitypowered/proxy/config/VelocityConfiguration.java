@@ -238,6 +238,15 @@ public final class VelocityConfiguration implements ProxyConfig {
   private boolean forceKeyAuthentication = true;
 
   /**
+   * Packet/frame rate-limiter configuration loaded from {@code [packet-limiter]}.
+   *
+   * <p>Controls the moving-window limiter used by the decoder to cap average packets-per-second
+   * and/or bytes-per-second. See {@link PacketLimiterConfig} for details.</p>
+   */
+  @Expose
+  private PacketLimiterConfig packetLimiterConfig = PacketLimiterConfig.DEFAULT;
+
+  /**
    * Whether to log all player connection attempts.
    */
   @Expose
@@ -315,10 +324,10 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Expose
   private Map<String, Integer> playerCaps;
 
-  private VelocityConfiguration(final Servers servers, final ForcedHosts forcedHosts, 
+  private VelocityConfiguration(final Servers servers, final ForcedHosts forcedHosts,
                                 final CommandAliases commandAliases,
-                                final ProxyCommandAliases proxyCommandAliases, final Commands commands, 
-                                final Advanced advanced, final Query query, final Metrics metrics, 
+                                final ProxyCommandAliases proxyCommandAliases, final Commands commands,
+                                final Advanced advanced, final Query query, final Metrics metrics,
                                 final Redis redis, final Queue queue) {
     this.servers = servers;
     this.forcedHosts = forcedHosts;
@@ -342,13 +351,14 @@ public final class VelocityConfiguration implements ProxyConfig {
                                 final Servers servers, final ForcedHosts forcedHosts, final CommandAliases commandAliases,
                                 final ProxyCommandAliases proxyCommandAliases, final Commands commands, final Advanced advanced,
                                 final Query query, final Metrics metrics, final boolean forceKeyAuthentication,
-                                final boolean logPlayerConnections, final boolean logPlayerDisconnections,
-                                final boolean logOfflineConnections, final boolean disableForge,
-                                final boolean enforceChatSigning, final boolean translateHeaderFooter,
-                                final boolean logMinimumVersion, final String minimumVersion,
-                                final Redis redis, final Queue queue, final Map<String, List<String>> slashServers,
-                                final Map<String, List<ServerLink>> serverLinks, final List<ProxyAddress> proxyAddresses,
-                                final String dynamicProxyFilter, final Map<String, Integer> playerCaps) {
+                                final PacketLimiterConfig packetLimiterConfig, final boolean logPlayerConnections,
+                                final boolean logPlayerDisconnections, final boolean logOfflineConnections,
+                                final boolean disableForge, final boolean enforceChatSigning,
+                                final boolean translateHeaderFooter, final boolean logMinimumVersion,
+                                final String minimumVersion, final Redis redis, final Queue queue,
+                                final Map<String, List<String>> slashServers, final Map<String, List<ServerLink>> serverLinks,
+                                final List<ProxyAddress> proxyAddresses, final String dynamicProxyFilter,
+                                final Map<String, Integer> playerCaps) {
     this.bind = bind;
     this.motd = motd;
     this.motdHover = motdHover;
@@ -372,6 +382,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     this.query = query;
     this.metrics = metrics;
     this.forceKeyAuthentication = forceKeyAuthentication;
+    this.packetLimiterConfig = packetLimiterConfig;
     this.logPlayerConnections = logPlayerConnections;
     this.logPlayerDisconnections = logPlayerDisconnections;
     this.logOfflineConnections = logOfflineConnections;
@@ -1051,6 +1062,15 @@ public final class VelocityConfiguration implements ProxyConfig {
   }
 
   /**
+   * Gets the configured packet/frame limiter settings loaded from {@code [packet-limiter]}.
+   *
+   * @return the packet limiter configuration for this proxy
+   */
+  public PacketLimiterConfig getPacketLimiterConfig() {
+    return packetLimiterConfig;
+  }
+
+  /**
    * Gets the Redis configuration block.
    *
    * @return the {@link Redis} configuration
@@ -1153,6 +1173,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         .add("favicon", favicon)
         .add("enablePlayerAddressLogging", enablePlayerAddressLogging)
         .add("forceKeyAuthentication", forceKeyAuthentication)
+        .add("packetLimiterConfig", packetLimiterConfig)
         .add("logPlayerConnections", logPlayerConnections)
         .add("logPlayerDisconnections", logPlayerDisconnections)
         .add("logOfflineConnections", logOfflineConnections)
@@ -1275,6 +1296,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       final boolean kickExistingCheckIp = config.getOrElse("kick-existing-players-check-ip", false);
       final boolean enablePlayerAddressLogging = config.getOrElse(
               "enable-player-address-logging", true);
+      final PacketLimiterConfig packetLimiterConfig = PacketLimiterConfig.fromConfig(config.get("packet-limiter"));
       final boolean logPlayerConnections = config.getOrElse(
               "log-player-connections", true);
       final boolean logPlayerDisconnections = config.getOrElse(
@@ -1388,6 +1410,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           new Query(queryConfig),
           new Metrics(metricsConfig),
           forceKeyAuthentication,
+          packetLimiterConfig,
           logPlayerConnections,
           logPlayerDisconnections,
           logOfflineConnections,
@@ -1616,7 +1639,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     private Servers(final CommentedConfig config) {
       this.serverAliases = List.of("joinqueue", "queue", "server");
       this.dynamicFallbackFilter = "FIRST_AVAILABLE";
-      
+
       if (config != null) {
         Map<String, BackendServerConfig> servers = new HashMap<>();
         Map<String, String> serverMinimumVersions = new HashMap<>();
@@ -2506,6 +2529,38 @@ public final class VelocityConfiguration implements ProxyConfig {
      */
     public boolean isEnabled() {
       return enabled;
+    }
+  }
+
+  /**
+    * Configuration for packet limiting.
+    *
+    * @param interval the interval in seconds to measure packets over
+    * @param pps      the maximum number of packets per second allowed
+    * @param bytes    the maximum number of bytes per second allowed
+    */
+  public record PacketLimiterConfig(int interval, int pps, int bytes) {
+
+    /**
+     * Default limiter configuration: 7s window, 500 pps cap, byte cap disabled (-1).
+     */
+    public static PacketLimiterConfig DEFAULT = new PacketLimiterConfig(7, 500, -1);
+
+    /**
+      * returns a PacketLimiterConfig from a config section, or the default if the section is null.
+      *
+      * @param config the configuration object to parse
+      * @return the packet limiter config, or the default if {@code config} is null
+      */
+    public static PacketLimiterConfig fromConfig(final CommentedConfig config) {
+      if (config != null) {
+        return new PacketLimiterConfig(
+            config.getIntOrElse("interval", DEFAULT.interval()),
+            config.getIntOrElse("packets-per-second", DEFAULT.pps()),
+            config.getIntOrElse("bytes-per-second", DEFAULT.bytes()));
+      } else {
+        return DEFAULT;
+      }
     }
   }
 
