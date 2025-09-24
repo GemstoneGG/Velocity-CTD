@@ -20,6 +20,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 /**
  * This event is fired when someone executes a command. Velocity will wait for this event to finish
  * firing before trying to handle the command and/or forwarding it to the server.
+ *
+ * <p><strong>Rate limiting:</strong> Depending on proxy configuration, excessively fast command
+ * submissions may be dropped, forwarded directly to the backend, or cause the player to be kicked
+ * before plugin handling. In those cases, this event may not fire.</p>
  */
 @AwaitingEvent
 public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
@@ -180,12 +184,14 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
    * @since 3.4.0
    */
   public enum Source {
+
     /**
      * Indicates that the command was invoked by a player.
      *
      * @since 3.4.0
      */
     PLAYER,
+
     /**
      * Indicates that the command was invoked programmatically through an API call.
      *

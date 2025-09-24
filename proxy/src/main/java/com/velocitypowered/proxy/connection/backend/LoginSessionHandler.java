@@ -122,7 +122,10 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
   public boolean handle(final LoginPluginMessagePacket packet) {
     MinecraftConnection mc = serverConn.ensureConnected();
     VelocityConfiguration configuration = server.getConfiguration();
-    if (configuration.getServerForwardingMode(serverConn.getServerInfo().getName()) == PlayerInfoForwarding.MODERN
+
+    PlayerInfoForwarding forwardingMode = serverConn.getServer().getConfiguredPlayerInfoForwarding();
+
+    if (forwardingMode == PlayerInfoForwarding.MODERN
         && packet.getChannel().equals(PlayerDataForwarding.CHANNEL)) {
 
       int requestedForwardingVersion = PlayerDataForwarding.MODERN_DEFAULT;
@@ -130,6 +133,7 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
       if (packet.content().readableBytes() == 1) {
         requestedForwardingVersion = packet.content().readByte();
       }
+
       ConnectedPlayer player = serverConn.getPlayer();
       ByteBuf forwardingData = PlayerDataForwarding.createForwardingData(
           configuration.getForwardingSecret(),
@@ -209,8 +213,9 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
    */
   @Override
   public boolean handle(final ServerLoginSuccessPacket packet) {
-    if (server.getConfiguration().getServerForwardingMode(serverConn.getServerInfo().getName()) == PlayerInfoForwarding.MODERN
-        && !informationForwarded) {
+    PlayerInfoForwarding forwardingMode = serverConn.getServer().getConfiguredPlayerInfoForwarding();
+
+    if (forwardingMode == PlayerInfoForwarding.MODERN && !informationForwarded) {
       resultFuture.complete(ConnectionRequestResults.forDisconnect(MODERN_IP_FORWARDING_FAILURE, serverConn.getServer()));
       serverConn.disconnect();
       return true;
@@ -301,7 +306,9 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
    */
   @Override
   public void disconnected() {
-    if (server.getConfiguration().getServerForwardingMode(serverConn.getServerInfo().getName()) == PlayerInfoForwarding.LEGACY) {
+    PlayerInfoForwarding forwardingMode = serverConn.getServer().getConfiguredPlayerInfoForwarding();
+
+    if (forwardingMode == PlayerInfoForwarding.LEGACY) {
       resultFuture.completeExceptionally(new QuietRuntimeException(
               """
               The connection to the remote server was unexpectedly closed.

@@ -201,7 +201,8 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
 
   private void startHandshake() {
     final MinecraftConnection mc = ensureConnected();
-    PlayerInfoForwarding forwardingMode = server.getConfiguration().getServerForwardingMode(registeredServer.getServerInfo().getName());
+
+    PlayerInfoForwarding forwardingMode = registeredServer.getConfiguredPlayerInfoForwarding();
 
     // Initiate the handshake.
     ProtocolVersion protocolVersion = proxyPlayer.getConnection().getProtocolVersion();
