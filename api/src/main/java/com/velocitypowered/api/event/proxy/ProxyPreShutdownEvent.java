@@ -19,6 +19,8 @@ import com.velocitypowered.api.event.annotation.AwaitingEvent;
  * <p><b>Note:</b> Velocity will wait for all event listeners to complete before disconnecting players.
  * The wait will time out after a configurable period (default 10 seconds) controlled by the
  * {@code velocity.pre-shutdown-timeout} system property, to prevent shutdown from hanging indefinitely.</p>
+ *
+ * @since 3.4.0
  */
 @Beta
 @AwaitingEvent

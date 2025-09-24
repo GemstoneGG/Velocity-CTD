@@ -29,6 +29,26 @@ public final class ServerInfo implements Comparable<ServerInfo> {
   private final InetSocketAddress address;
 
   /**
+   * The forwarding mode used by the proxy when sending player information
+   * to this server.
+   */
+  private final ServerInfoForwardingMode forwardingMode;
+
+  /**
+   * Creates a new ServerInfo object.
+   *
+   * @param name the name for the server
+   * @param address the address of the server to connect to
+   * @param forwardingMode the server info forwarding mode
+   * @since 3.4.0
+   */
+  public ServerInfo(final String name, final InetSocketAddress address, final ServerInfoForwardingMode forwardingMode) {
+    this.name = Preconditions.checkNotNull(name, "name");
+    this.address = Preconditions.checkNotNull(address, "address");
+    this.forwardingMode = Preconditions.checkNotNull(forwardingMode, "forwardingMode");
+  }
+
+  /**
    * Creates a new ServerInfo object.
    *
    * @param name the name for the server
@@ -37,6 +57,7 @@ public final class ServerInfo implements Comparable<ServerInfo> {
   public ServerInfo(final String name, final InetSocketAddress address) {
     this.name = Preconditions.checkNotNull(name, "name");
     this.address = Preconditions.checkNotNull(address, "address");
+    this.forwardingMode = ServerInfoForwardingMode.FOLLOWUP;
   }
 
   /**
@@ -46,6 +67,15 @@ public final class ServerInfo implements Comparable<ServerInfo> {
    */
   public String getName() {
     return name;
+  }
+
+  /**
+   * Get what mode will the backend server use to communicate with velocity.
+   *
+   * @return FOLLOWUP mode if the server uses the same mode as set in the main config else one of the available modes
+   */
+  public ServerInfoForwardingMode getServerInfoForwardingMode() {
+    return forwardingMode;
   }
 
   /**
@@ -62,6 +92,7 @@ public final class ServerInfo implements Comparable<ServerInfo> {
     return "ServerInfo{"
         + "name='" + name + '\''
         + ", address=" + address
+        + ", forwarding=" + forwardingMode
         + '}';
   }
 
@@ -71,18 +102,18 @@ public final class ServerInfo implements Comparable<ServerInfo> {
       return true;
     }
 
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof final ServerInfo that)) {
       return false;
     }
 
-    ServerInfo that = (ServerInfo) o;
     return Objects.equals(name, that.name)
-        && Objects.equals(address, that.address);
+        && Objects.equals(address, that.address)
+        && Objects.equals(forwardingMode, that.forwardingMode);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, address);
+    return Objects.hash(name, address, forwardingMode);
   }
 
   @Override
