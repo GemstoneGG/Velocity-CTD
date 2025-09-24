@@ -262,7 +262,6 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
    * @return {@code true} if the encryption response was processed
    * @throws IllegalStateException if required preconditions are not met (e.g., missing verify token or login packet)
    */
-  @SuppressWarnings("checkstyle:MatchXpath")
   @Override
   public boolean handle(final EncryptionResponsePacket packet) {
     assertState(LoginState.ENCRYPTION_REQUEST_SENT);
