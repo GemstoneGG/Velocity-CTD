@@ -143,7 +143,7 @@ public final class ServerCommand {
         .orElse("<unknown>");
     executor.sendMessage(Component.translatable(
         "velocity.command.server-current-server", NamedTextColor.YELLOW)
-        .arguments(Argument.string("server", currentServer)));
+            .arguments(Argument.string("server", currentServer)));
 
     final List<RegisteredServer> servers = VelocityCommands.sortedServerList(server);
     if (servers.size() > MAX_SERVERS_TO_LIST) {

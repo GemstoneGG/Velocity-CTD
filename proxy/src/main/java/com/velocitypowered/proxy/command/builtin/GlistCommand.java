@@ -153,11 +153,11 @@ public class GlistCommand {
 
     final TranslatableComponent.Builder msg = Component.translatable()
         .key(online == 1
-              ? "velocity.command.glist-player-singular"
-              : "velocity.command.glist-player-plural"
+            ? "velocity.command.glist-player-singular"
+            : "velocity.command.glist-player-plural"
         ).color(NamedTextColor.YELLOW)
         .arguments(Argument.component(
-                "players", Component.text(Integer.toString(online), NamedTextColor.GREEN)));
+            "players", Component.text(Integer.toString(online), NamedTextColor.GREEN)));
     target.sendMessage(msg.build());
   }
 

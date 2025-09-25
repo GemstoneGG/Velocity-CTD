@@ -118,10 +118,9 @@ public class FindCommand {
 
     context.getSource().sendMessage(
         Component.translatable("velocity.command.find.message", NamedTextColor.YELLOW)
-                .arguments(
-                        Argument.string("player", p.getUsername()),
-                        Argument.string("server", server.getServerInfo().getName()))
-    );
+            .arguments(
+                Argument.string("player", p.getUsername()),
+                Argument.string("server", server.getServerInfo().getName())));
 
     return Command.SINGLE_SUCCESS;
   }
@@ -157,10 +156,9 @@ public class FindCommand {
 
     context.getSource().sendMessage(
         Component.translatable("velocity.command.find.message", NamedTextColor.YELLOW)
-                .arguments(
-                        Argument.string("player", info.getName()),
-                        Argument.string("server", server.getServerInfo().getName() + " (" + info.getProxyId() + ")"))
-    );
+            .arguments(
+                Argument.string("player", info.getName()),
+                Argument.string("server", server.getServerInfo().getName() + " (" + info.getProxyId() + ")")));
 
     return Command.SINGLE_SUCCESS;
   }

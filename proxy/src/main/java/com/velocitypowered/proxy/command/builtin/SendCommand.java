@@ -270,10 +270,10 @@ public class SendCommand {
       }
       final int globalCount = server.getAllPlayers().size();
       context.getSource().sendMessage(Component.translatable(globalCount == 1
-                  ? "velocity.command.send-all-singular" : "velocity.command.send-all-plural")
+              ? "velocity.command.send-all-singular" : "velocity.command.send-all-plural")
           .arguments(
-                  Argument.numeric("count", globalCount),
-                  Argument.string("server", targetServer.getServerInfo().getName())));
+              Argument.numeric("count", globalCount),
+              Argument.string("server", targetServer.getServerInfo().getName())));
       return Command.SINGLE_SUCCESS;
     }
 
@@ -295,11 +295,11 @@ public class SendCommand {
           p.createConnectionRequest(maybeServer.get()).fireAndForget();
         }
         context.getSource().sendMessage(Component.translatable(players.size() == 1
-                    ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
+                ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
             .arguments(
-                    Argument.numeric("count", players.size()),
-                    Argument.string("from", connectedServer.get().getServerInfo().getName()),
-                    Argument.string("to", targetServer.getServerInfo().getName())));
+                Argument.numeric("count", players.size()),
+                Argument.string("from", connectedServer.get().getServerInfo().getName()),
+                Argument.string("to", targetServer.getServerInfo().getName())));
         return Command.SINGLE_SUCCESS;
       }
 
@@ -376,11 +376,11 @@ public class SendCommand {
     }
 
     context.getSource().sendMessage(Component.translatable(playerSize == 1
-                ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
+            ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
         .arguments(
-                Argument.numeric("count", playerSize),
-                Argument.string("from", name),
-                Argument.string("to", targetServer.getServerInfo().getName())));
+            Argument.numeric("count", playerSize),
+            Argument.string("from", name),
+            Argument.string("to", targetServer.getServerInfo().getName())));
   }
 
   private int sendMultiProxy(final CommandContext<CommandSource> context) {
@@ -418,10 +418,10 @@ public class SendCommand {
 
       final int globalCount = list.size();
       context.getSource().sendMessage(Component.translatable(globalCount == 1
-                  ? "velocity.command.send-all-singular" : "velocity.command.send-all-plural")
+              ? "velocity.command.send-all-singular" : "velocity.command.send-all-plural")
           .arguments(
-                  Argument.numeric("count", globalCount),
-                  Argument.string("server", targetServer.getServerInfo().getName())));
+              Argument.numeric("count", globalCount),
+              Argument.string("server", targetServer.getServerInfo().getName())));
       return Command.SINGLE_SUCCESS;
     }
 
@@ -447,11 +447,11 @@ public class SendCommand {
         }
 
         context.getSource().sendMessage(Component.translatable(amountDone == 1
-                    ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
+                ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
             .arguments(
-                    Argument.numeric("count", amountDone),
-                    Argument.string("from", connectedServer.get().getServerInfo().getName()),
-                    Argument.string("to", targetServer.getServerInfo().getName())));
+                Argument.numeric("count", amountDone),
+                Argument.string("from", connectedServer.get().getServerInfo().getName()),
+                Argument.string("to", targetServer.getServerInfo().getName())));
         return Command.SINGLE_SUCCESS;
       }
 
@@ -493,15 +493,15 @@ public class SendCommand {
     if (alreadyConnected) {
       context.getSource().sendMessage(Component.translatable("velocity.command.send-player-none")
           .arguments(
-                  Argument.string("player", correctName),
-                  Argument.string("server", targetServer.getServerInfo().getName())));
+              Argument.string("player", correctName),
+              Argument.string("server", targetServer.getServerInfo().getName())));
     } else {
       this.server.getRedisManager().send(new RedisSwitchServerRequest(correctName,
               targetServer.getServerInfo().getName()));
       context.getSource().sendMessage(Component.translatable("velocity.command.send-player")
           .arguments(
-                  Argument.string("player", correctName),
-                  Argument.string("server", targetServer.getServerInfo().getName())));
+              Argument.string("player", correctName),
+              Argument.string("server", targetServer.getServerInfo().getName())));
     }
   }
 
@@ -526,19 +526,19 @@ public class SendCommand {
     if (amountDone == 0) {
       context.getSource().sendMessage(Component.translatable("velocity.command.send-server-none")
           .arguments(
-                  Argument.string("server", name),
-                  Argument.string("to", targetServer.getServerInfo().getName())));
+              Argument.string("server", name),
+              Argument.string("to", targetServer.getServerInfo().getName())));
       return;
     }
     for (Player targetPlayer : server.getPlayersConnected()) {
       targetPlayer.createConnectionRequest(targetServer).fireAndForget();
     }
     context.getSource().sendMessage(Component.translatable(amountDone == 1
-                ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
+            ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
         .arguments(
-                Argument.numeric("count", amountDone),
-                Argument.string("from", name),
-                Argument.string("to", targetServer.getServerInfo().getName())));
+            Argument.numeric("count", amountDone),
+            Argument.string("from", name),
+            Argument.string("to", targetServer.getServerInfo().getName())));
   }
 
   private ServerResult findServer(final String serverName) {

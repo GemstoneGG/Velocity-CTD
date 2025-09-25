@@ -196,9 +196,9 @@ public class PlistCommand {
   private void sendTotalProxyCount(final CommandSource target, final String proxyId, final int online) {
     final TranslatableComponent.Builder msg = Component.translatable()
         .key(online == 1
-              ? "velocity.command.plist-player-singular"
-              : "velocity.command.plist-player-plural")
-        .color(NamedTextColor.YELLOW)
+            ? "velocity.command.plist-player-singular"
+            : "velocity.command.plist-player-plural"
+        ).color(NamedTextColor.YELLOW)
         .arguments(
             Argument.numeric("count", online),
             Argument.string("proxy", proxyId));
