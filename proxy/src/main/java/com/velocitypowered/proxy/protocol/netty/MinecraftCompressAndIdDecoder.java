@@ -37,32 +37,6 @@ import java.util.List;
 public class MinecraftCompressAndIdDecoder extends MessageToMessageDecoder<ByteBuf> {
 
   /**
-   * Default maximum allowed uncompressed packet size (8 MiB).
-   */
-  private static final int VANILLA_MAXIMUM_UNCOMPRESSED_SIZE = 8 * 1024 * 1024;
-
-  /**
-   * Hard upper limit for uncompressed size (128 MiB), used if override is enabled.
-   */
-  private static final int HARD_MAXIMUM_UNCOMPRESSED_SIZE = 128 * 1024 * 1024;
-
-  /**
-   * Maximum uncompressed size permitted during decompression.
-   *
-   * <p>Can be overridden with {@code -Dvelocity.increased-compression-cap=true} to allow up to 128 MiB.</p>
-   */
-  private static final int UNCOMPRESSED_CAP =
-      Boolean.getBoolean("velocity.increased-compression-cap")
-          ? HARD_MAXIMUM_UNCOMPRESSED_SIZE : VANILLA_MAXIMUM_UNCOMPRESSED_SIZE;
-
-  /**
-   * If {@code true}, disables strict threshold validation of uncompressed sizes.
-   *
-   * <p>Set via {@code -Dvelocity.skip-uncompressed-packet-size-validation=true}.</p>
-   */
-  private static final boolean SKIP_COMPRESSION_VALIDATION = Boolean.getBoolean("velocity.skip-uncompressed-packet-size-validation");
-
-  /**
    * Compression threshold. Packets smaller than this are not compressed.
    */
   private int threshold;
@@ -140,12 +114,6 @@ public class MinecraftCompressAndIdDecoder extends MessageToMessageDecoder<ByteB
 
     int claimedUncompressedSize = ProtocolUtils.readVarInt(in);
     if (claimedUncompressedSize == 0) {
-      if (!SKIP_COMPRESSION_VALIDATION) {
-        int actualUncompressedSize = in.readableBytes();
-        checkFrame(actualUncompressedSize < threshold, "Actual uncompressed size %s is greater than"
-            + " threshold %s", actualUncompressedSize, threshold);
-      }
-
       int originalReaderIndex = in.readerIndex();
       int packetId = ProtocolUtils.readVarInt(in);
       out.add(new UncompressedPacket(packetId, in.readerIndex(originalReaderIndex).retain()));
@@ -154,15 +122,12 @@ public class MinecraftCompressAndIdDecoder extends MessageToMessageDecoder<ByteB
 
     checkFrame(claimedUncompressedSize >= threshold, "Uncompressed size %s is less than"
         + " threshold %s", claimedUncompressedSize, threshold);
-    checkFrame(claimedUncompressedSize <= UNCOMPRESSED_CAP,
-        "Uncompressed size %s exceeds hard threshold of %s", claimedUncompressedSize,
-        UNCOMPRESSED_CAP);
 
-    if (claimedUncompressedSize < server.getConfiguration().getDecompressionThreshold()) {
-      ByteBuf compatibleIn = ensureCompatible(ctx.alloc(), compressor, in);
-      ByteBuf uncompressed = preferredBuffer(ctx.alloc(), compressor, claimedUncompressedSize);
+    if (claimedUncompressedSize < this.server.getConfiguration().getDecompressionThreshold()) {
+      ByteBuf compatibleIn = ensureCompatible(ctx.alloc(), this.compressor, in);
+      ByteBuf uncompressed = preferredBuffer(ctx.alloc(), this.compressor, claimedUncompressedSize);
       try {
-        compressor.inflate(compatibleIn, uncompressed, claimedUncompressedSize);
+        this.compressor.inflate(compatibleIn, uncompressed, claimedUncompressedSize);
         int originalReaderIndex = uncompressed.readerIndex();
         int packetId = ProtocolUtils.readVarInt(uncompressed);
         out.add(new UncompressedPacket(packetId, uncompressed.readerIndex(originalReaderIndex)));
@@ -175,7 +140,7 @@ public class MinecraftCompressAndIdDecoder extends MessageToMessageDecoder<ByteB
     } else {
       ByteBuf packetIdBuf = preferredBuffer(ctx.alloc(), this.javaCompressor, 5);
       int readerIndex = in.readerIndex();
-      javaCompressor.inflatePartial(in, packetIdBuf, 5);
+      this.javaCompressor.inflatePartial(in, packetIdBuf, 5);
       in.readerIndex(readerIndex);
       int packetId = ProtocolUtils.readVarInt(packetIdBuf);
       packetIdBuf.release();
