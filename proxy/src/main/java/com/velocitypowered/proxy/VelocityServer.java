@@ -609,70 +609,67 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   }
 
   private void registerTranslations(final boolean log) {
-    final String defaultFile = "messages.properties";
     final MiniMessageTranslationStore translationRegistry =
             MiniMessageTranslationStore.create(this.translationRegistryKey);
     translationRegistry.defaultLocale(Locale.US);
 
     try {
-      ResourceUtils.visitResources(VelocityServer.class, path -> {
+      ResourceUtils.visitResources(VelocityServer.class, packagedRoot -> {
         if (log) {
           logger.info("Loading localizations...");
         }
 
         final Path langPath = Path.of("lang");
 
-        try (Stream<Path> files = Files.walk(path)) {
+        try {
           if (!Files.exists(langPath)) {
-            Files.createDirectory(langPath);
-            files.filter(Files::isRegularFile).forEach(file -> {
-              try {
-                final Path langFile = langPath.resolve(file.getFileName().toString());
-                if (!Files.exists(langFile)) {
-                  try (InputStream is = Files.newInputStream(file)) {
-                    Files.copy(is, langFile);
+            Files.createDirectories(langPath);
+          }
+
+          try (Stream<Path> packagedFiles = Files.walk(packagedRoot)) {
+            packagedFiles.filter(Files::isRegularFile)
+                .forEach(src -> {
+                  final Path target = langPath.resolve(src.getFileName().toString());
+                  if (Files.notExists(target)) {
+                    try (InputStream is = Files.newInputStream(src)) {
+                      Files.copy(is, target);
+                      if (log) {
+                        logger.info("Restored missing translation file {}", target.getFileName());
+                      }
+                    } catch (IOException e) {
+                      logger.error("Failed copying translation file {}", target.getFileName(), e);
+                    }
                   }
-                }
-              } catch (IOException e) {
-                logger.error("Encountered an I/O error whilst loading translations", e);
-              }
-            });
+                });
           }
-
-          Optional<Path> optionalPath;
-          try (Stream<Path> defaultFiles = Files.walk(path)) {
-            optionalPath = defaultFiles.filter(temp -> temp.toString().endsWith(defaultFile)).findFirst();
-          }
-
-          if (optionalPath.isEmpty()) {
-            logger.error("Encountered an error when attempting to read default translations)");
-            return;
-          }
-
-          translationRegistry.registerAll(Locale.US, optionalPath.get(), true);
-          ClosestLocaleMatcher.INSTANCE.registerKnown(Locale.US);
 
           try (Stream<Path> langFiles = Files.walk(langPath)) {
-            langFiles.filter(Files::isRegularFile).forEach(file -> {
-              final String filename = com.google.common.io.Files
-                  .getNameWithoutExtension(file.getFileName().toString());
-              final String localeName = filename.replace("messages_", "")
-                  .replace("messages", "")
-                  .replace('_', '-');
-              final Locale locale = localeName.isBlank()
-                  ? Locale.US
-                  : Locale.forLanguageTag(localeName);
+            langFiles.filter(Files::isRegularFile)
+                .forEach(file -> {
+                  try {
+                    String localePart = com.google.common.io.Files
+                          .getNameWithoutExtension(file.getFileName().toString());
+                    if (localePart.startsWith("messages")) {
+                      localePart = localePart.substring("messages".length());
+                    }
 
-              if (localeName.isBlank()) {
-                return;
-              }
+                    if (localePart.startsWith("_")) {
+                      localePart = localePart.substring(1);
+                    }
 
-              translationRegistry.registerAll(locale, file, false);
-              ClosestLocaleMatcher.INSTANCE.registerKnown(locale);
-            });
+                    final Locale locale = localePart.isBlank()
+                        ? Locale.US
+                        : Locale.forLanguageTag(localePart.replace('_', '-'));
+
+                    translationRegistry.registerAll(locale, file, false);
+                    ClosestLocaleMatcher.INSTANCE.registerKnown(locale);
+                  } catch (Exception e) {
+                    logger.error("Failed registering translations from {}", file, e);
+                  }
+                });
           }
         } catch (Exception e) {
-          logger.error("An unknown exception occurred.", e);
+          logger.error("Encountered an error whilst loading translations", e);
         }
       }, "com", "velocitypowered", "proxy", "l10n");
     } catch (IOException e) {
