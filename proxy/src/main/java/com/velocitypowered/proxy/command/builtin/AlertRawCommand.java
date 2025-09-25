@@ -85,10 +85,10 @@ public class AlertRawCommand {
 
     if (server.getMultiProxyHandler().isRedisEnabled()) {
       server.getMultiProxyHandler().alert(Component.translatable("velocity.command.alertraw.message", NamedTextColor.WHITE)
-              .arguments(Argument.component("message", ComponentUtils.colorify(message))));
+          .arguments(Argument.component("message", ComponentUtils.colorify(message))));
     } else {
       server.sendMessage(Component.translatable("velocity.command.alertraw.message", NamedTextColor.WHITE)
-              .arguments(Argument.component("message", ComponentUtils.colorify(message))));
+          .arguments(Argument.component("message", ComponentUtils.colorify(message))));
     }
 
     return Command.SINGLE_SUCCESS;
