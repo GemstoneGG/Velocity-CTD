@@ -327,7 +327,7 @@ public class VelocityCommandManager implements CommandManager {
           source.sendMessage(Component.text(e.getMessage(), NamedTextColor.RED));
         }
 
-        result = com.velocitypowered.api.command.CommandResult.SYNTAX_ERROR;
+        result = CommandResult.SYNTAX_ERROR;
         // This is, of course, a lie, but the API will need to change...
         return true;
       } else {

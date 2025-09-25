@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.regex.Pattern;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.apache.logging.log4j.Logger;
@@ -35,7 +36,8 @@ public final class MiniMessageTranslationsMigration implements ConfigurationMigr
 
   @Override
   public boolean shouldMigrate(final CommentedFileConfig config) {
-    return configVersion(config) < 2.7;
+    // Checking whether translations should be migrated would be just as costly as attempting to migrate them directly.
+    return true;
   }
 
   @Override
@@ -45,19 +47,21 @@ public final class MiniMessageTranslationsMigration implements ConfigurationMigr
       return;
     }
 
+    final Pattern oldPlaceholderPattern = Pattern.compile("\\{(\\d+)}");
     try (DirectoryStream<Path> stream = Files.newDirectoryStream(langFolder, Files::isRegularFile)) {
       for (final Path path : stream) {
         String content = Files.readString(path, StandardCharsets.UTF_8);
+        if (content.indexOf('{') == -1) {
+          continue;
+        }
+
         // Migrate old arguments
-        content = content.replace("{0}", "<arg:0>")
-                .replace("{1}", "<arg:1>");
+        content = oldPlaceholderPattern.matcher(content).replaceAll("<arg:$1>");
         // Some setups use legacy color codes, this format is migrated to MiniMessage
         content = MiniMessage.miniMessage().serialize(
                 LegacyComponentSerializer.legacySection().deserialize(content));
         Files.writeString(path, content, StandardCharsets.UTF_8);
       }
     }
-
-    config.set("config-version", "2.7");
   }
 }

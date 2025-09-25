@@ -29,6 +29,7 @@ import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.util.ComponentUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 
 /**
  * Implements Velocity's {@code /alertraw} command.
@@ -83,11 +84,11 @@ public class AlertRawCommand {
     }
 
     if (server.getMultiProxyHandler().isRedisEnabled()) {
-      server.getMultiProxyHandler().alert(Component.translatable("velocity.command.alertraw.message", NamedTextColor.WHITE,
-          ComponentUtils.colorify(message)));
+      server.getMultiProxyHandler().alert(Component.translatable("velocity.command.alertraw.message", NamedTextColor.WHITE)
+          .arguments(Argument.component("message", ComponentUtils.colorify(message))));
     } else {
-      server.sendMessage(Component.translatable("velocity.command.alertraw.message", NamedTextColor.WHITE,
-          ComponentUtils.colorify(message)));
+      server.sendMessage(Component.translatable("velocity.command.alertraw.message", NamedTextColor.WHITE)
+          .arguments(Argument.component("message", ComponentUtils.colorify(message))));
     }
 
     return Command.SINGLE_SUCCESS;

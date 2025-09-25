@@ -34,6 +34,7 @@ import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 
 /**
  * Implements Velocity's {@code /find} command.
@@ -89,7 +90,7 @@ public class FindCommand {
     final Optional<Player> maybePlayer = server.getPlayer(player);
     if (maybePlayer.isEmpty()) {
       context.getSource().sendMessage(
-          CommandMessages.PLAYER_NOT_FOUND.arguments(Component.text(player))
+          CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", player))
       );
 
       return 0;
@@ -116,9 +117,10 @@ public class FindCommand {
     }
 
     context.getSource().sendMessage(
-        Component.translatable("velocity.command.find.message", NamedTextColor.YELLOW,
-            Component.text(p.getUsername()), Component.text(server.getServerInfo().getName()))
-    );
+        Component.translatable("velocity.command.find.message", NamedTextColor.YELLOW)
+            .arguments(
+                Argument.string("player", p.getUsername()),
+                Argument.string("server", server.getServerInfo().getName())));
 
     return Command.SINGLE_SUCCESS;
   }
@@ -127,7 +129,7 @@ public class FindCommand {
     final String player = context.getArgument("player", String.class);
     if (server.getMultiProxyHandler().isPlayerOnline(player)) {
       context.getSource().sendMessage(
-          CommandMessages.PLAYER_NOT_FOUND.arguments(Component.text(player))
+          CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", player))
       );
 
       return 0;
@@ -153,10 +155,10 @@ public class FindCommand {
     }
 
     context.getSource().sendMessage(
-        Component.translatable("velocity.command.find.message", NamedTextColor.YELLOW,
-            Component.text(info.getName()), Component.text(server.getServerInfo().getName()
-                + " (" + info.getProxyId() + ")"))
-    );
+        Component.translatable("velocity.command.find.message", NamedTextColor.YELLOW)
+            .arguments(
+                Argument.string("player", info.getName()),
+                Argument.string("server", server.getServerInfo().getName() + " (" + info.getProxyId() + ")")));
 
     return Command.SINGLE_SUCCESS;
   }

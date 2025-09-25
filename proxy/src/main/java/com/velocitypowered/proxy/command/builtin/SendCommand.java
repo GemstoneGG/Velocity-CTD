@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 
 /**
  * Implements the Velocity default {@code /send} command.
@@ -243,7 +244,7 @@ public class SendCommand {
 
     if (maybeServer.isEmpty()) {
       context.getSource().sendMessage(
-          CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Component.text(serverName))
+          CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Argument.string("server", serverName))
       );
 
       return 0;
@@ -257,7 +258,7 @@ public class SendCommand {
         && !Objects.equals(player, "current")
         && !player.startsWith("+")) {
       context.getSource().sendMessage(
-          CommandMessages.PLAYER_NOT_FOUND.arguments(Component.text(player))
+          CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", player))
       );
 
       return 0;
@@ -269,9 +270,10 @@ public class SendCommand {
       }
       final int globalCount = server.getAllPlayers().size();
       context.getSource().sendMessage(Component.translatable(globalCount == 1
-              ? "velocity.command.send-all-singular" : "velocity.command.send-all-plural",
-          Component.text(globalCount),
-          Component.text(targetServer.getServerInfo().getName())));
+              ? "velocity.command.send-all-singular" : "velocity.command.send-all-plural")
+          .arguments(
+              Argument.numeric("count", globalCount),
+              Argument.string("server", targetServer.getServerInfo().getName())));
       return Command.SINGLE_SUCCESS;
     }
 
@@ -293,9 +295,11 @@ public class SendCommand {
           p.createConnectionRequest(maybeServer.get()).fireAndForget();
         }
         context.getSource().sendMessage(Component.translatable(players.size() == 1
-                ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural",
-            Component.text(players.size()), Component.text(connectedServer.get().getServerInfo().getName()),
-            Component.text(targetServer.getServerInfo().getName())));
+                ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
+            .arguments(
+                Argument.numeric("count", players.size()),
+                Argument.string("from", connectedServer.get().getServerInfo().getName()),
+                Argument.string("to", targetServer.getServerInfo().getName())));
         return Command.SINGLE_SUCCESS;
       }
 
@@ -306,7 +310,7 @@ public class SendCommand {
       final ServerResult result = findServer(player.substring(1));
 
       if (result.bestMatch().isEmpty()) {
-        context.getSource().sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Component.text(player.substring(1))));
+        context.getSource().sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Argument.string("server", player.substring(1))));
         return 0;
       }
 
@@ -335,12 +339,16 @@ public class SendCommand {
     }
 
     if (player0.getCurrentServer().isPresent() && player0.getCurrentServer().get().getServer().equals(targetServer)) {
-      context.getSource().sendMessage(Component.translatable("velocity.command.send-player-none",
-          Component.text(player0.getUsername()), Component.text(targetServer.getServerInfo().getName())));
+      context.getSource().sendMessage(Component.translatable("velocity.command.send-player-none")
+          .arguments(
+              Argument.string("player", player0.getUsername()),
+              Argument.string("server", targetServer.getServerInfo().getName())));
     } else {
       player0.createConnectionRequest(targetServer).fireAndForget();
-      context.getSource().sendMessage(Component.translatable("velocity.command.send-player",
-          Component.text(player0.getUsername()), Component.text(targetServer.getServerInfo().getName())));
+      context.getSource().sendMessage(Component.translatable("velocity.command.send-player")
+          .arguments(
+              Argument.string("player", player0.getUsername()),
+              Argument.string("server", targetServer.getServerInfo().getName())));
     }
   }
 
@@ -356,8 +364,10 @@ public class SendCommand {
     final String name = server.getServerInfo().getName();
 
     if (playerSize == 0) {
-      context.getSource().sendMessage(Component.translatable("velocity.command.send-server-none",
-          Component.text(name), Component.text(targetServer.getServerInfo().getName())));
+      context.getSource().sendMessage(Component.translatable("velocity.command.send-server-none")
+          .arguments(
+              Argument.string("server", name),
+              Argument.string("to", targetServer.getServerInfo().getName())));
       return;
     }
 
@@ -366,9 +376,11 @@ public class SendCommand {
     }
 
     context.getSource().sendMessage(Component.translatable(playerSize == 1
-            ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural",
-        Component.text(playerSize), Component.text(name),
-        Component.text(targetServer.getServerInfo().getName())));
+            ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
+        .arguments(
+            Argument.numeric("count", playerSize),
+            Argument.string("from", name),
+            Argument.string("to", targetServer.getServerInfo().getName())));
   }
 
   private int sendMultiProxy(final CommandContext<CommandSource> context) {
@@ -379,7 +391,7 @@ public class SendCommand {
 
     if (maybeServer.isEmpty()) {
       context.getSource().sendMessage(
-          CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Component.text(serverName))
+          CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Argument.string("server", serverName))
       );
 
       return 0;
@@ -392,7 +404,7 @@ public class SendCommand {
         && !Objects.equals(player, "current")
         && !player.startsWith("+")) {
       context.getSource().sendMessage(
-          CommandMessages.PLAYER_NOT_FOUND.arguments(Component.text(player))
+          CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", player))
       );
 
       return 0;
@@ -406,9 +418,10 @@ public class SendCommand {
 
       final int globalCount = list.size();
       context.getSource().sendMessage(Component.translatable(globalCount == 1
-              ? "velocity.command.send-all-singular" : "velocity.command.send-all-plural",
-          Component.text(globalCount),
-          Component.text(targetServer.getServerInfo().getName())));
+              ? "velocity.command.send-all-singular" : "velocity.command.send-all-plural")
+          .arguments(
+              Argument.numeric("count", globalCount),
+              Argument.string("server", targetServer.getServerInfo().getName())));
       return Command.SINGLE_SUCCESS;
     }
 
@@ -434,9 +447,11 @@ public class SendCommand {
         }
 
         context.getSource().sendMessage(Component.translatable(amountDone == 1
-                ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural",
-            Component.text(amountDone), Component.text(connectedServer.get().getServerInfo().getName()),
-            Component.text(targetServer.getServerInfo().getName())));
+                ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
+            .arguments(
+                Argument.numeric("count", amountDone),
+                Argument.string("from", connectedServer.get().getServerInfo().getName()),
+                Argument.string("to", targetServer.getServerInfo().getName())));
         return Command.SINGLE_SUCCESS;
       }
 
@@ -448,7 +463,7 @@ public class SendCommand {
       final ServerResult result = findServer(player.substring(1));
 
       if (result.bestMatch().isEmpty()) {
-        context.getSource().sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Component.text(player.substring(1))));
+        context.getSource().sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Argument.string("server", player.substring(1))));
         return 0;
       }
 
@@ -476,13 +491,17 @@ public class SendCommand {
     boolean alreadyConnected = playerInfo.getServerName().equalsIgnoreCase(targetServer.getServerInfo().getName());
 
     if (alreadyConnected) {
-      context.getSource().sendMessage(Component.translatable("velocity.command.send-player-none",
-              Component.text(correctName), Component.text(targetServer.getServerInfo().getName())));
+      context.getSource().sendMessage(Component.translatable("velocity.command.send-player-none")
+          .arguments(
+              Argument.string("player", correctName),
+              Argument.string("server", targetServer.getServerInfo().getName())));
     } else {
       this.server.getRedisManager().send(new RedisSwitchServerRequest(correctName,
               targetServer.getServerInfo().getName()));
-      context.getSource().sendMessage(Component.translatable("velocity.command.send-player",
-              Component.text(correctName), Component.text(targetServer.getServerInfo().getName())));
+      context.getSource().sendMessage(Component.translatable("velocity.command.send-player")
+          .arguments(
+              Argument.string("player", correctName),
+              Argument.string("server", targetServer.getServerInfo().getName())));
     }
   }
 
@@ -505,17 +524,21 @@ public class SendCommand {
     }
 
     if (amountDone == 0) {
-      context.getSource().sendMessage(Component.translatable("velocity.command.send-server-none",
-          Component.text(name), Component.text(targetServer.getServerInfo().getName())));
+      context.getSource().sendMessage(Component.translatable("velocity.command.send-server-none")
+          .arguments(
+              Argument.string("server", name),
+              Argument.string("to", targetServer.getServerInfo().getName())));
       return;
     }
     for (Player targetPlayer : server.getPlayersConnected()) {
       targetPlayer.createConnectionRequest(targetServer).fireAndForget();
     }
     context.getSource().sendMessage(Component.translatable(amountDone == 1
-            ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural",
-        Component.text(amountDone), Component.text(name),
-        Component.text(targetServer.getServerInfo().getName())));
+            ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
+        .arguments(
+            Argument.numeric("count", amountDone),
+            Argument.string("from", name),
+            Argument.string("to", targetServer.getServerInfo().getName())));
   }
 
   private ServerResult findServer(final String serverName) {

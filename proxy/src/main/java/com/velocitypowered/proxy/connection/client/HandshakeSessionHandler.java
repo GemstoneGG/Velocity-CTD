@@ -44,6 +44,7 @@ import java.net.InetSocketAddress;
 import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -182,7 +183,9 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
       // us to deactivate logging altogether, unlike in the AuthSessionHandler, where logging is by choice.
       connection.setState(StateRegistry.LOGIN);
       ic.disconnectQuietly(Component.translatable("velocity.error.modern-forwarding-needs-new-client")
-          .arguments(Component.text(minimumVersion), Component.text(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
+          .arguments(
+              Argument.string("min", minimumVersion),
+              Argument.string("max", ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
       return;
     }
 

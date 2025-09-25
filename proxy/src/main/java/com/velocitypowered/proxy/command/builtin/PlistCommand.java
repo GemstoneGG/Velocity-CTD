@@ -37,6 +37,7 @@ import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 
 /**
  * Implements the Velocity default {@code /plist} command.
@@ -121,7 +122,7 @@ public class PlistCommand {
     sendTotalProxyCount(source, this.server.getMultiProxyHandler().getOwnProxyId(), this.server.getPlayerCount());
     source.sendMessage(
         Component.translatable("velocity.command.plist-view-proxy", NamedTextColor.YELLOW)
-            .arguments(Component.text(VelocityCommands.readAlias(context.getNodes()))));
+            .arguments(Argument.string("alias", VelocityCommands.readAlias(context.getNodes()))));
     return Command.SINGLE_SUCCESS;
   }
 
@@ -131,7 +132,7 @@ public class PlistCommand {
         .findFirst()
         .or(() -> {
           source.sendMessage(Component.translatable("velocity.command.proxy-does-not-exist", NamedTextColor.RED)
-              .arguments(Component.text(proxyName)));
+              .arguments(Argument.string("proxy", proxyName)));
           return Optional.empty();
         });
   }
@@ -187,7 +188,7 @@ public class PlistCommand {
         .findFirst()
         .or(() -> {
           source.sendMessage(Component.translatable("velocity.command.server-does-not-exist", NamedTextColor.RED)
-              .arguments(Component.text(serverName)));
+              .arguments(Argument.string("server", serverName)));
           return Optional.empty();
         });
   }
@@ -195,13 +196,12 @@ public class PlistCommand {
   private void sendTotalProxyCount(final CommandSource target, final String proxyId, final int online) {
     final TranslatableComponent.Builder msg = Component.translatable()
         .key(online == 1
-              ? "velocity.command.plist-player-singular"
-              : "velocity.command.plist-player-plural"
+            ? "velocity.command.plist-player-singular"
+            : "velocity.command.plist-player-plural"
         ).color(NamedTextColor.YELLOW)
         .arguments(
-            Component.text(Integer.toString(online)),
-            Component.text(proxyId)
-        );
+            Argument.numeric("count", online),
+            Argument.string("proxy", proxyId));
     target.sendMessage(msg.build());
   }
 
@@ -229,9 +229,9 @@ public class PlistCommand {
         .orElse(Component.text(""));
     target.sendMessage(Component.translatable("velocity.command.plist-server")
         .arguments(
-            Component.text(server.getServerInfo().getName()),
-            Component.text(totalPlayers),
-            playerList
+            Argument.string("server", server.getServerInfo().getName()),
+            Argument.numeric("count", totalPlayers),
+            Argument.component("players", playerList)
         )
     );
   }
