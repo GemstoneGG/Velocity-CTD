@@ -170,7 +170,7 @@ public final class ProxyOptions {
     public ServerInfo convert(final String s) {
       String[] split = s.split(":", 2);
       if (split.length < 2) {
-        throw new ValueConversionException("Invalid server format. Use <name>:<host>:[port]:[forwardingmode]");
+        throw new ValueConversionException("Invalid server format. Use <name>:<host>:[port]:[forwardingmode]:[minimumversion]");
       }
 
       InetSocketAddress address;
@@ -203,7 +203,7 @@ public final class ProxyOptions {
 
     @Override
     public String valuePattern() {
-      return "name>:<host>:[port]:[forwardingmode]";
+      return "name>:<host>:[port]:[forwardingmode]:[minimumversion]";
     }
   }
 }
