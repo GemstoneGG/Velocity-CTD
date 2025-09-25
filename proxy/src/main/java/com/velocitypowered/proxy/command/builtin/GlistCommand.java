@@ -41,6 +41,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 
 /**
  * Implements the Velocity default {@code /glist} command.
@@ -114,7 +115,7 @@ public class GlistCommand {
     sendTotalProxyCount(source);
     source.sendMessage(
         Component.translatable("velocity.command.glist-view-all", NamedTextColor.YELLOW)
-            .arguments(Component.text(VelocityCommands.readAlias(context.getNodes()))));
+            .arguments(Argument.string("alias", VelocityCommands.readAlias(context.getNodes()))));
 
     return 1;
   }
@@ -124,7 +125,7 @@ public class GlistCommand {
     final String serverName = getString(context, SERVER_ARG);
     if (serverName.equalsIgnoreCase("all")) {
       for (final RegisteredServer server : VelocityCommands.sortedServerList(server)) {
-        sendServerPlayers(source, server, true);
+        sendServerPlayers(source, true, server);
       }
       sendTotalProxyCount(source);
     } else {
@@ -132,10 +133,10 @@ public class GlistCommand {
       if (registeredServer.isEmpty()) {
         source.sendMessage(
             CommandMessages.SERVER_DOES_NOT_EXIST
-                    .arguments(Component.text(serverName)));
+                .arguments(Argument.string("server", serverName)));
         return -1;
       }
-      sendServerPlayers(source, registeredServer.get(), false);
+      sendServerPlayers(source, false, registeredServer.get());
     }
 
     return Command.SINGLE_SUCCESS;
@@ -151,16 +152,17 @@ public class GlistCommand {
     }
 
     final TranslatableComponent.Builder msg = Component.translatable()
-            .key(online == 1
-                  ? "velocity.command.glist-player-singular"
-                  : "velocity.command.glist-player-plural"
-            ).color(NamedTextColor.YELLOW)
-            .arguments(Component.text(Integer.toString(online)));
+        .key(online == 1
+            ? "velocity.command.glist-player-singular"
+            : "velocity.command.glist-player-plural"
+        ).color(NamedTextColor.YELLOW)
+        .arguments(Argument.component(
+            "players", Component.text(Integer.toString(online), NamedTextColor.GREEN)));
     target.sendMessage(msg.build());
   }
 
   private void sendServerPlayers(final CommandSource target,
-                                 final RegisteredServer server, final boolean fromAll) {
+                                 final boolean fromAll, final RegisteredServer server) {
     int totalPlayers = 0;
     List<Component> players = new ArrayList<>();
     MultiProxyHandler multiProxyHandler = this.server.getMultiProxyHandler();
@@ -174,7 +176,7 @@ public class GlistCommand {
 
           String key = "velocity.command.glist.proxy-"
               + (proxyId.equals(multiProxyHandler.getOwnProxyId()) ? "self" : "other");
-          Component hover = Component.translatable(key).arguments(Component.text(proxyId));
+          Component hover = Component.translatable(key).arguments(Argument.string("proxy", proxyId));
           players.add(Component.text(player.getName()).hoverEvent(HoverEvent.showText(hover)));
           totalPlayers += 1;
         }
@@ -198,9 +200,9 @@ public class GlistCommand {
         .orElse(Component.text(""));
     target.sendMessage(Component.translatable("velocity.command.glist-server")
         .arguments(
-            Component.text(server.getServerInfo().getName()),
-            Component.text(totalPlayers),
-            playerList
+            Argument.string("server", server.getServerInfo().getName()),
+            Argument.numeric("count", totalPlayers),
+            Argument.component("players", playerList)
         )
     );
   }

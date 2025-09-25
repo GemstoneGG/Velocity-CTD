@@ -134,6 +134,7 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.kyori.adventure.title.Title;
@@ -1191,7 +1192,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     Component friendlyError;
     if (connectedServer != null && connectedServer.getServerInfo().equals(server.getServerInfo())) {
       friendlyError = Component.translatable("velocity.error.connected-server-error",
-          Component.text(server.getServerInfo().getName()));
+          Argument.string("server", server.getServerInfo().getName()));
     } else {
       if (Boolean.getBoolean("velocity.suppress-connection-timeout-logs")) {
         logger.error("{}: unable to connect to server {}", this, server.getServerInfo().getName());
@@ -1200,7 +1201,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       }
 
       friendlyError = Component.translatable("velocity.error.connecting-server-error",
-          Component.text(server.getServerInfo().getName()));
+          Argument.string("server", server.getServerInfo().getName()));
     }
 
     handleConnectionException(server, null, friendlyError.color(NamedTextColor.RED), safe);
@@ -1226,19 +1227,23 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       if (this.server.getConfiguration().isLogPlayerConnections()) {
         logger.info("{}: kicked from server {}: {}", this, server.getServerInfo().getName(), plainTextReason);
       }
+
       handleConnectionException(server, disconnectReason,
-          Component.translatable("velocity.error.moved-to-new-server", NamedTextColor.RED,
-              Component.text(server.getServerInfo().getName()),
-              disconnectReason), safe);
+          Component.translatable("velocity.error.moved-to-new-server", NamedTextColor.RED)
+              .arguments(
+                  Argument.string("server", server.getServerInfo().getName()),
+                  Argument.component("reason", disconnectReason)), safe);
     } else {
       if (this.server.getConfiguration().isLogPlayerConnections()) {
         logger.error("{}: disconnected while connecting to {}: {}", this,
             server.getServerInfo().getName(), plainTextReason);
       }
+
       handleConnectionException(server, disconnectReason,
-          Component.translatable("velocity.error.cant-connect", NamedTextColor.RED,
-              Component.text(server.getServerInfo().getName()),
-              disconnectReason), safe);
+          Component.translatable("velocity.error.cant-connect", NamedTextColor.RED)
+              .arguments(
+                  Argument.string("server", server.getServerInfo().getName()),
+                  Argument.component("reason", disconnectReason)), safe);
     }
   }
 
@@ -2363,7 +2368,9 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
         || clientProtocolVersion.greaterThan(maximumProtocolVersion)) {
       // Send a message to the player instead of disconnecting them from the proxy
       sendMessage(Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
-          .arguments(Component.text(serverMinimumVersion), Component.text(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
+          .arguments(
+              Argument.string("min", serverMinimumVersion),
+              Argument.string("max", ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
       return true;
     }
 
@@ -2372,7 +2379,9 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     if (serverForwardingMode == PlayerInfoForwarding.MODERN && clientProtocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_13)) {
       // Disconnect the player with an appropriate message
       disconnect(Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
-          .arguments(Component.text("1.13"), Component.text(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
+          .arguments(
+              Argument.string("min", "1.13"),
+              Argument.string("max", ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
       return true;
     }
 

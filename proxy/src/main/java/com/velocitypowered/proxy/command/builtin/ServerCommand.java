@@ -40,6 +40,7 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 
 /**
  * Implements Velocity's {@code /server} command.
@@ -141,9 +142,8 @@ public final class ServerCommand {
         .map(ServerInfo::getName)
         .orElse("<unknown>");
     executor.sendMessage(Component.translatable(
-        "velocity.command.server-current-server",
-        NamedTextColor.YELLOW,
-        Component.text(currentServer)));
+        "velocity.command.server-current-server", NamedTextColor.YELLOW)
+            .arguments(Argument.string("server", currentServer)));
 
     final List<RegisteredServer> servers = VelocityCommands.sortedServerList(server);
     if (servers.size() > MAX_SERVERS_TO_LIST) {
@@ -192,13 +192,12 @@ public final class ServerCommand {
     } else {
       playersTextComponent.key("velocity.command.server-tooltip-players-online");
     }
-    playersTextComponent.arguments(Component.text(connectedPlayers));
+    playersTextComponent.arguments(Argument.numeric("players", connectedPlayers));
     if (serverInfo.getName().equals(currentPlayerServer)) {
       serverTextComponent.color(NamedTextColor.GREEN)
           .hoverEvent(
               showText(
-                  Component.empty()
-                      .append(Component.translatable("velocity.command.server-tooltip-current-server"))
+                  Component.translatable("velocity.command.server-tooltip-current-server")
                       .append(Component.newline())
                       .append(playersTextComponent))
           );
@@ -207,8 +206,7 @@ public final class ServerCommand {
           .clickEvent(ClickEvent.runCommand("/server " + serverInfo.getName()))
           .hoverEvent(
               showText(
-                  Component.empty()
-                      .append(Component.translatable("velocity.command.server-tooltip-offer-connect-server"))
+                  Component.translatable("velocity.command.server-tooltip-offer-connect-server")
                       .append(Component.newline())
                       .append(playersTextComponent))
           );

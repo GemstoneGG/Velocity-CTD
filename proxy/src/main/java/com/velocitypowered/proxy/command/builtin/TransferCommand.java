@@ -43,6 +43,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 
 /**
  * Command that sends players to another proxy if they're above 1.20.5.
@@ -158,27 +159,27 @@ public class TransferCommand {
       if (this.server.getMultiProxyHandler().isPlayerOnline(player) && !player.equalsIgnoreCase("all")
           && !player.equalsIgnoreCase("current") && !player.startsWith("+")) {
         context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-            .arguments(Component.text(player)));
+            .arguments(Argument.string("player", player)));
         return -1;
       }
     } else {
       if (this.server.getPlayer(player).isEmpty() && !player.equalsIgnoreCase("all") && !player.equalsIgnoreCase("current")
           && !player.startsWith("+")) {
         context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-            .arguments(Component.text(player)));
+            .arguments(Argument.string("player", player)));
         return -1;
       }
     }
 
     if (address == null) {
       context.getSource().sendMessage(Component.translatable("velocity.command.error.transfer.invalid-proxy")
-          .arguments(Component.text(proxyId)));
+          .arguments(Argument.string("proxy", proxyId)));
       return -1;
     }
 
     if (player.equalsIgnoreCase("all")) {
       context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.all")
-          .arguments(Component.text(normalizedProxyId)));
+          .arguments(Argument.string("proxy", normalizedProxyId)));
 
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         for (Player p : this.server.getAllPlayers()) {
@@ -205,12 +206,14 @@ public class TransferCommand {
       RegisteredServer foundServer = findServer(player.substring(1)).orElse(null);
       if (foundServer == null) {
         context.getSource().sendMessage(Component.translatable("velocity.command.server-does-not-exist")
-            .arguments(Component.text(player)));
+            .arguments(Argument.string("server", player)));
         return -1;
       }
 
       context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.server")
-          .arguments(Component.text(foundServer.getServerInfo().getName()), Component.text(normalizedProxyId)));
+          .arguments(
+              Argument.string("server", foundServer.getServerInfo().getName()),
+              Argument.string("proxy",  normalizedProxyId)));
 
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         for (Player p : foundServer.getPlayersConnected()) {
@@ -242,14 +245,15 @@ public class TransferCommand {
       ServerConnection foundServerConn = sender.getCurrentServer().orElse(null);
       if (foundServerConn == null) {
         context.getSource().sendMessage(Component.translatable("velocity.command.server-does-not-exist")
-            .arguments(Component.text(player)));
+            .arguments(Argument.string("server", player)));
         return -1;
       }
 
       RegisteredServer foundServer = this.server.getServer(foundServerConn.getServerInfo().getName()).orElse(null);
 
       context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.server")
-          .arguments(Component.text(foundServer.getServerInfo().getName()), Component.text(normalizedProxyId)));
+          .arguments(Argument.string("server", foundServer.getServerInfo().getName()),
+              Argument.string("proxy",  normalizedProxyId)));
 
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         for (Player p : foundServer.getPlayersConnected()) {
@@ -283,12 +287,13 @@ public class TransferCommand {
 
         if (playerInfo == null || playerInfo.getName() == null || playerInfo.getProxyId() == null) {
           context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-              .arguments(Component.text(player)));
+              .arguments(Argument.string("player", player)));
           return -1;
         }
 
         context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.player")
-            .arguments(Component.text(playerInfo.getName()), Component.text(normalizedProxyId)));
+            .arguments(Argument.string("player", playerInfo.getName()),
+                Argument.string("proxy",  normalizedProxyId)));
 
         this.server.getRedisManager().send(new RedisTransferCommandRequest(
             sender, playerInfo.getName(), proxyId, address.ip(), address.port()
@@ -297,18 +302,19 @@ public class TransferCommand {
         Optional<Player> maybePlayer = this.server.getPlayer(player);
         if (maybePlayer.isEmpty()) {
           context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-              .arguments(Component.text(player)));
+              .arguments(Argument.string("player", player)));
           return -1;
         }
 
         ConnectedPlayer connectedPlayer = (ConnectedPlayer) maybePlayer.get();
         if (connectedPlayer.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
           context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.player")
-              .arguments(Component.text(connectedPlayer.getUsername()), Component.text(normalizedProxyId)));
+              .arguments(Argument.string("player", connectedPlayer.getUsername()),
+                  Argument.string("proxy",  normalizedProxyId)));
           connectedPlayer.transferToHost(new InetSocketAddress(address.ip(), address.port()));
         } else {
           context.getSource().sendMessage(Component.translatable("velocity.command.transfer.invalid-version")
-              .arguments(Component.text(connectedPlayer.getUsername())));
+              .arguments(Argument.string("player", connectedPlayer.getUsername())));
         }
       }
     }
