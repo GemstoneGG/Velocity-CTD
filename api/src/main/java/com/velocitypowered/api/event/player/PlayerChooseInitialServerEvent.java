@@ -81,7 +81,11 @@ public class PlayerChooseInitialServerEvent {
   /**
    * Returns the reason the player will be disconnected if no initial server is selected.
    *
-   * @return the disconnect reason, or {@code Optional.empty()} if not set
+   * <p>The proxy seeds this with a default human-readable message before firing the event,
+   * so this will usually be present. Plugins may override or clear it.</p>
+   *
+   * @return the disconnect reason, or {@code Optional.empty()} if a plugin explicitly cleared it
+   *         (in which case the proxy will still fall back to its default message)
    */
   public Optional<Component> getReason() {
     return Optional.ofNullable(reason);
@@ -89,7 +93,9 @@ public class PlayerChooseInitialServerEvent {
 
   /**
    * Sets a custom disconnect reason for the player.
-   * Passing {@code null} will show the default reason.
+   *
+   * <p>Passing {@code null} clears the custom reason. The proxy will then fall back to its
+   * default disconnect message if no initial server is ultimately selected.</p>
    *
    * @param reason the disconnect reason to show to the player
    */
