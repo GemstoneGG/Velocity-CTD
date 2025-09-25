@@ -152,14 +152,9 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
       connection.setAutoReading(false);
       server.getEventManager()
           .fire(new ConnectionEstablishEvent(ic, handshake.getIntent()))
-          .whenCompleteAsync((result, throwable) -> {
+          .thenAccept(result -> {
             // Clean up the disabling of auto-read.
             connection.setAutoReading(true);
-
-            if (throwable != null) {
-              connection.close(true);
-              return;
-            }
 
             if (!result.getResult().isAllowed()) {
               connection.close(true);
