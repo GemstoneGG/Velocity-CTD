@@ -289,7 +289,7 @@ public class ServerQueueStatus {
           this.velocityServer.getPlayer(player).ifPresent(p ->
               p.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached")
                     .arguments(Argument.string("server", getServerName()),
-                           Argument.numeric("retries", this.velocityServer.getConfiguration().getQueue().getMaxSendRetries()))));
+                          Argument.numeric("retries", this.velocityServer.getConfiguration().getQueue().getMaxSendRetries()))));
         }
       }
     }).delay(1, TimeUnit.SECONDS).schedule();

@@ -614,7 +614,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     translationRegistry.defaultLocale(Locale.US);
 
     try {
-      ResourceUtils.visitResources(VelocityServer.class, packagedRoot -> {
+      ResourceUtils.visitResources(VelocityServer.class, path -> {
         if (log) {
           logger.info("Loading localizations...");
         }
@@ -626,8 +626,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
             Files.createDirectories(langPath);
           }
 
-          try (Stream<Path> packagedFiles = Files.walk(packagedRoot)) {
-            packagedFiles.filter(Files::isRegularFile)
+          try (Stream<Path> files = Files.walk(path)) {
+            files.filter(Files::isRegularFile)
                 .forEach(src -> {
                   final Path target = langPath.resolve(src.getFileName().toString());
                   if (Files.notExists(target)) {
