@@ -32,6 +32,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 
 /**
  * The interface (abstract class) that will provide methods for the Queue Manager implementations.
@@ -347,7 +348,7 @@ public abstract class QueueManager {
     ServerQueueStatus targetQueueStatus = getQueue(targetServerName);
     if (targetQueueStatus != null && targetQueueStatus.isQueued(player.getUniqueId())) {
       player.sendMessage(Component.translatable("velocity.queue.error.already-queued")
-          .arguments(Component.text(targetServerName)));
+          .arguments(Argument.string("server", targetServerName)));
       return;
     }
 
@@ -357,8 +358,8 @@ public abstract class QueueManager {
           status.dequeue(player.getUniqueId(), false);
           player.sendMessage(Component.translatable("velocity.queue.error.queued-swap")
               .arguments(
-                  Component.text(status.getServerName()),
-                  Component.text(targetServerName)));
+                  Argument.string("from", status.getServerName()),
+                  Argument.string("to", targetServerName)));
           break;
         }
       }
@@ -371,7 +372,7 @@ public abstract class QueueManager {
 
     if (status.isPaused() && !this.server.getConfiguration().getQueue().isAllowPausedQueueJoining()) {
       player.sendMessage(Component.translatable("velocity.queue.error.paused")
-          .arguments(Component.text(targetServerName)));
+          .arguments(Argument.string("server", targetServerName)));
       return;
     }
 
@@ -384,7 +385,7 @@ public abstract class QueueManager {
         player.hasPermission("velocity.queue.bypass"));
 
     player.sendMessage(Component.translatable("velocity.queue.command.queued")
-        .arguments(Component.text(targetServerName)));
+        .arguments(Argument.string("server", targetServerName)));
   }
 
   /**

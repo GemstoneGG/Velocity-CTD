@@ -57,6 +57,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -65,8 +66,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * and arguments command nodes, which is contained in this class.
  */
 public final class VelocityCommands {
-
-  // Wrapping
 
   /**
    * Walks the command node tree and wraps all {@link Command} instances in a {@link VelocityBrigadierCommandWrapper},
@@ -78,7 +77,7 @@ public final class VelocityCommands {
    * @return the wrapped command node
    */
   public static CommandNode<CommandSource> wrap(final CommandNode<CommandSource> delegate,
-                                                final @Nullable Object registrant) {
+                                                @Nullable final Object registrant) {
     Preconditions.checkNotNull(delegate, "delegate");
     if (registrant == null) {
       // the registrant is null if the `plugin` was absent when we try to register the command
@@ -120,8 +119,6 @@ public final class VelocityCommands {
     };
   }
 
-  // Normalization
-
   /**
    * Normalizes the given command input.
    *
@@ -140,8 +137,6 @@ public final class VelocityCommands {
       return command.toLowerCase(Locale.ENGLISH);
     }
   }
-
-  // Parsing
 
   /**
    * Returns the parsed alias, used to execute the command.
@@ -313,7 +308,7 @@ public final class VelocityCommands {
 
     if (playerOptional.isEmpty()) {
       ctx.getSource().sendMessage(CommandMessages.PLAYER_NOT_FOUND
-          .arguments(Component.text(playerName)));
+          .arguments(Argument.string("player", playerName)));
       return null;
     }
 
@@ -375,7 +370,7 @@ public final class VelocityCommands {
 
     if (serverOptional.isEmpty()) {
       ctx.getSource().sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
-          .arguments(Component.text(serverName)));
+          .arguments(Argument.string("server", serverName)));
       return null;
     }
 
@@ -383,13 +378,13 @@ public final class VelocityCommands {
 
     if (!checkServerPermissions(registeredServer, ctx.getSource())) {
       ctx.getSource().sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
-          .arguments(Component.text(serverName)));
+          .arguments(Argument.string("server", serverName)));
       return null;
     }
 
     if (!allowNonQueueable && !registeredServer.getQueueStatus().hasQueue()) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.server-has-no-queue")
-          .arguments(Component.text(serverName)));
+          .arguments(Argument.string("server", serverName)));
       return null;
     }
 
@@ -425,7 +420,7 @@ public final class VelocityCommands {
 
     ctx.getSource().sendMessage(
         Component.translatable("velocity.command." + commandName + ".usage", NamedTextColor.YELLOW)
-            .arguments(Component.text(usedName)));
+            .arguments(Argument.string("command", usedName)));
     return com.mojang.brigadier.Command.SINGLE_SUCCESS;
   }
 

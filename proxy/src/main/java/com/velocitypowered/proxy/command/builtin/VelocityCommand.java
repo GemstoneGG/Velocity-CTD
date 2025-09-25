@@ -138,7 +138,7 @@ public final class VelocityCommand {
         .executes(ctx -> {
           ctx.getSource().sendMessage(
               Component.translatable("velocity.command.sudo.usage", NamedTextColor.YELLOW)
-                      .arguments(Argument.string("command", "velocity sudo"))
+                  .arguments(Argument.string("command", "velocity sudo"))
           );
 
           return Command.SINGLE_SUCCESS;
@@ -193,7 +193,7 @@ public final class VelocityCommand {
         .executes(ctx -> {
           ctx.getSource().sendMessage(
               Component.translatable("velocity.command.sudo.usage", NamedTextColor.YELLOW)
-                  .arguments(Component.text("velocity sudo"))
+                  .arguments(Argument.string("command", "velocity sudo"))
           );
 
           return Command.SINGLE_SUCCESS;
@@ -299,12 +299,12 @@ public final class VelocityCommand {
 
       if (!server.getMultiProxyHandler().getAllProxyIdsLowerCase().contains(proxyId.toLowerCase())) {
         source.sendMessage(Component.translatable("velocity.command.proxy-does-not-exist")
-                .arguments(Argument.string("proxy", realId)));
+            .arguments(Argument.string("proxy", realId)));
         return -1;
       }
 
       source.sendMessage(Component.translatable("velocity.command.uptime-remote")
-              .arguments(Argument.string("proxy", realId)));
+          .arguments(Argument.string("proxy", realId)));
 
       server.getMultiProxyHandler().requestUptime(realId, source);
       return Command.SINGLE_SUCCESS;
@@ -332,8 +332,8 @@ public final class VelocityCommand {
             context.getSource().sendMessage(Component.translatable("velocity.command.sudo.no-players"));
           } else {
             context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
-                    .arguments(Argument.string("target", "everyone"),
-                            Argument.string("message", messageOrCommand)));
+                .arguments(Argument.string("target", "everyone"),
+                    Argument.string("message", messageOrCommand)));
           }
           return Command.SINGLE_SUCCESS;
         } else {
@@ -349,7 +349,8 @@ public final class VelocityCommand {
             context.getSource().sendMessage(Component.translatable("velocity.command.sudo.no-players"));
           } else {
             context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
-                .arguments(Component.text("everyone"), Component.text(messageOrCommand)));
+                .arguments(Argument.string("target", "everyone"),
+                    Argument.string("message", messageOrCommand)));
           }
         }
       } else if (playerName.length() > 1 && playerName.startsWith("-")
@@ -373,19 +374,20 @@ public final class VelocityCommand {
           context.getSource().sendMessage(Component.translatable("velocity.command.sudo.no-players"));
         } else {
           context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
-              .arguments(Component.text(realId), Component.text(messageOrCommand)));
+              .arguments(Argument.string("target", realId),
+                  Argument.string("message", messageOrCommand)));
         }
         return Command.SINGLE_SUCCESS;
       } else if (playerName.startsWith("+")) {
         if (playerName.length() == 1) {
           source.sendMessage(Component.translatable("velocity.command.sudo.invalid-server")
-              .arguments(Component.text(playerName)));
+              .arguments(Argument.string("server", playerName)));
           return Command.SINGLE_SUCCESS;
         }
         RegisteredServer registeredServer = this.server.getServer(playerName.substring(1)).orElse(null);
         if (registeredServer == null) {
           source.sendMessage(Component.translatable("velocity.command.sudo.invalid-server")
-              .arguments(Component.text(playerName.substring(1))));
+              .arguments(Argument.string("server", playerName.substring(1))));
           return Command.SINGLE_SUCCESS;
         }
 
@@ -402,7 +404,8 @@ public final class VelocityCommand {
             context.getSource().sendMessage(Component.translatable("velocity.command.sudo.no-players"));
           } else {
             context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
-                .arguments(Component.text(registeredServer.getServerInfo().getName()), Component.text(messageOrCommand)));
+                .arguments(Argument.string("target", registeredServer.getServerInfo().getName()),
+                    Argument.string("message", messageOrCommand)));
           }
           return Command.SINGLE_SUCCESS;
         } else {
@@ -418,20 +421,21 @@ public final class VelocityCommand {
             context.getSource().sendMessage(Component.translatable("velocity.command.sudo.no-players"));
           } else {
             context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
-                .arguments(Component.text(registeredServer.getServerInfo().getName()), Component.text(messageOrCommand)));
+                .arguments(Argument.string("target", registeredServer.getServerInfo().getName()),
+                    Argument.string("message", messageOrCommand)));
           }
         }
       } else {
         if (playerName.startsWith("-") && playerName.length() > 1) {
           source.sendMessage(Component.translatable("velocity.command.sudo.invalid-proxy")
-              .arguments(Component.text(playerName.substring(1))));
+              .arguments(Argument.string("proxy", playerName.substring(1))));
           return Command.SINGLE_SUCCESS;
         }
         if (this.server.getMultiProxyHandler().isRedisEnabled()) {
           RemotePlayerInfo info = this.server.getMultiProxyHandler().getPlayerInfo(playerName);
           if (info == null) {
             context.getSource().sendMessage(Component.translatable("velocity.command.sudo.invalid-player")
-                .arguments(Component.text(playerName)));
+                .arguments(Argument.string("player", playerName)));
             return Command.SINGLE_SUCCESS;
           }
 
@@ -445,7 +449,7 @@ public final class VelocityCommand {
 
           if (player == null) {
             context.getSource().sendMessage(Component.translatable("velocity.command.sudo.invalid-player")
-                .arguments(Component.text(playerName)));
+                .arguments(Argument.string("player", playerName)));
             return Command.SINGLE_SUCCESS;
           }
 
@@ -456,7 +460,8 @@ public final class VelocityCommand {
           }
 
           context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
-              .arguments(Component.text(player.getUsername()), Component.text(messageOrCommand)));
+              .arguments(Argument.string("target", player.getUsername()),
+                  Argument.string("message", messageOrCommand)));
         }
       }
       return Command.SINGLE_SUCCESS;
@@ -491,6 +496,7 @@ public final class VelocityCommand {
   }
 
   private record ReloadRemote(VelocityServer server) implements Command<CommandSource> {
+
     @Override
     public int run(final CommandContext<CommandSource> context) {
       final CommandSource source = context.getSource();
@@ -867,50 +873,56 @@ public final class VelocityCommand {
     @Override
     public int run(final CommandContext<CommandSource> context) {
       final CommandSource source = context.getSource();
-      
+
       // Get the default config path
       Path configPath = Path.of("velocity.toml");
-      
+
       try {
         ConfigDetector detector = new ConfigDetector(logger);
         ConfigAnalysis analysis = detector.analyzeConfiguration(configPath);
-        
+
         // Send formatted results to the command source
-        source.sendMessage(Component.text("=== Configuration Analysis ===", NamedTextColor.GOLD));
-        
+        source.sendMessage(Component.translatable("velocity.command.config-check.header", NamedTextColor.GOLD));
+
         if (!analysis.isOutdated()) {
-          source.sendMessage(Component.text("✓ Configuration is up to date (version "
-              + analysis.currentVersion() + ")", NamedTextColor.GREEN));
+          source.sendMessage(Component.translatable("velocity.command.config-check.up-to-date", NamedTextColor.GREEN)
+              .arguments(Argument.string("version", analysis.currentVersion())));
         } else {
-          source.sendMessage(Component.text("⚠ Configuration needs updates:", NamedTextColor.YELLOW));
-          source.sendMessage(Component.text("  Current version: " + analysis.currentVersion(), NamedTextColor.GRAY));
-          source.sendMessage(Component.text("  Latest version: " + analysis.latestVersion(), NamedTextColor.GRAY));
-          
+          source.sendMessage(Component.translatable("velocity.command.config-check.needs-updates", NamedTextColor.YELLOW));
+          source.sendMessage(Component.translatable("velocity.command.config-check.current-version", NamedTextColor.GRAY)
+              .arguments(Argument.string("version", analysis.currentVersion())));
+          source.sendMessage(Component.translatable("velocity.command.config-check.latest-version", NamedTextColor.GRAY)
+              .arguments(Argument.string("version", analysis.latestVersion())));
+
           if (!analysis.missingOptions().isEmpty()) {
-            source.sendMessage(Component.text("  Missing options:", NamedTextColor.RED));
+            source.sendMessage(Component.translatable("velocity.command.config-check.missing-options.header", NamedTextColor.RED));
             for (String option : analysis.missingOptions()) {
-              source.sendMessage(Component.text("    - " + option, NamedTextColor.RED));
+              source.sendMessage(Component.translatable("velocity.command.config-check.missing-options.item", NamedTextColor.RED)
+                  .arguments(Argument.string("option", option)));
             }
           }
-          
+
           if (!analysis.deprecatedOptions().isEmpty()) {
-            source.sendMessage(Component.text("  Deprecated options:", NamedTextColor.YELLOW));
+            source.sendMessage(Component.translatable("velocity.command.config-check.deprecated-options.header", NamedTextColor.YELLOW));
             for (String option : analysis.deprecatedOptions()) {
-              source.sendMessage(Component.text("    - " + option, NamedTextColor.YELLOW));
+              source.sendMessage(Component.translatable("velocity.command.config-check.deprecated-options.item", NamedTextColor.YELLOW)
+                  .arguments(Argument.string("option", option)));
             }
           }
-          
-          source.sendMessage(Component.text("  Recommendations:", NamedTextColor.GOLD));
+
+          source.sendMessage(Component.translatable("velocity.command.config-check.recommendations.header", NamedTextColor.GOLD));
           for (String recommendation : analysis.recommendations()) {
-            source.sendMessage(Component.text("    - " + recommendation, NamedTextColor.WHITE));
+            source.sendMessage(Component.translatable("velocity.command.config-check.recommendations.item", NamedTextColor.WHITE)
+                .arguments(Argument.string("recommendation", recommendation)));
           }
         }
-        
+
       } catch (IOException e) {
-        source.sendMessage(Component.text("Error analyzing configuration: " + e.getMessage(), NamedTextColor.RED));
+        source.sendMessage(Component.translatable("velocity.command.config-check.error", NamedTextColor.RED)
+            .arguments(Argument.string("message", e.getMessage())));
         logger.error("Failed to analyze configuration file: {}", configPath, e);
       }
-      
+
       return Command.SINGLE_SUCCESS;
     }
   }

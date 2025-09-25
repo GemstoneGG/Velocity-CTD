@@ -23,6 +23,7 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
@@ -45,7 +46,9 @@ public record ProxyAliasCommand(ProxyServer server, String alias, List<String> c
             .whenComplete((result, throwable) -> {
               if (throwable != null) {
                 source.sendMessage(Component.translatable("velocity.error.aliases")
-                    .arguments(Component.text(alias), Component.text(command)));
+                    .arguments(
+                        Argument.string("alias", alias),
+                        Argument.string("command", command)));
               }
             });
     }

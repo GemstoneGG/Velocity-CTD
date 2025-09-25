@@ -44,6 +44,7 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -101,7 +102,7 @@ public class BungeeCordMessageResponder {
 
     if (player.getPermissionValue("velocity.command.server." + serverName) == Tristate.FALSE) {
       player.sendMessage(Component.translatable("velocity.command.server-does-not-exist")
-          .arguments(Component.text(serverName)));
+          .arguments(Argument.string("server", serverName)));
       return;
     }
 
@@ -132,7 +133,7 @@ public class BungeeCordMessageResponder {
     if (referencedPlayer.isPresent() && referencedServer.isPresent()) {
       if (referencedPlayer.get().getPermissionValue("velocity.command.server." + serverName) == Tristate.FALSE) {
         referencedPlayer.get().sendMessage(Component.translatable("velocity.command.server-does-not-exist")
-            .arguments(Component.text(serverName)));
+            .arguments(Argument.string("server", serverName)));
         return;
       }
 

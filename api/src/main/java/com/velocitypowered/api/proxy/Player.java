@@ -332,7 +332,7 @@ public interface Player extends
   }
 
   @Override
-  default @NotNull HoverEvent<HoverEvent.ShowEntity> asHoverEvent(@NotNull UnaryOperator<HoverEvent.ShowEntity> op) {
+  default @NotNull HoverEvent<HoverEvent.ShowEntity> asHoverEvent(@NotNull final UnaryOperator<HoverEvent.ShowEntity> op) {
     return HoverEvent.showEntity(op.apply(HoverEvent.ShowEntity.showEntity(this, getUniqueId(), Component.text(getUsername()))));
   }
 
@@ -342,10 +342,6 @@ public interface Player extends
    * @return the player's client brand
    */
   @Nullable String getClientBrand();
-
-  //
-  // Custom Chat Completions API
-  //
 
   /**
    * Add custom chat completion suggestions shown to the player while typing a message.
@@ -387,7 +383,7 @@ public interface Player extends
    * and will not perform any actions.</b>
    */
   @Override
-  default void playSound(@NotNull Sound sound) {
+  default void playSound(@NotNull final Sound sound) {
   }
 
   /**
@@ -397,7 +393,7 @@ public interface Player extends
    * and will not perform any actions.</b>
    */
   @Override
-  default void playSound(@NotNull Sound sound, double x, double y, double z) {
+  default void playSound(@NotNull final Sound sound, final double x, final double y, final double z) {
   }
 
   /**
@@ -407,7 +403,7 @@ public interface Player extends
    * and will not perform any actions.</b>
    */
   @Override
-  default void playSound(@NotNull Sound sound, Sound.@NotNull Emitter emitter) {
+  default void playSound(@NotNull final Sound sound, final Sound.@NotNull Emitter emitter) {
   }
 
   /**
@@ -417,7 +413,7 @@ public interface Player extends
    * and will not perform any actions.</b>
    */
   @Override
-  default void stopSound(@NotNull SoundStop stop) {
+  default void stopSound(@NotNull final SoundStop stop) {
   }
 
   /**
@@ -427,7 +423,7 @@ public interface Player extends
    * and will not perform any actions.</b>
    */
   @Override
-  default void openBook(@NotNull Book book) {
+  default void openBook(@NotNull final Book book) {
   }
 
   /**

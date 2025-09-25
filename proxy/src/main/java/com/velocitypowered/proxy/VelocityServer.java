@@ -92,23 +92,19 @@ import com.velocitypowered.proxy.util.ResourceUtils;
 import com.velocitypowered.proxy.util.VelocityChannelRegistrar;
 import com.velocitypowered.proxy.util.ratelimit.Ratelimiter;
 import com.velocitypowered.proxy.util.ratelimit.Ratelimiters;
-import com.velocitypowered.proxy.util.translation.VelocityTranslationRegistry;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.http.HttpClient;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyPair;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -117,9 +113,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.PropertyResourceBundle;
-import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -134,8 +127,8 @@ import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.audience.ForwardingAudience;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.translation.MiniMessageTranslationStore;
 import net.kyori.adventure.translation.GlobalTranslator;
-import net.kyori.adventure.translation.TranslationStore;
 import net.kyori.adventure.translation.Translator;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -617,9 +610,10 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
   private void registerTranslations(final boolean log) {
     final String defaultFile = "messages.properties";
-    final VelocityTranslationRegistry translationRegistry =
-            new VelocityTranslationRegistry(TranslationStore.messageFormat(this.translationRegistryKey));
+    final MiniMessageTranslationStore translationRegistry =
+            MiniMessageTranslationStore.create(this.translationRegistryKey);
     translationRegistry.defaultLocale(Locale.US);
+
     try {
       ResourceUtils.visitResources(VelocityServer.class, path -> {
         if (log) {
@@ -655,39 +649,27 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
             return;
           }
 
-          try (BufferedReader defaultReader = Files.newBufferedReader(optionalPath.get(), StandardCharsets.UTF_8)) {
-            final ResourceBundle defaultBundle = new PropertyResourceBundle(defaultReader);
-            final Set<String> defaultKeys = defaultBundle.keySet();
+          translationRegistry.registerAll(Locale.US, optionalPath.get(), true);
+          ClosestLocaleMatcher.INSTANCE.registerKnown(Locale.US);
 
-            try (Stream<Path> langFiles = Files.walk(langPath)) {
-              langFiles.filter(Files::isRegularFile).forEach(file -> {
-                final String filename = com.google.common.io.Files
-                    .getNameWithoutExtension(file.getFileName().toString());
-                final String localeName = filename.replace("messages_", "")
-                    .replace("messages", "")
-                    .replace('_', '-');
-                final Locale locale = localeName.isBlank()
-                    ? Locale.US
-                    : Locale.forLanguageTag(localeName);
+          try (Stream<Path> langFiles = Files.walk(langPath)) {
+            langFiles.filter(Files::isRegularFile).forEach(file -> {
+              final String filename = com.google.common.io.Files
+                  .getNameWithoutExtension(file.getFileName().toString());
+              final String localeName = filename.replace("messages_", "")
+                  .replace("messages", "")
+                  .replace('_', '-');
+              final Locale locale = localeName.isBlank()
+                  ? Locale.US
+                  : Locale.forLanguageTag(localeName);
 
-                try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-                  final ResourceBundle bundle = new PropertyResourceBundle(reader);
+              if (localeName.isBlank()) {
+                return;
+              }
 
-                  translationRegistry.registerAll(locale, defaultKeys, key -> {
-                    final String format = bundle.containsKey(key) ? bundle.getString(key) : defaultBundle.getString(key);
-                    final String escapedFormat = format.replace("'", "''");
-
-                    return new MessageFormat(escapedFormat, locale);
-                  });
-
-                  ClosestLocaleMatcher.INSTANCE.registerKnown(locale);
-                } catch (Exception e) {
-                  logger.error("Could not read language file: {}", filename, e);
-                }
-              });
-            } catch (Exception e) {
-              logger.error("Failed to read directory: {}", path.toString(), e);
-            }
+              translationRegistry.registerAll(locale, file, false);
+              ClosestLocaleMatcher.INSTANCE.registerKnown(locale);
+            });
           }
         } catch (Exception e) {
           logger.error("An unknown exception occurred.", e);
