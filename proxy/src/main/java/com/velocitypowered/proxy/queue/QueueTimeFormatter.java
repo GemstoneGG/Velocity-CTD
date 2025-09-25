@@ -19,14 +19,16 @@ package com.velocitypowered.proxy.queue;
 
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 
 /**
  * Formats time values as components using the {@code velocity.queue.time} translations.
  */
 public class QueueTimeFormatter {
+
   private static Component formatComponent(final String name, final long value) {
     String key = "velocity.queue.time." + name + (value == 1 ? "" : "s");
-    return Component.translatable(key).arguments(Component.text(value));
+    return Component.translatable(key).arguments(Argument.numeric("value", value));
   }
 
   /**

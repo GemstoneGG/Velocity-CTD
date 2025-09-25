@@ -36,6 +36,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 
 /**
@@ -282,13 +283,13 @@ public class ServerQueueStatus {
         if (this.velocityServer.getMultiProxyHandler().isRedisEnabled()) {
           this.velocityServer.getRedisManager().send(new RedisSendMessageToUuidRequest(player,
               Component.translatable("velocity.queue.error.max-send-retries-reached")
-                    .arguments(Component.text(getServerName()),
-                          Component.text(this.velocityServer.getConfiguration().getQueue().getMaxSendRetries()))));
+                    .arguments(Argument.string("server", getServerName()),
+                          Argument.numeric("retries", this.velocityServer.getConfiguration().getQueue().getMaxSendRetries()))));
         } else {
           this.velocityServer.getPlayer(player).ifPresent(p ->
               p.sendMessage(Component.translatable("velocity.queue.error.max-send-retries-reached")
-                    .arguments(Component.text(getServerName()),
-                          Component.text(this.velocityServer.getConfiguration().getQueue().getMaxSendRetries()))));
+                    .arguments(Argument.string("server", getServerName()),
+                          Argument.numeric("retries", this.velocityServer.getConfiguration().getQueue().getMaxSendRetries()))));
         }
       }
     }).delay(1, TimeUnit.SECONDS).schedule();
@@ -323,28 +324,20 @@ public class ServerQueueStatus {
    * @return a descriptive component
    */
   public Component createListComponent() {
-    if (this.velocityServer.getQueueManager().isMasterProxy()) {
-      return Component.translatable("velocity.queue.command.listqueues.item")
-              .arguments(Component.text(server.getServerInfo().getName())
-                      .hoverEvent(Component.translatable("velocity.queue.command.listqueues.hover")
-                              .arguments(
-                                      Component.text(queue.size()),
-                                      Component.text(isPaused() ? "True" : "False"),
-                                      Component.text(isOnline() ? "True" : "False")
-                              ).asHoverEvent())
-              );
-    } else {
-      // Use cached status instead of blocking ping
-      return Component.translatable("velocity.queue.command.listqueues.item")
-              .arguments(Component.text(server.getServerInfo().getName())
-                      .hoverEvent(Component.translatable("velocity.queue.command.listqueues.hover")
-                              .arguments(
-                                      Component.text(queue.size()),
-                                      Component.text(isPaused() ? "True" : "False"),
-                                      Component.text(isOnline() ? "True" : "False")
-                              ).asHoverEvent())
-              );
-    }
+    return Component.translatable("velocity.queue.command.listqueues.item")
+        .arguments(
+            Argument.component("server",
+            Component.text(server.getServerInfo().getName())
+                .hoverEvent(
+                    Component.translatable("velocity.queue.command.listqueues.hover")
+                        .arguments(
+                            Argument.numeric("size", queue.size()),
+                            Argument.string("paused", isPaused() ? "True" : "False"),
+                            Argument.string("online", isOnline() ? "True" : "False")
+                        ).asHoverEvent()
+                )
+        )
+    );
   }
 
   /**
@@ -410,31 +403,30 @@ public class ServerQueueStatus {
     } else if (full && !entry.isFullBypass()) {
       return Component.translatable("velocity.queue.player-status.full", NamedTextColor.YELLOW)
           .arguments(
-              Component.text(position),
-              Component.text(queue.size()),
-              Component.text(entry.getTarget().getServerInfo().getName()),
-              calculateEta(position)
+              Argument.numeric("position", position),
+              Argument.numeric("size", queue.size()),
+              Argument.string("server", entry.getTarget().getServerInfo().getName()),
+              Argument.component("eta", calculateEta(position))
           );
     } else if (entry.isWaitingForConnection()) {
-      return Component.translatable("velocity.queue.player-status.connecting",
-        NamedTextColor.YELLOW)
-              .arguments(Component.text(entry.getTarget().getServerInfo().getName()));
+      return Component.translatable("velocity.queue.player-status.connecting", NamedTextColor.YELLOW)
+          .arguments(Argument.string("server", entry.getTarget().getServerInfo().getName()));
     } else if (isPaused()) {
       return Component.translatable("velocity.queue.player-status.paused", NamedTextColor.YELLOW);
     } else if (isOnline()) {
       return Component.translatable("velocity.queue.player-status.online", NamedTextColor.YELLOW)
           .arguments(
-              Component.text(position),
-              Component.text(queue.size()),
-              Component.text(entry.getTarget().getServerInfo().getName()),
-              calculateEta(position)
+              Argument.numeric("position", position),
+              Argument.numeric("size", queue.size()),
+              Argument.string("server", entry.getTarget().getServerInfo().getName()),
+              Argument.component("eta", calculateEta(position))
           );
     } else {
       return Component.translatable("velocity.queue.player-status.offline", NamedTextColor.YELLOW)
           .arguments(
-              Component.text(position),
-              Component.text(queue.size()),
-              Component.text(entry.getTarget().getServerInfo().getName())
+              Argument.numeric("position", position),
+              Argument.numeric("size", queue.size()),
+              Argument.string("server", entry.getTarget().getServerInfo().getName())
           );
     }
   }

@@ -61,6 +61,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -184,8 +185,9 @@ public class RedisManagerImpl {
             proxy.getPlayer(it.playerToCheck()).ifPresent(player -> {
               Component component = Component.translatable("velocity.command.ping.other",
                   NamedTextColor.GREEN)
-                     .arguments(Component.text(player.getUsername()),
-                         Component.text(player.getPing()));
+                       .arguments(
+                           Argument.string("player", player.getUsername()),
+                           Argument.numeric("ping", player.getPing()));
 
               send(new RedisSendMessage(it.commandSender(), component));
             }));
@@ -206,8 +208,9 @@ public class RedisManagerImpl {
         if (connectedPlayer.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
           connectedPlayer.transferToHost(new InetSocketAddress(it.ip(), it.port()));
         } else {
-          send(new RedisSendMessageToUuidRequest(it.requester(), Component.translatable("velocity.command.transfer.invalid-version")
-              .arguments(Component.text(connectedPlayer.getUsername()))));
+          send(new RedisSendMessageToUuidRequest(it.requester(),
+              Component.translatable("velocity.command.transfer.invalid-version")
+                  .arguments(Argument.string("player", connectedPlayer.getUsername()))));
         }
       }).delay(1, TimeUnit.SECONDS).schedule();
     });

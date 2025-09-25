@@ -19,7 +19,6 @@ package com.velocitypowered.proxy.connection.client;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.velocitypowered.api.event.connection.ConnectionEstablishEvent;
 import com.velocitypowered.api.event.connection.ConnectionHandshakeEvent;
 import com.velocitypowered.api.network.HandshakeIntent;
 import com.velocitypowered.api.network.ProtocolState;
@@ -45,6 +44,7 @@ import java.net.InetSocketAddress;
 import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -147,35 +147,21 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
       connection.close(true);
     } else {
       final InitialInboundConnection ic = new InitialInboundConnection(connection, cleanVhost(handshake.getServerAddress()), handshake);
-      // Handle connection establish event.
-      connection.setAutoReading(false);
-      server.getEventManager()
-          .fire(new ConnectionEstablishEvent(ic, handshake.getIntent()))
-          .thenAcceptAsync(result -> {
-            // Clean up the disabling of auto-read.
-            connection.setAutoReading(true);
+      if (handshake.getIntent() == HandshakeIntent.TRANSFER && !server.getConfiguration().isAcceptTransfers()) {
+        ic.disconnect(Component.translatable("multiplayer.disconnect.transfers_disabled"));
+        return true;
+      }
 
-            if (!result.getResult().isAllowed()) {
-              connection.close(true);
-            } else {
-              if (handshake.getIntent() == HandshakeIntent.TRANSFER && !server.getConfiguration().isAcceptTransfers()) {
-                ic.disconnect(Component.translatable("multiplayer.disconnect.transfers_disabled"));
-                return;
-              }
+      connection.setProtocolVersion(handshake.getProtocolVersion());
+      connection.setAssociation(ic);
 
-              connection.setProtocolVersion(handshake.getProtocolVersion());
-              connection.setAssociation(ic);
-
-              switch (nextState) {
-                case STATUS -> connection.setActiveSessionHandler(StateRegistry.STATUS,
-                      new StatusSessionHandler(server, ic));
-                case LOGIN -> this.handleLogin(handshake, ic);
-                default ->
-                  // If you get this, it's a bug in Velocity.
-                  throw new AssertionError("getStateForProtocol provided invalid state!");
-              }
-            }
-          });
+      switch (nextState) {
+        case STATUS -> connection.setActiveSessionHandler(StateRegistry.STATUS, new StatusSessionHandler(server, ic));
+        case LOGIN -> this.handleLogin(handshake, ic);
+        default ->
+          // If you get this, it's a bug in Velocity.
+          throw new AssertionError("getStateForProtocol provided invalid state!");
+      }
     }
 
     return true;
@@ -197,7 +183,9 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
       // us to deactivate logging altogether, unlike in the AuthSessionHandler, where logging is by choice.
       connection.setState(StateRegistry.LOGIN);
       ic.disconnectQuietly(Component.translatable("velocity.error.modern-forwarding-needs-new-client")
-          .arguments(Component.text(minimumVersion), Component.text(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
+          .arguments(
+              Argument.string("min", minimumVersion),
+              Argument.string("max", ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
       return;
     }
 

@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 
 /**
  * Implements the {@code /queueadmin} command.
@@ -242,10 +243,10 @@ public record QueueAdminCommand(VelocityServer server) {
 
       if (uniquePlayerCount == 1) {
         ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.list.global-singular")
-            .arguments(Component.text(uniquePlayerCount)));
+            .arguments(Argument.numeric("count", uniquePlayerCount)));
       } else {
         ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.list.global-plural")
-            .arguments(Component.text(uniquePlayerCount)));
+            .arguments(Argument.numeric("count", uniquePlayerCount)));
       }
 
       for (RegisteredServer s : this.server.getAllServers()) {
@@ -266,16 +267,16 @@ public record QueueAdminCommand(VelocityServer server) {
               final TranslatableComponent.Builder builder = Component.translatable()
                   .key("velocity.queue.command.list.server")
                   .arguments(
-                      Component.text(s.getServerInfo().getName()),
-                      Component.text(players.size()),
-                      playerList);
+                      Argument.string("server", s.getServerInfo().getName()),
+                      Argument.numeric("count", players.size()),
+                      Argument.component("players", playerList));
               ctx.getSource().sendMessage(builder.build());
             });
       }
       return -1;
     } else if (server == null) {
       ctx.getSource().sendMessage(Component.translatable("velocity.command.server-does-not-exist")
-          .arguments(Component.text(serverName)));
+          .arguments(Argument.string("server", serverName)));
       return -1;
     }
 
@@ -291,7 +292,7 @@ public record QueueAdminCommand(VelocityServer server) {
       }
 
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.list.disabled-queue")
-          .arguments(Component.text(newName)));
+          .arguments(Argument.string("server", newName)));
       return -1;
     }
 
@@ -306,14 +307,14 @@ public record QueueAdminCommand(VelocityServer server) {
           final TranslatableComponent.Builder builder = Component.translatable()
               .key("velocity.queue.command.list.server")
               .arguments(
-                  Component.text(finalServer.getServerInfo().getName()),
-                  Component.text(players.size()),
-                  playerList);
+                  Argument.string("server", finalServer.getServerInfo().getName()),
+                  Argument.numeric("count", players.size()),
+                  Argument.component("players", playerList));
           ctx.getSource().sendMessage(builder.build());
         }, () -> {
           if (players.isEmpty()) {
             ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.list.empty")
-                .arguments(Component.text(finalServer.getServerInfo().getName())));
+                .arguments(Argument.string("server", finalServer.getServerInfo().getName())));
           }
         });
 
@@ -326,8 +327,6 @@ public record QueueAdminCommand(VelocityServer server) {
       return -1;
     }
 
-    Component serverName = Component.text(server.getServerInfo().getName());
-
     if (server.getQueueStatus().isPaused()) {
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
         this.server.getRedisManager().removePausedQueue(server.getServerInfo().getName());
@@ -335,9 +334,11 @@ public record QueueAdminCommand(VelocityServer server) {
         server.getQueueStatus().setPaused(false);
       }
 
-      ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.unpause").arguments(serverName));
-      server.getQueueStatus()
-          .broadcast(Component.translatable("velocity.queue.command.unpaused").arguments(serverName));
+      ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.unpause")
+          .arguments(Argument.string("server", server.getServerInfo().getName())));
+
+      server.getQueueStatus().broadcast(Component.translatable("velocity.queue.command.unpaused")
+          .arguments(Argument.string("server", server.getServerInfo().getName())));
       return Command.SINGLE_SUCCESS;
     } else {
       if (this.server.getMultiProxyHandler().isRedisEnabled()) {
@@ -346,8 +347,11 @@ public record QueueAdminCommand(VelocityServer server) {
         server.getQueueStatus().setPaused(true);
       }
 
-      ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.pause").arguments(serverName));
-      server.getQueueStatus().broadcast(Component.translatable("velocity.queue.command.paused").arguments(serverName));
+      ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.pause")
+          .arguments(Argument.string("server", server.getServerInfo().getName())));
+
+      server.getQueueStatus().broadcast(Component.translatable("velocity.queue.command.paused")
+          .arguments(Argument.string("server", server.getServerInfo().getName())));
     }
 
     return Command.SINGLE_SUCCESS;
@@ -359,11 +363,9 @@ public record QueueAdminCommand(VelocityServer server) {
       return -1;
     }
 
-    Component serverName = Component.text(server.getServerInfo().getName());
-
     if (!server.getQueueStatus().isPaused()) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.not-paused")
-          .arguments(serverName));
+          .arguments(Argument.string("server", server.getServerInfo().getName())));
       return -1;
     }
 
@@ -373,8 +375,11 @@ public record QueueAdminCommand(VelocityServer server) {
       server.getQueueStatus().setPaused(false);
     }
 
-    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.unpause").arguments(serverName));
-    server.getQueueStatus().broadcast(Component.translatable("velocity.queue.command.unpaused").arguments(serverName));
+    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.unpause")
+        .arguments(Argument.string("server", server.getServerInfo().getName())));
+
+    server.getQueueStatus().broadcast(Component.translatable("velocity.queue.command.unpaused")
+        .arguments(Argument.string("server", server.getServerInfo().getName())));
 
     return Command.SINGLE_SUCCESS;
   }
@@ -394,7 +399,7 @@ public record QueueAdminCommand(VelocityServer server) {
     Player player = this.server.getPlayer(playerName).orElse(null);
     if (player == null) {
       ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-          .arguments(Component.text(playerName)));
+          .arguments(Argument.string("player", playerName)));
       return -1;
     }
 
@@ -403,8 +408,8 @@ public record QueueAdminCommand(VelocityServer server) {
         if (status.isQueued(player.getUniqueId())) {
           ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-queued.other")
               .arguments(
-                  Component.text(player.getUsername()),
-                  Component.text(status.getServerName())));
+                  Argument.string("player", player.getUsername()),
+                  Argument.string("server", status.getServerName())));
           return -1;
         }
       }
@@ -413,23 +418,23 @@ public record QueueAdminCommand(VelocityServer server) {
     ServerConnection conn = player.getCurrentServer().orElse(null);
     if (conn != null && conn.getServerInfo().getName().equalsIgnoreCase(server.getServerInfo().getName())) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-connected")
-          .arguments(Component.text(player.getUsername())));
+          .arguments(Argument.string("player", player.getUsername())));
       return -1;
     }
 
     if (server.getQueueStatus().isQueued(player.getUniqueId())) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-queued.other")
           .arguments(
-              Component.text(player.getUsername()),
-              Component.text(server.getServerInfo().getName())));
+              Argument.string("player", player.getUsername()),
+              Argument.string("server", server.getServerInfo().getName())));
       return -1;
     }
 
     if (player instanceof ConnectedPlayer connectedPlayer && connectedPlayer.checkVersionCompatibility(server)) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.version-incompatible")
           .arguments(
-              Component.text(player.getUsername()),
-              Component.text(server.getServerInfo().getName())));
+              Argument.string("player", player.getUsername()),
+              Argument.string("server", server.getServerInfo().getName())));
       return -1;
     }
 
@@ -439,8 +444,8 @@ public record QueueAdminCommand(VelocityServer server) {
 
     ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.added")
         .arguments(
-            Component.text(player.getUsername()),
-            Component.text(server.getServerInfo().getName())));
+            Argument.string("player", player.getUsername()),
+            Argument.string("server", server.getServerInfo().getName())));
 
     return Command.SINGLE_SUCCESS;
   }
@@ -456,7 +461,7 @@ public record QueueAdminCommand(VelocityServer server) {
     RemotePlayerInfo player = this.server.getMultiProxyHandler().getPlayerInfo(playerName);
     if (player == null) {
       ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-          .arguments(Component.text(playerName)));
+          .arguments(Argument.string("player", playerName)));
       return -1;
     }
 
@@ -465,8 +470,8 @@ public record QueueAdminCommand(VelocityServer server) {
         if (status.isQueued(player.getUuid())) {
           ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-queued.other")
               .arguments(
-                  Component.text(player.getUsername()),
-                  Component.text(status.getServerName())));
+                  Argument.string("player", player.getUsername()),
+                  Argument.string("server", status.getServerName())));
           return -1;
         }
       }
@@ -475,15 +480,15 @@ public record QueueAdminCommand(VelocityServer server) {
     String conn = player.getServerName();
     if (conn != null && conn.equalsIgnoreCase(server.getServerInfo().getName())) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-connected")
-          .arguments(Component.text(player.getUsername())));
+          .arguments(Argument.string("player", player.getUsername())));
       return -1;
     }
 
     if (server.getQueueStatus().isQueued(player.getUuid())) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-queued.other")
           .arguments(
-              Component.text(player.getUsername()),
-              Component.text(server.getServerInfo().getName())));
+              Argument.string("player", player.getUsername()),
+              Argument.string("server", server.getServerInfo().getName())));
       return -1;
     }
 
@@ -493,8 +498,8 @@ public record QueueAdminCommand(VelocityServer server) {
 
     ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.added")
         .arguments(
-            Component.text(player.getUsername()),
-            Component.text(server.getServerInfo().getName())));
+            Argument.string("player", player.getUsername()),
+            Argument.string("server", server.getServerInfo().getName())));
 
     return Command.SINGLE_SUCCESS;
   }
@@ -537,11 +542,10 @@ public record QueueAdminCommand(VelocityServer server) {
     }
 
     if (connected.isEmpty()) {
-      ctx.getSource()
-          .sendMessage(Component.translatable("velocity.queue.error.addall-no-players-queued", NamedTextColor.RED)
-              .arguments(
-                  Component.text(from.getServerInfo().getName()),
-                  Component.text(to.getServerInfo().getName())));
+      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.addall-no-players-queued", NamedTextColor.RED)
+          .arguments(
+              Argument.string("from", from.getServerInfo().getName()),
+              Argument.string("to", to.getServerInfo().getName())));
       return -1;
     }
     for (Player player : connected) {
@@ -551,11 +555,10 @@ public record QueueAdminCommand(VelocityServer server) {
       );
     }
 
-    ctx.getSource()
-        .sendMessage(Component.translatable("velocity.queue.command.addedall-player" + (connected.size() == 1 ? "" : "s"))
-            .arguments(
-                Component.text(connected.size()),
-                Component.text(to.getServerInfo().getName())));
+    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.addedall-player" + (connected.size() == 1 ? "" : "s"))
+        .arguments(
+            Argument.numeric("count", connected.size()),
+            Argument.string("server", to.getServerInfo().getName())));
 
     return Command.SINGLE_SUCCESS;
   }
@@ -594,11 +597,10 @@ public record QueueAdminCommand(VelocityServer server) {
     }
 
     if (connected.isEmpty()) {
-      ctx.getSource()
-          .sendMessage(Component.translatable("velocity.queue.error.addall-no-players-queued", NamedTextColor.RED)
-              .arguments(
-                  Component.text(from.getServerInfo().getName()),
-                  Component.text(to.getServerInfo().getName())));
+      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.addall-no-players-queued", NamedTextColor.RED)
+          .arguments(
+              Argument.string("from", from.getServerInfo().getName()),
+              Argument.string("to", to.getServerInfo().getName())));
       return -1;
     }
     for (RemotePlayerInfo player : connected) {
@@ -607,11 +609,10 @@ public record QueueAdminCommand(VelocityServer server) {
           player.isQueueBypass());
     }
 
-    ctx.getSource()
-        .sendMessage(Component.translatable("velocity.queue.command.addedall-player" + (connected.size() == 1 ? "" : "s"))
-            .arguments(
-                Component.text(connected.size()),
-                Component.text(to.getServerInfo().getName())));
+    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.addedall-player" + (connected.size() == 1 ? "" : "s"))
+        .arguments(
+            Argument.numeric("count", connected.size()),
+            Argument.string("server", to.getServerInfo().getName())));
 
     return Command.SINGLE_SUCCESS;
   }
@@ -626,13 +627,13 @@ public record QueueAdminCommand(VelocityServer server) {
     if (this.server.getMultiProxyHandler().isRedisEnabled()) {
       if (this.server.getMultiProxyHandler().isPlayerOnline(playerName)) {
         ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-            .arguments(Component.text(playerName)));
+            .arguments(Argument.string("player", playerName)));
         return -1;
       }
     } else {
       if (this.server.getPlayer(playerName).isEmpty()) {
         ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-            .arguments(Component.text(playerName)));
+            .arguments(Argument.string("player", playerName)));
         return -1;
       }
     }
@@ -660,12 +661,13 @@ public record QueueAdminCommand(VelocityServer server) {
       VelocityRegisteredServer velocityRegisteredServer = (VelocityRegisteredServer) s;
       if (servers.size() == 1 && velocityRegisteredServer.getQueueStatus().isQueued(player.getUniqueId())) {
         ctx.getSource().sendMessage(Component.translatable("velocity.queue.remove-success")
-            .arguments(Component.text(player.getUsername()),
-                Component.text(velocityRegisteredServer.getServerInfo().getName())));
+            .arguments(Argument.string("player", player.getUsername()),
+                Argument.string("server", velocityRegisteredServer.getServerInfo().getName())));
         handledSpecific = true;
       } else if (servers.size() == 1) {
         ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.not-in-queue.other.specific")
-            .arguments(Component.text(player.getUsername()), Component.text(s.getServerInfo().getName())));
+            .arguments(Argument.string("player", player.getUsername()),
+                Argument.string("server", s.getServerInfo().getName())));
         handledSpecific = true;
       }
 
@@ -677,13 +679,13 @@ public record QueueAdminCommand(VelocityServer server) {
 
     if (!handledSpecific && amountDone == 0) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.not-in-queue.other")
-          .arguments(Component.text(player.getUsername())));
+          .arguments(Argument.string("player", player.getUsername())));
       return Command.SINGLE_SUCCESS;
     }
 
     if (servers.size() > 1) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.remove-all-success")
-          .arguments(Component.text(player.getUsername())));
+          .arguments(Argument.string("player", player.getUsername())));
     }
 
     return Command.SINGLE_SUCCESS;
@@ -695,13 +697,13 @@ public record QueueAdminCommand(VelocityServer server) {
     if (this.server.getMultiProxyHandler().isRedisEnabled()) {
       if (this.server.getMultiProxyHandler().isPlayerOnline(playerName)) {
         ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-            .arguments(Component.text(playerName)));
+            .arguments(Argument.string("player", playerName)));
         return -1;
       }
     } else {
       if (this.server.getPlayer(playerName).isEmpty()) {
         ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-            .arguments(Component.text(playerName)));
+            .arguments(Argument.string("player", playerName)));
         return -1;
       }
     }
@@ -730,12 +732,13 @@ public record QueueAdminCommand(VelocityServer server) {
       VelocityRegisteredServer velocityRegisteredServer = (VelocityRegisteredServer) s;
       if (servers.size() == 1 && velocityRegisteredServer.getQueueStatus().isQueued(player.getUuid())) {
         ctx.getSource().sendMessage(Component.translatable("velocity.queue.remove-success")
-            .arguments(Component.text(player.getUsername()),
-                Component.text(velocityRegisteredServer.getServerInfo().getName())));
+            .arguments(Argument.string("player", player.getUsername()),
+                Argument.string("server", velocityRegisteredServer.getServerInfo().getName())));
         handledSpecific = true;
       } else if (servers.size() == 1) {
         ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.not-in-queue.other.specific")
-            .arguments(Component.text(player.getUsername()), Component.text(s.getServerInfo().getName())));
+            .arguments(Argument.string("player", player.getUsername()),
+                Argument.string("server", s.getServerInfo().getName())));
         handledSpecific = true;
       }
 
@@ -747,13 +750,13 @@ public record QueueAdminCommand(VelocityServer server) {
 
     if (!handledSpecific && amountDone == 0) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.not-in-queue.other")
-          .arguments(Component.text(player.getUsername())));
+          .arguments(Argument.string("player", player.getUsername())));
       return Command.SINGLE_SUCCESS;
     }
 
     if (servers.size() > 1) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.remove-all-success")
-          .arguments(Component.text(player.getUsername())));
+          .arguments(Argument.string("player", player.getUsername())));
     }
 
     return Command.SINGLE_SUCCESS;
@@ -780,15 +783,14 @@ public record QueueAdminCommand(VelocityServer server) {
 
     if (amount == 0) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.removeall-no-players-queued")
-          .arguments(Component.text(server.getServerInfo().getName())));
+          .arguments(Argument.string("server", server.getServerInfo().getName())));
       return -1;
     }
 
-    ctx.getSource()
-        .sendMessage(Component.translatable("velocity.queue.command.removedall-player" + (amount == 1 ? "" : "s"))
-            .arguments(
-                Component.text(amount),
-                Component.text(server.getServerInfo().getName())));
+    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.removedall-player" + (amount == 1 ? "" : "s"))
+        .arguments(
+            Argument.numeric("count", amount),
+            Argument.string("server", server.getServerInfo().getName())));
     return Command.SINGLE_SUCCESS;
   }
 
@@ -809,15 +811,14 @@ public record QueueAdminCommand(VelocityServer server) {
 
     if (amount == 0) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.removeall-no-players-queued")
-          .arguments(Component.text(server.getServerInfo().getName())));
+          .arguments(Argument.string("server", server.getServerInfo().getName())));
       return -1;
     }
 
-    ctx.getSource()
-        .sendMessage(Component.translatable("velocity.queue.command.removedall-player" + (amount == 1 ? "" : "s"))
-            .arguments(
-                Component.text(amount),
-                Component.text(server.getServerInfo().getName())));
+    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.removedall-player" + (amount == 1 ? "" : "s"))
+        .arguments(
+            Argument.numeric("count", amount),
+            Argument.string("server", server.getServerInfo().getName())));
 
     return Command.SINGLE_SUCCESS;
   }

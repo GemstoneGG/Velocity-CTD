@@ -55,6 +55,7 @@ import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessageFactory;
@@ -153,7 +154,9 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
 
       componentLogger.info(Component.text(discMessage).append(
           Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
-              .arguments(Component.text(minimumVersion), Component.text(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion()))));
+              .arguments(
+                  Argument.string("min", minimumVersion),
+                  Argument.string("max", ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion()))));
       return;
     }
 
@@ -212,7 +215,9 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         || ProtocolVersion.getVersionByName(clientProtocolVersion).greaterThan(maximumProtocolVersion)) {
       // Disconnect the player with an error message if their client version is too low
       this.inbound.disconnect(Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
-          .arguments(Component.text(minimumVersion), Component.text(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
+          .arguments(
+              Argument.string("min", minimumVersion),
+              Argument.string("max", ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
       return false;
     }
 
@@ -380,15 +385,13 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
     PlayerChooseInitialServerEvent event =
         new PlayerChooseInitialServerEvent(player, initialFromConfig.orElse(null));
 
+    event.setReason(Component.translatable("velocity.error.no-available-servers", NamedTextColor.RED));
+
     return server.getEventManager().fire(event).thenRunAsync(() -> {
       Optional<RegisteredServer> toTry = event.getInitialServer();
       if (toTry.isEmpty()) {
-        if (event.getReason().isPresent()) {
-          player.disconnect0(event.getReason().get(), true);
-        } else {
-          player.disconnect0(
-              Component.translatable("velocity.error.no-available-servers", NamedTextColor.RED), true);
-        }
+        player.disconnect0(event.getReason().orElse(Component.translatable(
+            "velocity.error.no-available-servers", NamedTextColor.RED)), true);
         return;
       }
       player.createConnectionRequest(toTry.get()).fireAndForget();

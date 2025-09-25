@@ -30,6 +30,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Locale;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 import net.kyori.adventure.translation.GlobalTranslator;
 
 /**
@@ -87,7 +88,7 @@ public class HubCommand {
 
     if (server.getConfiguration().getAttemptConnectionOrder().contains(registeredServer.getServerInfo().getName())) {
       player.sendMessage(Component.translatable("velocity.command.hub.fallback-already-connected")
-          .arguments(Component.text(registeredServer.getServerInfo().getName())));
+          .arguments(Argument.string("server", registeredServer.getServerInfo().getName())));
       return 0;
     }
 
@@ -105,7 +106,7 @@ public class HubCommand {
 
       if (translationExists(player)) {
         player.sendMessage(Component.translatable("velocity.command.hub.fallback-connecting")
-            .arguments(Component.text(serverToTry.getServerInfo().getName())));
+            .arguments(Argument.string("server", serverToTry.getServerInfo().getName())));
       }
 
       if (this.server.getConfiguration().getQueue().getNoQueueServers().contains(serverToTry.getServerInfo().getName())
