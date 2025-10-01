@@ -128,7 +128,7 @@ public final class ConnectionRequestResults {
      */
     private final boolean safe;
 
-    Impl(final Status status, @Nullable final Component component,
+    Impl(final Status status, final @Nullable Component component,
          final RegisteredServer attemptedConnection, final boolean safe) {
       this.status = status;
       this.component = component;

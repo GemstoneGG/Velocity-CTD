@@ -37,7 +37,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 public record ProxyAliasCommand(ProxyServer server, String alias, List<String> commands) implements SimpleCommand {
 
   @Override
-  public void execute(@NonNull final Invocation invocation) {
+  public void execute(final @NonNull Invocation invocation) {
     CommandSource source = invocation.source();
     String[] args = invocation.arguments();
     for (String command : commands) {
@@ -55,12 +55,12 @@ public record ProxyAliasCommand(ProxyServer server, String alias, List<String> c
   }
 
   @Override
-  public CompletableFuture<List<String>> suggestAsync(@NonNull final Invocation invocation) {
+  public CompletableFuture<List<String>> suggestAsync(final @NonNull Invocation invocation) {
     return CompletableFuture.completedFuture(List.of());
   }
 
   @Override
-  public boolean hasPermission(@NonNull final Invocation invocation) {
+  public boolean hasPermission(final @NonNull Invocation invocation) {
     return true;
   }
 

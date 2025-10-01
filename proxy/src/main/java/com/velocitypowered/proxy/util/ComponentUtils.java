@@ -204,7 +204,7 @@ public final class ComponentUtils {
     return input;
   }
 
-  private static @NotNull String colorMatcher(@NotNull String literal, @NotNull final Pattern pattern, final boolean unboxed) {
+  private static @NotNull String colorMatcher(@NotNull String literal, final @NotNull Pattern pattern, final boolean unboxed) {
     final Matcher matcher = pattern.matcher(literal);
 
     while (matcher.find()) {
@@ -250,7 +250,7 @@ public final class ComponentUtils {
    * @param hex the hex pattern to normalize
    * @return the normalized hex pattern
    */
-  private static @NotNull String normalizeHex(@NotNull final String hex) {
+  private static @NotNull String normalizeHex(final @NotNull String hex) {
     if (hex.startsWith("<") || hex.startsWith("{")) {
       return hex.substring(1, hex.length() - 1);
     } else if (hex.startsWith("&")) {

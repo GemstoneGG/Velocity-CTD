@@ -118,7 +118,7 @@ public final class PlayerChatEvent implements ResultedEvent<PlayerChatEvent.Chat
      */
     private final boolean status;
 
-    private ChatResult(final boolean status, @Nullable final String message) {
+    private ChatResult(final boolean status, final @Nullable String message) {
       this.status = status;
       this.message = message;
     }
@@ -166,7 +166,7 @@ public final class PlayerChatEvent implements ResultedEvent<PlayerChatEvent.Chat
      * @param message the message to use instead
      * @return a result with a new message
      */
-    public static ChatResult message(@NonNull final String message) {
+    public static ChatResult message(final @NonNull String message) {
       Preconditions.checkNotNull(message, "message");
       return new ChatResult(true, message);
     }

@@ -250,7 +250,7 @@ public class LegacyPlayerListItemPacket implements MinecraftPacket {
     return handler.handle(this);
   }
 
-  private void writeDisplayName(final ByteBuf buf, @Nullable final Component displayName,
+  private void writeDisplayName(final ByteBuf buf, final @Nullable Component displayName,
                                 final ProtocolVersion version) {
     buf.writeBoolean(displayName != null);
     if (displayName != null) {
@@ -440,7 +440,7 @@ public class LegacyPlayerListItemPacket implements MinecraftPacket {
      * @param displayName the display name component
      * @return this item instance
      */
-    public Item setDisplayName(@Nullable final Component displayName) {
+    public Item setDisplayName(final @Nullable Component displayName) {
       this.displayName = displayName;
       return this;
     }

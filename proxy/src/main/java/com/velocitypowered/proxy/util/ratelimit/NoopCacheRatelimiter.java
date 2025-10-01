@@ -33,7 +33,7 @@ enum NoopCacheRatelimiter implements Ratelimiter<Object> {
   INSTANCE;
 
   @Override
-  public boolean attempt(@NotNull final Object key) {
+  public boolean attempt(final @NotNull Object key) {
     return true;
   }
 }

@@ -100,7 +100,7 @@ public class PlayPacketQueueOutboundHandler extends ChannelDuplexHandler {
    * @throws Exception if an error occurs during cleanup
    */
   @Override
-  public void channelInactive(@NotNull final ChannelHandlerContext ctx) throws Exception {
+  public void channelInactive(final @NotNull ChannelHandlerContext ctx) throws Exception {
     this.releaseQueue(ctx, false);
 
     super.channelInactive(ctx);

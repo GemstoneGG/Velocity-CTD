@@ -65,7 +65,7 @@ public class KeyedVelocityTabListEntry implements TabListEntry {
 
   KeyedVelocityTabListEntry(final KeyedVelocityTabList tabList, final GameProfile profile,
                             final @Nullable Component displayName, final int latency,
-                            final int gameMode, @Nullable final IdentifiedKey playerKey) {
+                            final int gameMode, final @Nullable IdentifiedKey playerKey) {
     this.tabList = tabList;
     this.profile = profile;
     this.displayName = displayName;

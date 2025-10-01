@@ -111,7 +111,7 @@ public class KeyedPlayerChatPacket implements MinecraftPacket {
    *
    * @param expiry the message expiration timestamp
    */
-  public void setExpiry(@Nullable final Instant expiry) {
+  public void setExpiry(final @Nullable Instant expiry) {
     this.expiry = expiry;
   }
 

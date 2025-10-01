@@ -64,7 +64,7 @@ public class CaffeineCacheRatelimiter<T> implements Ratelimiter<T> {
    * @return true if we should allow the object, false if we should rate-limit
    */
   @Override
-  public boolean attempt(@NotNull final T key) {
+  public boolean attempt(final @NotNull T key) {
     long expectedNewValue = System.nanoTime() + timeoutNanos;
     Long last = expiringCache.get(key, (key1) -> expectedNewValue);
     return last != null && expectedNewValue == last;

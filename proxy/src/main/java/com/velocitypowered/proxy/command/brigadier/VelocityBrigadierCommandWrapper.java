@@ -51,7 +51,7 @@ public final class VelocityBrigadierCommandWrapper implements Command<CommandSou
    * @param registrant the registrant of the command
    * @return the wrapped command, if necessary
    */
-  public static Command<CommandSource> wrap(final Command<CommandSource> delegate, @Nullable final Object registrant) {
+  public static Command<CommandSource> wrap(final Command<CommandSource> delegate, final @Nullable Object registrant) {
     if (registrant == null) {
       // nothing to wrap
       return delegate;

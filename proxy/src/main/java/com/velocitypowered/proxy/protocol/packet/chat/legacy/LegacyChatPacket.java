@@ -87,7 +87,7 @@ public class LegacyChatPacket implements MinecraftPacket {
    * @param type the message type byte (chat/system/info)
    * @param sender the sender UUID (nullable)
    */
-  public LegacyChatPacket(@Nullable final String message, final byte type, @Nullable final UUID sender) {
+  public LegacyChatPacket(final @Nullable String message, final byte type, final @Nullable UUID sender) {
     this.message = message;
     this.type = type;
     this.sender = sender;
@@ -112,7 +112,7 @@ public class LegacyChatPacket implements MinecraftPacket {
    *
    * @param message the message content
    */
-  public void setMessage(@Nullable final String message) {
+  public void setMessage(final @Nullable String message) {
     this.message = message;
   }
 

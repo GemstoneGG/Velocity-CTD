@@ -185,7 +185,7 @@ public class SessionPlayerCommandPacket implements MinecraftPacket {
    * @param lastSeenMessages the last seen messages to include in the packet, may be {@code null}
    * @return a new instance of {@code SessionPlayerCommandPacket} or {@code UnsignedPlayerCommandPacket}
    */
-  public SessionPlayerCommandPacket withLastSeenMessages(@Nullable final LastSeenMessages lastSeenMessages) {
+  public SessionPlayerCommandPacket withLastSeenMessages(final @Nullable LastSeenMessages lastSeenMessages) {
     if (lastSeenMessages == null) {
       UnsignedPlayerCommandPacket packet = new UnsignedPlayerCommandPacket();
       packet.command = command;

@@ -87,7 +87,7 @@ public class DisconnectPacket implements MinecraftPacket {
    * @param reason the {@link ComponentHolder} containing the disconnection message,
    *               or {@code null} to clear it
    */
-  public void setReason(@Nullable final ComponentHolder reason) {
+  public void setReason(final @Nullable ComponentHolder reason) {
     this.reason = reason;
   }
 

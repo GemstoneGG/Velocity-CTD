@@ -121,7 +121,7 @@ public class RespawnPacket implements MinecraftPacket {
   public RespawnPacket(final int dimension, final long partialHashedSeed, final short difficulty, final short gamemode,
                        final String levelType, final byte dataToKeep, final DimensionInfo dimensionInfo,
                        final short previousGamemode, final CompoundBinaryTag currentDimensionData,
-                       @Nullable final Pair<String, Long> lastDeathPosition, final int portalCooldown,
+                       final @Nullable Pair<String, Long> lastDeathPosition, final int portalCooldown,
                        final int seaLevel) {
     this.dimension = dimension;
     this.partialHashedSeed = partialHashedSeed;
@@ -299,7 +299,7 @@ public class RespawnPacket implements MinecraftPacket {
    *
    * @param lastDeathPosition the last death position
    */
-  public void setLastDeathPosition(@Nullable final Pair<String, Long> lastDeathPosition) {
+  public void setLastDeathPosition(final @Nullable Pair<String, Long> lastDeathPosition) {
     this.lastDeathPosition = lastDeathPosition;
   }
 

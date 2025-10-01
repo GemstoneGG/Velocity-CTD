@@ -228,7 +228,7 @@ public final class ConnectionManager {
    * @param group the event loop group to use. Use {@code null} for the default worker group.
    * @return a new {@link Bootstrap}
    */
-  public Bootstrap createWorker(@Nullable final EventLoopGroup group) {
+  public Bootstrap createWorker(final @Nullable EventLoopGroup group) {
     Bootstrap bootstrap = new Bootstrap()
         .channelFactory(this.transportType.socketChannelFactory)
         .option(ChannelOption.TCP_NODELAY, true)

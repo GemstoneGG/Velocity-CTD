@@ -127,7 +127,7 @@ public enum LegacyForgeHandshakeBackendPhase implements BackendConnectionPhase {
    *                          (inspecting {@link #nextPhase()}). A null indicates there is no further
    *                          phase to transition to.
    */
-  LegacyForgeHandshakeBackendPhase(@Nullable final Integer packetToAdvanceOn) {
+  LegacyForgeHandshakeBackendPhase(final @Nullable Integer packetToAdvanceOn) {
     this.packetToAdvanceOn = packetToAdvanceOn;
   }
 

@@ -76,7 +76,7 @@ public class ServerLoginPacket implements MinecraftPacket {
    * @param username the player's username
    * @param playerKey the player's cryptographic key, or {@code null} if not present
    */
-  public ServerLoginPacket(final String username, @Nullable final IdentifiedKey playerKey) {
+  public ServerLoginPacket(final String username, final @Nullable IdentifiedKey playerKey) {
     this.username = Preconditions.checkNotNull(username, "username");
     this.playerKey = playerKey;
   }
@@ -87,7 +87,7 @@ public class ServerLoginPacket implements MinecraftPacket {
    * @param username the player's username
    * @param holderUuid the holder UUID (optional)
    */
-  public ServerLoginPacket(final String username, @Nullable final UUID holderUuid) {
+  public ServerLoginPacket(final String username, final @Nullable UUID holderUuid) {
     this.username = Preconditions.checkNotNull(username, "username");
     this.holderUuid = holderUuid;
     this.playerKey = null;
@@ -121,7 +121,7 @@ public class ServerLoginPacket implements MinecraftPacket {
    *
    * @param playerKey the {@link IdentifiedKey}, or {@code null} to unset
    */
-  public void setPlayerKey(@Nullable final IdentifiedKey playerKey) {
+  public void setPlayerKey(final @Nullable IdentifiedKey playerKey) {
     this.playerKey = playerKey;
   }
 

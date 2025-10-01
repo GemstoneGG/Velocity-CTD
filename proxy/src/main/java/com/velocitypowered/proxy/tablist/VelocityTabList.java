@@ -313,8 +313,8 @@ public class VelocityTabList implements InternalTabList {
    * @return the new tab list entry
    */
   @Override
-  public TabListEntry buildEntry(final GameProfile profile, @Nullable final Component displayName, final int latency,
-                                 final int gameMode, @Nullable final ChatSession chatSession, final boolean listed, final int listOrder,
+  public TabListEntry buildEntry(final GameProfile profile, final @Nullable Component displayName, final int latency,
+                                 final int gameMode, final @Nullable ChatSession chatSession, final boolean listed, final int listOrder,
                                  final boolean showHat) {
     return new VelocityTabListEntry(this, profile, displayName, latency, gameMode, chatSession, listed, listOrder, showHat);
   }

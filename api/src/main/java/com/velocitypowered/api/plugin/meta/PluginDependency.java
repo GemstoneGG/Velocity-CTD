@@ -42,7 +42,7 @@ public final class PluginDependency {
    * @param version an optional version
    * @param optional whether this dependency is optional
    */
-  public PluginDependency(final String id, @Nullable final String version, final boolean optional) {
+  public PluginDependency(final String id, final @Nullable String version, final boolean optional) {
     this.id = checkNotNull(id, "id");
     checkArgument(!id.isEmpty(), "id cannot be empty");
     this.version = emptyToNull(version);
@@ -77,7 +77,7 @@ public final class PluginDependency {
   }
 
   @Override
-  public boolean equals(@Nullable final Object o) {
+  public boolean equals(final @Nullable Object o) {
     if (this == o) {
       return true;
     }

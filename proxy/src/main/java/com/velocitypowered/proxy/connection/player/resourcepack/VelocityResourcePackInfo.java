@@ -69,7 +69,7 @@ public final class VelocityResourcePackInfo implements ResourcePackInfo {
   private Origin originalOrigin;
 
   private VelocityResourcePackInfo(final UUID id, final String url, final byte @Nullable [] hash, final boolean shouldForce,
-                                   @Nullable final Component prompt, final Origin origin) {
+                                   final @Nullable Component prompt, final Origin origin) {
     this.id = id;
     this.url = url;
     this.hash = hash;
@@ -248,7 +248,7 @@ public final class VelocityResourcePackInfo implements ResourcePackInfo {
     }
 
     @Override
-    public BuilderImpl setPrompt(@Nullable final Component prompt) {
+    public BuilderImpl setPrompt(final @Nullable Component prompt) {
       this.prompt = prompt;
       return this;
     }

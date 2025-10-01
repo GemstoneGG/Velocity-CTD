@@ -33,9 +33,9 @@ class JavaVelocityPluginDescription extends VelocityPluginDescription {
    */
   private final Class<?> mainClass;
 
-  JavaVelocityPluginDescription(final String id, @Nullable final String name, @Nullable final String version,
-                                @Nullable final String description, @Nullable final String url,
-                                @Nullable final List<String> authors, final Collection<PluginDependency> dependencies, final Path source,
+  JavaVelocityPluginDescription(final String id, final @Nullable String name, final @Nullable String version,
+                                final @Nullable String description, final @Nullable String url,
+                                final @Nullable List<String> authors, final Collection<PluginDependency> dependencies, final Path source,
                                 final Class<?> mainClass) {
     super(id, name, version, description, url, authors, dependencies, source);
     this.mainClass = checkNotNull(mainClass);

@@ -60,7 +60,7 @@ public class LoginPluginResponsePacket extends DeferredByteBufHolder implements 
    * @param success {@code true} if the plugin message was successful, {@code false} otherwise
    * @param buf the data buffer
    */
-  public LoginPluginResponsePacket(final int id, final boolean success, @MonotonicNonNull final ByteBuf buf) {
+  public LoginPluginResponsePacket(final int id, final boolean success, final @MonotonicNonNull ByteBuf buf) {
     super(buf);
     this.id = id;
     this.success = success;

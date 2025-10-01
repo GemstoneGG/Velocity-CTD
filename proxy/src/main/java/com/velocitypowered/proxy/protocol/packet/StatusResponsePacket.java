@@ -45,7 +45,7 @@ public class StatusResponsePacket implements MinecraftPacket {
    *
    * @param status the server status message as a {@link CharSequence}
    */
-  public StatusResponsePacket(@Nullable final CharSequence status) {
+  public StatusResponsePacket(final @Nullable CharSequence status) {
     this.status = status;
   }
 

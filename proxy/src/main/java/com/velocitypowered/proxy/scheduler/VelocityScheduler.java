@@ -98,7 +98,7 @@ public class VelocityScheduler implements Scheduler {
    * @throws IllegalArgumentException if {@code plugin} is not registered
    */
   @Override
-  public TaskBuilder buildTask(@NotNull final Object plugin, @NotNull final Runnable runnable) {
+  public TaskBuilder buildTask(final @NotNull Object plugin, final @NotNull Runnable runnable) {
     checkNotNull(plugin, "plugin");
     checkNotNull(runnable, "runnable");
     final Optional<PluginContainer> container = pluginManager.fromInstance(plugin);
@@ -118,7 +118,7 @@ public class VelocityScheduler implements Scheduler {
    * @throws IllegalArgumentException if {@code plugin} is not registered
    */
   @Override
-  public TaskBuilder buildTask(@NotNull final Object plugin, @NotNull final Consumer<ScheduledTask> consumer) {
+  public TaskBuilder buildTask(final @NotNull Object plugin, final @NotNull Consumer<ScheduledTask> consumer) {
     checkNotNull(plugin, "plugin");
     checkNotNull(consumer, "consumer");
     final Optional<PluginContainer> container = pluginManager.fromInstance(plugin);
@@ -135,7 +135,7 @@ public class VelocityScheduler implements Scheduler {
    * @throws IllegalArgumentException if {@code plugin} is not registered
    */
   @Override
-  public @NonNull Collection<ScheduledTask> tasksByPlugin(@NonNull final Object plugin) {
+  public @NonNull Collection<ScheduledTask> tasksByPlugin(final @NonNull Object plugin) {
     checkNotNull(plugin, "plugin");
     checkArgument(pluginManager.fromInstance(plugin).isPresent(), "plugin is not registered");
     final Collection<ScheduledTask> tasks = tasksByPlugin.get(plugin);
@@ -240,13 +240,13 @@ public class VelocityScheduler implements Scheduler {
     }
 
     @Override
-    public TaskBuilder delay(final long time, @NotNull final TimeUnit unit) {
+    public TaskBuilder delay(final long time, final @NotNull TimeUnit unit) {
       this.delay = unit.toMillis(time);
       return this;
     }
 
     @Override
-    public TaskBuilder repeat(final long time, @NotNull final TimeUnit unit) {
+    public TaskBuilder repeat(final long time, final @NotNull TimeUnit unit) {
       this.repeat = unit.toMillis(time);
       return this;
     }

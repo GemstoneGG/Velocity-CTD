@@ -333,7 +333,7 @@ public interface Player extends
   }
 
   @Override
-  default @NotNull HoverEvent<HoverEvent.ShowEntity> asHoverEvent(@NotNull final UnaryOperator<HoverEvent.ShowEntity> op) {
+  default @NotNull HoverEvent<HoverEvent.ShowEntity> asHoverEvent(final @NotNull UnaryOperator<HoverEvent.ShowEntity> op) {
     return HoverEvent.showEntity(op.apply(HoverEvent.ShowEntity.showEntity(this, getUniqueId(), Component.text(getUsername()))));
   }
 
@@ -387,7 +387,7 @@ public interface Player extends
    *     Unsupported Adventure Operations</a>
    */
   @Override
-  default void playSound(@NotNull final Sound sound) {
+  default void playSound(final @NotNull Sound sound) {
   }
 
   /**
@@ -400,7 +400,7 @@ public interface Player extends
    *     Unsupported Adventure Operations</a>
    */
   @Override
-  default void playSound(@NotNull final Sound sound, final double x, final double y, final double z) {
+  default void playSound(final @NotNull Sound sound, final double x, final double y, final double z) {
   }
 
   /**
@@ -418,7 +418,7 @@ public interface Player extends
    *     requires a present {@link #getCurrentServer} for the emitting player as well as this player.
    */
   @Override
-  default void playSound(@NotNull final Sound sound, @NotNull final Sound.Emitter emitter) {
+  default void playSound(final @NotNull Sound sound, final @NotNull Sound.Emitter emitter) {
   }
 
   /**
@@ -430,7 +430,7 @@ public interface Player extends
    * @apiNote This method is currently only implemented for players on 1.19.3+.
    */
   @Override
-  default void stopSound(@NotNull final SoundStop stop) {
+  default void stopSound(final @NotNull SoundStop stop) {
   }
 
   /**
@@ -443,7 +443,7 @@ public interface Player extends
    *     Unsupported Adventure Operations</a>
    */
   @Override
-  default void openBook(@NotNull final Book book) {
+  default void openBook(final @NotNull Book book) {
   }
 
   /**
@@ -456,7 +456,7 @@ public interface Player extends
    *     Unsupported Adventure Operations</a>
    */
   @Override
-  default void showDialog(@NotNull final DialogLike dialog) {
+  default void showDialog(final @NotNull DialogLike dialog) {
   }
 
   /**

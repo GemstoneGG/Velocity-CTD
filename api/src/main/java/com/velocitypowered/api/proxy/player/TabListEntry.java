@@ -296,7 +296,7 @@ public interface TabListEntry extends KeyIdentifiable {
      * @return {@code this}, for chaining
      * @see TabListEntry#getDisplayNameComponent() ()
      */
-    public Builder displayName(@Nullable final Component displayName) {
+    public Builder displayName(final @Nullable Component displayName) {
       this.displayName = displayName;
       return this;
     }

@@ -117,7 +117,7 @@ public final class GameProfileRequestEvent {
    *
    * @param gameProfile the profile for this connection, {@code null} uses the original profile
    */
-  public void setGameProfile(@Nullable final GameProfile gameProfile) {
+  public void setGameProfile(final @Nullable GameProfile gameProfile) {
     this.gameProfile = gameProfile;
   }
 

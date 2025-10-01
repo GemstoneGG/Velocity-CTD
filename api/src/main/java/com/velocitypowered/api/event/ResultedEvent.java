@@ -121,7 +121,7 @@ public interface ResultedEvent<R extends ResultedEvent.Result> {
      */
     private final @Nullable Component reason;
 
-    private ComponentResult(final boolean status, @Nullable final Component reason) {
+    private ComponentResult(final boolean status, final @Nullable Component reason) {
       this.status = status;
       this.reason = reason;
     }

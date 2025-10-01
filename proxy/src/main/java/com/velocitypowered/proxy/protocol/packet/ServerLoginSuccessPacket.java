@@ -72,7 +72,7 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
     return uuid;
   }
 
-  public void setUuid(@Nullable final UUID uuid) {
+  public void setUuid(final @Nullable UUID uuid) {
     this.uuid = uuid;
   }
 
@@ -95,7 +95,7 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
    *
    * @param username the player's username
    */
-  public void setUsername(@Nullable final String username) {
+  public void setUsername(final @Nullable String username) {
     this.username = username;
   }
 
@@ -113,7 +113,7 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
    *
    * @param properties the {@link GameProfile.Property} list
    */
-  public void setProperties(@Nullable final List<GameProfile.Property> properties) {
+  public void setProperties(final @Nullable List<GameProfile.Property> properties) {
     this.properties = properties;
   }
 

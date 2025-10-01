@@ -69,7 +69,7 @@ public class ClientboundSoundEntityPacket implements MinecraftPacket {
    * @param fixedRange the fixed attenuation range, or {@code null} to use the default
    * @param emitterEntityId the entity ID of the sound emitter
    */
-  public ClientboundSoundEntityPacket(final Sound sound, @Nullable final Float fixedRange, final int emitterEntityId) {
+  public ClientboundSoundEntityPacket(final Sound sound, final @Nullable Float fixedRange, final int emitterEntityId) {
     this.sound = sound;
     this.fixedRange = fixedRange;
     this.emitterEntityId = emitterEntityId;
@@ -157,7 +157,7 @@ public class ClientboundSoundEntityPacket implements MinecraftPacket {
    *
    * @param fixedRange the fixed range, or {@code null} to use default
    */
-  public void setFixedRange(@Nullable final Float fixedRange) {
+  public void setFixedRange(final @Nullable Float fixedRange) {
     this.fixedRange = fixedRange;
   }
 

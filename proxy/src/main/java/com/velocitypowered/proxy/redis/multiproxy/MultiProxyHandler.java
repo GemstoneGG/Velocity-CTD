@@ -435,7 +435,7 @@ public class MultiProxyHandler {
    * @param proxyId the ID of the remote proxy
    * @param source the source to send replies back to
    */
-  public void requestReload(final String proxyId, @Nullable final CommandSource source) {
+  public void requestReload(final String proxyId, final @Nullable CommandSource source) {
     this.server.getRedisManager().send(new RedisGenericReplyRequest(
         RedisGenericReplyRequest.Type.RELOAD, proxyId, EncodedCommandSource.from(source, this.getOwnProxyId())));
   }

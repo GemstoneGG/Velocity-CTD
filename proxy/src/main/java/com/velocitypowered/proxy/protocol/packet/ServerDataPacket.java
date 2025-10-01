@@ -64,7 +64,7 @@ public class ServerDataPacket implements MinecraftPacket {
    * @param favicon the server favicon (maybe null)
    * @param secureChatEnforced whether secure chat is enforced (for versions 1.19.1 to 1.20.5)
    */
-  public ServerDataPacket(@Nullable final ComponentHolder description, @Nullable final Favicon favicon,
+  public ServerDataPacket(final @Nullable ComponentHolder description, final @Nullable Favicon favicon,
                           final boolean secureChatEnforced) {
     this.description = description;
     this.favicon = favicon;

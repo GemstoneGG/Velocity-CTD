@@ -129,7 +129,7 @@ public class ClientSettingsPacket implements MinecraftPacket {
    * @param clientListingAllowed whether the client allows listing
    * @param particleStatus whether particles are enabled
    */
-  public ClientSettingsPacket(@Nullable final String locale, final byte viewDistance, final int chatVisibility, final boolean chatColors,
+  public ClientSettingsPacket(final @Nullable String locale, final byte viewDistance, final int chatVisibility, final boolean chatColors,
                               final short skinParts, final int mainHand, final boolean textFilteringEnabled, final boolean clientListingAllowed,
                               final int particleStatus) {
     this.locale = locale;
@@ -162,7 +162,7 @@ public class ClientSettingsPacket implements MinecraftPacket {
    *
    * @param locale the locale to set, or {@code null} to clear it
    */
-  public void setLocale(@Nullable final String locale) {
+  public void setLocale(final @Nullable String locale) {
     this.locale = locale;
   }
 
@@ -439,7 +439,7 @@ public class ClientSettingsPacket implements MinecraftPacket {
    * @return {@code true} if equal, {@code false} otherwise
    */
   @Override
-  public boolean equals(@Nullable final Object o) {
+  public boolean equals(final @Nullable Object o) {
     if (this == o) {
       return true;
     }

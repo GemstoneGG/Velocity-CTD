@@ -179,7 +179,7 @@ public class ByteBufDataOutput extends OutputStream implements ByteArrayDataOutp
    * @param s the string to write
    */
   @Override
-  public void writeBytes(@NotNull final String s) {
+  public void writeBytes(final @NotNull String s) {
     buf.writeCharSequence(s, StandardCharsets.US_ASCII);
   }
 
@@ -202,7 +202,7 @@ public class ByteBufDataOutput extends OutputStream implements ByteArrayDataOutp
    * @throws IllegalStateException if an I/O error occurs
    */
   @Override
-  public void writeUTF(@NotNull final String s) {
+  public void writeUTF(final @NotNull String s) {
     try {
       this.utf8out.writeUTF(s);
     } catch (IOException e) {

@@ -92,7 +92,7 @@ public final class PermissionsSetupEvent {
    *
    * @param provider the provider
    */
-  public void setProvider(@Nullable final PermissionProvider provider) {
+  public void setProvider(final @Nullable PermissionProvider provider) {
     this.provider = provider == null ? this.defaultProvider : provider;
   }
 

@@ -253,7 +253,7 @@ public class BossBarPacket implements MinecraftPacket {
    *
    * @param uuid the UUID to assign, or {@code null} if unset
    */
-  public void setUuid(@Nullable final UUID uuid) {
+  public void setUuid(final @Nullable UUID uuid) {
     this.uuid = uuid;
   }
 
@@ -289,7 +289,7 @@ public class BossBarPacket implements MinecraftPacket {
    *
    * @param name the {@link ComponentHolder} name, or {@code null} to unset
    */
-  public void setName(@Nullable final ComponentHolder name) {
+  public void setName(final @Nullable ComponentHolder name) {
     this.name = name;
   }
 

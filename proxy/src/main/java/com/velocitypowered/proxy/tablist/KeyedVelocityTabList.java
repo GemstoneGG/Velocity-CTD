@@ -238,7 +238,7 @@ public class KeyedVelocityTabList implements InternalTabList {
    */
   @Override
   public TabListEntry buildEntry(final GameProfile profile, final @Nullable Component displayName,
-                                 final int latency, final int gameMode, @Nullable final IdentifiedKey key) {
+                                 final int latency, final int gameMode, final @Nullable IdentifiedKey key) {
     return new KeyedVelocityTabListEntry(this, profile, displayName, latency, gameMode, key);
   }
 
@@ -255,8 +255,8 @@ public class KeyedVelocityTabList implements InternalTabList {
    * @return the constructed {@link TabListEntry}
    */
   @Override
-  public TabListEntry buildEntry(final GameProfile profile, @Nullable final Component displayName,
-                                 final int latency, final int gameMode, @Nullable final ChatSession chatSession,
+  public TabListEntry buildEntry(final GameProfile profile, final @Nullable Component displayName,
+                                 final int latency, final int gameMode, final @Nullable ChatSession chatSession,
                                  final boolean listed) {
     return new KeyedVelocityTabListEntry(this, profile, displayName, latency, gameMode,
         chatSession == null ? null : chatSession.getIdentifiedKey());
@@ -279,8 +279,8 @@ public class KeyedVelocityTabList implements InternalTabList {
    * @return the constructed {@link TabListEntry}
    */
   @Override
-  public TabListEntry buildEntry(final GameProfile profile, @Nullable final Component displayName,
-                                 final int latency, final int gameMode, @Nullable final ChatSession chatSession,
+  public TabListEntry buildEntry(final GameProfile profile, final @Nullable Component displayName,
+                                 final int latency, final int gameMode, final @Nullable ChatSession chatSession,
                                  final boolean listed, final int listOrder, final boolean showHat) {
     return buildEntry(profile, displayName, latency, gameMode, chatSession, listed);
   }

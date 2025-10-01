@@ -183,7 +183,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
   }
 
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-  private boolean updateTimeKeeper(@Nullable final Instant instant) {
+  private boolean updateTimeKeeper(final @Nullable Instant instant) {
     if (instant == null) {
       return true;
     }

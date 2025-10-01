@@ -41,7 +41,7 @@ public class DeferredByteBufHolder implements ByteBufHolder {
    *
    * @param backing the initial {@link ByteBuf}, or {@code null} if not yet assigned
    */
-  public DeferredByteBufHolder(@MonotonicNonNull final ByteBuf backing) {
+  public DeferredByteBufHolder(final @MonotonicNonNull ByteBuf backing) {
     this.backing = backing;
   }
 

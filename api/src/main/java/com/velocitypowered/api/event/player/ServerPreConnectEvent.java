@@ -63,7 +63,7 @@ public final class ServerPreConnectEvent implements ResultedEvent<ServerPreConne
    * @param previousServer the server the player is connected to
    */
   public ServerPreConnectEvent(final Player player, final RegisteredServer originalServer,
-                               @Nullable final RegisteredServer previousServer) {
+                               final @Nullable RegisteredServer previousServer) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.originalServer = Preconditions.checkNotNull(originalServer, "originalServer");
     this.previousServer = previousServer;
@@ -136,7 +136,7 @@ public final class ServerPreConnectEvent implements ResultedEvent<ServerPreConne
      */
     private final @Nullable RegisteredServer server;
 
-    private ServerResult(@Nullable final RegisteredServer server) {
+    private ServerResult(final @Nullable RegisteredServer server) {
       this.server = server;
     }
 

@@ -92,7 +92,7 @@ public class VelocityTabListEntry implements TabListEntry {
    * @param showHat whether to show the player's hat layer (1.21.4+)
    */
   public VelocityTabListEntry(final VelocityTabList tabList, final GameProfile profile, final Component displayName,
-                              final int latency, final int gameMode, @Nullable final ChatSession session,
+                              final int latency, final int gameMode, final @Nullable ChatSession session,
                               final boolean listed, final int listOrder, final boolean showHat) {
     this.tabList = tabList;
     this.profile = profile;
@@ -152,7 +152,7 @@ public class VelocityTabListEntry implements TabListEntry {
    * @return this tab list entry for method chaining
    */
   @Override
-  public TabListEntry setDisplayName(@Nullable final Component displayName) {
+  public TabListEntry setDisplayName(final @Nullable Component displayName) {
     this.displayName = displayName;
     UpsertPlayerInfoPacket.Entry upsertEntry = this.tabList.createRawEntry(this);
     upsertEntry.setDisplayName(displayName == null ? null : new ComponentHolder(this.tabList.getPlayer().getProtocolVersion(), displayName));
@@ -167,7 +167,7 @@ public class VelocityTabListEntry implements TabListEntry {
    *
    * @param displayName the new display name, or {@code null} to clear it
    */
-  void setDisplayNameWithoutUpdate(@Nullable final Component displayName) {
+  void setDisplayNameWithoutUpdate(final @Nullable Component displayName) {
     this.displayName = displayName;
   }
 
@@ -244,7 +244,7 @@ public class VelocityTabListEntry implements TabListEntry {
    *
    * @param session the new chat session
    */
-  protected void setChatSession(@Nullable final ChatSession session) {
+  protected void setChatSession(final @Nullable ChatSession session) {
     this.session = session;
   }
 

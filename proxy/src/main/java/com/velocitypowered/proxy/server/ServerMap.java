@@ -52,7 +52,7 @@ public class ServerMap {
    *
    * @param server the Velocity server instance, may be {@code null}
    */
-  public ServerMap(@Nullable final VelocityServer server) {
+  public ServerMap(final @Nullable VelocityServer server) {
     this.server = server;
   }
 

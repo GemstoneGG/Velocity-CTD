@@ -77,7 +77,7 @@ public final class VelocityCommands {
    * @return the wrapped command node
    */
   public static CommandNode<CommandSource> wrap(final CommandNode<CommandSource> delegate,
-                                                @Nullable final Object registrant) {
+                                                final @Nullable Object registrant) {
     Preconditions.checkNotNull(delegate, "delegate");
     if (registrant == null) {
       // the registrant is null if the `plugin` was absent when we try to register the command

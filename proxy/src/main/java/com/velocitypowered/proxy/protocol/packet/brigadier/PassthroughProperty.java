@@ -53,7 +53,7 @@ class PassthroughProperty<T> implements ArgumentType<T> {
   private final @Nullable T result;
 
   PassthroughProperty(final ArgumentIdentifier identifier, final ArgumentPropertySerializer<T> serializer,
-                      @Nullable final T result) {
+                      final @Nullable T result) {
     this.identifier = identifier;
     this.serializer = serializer;
     this.result = result;

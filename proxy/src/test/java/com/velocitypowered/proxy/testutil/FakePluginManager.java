@@ -82,7 +82,7 @@ public class FakePluginManager implements PluginManager {
    * @return the associated plugin container, or {@code Optional.empty()} if unknown
    */
   @Override
-  public @NonNull Optional<PluginContainer> fromInstance(@NonNull final Object instance) {
+  public @NonNull Optional<PluginContainer> fromInstance(final @NonNull Object instance) {
     if (instance == PLUGIN_A) {
       return Optional.of(containerA);
     } else if (instance == PLUGIN_B) {
@@ -101,7 +101,7 @@ public class FakePluginManager implements PluginManager {
    * @return the plugin container if registered, or {@code Optional.empty()}
    */
   @Override
-  public @NonNull Optional<PluginContainer> getPlugin(@NonNull final String id) {
+  public @NonNull Optional<PluginContainer> getPlugin(final @NonNull String id) {
     return switch (id) {
       case "a" -> Optional.of(containerA);
       case "b" -> Optional.of(containerB);
@@ -130,7 +130,7 @@ public class FakePluginManager implements PluginManager {
    * @return {@code true} if the plugin is "a" or "b", otherwise {@code false}
    */
   @Override
-  public boolean isLoaded(@NonNull final String id) {
+  public boolean isLoaded(final @NonNull String id) {
     return id.equals("a") || id.equals("b");
   }
 
@@ -145,7 +145,7 @@ public class FakePluginManager implements PluginManager {
    * @throws UnsupportedOperationException always
    */
   @Override
-  public void addToClasspath(@NonNull final Object plugin, @NonNull final Path path) {
+  public void addToClasspath(final @NonNull Object plugin, final @NonNull Path path) {
     throw new UnsupportedOperationException();
   }
 

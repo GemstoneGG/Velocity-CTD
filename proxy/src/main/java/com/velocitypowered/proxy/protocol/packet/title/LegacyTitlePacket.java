@@ -127,7 +127,7 @@ public class LegacyTitlePacket extends GenericTitlePacket {
    * @param component the component to assign; may be {@code null}
    */
   @Override
-  public void setComponent(@Nullable final ComponentHolder component) {
+  public void setComponent(final @Nullable ComponentHolder component) {
     this.component = component;
   }
 

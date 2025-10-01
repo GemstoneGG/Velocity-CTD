@@ -71,7 +71,7 @@ public class UnsignedPlayerCommandPacket extends SessionPlayerCommandPacket {
    * @return this {@code UnsignedPlayerCommandPacket} instance
    */
   @Override
-  public SessionPlayerCommandPacket withLastSeenMessages(@Nullable final LastSeenMessages lastSeenMessages) {
+  public SessionPlayerCommandPacket withLastSeenMessages(final @Nullable LastSeenMessages lastSeenMessages) {
     return this;
   }
 

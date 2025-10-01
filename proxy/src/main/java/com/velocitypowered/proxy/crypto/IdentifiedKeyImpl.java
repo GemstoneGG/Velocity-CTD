@@ -193,7 +193,7 @@ public class IdentifiedKeyImpl implements IdentifiedKey {
     return isSignatureValid != null && isSignatureValid;
   }
 
-  private Boolean validateData(@Nullable final UUID verify) {
+  private Boolean validateData(final @Nullable UUID verify) {
     if (revision == Revision.GENERIC_V1) {
       String pemKey = EncryptionUtils.pemEncodeRsaKey(publicKey);
       long expires = expiryTemporal.toEpochMilli();

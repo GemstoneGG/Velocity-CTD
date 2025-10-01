@@ -45,7 +45,7 @@ public class PlayerChooseInitialServerEvent {
    * @param player the player that was connected
    * @param initialServer the initial server selected, may be {@code null}
    */
-  public PlayerChooseInitialServerEvent(final Player player, @Nullable final RegisteredServer initialServer) {
+  public PlayerChooseInitialServerEvent(final Player player, final @Nullable RegisteredServer initialServer) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.initialServer = initialServer;
     this.reason = null;
@@ -74,7 +74,7 @@ public class PlayerChooseInitialServerEvent {
    *
    * @param server the initial server the player should connect to
    */
-  public void setInitialServer(@Nullable final RegisteredServer server) {
+  public void setInitialServer(final @Nullable RegisteredServer server) {
     this.initialServer = server;
   }
 
@@ -99,7 +99,7 @@ public class PlayerChooseInitialServerEvent {
    *
    * @param reason the disconnect reason to show to the player
    */
-  public void setReason(@Nullable final Component reason) {
+  public void setReason(final @Nullable Component reason) {
     this.reason = reason;
   }
 

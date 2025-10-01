@@ -59,7 +59,7 @@ public class LegacyPingPacket implements MinecraftPacket {
    * @param version the {@link LegacyMinecraftPingVersion} being used
    * @param vhost the virtual host address, or {@code null} if not specified
    */
-  public LegacyPingPacket(final LegacyMinecraftPingVersion version, @Nullable final InetSocketAddress vhost) {
+  public LegacyPingPacket(final LegacyMinecraftPingVersion version, final @Nullable InetSocketAddress vhost) {
     this.version = version;
     this.vhost = vhost;
   }

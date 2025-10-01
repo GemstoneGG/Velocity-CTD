@@ -184,7 +184,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
    * @param ctx the {@link ChannelHandlerContext} associated with this handler
    */
   @Override
-  public void channelActive(@NotNull final ChannelHandlerContext ctx) {
+  public void channelActive(final @NotNull ChannelHandlerContext ctx) {
     if (activeSessionHandler != null) {
       activeSessionHandler.connected();
     }
@@ -203,7 +203,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
    * @param ctx the {@link ChannelHandlerContext} associated with this handler
    */
   @Override
-  public void channelInactive(@NotNull final ChannelHandlerContext ctx) {
+  public void channelInactive(final @NotNull ChannelHandlerContext ctx) {
     if (activeSessionHandler != null) {
       activeSessionHandler.disconnected();
     }
@@ -230,7 +230,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
    * @param msg the inbound message to process
    */
   @Override
-  public void channelRead(@NotNull final ChannelHandlerContext ctx, @NotNull final Object msg) {
+  public void channelRead(final @NotNull ChannelHandlerContext ctx, final @NotNull Object msg) {
     try {
       if (activeSessionHandler == null) {
         // No session handler available, do nothing

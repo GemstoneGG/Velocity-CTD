@@ -63,7 +63,7 @@ public class ResourcePackResponsePacket implements MinecraftPacket {
    * @param hash the hash of the resource pack
    * @param status the status of the resource pack
    */
-  public ResourcePackResponsePacket(final UUID id, final String hash, @MonotonicNonNull final Status status) {
+  public ResourcePackResponsePacket(final UUID id, final String hash, final @MonotonicNonNull Status status) {
     this.id = id;
     this.hash = hash;
     this.status = status;

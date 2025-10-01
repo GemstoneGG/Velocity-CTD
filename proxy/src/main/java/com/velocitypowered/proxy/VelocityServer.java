@@ -758,7 +758,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    * @param group the Netty {@link EventLoopGroup} to use, or {@code null} to use the default
    * @return a configured {@link Bootstrap} for initiating connections
    */
-  public Bootstrap createBootstrap(@Nullable final EventLoopGroup group) {
+  public Bootstrap createBootstrap(final @Nullable EventLoopGroup group) {
     return this.cm.createWorker(group);
   }
 

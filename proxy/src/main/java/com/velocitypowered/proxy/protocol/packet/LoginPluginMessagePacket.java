@@ -60,7 +60,7 @@ public class LoginPluginMessagePacket extends DeferredByteBufHolder implements M
    * @param channel the channel name, or {@code null} if not specified
    * @param data the data buffer
    */
-  public LoginPluginMessagePacket(final int id, @Nullable final String channel, final ByteBuf data) {
+  public LoginPluginMessagePacket(final int id, final @Nullable String channel, final ByteBuf data) {
     super(data);
     this.id = id;
     this.channel = channel;

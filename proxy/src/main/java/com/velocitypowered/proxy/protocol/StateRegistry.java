@@ -1164,7 +1164,7 @@ public enum StateRegistry {
     private final @Nullable ProtocolVersion lastValidProtocolVersion;
 
     PacketMapping(final int id, final ProtocolVersion protocolVersion,
-                  @Nullable final ProtocolVersion lastValidProtocolVersion,
+                  final @Nullable ProtocolVersion lastValidProtocolVersion,
                   final boolean packetDecoding) {
       this.id = id;
       this.protocolVersion = protocolVersion;
@@ -1182,7 +1182,7 @@ public enum StateRegistry {
     }
 
     @Override
-    public boolean equals(@Nullable final Object o) {
+    public boolean equals(final @Nullable Object o) {
       if (this == o) {
         return true;
       }

@@ -514,7 +514,7 @@ public final class QueryResponse {
      */
     private final @Nullable String version;
 
-    PluginInformation(final String name, @Nullable final String version) {
+    PluginInformation(final String name, final @Nullable String version) {
       this.name = Preconditions.checkNotNull(name, "name");
       this.version = version;
     }
@@ -544,7 +544,7 @@ public final class QueryResponse {
      * @param version the version of the plugin (nullable)
      * @return a new {@link PluginInformation} instance
      */
-    public static PluginInformation of(final String name, @Nullable final String version) {
+    public static PluginInformation of(final String name, final @Nullable String version) {
       return new PluginInformation(name, version);
     }
 

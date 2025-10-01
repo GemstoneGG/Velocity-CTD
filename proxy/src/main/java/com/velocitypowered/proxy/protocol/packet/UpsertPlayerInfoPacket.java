@@ -531,7 +531,7 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
      *
      * @param displayName the display name component, or {@code null} to clear
      */
-    public void setDisplayName(@Nullable final ComponentHolder displayName) {
+    public void setDisplayName(final @Nullable ComponentHolder displayName) {
       this.displayName = displayName;
     }
 
@@ -558,7 +558,7 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
      *
      * @param chatSession the chat session to set, or {@code null} to clear
      */
-    public void setChatSession(@Nullable final RemoteChatSession chatSession) {
+    public void setChatSession(final @Nullable RemoteChatSession chatSession) {
       this.chatSession = chatSession;
     }
 

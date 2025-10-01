@@ -264,7 +264,7 @@ public class JoinGamePacket implements MinecraftPacket {
    *
    * @param levelType the level type to set
    */
-  public void setLevelType(@Nullable final String levelType) {
+  public void setLevelType(final @Nullable String levelType) {
     this.levelType = levelType;
   }
 
@@ -417,7 +417,7 @@ public class JoinGamePacket implements MinecraftPacket {
    *
    * @param lastDeathPosition the position to set
    */
-  public void setLastDeathPosition(@Nullable final Pair<String, Long> lastDeathPosition) {
+  public void setLastDeathPosition(final @Nullable Pair<String, Long> lastDeathPosition) {
     this.lastDeathPosition = lastDeathPosition;
   }
 

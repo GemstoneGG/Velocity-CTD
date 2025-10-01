@@ -63,7 +63,7 @@ public class RemoteChatSession implements ChatSession {
    * @param sessionId the chat session UUID (nullable)
    * @param identifiedKey the {@link IdentifiedKey} associated with the session
    */
-  public RemoteChatSession(@Nullable final UUID sessionId, final IdentifiedKey identifiedKey) {
+  public RemoteChatSession(final @Nullable UUID sessionId, final IdentifiedKey identifiedKey) {
     this.sessionId = sessionId;
     this.identifiedKey = identifiedKey;
   }

@@ -158,7 +158,7 @@ public class ResourcePackRequestPacket implements MinecraftPacket {
    *
    * @param prompt the {@link ComponentHolder}, or {@code null} if no prompt should be displayed
    */
-  public void setPrompt(@Nullable final ComponentHolder prompt) {
+  public void setPrompt(final @Nullable ComponentHolder prompt) {
     this.prompt = prompt;
   }
 

@@ -240,7 +240,7 @@ public class TabCompleteResponsePacket implements MinecraftPacket {
      * @param text the suggestion text
      * @param tooltip an optional tooltip component
      */
-    public Offer(final String text, @Nullable final ComponentHolder tooltip) {
+    public Offer(final String text, final @Nullable ComponentHolder tooltip) {
       this.text = text;
       this.tooltip = tooltip;
     }

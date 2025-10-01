@@ -363,8 +363,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private final BossBarManager bossBarManager;
 
   ConnectedPlayer(final VelocityServer server, final GameProfile profile, final MinecraftConnection connection,
-                  @Nullable final InetSocketAddress virtualHost, @Nullable final String rawVirtualHost, final boolean onlineMode,
-                  final HandshakeIntent handshakeIntent, @Nullable final IdentifiedKey playerKey) {
+                  final @Nullable InetSocketAddress virtualHost, final @Nullable String rawVirtualHost, final boolean onlineMode,
+                  final HandshakeIntent handshakeIntent, final @Nullable IdentifiedKey playerKey) {
     this.server = server;
     this.profile = profile;
     this.connection = connection;
@@ -765,7 +765,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    */
   @Override
   @SuppressWarnings("deprecation")
-  public void sendMessage(@NonNull final Identity identity, @NonNull final Component message) {
+  public void sendMessage(final @NonNull Identity identity, final @NonNull Component message) {
     final Component translated = translateMessage(message);
 
     connection.write(getChatBuilderFactory().builder().component(translated).forIdentity(identity).toClient());
@@ -782,8 +782,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    */
   @Override
   @SuppressWarnings("deprecation")
-  public void sendMessage(@NonNull final Identity identity, @NonNull final Component message,
-                          @NonNull final MessageType type) {
+  public void sendMessage(final @NonNull Identity identity, final @NonNull Component message,
+                          final @NonNull MessageType type) {
     Preconditions.checkNotNull(message, "message");
     Preconditions.checkNotNull(type, "type");
 
@@ -848,7 +848,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * Sends a new header for the player's tab list while keeping the current footer.
    */
   @Override
-  public void sendPlayerListHeader(@NonNull final Component header) {
+  public void sendPlayerListHeader(final @NonNull Component header) {
     this.sendPlayerListHeaderAndFooter(header, this.playerListFooter);
   }
 
@@ -856,7 +856,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * Sends a new footer for the player's tab list while keeping the current header.
    */
   @Override
-  public void sendPlayerListFooter(@NonNull final Component footer) {
+  public void sendPlayerListFooter(final @NonNull Component footer) {
     this.sendPlayerListHeaderAndFooter(this.playerListHeader, footer);
   }
 
@@ -928,7 +928,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    */
   @SuppressWarnings("ConstantValue")
   @Override
-  public <T> void sendTitlePart(@NotNull final TitlePart<T> part, @NotNull final T value) {
+  public <T> void sendTitlePart(final @NotNull TitlePart<T> part, final @NotNull T value) {
     if (part == null) {
       throw new NullPointerException("part");
     }
@@ -994,7 +994,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @param bar the boss bar to hide
    */
   @Override
-  public void hideBossBar(@NonNull final BossBar bar) {
+  public void hideBossBar(final @NonNull BossBar bar) {
     if (this.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_9)) {
       final VelocityBossBarImplementation impl = VelocityBossBarImplementation.get(bar);
       if (impl.viewerRemove(this)) {
@@ -1009,7 +1009,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @param bar the boss bar to show
    */
   @Override
-  public void showBossBar(@NonNull final BossBar bar) {
+  public void showBossBar(final @NonNull BossBar bar) {
     if (this.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_9)) {
       final VelocityBossBarImplementation impl = VelocityBossBarImplementation.get(bar);
       if (impl.viewerAdd(this)) {
@@ -1030,7 +1030,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   private ConnectionRequestBuilder createConnectionRequest(final RegisteredServer server,
-                                                           @Nullable final VelocityServerConnection previousConnection) {
+                                                           final @Nullable VelocityServerConnection previousConnection) {
     return new ConnectionRequestBuilderImpl(server, previousConnection);
   }
 
@@ -1263,7 +1263,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   private void handleConnectionException(final RegisteredServer rs,
-                                         @Nullable final Component kickReason, final Component friendlyReason,
+                                         final @Nullable Component kickReason, final Component friendlyReason,
                                          final boolean safe) {
     if (!isActive()) {
       // If the connection is no longer active, it makes no sense to try and recover it.
@@ -1420,7 +1420,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @param current the "current" server that the player is on, useful as an override
    * @return the next server to try
    */
-  private Optional<RegisteredServer> getNextServerToTry(@Nullable final RegisteredServer current) {
+  private Optional<RegisteredServer> getNextServerToTry(final @Nullable RegisteredServer current) {
     if (serversToTry == null || serversToTry.isEmpty()) {
       String virtualHostStr = getVirtualHost().map(InetSocketAddress::getHostString)
           .orElse("")
@@ -1495,7 +1495,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    *
    * @param serverConnection the new server connection
    */
-  public void setConnectedServer(@Nullable final VelocityServerConnection serverConnection) {
+  public void setConnectedServer(final @Nullable VelocityServerConnection serverConnection) {
     this.connectedServer = serverConnection;
     this.tryIndex = 0;
 
@@ -1622,7 +1622,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @return {@code true} if the message was sent
    */
   @Override
-  public boolean sendPluginMessage(@NotNull final ChannelIdentifier identifier, final byte @NotNull [] data) {
+  public boolean sendPluginMessage(final @NotNull ChannelIdentifier identifier, final byte @NotNull [] data) {
     Preconditions.checkNotNull(identifier, "identifier");
     Preconditions.checkNotNull(data, "data");
     final PluginMessagePacket message = new PluginMessagePacket(identifier.getId(),
@@ -1684,7 +1684,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @param emitter the sound emitter (self or another player on the same server)
    */
   @Override
-  public void playSound(@NotNull final Sound sound, @NotNull final Sound.Emitter emitter) {
+  public void playSound(final @NotNull Sound sound, final @NotNull Sound.Emitter emitter) {
     Preconditions.checkNotNull(sound, "sound");
     Preconditions.checkNotNull(emitter, "emitter");
     VelocityServerConnection soundTargetServerConn = getConnectedServer();
@@ -1721,7 +1721,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @param stop the stop instruction
    */
   @Override
-  public void stopSound(@NotNull final SoundStop stop) {
+  public void stopSound(final @NotNull SoundStop stop) {
     Preconditions.checkNotNull(stop, "stop");
     if (getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_19_3)
         || connection.getState() != StateRegistry.PLAY
@@ -1875,7 +1875,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @param completions the completions to add
    */
   @Override
-  public void addCustomChatCompletions(@NotNull final Collection<String> completions) {
+  public void addCustomChatCompletions(final @NotNull Collection<String> completions) {
     Preconditions.checkNotNull(completions, "completions");
     this.sendCustomChatCompletionPacket(completions, PlayerChatCompletionPacket.Action.ADD);
   }
@@ -1886,7 +1886,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @param completions the completions to remove
    */
   @Override
-  public void removeCustomChatCompletions(@NotNull final Collection<String> completions) {
+  public void removeCustomChatCompletions(final @NotNull Collection<String> completions) {
     Preconditions.checkNotNull(completions, "completions");
     this.sendCustomChatCompletionPacket(completions, PlayerChatCompletionPacket.Action.REMOVE);
   }
@@ -1897,12 +1897,12 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @param completions the completions to set
    */
   @Override
-  public void setCustomChatCompletions(@NotNull final Collection<String> completions) {
+  public void setCustomChatCompletions(final @NotNull Collection<String> completions) {
     Preconditions.checkNotNull(completions, "completions");
     this.sendCustomChatCompletionPacket(completions, PlayerChatCompletionPacket.Action.SET);
   }
 
-  private void sendCustomChatCompletionPacket(@NotNull final Collection<String> completions,
+  private void sendCustomChatCompletionPacket(final @NotNull Collection<String> completions,
                                               final PlayerChatCompletionPacket.Action action) {
     if (connection.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_19_1)) {
       connection.write(new PlayerChatCompletionPacket(completions.toArray(new String[0]), action));
@@ -1984,7 +1984,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @param request the resource pack request
    */
   @Override
-  public void sendResourcePacks(@NotNull final ResourcePackRequest request) {
+  public void sendResourcePacks(final @NotNull ResourcePackRequest request) {
     if (this.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
       Preconditions.checkNotNull(request, "packRequest");
       this.resourcePackHandler.queueResourcePack(request);
@@ -2009,7 +2009,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @param others optional additional UUIDs
    */
   @Override
-  public void removeResourcePacks(@NotNull final UUID id, @NotNull final UUID @NotNull... others) {
+  public void removeResourcePacks(final @NotNull UUID id, final @NotNull UUID @NotNull... others) {
     if (this.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       Preconditions.checkNotNull(id, "packUUID");
       if (this.resourcePackHandler.remove(id)) {
@@ -2030,7 +2030,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @param request the request object
    */
   @Override
-  public void removeResourcePacks(@NotNull final ResourcePackRequest request) {
+  public void removeResourcePacks(final @NotNull ResourcePackRequest request) {
     for (final net.kyori.adventure.resource.ResourcePackInfo resourcePackInfo : request.packs()) {
       removeResourcePacks(resourcePackInfo.id());
     }
@@ -2042,7 +2042,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @param request the request object
    */
   @Override
-  public void removeResourcePacks(@NotNull final ResourcePackRequestLike request) {
+  public void removeResourcePacks(final @NotNull ResourcePackRequestLike request) {
     removeResourcePacks(request.asResourcePackRequest());
   }
 
@@ -2053,8 +2053,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @param others additional packs to remove
    */
   @Override
-  public void removeResourcePacks(@NotNull final ResourcePackInfoLike request,
-                                  @NotNull final ResourcePackInfoLike @NotNull... others) {
+  public void removeResourcePacks(final @NotNull ResourcePackInfoLike request,
+                                  final @NotNull ResourcePackInfoLike @NotNull... others) {
     removeResourcePacks(request.asResourcePackInfo().id());
     for (final ResourcePackInfoLike other : others) {
       removeResourcePacks(other.asResourcePackInfo().id());
@@ -2272,7 +2272,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     private final @Nullable VelocityRegisteredServer previousServer;
 
     ConnectionRequestBuilderImpl(final RegisteredServer toConnect,
-                                 @Nullable final VelocityServerConnection previousConnection) {
+                                 final @Nullable VelocityServerConnection previousConnection) {
       this.toConnect = Preconditions.checkNotNull(toConnect, "info");
       this.previousServer = previousConnection == null ? null : previousConnection.getServer();
     }

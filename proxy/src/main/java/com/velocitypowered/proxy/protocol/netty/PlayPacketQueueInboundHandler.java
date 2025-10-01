@@ -71,7 +71,7 @@ public class PlayPacketQueueInboundHandler extends ChannelDuplexHandler {
    * @param msg the incoming message (typically a {@link MinecraftPacket})
    */
   @Override
-  public void channelRead(@NotNull final ChannelHandlerContext ctx, @NotNull final Object msg) {
+  public void channelRead(final @NotNull ChannelHandlerContext ctx, final @NotNull Object msg) {
     if (msg instanceof final MinecraftPacket packet) {
       // If the packet exists in the CONFIG state, we want to always
       // ensure that it gets handled by the current handler
@@ -95,7 +95,7 @@ public class PlayPacketQueueInboundHandler extends ChannelDuplexHandler {
    * @throws Exception if an error occurs during release
    */
   @Override
-  public void channelInactive(@NotNull final ChannelHandlerContext ctx) throws Exception {
+  public void channelInactive(final @NotNull ChannelHandlerContext ctx) throws Exception {
     this.releaseQueue(ctx, false);
 
     super.channelInactive(ctx);

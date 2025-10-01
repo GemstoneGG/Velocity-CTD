@@ -88,9 +88,9 @@ public class VelocityPluginDescription implements PluginDescription {
    * @param dependencies the dependencies for this plugin
    * @param source       the original source for the plugin
    */
-  public VelocityPluginDescription(final String id, @Nullable final String name, @Nullable final String version,
-                                   @Nullable final String description, @Nullable final String url,
-                                   @Nullable final List<String> authors, final Collection<PluginDependency> dependencies, final Path source) {
+  public VelocityPluginDescription(final String id, final @Nullable String name, final @Nullable String version,
+                                   final @Nullable String description, final @Nullable String url,
+                                   final @Nullable List<String> authors, final Collection<PluginDependency> dependencies, final Path source) {
     this.id = checkNotNull(id, "id");
     this.name = Strings.emptyToNull(name);
     this.version = Strings.emptyToNull(version);

@@ -85,7 +85,7 @@ public final class BrigadierCommand implements Command {
    * @return a new RequiredArgumentBuilder
    */
   public static <T> RequiredArgumentBuilder<CommandSource, T> requiredArgumentBuilder(
-          final @NotNull String name, @NotNull final ArgumentType<T> argumentType) {
+          final @NotNull String name, final @NotNull ArgumentType<T> argumentType) {
     Preconditions.checkNotNull(name, "name");
     Preconditions.checkNotNull(argumentType, "argument type");
 

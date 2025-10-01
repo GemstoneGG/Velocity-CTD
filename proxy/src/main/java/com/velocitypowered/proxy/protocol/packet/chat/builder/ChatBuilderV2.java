@@ -148,7 +148,7 @@ public abstract class ChatBuilderV2 {
    * @param player the player sending the message (nullable)
    * @return this builder instance
    */
-  public ChatBuilderV2 asPlayer(@Nullable final Player player) {
+  public ChatBuilderV2 asPlayer(final @Nullable Player player) {
     this.sender = player;
     return this;
   }

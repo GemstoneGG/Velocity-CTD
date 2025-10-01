@@ -37,7 +37,7 @@ public class ServerPostConnectEvent {
    *                       if the player had not been connected to a server before
    */
   public ServerPostConnectEvent(final Player player,
-                                @Nullable final RegisteredServer previousServer) {
+                                final @Nullable RegisteredServer previousServer) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.previousServer = previousServer;
   }

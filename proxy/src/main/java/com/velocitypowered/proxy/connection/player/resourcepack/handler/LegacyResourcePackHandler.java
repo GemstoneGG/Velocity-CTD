@@ -150,7 +150,7 @@ public sealed class LegacyResourcePackHandler extends ResourcePackHandler permit
    * @param info the resource pack to queue
    */
   @Override
-  public void queueResourcePack(@NotNull final ResourcePackInfo info) {
+  public void queueResourcePack(final @NotNull ResourcePackInfo info) {
     outstandingResourcePacks.add(info);
     if (outstandingResourcePacks.size() == 1) {
       tickResourcePackQueue();

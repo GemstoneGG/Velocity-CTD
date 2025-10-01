@@ -68,7 +68,7 @@ public class ClientboundStopSoundPacket implements MinecraftPacket {
    * @param source the sound source, or {@code null} if not specified
    * @param soundName the sound key, or {@code null} if not specified
    */
-  public ClientboundStopSoundPacket(@Nullable final Sound.Source source, @Nullable final Key soundName) {
+  public ClientboundStopSoundPacket(final @Nullable Sound.Source source, final @Nullable Key soundName) {
     this.source = source;
     this.soundName = soundName;
   }
@@ -152,7 +152,7 @@ public class ClientboundStopSoundPacket implements MinecraftPacket {
    *
    * @param source the sound source, or {@code null} to unset
    */
-  public void setSource(@Nullable final Sound.Source source) {
+  public void setSource(final @Nullable Sound.Source source) {
     this.source = source;
   }
 
@@ -171,7 +171,7 @@ public class ClientboundStopSoundPacket implements MinecraftPacket {
    *
    * @param soundName the sound key, or {@code null} to unset
    */
-  public void setSoundName(@Nullable final Key soundName) {
+  public void setSoundName(final @Nullable Key soundName) {
     this.soundName = soundName;
   }
 }

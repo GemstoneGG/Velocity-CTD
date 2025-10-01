@@ -70,7 +70,7 @@ public final class DimensionInfo {
    * @param isDebugType        if true, constrains the world to the very limited debug-type world
    * @param protocolVersion    the protocol version used to determine compatibility constraints (e.g., disallow empty registry keys pre-1.20.5)
    */
-  public DimensionInfo(final String registryIdentifier, @Nullable final String levelName,
+  public DimensionInfo(final String registryIdentifier, final @Nullable String levelName,
                        final boolean isFlat, final boolean isDebugType, final ProtocolVersion protocolVersion) {
     this.registryIdentifier = Preconditions.checkNotNull(registryIdentifier, "registryIdentifier cannot be null");
     if (protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_20_5)) {

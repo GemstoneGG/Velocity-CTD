@@ -60,7 +60,7 @@ public enum Tristate {
    * @return {@link #UNDEFINED}, {@link #TRUE} or {@link #FALSE}, if the value is <code>null</code>,
    *     <code>true</code> or <code>false</code>, respectively.
    */
-  public static Tristate fromNullableBoolean(@Nullable final Boolean val) {
+  public static Tristate fromNullableBoolean(final @Nullable Boolean val) {
     if (val == null) {
       return UNDEFINED;
     }

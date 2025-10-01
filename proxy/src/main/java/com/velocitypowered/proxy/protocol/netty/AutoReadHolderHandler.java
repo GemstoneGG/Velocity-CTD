@@ -75,7 +75,7 @@ public class AutoReadHolderHandler extends ChannelDuplexHandler {
    * @param msg the received message
    */
   @Override
-  public void channelRead(final ChannelHandlerContext ctx, @NotNull final Object msg) {
+  public void channelRead(final ChannelHandlerContext ctx, final @NotNull Object msg) {
     if (ctx.channel().config().isAutoRead()) {
       ctx.fireChannelRead(msg);
     } else {

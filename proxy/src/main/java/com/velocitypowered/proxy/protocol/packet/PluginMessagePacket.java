@@ -55,8 +55,8 @@ public class PluginMessagePacket extends DeferredByteBufHolder implements Minecr
    * @param channel the channel name to send the plugin message to, or {@code null} if unset
    * @param backing the {@link ByteBuf} containing the plugin message payload
    */
-  public PluginMessagePacket(@Nullable final String channel,
-                             @MonotonicNonNull final ByteBuf backing) {
+  public PluginMessagePacket(final @Nullable String channel,
+                             final @MonotonicNonNull ByteBuf backing) {
     super(backing);
     this.channel = channel;
   }
@@ -80,7 +80,7 @@ public class PluginMessagePacket extends DeferredByteBufHolder implements Minecr
    *
    * @param channel the channel name, or {@code null} to unset
    */
-  public void setChannel(@Nullable final String channel) {
+  public void setChannel(final @Nullable String channel) {
     this.channel = channel;
   }
 

@@ -96,7 +96,7 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
    * @throws Exception if an error occurs during decoding
    */
   @Override
-  public void channelRead(@NotNull final ChannelHandlerContext ctx, @NotNull final Object msg) throws Exception {
+  public void channelRead(final @NotNull ChannelHandlerContext ctx, final @NotNull Object msg) throws Exception {
     if (msg instanceof ByteBuf buf) {
       tryDecode(ctx, buf);
     } else {

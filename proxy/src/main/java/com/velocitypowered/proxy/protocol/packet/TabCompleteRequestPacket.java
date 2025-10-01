@@ -83,7 +83,7 @@ public class TabCompleteRequestPacket implements MinecraftPacket {
    *
    * @param command the command string
    */
-  public void setCommand(@Nullable final String command) {
+  public void setCommand(final @Nullable String command) {
     this.command = command;
   }
 
