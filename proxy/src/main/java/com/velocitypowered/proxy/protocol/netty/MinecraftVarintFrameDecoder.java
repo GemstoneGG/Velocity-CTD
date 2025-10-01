@@ -353,7 +353,7 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
    *
    * @param packetLimiter the limiter to enforce, or {@code null} to disable
    */
-  public void setPacketLimiter(@Nullable final PacketLimiter packetLimiter) {
+  public void setPacketLimiter(final @Nullable PacketLimiter packetLimiter) {
     this.packetLimiter = packetLimiter;
   }
 
