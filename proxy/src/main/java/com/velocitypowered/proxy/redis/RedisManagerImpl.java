@@ -182,15 +182,14 @@ public class RedisManagerImpl {
     });
 
     listen(RedisGetPlayerPingRequest.ID, RedisGetPlayerPingRequest.class, it ->
-            proxy.getPlayer(it.playerToCheck()).ifPresent(player -> {
-              Component component = Component.translatable("velocity.command.ping.other",
-                  NamedTextColor.GREEN)
-                       .arguments(
-                           Argument.string("player", player.getUsername()),
-                           Argument.numeric("ping", player.getPing()));
+        proxy.getPlayer(it.playerToCheck()).ifPresent(player -> {
+          Component component = Component.translatable("velocity.command.ping.other", NamedTextColor.GREEN)
+              .arguments(
+                  Argument.string("player", player.getUsername()),
+                  Argument.numeric("ping", player.getPing()));
 
-              send(new RedisSendMessage(it.commandSender(), component));
-            }));
+          send(new RedisSendMessage(it.commandSender(), component));
+        }));
 
     listen(RedisTransferCommandRequest.ID, RedisTransferCommandRequest.class, it -> {
       ConnectedPlayer connectedPlayer = (ConnectedPlayer) proxy.getPlayer(it.player()).orElse(null);
@@ -200,8 +199,7 @@ public class RedisManagerImpl {
 
       if (connectedPlayer.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
         String connectedServer = connectedPlayer.getConnectedServer() != null ? connectedPlayer.getConnectedServer().getServerInfo().getName() : null;
-        send(new RedisPlayerSetTransferringRequest(connectedPlayer.getUniqueId(), true,
-            connectedServer));
+        send(new RedisPlayerSetTransferringRequest(connectedPlayer.getUniqueId(), true, connectedServer));
       }
 
       proxy.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {

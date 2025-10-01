@@ -319,7 +319,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
                       server.getVersion().getName() + "/" + server.getVersion().getVersion())
               .uri(URI.create(url))
               .build();
-      //noinspection resource
+      // noinspection resource
       final HttpClient httpClient = server.createHttpClient();
       httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
           .whenCompleteAsync((response, throwable) -> {

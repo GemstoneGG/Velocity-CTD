@@ -31,8 +31,7 @@ import org.jetbrains.annotations.NotNull;
  * Utility methods for working with Adventure {@link net.kyori.adventure.text.Component}s
  * using {@link net.kyori.adventure.text.minimessage.MiniMessage}.
  *
- * <p>
- * This utility supports:
+ * <p>This utility supports:
  * <ul>
  *   <li>Serialization and deserialization of components using MiniMessage</li>
  *   <li>Support for legacy formatting codes (e.g., {@code &a}, {@code &l})</li>

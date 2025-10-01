@@ -52,6 +52,7 @@ import com.velocitypowered.proxy.protocol.packet.ResourcePackResponsePacket;
 import com.velocitypowered.proxy.protocol.packet.TransferPacket;
 import com.velocitypowered.proxy.protocol.packet.config.ClientboundCustomReportDetailsPacket;
 import com.velocitypowered.proxy.protocol.packet.config.ClientboundServerLinksPacket;
+import com.velocitypowered.proxy.protocol.packet.config.CodeOfConductPacket;
 import com.velocitypowered.proxy.protocol.packet.config.FinishedUpdatePacket;
 import com.velocitypowered.proxy.protocol.packet.config.RegistrySyncPacket;
 import com.velocitypowered.proxy.protocol.packet.config.StartUpdatePacket;
@@ -326,7 +327,7 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
     smc.getChannel().pipeline().get(MinecraftVarintFrameDecoder.class).setState(StateRegistry.PLAY);
     smc.getChannel().pipeline().get(MinecraftDecoder.class).setState(StateRegistry.PLAY);
-    //noinspection DataFlowIssue
+    // noinspection DataFlowIssue
     configHandler.handleBackendFinishUpdate(serverConn).thenRunAsync(() -> {
       smc.write(FinishedUpdatePacket.INSTANCE);
       if (serverConn == player.getConnectedServer()) {
@@ -500,6 +501,18 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
           }
         }, serverConn.ensureConnected().eventLoop());
 
+    return true;
+  }
+
+  /**
+   * Handles a {@link CodeOfConductPacket} by forwarding it to the player client.
+   *
+   * @param packet the code-of-conduct packet
+   * @return {@code true} if the packet was handled
+   */
+  @Override
+  public boolean handle(final CodeOfConductPacket packet) {
+    this.serverConn.getPlayer().getConnection().write(packet.retain());
     return true;
   }
 

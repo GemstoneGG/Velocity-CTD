@@ -102,8 +102,7 @@ public class PingCommand {
       if (ping == -1L) {
         context.getSource().sendMessage(
             Component.translatable("velocity.command.ping.unknown", NamedTextColor.RED)
-                .arguments(Argument.string("player", player.getUsername()))
-        );
+                .arguments(Argument.string("player", player.getUsername())));
         return 0;
       }
 
@@ -131,8 +130,10 @@ public class PingCommand {
         }
 
         Component component = Component.translatable("velocity.command.ping.other", NamedTextColor.GREEN)
-            .arguments(Argument.string("player", player.getUsername()),
+            .arguments(
+                Argument.string("player", player.getUsername()),
                 Argument.numeric("ping", player.getPing()));
+
         context.getSource().sendMessage(component);
       }
     }

@@ -63,6 +63,7 @@ import com.velocitypowered.proxy.config.PlayerInfoForwarding;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftConnectionAssociation;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
+import com.velocitypowered.proxy.connection.player.bossbar.BossBarManager;
 import com.velocitypowered.proxy.connection.player.bundle.BundleDelimiterHandler;
 import com.velocitypowered.proxy.connection.player.resourcepack.VelocityResourcePackInfo;
 import com.velocitypowered.proxy.connection.player.resourcepack.handler.ResourcePackHandler;
@@ -74,6 +75,8 @@ import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
 import com.velocitypowered.proxy.protocol.packet.BundleDelimiterPacket;
 import com.velocitypowered.proxy.protocol.packet.ClientSettingsPacket;
 import com.velocitypowered.proxy.protocol.packet.ClientboundCookieRequestPacket;
+import com.velocitypowered.proxy.protocol.packet.ClientboundSoundEntityPacket;
+import com.velocitypowered.proxy.protocol.packet.ClientboundStopSoundPacket;
 import com.velocitypowered.proxy.protocol.packet.ClientboundStoreCookiePacket;
 import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
 import com.velocitypowered.proxy.protocol.packet.HeaderAndFooterPacket;
@@ -129,6 +132,8 @@ import net.kyori.adventure.pointer.PointersSupplier;
 import net.kyori.adventure.resource.ResourcePackInfoLike;
 import net.kyori.adventure.resource.ResourcePackRequest;
 import net.kyori.adventure.resource.ResourcePackRequestLike;
+import net.kyori.adventure.sound.Sound;
+import net.kyori.adventure.sound.SoundStop;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.TextReplacementConfig;
@@ -348,6 +353,15 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    */
   private final ChatBuilderFactory chatBuilderFactory;
 
+  /**
+   * The manager responsible for tracking and controlling boss bars shown to this player.
+   *
+   * <p>Handles suppression of boss bar update packets during login and server switches
+   * (to avoid client disconnects in 1.20.2+), and ensures bars are re-sent when the
+   * player transitions between servers.</p>
+   */
+  private final BossBarManager bossBarManager;
+
   ConnectedPlayer(final VelocityServer server, final GameProfile profile, final MinecraftConnection connection,
                   @Nullable final InetSocketAddress virtualHost, @Nullable final String rawVirtualHost, final boolean onlineMode,
                   final HandshakeIntent handshakeIntent, @Nullable final IdentifiedKey playerKey) {
@@ -374,6 +388,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     this.chatQueue = new ChatQueue(this);
     this.chatBuilderFactory = new ChatBuilderFactory(this.getProtocolVersion());
     this.resourcePackHandler = ResourcePackHandler.create(this, server);
+    this.bossBarManager = new BossBarManager(this);
   }
 
   /**
@@ -1661,6 +1676,64 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   /**
+   * Plays a sound for the player, routed through the current backend when supported.
+   *
+   * <p>No-op for unsupported protocol states/versions or mismatched emitters.</p>
+   *
+   * @param sound the sound to play
+   * @param emitter the sound emitter (self or another player on the same server)
+   */
+  @Override
+  public void playSound(@NotNull final Sound sound, @NotNull final Sound.Emitter emitter) {
+    Preconditions.checkNotNull(sound, "sound");
+    Preconditions.checkNotNull(emitter, "emitter");
+    VelocityServerConnection soundTargetServerConn = getConnectedServer();
+    if (getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_19_3)
+        || connection.getState() != StateRegistry.PLAY
+        || soundTargetServerConn == null
+        || (sound.source() == Sound.Source.UI && getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_21_5))) {
+      return;
+    }
+
+    VelocityServerConnection soundEmitterServerConn;
+    if (emitter == Sound.Emitter.self()) {
+      soundEmitterServerConn = soundTargetServerConn;
+    } else if (emitter instanceof ConnectedPlayer player) {
+      if ((soundEmitterServerConn = player.getConnectedServer()) == null) {
+        return;
+      }
+
+      if (!soundEmitterServerConn.getServer().equals(soundTargetServerConn.getServer())) {
+        return;
+      }
+    } else {
+      return;
+    }
+
+    connection.write(new ClientboundSoundEntityPacket(sound, null, soundEmitterServerConn.getEntityId()));
+  }
+
+  /**
+   * Stops a sound on the client when supported.
+   *
+   * <p>No-op for unsupported protocol states/versions.</p>
+   *
+   * @param stop the stop instruction
+   */
+  @Override
+  public void stopSound(@NotNull final SoundStop stop) {
+    Preconditions.checkNotNull(stop, "stop");
+    if (getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_19_3)
+        || connection.getState() != StateRegistry.PLAY
+        || (stop.source() == Sound.Source.UI
+            && getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_21_5))) {
+      return;
+    }
+
+    connection.write(new ClientboundStopSoundPacket(stop));
+  }
+
+  /**
    * Transfers the player to a new host address, using the Transfer packet (1.20.5+).
    *
    * @param address the address to transfer the player to
@@ -2044,8 +2117,13 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   /**
-   * Forwards the keepalive packet to the backend server it belongs to.
-   * This is either the connection in flight or the connected server.
+   * Forwards a received {@link KeepAlivePacket} to the appropriate backend server.
+   *
+   * <p>The packet is first attempted against the currently connected server; if that
+   * fails to match a pending ping, it is then attempted against the in-flight connection.</p>
+   *
+   * @param packet the keepalive packet received from the client
+   * @return {@code true} if the packet was forwarded to a backend server, {@code false} otherwise
    */
   public boolean forwardKeepAlive(final KeepAlivePacket packet) {
     if (!this.sendKeepAliveToBackend(connectedServer, packet)) {
@@ -2162,6 +2240,20 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   @Override
   public HandshakeIntent getHandshakeIntent() {
     return handshakeIntent;
+  }
+
+  /**
+   * Returns the {@link BossBarManager} responsible for handling boss bar
+   * state and packet suppression for this player.
+   *
+   * <p>The manager tracks boss bars across server switches and prevents
+   * sending update packets during login/config phases that would otherwise
+   * disconnect clients (1.20.2+).</p>
+   *
+   * @return the boss bar manager for this player
+   */
+  public BossBarManager getBossBarManager() {
+    return bossBarManager;
   }
 
   private final class ConnectionRequestBuilderImpl implements ConnectionRequestBuilder {

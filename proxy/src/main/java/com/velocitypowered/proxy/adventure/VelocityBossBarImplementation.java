@@ -84,11 +84,27 @@ public final class VelocityBossBarImplementation implements BossBar.Listener,
   public boolean viewerAdd(final ConnectedPlayer viewer) {
     if (this.viewers.add(viewer)) {
       final ComponentHolder name = new ComponentHolder(viewer.getProtocolVersion(), viewer.translateMessage(this.bar.name()));
-      viewer.getConnection().write(BossBarPacket.createAddPacket(this.id, this.bar, name));
+      viewer.getBossBarManager().writeUpdate(this, BossBarPacket.createAddPacket(this.id, this.bar, name));
       return true;
     }
 
     return false;
+  }
+
+  /**
+   * Immediately creates and sends the boss bar to the specified viewer, without
+   * checking whether it is already tracked in the viewer set.
+   *
+   * <p>This method is typically used during server switches to reinitialize
+   * boss bars once the client is ready to receive them.</p>
+   *
+   * @param viewer the {@link ConnectedPlayer} to send the boss bar to
+   */
+  public void createDirect(final ConnectedPlayer viewer) {
+    final ComponentHolder name = new ComponentHolder(
+        viewer.getProtocolVersion(),
+        viewer.translateMessage(this.bar.name()));
+    viewer.getConnection().write(BossBarPacket.createAddPacket(this.id, this.bar, name));
   }
 
   /**
@@ -102,7 +118,7 @@ public final class VelocityBossBarImplementation implements BossBar.Listener,
    */
   public boolean viewerRemove(final ConnectedPlayer viewer) {
     if (this.viewers.remove(viewer)) {
-      viewer.getConnection().write(BossBarPacket.createRemovePacket(this.id, this.bar));
+      viewer.getBossBarManager().remove(this, BossBarPacket.createRemovePacket(this.id, this.bar));
       return true;
     }
 
@@ -128,7 +144,7 @@ public final class VelocityBossBarImplementation implements BossBar.Listener,
       final Component translated = viewer.translateMessage(newName);
       final BossBarPacket packet = BossBarPacket.createUpdateNamePacket(this.id, this.bar,
           new ComponentHolder(viewer.getProtocolVersion(), translated));
-      viewer.getConnection().write(packet);
+      viewer.getBossBarManager().writeUpdate(this, packet);
     }
   }
 
@@ -137,7 +153,7 @@ public final class VelocityBossBarImplementation implements BossBar.Listener,
                                      final float newProgress) {
     final BossBarPacket packet = BossBarPacket.createUpdateProgressPacket(this.id, this.bar);
     for (final ConnectedPlayer viewer : this.viewers) {
-      viewer.getConnection().write(packet);
+      viewer.getBossBarManager().writeUpdate(this, packet);
     }
   }
 
@@ -146,7 +162,7 @@ public final class VelocityBossBarImplementation implements BossBar.Listener,
                                   final BossBar.@NotNull Color newColor) {
     final BossBarPacket packet = BossBarPacket.createUpdateStylePacket(this.id, this.bar);
     for (final ConnectedPlayer viewer : this.viewers) {
-      viewer.getConnection().write(packet);
+      viewer.getBossBarManager().writeUpdate(this, packet);
     }
   }
 
@@ -155,7 +171,7 @@ public final class VelocityBossBarImplementation implements BossBar.Listener,
                                     final BossBar.@NotNull Overlay newOverlay) {
     final BossBarPacket packet = BossBarPacket.createUpdateStylePacket(this.id, this.bar);
     for (final ConnectedPlayer viewer : this.viewers) {
-      viewer.getConnection().write(packet);
+      viewer.getBossBarManager().writeUpdate(this, packet);
     }
   }
 
@@ -164,7 +180,7 @@ public final class VelocityBossBarImplementation implements BossBar.Listener,
                                   final @NotNull Set<BossBar.Flag> flagsRemoved) {
     final BossBarPacket packet = BossBarPacket.createUpdatePropertiesPacket(this.id, this.bar);
     for (final ConnectedPlayer viewer : this.viewers) {
-      viewer.getConnection().write(packet);
+      viewer.getBossBarManager().writeUpdate(this, packet);
     }
   }
 }

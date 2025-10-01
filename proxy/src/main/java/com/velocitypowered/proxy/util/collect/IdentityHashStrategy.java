@@ -39,7 +39,7 @@ public final class IdentityHashStrategy<T> implements Strategy<T> {
    * @return a shared identity hash strategy instance
    */
   public static <T> Strategy<T> instance() {
-    //noinspection unchecked
+    // noinspection unchecked
     return INSTANCE;
   }
 

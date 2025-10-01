@@ -627,46 +627,44 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
           }
 
           try (Stream<Path> files = Files.walk(path)) {
-            files.filter(Files::isRegularFile)
-                .forEach(src -> {
-                  final Path target = langPath.resolve(src.getFileName().toString());
-                  if (Files.notExists(target)) {
-                    try (InputStream is = Files.newInputStream(src)) {
-                      Files.copy(is, target);
-                      if (log) {
-                        logger.info("Restored missing translation file {}", target.getFileName());
-                      }
-                    } catch (IOException e) {
-                      logger.error("Failed copying translation file {}", target.getFileName(), e);
-                    }
+            files.filter(Files::isRegularFile).forEach(src -> {
+              final Path target = langPath.resolve(src.getFileName().toString());
+              if (Files.notExists(target)) {
+                try (InputStream is = Files.newInputStream(src)) {
+                  Files.copy(is, target);
+                  if (log) {
+                    logger.info("Restored missing translation file {}", target.getFileName());
                   }
-                });
+                } catch (IOException e) {
+                  logger.error("Failed copying translation file {}", target.getFileName(), e);
+                }
+              }
+            });
           }
 
           try (Stream<Path> langFiles = Files.walk(langPath)) {
-            langFiles.filter(Files::isRegularFile)
-                .forEach(file -> {
-                  try {
-                    String localePart = com.google.common.io.Files
-                          .getNameWithoutExtension(file.getFileName().toString());
-                    if (localePart.startsWith("messages")) {
-                      localePart = localePart.substring("messages".length());
-                    }
+            langFiles.filter(Files::isRegularFile).forEach(file -> {
+              try {
+                String localePart = com.google.common.io.Files
+                      .getNameWithoutExtension(file.getFileName().toString());
+                if (localePart.startsWith("messages")) {
+                  localePart = localePart.substring("messages".length());
+                }
 
-                    if (localePart.startsWith("_")) {
-                      localePart = localePart.substring(1);
-                    }
+                if (localePart.startsWith("_")) {
+                  localePart = localePart.substring(1);
+                }
 
-                    final Locale locale = localePart.isBlank()
-                        ? Locale.US
-                        : Locale.forLanguageTag(localePart.replace('_', '-'));
+                final Locale locale = localePart.isBlank()
+                    ? Locale.US
+                    : Locale.forLanguageTag(localePart.replace('_', '-'));
 
-                    translationRegistry.registerAll(locale, file, false);
-                    ClosestLocaleMatcher.INSTANCE.registerKnown(locale);
-                  } catch (Exception e) {
-                    logger.error("Failed registering translations from {}", file, e);
-                  }
-                });
+                translationRegistry.registerAll(locale, file, false);
+                ClosestLocaleMatcher.INSTANCE.registerKnown(locale);
+              } catch (Exception e) {
+                logger.error("Failed registering translations from {}", file, e);
+              }
+            });
           }
         } catch (Exception e) {
           logger.error("Encountered an error whilst loading translations", e);

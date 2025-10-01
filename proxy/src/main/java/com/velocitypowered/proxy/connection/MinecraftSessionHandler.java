@@ -23,6 +23,8 @@ import com.velocitypowered.proxy.protocol.packet.BossBarPacket;
 import com.velocitypowered.proxy.protocol.packet.BundleDelimiterPacket;
 import com.velocitypowered.proxy.protocol.packet.ClientSettingsPacket;
 import com.velocitypowered.proxy.protocol.packet.ClientboundCookieRequestPacket;
+import com.velocitypowered.proxy.protocol.packet.ClientboundSoundEntityPacket;
+import com.velocitypowered.proxy.protocol.packet.ClientboundStopSoundPacket;
 import com.velocitypowered.proxy.protocol.packet.ClientboundStoreCookiePacket;
 import com.velocitypowered.proxy.protocol.packet.DialogClearPacket;
 import com.velocitypowered.proxy.protocol.packet.DialogShowPacket;
@@ -70,6 +72,8 @@ import com.velocitypowered.proxy.protocol.packet.chat.session.SessionPlayerComma
 import com.velocitypowered.proxy.protocol.packet.config.ActiveFeaturesPacket;
 import com.velocitypowered.proxy.protocol.packet.config.ClientboundCustomReportDetailsPacket;
 import com.velocitypowered.proxy.protocol.packet.config.ClientboundServerLinksPacket;
+import com.velocitypowered.proxy.protocol.packet.config.CodeOfConductAcceptPacket;
+import com.velocitypowered.proxy.protocol.packet.config.CodeOfConductPacket;
 import com.velocitypowered.proxy.protocol.packet.config.FinishedUpdatePacket;
 import com.velocitypowered.proxy.protocol.packet.config.KnownPacksPacket;
 import com.velocitypowered.proxy.protocol.packet.config.RegistrySyncPacket;
@@ -105,7 +109,7 @@ public interface MinecraftSessionHandler {
    *
    * @param packet the packet to process
    */
-  default void handleGeneric(MinecraftPacket packet) {
+  default void handleGeneric(final MinecraftPacket packet) {
   }
 
   /**
@@ -113,7 +117,7 @@ public interface MinecraftSessionHandler {
    *
    * @param buf the raw data buffer of the packet
    */
-  default void handleUnknown(ByteBuf buf) {
+  default void handleUnknown(final ByteBuf buf) {
   }
 
   /**
@@ -153,7 +157,7 @@ public interface MinecraftSessionHandler {
    *
    * @param throwable the exception that was caught
    */
-  default void exception(Throwable throwable) {
+  default void exception(final Throwable throwable) {
   }
 
   /**
@@ -178,7 +182,7 @@ public interface MinecraftSessionHandler {
    * @param commands the available commands packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(AvailableCommandsPacket commands) {
+  default boolean handle(final AvailableCommandsPacket commands) {
     return false;
   }
 
@@ -188,7 +192,7 @@ public interface MinecraftSessionHandler {
    * @param packet the boss bar packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(BossBarPacket packet) {
+  default boolean handle(final BossBarPacket packet) {
     return false;
   }
 
@@ -198,7 +202,7 @@ public interface MinecraftSessionHandler {
    * @param packet the legacy chat packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(LegacyChatPacket packet) {
+  default boolean handle(final LegacyChatPacket packet) {
     return false;
   }
 
@@ -208,7 +212,7 @@ public interface MinecraftSessionHandler {
    * @param packet the client settings packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(ClientSettingsPacket packet) {
+  default boolean handle(final ClientSettingsPacket packet) {
     return false;
   }
 
@@ -218,7 +222,7 @@ public interface MinecraftSessionHandler {
    * @param packet the disconnect packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(DisconnectPacket packet) {
+  default boolean handle(final DisconnectPacket packet) {
     return false;
   }
 
@@ -228,7 +232,7 @@ public interface MinecraftSessionHandler {
    * @param packet the encryption request packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(EncryptionRequestPacket packet) {
+  default boolean handle(final EncryptionRequestPacket packet) {
     return false;
   }
 
@@ -238,7 +242,7 @@ public interface MinecraftSessionHandler {
    * @param packet the encryption response packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(EncryptionResponsePacket packet) {
+  default boolean handle(final EncryptionResponsePacket packet) {
     return false;
   }
 
@@ -248,17 +252,17 @@ public interface MinecraftSessionHandler {
    * @param packet the handshake packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(HandshakePacket packet) {
+  default boolean handle(final HandshakePacket packet) {
     return false;
   }
 
   /**
    * Handles {@link HeaderAndFooterPacket}.
    *
-   * @param ignoredPacket the header and footer packet
+   * @param packet the header and footer packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(HeaderAndFooterPacket ignoredPacket) {
+  default boolean handle(final HeaderAndFooterPacket packet) {
     return false;
   }
 
@@ -268,7 +272,7 @@ public interface MinecraftSessionHandler {
    * @param packet the join game packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(JoinGamePacket packet) {
+  default boolean handle(final JoinGamePacket packet) {
     return false;
   }
 
@@ -278,7 +282,7 @@ public interface MinecraftSessionHandler {
    * @param packet the keep-alive packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(KeepAlivePacket packet) {
+  default boolean handle(final KeepAlivePacket packet) {
     return false;
   }
 
@@ -288,7 +292,7 @@ public interface MinecraftSessionHandler {
    * @param packet the legacy handshake packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(LegacyHandshakePacket packet) {
+  default boolean handle(final LegacyHandshakePacket packet) {
     return false;
   }
 
@@ -298,7 +302,7 @@ public interface MinecraftSessionHandler {
    * @param packet the legacy ping packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(LegacyPingPacket packet) {
+  default boolean handle(final LegacyPingPacket packet) {
     return false;
   }
 
@@ -308,7 +312,7 @@ public interface MinecraftSessionHandler {
    * @param packet the login plugin message packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(LoginPluginMessagePacket packet) {
+  default boolean handle(final LoginPluginMessagePacket packet) {
     return false;
   }
 
@@ -318,7 +322,7 @@ public interface MinecraftSessionHandler {
    * @param packet the login plugin response packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(LoginPluginResponsePacket packet) {
+  default boolean handle(final LoginPluginResponsePacket packet) {
     return false;
   }
 
@@ -328,17 +332,17 @@ public interface MinecraftSessionHandler {
    * @param packet the plugin message packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(PluginMessagePacket packet) {
+  default boolean handle(final PluginMessagePacket packet) {
     return false;
   }
 
   /**
    * Handles {@link RespawnPacket}.
    *
-   * @param ignoredPacket the respawn packet
+   * @param packet the respawn packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(RespawnPacket ignoredPacket) {
+  default boolean handle(final RespawnPacket packet) {
     return false;
   }
 
@@ -348,7 +352,7 @@ public interface MinecraftSessionHandler {
    * @param packet the server login packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(ServerLoginPacket packet) {
+  default boolean handle(final ServerLoginPacket packet) {
     return false;
   }
 
@@ -358,7 +362,7 @@ public interface MinecraftSessionHandler {
    * @param packet the server login success packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(ServerLoginSuccessPacket packet) {
+  default boolean handle(final ServerLoginSuccessPacket packet) {
     return false;
   }
 
@@ -368,7 +372,7 @@ public interface MinecraftSessionHandler {
    * @param packet the set compression packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(SetCompressionPacket packet) {
+  default boolean handle(final SetCompressionPacket packet) {
     return false;
   }
 
@@ -378,7 +382,7 @@ public interface MinecraftSessionHandler {
    * @param packet the status ping packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(StatusPingPacket packet) {
+  default boolean handle(final StatusPingPacket packet) {
     return false;
   }
 
@@ -388,7 +392,7 @@ public interface MinecraftSessionHandler {
    * @param packet the status request packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(StatusRequestPacket packet) {
+  default boolean handle(final StatusRequestPacket packet) {
     return false;
   }
 
@@ -398,7 +402,7 @@ public interface MinecraftSessionHandler {
    * @param packet the status response packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(StatusResponsePacket packet) {
+  default boolean handle(final StatusResponsePacket packet) {
     return false;
   }
 
@@ -408,7 +412,7 @@ public interface MinecraftSessionHandler {
    * @param packet the tab complete request packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(TabCompleteRequestPacket packet) {
+  default boolean handle(final TabCompleteRequestPacket packet) {
     return false;
   }
 
@@ -418,67 +422,67 @@ public interface MinecraftSessionHandler {
    * @param packet the tab complete response packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(TabCompleteResponsePacket packet) {
+  default boolean handle(final TabCompleteResponsePacket packet) {
     return false;
   }
 
   /**
    * Handles {@link LegacyTitlePacket}.
    *
-   * @param ignoredPacket the legacy title packet
+   * @param packet the legacy title packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(LegacyTitlePacket ignoredPacket) {
+  default boolean handle(final LegacyTitlePacket packet) {
     return false;
   }
 
   /**
    * Handles {@link TitleTextPacket}.
    *
-   * @param ignoredPacket the title text packet
+   * @param packet the title text packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(TitleTextPacket ignoredPacket) {
+  default boolean handle(final TitleTextPacket packet) {
     return false;
   }
 
   /**
    * Handles {@link TitleSubtitlePacket}.
    *
-   * @param ignoredPacket the title subtitle packet
+   * @param packet the title subtitle packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(TitleSubtitlePacket ignoredPacket) {
+  default boolean handle(final TitleSubtitlePacket packet) {
     return false;
   }
 
   /**
    * Handles {@link TitleActionbarPacket}.
    *
-   * @param ignoredPacket the title actionbar packet
+   * @param packet the title actionbar packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(TitleActionbarPacket ignoredPacket) {
+  default boolean handle(final TitleActionbarPacket packet) {
     return false;
   }
 
   /**
    * Handles {@link TitleTimesPacket}.
    *
-   * @param ignoredPacket the title times packet
+   * @param packet the title times packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(TitleTimesPacket ignoredPacket) {
+  default boolean handle(final TitleTimesPacket packet) {
     return false;
   }
 
   /**
    * Handles {@link TitleClearPacket}.
    *
-   * @param ignoredPacket the title clear packet
+   * @param packet the title clear packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(TitleClearPacket ignoredPacket) {
+  default boolean handle(final TitleClearPacket packet) {
     return false;
   }
 
@@ -488,7 +492,7 @@ public interface MinecraftSessionHandler {
    * @param packet the legacy player list item packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(LegacyPlayerListItemPacket packet) {
+  default boolean handle(final LegacyPlayerListItemPacket packet) {
     return false;
   }
 
@@ -498,7 +502,7 @@ public interface MinecraftSessionHandler {
    * @param packet the resource pack request packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(ResourcePackRequestPacket packet) {
+  default boolean handle(final ResourcePackRequestPacket packet) {
     return false;
   }
 
@@ -508,7 +512,7 @@ public interface MinecraftSessionHandler {
    * @param packet the remove resource pack packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(RemoveResourcePackPacket packet) {
+  default boolean handle(final RemoveResourcePackPacket packet) {
     return false;
   }
 
@@ -518,7 +522,7 @@ public interface MinecraftSessionHandler {
    * @param packet the resource pack response packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(ResourcePackResponsePacket packet) {
+  default boolean handle(final ResourcePackResponsePacket packet) {
     return false;
   }
 
@@ -528,7 +532,7 @@ public interface MinecraftSessionHandler {
    * @param packet the keyed player chat packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(KeyedPlayerChatPacket packet) {
+  default boolean handle(final KeyedPlayerChatPacket packet) {
     return false;
   }
 
@@ -538,17 +542,17 @@ public interface MinecraftSessionHandler {
    * @param packet the session player chat packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(SessionPlayerChatPacket packet) {
+  default boolean handle(final SessionPlayerChatPacket packet) {
     return false;
   }
 
   /**
    * Handles {@link SystemChatPacket}.
    *
-   * @param ignoredPacket the system chat packet
+   * @param packet the system chat packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(SystemChatPacket ignoredPacket) {
+  default boolean handle(final SystemChatPacket packet) {
     return false;
   }
 
@@ -558,7 +562,7 @@ public interface MinecraftSessionHandler {
    * @param packet the keyed player command packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(KeyedPlayerCommandPacket packet) {
+  default boolean handle(final KeyedPlayerCommandPacket packet) {
     return false;
   }
 
@@ -568,17 +572,17 @@ public interface MinecraftSessionHandler {
    * @param packet the session player command packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(SessionPlayerCommandPacket packet) {
+  default boolean handle(final SessionPlayerCommandPacket packet) {
     return false;
   }
 
   /**
    * Handles {@link PlayerChatCompletionPacket}.
    *
-   * @param ignoredPacket the player chat completion packet
+   * @param packet the player chat completion packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(PlayerChatCompletionPacket ignoredPacket) {
+  default boolean handle(final PlayerChatCompletionPacket packet) {
     return false;
   }
 
@@ -588,7 +592,7 @@ public interface MinecraftSessionHandler {
    * @param serverData the server data packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(ServerDataPacket serverData) {
+  default boolean handle(final ServerDataPacket serverData) {
     return false;
   }
 
@@ -598,7 +602,7 @@ public interface MinecraftSessionHandler {
    * @param packet the remove player info packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(RemovePlayerInfoPacket packet) {
+  default boolean handle(final RemovePlayerInfoPacket packet) {
     return false;
   }
 
@@ -608,7 +612,7 @@ public interface MinecraftSessionHandler {
    * @param packet the upsert player info packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(UpsertPlayerInfoPacket packet) {
+  default boolean handle(final UpsertPlayerInfoPacket packet) {
     return false;
   }
 
@@ -618,17 +622,17 @@ public interface MinecraftSessionHandler {
    * @param packet the login acknowledged packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(LoginAcknowledgedPacket packet) {
+  default boolean handle(final LoginAcknowledgedPacket packet) {
     return false;
   }
 
   /**
    * Handles {@link ActiveFeaturesPacket}.
    *
-   * @param ignoredPacket the active features packet
+   * @param packet the active features packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(ActiveFeaturesPacket ignoredPacket) {
+  default boolean handle(final ActiveFeaturesPacket packet) {
     return false;
   }
 
@@ -638,7 +642,7 @@ public interface MinecraftSessionHandler {
    * @param packet the finished update packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(FinishedUpdatePacket packet) {
+  default boolean handle(final FinishedUpdatePacket packet) {
     return false;
   }
 
@@ -648,7 +652,7 @@ public interface MinecraftSessionHandler {
    * @param packet the registry sync packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(RegistrySyncPacket packet) {
+  default boolean handle(final RegistrySyncPacket packet) {
     return false;
   }
 
@@ -658,7 +662,7 @@ public interface MinecraftSessionHandler {
    * @param packet the tags update packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(TagsUpdatePacket packet) {
+  default boolean handle(final TagsUpdatePacket packet) {
     return false;
   }
 
@@ -668,7 +672,7 @@ public interface MinecraftSessionHandler {
    * @param packet the start update packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(StartUpdatePacket packet) {
+  default boolean handle(final StartUpdatePacket packet) {
     return false;
   }
 
@@ -678,7 +682,7 @@ public interface MinecraftSessionHandler {
    * @param pingIdentify the ping identify packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(PingIdentifyPacket pingIdentify) {
+  default boolean handle(final PingIdentifyPacket pingIdentify) {
     return false;
   }
 
@@ -688,7 +692,7 @@ public interface MinecraftSessionHandler {
    * @param chatAcknowledgement the chat acknowledgement packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(ChatAcknowledgementPacket chatAcknowledgement) {
+  default boolean handle(final ChatAcknowledgementPacket chatAcknowledgement) {
     return false;
   }
 
@@ -698,7 +702,7 @@ public interface MinecraftSessionHandler {
    * @param bundleDelimiterPacket the bundle delimiter packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(BundleDelimiterPacket bundleDelimiterPacket) {
+  default boolean handle(final BundleDelimiterPacket bundleDelimiterPacket) {
     return false;
   }
 
@@ -708,7 +712,7 @@ public interface MinecraftSessionHandler {
    * @param transfer the transfer packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(TransferPacket transfer) {
+  default boolean handle(final TransferPacket transfer) {
     return false;
   }
 
@@ -718,7 +722,7 @@ public interface MinecraftSessionHandler {
    * @param packet the known packs packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(KnownPacksPacket packet) {
+  default boolean handle(final KnownPacksPacket packet) {
     return false;
   }
 
@@ -728,7 +732,7 @@ public interface MinecraftSessionHandler {
    * @param packet the store cookie packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(ClientboundStoreCookiePacket packet) {
+  default boolean handle(final ClientboundStoreCookiePacket packet) {
     return false;
   }
 
@@ -738,7 +742,7 @@ public interface MinecraftSessionHandler {
    * @param packet the cookie request packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(ClientboundCookieRequestPacket packet) {
+  default boolean handle(final ClientboundCookieRequestPacket packet) {
     return false;
   }
 
@@ -748,7 +752,7 @@ public interface MinecraftSessionHandler {
    * @param packet the cookie response packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(ServerboundCookieResponsePacket packet) {
+  default boolean handle(final ServerboundCookieResponsePacket packet) {
     return false;
   }
 
@@ -758,7 +762,7 @@ public interface MinecraftSessionHandler {
    * @param packet the custom report details packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(ClientboundCustomReportDetailsPacket packet) {
+  default boolean handle(final ClientboundCustomReportDetailsPacket packet) {
     return false;
   }
 
@@ -768,37 +772,77 @@ public interface MinecraftSessionHandler {
    * @param packet the server links packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(ClientboundServerLinksPacket packet) {
+  default boolean handle(final ClientboundServerLinksPacket packet) {
     return false;
   }
 
   /**
    * Handles {@link DialogClearPacket}.
    *
-   * @param ignoredPacket the dialog clear packet
+   * @param packet the dialog clear packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(DialogClearPacket ignoredPacket) {
+  default boolean handle(final DialogClearPacket packet) {
     return false;
   }
 
   /**
    * Handles {@link DialogShowPacket}.
    *
-   * @param ignoredPacket the dialog show packet
+   * @param packet the dialog show packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(DialogShowPacket ignoredPacket) {
+  default boolean handle(final DialogShowPacket packet) {
     return false;
   }
 
   /**
    * Handles {@link ServerboundCustomClickActionPacket}.
    *
-   * @param ignoredPacket the custom click action packet
+   * @param packet the custom click action packet
    * @return {@code true} if the packet was handled, {@code false} otherwise
    */
-  default boolean handle(ServerboundCustomClickActionPacket ignoredPacket) {
+  default boolean handle(final ServerboundCustomClickActionPacket packet) {
+    return false;
+  }
+
+  /**
+   * Handles {@link CodeOfConductPacket}.
+   *
+   * @param packet the code-of-conduct packet
+   * @return {@code true} if the packet was handled, {@code false} otherwise
+   */
+  default boolean handle(final CodeOfConductPacket packet) {
+    return false;
+  }
+
+  /**
+   * Handles {@link CodeOfConductAcceptPacket}.
+   *
+   * @param packet the code-of-conduct accept packet
+   * @return {@code true} if the packet was handled, {@code false} otherwise
+   */
+  default boolean handle(final CodeOfConductAcceptPacket packet) {
+    return false;
+  }
+
+  /**
+   * Handles {@link ClientboundSoundEntityPacket}.
+   *
+   * @param packet the sound entity packet
+   * @return {@code true} if the packet was handled, {@code false} otherwise
+   */
+  default boolean handle(final ClientboundSoundEntityPacket packet) {
+    return false;
+  }
+
+  /**
+   * Handles {@link ClientboundStopSoundPacket}.
+   *
+   * @param packet the stop sound packet
+   * @return {@code true} if the packet was handled, {@code false} otherwise
+   */
+  default boolean handle(final ClientboundStopSoundPacket packet) {
     return false;
   }
 }

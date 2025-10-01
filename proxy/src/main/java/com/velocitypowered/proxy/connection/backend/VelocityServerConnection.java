@@ -53,6 +53,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.NotNull;
 
@@ -105,6 +106,14 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
    * Pending ping IDs and the time they were sent (used for latency measurement).
    */
   private final Map<Long, Long> pendingPings = new HashMap<>();
+
+  /**
+   * The entity ID assigned to the player by the backend server.
+   *
+   * <p>Monotonically non-null: unset until known (typically after {@link JoinGamePacket}),
+   * then set once and not reverted to {@code null}.</p>
+   */
+  private @MonotonicNonNull Integer entityId;
 
   /**
    * Initializes a new server connection.
@@ -415,6 +424,24 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
    */
   public Map<Long, Long> getPendingPings() {
     return pendingPings;
+  }
+
+  /**
+   * Gets the entity ID assigned to the player by the backend server, if known.
+   *
+   * @return the entity ID, or {@code null} if not yet set
+   */
+  public Integer getEntityId() {
+    return entityId;
+  }
+
+  /**
+   * Sets the entity ID assigned to the player by the backend server.
+   *
+   * @param entityId the entity ID to set
+   */
+  public void setEntityId(final Integer entityId) {
+    this.entityId = entityId;
   }
 
   /**

@@ -187,7 +187,7 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
    */
   @Override
   public void handleUnknown(final ByteBuf buf) {
-    // what even is going on?
+    // What even is going on?
     connection.close(true);
   }
 
