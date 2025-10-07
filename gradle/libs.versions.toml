@@ -15,8 +15,8 @@ shadow = "com.gradleup.shadow:9.2.2"
 spotless = "com.diffplug.spotless:8.0.0"
 
 [libraries]
-adventure-bom = "net.kyori:adventure-bom:4.24.0"
-adventure-text-serializer-json-legacy-impl = "net.kyori:adventure-text-serializer-json-legacy-impl:4.24.0"
+adventure-bom = "net.kyori:adventure-bom:4.25.0"
+adventure-text-serializer-json-legacy-impl = "net.kyori:adventure-text-serializer-json-legacy-impl:4.25.0"
 adventure-facet = "net.kyori:adventure-platform-facet:4.4.1"
 asm = "org.ow2.asm:asm:9.9"
 auto-service = "com.google.auto.service:auto-service:1.1.1"
@@ -34,7 +34,7 @@ configurate4-hocon = { module = "org.spongepowered:configurate-hocon", version.r
 configurate4-yaml = { module = "org.spongepowered:configurate-yaml", version.ref = "configurate4" }
 configurate4-gson = { module = "org.spongepowered:configurate-gson", version.ref = "configurate4" }
 disruptor = "com.lmax:disruptor:4.0.0"
-fastutil = "it.unimi.dsi:fastutil:8.5.17"
+fastutil = "it.unimi.dsi:fastutil:8.5.18"
 flare-core = { module = "space.vectrix.flare:flare", version.ref = "flare" }
 flare-fastutil = { module = "space.vectrix.flare:flare-fastutil", version.ref = "flare" }
 jline = "org.jline:jline-terminal-jansi:3.30.6"

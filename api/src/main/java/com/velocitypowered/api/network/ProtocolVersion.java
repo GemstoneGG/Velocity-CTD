@@ -17,11 +17,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents each Minecraft protocol version.
  */
-public enum ProtocolVersion implements Ordered<ProtocolVersion> {
+public enum ProtocolVersion implements Ordered<@NotNull ProtocolVersion> {
 
   /**
    * Represents an unknown protocol version.
@@ -289,9 +290,9 @@ public enum ProtocolVersion implements Ordered<ProtocolVersion> {
   MINECRAFT_1_21_7(772, "1.21.7", "1.21.8"),
 
   /**
-   * Minecraft 1.21.9.
+   * Minecraft 1.21.9 to 1.21.10.
    */
-  MINECRAFT_1_21_9(773, "1.21.9");
+  MINECRAFT_1_21_9(773, "1.21.9", "1.21.10");
 
   /**
    * Bitmask shift used to encode snapshot protocol versions.
@@ -332,7 +333,7 @@ public enum ProtocolVersion implements Ordered<ProtocolVersion> {
   /**
    * A map linking the protocol version number to its {@link ProtocolVersion} representation.
    */
-  public static final ImmutableMap<Integer, ProtocolVersion> ID_TO_PROTOCOL_CONSTANT;
+  public static final ImmutableMap<@NotNull Integer, @NotNull ProtocolVersion> ID_TO_PROTOCOL_CONSTANT;
 
   static {
     Map<Integer, ProtocolVersion> versions = new HashMap<>();

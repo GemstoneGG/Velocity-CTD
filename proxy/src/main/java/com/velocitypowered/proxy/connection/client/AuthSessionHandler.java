@@ -385,13 +385,16 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
     PlayerChooseInitialServerEvent event =
         new PlayerChooseInitialServerEvent(player, initialFromConfig.orElse(null));
 
-    event.setReason(Component.translatable("velocity.error.no-available-servers", NamedTextColor.RED));
-
     return server.getEventManager().fire(event).thenRunAsync(() -> {
       Optional<RegisteredServer> toTry = event.getInitialServer();
       if (toTry.isEmpty()) {
-        player.disconnect0(event.getReason().orElse(Component.translatable(
-            "velocity.error.no-available-servers", NamedTextColor.RED)), true);
+        if (event.getReason().isPresent()) {
+          player.disconnect0(event.getReason().get(), true);
+        } else {
+          player.disconnect0(
+              Component.translatable("velocity.error.no-available-servers", NamedTextColor.RED), true);
+        }
+
         return;
       }
       player.createConnectionRequest(toTry.get()).fireAndForget();
