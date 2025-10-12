@@ -9,7 +9,7 @@ netty = "4.2.6.Final"
 lettuce = "6.8.1.RELEASE"
 
 [plugins]
-fill = "io.papermc.fill.gradle:1.0.7"
+fill = "io.papermc.fill.gradle:1.0.9"
 indra-publishing = "net.kyori.indra.publishing:3.2.0"
 shadow = "com.gradleup.shadow:9.2.2"
 spotless = "com.diffplug.spotless:8.0.0"
