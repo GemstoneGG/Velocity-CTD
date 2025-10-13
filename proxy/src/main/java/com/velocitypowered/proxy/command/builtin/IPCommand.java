@@ -30,6 +30,7 @@ import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
+import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.translation.Argument;
@@ -102,6 +103,44 @@ public class IPCommand {
                         .arguments(
                                 Argument.string("player", p.getUsername()),
                                 Argument.string("ip_address", p.getRemoteAddress().getAddress().getHostAddress())));
+
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int findMultiProxy(final CommandContext<CommandSource> context) {
+        final String player = context.getArgument("player", String.class);
+        if (server.getMultiProxyHandler().isPlayerOnline(player)) {
+            context.getSource().sendMessage(
+                    CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", player))
+            );
+
+            return 0;
+        }
+
+        RemotePlayerInfo info = server.getMultiProxyHandler().getPlayerInfo(player);
+
+        if (info.getServerName() == null) {
+            context.getSource().sendMessage(
+                    Component.translatable("velocity.command.ip.no-server", NamedTextColor.YELLOW)
+            );
+
+            return 0;
+        }
+
+        RegisteredServer server = this.server.getServer(info.getServerName()).orElse(null);
+        if (server == null) {
+            context.getSource().sendMessage(
+                    Component.translatable("velocity.command.ip.no-server", NamedTextColor.YELLOW)
+            );
+
+            return 0;
+        }
+
+        context.getSource().sendMessage(
+                Component.translatable("velocity.command.ip.message", NamedTextColor.YELLOW)
+                        .arguments(
+                                Argument.string("player", info.getUsername()),
+                                Argument.string("ip_address", server.getServerInfo().getAddress().toString())));
 
         return Command.SINGLE_SUCCESS;
     }

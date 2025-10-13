@@ -30,6 +30,7 @@ import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
+import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.translation.Argument;
@@ -67,6 +68,9 @@ public class GKickCommand {
     }
 
     private int kick(final CommandContext<CommandSource> context) {
+        if (server.getMultiProxyHandler().isRedisEnabled()) {
+            return findMultiProxy(context);
+        }
 
         final String player = context.getArgument("player", String.class);
         final Optional<Player> maybePlayer = server.getPlayer(player);
@@ -103,6 +107,43 @@ public class GKickCommand {
                 Component.translatable("velocity.command.gkick.message", NamedTextColor.YELLOW)
                         .arguments(
                                 Argument.string("player", p.getUsername())));
+
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int findMultiProxy(final CommandContext<CommandSource> context) {
+        final String player = context.getArgument("player", String.class);
+        if (server.getMultiProxyHandler().isPlayerOnline(player)) {
+            context.getSource().sendMessage(
+                    CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", player))
+            );
+
+            return 0;
+        }
+
+        RemotePlayerInfo info = server.getMultiProxyHandler().getPlayerInfo(player);
+
+        if (info.getServerName() == null) {
+            context.getSource().sendMessage(
+                    Component.translatable("velocity.command.gkick.no-server", NamedTextColor.YELLOW)
+            );
+
+            return 0;
+        }
+
+        RegisteredServer server = this.server.getServer(info.getServerName()).orElse(null);
+        if (server == null) {
+            context.getSource().sendMessage(
+                    Component.translatable("velocity.command.gkick.no-server", NamedTextColor.YELLOW)
+            );
+
+            return 0;
+        }
+
+        context.getSource().sendMessage(
+                Component.translatable("velocity.command.gkick.message", NamedTextColor.YELLOW)
+                        .arguments(
+                                Argument.string("player", info.getName())));
 
         return Command.SINGLE_SUCCESS;
     }
