@@ -1999,6 +1999,8 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.hubCommand = config.getOrElse("hub-enabled", true);
         this.pingCommand = config.getOrElse("ping-enabled", true);
         this.sendCommand = config.getOrElse("send-enabled", true);
+        this.ipCommand = config.getOrElse("ip-command-enabled", true);
+        this.gkickCommand = config.getOrElse("gkick-enabled", true);
         this.overrideServerCommandUsage = config.getOrElse("override-server-command-usage", false);
         this.transferEnabled = config.getOrElse("transfer-enabled", true);
       }
