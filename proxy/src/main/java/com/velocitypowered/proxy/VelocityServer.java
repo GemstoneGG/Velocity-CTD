@@ -1086,6 +1086,36 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       }
     }
 
+          if (configuration.isIPCommandEnabled() && !commandManager.hasCommand("ip")) {
+          List<String> aliases = configuration.getCommandAliases().getOrDefault("ip", List.of());
+          Command command = new IPCommand(this).register(true);
+          if (command != null) {
+              commandManager.register(
+                      commandManager.metaBuilder("ip")
+                              .aliases(aliases.toArray(String[]::new))
+                              .plugin(VelocityVirtualPlugin.INSTANCE)
+                              .build(),
+                      command
+              );
+          }
+      }
+
+      if (configuration.isGKickEnabled() && !commandManager.hasCommand("gkick")) {
+          List<String> aliases = configuration.getCommandAliases().getOrDefault("gkick", List.of());
+          Command command = new GKickCommand(this).register(true);
+          if (command != null) {
+              commandManager.register(
+                      commandManager.metaBuilder("gkick")
+                              .aliases(aliases.toArray(String[]::new))
+                              .plugin(VelocityVirtualPlugin.INSTANCE)
+                              .build(),
+                      command
+              );
+          }
+      }
+
+    
+
     for (Map.Entry<String, List<String>> entry : configuration.getSlashServers().entrySet()) {
       for (String alias : entry.getValue()) {
         new SlashServerCommand(this, entry.getKey()).register(alias);
