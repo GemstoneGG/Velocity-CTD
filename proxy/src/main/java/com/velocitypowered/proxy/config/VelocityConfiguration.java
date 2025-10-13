@@ -812,6 +812,24 @@ public final class VelocityConfiguration implements ProxyConfig {
     return commands.isSendEnabled();
   }
 
+      /**
+     * Returns whether the <code>/ip</code> command is enabled.
+     *
+     * @return {@code true} if enabled
+     * */
+    public boolean isIPCommandEnabled() {
+        return commands.isIPCommandEnabled();
+    }
+
+    /**
+     * Returns whether the <code>/gkick</code> command is enabled.
+     *
+     * @return {@code true} if enabled
+     * */
+    public boolean isGKickEnabled() {
+        return commands.isGKickEnabled();
+    }
+
   /**
    * Returns whether command usage should override the default <code>/server</code> help.
    *
@@ -1905,6 +1923,20 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private boolean findCommand = true;
 
+          /**
+       * Whether the /ip command is enabled.
+       * Lets users retrieve the IP address of a player.
+       */
+      @Expose
+      private boolean ipCommand = true;
+
+      /**
+       * Whether the /gkick command is enabled.
+       * Lets users kick players from the proxy.
+       */
+      @Expose
+      private boolean gkickCommand = true;
+
     /**
      * Whether the /glist command is enabled.
      * Displays a list of all online players across all servers.
@@ -1988,6 +2020,14 @@ public final class VelocityConfiguration implements ProxyConfig {
       return findCommand;
     }
 
+        public boolean isIPCommandEnabled() {
+          return ipCommand;
+      }
+
+      public boolean isGKickEnabled() {
+          return gkickCommand;
+      }
+
     public boolean isGlistEnabled() {
       return glistCommand;
     }
@@ -2028,6 +2068,8 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", hubCommand=" + hubCommand
           + ", pingCommand=" + pingCommand
           + ", sendCommand=" + sendCommand
+          + ", ipCommand=" + ipCommand
+          + ", gkickCommand=" + gkickCommand
           + ", overrideServerCommandUsage=" + overrideServerCommandUsage
           + '}';
     }
