@@ -65,8 +65,7 @@ public class KnownPacksPacket implements MinecraftPacket {
    * @throws QuietDecoderException if too many packs are received in a serverbound context
    */
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
+  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     final int packCount = ProtocolUtils.readVarInt(buf);
     if (direction == ProtocolUtils.Direction.SERVERBOUND && packCount > MAX_LENGTH_PACKS) {
       throw TOO_MANY_PACKS;
@@ -92,8 +91,7 @@ public class KnownPacksPacket implements MinecraftPacket {
    * @param protocolVersion the Minecraft protocol version
    */
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeVarInt(buf, packs.length);
 
     for (KnownPack pack : packs) {

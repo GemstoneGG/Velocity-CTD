@@ -153,8 +153,7 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
    * @param protocolVersion the protocol version used during decoding
    */
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
+  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     Action[] actions = Action.class.getEnumConstants();
     byte[] bytes = new byte[-Math.floorDiv(-actions.length, 8)];
     buf.readBytes(bytes);
@@ -188,8 +187,7 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
    * @param protocolVersion the protocol version used during encoding
    */
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     Action[] actions = Action.class.getEnumConstants();
     BitSet set = new BitSet(actions.length);
     for (int idx = 0; idx < actions.length; idx++) {
@@ -244,13 +242,11 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
      * Adds a player to the tab list. This action includes the full {@link GameProfile},
      * including the player's UUID, name, and properties.
      */
-    ADD_PLAYER((ignored, buf, info) -> {
-      info.profile = new GameProfile(
-          info.profileId,
-          ProtocolUtils.readString(buf, 16),
-          ProtocolUtils.readProperties(buf)
-      );
-    }, (ignored, buf, info) -> {
+    ADD_PLAYER((ignored, buf, info) -> info.profile = new GameProfile(
+        info.profileId,
+        ProtocolUtils.readString(buf, 16),
+        ProtocolUtils.readProperties(buf)
+    ), (ignored, buf, info) -> {
       ProtocolUtils.writeString(buf, info.profile.getName());
       ProtocolUtils.writeProperties(buf, info.profile.getProperties());
     }),

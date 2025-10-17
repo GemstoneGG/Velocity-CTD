@@ -33,7 +33,7 @@ import java.util.Set;
  * To avoid disconnects caused by sending update packets at the wrong time, this manager can
  * temporarily drop outgoing packets and re-send boss bar state only once it is safe to do so.</p>
  */
-public class BossBarManager {
+public final class BossBarManager {
 
   /**
    * The player that owns this boss bar manager.

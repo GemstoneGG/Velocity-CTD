@@ -112,14 +112,18 @@ abstract class InvocableCommandRegistrar<T extends InvocableCommand<I>, I extend
         .requiresWithContext((context, reader) -> requirement.test(context))
         .executes(callback)
         .suggests((context, builder) -> {
+          // Offset the suggestion to the last space separated word
+          int lastSpace = builder.getRemaining().lastIndexOf(' ') + 1;
+          final var offsetBuilder = builder.createOffset(builder.getStart() + lastSpace);
+
           final I invocation = invocationFactory.create(context);
           return command.suggestAsync(invocation).thenApply(suggestions -> {
             for (String value : suggestions) {
               Preconditions.checkNotNull(value, "suggestion");
-              builder.suggest(value);
+              offsetBuilder.suggest(value);
             }
 
-            return builder.build();
+            return offsetBuilder.build();
           });
         })
         .build();
