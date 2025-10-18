@@ -214,7 +214,7 @@ public enum ProtocolUtils {
    * <p>This is used to determine how many bytes are needed to encode
    * a given integer as a Minecraft VarInt.</p>
    */
-  private static final int[] VAR_INT_LENGTHS = new int[65];
+  private static final int[] VAR_INT_LENGTHS = new int[33];
 
   static {
     for (int i = 0; i <= 32; ++i) {
@@ -316,16 +316,15 @@ public enum ProtocolUtils {
   }
 
   /**
-   * Writes the specified {@code value} as a 21-bit Minecraft VarInt to the specified {@code buf}.
+   * Directly encodes a 21-bit Minecraft VarInt, ready to be written with {@link ByteBuf#writeMedium(int)}.
    * The upper 11 bits will be discarded.
    *
-   * @param buf   the buffer to read from
-   * @param value the integer to write
+   * @param value the value to encode
+   * @return the encoded value
    */
-  public static void write21BitVarInt(final ByteBuf buf, final int value) {
+  public static int encode21BitVarInt(final int value) {
     // See https://steinborn.me/posts/performance/how-fast-can-you-write-a-varint/
-    int w = (value & 0x7F | 0x80) << 16 | ((value >>> 7) & 0x7F | 0x80) << 8 | (value >>> 14);
-    buf.writeMedium(w);
+    return (value & 0x7F | 0x80) << 16 | ((value >>> 7) & 0x7F | 0x80) << 8 | (value >>> 14);
   }
 
   /**
