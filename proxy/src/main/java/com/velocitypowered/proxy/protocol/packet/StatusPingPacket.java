@@ -81,32 +81,35 @@ public class StatusPingPacket implements MinecraftPacket {
   }
 
   /**
-   * Returns the expected maximum byte length of this status ping packet.
+   * Computes the expected maximum length (in bytes) of this status ping packet.
    *
-   * <p>This is always {@code 8} bytes since the payload is a single long value.</p>
+   * <p>Because the packet only contains a single 64-bit payload field (a {@code long}),
+   * the total size is fixed at {@code 8} bytes for all protocol versions and directions.</p>
    *
-   * @param buf the input buffer
-   * @param direction the direction of the packet
-   * @param version the protocol version
-   * @return the expected maximum length in bytes
+   * @param buf the buffer being read (unused)
+   * @param direction the packet direction (clientbound or serverbound)
+   * @param version the Minecraft protocol version
+   * @return the fixed maximum byte length of this packet ({@code 8})
    */
   @Override
-  public int expectedMaxLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
+  public int decodeExpectedMaxLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
     return 8;
   }
 
   /**
-   * Returns the expected minimum byte length of this status ping packet.
+   * Computes the expected minimum length (in bytes) of this status ping packet.
    *
-   * <p>This is always {@code 8} bytes since the payload is a single long value.</p>
+   * <p>As the payload is a single {@code long} value, the encoded size is always exactly
+   * {@code 8} bytes. This method mirrors {@link #decodeExpectedMaxLength(ByteBuf, Direction, ProtocolVersion)}
+   * for consistency and validation purposes.</p>
    *
-   * @param buf the input buffer
-   * @param direction the direction of the packet
-   * @param version the protocol version
-   * @return the expected minimum length in bytes
+   * @param buf the buffer being read (unused)
+   * @param direction the packet direction (clientbound or serverbound)
+   * @param version the Minecraft protocol version
+   * @return the fixed minimum byte length of this packet ({@code 8})
    */
   @Override
-  public int expectedMinLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
+  public int decodeExpectedMinLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
     return 8;
   }
 }

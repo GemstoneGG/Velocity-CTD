@@ -21,6 +21,7 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
+import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
 import com.velocitypowered.proxy.protocol.util.DeferredByteBufHolder;
 import io.netty.buffer.ByteBuf;
 
@@ -92,5 +93,22 @@ public class RegistrySyncPacket extends DeferredByteBufHolder implements Minecra
   @Override
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
+  }
+
+  /**
+   * Provides an estimated number of bytes required to encode this registry sync packet.
+   *
+   * <p>Because this packet consists entirely of pre-serialized registry data stored in its
+   * internal buffer, the encoded size is exactly equal to the number of readable bytes in
+   * that buffer. This estimate allows the encoder to preallocate an appropriately sized
+   * output buffer to avoid resizing during transmission.</p>
+   *
+   * @param direction the packet direction (clientbound or serverbound)
+   * @param version the Minecraft protocol version
+   * @return the exact number of readable bytes in the content buffer
+   */
+  @Override
+  public int encodeSizeHint(final Direction direction, final ProtocolVersion version) {
+    return content().readableBytes();
   }
 }

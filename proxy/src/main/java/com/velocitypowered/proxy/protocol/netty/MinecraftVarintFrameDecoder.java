@@ -207,8 +207,8 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
 
     // We 'technically' have the incoming bytes of a payload here, and so, these can actually parse
     // the packet if needed, so, we'll take advantage of the existing methods
-    int expectedMinLen = packet.expectedMinLength(in, direction, registry.version);
-    int expectedMaxLen = packet.expectedMaxLength(in, direction, registry.version);
+    int expectedMinLen = packet.decodeExpectedMinLength(in, direction, registry.version);
+    int expectedMaxLen = packet.decodeExpectedMaxLength(in, direction, registry.version);
     if (expectedMaxLen != -1 && payloadLength > expectedMaxLen) {
       throw handleOverflow(packet, expectedMaxLen, in.readableBytes());
     }

@@ -513,4 +513,29 @@ public class AvailableCommandsPacket implements MinecraftPacket {
       return builder.buildFuture();
     }
   }
+
+  /**
+   * Provides an estimated payload size (in bytes) for encoding this packet.
+   *
+   * <p>The available-commands graph can be very large and highly variable depending on
+   * server configuration and installed plugins. Empirically, even moderately sized
+   * setups can exceed tens of kilobytes. To minimize buffer reallocation and copying
+   * during encoding, this method returns a conservative fixed estimate of {@code 128 KiB}
+   * for the payload size.</p>
+   *
+   * <p>Note: This estimate is for the packet <em>payload</em> only. The {@code MinecraftEncoder}
+   * will add the VarInt-encoded packet ID length on top of this when allocating the final
+   * buffer.</p>
+   *
+   * @param direction the packet direction
+   * @param version the Minecraft protocol version
+   * @return the estimated payload size in bytes (here, {@code 131072})
+   */
+  @Override
+  public int encodeSizeHint(final Direction direction, final ProtocolVersion version) {
+    // This is a very complex packet to encode. Paper 1.21.10 + Velocity with Spark has a size of
+    // 30,334, but this is likely on the lower side. We'll use 128KiB as a more realistically-sized
+    // amount.
+    return 128 * 1024;
+  }
 }

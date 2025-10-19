@@ -77,4 +77,24 @@ public class ServerboundCustomClickActionPacket extends DeferredByteBufHolder im
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
+
+  /**
+   * Provides an estimated number of bytes required to encode this custom click action packet.
+   *
+   * <p>Since this packet carries an opaque payload with no additional metadata or header fields,
+   * the encoded size is equal to the number of readable bytes in the internal content buffer.
+   * This allows the encoder to preallocate a buffer of the exact payload size without
+   * overestimation.</p>
+   *
+   * <p>This estimation ensures efficient buffer allocation and avoids unnecessary resizing
+   * during the encoding phase.</p>
+   *
+   * @param direction the packet direction (clientbound or serverbound)
+   * @param version the Minecraft protocol version
+   * @return the exact number of bytes equal to the readable payload size
+   */
+  @Override
+  public int encodeSizeHint(final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+    return content().readableBytes();
+  }
 }

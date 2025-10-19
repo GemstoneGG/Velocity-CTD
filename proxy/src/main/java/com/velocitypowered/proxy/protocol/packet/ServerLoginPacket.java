@@ -241,18 +241,30 @@ public class ServerLoginPacket implements MinecraftPacket {
   }
 
   /**
-   * Calculates the expected maximum length (in bytes) of this packet.
+   * Computes a conservative upper bound (in bytes) for the total size of this packet
+   * when decoded from the network.
    *
-   * <p>This accounts for all fields including cryptographic key data and optional
-   * UUID fields depending on protocol version.</p>
+   * <p>The estimate includes all fixed and optional fields across supported protocol
+   * versions, such as:</p>
    *
-   * @param buf the buffer for context
-   * @param direction the packet direction
-   * @param version the protocol version
-   * @return the upper-bound byte size of the encoded packet
+   * <ul>
+   *   <li>Base fields: username (UTF-8, up to 16 characters) and one boolean flag.</li>
+   *   <li>Key authentication data (1.19+): presence flag, expiry timestamp, encoded public key,
+   *       and optional signature block.</li>
+   *   <li>Profile UUID fields (1.19.1+): optional UUID flag plus two 64-bit segments (MSB/LSB).</li>
+   * </ul>
+   *
+   * <p>These calculations intentionally overestimate to account for variable-length
+   * strings, multibyte VarInts, and potential UTF-8 expansion (up to 3 bytes per character),
+   * as well as to safely handle malformed or maliciously large input.</p>
+   *
+   * @param buf the input buffer (unused in this calculation)
+   * @param direction the packet direction (clientbound or serverbound)
+   * @param version the Minecraft protocol version
+   * @return a conservative upper-bound estimate of this packet’s byte length
    */
   @Override
-  public int expectedMaxLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
+  public int decodeExpectedMaxLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
     // Accommodate the rare (but likely malicious) use of UTF-8 usernames, since it is technically
     // legal on the protocol level.
     int base = 1 + (16 * 3);

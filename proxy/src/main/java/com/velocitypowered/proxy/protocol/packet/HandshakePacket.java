@@ -213,34 +213,71 @@ public class HandshakePacket implements MinecraftPacket {
   }
 
   /**
-   * Returns the expected minimum length (in bytes) of this packet when read from a buffer.
+   * Returns a conservative lower bound (in bytes) for a valid handshake packet.
    *
-   * <p>This value is used to verify packet length validity during decoding.</p>
+   * <p>This minimum accounts for the smallest-possible encodings of the fixed fields:
+   * <ul>
+   *   <li>protocol version (VarInt, minimal form),</li>
+   *   <li>an empty server address (string length prefix only),</li>
+   *   <li>port (2 bytes), and</li>
+   *   <li>next state / intent (VarInt, minimal form).</li>
+   * </ul>
+   * The returned value is intentionally conservative to avoid false negatives during
+   * early-length validation.</p>
    *
-   * @param buf the buffer to inspect
-   * @param direction the direction of the packet
+   * @param buf the buffer being decoded (not used for this calculation)
+   * @param direction the packet direction
    * @param version the protocol version
-   * @return the minimum expected byte length
+   * @return a conservative minimum expected byte length
    */
   @Override
-  public int expectedMinLength(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                               final ProtocolVersion version) {
+  public int decodeExpectedMinLength(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                                     final ProtocolVersion version) {
     return 7;
   }
 
   /**
-   * Returns the expected maximum length (in bytes) of this packet when read from a buffer.
+   * Returns a conservative upper bound (in bytes) for a handshake packet.
    *
-   * <p>This helps guard against malformed or excessively large packets, particularly for hostnames.</p>
+   * <p>This bound includes:
+   * <ul>
+   *   <li>the protocol version (VarInt, up to several bytes),</li>
+   *   <li>the server address string length prefix (VarInt),</li>
+   *   <li>the server address itself, sized pessimistically as up to 3 bytes per character
+   *       to account for worst-case UTF-8 expansion, using {@code MAXIMUM_HOSTNAME_LENGTH},</li>
+   *   <li>the port (2 bytes), and</li>
+   *   <li>the next state / intent (VarInt).</li>
+   * </ul>
+   * The constant overhead added before the {@code * 3} term covers the non-hostname
+   * fields and length-prefix worst case.</p>
    *
-   * @param buf the buffer to inspect
-   * @param direction the direction of the packet
+   * @param buf the buffer being decoded (not used for this calculation)
+   * @param direction the packet direction
    * @param version the protocol version
-   * @return the maximum expected byte length
+   * @return a conservative maximum expected byte length
    */
   @Override
-  public int expectedMaxLength(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                               final ProtocolVersion version) {
+  public int decodeExpectedMaxLength(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                                     final ProtocolVersion version) {
     return 9 + (MAXIMUM_HOSTNAME_LENGTH * 3);
+  }
+
+  /**
+   * Provides an estimated encoded size (in bytes) of this packet for buffer preallocation.
+   *
+   * <p>The handshake is small but the hostname can vary; rather than compute an exact size
+   * on every call, this returns a safe fixed estimate ({@code 4 KiB}) that comfortably
+   * covers all reasonable cases and minimizes buffer reallocation during encoding.
+   * The encoder will add the VarInt packet ID on top of this size when allocating.</p>
+   *
+   * @param direction the packet direction
+   * @param version the protocol version
+   * @return the estimated payload size in bytes (here, {@code 4096})
+   */
+  @Override
+  public int encodeSizeHint(final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+    // We could compute an exact size, but 4KiB ought to be enough to encode all reasonable
+    // sizes of this packet.
+    return 4 * 1024;
   }
 }

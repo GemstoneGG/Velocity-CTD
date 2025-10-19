@@ -49,7 +49,7 @@ public final class FinishedUpdatePacket implements MinecraftPacket {
   }
 
   @Override
-  public int expectedMaxLength(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public int decodeExpectedMaxLength(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     return 0;
   }
 

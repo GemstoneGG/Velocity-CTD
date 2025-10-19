@@ -77,4 +77,21 @@ public class CodeOfConductPacket extends DeferredByteBufHolder implements Minecr
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
+
+  /**
+   * Provides an estimated number of bytes required to encode this code of conduct packet.
+   *
+   * <p>Because this packet’s payload is entirely contained in its retained buffer,
+   * the encoded size is equal to the number of readable bytes in that buffer. This
+   * value is used to preallocate the encoder’s output buffer to avoid resizing
+   * during write operations.</p>
+   *
+   * @param direction the packet direction (clientbound or serverbound)
+   * @param version the Minecraft protocol version
+   * @return the exact number of readable bytes in the content buffer
+   */
+  @Override
+  public int encodeSizeHint(final Direction direction, final ProtocolVersion version) {
+    return content().readableBytes();
+  }
 }

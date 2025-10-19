@@ -190,18 +190,25 @@ public class EncryptionResponsePacket implements MinecraftPacket {
   }
 
   /**
-   * Returns the expected maximum length (in bytes) of this encryption response packet.
+   * Computes a conservative upper bound (in bytes) for this encryption response packet
+   * for the given protocol version.
    *
-   * <p>This includes the shared secret, verify token, and optional salt and marker
-   * depending on the protocol version.</p>
+   * <p>The calculation accounts for:
+   * <ul>
+   *   <li>a fixed-size RSA shared secret (plus its 2-byte VarInt length prefix),</li>
+   *   <li>a verify token (plus its 2-byte VarInt length prefix), whose maximum size
+   *       increases on newer protocols, and</li>
+   *   <li>version-dependent extras such as the left/right marker byte and salt.</li>
+   * </ul>
+   * The bound favors safety to help detect malformed or oversized packets during decode.</p>
    *
-   * @param buf the input buffer
-   * @param direction the direction of the packet
+   * @param buf the input buffer (unused in this calculation)
+   * @param direction the packet direction
    * @param version the Minecraft protocol version
-   * @return the maximum length in bytes
+   * @return an upper-bound estimate of the packet length in bytes
    */
   @Override
-  public int expectedMaxLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
+  public int decodeExpectedMaxLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
     // It turns out these come out to the same length, whether we're talking >=1.8 or not.
     // The length prefix always winds up being 2 bytes.
     int base = 256 + 2 + 2;
@@ -218,18 +225,22 @@ public class EncryptionResponsePacket implements MinecraftPacket {
   }
 
   /**
-   * Returns the expected minimum length (in bytes) of this encryption response packet.
+   * Computes a conservative lower bound (in bytes) for this encryption response packet
+   * for the given protocol version.
    *
-   * <p>This subtracts the salt and extra token length in versions where they are optional.</p>
+   * <p>This starts from the corresponding upper bound and subtracts the sizes of
+   * version-dependent optional components (e.g., the extended verify token and salt)
+   * where the protocol allows them to be omitted, yielding the smallest valid form
+   * of the packet.</p>
    *
-   * @param buf the input buffer
-   * @param direction the direction of the packet
+   * @param buf the input buffer (unused in this calculation)
+   * @param direction the packet direction
    * @param version the Minecraft protocol version
-   * @return the minimum length in bytes
+   * @return a lower-bound estimate of the packet length in bytes
    */
   @Override
-  public int expectedMinLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
-    int base = expectedMaxLength(buf, direction, version);
+  public int decodeExpectedMinLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
+    int base = decodeExpectedMaxLength(buf, direction, version);
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19)) {
       // These are "optional"
       base -= 128 + 8;

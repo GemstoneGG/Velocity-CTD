@@ -368,6 +368,17 @@ public enum ProtocolUtils {
   }
 
   /**
+   * Determines the size of the written {@code str} if encoded as a VarInt-prefixed UTF-8 string.
+   *
+   * @param str the string to write
+   * @return the encoded size
+   */
+  public static int stringSizeHint(final CharSequence str) {
+    int size = ByteBufUtil.utf8Bytes(str);
+    return varIntBytes(size) + size;
+  }
+
+  /**
    * Writes the specified {@code str} to the {@code buf} with a VarInt prefix.
    *
    * @param buf the buffer to write to

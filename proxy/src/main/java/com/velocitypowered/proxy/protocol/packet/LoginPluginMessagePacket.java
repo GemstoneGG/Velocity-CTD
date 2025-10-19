@@ -21,6 +21,7 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
+import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
 import com.velocitypowered.proxy.protocol.util.DeferredByteBufHolder;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -159,5 +160,25 @@ public class LoginPluginMessagePacket extends DeferredByteBufHolder implements M
   @Override
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
+  }
+
+  /**
+   * Provides an estimated number of bytes required to encode this login plugin message.
+   *
+   * <p>This implementation returns the number of readable bytes in the underlying payload
+   * buffer, representing the size of the actual message content. The overall encoded size
+   * will include this payload plus the VarInt-encoded ID and UTF-8-encoded channel name
+   * written by {@link #encode(ByteBuf, Direction, ProtocolVersion)}.</p>
+   *
+   * <p>This estimate allows the encoder to preallocate an appropriately sized buffer,
+   * minimizing reallocation and improving I/O efficiency during encoding.</p>
+   *
+   * @param direction the packet direction (clientbound or serverbound)
+   * @param version the Minecraft protocol version
+   * @return the estimated size of this packet’s encoded payload in bytes
+   */
+  @Override
+  public int encodeSizeHint(final Direction direction, final ProtocolVersion version) {
+    return content().readableBytes();
   }
 }

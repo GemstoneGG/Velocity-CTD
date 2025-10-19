@@ -1260,6 +1260,15 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                   Argument.string("server", server.getServerInfo().getName()),
                   Argument.component("reason", disconnectReason)), safe);
     }
+
+    if (this.server.getQueueManager().isQueueEnabled() && disconnectReason instanceof TextComponent text) {
+      for (String reason : this.server.getConfiguration().getQueue().getBannedReason()) {
+        if (containsString(text, reason)) {
+          this.server.getQueueManager().removeFromAll(get());
+          break;
+        }
+      }
+    }
   }
 
   private void handleConnectionException(final RegisteredServer rs,
@@ -1319,9 +1328,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
         case final RedirectPlayer res -> createConnectionRequest(res.getServer(), previousConnection).connect()
             .whenCompleteAsync((status, throwable) -> {
               if (throwable != null) {
-                handleConnectionException(
-                    status != null ? status.getAttemptedConnection() : res.getServer(), throwable,
-                    true);
+                handleConnectionException(res.getServer(), throwable, true);
                 return;
               }
 
@@ -1498,6 +1505,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   public void setConnectedServer(final @Nullable VelocityServerConnection serverConnection) {
     this.connectedServer = serverConnection;
     this.tryIndex = 0;
+
+    if (serverConnection != null && server.getConfiguration().getQueue().isRemovePlayerOnServerSwitch()) {
+      server.getQueueManager().removeFromAll(get());
+    }
 
     if (serverConnection == connectionInFlight) {
       connectionInFlight = null;
@@ -2326,12 +2337,15 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           VelocityRegisteredServer vrs = (VelocityRegisteredServer) realDestination;
           VelocityServerConnection con = new VelocityServerConnection(vrs, previousServer, ConnectedPlayer.this, server);
           connectionInFlight = con;
+
           return con.connect().whenCompleteAsync((result, exception) -> {
             if (result != null && !result.isSuccessful() && !result.isSafe()) {
-              result.getReasonComponent()
-                  .ifPresent(reason -> handleConnectionException(result.getAttemptedConnection(),
-                      DisconnectPacket.create(reason, getProtocolVersion(), connection.getState()), false));
+              handleConnectionException(result.getAttemptedConnection(),
+                  // The only way for the reason to be null is if the result is safe
+                  DisconnectPacket.create(result.getReasonComponent().orElseThrow(),
+                      getProtocolVersion(), connection.getState()), false);
             }
+
             this.resetIfInFlightIs(con);
           }, connection.eventLoop());
         }, connection.eventLoop());
@@ -2346,38 +2360,14 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
     @Override
     public CompletableFuture<Result> connect() {
-      return this.internalConnect().whenCompleteAsync((status, throwable) -> {
-        if (status != null && !status.isSuccessful()) {
-          if (!status.isSafe()) {
-            handleConnectionException(status.getAttemptedConnection(), throwable, false);
-          }
-        } else if (status != null && status.isSuccessful() && status.isSafe()) {
-          if (server.getConfiguration().getQueue().isRemovePlayerOnServerSwitch()) {
-            server.getQueueManager().removeFromAll(get());
-          }
-        }
-
-        // Optionals cannot be null in this instance
-        final Component reason = requireNonNull(status).getReasonComponent()
-            .orElse(ConnectionMessages.INTERNAL_SERVER_CONNECTION_ERROR);
-
-        if (server.getQueueManager().isQueueEnabled()) {
-          for (String r : server.getConfiguration().getQueue().getBannedReason()) {
-            if (reason.contains(Component.text(r))) {
-              server.getQueueManager().removeFromAll(get());
-            }
-          }
-        }
-      }, connection.eventLoop()).thenApply(x -> x);
+      return this.internalConnect().thenApply(x -> x);
     }
 
     @Override
     public CompletableFuture<Boolean> connectWithIndication() {
       return internalConnect().whenCompleteAsync((status, throwable) -> {
         if (throwable != null) {
-          // TODO: The exception handling from this is not very good. Find a better way.
-          handleConnectionException(status != null ? status.getAttemptedConnection() : toConnect,
-              throwable, true);
+          handleConnectionException(toConnect, throwable, true);
           return;
         }
 
@@ -2390,13 +2380,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           case SERVER_DISCONNECTED -> {
             final Component reason = status.getReasonComponent()
                     .orElse(ConnectionMessages.INTERNAL_SERVER_CONNECTION_ERROR);
-
-            if (connectedServer == null && connection.getState() == StateRegistry.CONFIG) {
-              connection.closeWith(DisconnectPacket.create(reason, getProtocolVersion(), connection.getState()));
-            } else {
-              handleConnectionException(toConnect,
-                      DisconnectPacket.create(reason, getProtocolVersion(), connection.getState()), status.isSafe());
-            }
+            handleConnectionException(toConnect, DisconnectPacket.create(reason, getProtocolVersion(), connection.getState()), status.isSafe());
 
             TextComponent textComponent = (TextComponent) reason;
             if (server.getQueueManager().isQueueEnabled()) {

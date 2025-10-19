@@ -21,6 +21,7 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
+import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
 import io.netty.buffer.ByteBuf;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -122,5 +123,25 @@ public class StatusResponsePacket implements MinecraftPacket {
   @Override
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
+  }
+
+  /**
+   * Provides an estimated number of bytes required to encode this status response packet.
+   *
+   * <p>The encoded size corresponds to the UTF-8 encoded length of the status message,
+   * typically containing the JSON-formatted server status data. This estimate is obtained
+   * by calling {@link ProtocolUtils#stringSizeHint(CharSequence)}, which accounts for
+   * the VarInt string length prefix and the UTF-8 byte count of the message itself.</p>
+   *
+   * <p>This hint allows the encoder to preallocate a buffer large enough to contain
+   * the entire encoded message, minimizing reallocation during write operations.</p>
+   *
+   * @param direction the packet direction (clientbound or serverbound)
+   * @param version the Minecraft protocol version
+   * @return the estimated encoded size of this packet in bytes
+   */
+  @Override
+  public int encodeSizeHint(final Direction direction, final ProtocolVersion version) {
+    return ProtocolUtils.stringSizeHint(this.status);
   }
 }

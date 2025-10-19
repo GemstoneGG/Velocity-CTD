@@ -88,6 +88,37 @@ public class MinecraftEncoder extends MessageToByteEncoder<MinecraftPacket> {
   }
 
   /**
+   * Allocates a {@link ByteBuf} for encoding the specified packet.
+   *
+   * <p>This method provides an optimized buffer allocation by using the
+   * packet's {@link MinecraftPacket#encodeSizeHint(ProtocolUtils.Direction, ProtocolVersion)}
+   * as a preallocation estimate for the encoded size.</p>
+   *
+   * <p>If a size hint is available (i.e., greater than or equal to 0), the encoder
+   * calculates the total buffer size as the sum of the packet ID’s VarInt length
+   * and the packet’s estimated payload size. Otherwise, it defers to the superclass
+   * allocation strategy.</p>
+   *
+   * @param ctx the Netty channel handler context
+   * @param msg the Minecraft packet to encode
+   * @param preferDirect whether to prefer a direct (off-heap) buffer
+   * @return a {@link ByteBuf} pre-allocated to the estimated encoded packet size
+   * @throws Exception if an error occurs during buffer allocation
+   */
+  @Override
+  protected ByteBuf allocateBuffer(final ChannelHandlerContext ctx, final MinecraftPacket msg,
+                                   final boolean preferDirect) throws Exception {
+    int hint = msg.encodeSizeHint(direction, registry.version);
+    if (hint < 0) {
+      return super.allocateBuffer(ctx, msg, preferDirect);
+    }
+
+    int packetId = this.registry.getPacketId(msg);
+    int totalHint = ProtocolUtils.varIntBytes(packetId) + hint;
+    return preferDirect ? ctx.alloc().ioBuffer(totalHint) : ctx.alloc().heapBuffer(totalHint);
+  }
+
+  /**
    * Updates the protocol version used by this encoder.
    *
    * <p>This method re-initializes the protocol registry to match the given version

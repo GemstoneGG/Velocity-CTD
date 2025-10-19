@@ -27,56 +27,77 @@ import io.netty.buffer.ByteBuf;
 public interface MinecraftPacket {
 
   /**
-   * Decodes the contents of the packet from the provided buffer.
+   * Decodes the contents of this packet from the specified {@link ByteBuf}.
    *
-   * @param buf the {@link ByteBuf} to read from
+   * @param buf the buffer containing the packet data
    * @param direction the packet direction (client to server or server to client)
    * @param protocolVersion the current Minecraft protocol version
    */
   void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion);
 
   /**
-   * Encodes the contents of the packet into the provided buffer.
+   * Encodes the contents of this packet into the specified {@link ByteBuf}.
    *
-   * @param buf the {@link ByteBuf} to write to
+   * @param buf the buffer to write the packet data into
    * @param direction the packet direction (client to server or server to client)
    * @param protocolVersion the current Minecraft protocol version
    */
   void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion);
 
   /**
-   * Handles the packet using the provided session handler.
+   * Handles this packet using the provided {@link MinecraftSessionHandler}.
    *
-   * @param handler the {@link MinecraftSessionHandler} to process this packet
-   * @return {@code true} if the packet was successfully handled, {@code false} otherwise
+   * @param handler the session handler responsible for processing this packet
+   * @return {@code true} if the packet was handled successfully,
+   *         or {@code false} if it was unrecognized or unprocessed
    */
   boolean handle(MinecraftSessionHandler handler);
 
   /**
-   * Provides the expected maximum number of bytes required to decode this packet.
-   * This value is used to detect malformed or malicious packets during decoding.
+   * Returns the maximum number of bytes expected to be read when decoding this packet.
+   * This is primarily used to guard against malformed or malicious packets that exceed
+   * reasonable size expectations.
    *
-   * @param buf the {@link ByteBuf} for reading the packet
+   * <p>Implementations should override this if a reliable upper bound is known.
+   *
+   * @param buf the buffer being read from
    * @param direction the packet direction
    * @param version the Minecraft protocol version
-   * @return the maximum number of expected bytes, or -1 if unknown
+   * @return the maximum expected byte length, or {@code -1} if unknown
    */
-  default int expectedMaxLength(ByteBuf buf, ProtocolUtils.Direction direction,
-                                ProtocolVersion version) {
+  default int decodeExpectedMaxLength(ByteBuf buf, ProtocolUtils.Direction direction,
+                                      ProtocolVersion version) {
     return -1;
   }
 
   /**
-   * Provides the expected minimum number of bytes required to decode this packet.
-   * This value is used to validate that the packet meets the minimal structural requirements.
+   * Returns the minimum number of bytes required to decode this packet.
+   * This ensures that the packet contains at least enough data to represent
+   * its required structure.
    *
-   * @param buf the {@link ByteBuf} for reading the packet
+   * @param buf the buffer being read from
    * @param direction the packet direction
    * @param version the Minecraft protocol version
-   * @return the minimum number of expected bytes
+   * @return the minimum expected byte length
    */
-  default int expectedMinLength(ByteBuf buf, ProtocolUtils.Direction direction,
-                                ProtocolVersion version) {
+  default int decodeExpectedMinLength(ByteBuf buf, ProtocolUtils.Direction direction,
+                                      ProtocolVersion version) {
     return 0;
+  }
+
+  /**
+   * Provides an estimated number of bytes required to encode this packet.
+   * This value serves as a preallocation hint for internal buffer operations
+   * during packet encoding.
+   *
+   * <p>Implementations may calculate this by summing the expected sizes of
+   * encoded elements, such as string lengths or VarInt counts. For example:
+   *
+   * @param direction the packet direction (client to server or server to client)
+   * @param version the Minecraft protocol version
+   * @return the estimated encoded size in bytes, or {@code -1} if unknown
+   */
+  default int encodeSizeHint(ProtocolUtils.Direction direction, ProtocolVersion version) {
+    return -1;
   }
 }

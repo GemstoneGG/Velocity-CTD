@@ -10,7 +10,8 @@ motd = "<#ff3a4c>A Velocity Server"
 
 # What should it look like when you hover over the player count? This is
 # displayed when hovering over the player count/max players' tooltip and
-# only supports the legacy color codes due to Minecraft limitations.
+# only supports the legacy colors due to Minecraft limitations.
+# Only MiniMessage format is accepted.
 motd-hover = [
     "<red>A Velocity Tooltip",
     "<aqua>that shows more information!"
