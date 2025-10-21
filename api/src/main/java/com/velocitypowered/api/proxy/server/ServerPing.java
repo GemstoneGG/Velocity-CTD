@@ -41,7 +41,7 @@ public final class ServerPing {
   /**
    * The MOTD (Message of the Day) component.
    */
-  private final Component description;
+  private final @Nullable Component description;
 
   /**
    * The favicon shown to the client, or {@code null} if not set.
@@ -108,6 +108,7 @@ public final class ServerPing {
    *
    * @return the description component
    */
+  @Nullable
   public Component getDescriptionComponent() {
     return description;
   }

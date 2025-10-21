@@ -47,6 +47,7 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
 import java.util.HashMap;
 import java.util.Map;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The {@code ArgumentPropertyRegistry} is responsible for managing the registration and
@@ -109,9 +110,6 @@ public final class ArgumentPropertyRegistry {
     ArgumentIdentifier identifier = readIdentifier(buf, protocolVersion);
 
     ArgumentPropertySerializer<?> serializer = byIdentifier.get(identifier);
-    if (serializer == null) {
-      throw new IllegalArgumentException("Argument type identifier " + identifier + " unknown.");
-    }
 
     Object result = serializer.deserialize(buf, protocolVersion);
 
@@ -178,7 +176,7 @@ public final class ArgumentPropertyRegistry {
    * @param protocolVersion the protocol version to use
    * @return the identifier read from the buffer
    */
-  public static ArgumentIdentifier readIdentifier(final ByteBuf buf, final ProtocolVersion protocolVersion) {
+  public static @NotNull ArgumentIdentifier readIdentifier(final ByteBuf buf, final ProtocolVersion protocolVersion) {
     if (protocolVersion.noLessThan(MINECRAFT_1_19)) {
       int id = ProtocolUtils.readVarInt(buf);
       for (ArgumentIdentifier i : byIdentifier.keySet()) {
@@ -196,9 +194,9 @@ public final class ArgumentPropertyRegistry {
           return i;
         }
       }
-    }
 
-    return null;
+      throw new IllegalArgumentException("Argument type identifier " + identifier + " unknown.");
+    }
   }
 
   static {
