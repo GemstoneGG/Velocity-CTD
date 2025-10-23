@@ -2945,7 +2945,7 @@ public final class VelocityConfiguration implements ProxyConfig {
      * @return a list of server names
      */
     public List<String> getNoQueueServers() {
-      return noQueueServers;
+      return noQueueServers == null ? java.util.Collections.emptyList() : noQueueServers;
     }
 
     /**
