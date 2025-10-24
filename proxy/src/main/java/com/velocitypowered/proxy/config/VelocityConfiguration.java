@@ -45,6 +45,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -1260,6 +1261,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         } else {
           Files.createFile(secretPath);
           Files.writeString(secretPath, forwardingSecretString = generateRandomString(12), StandardCharsets.UTF_8);
+          logger.info("The forwarding-secret-file does not exist. A new file has been created at {}", forwardSecretFile);
         }
       }
 
@@ -3000,7 +3002,7 @@ public final class VelocityConfiguration implements ProxyConfig {
      * @return a list of server names
      */
     public List<String> getNoQueueServers() {
-      return noQueueServers;
+      return noQueueServers == null ? Collections.emptyList() : noQueueServers;
     }
 
     /**
