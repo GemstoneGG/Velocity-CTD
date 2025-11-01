@@ -107,8 +107,7 @@ public final class ServerInfo implements Comparable<ServerInfo> {
     }
 
     return Objects.equals(name, that.name)
-        && Objects.equals(address, that.address)
-        && Objects.equals(forwardingMode, that.forwardingMode);
+        && Objects.equals(address, that.address);
   }
 
   @Override
