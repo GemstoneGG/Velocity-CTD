@@ -32,7 +32,7 @@ public final class PrivateAddressChecker {
   }
 
   /**
-   * Checks if the provided IP address falls within one of the RFC 1918 private IPv4 ranges:
+   * Checks if the provided IP address falls within one of the RFC 1918 private IPv4 ranges.
    *
    * <ul>
    *   <li>10.0.0.0     to 10.255.255.255     (10.0.0.0/8)</li>
@@ -43,7 +43,7 @@ public final class PrivateAddressChecker {
    * @param address the IP address to evaluate
    * @return {@code true} if the address is private, {@code false} otherwise
    */
-   public static boolean isPrivateIP(InetAddress address) {
+  public static boolean isPrivateIp(InetAddress address) {
     byte[] ip = address.getAddress();
 
     // 10.0.0.0/8 range: First octet = 10

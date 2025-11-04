@@ -341,7 +341,8 @@ public final class VelocityConfiguration implements ProxyConfig {
 
   private VelocityConfiguration(final String bind, final String motd, final List<String> motdHover,
                                 final int showMaxPlayers, final boolean onlineMode,
-                                final boolean preventClientProxyConnections, final boolean forwardPrivateAddressesToMojang, final boolean announceForge,
+                                final boolean preventClientProxyConnections, final boolean forwardPrivateAddressesToMojang,
+                                final boolean announceForge,
                                 final PlayerInfoForwarding playerInfoForwardingMode, final byte[] forwardingSecret,
                                 final boolean onlineModeKickExistingPlayers, final boolean kickExistingPlayersCheckIp,
                                 final PingPassthroughMode pingPassthrough,

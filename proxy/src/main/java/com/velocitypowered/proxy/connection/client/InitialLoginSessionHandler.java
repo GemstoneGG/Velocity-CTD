@@ -313,7 +313,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
       String url = String.format(MOJANG_HASJOINED_URL, urlFormParameterEscaper().escape(username), serverId);
 
       if (server.getConfiguration().shouldPreventClientProxyConnections()) {
-        if (server.getConfiguration().shouldForwardPrivateAddressesToMojang() || !PrivateAddressChecker.isPrivateIP(addr.getAddress())) {
+        if (server.getConfiguration().shouldForwardPrivateAddressesToMojang() || !PrivateAddressChecker.isPrivateIp(addr.getAddress())) {
           url += "&ip=" + urlFormParameterEscaper().escape(playerIp);
         }
       }
