@@ -44,7 +44,10 @@ force-key-authentication = true
 # If client's ISP/AS sent from this proxy is different from the one from Mojang's
 # authentication server, the player is kicked. This disallows some VPN and proxy
 # connections but is a weak form of protection.
-prevent-client-proxy-connections = false
+prevent-client-proxy-connections = true
+
+# Should we forward private IP addresses to Mojang?
+forward-private-addresses-to-mojang = false
 
 # Should we forward IP addresses and other data to backend servers?
 # Available options:

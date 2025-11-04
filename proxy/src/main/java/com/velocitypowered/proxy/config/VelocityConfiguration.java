@@ -118,7 +118,13 @@ public final class VelocityConfiguration implements ProxyConfig {
    * Whether to prevent clients from connecting directly to backend servers.
    */
   @Expose
-  private boolean preventClientProxyConnections = false;
+  private boolean preventClientProxyConnections = true;
+
+  /**
+   * Whether to forward private addresses to Mojang.
+   */
+  @Expose
+  private boolean forwardPrivateAddressesToMojang = false;
 
   /**
    * Global player info forwarding strategy used by the proxy.
@@ -335,7 +341,7 @@ public final class VelocityConfiguration implements ProxyConfig {
 
   private VelocityConfiguration(final String bind, final String motd, final List<String> motdHover,
                                 final int showMaxPlayers, final boolean onlineMode,
-                                final boolean preventClientProxyConnections, final boolean announceForge,
+                                final boolean preventClientProxyConnections, final boolean forwardPrivateAddressesToMojang, final boolean announceForge,
                                 final PlayerInfoForwarding playerInfoForwardingMode, final byte[] forwardingSecret,
                                 final boolean onlineModeKickExistingPlayers, final boolean kickExistingPlayersCheckIp,
                                 final PingPassthroughMode pingPassthrough,
@@ -356,6 +362,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     this.showMaxPlayers = showMaxPlayers;
     this.onlineMode = onlineMode;
     this.preventClientProxyConnections = preventClientProxyConnections;
+    this.forwardPrivateAddressesToMojang = forwardPrivateAddressesToMojang;
     this.announceForge = announceForge;
     this.playerInfoForwardingMode = playerInfoForwardingMode;
     this.forwardingSecret = forwardingSecret;
@@ -607,6 +614,11 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Override
   public boolean shouldPreventClientProxyConnections() {
     return preventClientProxyConnections;
+  }
+
+  @Override
+  public boolean shouldForwardPrivateAddressesToMojang() {
+    return forwardPrivateAddressesToMojang;
   }
 
   /**
@@ -1275,7 +1287,9 @@ public final class VelocityConfiguration implements ProxyConfig {
       final boolean forceKeyAuthentication = config.getOrElse("force-key-authentication", true);
       final boolean announceForge = config.getOrElse("announce-forge", true);
       final boolean preventClientProxyConnections = config.getOrElse(
-              "prevent-client-proxy-connections", false);
+              "prevent-client-proxy-connections", true);
+      final boolean forwardPrivateAddressesToMojang = config.getOrElse(
+              "forward-private-addresses-to-mojang", false);
       final boolean kickExisting = config.getOrElse("kick-existing-players", false);
       final boolean kickExistingCheckIp = config.getOrElse("kick-existing-players-check-ip", false);
       final boolean enablePlayerAddressLogging = config.getOrElse(
@@ -1376,6 +1390,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           maxPlayers,
           onlineMode,
           preventClientProxyConnections,
+          forwardPrivateAddressesToMojang,
           announceForge,
           forwardingMode,
           forwardingSecret,
