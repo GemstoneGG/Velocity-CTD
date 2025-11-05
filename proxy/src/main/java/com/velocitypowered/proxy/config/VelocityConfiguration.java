@@ -36,8 +36,8 @@ import com.velocitypowered.proxy.config.migration.MiniMessageTranslationsMigrati
 import com.velocitypowered.proxy.config.migration.MotdMigration;
 import com.velocitypowered.proxy.config.migration.TransferIntegrationMigration;
 import com.velocitypowered.proxy.util.AddressUtil;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -1189,8 +1189,6 @@ public final class VelocityConfiguration implements ProxyConfig {
    * @return the deserialized Velocity configuration
    * @throws IOException if we could not read from the {@code path}.
    */
-  @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
-      justification = "I looked carefully and there's no way SpotBugs is right.")
   public static VelocityConfiguration read(final Path path) throws IOException {
     URL defaultConfigLocation = VelocityConfiguration.class.getClassLoader()
         .getResource("default-velocity.toml");
@@ -1198,7 +1196,17 @@ public final class VelocityConfiguration implements ProxyConfig {
       throw new RuntimeException("Default configuration file does not exist.");
     }
 
-    // Create the forwarding-secret file on first-time startup if it doesn't exist
+    // Explicitly create the default configuration file if it does not exist. This
+    // ensures a complete file is present before it is written to the disk.
+    if (Files.notExists(path)) {
+      try (InputStream in = defaultConfigLocation.openStream()) {
+        Files.copy(in, path);
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to create default configuration file at " + path + ".", e);
+      }
+    }
+
+    // Create the forwarding-secret file on first-time startup if it doesn't exist.
     final Path defaultForwardingSecretPath = Path.of("forwarding.secret");
     if (Files.notExists(path) && Files.notExists(defaultForwardingSecretPath)) {
       Files.writeString(defaultForwardingSecretPath, generateRandomString(12));
