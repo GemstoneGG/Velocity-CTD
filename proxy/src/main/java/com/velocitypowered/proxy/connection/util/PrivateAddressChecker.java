@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,6 @@ import java.net.InetAddress;
 public final class PrivateAddressChecker {
 
   private PrivateAddressChecker() {
-    // Utility class
   }
 
   /**
@@ -43,7 +42,7 @@ public final class PrivateAddressChecker {
    * @param address the IP address to evaluate
    * @return {@code true} if the address is private, {@code false} otherwise
    */
-  public static boolean isPrivateIp(InetAddress address) {
+  public static boolean isPrivateAddress(final InetAddress address) {
     byte[] ip = address.getAddress();
 
     // 10.0.0.0/8 range: First octet = 10
@@ -57,11 +56,6 @@ public final class PrivateAddressChecker {
     }
 
     // 192.168.0.0/16 range: First octet = 192, second octet = 168
-    if (ip[0] == (byte) 192 && ip[1] == (byte) 168) {
-      return true;
-    }
-
-    // Address is not in any private range
-    return false;
+    return ip[0] == (byte) 192 && ip[1] == (byte) 168;
   }
 }
