@@ -43,6 +43,7 @@ public final class PrivateAddressChecker {
    * @return {@code true} if the address is private, {@code false} otherwise
    */
   public static boolean isPrivateAddress(final InetAddress address) {
+
     byte[] ip = address.getAddress();
 
     // 10.0.0.0/8 range: First octet = 10
