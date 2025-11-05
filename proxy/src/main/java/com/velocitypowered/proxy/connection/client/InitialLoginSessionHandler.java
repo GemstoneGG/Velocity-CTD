@@ -308,12 +308,12 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
         return true;
       }
 
-      InetSocketAddress addr = ((InetSocketAddress) mcConnection.getRemoteAddress());
-      String playerIp = addr.getHostString();
+      InetSocketAddress address = ((InetSocketAddress) mcConnection.getRemoteAddress());
+      String playerIp = address.getHostString();
       String url = String.format(MOJANG_HASJOINED_URL, urlFormParameterEscaper().escape(username), serverId);
 
       if (server.getConfiguration().shouldPreventClientProxyConnections()) {
-        if (server.getConfiguration().shouldForwardPrivateAddressesToMojang() || !PrivateAddressChecker.isPrivateAddress(addr.getAddress())) {
+        if (server.getConfiguration().shouldForwardPrivateAddressesToMojang() || !PrivateAddressChecker.isPrivateAddress(address.getAddress())) {
           url += "&ip=" + urlFormParameterEscaper().escape(playerIp);
         }
       }
