@@ -6,7 +6,7 @@ junit = "6.0.1"
 junit-platform = "1.14.1"
 log4j = "2.25.2"
 netty = "4.2.7.Final"
-lettuce = "7.0.0.RELEASE"
+lettuce = "7.1.0.RELEASE"
 
 [plugins]
 fill = "io.papermc.fill.gradle:1.0.9"
