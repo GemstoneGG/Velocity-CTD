@@ -204,7 +204,7 @@ hub = [
 # This is similar to Bukkit's commands.yml functionality.
 #
 # Adding multiple aliases executes multiple commands.
-help = [
+examplealias = [
     "velocity help"
 ]
 
