@@ -22,6 +22,7 @@ import io.netty.util.ResourceLeakDetector;
 import io.netty.util.ResourceLeakDetector.Level;
 import java.text.DecimalFormat;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -68,12 +69,22 @@ public class Velocity {
       return;
     }
 
+    final AtomicReference<VelocityServer> velocity = new AtomicReference<>();
+
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      VelocityServer server = velocity.get();
+      if (server != null) {
+        server.shutdown(true);
+      } else {
+        LogManager.shutdown();
+      }
+    }, "Shutdown thread"));
+
     long startTime = System.nanoTime();
 
     VelocityServer server = new VelocityServer(options);
+    velocity.set(server);
     server.start();
-    Runtime.getRuntime().addShutdownHook(new Thread(() -> server.shutdown(false),
-        "Shutdown thread"));
 
     double bootTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime) / 1000d;
     logger.info("Done ({}s)!", new DecimalFormat("#.##").format(bootTime));
