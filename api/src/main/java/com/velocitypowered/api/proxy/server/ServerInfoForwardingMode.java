@@ -19,12 +19,6 @@ package com.velocitypowered.api.proxy.server;
 public enum ServerInfoForwardingMode {
 
   /**
-   * Inherit the forwarding mode specified globally in the Velocity
-   * {@code player-info-forwarding-mode} configuration option.
-   */
-  FOLLOWUP,
-
-  /**
    * Forward player information using Velocity's modern forwarding system,
    * based on cryptographic signatures. This is the preferred method for
    * modern (1.13+) servers that support it.

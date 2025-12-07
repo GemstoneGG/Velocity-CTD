@@ -11,6 +11,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.velocitypowered.api.proxy.server.ServerInfoForwardingMode;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Exposes server configuration information that plugins may use.
@@ -20,7 +21,9 @@ import org.jspecify.annotations.NullMarked;
  * if you are running a 1.12 (or lower version) server on a Velocity proxy with MODERN
  * player info forwarding, the server does not support MODERN forwarding. In this case,
  * you must set the forwarding mode for that server to {@link ServerInfoForwardingMode#LEGACY},
- * and Velocity will use the legacy mode <em>only</em> for that backend server.</p>
+ * and Velocity will use the legacy mode <em>only</em> for that backend server.
+ * Additionally, if the forwarding mode is null it means that the server is using the
+ * "player-info-forwarding-mode", set in the configuration.</p>
  *
  * @param address        the hostname or address of the backend server
  * @param forwardingMode the forwarding mode to use when forwarding player information
@@ -31,7 +34,7 @@ import org.jspecify.annotations.NullMarked;
  *     ServerInfoForwardingMode)
  */
 @NullMarked
-public record BackendServerConfig(String address, ServerInfoForwardingMode forwardingMode) {
+public record BackendServerConfig(String address, @Nullable ServerInfoForwardingMode forwardingMode) {
 
   /**
    * Creates a new {@link BackendServerConfig}.
@@ -42,17 +45,15 @@ public record BackendServerConfig(String address, ServerInfoForwardingMode forwa
    */
   public BackendServerConfig {
     requireNonNull(address);
-    requireNonNull(forwardingMode);
   }
 
   /**
-   * Creates a new {@link BackendServerConfig} with the given address, using the default
-   * {@link ServerInfoForwardingMode#FOLLOWUP} forwarding mode.
+   * Creates a new {@link BackendServerConfig} with the given address, using the default.
    *
    * @param address the hostname or address of the backend server
    * @throws NullPointerException if {@code address} is null
    */
   public BackendServerConfig(final String address) {
-    this(address, ServerInfoForwardingMode.FOLLOWUP);
+    this(address, null);
   }
 }

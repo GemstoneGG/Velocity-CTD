@@ -1,6 +1,6 @@
-# Use the official Eclipse Temurin 17.0.16_8-jdk-jammy image as the base image.
+# Use the official Eclipse Temurin 17.0.17_10-jdk-jammy image as the base image.
 # We compile for Ubuntu Jammy Jellyfish (22.04 LTS) as it supports OpenSSL 3.0.
-FROM eclipse-temurin:17.0.16_8-jdk-jammy
+FROM eclipse-temurin:17.0.17_10-jdk-jammy
 
 # Install required dependencies
 RUN apt-get update && apt-get install -y \

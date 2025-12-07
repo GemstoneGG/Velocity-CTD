@@ -174,7 +174,7 @@ public final class ProxyOptions {
       }
 
       InetSocketAddress address;
-      ServerInfoForwardingMode mode = ServerInfoForwardingMode.FOLLOWUP;
+      ServerInfoForwardingMode mode = null;
       try {
         if (split.length >= 3) {
           address = AddressUtil.parseAddress(split[1] + ":" + split[2]);

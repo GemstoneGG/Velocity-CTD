@@ -24,6 +24,7 @@ import com.mojang.brigadier.suggestion.Suggestion;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.player.CookieReceiveEvent;
 import com.velocitypowered.api.event.player.PlayerChannelRegisterEvent;
+import com.velocitypowered.api.event.player.PlayerChannelUnregisterEvent;
 import com.velocitypowered.api.event.player.PlayerClientBrandEvent;
 import com.velocitypowered.api.event.player.TabCompleteEvent;
 import com.velocitypowered.api.event.player.TabCompleteRequestEvent;
@@ -453,8 +454,12 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
         server.getEventManager().fireAndForget(new PlayerChannelRegisterEvent(player, ImmutableList.copyOf(channels)));
         backendConn.write(packet.retain());
       } else if (PluginMessageUtil.isUnregister(packet)) {
-        player.getClientsideChannels()
-            .removeAll(PluginMessageUtil.getChannels(0, packet, this.player.getProtocolVersion(), this.server));
+        List<ChannelIdentifier> channels =
+            PluginMessageUtil.getChannels(0, packet, this.player.getProtocolVersion(), this.server);
+        player.getClientsideChannels().removeAll(channels);
+        server.getEventManager()
+            .fireAndForget(
+                new PlayerChannelUnregisterEvent(player, ImmutableList.copyOf(channels)));
         backendConn.write(packet.retain());
       } else if (PluginMessageUtil.isMcBrand(packet)) {
         String brand = PluginMessageUtil.readBrandMessage(packet.content());
