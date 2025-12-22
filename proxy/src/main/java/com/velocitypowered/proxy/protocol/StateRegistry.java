@@ -815,6 +815,7 @@ public enum StateRegistry {
           map(0x01, MINECRAFT_1_7_2, false));
       serverbound.register(
           LoginPluginResponsePacket.class, LoginPluginResponsePacket::new,
+          map(0x02, MINECRAFT_1_7_2, false),
           map(0x02, MINECRAFT_1_13, false));
       serverbound.register(
           LoginAcknowledgedPacket.class, LoginAcknowledgedPacket::new,
@@ -838,6 +839,7 @@ public enum StateRegistry {
       clientbound.register(
           LoginPluginMessagePacket.class,
           LoginPluginMessagePacket::new,
+          map(0x04, MINECRAFT_1_7_2, false),
           map(0x04, MINECRAFT_1_13, false));
       clientbound.register(
           ClientboundCookieRequestPacket.class, ClientboundCookieRequestPacket::new,
