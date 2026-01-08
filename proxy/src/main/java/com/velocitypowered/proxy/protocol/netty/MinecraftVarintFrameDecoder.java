@@ -61,6 +61,12 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
       new QuietDecoderException("Bad packet length");
 
   /**
+   * Indicates that the packet preamble was invalid.
+   */
+  private static final QuietDecoderException INVALID_PREAMBLE =
+      new QuietDecoderException("Invalid packet preamble");
+
+  /**
    * Indicates that a VarInt read during decoding was too large to be valid.
    */
   private static final QuietDecoderException VARINT_TOO_BIG =
@@ -138,9 +144,16 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
     }
 
     // skip any runs of 0x00 we might find
+    int wlen = in.readableBytes();
     int packetStart = in.forEachByte(FIND_NON_NUL);
     if (packetStart == -1) {
       in.clear();
+      // Apply a more strict check in serverbound direction, we really shouldn't be seeing this many 0x00s
+      // even from the server, the only reason we even allow these is due to bugged servers
+      if (direction == ProtocolUtils.Direction.SERVERBOUND && wlen > 16) {
+        throw INVALID_PREAMBLE;
+      }
+
       return;
     }
 
