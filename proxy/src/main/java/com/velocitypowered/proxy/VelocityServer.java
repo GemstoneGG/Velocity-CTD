@@ -1239,33 +1239,31 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
           for (ConnectedPlayer player : players) {
             player.disconnect(reason);
           }
+        } else {
+          for (ConnectedPlayer player : players) {
+            if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
+              String connectedServer = player.getConnectedServer() != null ? player.getConnectedServer().getServerInfo().getName() : null;
 
-          return;
-        }
-
-        for (ConnectedPlayer player : players) {
-          if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
-            String connectedServer = player.getConnectedServer() != null ? player.getConnectedServer().getServerInfo().getName() : null;
-
-            if (this.getMultiProxyHandler().isRedisEnabled()) {
-              getRedisManager().send(new RedisPlayerSetTransferringRequest(player.getUniqueId(), true,
-                  connectedServer));
+              if (this.getMultiProxyHandler().isRedisEnabled()) {
+                getRedisManager().send(new RedisPlayerSetTransferringRequest(player.getUniqueId(), true,
+                    connectedServer));
+              }
             }
           }
-        }
 
-        try {
-          logger.log(Level.INFO, "Transferring all players to new proxy...");
-          Thread.sleep(1000);
-        } catch (InterruptedException e) {
-          throw new RuntimeException(e);
-        }
+          try {
+            logger.log(Level.INFO, "Transferring all players to new proxy...");
+            Thread.sleep(1000);
+          } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+          }
 
-        for (ConnectedPlayer player : players) {
-          if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
-            player.transferToHost(new InetSocketAddress(chosen.ip(), chosen.port()));
-          } else {
-            player.disconnect(reason);
+          for (ConnectedPlayer player : players) {
+            if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
+              player.transferToHost(new InetSocketAddress(chosen.ip(), chosen.port()));
+            } else {
+              player.disconnect(reason);
+            }
           }
         }
       }
