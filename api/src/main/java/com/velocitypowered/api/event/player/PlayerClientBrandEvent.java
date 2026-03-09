@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -15,16 +15,24 @@ import com.velocitypowered.api.proxy.Player;
  * not wait on the result of this event.
  */
 public final class PlayerClientBrandEvent {
+
+  /**
+   * The player who sent the <code>minecraft:brand</code> plugin message.
+   */
   private final Player player;
+
+  /**
+   * The brand string reported by the client.
+   */
   private final String brand;
 
   /**
    * Creates a new instance.
    *
-   * @param player the {@link Player} of the sent client brand
-   * @param brand the sent client brand
+   * @param player the {@link Player} of the "sent" client brand
+   * @param brand the "sent" client brand
    */
-  public PlayerClientBrandEvent(Player player, String brand) {
+  public PlayerClientBrandEvent(final Player player, final String brand) {
     this.player = Preconditions.checkNotNull(player);
     this.brand = Preconditions.checkNotNull(brand);
   }
@@ -55,4 +63,3 @@ public final class PlayerClientBrandEvent {
         + '}';
   }
 }
-

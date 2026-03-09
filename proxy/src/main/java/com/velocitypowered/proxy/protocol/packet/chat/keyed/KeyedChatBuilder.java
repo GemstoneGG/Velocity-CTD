@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,17 +34,44 @@ import net.kyori.adventure.text.Component;
  */
 public class KeyedChatBuilder extends ChatBuilderV2 {
 
-  public KeyedChatBuilder(ProtocolVersion version) {
+  /**
+   * Constructs a new {@code KeyedChatBuilder} for the given protocol version.
+   *
+   * @param version the protocol version this builder targets
+   */
+  public KeyedChatBuilder(final ProtocolVersion version) {
     super(version);
   }
 
+  /**
+   * Builds a {@link SystemChatPacket} to be sent to the client.
+   *
+   * <p>If the {@link #component} is set, it will be used as the chat message;
+   * otherwise, a plain text {@link Component} is created from the {@link #message} string.</p>
+   *
+   * <p>The packet will use {@link ChatType#SYSTEM} unless the original type is not {@link ChatType#CHAT}.</p>
+   *
+   * @return the constructed {@link SystemChatPacket} to be sent to the client
+   */
   @Override
   public MinecraftPacket toClient() {
-    // This is temporary
+    // This is temporary (but doesn't seem so temporary)
     Component msg = component == null ? Component.text(message) : component;
     return new SystemChatPacket(new ComponentHolder(version, msg), type == ChatType.CHAT ? ChatType.SYSTEM : type);
   }
 
+  /**
+   * Builds a {@link MinecraftPacket} to be sent to the server.
+   *
+   * <p>If the message begins with {@code /}, a {@link KeyedPlayerCommandPacket} is created
+   * with the leading slash removed. Otherwise, a {@link KeyedPlayerChatPacket} is constructed,
+   * with the timestamp applied as an expiry value.</p>
+   *
+   * <p>Note: Sending {@link KeyedPlayerChatPacket} directly may trigger an error on modern servers,
+   * but is included for legacy support or fallback behavior.</p>
+   *
+   * @return the constructed {@link MinecraftPacket} to be sent to the server
+   */
   @Override
   public MinecraftPacket toServer() {
     if (message.startsWith("/")) {

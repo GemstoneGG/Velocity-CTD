@@ -23,7 +23,8 @@ dependencies {
     api(libs.gson)
     api(libs.guava)
 
-    // DEPRECATED: Will be removed in Velocity Polymer
+    // DEPRECATED: Will be removed in Velocity Polymer,
+    // assuming Velocity Polymer EVER releases!
     api("io.hotmoka:toml4j:0.7.3")
 
     api(platform(libs.adventure.bom))
@@ -68,7 +69,6 @@ tasks {
             "https://jd.advntr.dev/api/${libs.adventure.bom.get().version}/",
             "https://jd.advntr.dev/text-minimessage/${libs.adventure.bom.get().version}/",
             "https://jd.advntr.dev/key/${libs.adventure.bom.get().version}/",
-            "https://www.javadocs.dev/com.github.ben-manes.caffeine/caffeine/${libs.caffeine.get().version}/",
         )
 
         o.tags(

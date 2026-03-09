@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -266,7 +266,7 @@ public class BrigadierCommandTests extends CommandTestSuite {
   }
 
   // The following 2 tests ensure we strictly follow Brigadier's behavior, even
-  // if it doesn't make much sense.
+  // if it makes little sense.
 
   @Test
   void testSuggestsEvenIfImpermissible() {

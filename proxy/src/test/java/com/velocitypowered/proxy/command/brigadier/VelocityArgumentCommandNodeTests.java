@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,10 +41,21 @@ import org.junit.jupiter.api.Test;
 @SuppressWarnings("unchecked")
 public class VelocityArgumentCommandNodeTests {
 
+  /**
+   * Singleton instance of {@link StringArrayArgumentType} used in all tests.
+   */
   private static final StringArrayArgumentType STRING_ARRAY = StringArrayArgumentType.INSTANCE;
 
+  /**
+   * The Brigadier {@link CommandContextBuilder} used to simulate parsing input.
+   * Initialized before each test method.
+   */
   private CommandContextBuilder<Object> contextBuilder;
 
+  /**
+   * Sets up the {@link CommandContextBuilder} used by each test by initializing a root
+   * context with a dummy source.
+   */
   @BeforeEach
   void setUp() {
     final CommandDispatcher<Object> dispatcher = new CommandDispatcher<>();

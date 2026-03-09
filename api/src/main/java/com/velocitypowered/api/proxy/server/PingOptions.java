@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -25,12 +25,25 @@ import org.jetbrains.annotations.Nullable;
  * @see RegisteredServer#ping(PingOptions)
  */
 public final class PingOptions {
+
   /**
    * Default PingOptions.
    */
   public static final PingOptions DEFAULT = PingOptions.builder().build();
+
+  /**
+   * The protocol version to emulate during the ping.
+   */
   private final ProtocolVersion protocolVersion;
+
+  /**
+   * The maximum time (in milliseconds) to wait for the ping response.
+   */
   private final long timeout;
+
+  /**
+   * The virtual hostname to use when pinging the server, or {@code null} if not set.
+   */
   private final String virtualHost;
 
   private PingOptions(final Builder builder) {
@@ -51,7 +64,7 @@ public final class PingOptions {
   /**
    * The maximum period of time to wait for a response from the remote server.
    *
-   * @return the server ping timeout in milliseconds
+   * @return the server ping's timeout in milliseconds
    */
   public long getTimeout() {
     return this.timeout;
@@ -77,15 +90,17 @@ public final class PingOptions {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (o == null) {
       return false;
     }
+
     if (!(o instanceof final PingOptions other)) {
       return false;
     }
+
     return Objects.equals(this.protocolVersion, other.protocolVersion)
-            && Objects.equals(this.timeout, other.timeout);
+        && Objects.equals(this.timeout, other.timeout);
   }
 
   @Override
@@ -96,9 +111,9 @@ public final class PingOptions {
   @Override
   public String toString() {
     return "PingOptions{"
-            + "protocolVersion=" + protocolVersion
-            + ", timeout=" + timeout
-            + '}';
+        + "protocolVersion=" + protocolVersion
+        + ", timeout=" + timeout
+        + '}';
   }
 
   /**
@@ -107,8 +122,20 @@ public final class PingOptions {
    * @since 3.2.0
    */
   public static final class Builder implements AbstractBuilder<PingOptions> {
+
+    /**
+     * The protocol version to use when pinging the server.
+     */
     private ProtocolVersion protocolVersion = ProtocolVersion.UNKNOWN;
+
+    /**
+     * The ping timeout in milliseconds.
+     */
     private long timeout = 0;
+
+    /**
+     * The virtual host string to use in the ping request.
+     */
     private String virtualHost = null;
 
     private Builder() {

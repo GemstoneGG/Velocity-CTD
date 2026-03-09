@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -13,7 +13,7 @@ import com.velocitypowered.api.proxy.server.ServerInfo;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * This event is fired by the proxy after a backend server is registered to the server map.
+ * The proxy fires this event after a backend server is registered to the server map.
  * Currently, it may occur when a server is registered dynamically at runtime or when a server is
  * replaced due to configuration reload.
  *

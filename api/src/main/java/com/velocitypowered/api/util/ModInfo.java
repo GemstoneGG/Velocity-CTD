@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -24,7 +24,14 @@ public final class ModInfo {
    */
   public static final ModInfo DEFAULT = new ModInfo("FML", ImmutableList.of());
 
+  /**
+   * The type of mod list, typically "FML" for Forge-compatible clients.
+   */
   private final String type;
+
+  /**
+   * The list of mods to present to the client.
+   */
   private final List<Mod> modList;
 
   /**
@@ -33,7 +40,7 @@ public final class ModInfo {
    * @param type the Forge server list version to use
    * @param modList the mods to present to the client
    */
-  public ModInfo(String type, List<Mod> modList) {
+  public ModInfo(final String type, final List<Mod> modList) {
     this.type = Preconditions.checkNotNull(type, "type");
     this.modList = ImmutableList.copyOf(modList);
   }
@@ -65,7 +72,7 @@ public final class ModInfo {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -86,17 +93,24 @@ public final class ModInfo {
    */
   public static final class Mod {
 
+    /**
+     * The identifier of the mod (e.g., "examplemod").
+     */
     @SerializedName("modid")
     private final String id;
+
+    /**
+     * The version string of the mod (e.g., "1.0.0").
+     */
     private final String version;
 
     /**
-     * Creates a new mod info.
+     * Creates new mod info.
      *
      * @param id the mod identifier
      * @param version the mod version
      */
-    public Mod(String id, String version) {
+    public Mod(final String id, final String version) {
       this.id = Preconditions.checkNotNull(id, "id");
       this.version = Preconditions.checkNotNull(version, "version");
       Preconditions.checkArgument(id.length() < 128, "mod id is too long");
@@ -130,13 +144,15 @@ public final class ModInfo {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
       if (this == o) {
         return true;
       }
+
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
+
       Mod mod = (Mod) o;
       return id.equals(mod.id) && version.equals(mod.version);
     }

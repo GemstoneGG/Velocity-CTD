@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,27 +33,32 @@ import java.util.List;
 /**
  * Serializes {@link GameProfile} instances into JSON.
  */
-public final class GameProfileSerializer implements JsonSerializer<GameProfile>,
-    JsonDeserializer<GameProfile> {
+public final class GameProfileSerializer implements JsonSerializer<GameProfile>, JsonDeserializer<GameProfile> {
 
+  /**
+   * A shared singleton instance of {@code GameProfileSerializer}.
+   */
   public static final GameProfileSerializer INSTANCE = new GameProfileSerializer();
+
+  /**
+   * The type token representing a list of {@link Property} instances.
+   */
   private static final Type propertyList = new TypeToken<List<Property>>() {
   }.getType();
 
   private GameProfileSerializer() {
-
   }
 
   @Override
-  public GameProfile deserialize(JsonElement json, Type typeOfT,
-      JsonDeserializationContext context) {
+  public GameProfile deserialize(final JsonElement json, final Type typeOfT,
+                                 final JsonDeserializationContext context) {
     JsonObject obj = json.getAsJsonObject();
     return new GameProfile(obj.get("id").getAsString(), obj.get("name").getAsString(),
         context.deserialize(obj.get("properties"), propertyList));
   }
 
   @Override
-  public JsonElement serialize(GameProfile src, Type typeOfSrc, JsonSerializationContext context) {
+  public JsonElement serialize(final GameProfile src, final Type typeOfSrc, final JsonSerializationContext context) {
     JsonObject obj = new JsonObject();
     obj.add("id", new JsonPrimitive(src.getUndashedId()));
     obj.add("name", new JsonPrimitive(src.getName()));

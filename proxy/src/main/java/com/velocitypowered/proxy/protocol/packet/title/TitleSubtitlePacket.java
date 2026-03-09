@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,27 +34,59 @@ import io.netty.buffer.ByteBuf;
  */
 public class TitleSubtitlePacket extends GenericTitlePacket {
 
+  /**
+   * The subtitle component to display.
+   */
   private ComponentHolder component;
 
+  /**
+   * Constructs a new {@code TitleSubtitlePacket} and sets its action type.
+   */
   public TitleSubtitlePacket() {
     setAction(ActionType.SET_SUBTITLE);
   }
 
+  /**
+   * Encodes this {@code TitleSubtitlePacket} into the provided {@link ByteBuf}.
+   *
+   * <p>This writes the subtitle component to the buffer using the appropriate format for the given protocol version.</p>
+   *
+   * @param buf the byte buffer to write to
+   * @param direction the direction of the packet (clientbound or serverbound)
+   * @param version the protocol version used for encoding
+   */
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     component.write(buf);
   }
 
+  /**
+   * Returns the {@link ComponentHolder} representing the subtitle.
+   *
+   * @return the subtitle text component
+   */
   @Override
   public ComponentHolder getComponent() {
     return component;
   }
 
+  /**
+   * Sets the {@link ComponentHolder} that contains the subtitle text.
+   *
+   * @param component the subtitle text component to display
+   */
   @Override
-  public void setComponent(ComponentHolder component) {
+  public void setComponent(final ComponentHolder component) {
     this.component = component;
   }
 
+  /**
+   * Returns a string representation of this {@code TitleSubtitlePacket}.
+   *
+   * <p>The output includes the subtitle component.</p>
+   *
+   * @return a human-readable description of the packet
+   */
   @Override
   public String toString() {
     return "TitleSubtitlePacket{"
@@ -62,8 +94,16 @@ public class TitleSubtitlePacket extends GenericTitlePacket {
         + '}';
   }
 
+  /**
+   * Handles this {@code TitleSubtitlePacket} by passing it to the provided session handler.
+   *
+   * <p>This delegates to {@link MinecraftSessionHandler#handle(TitleSubtitlePacket)}.</p>
+   *
+   * @param handler the session handler responsible for processing this packet
+   * @return {@code true} if the handler successfully processed the packet
+   */
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

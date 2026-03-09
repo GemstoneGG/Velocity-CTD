@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,32 +44,98 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class KeyedPlayerCommandPacket implements MinecraftPacket {
 
+  /**
+   * The maximum number of command arguments allowed in a signed command packet.
+   *
+   * <p>Exceeding this limit will result in a decoding failure to prevent abuse or
+   * invalid packet formats.</p>
+   */
   private static final int MAX_NUM_ARGUMENTS = 8;
+
+  /**
+   * The maximum length (in characters) for each individual command argument name.
+   *
+   * <p>This ensures that keys used in the argument-signature map are reasonably sized.</p>
+   */
   private static final int MAX_LENGTH_ARGUMENTS = 16;
+
+  /**
+   * Thrown when the argument map exceeds protocol limits.
+   */
   private static final QuietDecoderException LIMITS_VIOLATION =
       new QuietDecoderException("Command arguments incorrect size");
 
+  /**
+   * Indicates whether the command is unsigned (no salt, no signatures).
+   */
   private boolean unsigned = false;
+
+  /**
+   * The raw command name or literal string (e.g., "say", "msg", etc.).
+   */
   private String command;
+
+  /**
+   * Timestamp of when the command was issued.
+   */
   private Instant timestamp;
+
+  /**
+   * The cryptographic salt used to sign the command.
+   */
   private long salt;
-  private boolean signedPreview; // purely for pass through for 1.19 -> 1.19.2 - this will never be implemented
+
+  /**
+   * Whether a signed preview was enabled (used only for 1.19 compatibility).
+   */
+  private boolean signedPreview;
+
+  /**
+   * Signatures of previously seen chat messages (used for replay protection).
+   */
   private SignaturePair[] previousMessages = new SignaturePair[0];
+
+  /**
+   * Signature of the last known message from the client.
+   */
   private @Nullable SignaturePair lastMessage;
+
+  /**
+   * A mapping of argument names to their cryptographic signatures.
+   */
   private Map<String, byte[]> arguments = ImmutableMap.of();
 
+  /**
+   * Returns the timestamp of the command.
+   *
+   * @return the instant when the command was created
+   */
   public Instant getTimestamp() {
     return timestamp;
   }
 
+  /**
+   * Returns whether this packet is unsigned.
+   *
+   * @return true if unsigned, false otherwise
+   */
+  @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   public boolean isUnsigned() {
     return unsigned;
   }
 
+  /**
+   * Returns the command name (without leading slash).
+   *
+   * @return the raw command string
+   */
   public String getCommand() {
     return command;
   }
 
+  /**
+   * Constructs a blank {@link KeyedPlayerCommandPacket} for deserialization.
+   */
   public KeyedPlayerCommandPacket() {
   }
 
@@ -80,7 +146,7 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
    * @param arguments the arguments of the command
    * @param timestamp the timestamp of the command execution
    */
-  public KeyedPlayerCommandPacket(String command, List<String> arguments, Instant timestamp) {
+  public KeyedPlayerCommandPacket(final String command, final List<String> arguments, final Instant timestamp) {
     this.unsigned = true;
     ImmutableMap.Builder<String, byte[]> builder = ImmutableMap.builder();
     arguments.forEach(entry -> builder.put(entry, EncryptionUtils.EMPTY));
@@ -91,9 +157,20 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
     this.salt = 0L;
   }
 
+  /**
+   * Decodes this keyed player command packet from the provided {@link ByteBuf}.
+   *
+   * <p>This reads the command string, timestamp, salt, argument map with signatures,
+   * preview flag, and optionally previous message acknowledgments depending on protocol version.</p>
+   *
+   * @param buf the buffer to read from
+   * @param direction the direction of the packet (clientbound or serverbound)
+   * @param protocolVersion the Minecraft protocol version
+   * @throws QuietDecoderException if the argument list or previous messages exceed protocol limits
+   */
   @Override
-  public void decode(ByteBuf buf, ProtocolUtils.Direction direction,
-      ProtocolVersion protocolVersion) {
+  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                     final ProtocolVersion protocolVersion) {
     command = ProtocolUtils.readString(buf, 256);
     timestamp = Instant.ofEpochMilli(buf.readLong());
 
@@ -103,12 +180,14 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
     if (mapSize > MAX_NUM_ARGUMENTS) {
       throw LIMITS_VIOLATION;
     }
-    // Mapped as Argument : signature
+
+    // Mapped as "Argument : signature"
     ImmutableMap.Builder<String, byte[]> entries = ImmutableMap.builderWithExpectedSize(mapSize);
     for (int i = 0; i < mapSize; i++) {
       entries.put(ProtocolUtils.readString(buf, MAX_LENGTH_ARGUMENTS),
           ProtocolUtils.readByteArray(buf, unsigned ? 0 : ProtocolUtils.DEFAULT_MAX_STRING_SIZE));
     }
+
     arguments = entries.build();
 
     this.signedPreview = buf.readBoolean();
@@ -127,6 +206,7 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
         lastSignatures[i] = new SignaturePair(ProtocolUtils.readUuid(buf),
             ProtocolUtils.readByteArray(buf));
       }
+
       previousMessages = lastSignatures;
 
       if (buf.readBoolean()) {
@@ -138,12 +218,22 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
     if (salt == 0L && previousMessages.length == 0) {
       unsigned = true;
     }
-
   }
 
+  /**
+   * Encodes this keyed player command packet into the given {@link ByteBuf}.
+   *
+   * <p>This writes the command string, timestamp, salt, argument map with signatures,
+   * and optionally previous message acknowledgments depending on protocol version.</p>
+   *
+   * @param buf the buffer to write to
+   * @param direction the direction of the packet (clientbound or serverbound)
+   * @param protocolVersion the Minecraft protocol version
+   * @throws QuietDecoderException if the argument list exceeds protocol limits
+   */
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction,
-      ProtocolVersion protocolVersion) {
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                     final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeString(buf, command);
     buf.writeLong(timestamp.toEpochMilli());
 
@@ -153,6 +243,7 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
     if (size > MAX_NUM_ARGUMENTS) {
       throw LIMITS_VIOLATION;
     }
+
     ProtocolUtils.writeVarInt(buf, size);
     for (Map.Entry<String, byte[]> entry : arguments.entrySet()) {
       // What annoys me is that this isn't "sorted"
@@ -177,9 +268,15 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
         buf.writeBoolean(false);
       }
     }
-
   }
 
+  /**
+   * Returns a string representation of this keyed player command packet.
+   *
+   * <p>This includes command name, timestamp, cryptographic flags, and argument signatures.</p>
+   *
+   * @return a string describing this packet
+   */
   @Override
   public String toString() {
     return "PlayerCommand{"
@@ -193,8 +290,17 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
         + '}';
   }
 
+  /**
+   * Handles this keyed player command packet using the specified {@link MinecraftSessionHandler}.
+   *
+   * <p>This delegates handling logic to {@code handler.handle(this)} to execute or verify
+   * the command and its associated cryptographic data.</p>
+   *
+   * @param handler the session handler responsible for processing this packet
+   * @return {@code true} if the packet was handled successfully
+   */
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

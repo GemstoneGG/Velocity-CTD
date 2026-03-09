@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,21 +26,30 @@ import it.unimi.dsi.fastutil.Hash.Strategy;
  */
 public final class IdentityHashStrategy<T> implements Strategy<T> {
 
+  /**
+   * A reusable singleton instance of {@code IdentityHashStrategy}.
+   */
   @SuppressWarnings("rawtypes")
   private static final IdentityHashStrategy INSTANCE = new IdentityHashStrategy();
 
+  /**
+   * Returns a singleton instance of {@link IdentityHashStrategy}.
+   *
+   * @param <T> the type for which the strategy applies
+   * @return a shared identity hash strategy instance
+   */
+  @SuppressWarnings("unchecked")
   public static <T> Strategy<T> instance() {
-    //noinspection unchecked
     return INSTANCE;
   }
 
   @Override
-  public int hashCode(T o) {
+  public int hashCode(final T o) {
     return System.identityHashCode(o);
   }
 
   @Override
-  public boolean equals(T a, T b) {
+  public boolean equals(final T a, final T b) {
     return a == b;
   }
 }

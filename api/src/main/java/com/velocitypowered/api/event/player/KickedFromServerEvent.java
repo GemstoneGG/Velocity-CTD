@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -25,13 +25,31 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * event to finish firing before taking the specified action.
  */
 @AwaitingEvent
-public final class KickedFromServerEvent implements
-    ResultedEvent<KickedFromServerEvent.ServerKickResult> {
+public final class KickedFromServerEvent implements ResultedEvent<KickedFromServerEvent.ServerKickResult> {
 
+  /**
+   * The player who was kicked.
+   */
   private final Player player;
+
+  /**
+   * The server the player was kicked from.
+   */
   private final RegisteredServer server;
+
+  /**
+   * The original reason component for the kick, if any.
+   */
   private final @Nullable Component originalReason;
+
+  /**
+   * Whether the player was kicked while connecting to the server (as opposed to being already connected).
+   */
   private final boolean duringServerConnect;
+
+  /**
+   * The result that determines how the proxy will respond to the kick.
+   */
   private ServerKickResult result;
 
   /**
@@ -40,12 +58,12 @@ public final class KickedFromServerEvent implements
    * @param player the player affected
    * @param server the server the player disconnected from
    * @param originalReason the reason for being kicked, optional
-   * @param duringServerConnect whether or not the player was kicked during the connection process
+   * @param duringServerConnect whether the player was kicked during the connection process
    * @param result the initial result
    */
-  public KickedFromServerEvent(Player player, RegisteredServer server,
-      @Nullable Component originalReason,
-      boolean duringServerConnect, ServerKickResult result) {
+  public KickedFromServerEvent(final Player player, final RegisteredServer server,
+                               final @Nullable Component originalReason,
+                               final boolean duringServerConnect, final ServerKickResult result) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.server = Preconditions.checkNotNull(server, "server");
     this.originalReason = originalReason;
@@ -91,18 +109,18 @@ public final class KickedFromServerEvent implements
   }
 
   /**
-   * Returns whether or not the player got kicked while connecting to another server.
+   * Returns whether the player got kicked while connecting to another server.
    *
-   * @return whether or not the player got kicked
+   * @return whether the player got kicked
    */
   public boolean kickedDuringServerConnect() {
     return duringServerConnect;
   }
 
   /**
-   * Returns whether or not the player got kicked while logging in.
+   * Returns whether the player got kicked while logging in.
    *
-   * @return whether or not the player got kicked
+   * @return whether the player got kicked
    * @deprecated {@link #kickedDuringServerConnect()} has a better name and reflects the actual
    *     result
    */
@@ -115,7 +133,6 @@ public final class KickedFromServerEvent implements
    * Represents the base interface for {@link KickedFromServerEvent} results.
    */
   public sealed interface ServerKickResult extends ResultedEvent.Result {
-
   }
 
   /**
@@ -123,6 +140,9 @@ public final class KickedFromServerEvent implements
    */
   public static final class DisconnectPlayer implements ServerKickResult {
 
+    /**
+     * The message to show the player upon disconnection.
+     */
     private final Component component;
 
     private DisconnectPlayer(final Component component) {
@@ -149,14 +169,13 @@ public final class KickedFromServerEvent implements
      * @param reason the reason to use when disconnecting the player
      * @return the disconnect result
      */
-    public static DisconnectPlayer create(Component reason) {
+    public static DisconnectPlayer create(final Component reason) {
       return new DisconnectPlayer(reason);
     }
 
     @Override
     public String toString() {
-      return "KickedFromServerEvent#DisconnectPlayer{isAllowed=%s,component=%s}"
-              .formatted(isAllowed(), component);
+      return "KickedFromServerEvent#DisconnectPlayer{isAllowed=%s,component=%s}".formatted(isAllowed(), component);
     }
   }
 
@@ -165,7 +184,14 @@ public final class KickedFromServerEvent implements
    */
   public static final class RedirectPlayer implements ServerKickResult {
 
+    /**
+     * The message to send to the player after redirection, or {@code null} to reuse the kick reason or suppress output.
+     */
     private final Component message;
+
+    /**
+     * The server the player should be redirected to.
+     */
     private final RegisteredServer server;
 
     private RedirectPlayer(final RegisteredServer server, final @Nullable Component message) {
@@ -223,21 +249,23 @@ public final class KickedFromServerEvent implements
 
     @Override
     public String toString() {
-      return "KickedFromServerEvent#RedirectPlayer{isAllowed=%s,message=%s,server=%s}"
-              .formatted(isAllowed(), this.message, this.server);
+      return "KickedFromServerEvent#RedirectPlayer{isAllowed=%s,message=%s,server=%s}".formatted(isAllowed(), this.message, this.server);
     }
   }
 
   /**
    * Notifies the player with the specified message but does nothing else. This is only a valid
-   * result to use if the player was  trying to connect to a different server, otherwise it is
+   * result to use if the player was trying to connect to a different server, otherwise it is
    * treated like a {@link DisconnectPlayer} result.
    */
   public static final class Notify implements ServerKickResult {
 
+    /**
+     * The message to show to the player without disconnecting or redirecting them.
+     */
     private final Component message;
 
-    private Notify(Component message) {
+    private Notify(final Component message) {
       this.message = Preconditions.checkNotNull(message, "message");
     }
 
@@ -247,10 +275,9 @@ public final class KickedFromServerEvent implements
     }
 
     /**
-     * Returns the message that will be sent to the player after redirection.
-     * This may be {@code null} if the kick reason should be reused or nothing should be sent.
+     * Returns the message to be shown to the player.
      *
-     * @return the message component, or {@code null}
+     * @return the message component
      */
     public Component getMessageComponent() {
       return message;
@@ -268,8 +295,7 @@ public final class KickedFromServerEvent implements
 
     @Override
     public String toString() {
-      return "KickedFromServerEvent#Notify{isAllowed=%s,message=%s}"
-              .formatted(isAllowed(), message);
+      return "KickedFromServerEvent#Notify{isAllowed=%s,message=%s}".formatted(isAllowed(), message);
     }
   }
 }

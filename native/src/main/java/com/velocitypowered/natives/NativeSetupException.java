@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,23 +22,50 @@ package com.velocitypowered.natives;
  */
 public class NativeSetupException extends RuntimeException {
 
+  /**
+   * Creates a new {@link NativeSetupException} with no message or cause.
+   */
   public NativeSetupException() {
   }
 
-  public NativeSetupException(String message) {
+  /**
+   * Creates a new {@link NativeSetupException} with the specified message.
+   *
+   * @param message the detail message
+   */
+  public NativeSetupException(final String message) {
     super(message);
   }
 
-  public NativeSetupException(String message, Throwable cause) {
+  /**
+   * Creates a new {@link NativeSetupException} with the specified message and cause.
+   *
+   * @param message the detail message
+   * @param cause the cause of the exception
+   */
+  public NativeSetupException(final String message, final Throwable cause) {
     super(message, cause);
   }
 
-  public NativeSetupException(Throwable cause) {
+  /**
+   * Creates a new {@link NativeSetupException} with the specified cause.
+   *
+   * @param cause the cause of the exception
+   */
+  public NativeSetupException(final Throwable cause) {
     super(cause);
   }
 
-  public NativeSetupException(String message, Throwable cause, boolean enableSuppression,
-      boolean writableStackTrace) {
+  /**
+   * Creates a new {@link NativeSetupException} with full customization.
+   *
+   * @param message the detail message
+   * @param cause the cause of the exception
+   * @param enableSuppression whether suppression is enabled
+   * @param writableStackTrace whether the stack trace should be writable
+   */
+  public NativeSetupException(final String message, final Throwable cause, final boolean enableSuppression,
+                              final boolean writableStackTrace) {
     super(message, cause, enableSuppression, writableStackTrace);
   }
 }

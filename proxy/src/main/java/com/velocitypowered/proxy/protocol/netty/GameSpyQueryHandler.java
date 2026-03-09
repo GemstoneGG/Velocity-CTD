@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,16 +53,43 @@ import org.apache.logging.log4j.LogManager;
  */
 public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
+  /**
+   * Magic byte prefix that must be present for a valid GS4 packet (first).
+   */
   private static final short QUERY_MAGIC_FIRST = 0xFE;
-  private static final short QUERY_MAGIC_SECOND = 0xFD;
-  private static final byte QUERY_TYPE_HANDSHAKE = 0x09;
-  private static final byte QUERY_TYPE_STAT = 0x00;
-  private static final byte[] QUERY_RESPONSE_FULL_PADDING = new byte[]{0x73, 0x70, 0x6C, 0x69, 0x74,
-      0x6E, 0x75, 0x6D, 0x00, (byte) 0x80, 0x00};
-  private static final byte[] QUERY_RESPONSE_FULL_PADDING2 = new byte[]{0x01, 0x70, 0x6C, 0x61,
-      0x79, 0x65, 0x72, 0x5F, 0x00, 0x00};
 
-  // Contents to add into basic stat response. See ResponseWriter class below
+  /**
+   * Magic byte prefix that must be present for a valid GS4 packet (second).
+   */
+  private static final short QUERY_MAGIC_SECOND = 0xFD;
+
+  /**
+   * Packet type for a handshake request.
+   */
+  private static final byte QUERY_TYPE_HANDSHAKE = 0x09;
+
+  /**
+   * Packet type for a stat request (basic or full).
+   */
+  private static final byte QUERY_TYPE_STAT = 0x00;
+
+  /**
+   * Padding used at the start of a full stat response key-value section.
+   */
+  private static final byte[] QUERY_RESPONSE_FULL_PADDING = {
+      0x73, 0x70, 0x6C, 0x69, 0x74, 0x6E, 0x75, 0x6D, 0x00, (byte) 0x80, 0x00
+  };
+
+  /**
+   * Padding used to denote the beginning of the player list section in full stat responses.
+   */
+  private static final byte[] QUERY_RESPONSE_FULL_PADDING2 = {
+      0x01, 0x70, 0x6C, 0x61, 0x79, 0x65, 0x72, 0x5F, 0x00, 0x00
+  };
+
+  /**
+   * Keys included in basic stat responses.
+   */
   private static final ImmutableSet<String> QUERY_BASIC_RESPONSE_CONTENTS = ImmutableSet.of(
       "hostname",
       "gametype",
@@ -73,38 +100,78 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
       "hostip"
   );
 
+  /**
+   * A cache of challenge tokens issued to clients during the GS4 handshake phase,
+   * keyed by their {@link InetAddress}. Entries expire after 30 seconds.
+   */
   private final Cache<InetAddress, Integer> sessions = Caffeine.newBuilder()
       .expireAfterWrite(30, TimeUnit.SECONDS)
       .build();
+
+  /**
+   * A secure random number generator used for generating challenge tokens
+   * in the GS4 handshake protocol.
+   */
   private final SecureRandom random;
+
+  /**
+   * The Velocity server instance used for accessing configuration,
+   * plugin and player data, and event management.
+   */
   private final VelocityServer server;
 
-  public GameSpyQueryHandler(VelocityServer server) {
+  /**
+   * Constructs a new {@link GameSpyQueryHandler} instance responsible for
+   * handling GS4 query packets.
+   *
+   * @param server the {@link VelocityServer} instance to associate with this handler
+   */
+  public GameSpyQueryHandler(final VelocityServer server) {
     this.server = server;
     this.random = new SecureRandom();
   }
 
   private QueryResponse createInitialResponse() {
+
+    final int online;
+    if (server.getMultiProxyHandler().isRedisEnabled()) {
+      online = server.getMultiProxyHandler().getTotalPlayerCount();
+    } else {
+      online = server.getPlayerCount();
+    }
+
     return QueryResponse.builder()
-        .hostname(
-            PlainTextComponentSerializer.plainText().serialize(server.getConfiguration().getMotd()))
+        .hostname(PlainTextComponentSerializer.plainText().serialize(server.getConfiguration().getMotd()))
         .gameVersion(ProtocolVersion.SUPPORTED_VERSION_STRING)
         .map(server.getConfiguration().getQueryMap())
-        .currentPlayers(server.getPlayerCount())
+        .currentPlayers(online)
         .maxPlayers(server.getConfiguration().getShowMaxPlayers())
         .proxyPort(server.getConfiguration().getBind().getPort())
         .proxyHost(server.getConfiguration().getBind().getHostString())
-        .players(server.getAllPlayers().stream().map(Player::getUsername)
-            .collect(Collectors.toList()))
+        .players(server.getAllPlayers().stream().map(Player::getUsername).collect(Collectors.toList()))
         .proxyVersion("Velocity")
-        .plugins(
-            server.getConfiguration().shouldQueryShowPlugins() ? getRealPluginInformation()
-                : Collections.emptyList())
+        .plugins(server.getConfiguration().shouldQueryShowPlugins() ? getRealPluginInformation() : Collections.emptyList())
         .build();
   }
 
+  /**
+   * Handles an incoming GS4 (GameSpy4) query {@link DatagramPacket}.
+   *
+   * <p>This method distinguishes between handshake (0x09) and stat (0x00) requests,
+   * validates the packet header and session, and constructs appropriate query responses
+   * using the Velocity server configuration and plugins.</p>
+   *
+   * <ul>
+   *   <li>If the packet is a handshake, a challenge token is generated and sent back to the client.</li>
+   *   <li>If the packet is a stat request, the challenge token is verified and a query response is built.</li>
+   *   <li>If the packet type is unknown or invalid, the request is ignored silently.</li>
+   * </ul>
+   *
+   * @param ctx the Netty channel context
+   * @param msg the incoming datagram query packet
+   */
   @Override
-  protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket msg) throws Exception {
+  protected void channelRead0(final ChannelHandlerContext ctx, final DatagramPacket msg) {
     ByteBuf queryMessage = msg.content();
     InetAddress senderAddress = msg.sender().getAddress();
 
@@ -120,7 +187,7 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
 
     switch (type) {
       case QUERY_TYPE_HANDSHAKE -> {
-        // Generate new challenge token and put it into the sessions cache
+        // Generate a new challenge token and put it into the session cache
         int challengeToken = random.nextInt();
         sessions.put(senderAddress, challengeToken);
 
@@ -133,9 +200,8 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
         DatagramPacket responsePacket = new DatagramPacket(queryResponse, msg.sender());
         ctx.writeAndFlush(responsePacket, ctx.voidPromise());
       }
-
       case QUERY_TYPE_STAT -> {
-        // Check if query was done with session previously generated using a handshake packet
+        // Check if a query was done with session previously generated using a handshake packet
         int challengeToken = queryMessage.readInt();
         Integer session = sessions.getIfPresent(senderAddress);
         if (session == null || session != challengeToken) {
@@ -196,7 +262,7 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
     }
   }
 
-  private static void writeString(ByteBuf buf, String string) {
+  private static void writeString(final ByteBuf buf, final String string) {
     buf.writeCharSequence(string, StandardCharsets.ISO_8859_1);
     buf.writeByte(0x00);
   }
@@ -208,15 +274,23 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
       result.add(QueryResponse.PluginInformation.of(description.getName()
           .orElse(description.getId()), description.getVersion().orElse(null)));
     }
+
     return result;
   }
 
   private static class ResponseWriter {
 
+    /**
+     * The {@link ByteBuf} into which the response is written.
+     */
     private final ByteBuf buf;
+
+    /**
+     * Whether this writer is constructing a basic response.
+     */
     private final boolean isBasic;
 
-    ResponseWriter(ByteBuf buf, boolean isBasic) {
+    ResponseWriter(final ByteBuf buf, final boolean isBasic) {
       this.buf = buf;
       this.isBasic = isBasic;
 
@@ -226,12 +300,12 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
     }
 
     // Writes k/v to stat packet body if this writer is initialized
-    // for full stat response. Otherwise this follows
+    // for full stat response. Otherwise, this follows
     // GS4QueryHandler#QUERY_BASIC_RESPONSE_CONTENTS to decide what
-    // to write into packet body
-    void write(String key, Object value) {
+    // to write into the packet body
+    void write(final String key, final Object value) {
       if (isBasic) {
-        // Basic contains only specific set of data
+        // Basic contains only specific-set of data
         if (!QUERY_BASIC_RESPONSE_CONTENTS.contains(key)) {
           return;
         }
@@ -248,9 +322,9 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
       }
     }
 
-    // Ends packet k/v body writing and writes stat player list to
+    // "Ends" packet k/v body writing and writes a stat player list to
     // the packet if this writer is initialized for full stat response
-    void writePlayers(Collection<String> players) {
+    void writePlayers(final Collection<String> players) {
       if (isBasic) {
         return;
       }
@@ -263,7 +337,7 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
       buf.writeByte(0x00);
     }
 
-    void writePlugins(String serverVersion, Collection<QueryResponse.PluginInformation> plugins) {
+    void writePlugins(final String serverVersion, final Collection<QueryResponse.PluginInformation> plugins) {
       if (isBasic) {
         return;
       }

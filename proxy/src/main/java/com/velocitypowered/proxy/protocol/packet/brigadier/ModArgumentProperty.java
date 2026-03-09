@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2022 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,33 +41,77 @@ import java.util.concurrent.CompletableFuture;
  */
 public class ModArgumentProperty implements ArgumentType<ByteBuf> {
 
+  /**
+   * The identifier representing the mod-defined argument type.
+   */
   private final ArgumentIdentifier identifier;
+
+  /**
+   * The raw serialized argument data associated with the mod argument.
+   */
   private final ByteBuf data;
 
-  public ModArgumentProperty(ArgumentIdentifier identifier, ByteBuf data) {
+  /**
+   * Constructs a new {@code ModArgumentProperty} with the specified identifier and binary data.
+   *
+   * @param identifier the argument identifier (e.g., {@code "modid:custom_type"})
+   * @param data the serialized argument data buffer (copied as read-only)
+   */
+  public ModArgumentProperty(final ArgumentIdentifier identifier, final ByteBuf data) {
     this.identifier = identifier;
     this.data = Unpooled.unreleasableBuffer(data.asReadOnly());
   }
 
+  /**
+   * Returns the identifier of this mod argument.
+   *
+   * @return the mod argument identifier
+   */
   public ArgumentIdentifier getIdentifier() {
     return identifier;
   }
 
+  /**
+   * Returns a sliced, read-only copy of the internal argument data buffer.
+   *
+   * @return the mod argument's serialized data
+   */
   public ByteBuf getData() {
     return data.slice();
   }
 
+  /**
+   * This operation is not supported for mod argument types.
+   *
+   * @param reader the string reader
+   * @return never returns normally
+   * @throws UnsupportedOperationException always
+   */
   @Override
-  public ByteBuf parse(StringReader reader) throws CommandSyntaxException {
+  public ByteBuf parse(final StringReader reader) throws CommandSyntaxException {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * This operation is not supported for mod argument types.
+   *
+   * @param context the command context
+   * @param builder the suggestion builder
+   * @return never returns normally
+   * @throws UnsupportedOperationException always
+   */
   @Override
-  public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context,
-      SuggestionsBuilder builder) {
+  public <S> CompletableFuture<Suggestions> listSuggestions(final CommandContext<S> context,
+                                                            final SuggestionsBuilder builder) {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * This operation is not supported for mod argument types.
+   *
+   * @return never returns normally
+   * @throws UnsupportedOperationException always
+   */
   @Override
   public Collection<String> getExamples() {
     throw new UnsupportedOperationException();

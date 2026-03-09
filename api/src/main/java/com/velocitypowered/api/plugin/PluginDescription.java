@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -79,7 +79,7 @@ public interface PluginDescription {
   /**
    * Gets the authors of the {@link Plugin} within this container.
    *
-   * @return the plugin authors, may be empty
+   * @return the plugin authors; may be empty
    * @see Plugin#authors()
    */
   default List<String> getAuthors() {
@@ -89,7 +89,7 @@ public interface PluginDescription {
   /**
    * Gets a {@link Collection} of all dependencies of the {@link Plugin} within this container.
    *
-   * @return the plugin dependencies, can be empty
+   * @return the plugin dependencies; can be empty
    * @see Plugin#dependencies()
    */
   default Collection<PluginDependency> getDependencies() {

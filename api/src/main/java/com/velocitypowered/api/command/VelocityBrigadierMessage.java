@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -26,13 +26,19 @@ public final class VelocityBrigadierMessage implements Message, ComponentLike {
    * @param message the component to use as the tooltip message
    * @return a new instance of {@link VelocityBrigadierMessage}
    */
-  public static VelocityBrigadierMessage tooltip(Component message) {
+  public static VelocityBrigadierMessage tooltip(final Component message) {
     return new VelocityBrigadierMessage(message);
   }
 
+  /**
+   * The component backing this brigadier message.
+   *
+   * <p>This component provides both rich formatting for client display and a fallback
+   * plain-text representation via {@link #getString()}.</p>
+   */
   private final Component message;
 
-  private VelocityBrigadierMessage(Component message) {
+  private VelocityBrigadierMessage(final Component message) {
     this.message = Preconditions.checkNotNull(message, "message");
   }
 

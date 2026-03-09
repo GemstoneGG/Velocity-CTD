@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -71,7 +71,7 @@ public interface Scheduler {
 
     /**
      * Specifies that the task should continue running after waiting for the specified amount, until
-     * it is cancelled.
+     * it is canceled.
      *
      * @param time the time to delay by
      * @param unit the unit of time for {@code time}
@@ -81,7 +81,7 @@ public interface Scheduler {
 
     /**
      * Specifies that the task should continue running after waiting for the specified amount, until
-     * it is cancelled.
+     * it is canceled.
      *
      * @param duration the duration of the delay
      * @return this builder, for chaining

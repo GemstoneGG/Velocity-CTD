@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,12 +61,34 @@ import org.apache.logging.log4j.Logger;
  */
 public class ClientConfigSessionHandler implements MinecraftSessionHandler {
 
+  /**
+   * Logger for internal debug and error messages.
+   */
   private static final Logger logger = LogManager.getLogger(ClientConfigSessionHandler.class);
+
+  /**
+   * The Velocity server instance.
+   */
   private final VelocityServer server;
+
+  /**
+   * The player whose session is being handled.
+   */
   private final ConnectedPlayer player;
+
+  /**
+   * The most recently seen client brand channel identifier.
+   */
   private String brandChannel = null;
 
+  /**
+   * Future representing the result of the {@link PlayerConfigurationEvent}.
+   */
   private CompletableFuture<?> configurationFuture;
+
+  /**
+   * Future that completes when the client transitions from configuration to play state.
+   */
   private CompletableFuture<Void> configSwitchFuture;
 
   /**
@@ -75,35 +97,71 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
    * @param server the Velocity server instance
    * @param player the player
    */
-  public ClientConfigSessionHandler(VelocityServer server, ConnectedPlayer player) {
+  public ClientConfigSessionHandler(final VelocityServer server, final ConnectedPlayer player) {
     this.server = server;
     this.player = player;
   }
 
+  /**
+   * Invoked when this session handler is activated.
+   *
+   * <p>Initializes the {@link #configSwitchFuture}, which tracks when the client finishes
+   * transitioning from configuration to play state.</p>
+   */
   @Override
   public void activated() {
     configSwitchFuture = new CompletableFuture<>();
   }
 
+  /**
+   * Invoked when this session handler is deactivated.
+   *
+   * <p>Cleans up any stored configuration futures by setting {@link #configurationFuture} to {@code null}.</p>
+   */
   @Override
   public void deactivated() {
     configurationFuture = null;
   }
 
+  /**
+   * Handles an inbound {@link KeepAlivePacket} from the client during configuration.
+   *
+   * <p>This packet is forwarded directly to maintain the keep-alive flow with the backend.</p>
+   *
+   * @param packet the keep-alive packet
+   * @return {@code true} if the packet was handled
+   */
   @Override
   public boolean handle(final KeepAlivePacket packet) {
     player.forwardKeepAlive(packet);
     return true;
   }
 
+  /**
+   * Handles an inbound {@link ClientSettingsPacket} from the client.
+   *
+   * <p>This updates the player's stored client settings such as language and render distance.</p>
+   *
+   * @param packet the client settings packet
+   * @return {@code true} if the packet was handled
+   */
   @Override
-  public boolean handle(ClientSettingsPacket packet) {
+  public boolean handle(final ClientSettingsPacket packet) {
     player.setClientSettings(packet);
     return true;
   }
 
+  /**
+   * Handles a {@link ResourcePackResponsePacket} sent by the client.
+   *
+   * <p>This packet is delegated to the player's {@code ResourcePackHandler}, which determines
+   * the appropriate action based on the response.</p>
+   *
+   * @param packet the resource pack response
+   * @return {@code true} if the packet was handled
+   */
   @Override
-  public boolean handle(ResourcePackResponsePacket packet) {
+  public boolean handle(final ResourcePackResponsePacket packet) {
     return player.resourcePackHandler().onResourcePackResponse(
         new ResourcePackResponseBundle(packet.getId(),
             packet.getHash(),
@@ -111,14 +169,33 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
     );
   }
 
+  /**
+   * Handles a {@link FinishedUpdatePacket} indicating that the client has completed its
+   * configuration stage.
+   *
+   * <p>This transitions the session to the play state by assigning a new {@link ClientPlaySessionHandler}
+   * and completing the {@link #configSwitchFuture}.</p>
+   *
+   * @param packet the finished update packet
+   * @return {@code true} if the packet was handled
+   */
   @Override
-  public boolean handle(FinishedUpdatePacket packet) {
+  public boolean handle(final FinishedUpdatePacket packet) {
     player.getConnection().setActiveSessionHandler(StateRegistry.PLAY, new ClientPlaySessionHandler(server, player));
 
     configSwitchFuture.complete(null);
     return true;
   }
 
+  /**
+   * Handles an inbound {@link PluginMessagePacket} from the client during the configuration phase.
+   *
+   * <p>This includes handling brand messages, forwarding plugin messages to the backend, or
+   * asynchronously processing plugin message events via the event bus.</p>
+   *
+   * @param packet the plugin message packet
+   * @return {@code true} if the packet was handled
+   */
   @Override
   public boolean handle(final PluginMessagePacket packet) {
     final VelocityServerConnection serverConn = player.getConnectionInFlight();
@@ -150,17 +227,27 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
               serverConn.ensureConnected().write(new PluginMessagePacket(
                   pme.getIdentifier().getId(), Unpooled.wrappedBuffer(bytes)));
             }
+
             serverConn.getPlayer().getConnection().setAutoReading(true);
           }, player.getConnection().eventLoop()).exceptionally((ex) -> {
             logger.error("Exception while handling plugin message packet for {}", player, ex);
             return null;
           });
     }
+
     return true;
   }
 
+  /**
+   * Handles a {@link PingIdentifyPacket} from the client.
+   *
+   * <p>If a backend connection is already established, this packet is forwarded; otherwise, it is ignored.</p>
+   *
+   * @param packet the ping identity packet
+   * @return {@code true} if the packet was forwarded; {@code false} otherwise
+   */
   @Override
-  public boolean handle(PingIdentifyPacket packet) {
+  public boolean handle(final PingIdentifyPacket packet) {
     if (player.getConnectionInFlight() != null) {
       player.getConnectionInFlight().ensureConnected().write(packet);
       return true;
@@ -169,11 +256,19 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
     return false;
   }
 
+  /**
+   * Handles the {@link KnownPacksPacket} from the client.
+   *
+   * <p>This triggers the {@link PlayerConfigurationEvent} and forwards the packet to the
+   * backend once the event completes.</p>
+   *
+   * @param packet the known packs response
+   * @return {@code true} if the packet was handled
+   */
   @Override
-  public boolean handle(KnownPacksPacket packet) {
+  public boolean handle(final KnownPacksPacket packet) {
     callConfigurationEvent().thenRun(() -> {
-      VelocityServerConnection targetServer =
-          player.getConnectionInFlightOrConnectedServer();
+      VelocityServerConnection targetServer = player.getConnectionInFlightOrConnectedServer();
       if (targetServer != null) {
         targetServer.ensureConnected().write(packet);
       }
@@ -185,8 +280,16 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
+  /**
+   * Handles a {@link ServerboundCookieResponsePacket} from the client.
+   *
+   * <p>This fires a {@link CookieReceiveEvent} and forwards the cookie to the backend if allowed.</p>
+   *
+   * @param packet the cookie response
+   * @return {@code true} if the packet was handled
+   */
   @Override
-  public boolean handle(ServerboundCookieResponsePacket packet) {
+  public boolean handle(final ServerboundCookieResponsePacket packet) {
     server.getEventManager()
         .fire(new CookieReceiveEvent(player, packet.getKey(), packet.getPayload()))
         .thenAcceptAsync(event -> {
@@ -198,8 +301,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
               final byte[] resultedData = event.getResult().getData() == null
                   ? event.getOriginalData() : event.getResult().getData();
 
-              serverConnection.ensureConnected()
-                  .write(new ServerboundCookieResponsePacket(resultedKey, resultedData));
+              serverConnection.ensureConnected().write(new ServerboundCookieResponsePacket(resultedKey, resultedData));
             }
           }
         }, player.getConnection().eventLoop());
@@ -207,8 +309,17 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
+  /**
+   * Handles a {@link ServerboundCustomClickActionPacket} sent by the client.
+   *
+   * <p>If a backend connection is in flight, the packet is forwarded. Otherwise,
+   * it is ignored.</p>
+   *
+   * @param packet the custom click action packet
+   * @return {@code true} if the packet was forwarded; {@code false} otherwise
+   */
   @Override
-  public boolean handle(ServerboundCustomClickActionPacket packet) {
+  public boolean handle(final ServerboundCustomClickActionPacket packet) {
     if (player.getConnectionInFlight() != null) {
       player.getConnectionInFlight().ensureConnected().write(packet.retain());
       return true;
@@ -217,8 +328,17 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
     return false;
   }
 
+  /**
+   * Handles a {@link CodeOfConductAcceptPacket} sent by the client.
+   *
+   * <p>If a backend connection is in flight, the packet is forwarded; otherwise,
+   * it is ignored.</p>
+   *
+   * @param packet the code of conduct accept packet
+   * @return {@code true} if the packet was forwarded; {@code false} otherwise
+   */
   @Override
-  public boolean handle(CodeOfConductAcceptPacket packet) {
+  public boolean handle(final CodeOfConductAcceptPacket packet) {
     if (this.player.getConnectionInFlight() != null) {
       this.player.getConnectionInFlight().ensureConnected().write(packet);
       return true;
@@ -227,8 +347,13 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
     return false;
   }
 
+  /**
+   * Forwards any non-explicitly handled packet to the backend connection if available.
+   *
+   * @param packet the generic packet
+   */
   @Override
-  public void handleGeneric(MinecraftPacket packet) {
+  public void handleGeneric(final MinecraftPacket packet) {
     VelocityServerConnection serverConnection = player.getConnectedServer();
     if (serverConnection == null) {
       // No server connection yet, probably transitioning.
@@ -240,12 +365,19 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
       if (packet instanceof PluginMessagePacket) {
         ((PluginMessagePacket) packet).retain();
       }
+
       smc.write(packet);
     }
   }
 
+  /**
+   * Handles an unknown or unregistered packet type by forwarding its raw {@link ByteBuf}
+   * to the backend if available.
+   *
+   * @param buf the raw packet buffer
+   */
   @Override
-  public void handleUnknown(ByteBuf buf) {
+  public void handleUnknown(final ByteBuf buf) {
     final VelocityServerConnection serverConnection = player.getConnectedServer();
     if (serverConnection == null) {
       // No server connection yet, probably transitioning.
@@ -258,32 +390,50 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
     }
   }
 
+  /**
+   * Called when the connection is closed.
+   *
+   * <p>This triggers a teardown of the player session.</p>
+   */
   @Override
   public void disconnected() {
     player.teardown();
   }
 
+  /**
+   * Called when an exception is raised while handling the connection.
+   *
+   * <p>This disconnects the player with an error message.</p>
+   *
+   * @param throwable the exception that occurred
+   */
   @Override
-  public void exception(Throwable throwable) {
+  public void exception(final Throwable throwable) {
     player.disconnect(Component.translatable("velocity.error.player-connection-error", NamedTextColor.RED));
   }
 
   /**
    * Calls the {@link PlayerConfigurationEvent}.
-   * For 1.20.5+ backends this is done when the client responds to
+   * For 1.20.5+ backends, this is done when the client responds to
    * the known packs request. The response is delayed until the event
    * has been called.
-   * For 1.20.2-1.20.4 servers this is done when the client acknowledges
+   * For 1.20.2-1.20.4 servers, this is done when the client acknowledges
    * the end of the configuration.
    * This is handled differently because for 1.20.5+ servers can't keep
    * their connection alive between states and older servers don't have
    * the known packs transaction.
+   *
+   * @return a {@link CompletableFuture} that completes when the configuration event is fired
    */
   private CompletableFuture<?> callConfigurationEvent() {
     if (configurationFuture != null) {
       return configurationFuture;
     }
-    return configurationFuture = server.getEventManager().fire(new PlayerConfigurationEvent(player, player.getConnectionInFlightOrConnectedServer()));
+
+    CompletableFuture<?> future = server.getEventManager().fire(new PlayerConfigurationEvent(player,
+            player.getConnectionInFlightOrConnectedServer()));
+    configurationFuture = future;
+    return future;
   }
 
   /**
@@ -292,7 +442,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
    * @param serverConn the server connection
    * @return a future that completes when the config stage is finished
    */
-  public CompletableFuture<Void> handleBackendFinishUpdate(VelocityServerConnection serverConn) {
+  public CompletableFuture<Void> handleBackendFinishUpdate(final VelocityServerConnection serverConn) {
     final MinecraftConnection smc = serverConn.ensureConnected();
 
     final String brand = serverConn.getPlayer().getClientBrand();
@@ -303,17 +453,15 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
       smc.write(brandPacket);
     }
 
-    callConfigurationEvent().thenCompose(v -> {
-      return server.getEventManager().fire(new PlayerFinishConfigurationEvent(player, serverConn))
-          .completeOnTimeout(null, 5, TimeUnit.SECONDS);
-    }).thenRunAsync(() -> {
-      player.getConnection().write(FinishedUpdatePacket.INSTANCE);
-      player.getConnection().getChannel().pipeline().get(MinecraftEncoder.class).setState(StateRegistry.PLAY);
-      server.getEventManager().fireAndForget(new PlayerFinishedConfigurationEvent(player, serverConn));
-    }, player.getConnection().eventLoop()).exceptionally(ex -> {
-      logger.error("Error finishing configuration state:", ex);
-      return null;
-    });
+    callConfigurationEvent().thenCompose(v -> server.getEventManager().fire(new PlayerFinishConfigurationEvent(player, serverConn))
+        .completeOnTimeout(null, 5, TimeUnit.SECONDS)).thenRunAsync(() -> {
+          player.getConnection().write(FinishedUpdatePacket.INSTANCE);
+          player.getConnection().getChannel().pipeline().get(MinecraftEncoder.class).setState(StateRegistry.PLAY);
+          server.getEventManager().fireAndForget(new PlayerFinishedConfigurationEvent(player, serverConn));
+        }, player.getConnection().eventLoop()).exceptionally(ex -> {
+          logger.error("Error finishing configuration state:", ex);
+          return null;
+        });
 
     return configSwitchFuture;
   }

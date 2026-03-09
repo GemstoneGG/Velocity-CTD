@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ class EncryptionUtilsTest {
     assertEquals("-7c9d5b0044c130109a5d7b5fb5c317c02b4e28c1", jebHash);
   }
 
-  private String mojangLoginSha1(String str) throws Exception {
+  private String mojangLoginSha1(final String str) throws Exception {
     MessageDigest digest = MessageDigest.getInstance("SHA-1");
     digest.update(str.getBytes(StandardCharsets.UTF_8));
     byte[] digested = digest.digest();

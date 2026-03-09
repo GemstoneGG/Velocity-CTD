@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,8 @@
 
 package com.velocitypowered.natives.compression;
 
-class CompressorUtils {
+final class CompressorUtils {
+
   /**
    * The default preferred output buffer size for zlib.
    */

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@ import java.security.Signature;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import java.util.Objects;
 import javax.crypto.Cipher;
 
 /**
@@ -45,24 +46,57 @@ import javax.crypto.Cipher;
 public enum EncryptionUtils {
   ;
 
+  /**
+   * PEM header/footer for RSA public key blocks.
+   */
   public static final Pair<String, String> PEM_RSA_PUBLIC_KEY_DESCRIPTOR =
       Pair.of("-----BEGIN RSA PUBLIC KEY-----", "-----END RSA PUBLIC KEY-----");
+
+  /**
+   * PEM header/footer for RSA private key blocks.
+   */
   public static final Pair<String, String> PEM_RSA_PRIVATE_KEY_DESCRIPTOR =
       Pair.of("-----BEGIN RSA PRIVATE KEY-----", "-----END RSA PRIVATE KEY-----");
 
+  /**
+   * Algorithm constant for SHA1withRSA signature.
+   */
   public static final String SHA1_WITH_RSA = "SHA1withRSA";
+
+  /**
+   * Algorithm constant for SHA256withRSA signature.
+   */
   public static final String SHA256_WITH_RSA = "SHA256withRSA";
 
-  public static final QuietDecoderException INVALID_SIGNATURE
-      = new QuietDecoderException("Incorrectly signed chat message");
-  public static final QuietDecoderException PREVIEW_SIGNATURE_MISSING
-      = new QuietDecoderException("Unsigned chat message requested signed preview");
-  public static final byte[] EMPTY = new byte[0];
-  private static PublicKey YGGDRASIL_SESSION_KEY;
-  private static KeyFactory RSA_KEY_FACTORY;
+  /**
+   * Exception thrown when chat message verification fails.
+   */
+  public static final QuietDecoderException INVALID_SIGNATURE = new QuietDecoderException("Incorrectly signed chat message");
 
-  private static final Base64.Encoder MIME_SPECIAL_ENCODER
-      = Base64.getMimeEncoder(76, "\n".getBytes(StandardCharsets.UTF_8));
+  /**
+   * Exception thrown when a chat preview is requested but the message is unsigned.
+   */
+  public static final QuietDecoderException PREVIEW_SIGNATURE_MISSING = new QuietDecoderException("Unsigned chat message requested signed preview");
+
+  /**
+   * A constant empty byte array.
+   */
+  public static final byte[] EMPTY = new byte[0];
+
+  /**
+   * The Yggdrasil session public key used to validate Mojang-signed data.
+   */
+  private static final PublicKey YGGDRASIL_SESSION_KEY;
+
+  /**
+   * The RSA {@link KeyFactory} used throughout the class.
+   */
+  private static final KeyFactory RSA_KEY_FACTORY;
+
+  /**
+   * MIME Base64 encoder used for PEM formatting.
+   */
+  private static final Base64.Encoder MIME_SPECIAL_ENCODER = Base64.getMimeEncoder(76, "\n".getBytes(StandardCharsets.UTF_8));
 
   static {
     try {
@@ -73,14 +107,19 @@ public enum EncryptionUtils {
 
     try {
       byte[] bytes = ByteStreams.toByteArray(
-          EncryptionUtils.class.getClassLoader()
-              .getResourceAsStream("yggdrasil_session_pubkey.der"));
+          Objects.requireNonNull(EncryptionUtils.class.getClassLoader()
+              .getResourceAsStream("yggdrasil_session_pubkey.der")));
       YGGDRASIL_SESSION_KEY = parseRsaPublicKey(bytes);
     } catch (IOException | NullPointerException err) {
       throw new RuntimeException(err);
     }
   }
 
+  /**
+   * Returns the Mojang-provided Yggdrasil session public key.
+   *
+   * @return the Mojang Yggdrasil session key
+   */
   public static PublicKey getYggdrasilSessionKey() {
     return YGGDRASIL_SESSION_KEY;
   }
@@ -94,8 +133,8 @@ public enum EncryptionUtils {
    * @param toVerify  the byte array(s) of data to verify
    * @return validity of the signature
    */
-  public static boolean verifySignature(String algorithm, PublicKey base, byte[] signature,
-      byte[]... toVerify) {
+  public static boolean verifySignature(final String algorithm, final PublicKey base, final byte[] signature,
+                                        final byte[]... toVerify) {
     Preconditions.checkArgument(toVerify.length > 0);
     try {
       Signature construct = Signature.getInstance(algorithm);
@@ -109,11 +148,23 @@ public enum EncryptionUtils {
     }
   }
 
-  public static String encodeUrlEncoded(byte[] data) {
+  /**
+   * Encodes a byte array into a MIME-style Base64 string.
+   *
+   * @param data the input byte array
+   * @return the encoded Base64 string
+   */
+  public static String encodeUrlEncoded(final byte[] data) {
     return MIME_SPECIAL_ENCODER.encodeToString(data);
   }
 
-  public static byte[] decodeUrlEncoded(String toParse) {
+  /**
+   * Decodes a MIME-style Base64 string into a byte array.
+   *
+   * @param toParse the encoded string
+   * @return the decoded bytes
+   */
+  public static byte[] decodeUrlEncoded(final String toParse) {
     return Base64.getMimeDecoder().decode(toParse);
   }
 
@@ -123,7 +174,7 @@ public enum EncryptionUtils {
    * @param toEncode the private or public RSA key
    * @return the encoded key cer
    */
-  public static String pemEncodeRsaKey(Key toEncode) {
+  public static String pemEncodeRsaKey(final Key toEncode) {
     Preconditions.checkNotNull(toEncode);
     Pair<String, String> encoder;
     if (toEncode instanceof PublicKey) {
@@ -134,9 +185,7 @@ public enum EncryptionUtils {
       throw new IllegalArgumentException("Invalid key type");
     }
 
-    return encoder.first() + "\n"
-        + encodeUrlEncoded(toEncode.getEncoded()) + "\n"
-        + encoder.second() + "\n";
+    return encoder.first() + "\n" + encodeUrlEncoded(toEncode.getEncoded()) + "\n" + encoder.second() + "\n";
   }
 
   /**
@@ -145,7 +194,7 @@ public enum EncryptionUtils {
    * @param keyValue the key bytes
    * @return the generated key
    */
-  public static PublicKey parseRsaPublicKey(byte[] keyValue) {
+  public static PublicKey parseRsaPublicKey(final byte[] keyValue) {
     try {
       return RSA_KEY_FACTORY.generatePublic(new X509EncodedKeySpec(keyValue));
     } catch (InvalidKeySpecException e) {
@@ -175,7 +224,7 @@ public enum EncryptionUtils {
    * @param digest the bytes to digest
    * @return the hex digest
    */
-  public static String twosComplementHexdigest(byte[] digest) {
+  public static String twosComplementHexdigest(final byte[] digest) {
     return new BigInteger(digest).toString(16);
   }
 
@@ -187,7 +236,7 @@ public enum EncryptionUtils {
    * @return the decrypted message
    * @throws GeneralSecurityException if the message couldn't be decoded
    */
-  public static byte[] decryptRsa(KeyPair keyPair, byte[] bytes) throws GeneralSecurityException {
+  public static byte[] decryptRsa(final KeyPair keyPair, final byte[] bytes) throws GeneralSecurityException {
     Cipher cipher = Cipher.getInstance("RSA");
     cipher.init(Cipher.DECRYPT_MODE, keyPair.getPrivate());
     return cipher.doFinal(bytes);
@@ -200,7 +249,7 @@ public enum EncryptionUtils {
    * @param key          the RSA public key
    * @return the server ID
    */
-  public static String generateServerId(byte[] sharedSecret, PublicKey key) {
+  public static String generateServerId(final byte[] sharedSecret, final PublicKey key) {
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-1");
       digest.update(sharedSecret);

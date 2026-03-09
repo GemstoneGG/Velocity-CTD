@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,21 +18,25 @@
 package com.velocitypowered.natives.util;
 
 /**
- * Emumerates Netty buffer preferences and requirements for use with Netty.
+ * Enumerates Netty buffer preferences and requirements for use with Netty.
  */
 public enum BufferPreference {
+
   /**
    * A heap buffer is required.
    */
   HEAP_REQUIRED,
+
   /**
    * A heap buffer is preferred (but not required).
    */
   HEAP_PREFERRED,
+
   /**
    * A direct buffer is preferred (but not required).
    */
   DIRECT_PREFERRED,
+
   /**
    * A direct buffer is required.
    */

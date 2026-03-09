@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,9 +28,16 @@ public final class Ratelimiters {
     throw new AssertionError();
   }
 
-  @SuppressWarnings("unchecked")
-  public static <T> Ratelimiter<T> createWithMilliseconds(long ms) {
-    return ms <= 0 ? (Ratelimiter<T>) NoopCacheRatelimiter.INSTANCE : new CaffeineCacheRatelimiter(ms,
-        TimeUnit.MILLISECONDS);
+  /**
+   * Creates a {@link Ratelimiter} with a cooldown window in milliseconds.
+   *
+   * <p>If {@code ms} is {@code 0} or negative, a no-op rate limiter will be returned
+   * that allows all keys through unconditionally.</p>
+   *
+   * @param ms the cooldown duration in milliseconds
+   * @return a {@link Ratelimiter} enforcing the given cooldown, or a no-op limiter if disabled
+   */
+  public static Ratelimiter createWithMilliseconds(final long ms) {
+    return ms <= 0 ? NoopCacheRatelimiter.INSTANCE : new CaffeineCacheRatelimiter(ms, TimeUnit.MILLISECONDS);
   }
 }

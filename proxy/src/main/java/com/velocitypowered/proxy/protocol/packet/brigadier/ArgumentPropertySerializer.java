@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,21 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public interface ArgumentPropertySerializer<T> {
 
+  /**
+   * Deserializes an argument property from the given buffer using the specified protocol version.
+   *
+   * @param buf the buffer containing the serialized form
+   * @param protocolVersion the protocol version used to interpret the data
+   * @return the deserialized argument property, or {@code null} if deserialization fails or is unsupported
+   */
   @Nullable T deserialize(ByteBuf buf, ProtocolVersion protocolVersion);
 
+  /**
+   * Serializes the given argument property into the buffer using the specified protocol version.
+   *
+   * @param object the argument property to serialize
+   * @param buf the buffer to write to
+   * @param protocolVersion the protocol version to use for serialization
+   */
   void serialize(T object, ByteBuf buf, ProtocolVersion protocolVersion);
 }

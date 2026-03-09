@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,9 @@ import java.time.Duration;
  */
 public final class DurationUtils {
 
+  /**
+   * One Minecraft tick in milliseconds (1/20th of a second).
+   */
   private static final long ONE_TICK_IN_MILLISECONDS = 50;
 
   private DurationUtils() {
@@ -36,7 +39,7 @@ public final class DurationUtils {
    * @param duration the duration to convert into Minecraft ticks
    * @return the duration represented as the number of Minecraft ticks
    */
-  public static long toTicks(Duration duration) {
+  public static long toTicks(final Duration duration) {
     return duration.toMillis() / ONE_TICK_IN_MILLISECONDS;
   }
 }

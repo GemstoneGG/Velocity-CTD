@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,25 +32,60 @@ import com.velocitypowered.proxy.protocol.packet.chat.ChatHandler;
  */
 public class LegacyChatHandler implements ChatHandler<LegacyChatPacket> {
 
+  /**
+   * The Velocity server instance used to fire events and manage server state.
+   */
   private final VelocityServer server;
+
+  /**
+   * The player sending the legacy chat message.
+   */
   private final ConnectedPlayer player;
 
-  public LegacyChatHandler(VelocityServer server, ConnectedPlayer player) {
+  /**
+   * Constructs a new {@code LegacyChatHandler} for the specified server and player.
+   *
+   * @param server the proxy server instance
+   * @param player the player associated with the incoming chat packet
+   */
+  public LegacyChatHandler(final VelocityServer server, final ConnectedPlayer player) {
     this.server = server;
     this.player = player;
   }
 
+  /**
+   * Returns the class of chat packets that this handler processes.
+   *
+   * <p>Used by the chat framework to associate this handler with {@link LegacyChatPacket}
+   * instances for legacy-format message processing.</p>
+   *
+   * @return the {@code LegacyChatPacket} class
+   */
   @Override
   public Class<LegacyChatPacket> packetClass() {
     return LegacyChatPacket.class;
   }
 
+  /**
+   * Handles a player-sent legacy chat packet internally.
+   *
+   * <p>This method performs the following steps:</p>
+   * <ul>
+   *   <li>Ensures the player is connected to a backend server.</li>
+   *   <li>Fires a {@link PlayerChatEvent} to allow plugins to observe or modify the message.</li>
+   *   <li>If the message is not cancelled, the message (possibly modified) is sent to the backend server
+   *       using the legacy chat format.</li>
+   * </ul>
+   *
+   * @param packet the incoming legacy-format chat packet from the player
+   */
   @Override
-  public void handlePlayerChatInternal(LegacyChatPacket packet) {
+  public void handlePlayerChatInternal(final LegacyChatPacket packet) {
     MinecraftConnection serverConnection = player.ensureAndGetCurrentServer().ensureConnected();
     if (serverConnection == null) {
       return;
     }
+
     this.server.getEventManager().fire(new PlayerChatEvent(this.player, packet.getMessage()))
         .whenComplete((chatEvent, throwable) -> {
           if (!chatEvent.getResult().isAllowed()) {

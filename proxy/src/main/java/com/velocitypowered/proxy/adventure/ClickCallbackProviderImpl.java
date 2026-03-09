@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@ import java.util.UUID;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.event.ClickCallback;
 import net.kyori.adventure.text.event.ClickEvent;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Implementation of {@link ClickCallback.Provider}.
@@ -29,11 +30,9 @@ import net.kyori.adventure.text.event.ClickEvent;
 @AutoService(ClickCallback.Provider.class)
 @SuppressWarnings("UnstableApiUsage") // permitted provider
 public class ClickCallbackProviderImpl implements ClickCallback.Provider {
+
   @Override
-  public  ClickEvent create(
-      final ClickCallback<Audience> callback,
-      final ClickCallback.Options options
-  ) {
+  public final @NotNull ClickEvent create(final @NotNull ClickCallback<Audience> callback, final ClickCallback.@NotNull Options options) {
     final UUID id = ClickCallbackManager.INSTANCE.register(callback, options);
     return ClickEvent.runCommand(ClickCallbackManager.COMMAND + id);
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,8 +61,8 @@ public final class ShutdownCommand {
                 try {
                   reasonComponent = GsonComponentSerializer.gson()
                       .deserializeOrNull(reason);
-                } catch (JsonSyntaxException expected) {
-
+                } catch (JsonSyntaxException ignored) {
+                    // This is always ignored; thus, can be labeled as such.
                 }
               }
 

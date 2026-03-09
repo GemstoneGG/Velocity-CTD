@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,17 +32,38 @@ import java.util.List;
  */
 public class ClientboundServerLinksPacket implements MinecraftPacket {
 
+  /**
+   * The list of server links provided in the packet.
+   */
   private List<ServerLink> serverLinks;
 
+  /**
+   * Constructs an empty {@code ClientboundServerLinksPacket}, typically used for decoding.
+   */
   public ClientboundServerLinksPacket() {
   }
 
-  public ClientboundServerLinksPacket(List<ServerLink> serverLinks) {
+  /**
+   * Constructs a {@code ClientboundServerLinksPacket} with a provided list of links.
+   *
+   * @param serverLinks the list of links to send to the client
+   */
+  public ClientboundServerLinksPacket(final List<ServerLink> serverLinks) {
     this.serverLinks = serverLinks;
   }
 
+  /**
+   * Decodes this server links packet from the provided {@link ByteBuf}.
+   *
+   * <p>This method reads the list of server links, each consisting of an ID or display name
+   * and an associated URL, and populates the internal list.</p>
+   *
+   * @param buf the buffer to read from
+   * @param direction the direction of the packet (clientbound or serverbound)
+   * @param version the Minecraft protocol version
+   */
   @Override
-  public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     int linksCount = ProtocolUtils.readVarInt(buf);
 
     this.serverLinks = new ArrayList<>(linksCount);
@@ -51,8 +72,18 @@ public class ClientboundServerLinksPacket implements MinecraftPacket {
     }
   }
 
+  /**
+   * Encodes this server links packet into the provided {@link ByteBuf}.
+   *
+   * <p>This method writes each link in the internal list, serializing the ID or display name
+   * and URL for each entry.</p>
+   *
+   * @param buf the buffer to write to
+   * @param direction the direction of the packet (clientbound or serverbound)
+   * @param protocolVersion the Minecraft protocol version
+   */
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeVarInt(buf, serverLinks.size());
 
     for (ServerLink serverLink : serverLinks) {
@@ -60,11 +91,25 @@ public class ClientboundServerLinksPacket implements MinecraftPacket {
     }
   }
 
+  /**
+   * Handles this server links packet using the specified {@link MinecraftSessionHandler}.
+   *
+   * <p>This delegates handling to {@code handler.handle(this)} to process or display the links
+   * on the client side.</p>
+   *
+   * @param handler the session handler responsible for handling this packet
+   * @return {@code true} if the packet was handled successfully
+   */
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
+  /**
+   * Returns the list of {@link ServerLink} entries contained in this packet.
+   *
+   * @return the list of links
+   */
   public List<ServerLink> getServerLinks() {
     return serverLinks;
   }
@@ -81,7 +126,7 @@ public class ClientboundServerLinksPacket implements MinecraftPacket {
    */
   public record ServerLink(int id, ComponentHolder displayName, String url) {
 
-    private static ServerLink read(ByteBuf buf, ProtocolVersion version) {
+    private static ServerLink read(final ByteBuf buf, final ProtocolVersion version) {
       if (buf.readBoolean()) {
         return new ServerLink(ProtocolUtils.readVarInt(buf), null, ProtocolUtils.readString(buf));
       } else {
@@ -89,7 +134,7 @@ public class ClientboundServerLinksPacket implements MinecraftPacket {
       }
     }
 
-    private void write(ByteBuf buf) {
+    private void write(final ByteBuf buf) {
       if (id >= 0) {
         buf.writeBoolean(true);
         ProtocolUtils.writeVarInt(buf, id);
@@ -97,6 +142,7 @@ public class ClientboundServerLinksPacket implements MinecraftPacket {
         buf.writeBoolean(false);
         displayName.write(buf);
       }
+
       ProtocolUtils.writeString(buf, url);
     }
   }

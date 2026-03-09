@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,15 +25,32 @@ import java.util.zip.DataFormatException;
 /**
  * Implements deflate compression using the {@code libdeflate} native C library.
  */
-public class LibdeflateVelocityCompressor implements VelocityCompressor {
+public final class LibdeflateVelocityCompressor implements VelocityCompressor {
 
+  /**
+   * A {@link VelocityCompressorFactory} for creating {@link LibdeflateVelocityCompressor} instances.
+   *
+   * <p>This factory integrates the native libdeflate-backed compressor into the Velocity
+   * compression system.</p>
+   */
   public static final VelocityCompressorFactory FACTORY = LibdeflateVelocityCompressor::new;
 
+  /**
+   * Native handle to the libdeflate inflate context.
+   */
   private final long inflateCtx;
+
+  /**
+   * Native handle to the libdeflate deflate context.
+   */
   private final long deflateCtx;
+
+  /**
+   * Whether this compressor instance has been disposed.
+   */
   private boolean disposed = false;
 
-  private LibdeflateVelocityCompressor(int level) {
+  private LibdeflateVelocityCompressor(final int level) {
     int correctedLevel = level == -1 ? 6 : level;
     if (correctedLevel > 12 || correctedLevel < 1) {
       throw new IllegalArgumentException("Invalid compression level " + level);
@@ -44,11 +61,11 @@ public class LibdeflateVelocityCompressor implements VelocityCompressor {
   }
 
   @Override
-  public void inflate(ByteBuf source, ByteBuf destination, int uncompressedSize)
+  public void inflate(final ByteBuf source, final ByteBuf destination, final int uncompressedSize)
       throws DataFormatException {
     ensureNotDisposed();
 
-    // libdeflate recommends we work with a known uncompressed size - so we work strictly within
+    // Libdeflate recommends we work with a known uncompressed size - so we work strictly within
     // those parameters. If the uncompressed size doesn't match the compressed size, then we will
     // throw an exception from native code.
     destination.ensureWritable(uncompressedSize);
@@ -62,10 +79,10 @@ public class LibdeflateVelocityCompressor implements VelocityCompressor {
   }
 
   @Override
-  public void deflate(ByteBuf source, ByteBuf destination) throws DataFormatException {
+  public void deflate(final ByteBuf source, final ByteBuf destination) throws DataFormatException {
     ensureNotDisposed();
 
-    while (true) {
+    do {
       long sourceAddress = source.memoryAddress() + source.readerIndex();
       long destinationAddress = destination.memoryAddress() + destination.writerIndex();
 
@@ -80,7 +97,7 @@ public class LibdeflateVelocityCompressor implements VelocityCompressor {
       } else {
         throw new DataFormatException("libdeflate returned unknown code " + produced);
       }
-    }
+    } while (true);
   }
 
   private void ensureNotDisposed() {
@@ -93,6 +110,7 @@ public class LibdeflateVelocityCompressor implements VelocityCompressor {
       NativeZlibInflate.free(inflateCtx);
       NativeZlibDeflate.free(deflateCtx);
     }
+
     disposed = true;
   }
 

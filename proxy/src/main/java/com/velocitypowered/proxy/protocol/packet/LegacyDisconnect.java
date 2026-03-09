@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,20 +34,25 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
  */
 public record LegacyDisconnect(String reason) {
 
-  private static final ServerPing.Players FAKE_PLAYERS = new ServerPing.Players(0, 0,
-      ImmutableList.of());
-  private static final String LEGACY_COLOR_CODE = Character
-      .toString(LegacyComponentSerializer.SECTION_CHAR);
+  /**
+   * Fake player list used when player data is not present in the ping response.
+   */
+  private static final ServerPing.Players FAKE_PLAYERS = new ServerPing.Players(0, 0, ImmutableList.of());
 
   /**
-   * Converts a modern server list ping response into an legacy disconnect packet.
+   * The legacy color code prefix (§) used for formatting text in older versions.
+   */
+  private static final String LEGACY_COLOR_CODE = Character.toString(LegacyComponentSerializer.SECTION_CHAR);
+
+  /**
+   * Converts a modern server list ping response into a legacy disconnect packet.
    *
    * @param response the server ping to convert
    * @param version  the requesting clients' version
    * @return the disconnect packet
    */
-  public static LegacyDisconnect fromServerPing(ServerPing response,
-      LegacyMinecraftPingVersion version) {
+  public static LegacyDisconnect fromServerPing(final ServerPing response,
+                                                final LegacyMinecraftPingVersion version) {
     final Players players = response.getPlayers().orElse(FAKE_PLAYERS);
 
     return switch (version) {
@@ -71,15 +76,14 @@ public record LegacyDisconnect(String reason) {
             Integer.toString(players.getOnline()),
             Integer.toString(players.getMax())
         ));
-      default -> throw new IllegalArgumentException("Unknown version " + version);
     };
   }
 
-  private static String cleanSectionSymbol(String string) {
+  private static String cleanSectionSymbol(final String string) {
     return string.replaceAll(LEGACY_COLOR_CODE, "");
   }
 
-  private static String getFirstLine(String legacyMotd) {
+  private static String getFirstLine(final String legacyMotd) {
     final int newline = legacyMotd.indexOf('\n');
     return newline == -1 ? legacyMotd : legacyMotd.substring(0, newline);
   }
@@ -90,7 +94,7 @@ public record LegacyDisconnect(String reason) {
    * @param component the component to convert
    * @return the disconnect packet
    */
-  public static LegacyDisconnect from(TextComponent component) {
+  public static LegacyDisconnect from(final TextComponent component) {
     // We intentionally use the legacy serializers, because the old clients can't understand JSON.
     final String serialized = LegacyComponentSerializer.legacySection().serialize(component);
     return new LegacyDisconnect(serialized);

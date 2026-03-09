@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -14,6 +14,7 @@ package com.velocitypowered.api.network;
  * @since 3.3.0
  */
 public enum ProtocolState {
+
   /**
    * Initial connection State.
    *
@@ -23,6 +24,7 @@ public enum ProtocolState {
    * otherwise, it will go to the {@link #STATUS} state.
    */
   HANDSHAKE,
+
   /**
    * Ping State of a connection.
    *
@@ -31,23 +33,26 @@ public enum ProtocolState {
    * and the server responds with the respective ping.</p>
    */
   STATUS,
+
   /**
    * Authentication State of a connection.
    *
-   * <p>At this moment the player is authenticating with the authentication servers.</p>
+   * <p>At this moment, the player is authenticating with the authentication servers.</p>
    */
   LOGIN,
+
   /**
    * Configuration State of a connection.
    *
-   * <p>At this point the player allows the server to send information
+   * <p>At this point, the player allows the server to send information
    * such as resource packs and plugin messages, at the same time the player
    * will send his client brand and the respective plugin messages
    * if it is a modded client.</p>
    *
-   * @sinceMinecraft 1.20.2
+   * @since Minecraft 1.20.2
    */
   CONFIGURATION,
+
   /**
    * Game State of a connection.
    *

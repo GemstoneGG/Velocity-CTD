@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2022 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -18,7 +18,14 @@ import java.util.List;
  */
 public final class PlayerChannelRegisterEvent {
 
+  /**
+   * The player who sent the plugin message to register channels.
+   */
   private final Player player;
+
+  /**
+   * The list of plugin message channels the player registered.
+   */
   private final List<ChannelIdentifier> channels;
 
   /**
@@ -27,7 +34,7 @@ public final class PlayerChannelRegisterEvent {
    * @param player the player who sent the plugin message
    * @param channels the list of channels the player is registering
    */
-  public PlayerChannelRegisterEvent(Player player, List<ChannelIdentifier> channels) {
+  public PlayerChannelRegisterEvent(final Player player, final List<ChannelIdentifier> channels) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.channels = Preconditions.checkNotNull(channels, "channels");
   }
@@ -53,8 +60,8 @@ public final class PlayerChannelRegisterEvent {
   @Override
   public String toString() {
     return "PlayerChannelRegisterEvent{"
-            + "player=" + player
-            + ", channels=" + channels
-            + '}';
+        + "player=" + player
+        + ", channels=" + channels
+        + '}';
   }
 }

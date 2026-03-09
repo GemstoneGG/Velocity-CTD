@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,17 @@ import com.velocitypowered.api.permission.Tristate;
  */
 public class MockCommandSource implements CommandSource {
 
+  /**
+   * Singleton instance of the mock command source.
+   */
   public static final CommandSource INSTANCE = new MockCommandSource();
 
+  /**
+   * Always returns {@link Tristate#UNDEFINED} for any permission query.
+   *
+   * @param permission the permission string to check
+   * @return {@link Tristate#UNDEFINED}
+   */
   @Override
   public Tristate getPermissionValue(final String permission) {
     return Tristate.UNDEFINED;

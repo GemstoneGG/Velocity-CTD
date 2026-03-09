@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,28 +26,42 @@ import javax.crypto.SecretKey;
 /**
  * Implements AES-CFB8 encryption/decryption using a native library.
  */
-public class NativeVelocityCipher implements VelocityCipher {
+public final class NativeVelocityCipher implements VelocityCipher {
 
+  /**
+   * A {@link VelocityCipherFactory} for creating {@link NativeVelocityCipher} instances.
+   *
+   * <p>This factory uses a native OpenSSL-backed implementation of AES/CFB8 encryption and decryption.</p>
+   */
   public static final VelocityCipherFactory FACTORY = new VelocityCipherFactory() {
+
     @Override
-    public VelocityCipher forEncryption(SecretKey key) throws GeneralSecurityException {
+    public VelocityCipher forEncryption(final SecretKey key) throws GeneralSecurityException {
       return new NativeVelocityCipher(true, key);
     }
 
     @Override
-    public VelocityCipher forDecryption(SecretKey key) throws GeneralSecurityException {
+    public VelocityCipher forDecryption(final SecretKey key) throws GeneralSecurityException {
       return new NativeVelocityCipher(false, key);
     }
   };
+
+  /**
+   * The native context pointer returned by the OpenSSL implementation.
+   */
   private final long ctx;
+
+  /**
+   * Whether this cipher instance has been disposed.
+   */
   private boolean disposed = false;
 
-  private NativeVelocityCipher(boolean encrypt, SecretKey key) throws GeneralSecurityException {
+  private NativeVelocityCipher(final boolean encrypt, final SecretKey key) throws GeneralSecurityException {
     this.ctx = OpenSslCipherImpl.init(key.getEncoded(), encrypt);
   }
 
   @Override
-  public void process(ByteBuf source) {
+  public void process(final ByteBuf source) {
     ensureNotDisposed();
 
     long base = source.memoryAddress() + source.readerIndex();
@@ -61,6 +75,7 @@ public class NativeVelocityCipher implements VelocityCipher {
     if (!disposed) {
       OpenSslCipherImpl.free(ctx);
     }
+
     disposed = true;
   }
 

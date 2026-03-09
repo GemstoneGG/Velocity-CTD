@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,21 +31,38 @@ import java.util.zip.Inflater;
 /**
  * Implements deflate compression by wrapping {@link Deflater} and {@link Inflater}.
  */
-public class JavaVelocityCompressor implements VelocityCompressor {
+public final class JavaVelocityCompressor implements VelocityCompressor {
 
+  /**
+   * A {@link VelocityCompressorFactory} for creating instances of {@link JavaVelocityCompressor}.
+   *
+   * <p>This factory allows the {@link JavaVelocityCompressor} to be registered or used
+   * where a generic {@link VelocityCompressor} implementation is required.</p>
+   */
   public static final VelocityCompressorFactory FACTORY = JavaVelocityCompressor::new;
 
+  /**
+   * The underlying {@link Deflater} used to compress data using the DEFLATE algorithm.
+   */
   private final Deflater deflater;
+
+  /**
+   * The underlying {@link Inflater} used to decompress DEFLATE-compressed data.
+   */
   private final Inflater inflater;
+
+  /**
+   * Indicates whether this compressor instance has been disposed.
+   */
   private boolean disposed = false;
 
-  private JavaVelocityCompressor(int level) {
+  private JavaVelocityCompressor(final int level) {
     this.deflater = new Deflater(level);
     this.inflater = new Inflater();
   }
 
   @Override
-  public void inflate(ByteBuf source, ByteBuf destination, int uncompressedSize)
+  public void inflate(final ByteBuf source, final ByteBuf destination, final int uncompressedSize)
       throws DataFormatException {
     ensureNotDisposed();
 
@@ -80,7 +97,7 @@ public class JavaVelocityCompressor implements VelocityCompressor {
   }
 
   @Override
-  public void deflate(ByteBuf source, ByteBuf destination) throws DataFormatException {
+  public void deflate(final ByteBuf source, final ByteBuf destination) {
     ensureNotDisposed();
 
     // We (probably) can't nicely deal with >=1 buffer nicely, so let's scream loudly.

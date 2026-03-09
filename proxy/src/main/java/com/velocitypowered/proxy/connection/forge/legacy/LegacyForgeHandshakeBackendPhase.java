@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,19 +52,20 @@ public enum LegacyForgeHandshakeBackendPhase implements BackendConnectionPhase {
     }
 
     @Override
-    void onTransitionToNewPhase(VelocityServerConnection connection) {
+    void onTransitionToNewPhase(final VelocityServerConnection connection) {
       // We must always reset the handshake before a modded connection is established if
       // we haven't done so already.
       MinecraftConnection mc = connection.getConnection();
       if (mc != null) {
         mc.setType(ConnectionTypes.LEGACY_FORGE);
       }
+
       connection.getPlayer().sendLegacyForgeHandshakeResetPacket();
     }
   },
 
   /**
-   * The mod list from the client has been accepted and a server mod list has been sent. Waiting for
+   * The mod list from the client has been accepted, and a server mod list has been sent. Waiting for
    * the client to acknowledge.
    */
   SENT_MOD_LIST(LegacyForgeConstants.REGISTRY_DISCRIMINATOR) {
@@ -105,6 +106,16 @@ public enum LegacyForgeHandshakeBackendPhase implements BackendConnectionPhase {
     }
   };
 
+  /**
+   * The discriminator value of a {@link PluginMessagePacket} used to identify whether
+   * the handshake should advance to the next phase.
+   *
+   * <p>Each Forge handshake packet sent over the legacy channel contains a discriminator integer
+   * as the first field in the payload. This field allows Velocity to track and advance the
+   * {@link LegacyForgeHandshakeBackendPhase} when the expected packet is received.</p>
+   *
+   * <p>If {@code null}, this phase does not automatically advance to another phase.</p>
+   */
   @Nullable
   private final Integer packetToAdvanceOn;
 
@@ -113,17 +124,17 @@ public enum LegacyForgeHandshakeBackendPhase implements BackendConnectionPhase {
    *
    * @param packetToAdvanceOn The ID of the packet discriminator that indicates that the server has
    *                          moved onto a new phase, and as such, Velocity should do so too
-   *                          (inspecting {@link #nextPhase()}. A null indicates there is no further
+   *                          (inspecting {@link #nextPhase()}). A null indicates there is no further
    *                          phase to transition to.
    */
-  LegacyForgeHandshakeBackendPhase(@Nullable Integer packetToAdvanceOn) {
+  LegacyForgeHandshakeBackendPhase(final @Nullable Integer packetToAdvanceOn) {
     this.packetToAdvanceOn = packetToAdvanceOn;
   }
 
   @Override
-  public final boolean handle(VelocityServerConnection serverConnection,
-      ConnectedPlayer player,
-      PluginMessagePacket message) {
+  public final boolean handle(final VelocityServerConnection serverConnection,
+                              final ConnectedPlayer player,
+                              final PluginMessagePacket message) {
     if (message.getChannel().equals(LegacyForgeConstants.FORGE_LEGACY_HANDSHAKE_CHANNEL)) {
       // Get the phase and check if we need to start the next phase.
       LegacyForgeHandshakeBackendPhase newPhase = getNewPhase(serverConnection, message);
@@ -146,8 +157,8 @@ public enum LegacyForgeHandshakeBackendPhase implements BackendConnectionPhase {
   }
 
   @Override
-  public void onDepartForNewServer(VelocityServerConnection serverConnection,
-      ConnectedPlayer player) {
+  public void onDepartForNewServer(final VelocityServerConnection serverConnection,
+                                   final ConnectedPlayer player) {
     // If the server we are departing is modded, we must always reset the client's handshake.
     player.getPhase().resetConnectionPhase(player);
   }
@@ -157,11 +168,11 @@ public enum LegacyForgeHandshakeBackendPhase implements BackendConnectionPhase {
    *
    * @param connection The server connection
    */
-  void onTransitionToNewPhase(VelocityServerConnection connection) {
+  void onTransitionToNewPhase(final VelocityServerConnection connection) {
   }
 
   /**
-   * Gets the next phase, if any (will return self if we are at the end of the handshake).
+   * Gets the next phase if any (returns self if we are at the end of the handshake).
    *
    * @return The next phase
    */
@@ -176,10 +187,9 @@ public enum LegacyForgeHandshakeBackendPhase implements BackendConnectionPhase {
    * @param packet           The packet
    * @return The phase to transition to, which may be the same as before.
    */
-  private LegacyForgeHandshakeBackendPhase getNewPhase(VelocityServerConnection serverConnection,
-      PluginMessagePacket packet) {
-    if (packetToAdvanceOn != null
-        && LegacyForgeUtil.getHandshakePacketDiscriminator(packet) == packetToAdvanceOn) {
+  private LegacyForgeHandshakeBackendPhase getNewPhase(final VelocityServerConnection serverConnection,
+                                                       final PluginMessagePacket packet) {
+    if (packetToAdvanceOn != null && LegacyForgeUtil.getHandshakePacketDiscriminator(packet) == packetToAdvanceOn) {
       LegacyForgeHandshakeBackendPhase phaseToTransitionTo = nextPhase();
       phaseToTransitionTo.onTransitionToNewPhase(serverConnection);
       return phaseToTransitionTo;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ public final class CharacterUtil {
    * @param c character to check
    * @return true if the character is allowed
    */
-  public static boolean isAllowedCharacter(char c) {
+  public static boolean isAllowedCharacter(final char c) {
     // 167 = §, 127 = DEL
     // https://minecraft.wiki/w/Chat
     return c != 167 && c >= ' ' && c != 127;
@@ -41,12 +41,13 @@ public final class CharacterUtil {
    * @param message the message to check
    * @return true if the message contains illegal characters
    */
-  public static boolean containsIllegalCharacters(String message) {
+  public static boolean containsIllegalCharacters(final String message) {
     for (int i = 0; i < message.length(); i++) {
       if (!isAllowedCharacter(message.charAt(i))) {
         return true;
       }
     }
+
     return false;
   }
 }

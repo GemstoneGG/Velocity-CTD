@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,21 +20,32 @@ package com.velocitypowered.proxy.protocol.packet.brigadier;
 import com.velocitypowered.api.network.ProtocolVersion;
 import io.netty.buffer.ByteBuf;
 
-class ByteArgumentPropertySerializer implements ArgumentPropertySerializer<Byte> {
+/**
+ * The {@code ByteArgumentPropertySerializer} is a concrete implementation of
+ * {@link ArgumentPropertySerializer} that handles serialization and deserialization
+ * of {@link Byte} values.
+ *
+ * <p>This serializer is used for argument types where a single byte is sufficient to
+ * represent the argument's metadata or configuration, such as certain Minecraft selectors
+ * or flags.</p>
+ */
+final class ByteArgumentPropertySerializer implements ArgumentPropertySerializer<Byte> {
 
+  /**
+   * A shared singleton instance of {@code ByteArgumentPropertySerializer}.
+   */
   static final ByteArgumentPropertySerializer BYTE = new ByteArgumentPropertySerializer();
 
   private ByteArgumentPropertySerializer() {
-
   }
 
   @Override
-  public Byte deserialize(ByteBuf buf, ProtocolVersion protocolVersion) {
+  public Byte deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
     return buf.readByte();
   }
 
   @Override
-  public void serialize(Byte object, ByteBuf buf, ProtocolVersion protocolVersion) {
+  public void serialize(final Byte object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
     buf.writeByte(object);
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -21,11 +21,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Represents a Minecraft server favicon. A Minecraft server favicon is a 64x64 image that can be
- * displayed to a remote client that sends a Server List Ping packet, and is automatically displayed
+ * displayed to a remote client that sends a Server List a Ping packet, and is automatically displayed
  * in the Minecraft client.
  */
 public final class Favicon {
 
+  /**
+   * The Base64-encoded data URI representing the PNG favicon.
+   */
   private final String base64Url;
 
   /**
@@ -34,7 +37,7 @@ public final class Favicon {
    *
    * @param base64Url the url for use with this favicon
    */
-  public Favicon(String base64Url) {
+  public Favicon(final String base64Url) {
     this.base64Url = Preconditions.checkNotNull(base64Url, "base64Url");
   }
 
@@ -48,13 +51,15 @@ public final class Favicon {
   }
 
   @Override
-  public boolean equals(@Nullable Object o) {
+  public boolean equals(final @Nullable Object o) {
     if (this == o) {
       return true;
     }
+
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
+
     Favicon favicon = (Favicon) o;
     return Objects.equals(base64Url, favicon.base64Url);
   }
@@ -77,7 +82,7 @@ public final class Favicon {
    * @param image the image to use for the favicon
    * @return the created {@link Favicon} instance
    */
-  public static Favicon create(BufferedImage image) {
+  public static Favicon create(final BufferedImage image) {
     Preconditions.checkNotNull(image, "image");
     Preconditions.checkArgument(image.getWidth() == 64 && image.getHeight() == 64,
         "Image is not 64x64 (found %sx%s)", image.getWidth(), image.getHeight());
@@ -87,8 +92,8 @@ public final class Favicon {
     } catch (IOException e) {
       throw new AssertionError(e);
     }
-    return new Favicon(
-        "data:image/png;base64," + Base64.getEncoder().encodeToString(os.toByteArray()));
+
+    return new Favicon("data:image/png;base64," + Base64.getEncoder().encodeToString(os.toByteArray()));
   }
 
   /**
@@ -98,12 +103,13 @@ public final class Favicon {
    * @return the created {@link Favicon} instance
    * @throws IOException if the file could not be read from the path
    */
-  public static Favicon create(Path path) throws IOException {
+  public static Favicon create(final Path path) throws IOException {
     try (InputStream stream = Files.newInputStream(path)) {
       BufferedImage image = ImageIO.read(stream);
       if (image == null) {
         throw new IOException("Unable to read the image.");
       }
+
       return create(image);
     }
   }

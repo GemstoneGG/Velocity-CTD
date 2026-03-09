@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -26,6 +26,12 @@ public final class BrigadierCommand implements Command {
    */
   public static final int FORWARD = 0xF6287429;
 
+  /**
+   * The root literal node representing the command structure.
+   *
+   * <p>This node is registered with the command dispatcher and defines the syntax,
+   * execution logic, and suggestion behavior for the command.</p>
+   */
   private final LiteralCommandNode<CommandSource> node;
 
   /**
@@ -79,7 +85,7 @@ public final class BrigadierCommand implements Command {
    * @return a new RequiredArgumentBuilder
    */
   public static <T> RequiredArgumentBuilder<CommandSource, T> requiredArgumentBuilder(
-          final @NotNull String name, @NotNull final ArgumentType<T> argumentType) {
+          final @NotNull String name, final @NotNull ArgumentType<T> argumentType) {
     Preconditions.checkNotNull(name, "name");
     Preconditions.checkNotNull(argumentType, "argument type");
 

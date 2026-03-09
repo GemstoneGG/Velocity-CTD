@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -12,11 +12,18 @@ import com.velocitypowered.api.network.ListenerType;
 import java.net.InetSocketAddress;
 
 /**
- * This event is fired by the proxy after a listener starts accepting connections.
+ * The proxy fires this event after a listener starts accepting connections.
  */
 public final class ListenerBoundEvent {
 
+  /**
+   * The socket address the listener is bound to.
+   */
   private final InetSocketAddress address;
+
+  /**
+   * The type of listener that was bound.
+   */
   private final ListenerType listenerType;
 
   /**
@@ -25,7 +32,7 @@ public final class ListenerBoundEvent {
    * @param address the socket address the listener is bound to
    * @param listenerType the type of listener that was bound
    */
-  public ListenerBoundEvent(InetSocketAddress address, ListenerType listenerType) {
+  public ListenerBoundEvent(final InetSocketAddress address, final ListenerType listenerType) {
     this.address = Preconditions.checkNotNull(address, "address");
     this.listenerType = Preconditions.checkNotNull(listenerType, "listenerType");
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,23 +33,43 @@ import io.netty.buffer.ByteBuf;
 public class LoginAcknowledgedPacket implements MinecraftPacket {
 
   @Override
-  public void decode(ByteBuf buf, ProtocolUtils.Direction direction,
-                     ProtocolVersion protocolVersion) {
+  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                     final ProtocolVersion protocolVersion) {
   }
 
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction,
-                     ProtocolVersion protocolVersion) {
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                     final ProtocolVersion protocolVersion) {
   }
 
+  /**
+   * Returns the expected maximum length (in bytes) of this packet.
+   *
+   * <p>This implementation always returns {@code 0} because the login acknowledgment
+   * packet has no data fields — it serves purely as a signal. The method exists
+   * to maintain consistency with other packet definitions that may include payloads.</p>
+   *
+   * @param buf the buffer being read (unused)
+   * @param direction the direction of the packet (clientbound or serverbound)
+   * @param version the Minecraft protocol version
+   * @return the maximum expected byte length (always {@code 0})
+   */
   @Override
-  public int decodeExpectedMaxLength(ByteBuf buf, ProtocolUtils.Direction direction,
-                                     ProtocolVersion version) {
+  public int decodeExpectedMaxLength(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                                     final ProtocolVersion version) {
     return 0;
   }
 
+  /**
+   * Handles this packet using the given {@link MinecraftSessionHandler}.
+   *
+   * <p>This delegates processing to the handler’s {@code handle(LoginAcknowledgedPacket)} method.</p>
+   *
+   * @param handler the session handler to process the packet
+   * @return {@code true} if the packet was handled successfully
+   */
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

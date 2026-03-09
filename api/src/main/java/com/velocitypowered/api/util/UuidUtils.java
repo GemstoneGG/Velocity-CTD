@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -13,7 +13,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Provides a small, useful selection of utilities for working with Minecraft UUIDs.
+ * Provides a small, useful set of utilities for working with Minecraft UUIDs.
  */
 public final class UuidUtils {
 
@@ -49,7 +49,7 @@ public final class UuidUtils {
    * @param username the username to use
    * @return the offline mode UUID
    */
-  public static UUID generateOfflinePlayerUuid(String username) {
+  public static UUID generateOfflinePlayerUuid(final String username) {
     return UUID.nameUUIDFromBytes(("OfflinePlayer:" + username).getBytes(StandardCharsets.UTF_8));
   }
 }

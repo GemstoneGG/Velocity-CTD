@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlayerCommandPacket> {
 
+  /**
+   * The player issuing the command.
+   */
   private final ConnectedPlayer player;
+
+  /**
+   * The proxy server instance, used for configuration and command routing.
+   */
   private final VelocityServer server;
 
   /**
@@ -45,56 +52,69 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
    * @param player the connected player associated with this handler
    * @param server the Velocity server instance
    */
-  public SessionCommandHandler(ConnectedPlayer player, VelocityServer server) {
+  public SessionCommandHandler(final ConnectedPlayer player, final VelocityServer server) {
     super(player, server);
     this.player = player;
     this.server = server;
   }
 
+  /**
+   * Returns the class of command packets this handler is responsible for.
+   *
+   * <p>This links {@code SessionCommandHandler} to {@link SessionPlayerCommandPacket}
+   * in the command pipeline system.</p>
+   *
+   * @return the {@code SessionPlayerCommandPacket} class
+   */
   @Override
   public Class<SessionPlayerCommandPacket> packetClass() {
     return SessionPlayerCommandPacket.class;
   }
 
   @Nullable
-  private MinecraftPacket consumeCommand(SessionPlayerCommandPacket packet) {
+  private MinecraftPacket consumeCommand(final SessionPlayerCommandPacket packet) {
     if (packet.lastSeenMessages == null) {
       return null;
     }
-    if (packet.isSigned()) {
-      // Any signed message produced by the client *must* be passed through to the server in order to maintain a
+
+    if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
+      // Any signed message produced by the client *must* be passed through to the server to maintain a
       // consistent state for future messages.
-      logger.fatal("A plugin tried to deny a command with signable component(s). "
-          + "This is not supported. "
-          + "Disconnecting player " + player.getUsername() + ". Command packet: " + packet);
+      logger.fatal("A plugin tried to deny a command with signable component(s). This is not supported. "
+          + "Disconnecting player {}. Command packet: {}",
+          player.getUsername(), packet);
       player.disconnect(Component.text(
           "A proxy plugin caused an illegal protocol state. "
               + "Contact your network administrator."));
       return null;
     }
+
     // An unsigned command with a 'last seen' update will not happen as of 1.20.5+, but for earlier versions - we still
     // need to pass through the acknowledgement
     final int offset = packet.lastSeenMessages.getOffset();
     if (offset != 0) {
       return new ChatAcknowledgementPacket(offset);
     }
+
     return null;
   }
 
   @Nullable
-  private MinecraftPacket forwardCommand(SessionPlayerCommandPacket packet, String newCommand) {
+  private MinecraftPacket forwardCommand(final SessionPlayerCommandPacket packet, final String newCommand) {
     if (newCommand.equals(packet.command)) {
       return packet;
     }
+
     return modifyCommand(packet, newCommand);
   }
 
   @Nullable
-  private MinecraftPacket modifyCommand(SessionPlayerCommandPacket packet, String newCommand) {
-    if (packet.isSigned()) {
+  private MinecraftPacket modifyCommand(final SessionPlayerCommandPacket packet, final String newCommand) {
+    if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
       logger.fatal("A plugin tried to change a command with signed component(s). "
           + "This is not supported. "
-          + "Disconnecting player " + player.getUsername() + ". Command packet: " + packet);
+          + "Disconnecting player {}. Command packet: {}",
+          player.getUsername(), packet);
       player.disconnect(Component.text(
           "A proxy plugin caused an illegal protocol state. "
               + "Contact your network administrator."));
@@ -110,8 +130,24 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
         .toServer();
   }
 
+  /**
+   * Handles the execution of a session-based command sent by the player.
+   *
+   * <p>This method performs the following logic:</p>
+   * <ul>
+   *   <li>Fires a {@link CommandExecuteEvent} to allow plugin inspection or modification.</li>
+   *   <li>If denied and the command was signed, the player is disconnected due to
+   *       an illegal protocol state.</li>
+   *   <li>If unchanged or forwarded, the command is sent to the backend server.</li>
+   *   <li>If modified and allowed, it is rebuilt using the session-aware.</li>
+   *   <li>Unconsumed or no-op commands may yield a {@link ChatAcknowledgementPacket}
+   *       if {@code lastSeenMessages} are present and offset is non-zero.</li>
+   * </ul>
+   *
+   * @param packet the session command packet sent by the player
+   */
   @Override
-  public void handlePlayerCommandInternal(SessionPlayerCommandPacket packet) {
+  public void handlePlayerCommandInternal(final SessionPlayerCommandPacket packet) {
     queueCommandResult(this.server, this.player, (event, newLastSeenMessages) -> {
       SessionPlayerCommandPacket fixedPacket = packet.withLastSeenMessages(newLastSeenMessages);
 
@@ -129,6 +165,7 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
         if (hasRun) {
           return consumeCommand(fixedPacket);
         }
+
         return forwardCommand(fixedPacket, commandToRun);
       });
     }, packet.command, packet.timeStamp, packet.lastSeenMessages,

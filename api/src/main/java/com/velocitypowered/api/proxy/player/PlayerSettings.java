@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -37,9 +37,9 @@ public interface PlayerSettings {
   ChatMode getChatMode();
 
   /**
-   * Returns whether or not the client has chat colors disabled.
+   * Returns whether the client has chat colors disabled.
    *
-   * @return whether or not the client has chat colors disabled
+   * @return whether the client has chat colors disabled
    */
   boolean hasChatColors();
 
@@ -63,8 +63,8 @@ public interface PlayerSettings {
    * anonymous TabList mode.
    * This feature was introduced in 1.18.
    *
-   * @return whether or not the client explicitly allows listing. Always false on older clients.
-   * @sinceMinecraft 1.18
+   * @return whether the client explicitly allows listing. Always false on older clients.
+   * @since Minecraft 1.18
    */
   boolean isClientListingAllowed();
 
@@ -86,14 +86,17 @@ public interface PlayerSettings {
    * The client's current chat display mode.
    */
   enum ChatMode {
+
     /**
      * Chat is fully visible.
      */
     SHOWN,
+
     /**
      * Only command messages are shown.
      */
     COMMANDS_ONLY,
+
     /**
      * Chat is completely hidden.
      */
@@ -104,10 +107,12 @@ public interface PlayerSettings {
    * The player's selected dominant hand.
    */
   enum MainHand {
+
     /**
      * This scope defines the left hand.
      */
     LEFT,
+
     /**
      * This scope defines the right hand.
      */
@@ -118,14 +123,17 @@ public interface PlayerSettings {
    * The client's current "Particles" option state.
    */
   enum ParticleStatus {
+
     /**
      * All particles are shown.
      */
     ALL,
+
     /**
      * A reduced number of particles are shown.
      */
     DECREASED,
+
     /**
      * Minimal particle effects are shown.
      */

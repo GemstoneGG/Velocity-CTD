@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -11,15 +11,20 @@ package com.velocitypowered.api.network;
  * Represents each listener type.
  */
 public enum ListenerType {
+
   /**
    * A standard Minecraft listener for player connections.
    */
   MINECRAFT("Minecraft"),
+
   /**
    * A listener for the legacy server list ping protocol (Query).
    */
   QUERY("Query");
 
+  /**
+   * A human-readable name for the listener type.
+   */
   final String name;
 
   ListenerType(final String name) {

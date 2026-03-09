@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -20,9 +20,24 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class GameProfile implements PlayerHeadObjectContents.SkinSource {
 
+  /**
+   * The UUID of the profile.
+   */
   private final UUID id;
+
+  /**
+   * The Mojang-style undashed UUID (32-character lowercase hex string).
+   */
   private final String undashedId;
+
+  /**
+   * The player's username.
+   */
   private final String name;
+
+  /**
+   * The list of Mojang properties (e.g., skin data) associated with the profile.
+   */
   private final List<Property> properties;
 
   /**
@@ -32,7 +47,7 @@ public final class GameProfile implements PlayerHeadObjectContents.SkinSource {
    * @param name the profile's username
    * @param properties properties for the profile
    */
-  public GameProfile(UUID id, String name, List<Property> properties) {
+  public GameProfile(final UUID id, final String name, final List<Property> properties) {
     this(Preconditions.checkNotNull(id, "id"), UuidUtils.toUndashed(id),
         Preconditions.checkNotNull(name, "name"), ImmutableList.copyOf(properties));
   }
@@ -44,12 +59,12 @@ public final class GameProfile implements PlayerHeadObjectContents.SkinSource {
    * @param name the profile's username
    * @param properties properties for the profile
    */
-  public GameProfile(String undashedId, String name, List<Property> properties) {
+  public GameProfile(final String undashedId, final String name, final List<Property> properties) {
     this(UuidUtils.fromUndashed(Preconditions.checkNotNull(undashedId, "undashedId")), undashedId,
         Preconditions.checkNotNull(name, "name"), ImmutableList.copyOf(properties));
   }
 
-  private GameProfile(UUID id, String undashedId, String name, List<Property> properties) {
+  private GameProfile(final UUID id, final String undashedId, final String name, final List<Property> properties) {
     this.id = id;
     this.undashedId = undashedId;
     this.name = name;
@@ -98,7 +113,7 @@ public final class GameProfile implements PlayerHeadObjectContents.SkinSource {
    * @param id the new unique id
    * @return the new {@code GameProfile}
    */
-  public GameProfile withId(UUID id) {
+  public GameProfile withId(final UUID id) {
     return new GameProfile(Preconditions.checkNotNull(id, "id"), UuidUtils.toUndashed(id),
         this.name, this.properties);
   }
@@ -109,7 +124,7 @@ public final class GameProfile implements PlayerHeadObjectContents.SkinSource {
    * @param undashedId the new undashed id
    * @return the new {@code GameProfile}
    */
-  public GameProfile withUndashedId(String undashedId) {
+  public GameProfile withUndashedId(final String undashedId) {
     return new GameProfile(
         UuidUtils.fromUndashed(Preconditions.checkNotNull(undashedId, "undashedId")), undashedId,
         this.name, this.properties);
@@ -121,7 +136,7 @@ public final class GameProfile implements PlayerHeadObjectContents.SkinSource {
    * @param name the new name
    * @return the new {@code GameProfile}
    */
-  public GameProfile withName(String name) {
+  public GameProfile withName(final String name) {
     return new GameProfile(this.id, this.undashedId, Preconditions.checkNotNull(name, "name"),
         this.properties);
   }
@@ -132,7 +147,7 @@ public final class GameProfile implements PlayerHeadObjectContents.SkinSource {
    * @param properties the new properties
    * @return the new {@code GameProfile}
    */
-  public GameProfile withProperties(List<Property> properties) {
+  public GameProfile withProperties(final List<Property> properties) {
     return new GameProfile(this.id, this.undashedId, this.name, ImmutableList.copyOf(properties));
   }
 
@@ -143,7 +158,7 @@ public final class GameProfile implements PlayerHeadObjectContents.SkinSource {
    * @param properties the properties to add
    * @return the new {@code GameProfile}
    */
-  public GameProfile addProperties(Iterable<Property> properties) {
+  public GameProfile addProperties(final Iterable<Property> properties) {
     return new GameProfile(this.id, this.undashedId, this.name,
         ImmutableList.<Property>builder().addAll(this.properties).addAll(properties).build());
   }
@@ -155,7 +170,7 @@ public final class GameProfile implements PlayerHeadObjectContents.SkinSource {
    * @param property the property to add
    * @return the new {@code GameProfile}
    */
-  public GameProfile addProperty(Property property) {
+  public GameProfile addProperty(final Property property) {
     return new GameProfile(this.id, this.undashedId, this.name,
         ImmutableList.<Property>builder().addAll(this.properties).add(property).build());
   }
@@ -166,16 +181,15 @@ public final class GameProfile implements PlayerHeadObjectContents.SkinSource {
    * @param username the username to use
    * @return the new offline-mode game profile
    */
-  public static GameProfile forOfflinePlayer(String username) {
+  public static GameProfile forOfflinePlayer(final String username) {
     Preconditions.checkNotNull(username, "username");
     return new GameProfile(UuidUtils.generateOfflinePlayerUuid(username), username,
         ImmutableList.of());
   }
 
-  @SuppressWarnings("UnstableApiUsage") // permitted implementation
+  @SuppressWarnings("UnstableApiUsage") // Permitted unstable implementation
   @Override
-  public void applySkinToPlayerHeadContents(
-      final PlayerHeadObjectContents.@NotNull Builder builder) {
+  public void applySkinToPlayerHeadContents(final PlayerHeadObjectContents.@NotNull Builder builder) {
     if (this.properties.isEmpty()) {
       builder.id(this.id);
       return;
@@ -203,8 +217,19 @@ public final class GameProfile implements PlayerHeadObjectContents.SkinSource {
    */
   public static final class Property {
 
+    /**
+     * The name of the property (e.g., "textures").
+     */
     private final String name;
+
+    /**
+     * The Base64-encoded value of the property.
+     */
     private final String value;
+
+    /**
+     * The Mojang-signed signature of the property value.
+     */
     private final String signature;
 
     /**
@@ -214,7 +239,7 @@ public final class GameProfile implements PlayerHeadObjectContents.SkinSource {
      * @param value the value of the property
      * @param signature the Mojang signature for the property
      */
-    public Property(String name, String value, String signature) {
+    public Property(final String name, final String value, final String signature) {
       this.name = Preconditions.checkNotNull(name, "name");
       this.value = Preconditions.checkNotNull(value, "value");
       this.signature = Preconditions.checkNotNull(signature, "signature");

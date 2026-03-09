@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,23 +22,30 @@ import io.netty.buffer.ByteBuf;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * An argument property serializer that will serialize and deserialize nothing.
+ * An {@link ArgumentPropertySerializer} implementation that performs no serialization
+ * or deserialization. This is used for argument types that do not require any additional
+ * data beyond their identifier.
+ *
+ * <p>This is common for simple or stateless argument types like positions, selectors,
+ * or other structural placeholders in the command tree.</p>
  */
-class EmptyArgumentPropertySerializer implements ArgumentPropertySerializer<Void> {
+final class EmptyArgumentPropertySerializer implements ArgumentPropertySerializer<Void> {
 
-  static final ArgumentPropertySerializer<Void> EMPTY =
-      new EmptyArgumentPropertySerializer();
+  /**
+   * A shared singleton instance of {@code EmptyArgumentPropertySerializer}, exposed as
+   * {@link ArgumentPropertySerializer} with EMPTY.
+   */
+  static final ArgumentPropertySerializer<Void> EMPTY = new EmptyArgumentPropertySerializer();
 
   private EmptyArgumentPropertySerializer() {
   }
 
   @Override
-  public @Nullable Void deserialize(ByteBuf buf, ProtocolVersion protocolVersion) {
+  public @Nullable Void deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
     return null;
   }
 
   @Override
-  public void serialize(Void object, ByteBuf buf, ProtocolVersion protocolVersion) {
-
+  public void serialize(final Void object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
   }
 }

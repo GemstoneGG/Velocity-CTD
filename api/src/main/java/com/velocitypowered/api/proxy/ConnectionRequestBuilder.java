@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -10,6 +10,7 @@ package com.velocitypowered.api.proxy;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import net.kyori.adventure.text.Component;
 
 /**
  * Provides a fluent interface to send a connection request to another server on the proxy. A
@@ -54,9 +55,9 @@ public interface ConnectionRequestBuilder {
   interface Result {
 
     /**
-     * Determines whether or not the connection request was successful.
+     * Determines whether the connection request was successful.
      *
-     * @return whether or not the request succeeded
+     * @return whether the request succeeded
      */
     default boolean isSuccessful() {
       return getStatus() == Status.SUCCESS;
@@ -74,7 +75,7 @@ public interface ConnectionRequestBuilder {
      *
      * @return the reason why the user could not connect to the server
      */
-    Optional<net.kyori.adventure.text.Component> getReasonComponent();
+    Optional<Component> getReasonComponent();
 
     /**
      * Returns the server we actually tried to connect to.
@@ -88,26 +89,30 @@ public interface ConnectionRequestBuilder {
    * Represents the status of a connection request initiated by a {@link ConnectionRequestBuilder}.
    */
   enum Status {
+
     /**
      * The player was successfully connected to the server.
      */
     SUCCESS,
+
     /**
      * The player is already connected to this server.
      */
     ALREADY_CONNECTED,
+
     /**
      * The connection is already in progress.
      */
     CONNECTION_IN_PROGRESS,
+
     /**
-     * A plugin has cancelled this connection.
+     * A plugin has canceled this connection.
      */
     CONNECTION_CANCELLED,
+
     /**
      * The server disconnected the user. A reason may be provided in the {@link Result} object.
      */
     SERVER_DISCONNECTED
   }
-
 }

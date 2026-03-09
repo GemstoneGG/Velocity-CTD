@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,13 +27,20 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class VelocityTabListEntryLegacy extends KeyedVelocityTabListEntry {
 
-  VelocityTabListEntryLegacy(VelocityTabListLegacy tabList, GameProfile profile,
-      @Nullable Component displayName, int latency, int gameMode) {
+  VelocityTabListEntryLegacy(final VelocityTabListLegacy tabList, final GameProfile profile,
+                             final @Nullable Component displayName, final int latency, final int gameMode) {
     super(tabList, profile, displayName, latency, gameMode, null);
   }
 
+  /**
+   * Sets the display name for this tab list entry. Since 1.7 clients do not support in-place
+   * display name changes, the entry is removed and re-added to reflect the update.
+   *
+   * @param displayName the new display name, or {@code null} to clear it
+   * @return this entry for chaining
+   */
   @Override
-  public TabListEntry setDisplayName(@Nullable Component displayName) {
+  public TabListEntry setDisplayName(final @Nullable Component displayName) {
     getTabList().removeEntry(getProfile().getId()); // We have to remove first if updating
     setDisplayNameInternal(displayName);
     getTabList().addEntry(this);

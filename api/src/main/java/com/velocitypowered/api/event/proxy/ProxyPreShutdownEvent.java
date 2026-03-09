@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -16,10 +16,10 @@ import com.velocitypowered.api.event.annotation.AwaitingEvent;
  * This is the last point at which you can interact with currently connected players,
  * for example to transfer them to another proxy or perform other cleanup tasks.
  *
- * @implNote Velocity will wait for all event listeners to complete before disconnecting players,
- *     but note that the event will time out after the configured value of the
- *     <code>velocity.pre-shutdown-timeout</code> system property, default 10 seconds,
- *     in seconds to prevent shutdown from hanging indefinitely
+ * <p><b>Note:</b> Velocity will wait for all event listeners to complete before disconnecting players.
+ * The wait will time out after a configurable period (default 10 seconds) controlled by the
+ * {@code velocity.pre-shutdown-timeout} system property, to prevent shutdown from hanging indefinitely.</p>
+ *
  * @since 3.4.0
  */
 @Beta

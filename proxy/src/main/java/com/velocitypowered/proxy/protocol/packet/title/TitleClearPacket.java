@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,23 +33,54 @@ import io.netty.buffer.ByteBuf;
  */
 public class TitleClearPacket extends GenericTitlePacket {
 
+  /**
+   * Constructs a {@code TitleClearPacket} with the default action {@link ActionType#HIDE}.
+   */
   public TitleClearPacket() {
     setAction(ActionType.HIDE);
   }
 
+  /**
+   * Sets the {@link ActionType} for this packet.
+   *
+   * <p>This packet only allows {@link ActionType#HIDE} and {@link ActionType#RESET}. Attempting
+   * to set any other action will throw an {@link IllegalArgumentException}.</p>
+   *
+   * @param action the action type to set
+   * @throws IllegalArgumentException if an invalid action is provided
+   */
   @Override
-  public void setAction(ActionType action) {
+  public void setAction(final ActionType action) {
     if (action != ActionType.HIDE && action != ActionType.RESET) {
       throw new IllegalArgumentException("TitleClearPacket only accepts CLEAR and RESET actions");
     }
+
     super.setAction(action);
   }
 
+  /**
+   * Encodes this {@code TitleClearPacket} into the provided {@link ByteBuf}.
+   *
+   * <p>Writes a single {@code boolean} to the buffer, where {@code true} indicates
+   * a {@link ActionType#RESET} action (which clears and resets fade timings),
+   * and {@code false} represents {@link ActionType#HIDE} (which only hides the title).</p>
+   *
+   * @param buf the buffer to write to
+   * @param direction the packet direction (clientbound or serverbound)
+   * @param version the protocol version used for encoding
+   */
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     buf.writeBoolean(getAction() == ActionType.RESET);
   }
 
+  /**
+   * Returns a string representation of this {@code TitleClearPacket}.
+   *
+   * <p>The output includes whether the action is {@link ActionType#RESET} (which also resets title timings).</p>
+   *
+   * @return a human-readable description of the packet
+   */
   @Override
   public String toString() {
     return "TitleClearPacket{"
@@ -57,8 +88,16 @@ public class TitleClearPacket extends GenericTitlePacket {
         + '}';
   }
 
+  /**
+   * Handles this {@code TitleClearPacket} by passing it to the provided session handler.
+   *
+   * <p>This delegates to {@link MinecraftSessionHandler#handle(TitleClearPacket)}.</p>
+   *
+   * @param handler the session handler responsible for processing this packet
+   * @return {@code true} if the handler accepted and processed the packet
+   */
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

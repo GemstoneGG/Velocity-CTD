@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -9,7 +9,9 @@ package com.velocitypowered.api.proxy.server;
 
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.messages.ChannelMessageSink;
+import com.velocitypowered.api.proxy.player.PlayerInfo;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.audience.Audience;
 
@@ -33,6 +35,21 @@ public interface RegisteredServer extends ChannelMessageSink, Audience {
    * @return the players on this proxy
    */
   Collection<Player> getPlayersConnected();
+
+  /**
+   * Get the total player count of the server (redis support).
+   *
+   * @return The total player count.
+   */
+  long getTotalPlayerCount();
+
+  /**
+   * Returns a list of all the players currently connected to this server on all proxies
+   * or the current proxy, in case Redis is disabled.
+   *
+   * @return A list of all player's information.
+   */
+  List<PlayerInfo> getPlayerInfo();
 
   /**
    * Attempts to ping the remote server and return the server list ping result.

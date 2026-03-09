@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,9 +33,23 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
  */
 public class LoginPluginResponsePacket extends DeferredByteBufHolder implements MinecraftPacket {
 
+  /**
+   * The ID of the plugin message being responded to.
+   * This value is used to correlate responses with their original plugin requests.
+   */
   private int id;
+
+  /**
+   * Indicates whether the plugin message was successfully handled by the client.
+   */
   private boolean success;
 
+  /**
+   * Constructs an empty {@code LoginPluginResponsePacket} with an empty buffer.
+   *
+   * <p>This constructor is typically used during decoding. The buffer content and other fields
+   * will be set via {@link #decode(ByteBuf, ProtocolUtils.Direction, ProtocolVersion)}.</p>
+   */
   public LoginPluginResponsePacket() {
     super(Unpooled.EMPTY_BUFFER);
   }
@@ -47,39 +61,76 @@ public class LoginPluginResponsePacket extends DeferredByteBufHolder implements 
    * @param success {@code true} if the plugin message was successful, {@code false} otherwise
    * @param buf the data buffer
    */
-  public LoginPluginResponsePacket(int id, boolean success, @MonotonicNonNull ByteBuf buf) {
+  public LoginPluginResponsePacket(final int id, final boolean success, final @MonotonicNonNull ByteBuf buf) {
     super(buf);
     this.id = id;
     this.success = success;
   }
 
+  /**
+   * Retrieves the plugin message ID associated with this response.
+   *
+   * @return the plugin message ID
+   */
   public int getId() {
     return id;
   }
 
-  public void setId(int id) {
+  /**
+   * Sets the plugin message ID for this response.
+   *
+   * @param id the plugin message ID to set
+   */
+  public void setId(final int id) {
     this.id = id;
   }
 
+  /**
+   * Returns whether the plugin message response indicates success.
+   *
+   * @return {@code true} if the plugin message was successful, {@code false} otherwise
+   */
   public boolean isSuccess() {
     return success;
   }
 
-  public void setSuccess(boolean success) {
+  /**
+   * Sets whether the plugin message was successful.
+   *
+   * @param success {@code true} if the plugin message was successful, {@code false} otherwise
+   */
+  public void setSuccess(final boolean success) {
     this.success = success;
   }
 
+  /**
+   * Returns a string representation of this login plugin response packet.
+   *
+   * <p>This includes the plugin message ID, success status, and content buffer.</p>
+   *
+   * @return a string representation of the packet
+   */
   @Override
   public String toString() {
     return "LoginPluginResponse{"
-        + "id=" + id
+        + "proxyId=" + id
         + ", success=" + success
         + ", data=" + super.toString()
         + '}';
   }
 
+  /**
+   * Decodes this login plugin response packet from the provided {@link ByteBuf}.
+   *
+   * <p>This method reads the plugin message ID, success flag, and any remaining payload
+   * data from the buffer, retaining it in the internal buffer.</p>
+   *
+   * @param buf the buffer to read from
+   * @param direction the direction of the packet (clientbound or serverbound)
+   * @param version the protocol version being used
+   */
   @Override
-  public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     this.id = ProtocolUtils.readVarInt(buf);
     this.success = buf.readBoolean();
     if (buf.isReadable()) {
@@ -89,20 +140,53 @@ public class LoginPluginResponsePacket extends DeferredByteBufHolder implements 
     }
   }
 
+  /**
+   * Encodes this login plugin response packet into the provided {@link ByteBuf}.
+   *
+   * <p>This method writes the plugin message ID, success flag, and any payload data
+   * to the output buffer.</p>
+   *
+   * @param buf the buffer to write to
+   * @param direction the direction of the packet (clientbound or serverbound)
+   * @param version the protocol version being used
+   */
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     ProtocolUtils.writeVarInt(buf, id);
     buf.writeBoolean(success);
     buf.writeBytes(content());
   }
 
+  /**
+   * Handles this login plugin response packet using the specified {@link MinecraftSessionHandler}.
+   *
+   * <p>This delegates processing to {@code handler.handle(this)}.</p>
+   *
+   * @param handler the session handler to process the packet
+   * @return {@code true} if the packet was handled successfully
+   */
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
+  /**
+   * Provides an estimated number of bytes required to encode this login plugin response.
+   *
+   * <p>This implementation returns the number of readable bytes in the internal payload buffer,
+   * representing the size of the data portion of the packet. The final encoded size will also
+   * include the VarInt-encoded plugin message ID and the single-byte success flag written by
+   * {@link #encode(ByteBuf, Direction, ProtocolVersion)}.</p>
+   *
+   * <p>This size hint helps the encoder allocate an appropriately sized buffer to minimize
+   * reallocation and improve encoding performance.</p>
+   *
+   * @param direction the packet direction (clientbound or serverbound)
+   * @param version the Minecraft protocol version
+   * @return the estimated size of this packet’s encoded payload in bytes
+   */
   @Override
-  public int encodeSizeHint(Direction direction, ProtocolVersion version) {
+  public int encodeSizeHint(final Direction direction, final ProtocolVersion version) {
     return content().readableBytes();
   }
 }

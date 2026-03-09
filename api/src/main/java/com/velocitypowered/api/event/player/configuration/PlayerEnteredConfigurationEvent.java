@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -22,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
  * @param player The player who has entered the configuration state.
  * @param server The server that will now (re-)configure the player.
  * @since 3.3.0
- * @sinceMinecraft 1.20.2
+ * @since Minecraft 1.20.2
  */
 public record PlayerEnteredConfigurationEvent(@NotNull Player player, ServerConnection server) {
 }

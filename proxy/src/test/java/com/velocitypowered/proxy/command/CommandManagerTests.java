@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -115,9 +115,7 @@ public class CommandManagerTests extends CommandTestSuite {
         .executes(context -> fail())
         .build();
 
-    assertThrows(IllegalArgumentException.class, () -> {
-      manager.metaBuilder("hello").hint(hintNode);
-    });
+    assertThrows(IllegalArgumentException.class, () -> manager.metaBuilder("hello").hint(hintNode));
   }
 
   @Test
@@ -130,9 +128,7 @@ public class CommandManagerTests extends CommandTestSuite {
         .redirect(targetNode)
         .build();
 
-    assertThrows(IllegalArgumentException.class, () -> {
-      manager.metaBuilder("hello").hint(hintNode);
-    });
+    assertThrows(IllegalArgumentException.class, () -> manager.metaBuilder("hello").hint(hintNode));
   }
 
   // Un-registration
@@ -147,7 +143,8 @@ public class CommandManagerTests extends CommandTestSuite {
 
   @Test
   void testUnregisterRegisteredAlias() {
-    manager.register("hello", DummyCommand.INSTANCE);
+    final var meta = manager.metaBuilder("hello").build();
+    manager.register(meta, DummyCommand.INSTANCE);
     manager.unregister("hello");
 
     assertFalse(manager.hasCommand("hello"));
@@ -214,6 +211,10 @@ public class CommandManagerTests extends CommandTestSuite {
 
   static final class DummyCommand implements SimpleCommand {
 
+    /**
+     * Singleton instance of {@link DummyCommand}, used as a placeholder
+     * for command registration tests where execution should fail.
+     */
     static final DummyCommand INSTANCE = new DummyCommand();
 
     private DummyCommand() {

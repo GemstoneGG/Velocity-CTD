@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,8 @@ import static com.velocitypowered.proxy.connection.VelocityConstants.EMPTY_BYTE_
 import static com.velocitypowered.proxy.crypto.EncryptionUtils.decryptRsa;
 import static com.velocitypowered.proxy.crypto.EncryptionUtils.generateServerId;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
@@ -50,6 +52,7 @@ import java.net.http.HttpResponse;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.MessageDigest;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -64,31 +67,100 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
  */
 public class InitialLoginSessionHandler implements MinecraftSessionHandler {
 
+  /**
+   * Logger instance for logging authentication-related events during the initial login session.
+   */
   private static final Logger logger = LogManager.getLogger(InitialLoginSessionHandler.class);
+
+  /**
+   * Shared {@link ThreadLocalRandom} instance for generating secure values like verify tokens.
+   */
+  private static final ThreadLocalRandom random = ThreadLocalRandom.current();
+
+  /**
+   * The URL used to verify that a player has joined using Mojang's session server.
+   */
   private static final String MOJANG_HASJOINED_URL =
       System.getProperty("mojang.sessionserver",
               "https://sessionserver.mojang.com/session/minecraft/hasJoined")
           .concat("?username=%s&serverId=%s");
 
+  /**
+   * The Velocity server instance.
+   */
   private final VelocityServer server;
+
+  /**
+   * The connection associated with the player.
+   */
   private final MinecraftConnection mcConnection;
+
+  /**
+   * The login connection interface that wraps initial inbound connection details.
+   */
   private final LoginInboundConnection inbound;
+
+  /**
+   * The login packet sent by the client. May be {@code null} if not yet received.
+   */
   private @MonotonicNonNull ServerLoginPacket login;
+
+  /**
+   * The verify token generated and sent to the client, used to validate encryption.
+   */
   private byte[] verify = EMPTY_BYTE_ARRAY;
+
+  /**
+   * The current state of the login process.
+   */
   private LoginState currentState = LoginState.LOGIN_PACKET_EXPECTED;
+
+  /**
+   * Whether to force secure profile authentication using public key verification.
+   */
   private final boolean forceKeyAuthentication;
 
-  InitialLoginSessionHandler(VelocityServer server, MinecraftConnection mcConnection,
-                             LoginInboundConnection inbound) {
+  /**
+   * Caffeine-backed profile result cache used to avoid excessive Mojang API calls.
+   */
+  private final Cache<String, GameProfile> profileResultCache;
+
+  InitialLoginSessionHandler(final VelocityServer server, final MinecraftConnection mcConnection,
+                             final LoginInboundConnection inbound) {
     this.server = Preconditions.checkNotNull(server, "server");
     this.mcConnection = Preconditions.checkNotNull(mcConnection, "mcConnection");
     this.inbound = Preconditions.checkNotNull(inbound, "inbound");
     this.forceKeyAuthentication = VelocityProperties.readBoolean(
             "auth.forceSecureProfiles", server.getConfiguration().isForceKeyAuthentication());
+
+    int expiration = server.getConfiguration().getProfileCacheExpiryMinutes();
+    if (!server.getConfiguration().isCachePlayerProfileResultEnabled()) {
+      this.profileResultCache = null;
+    } else {
+      if (expiration <= 0) {
+        expiration = 1;
+      }
+
+      this.profileResultCache = Caffeine.newBuilder()
+          .expireAfterWrite(Duration.ofMinutes(expiration))
+          .maximumSize(10_000) // To ensure invalid sessions cannot flood cache
+          .build();
+    }
   }
 
+  /**
+   * Handles a {@link ServerLoginPacket} sent by the client to initiate login.
+   *
+   * <p>This validates the client’s public key (if present), fires a {@link PreLoginEvent},
+   * and initiates encryption or offline-mode authentication depending on the event result and
+   * proxy configuration. If the public key is missing when required, or validation fails,
+   * the player is disconnected with an appropriate message.</p>
+   *
+   * @param packet the server login packet
+   * @return {@code true} if the login packet was processed
+   */
   @Override
-  public boolean handle(ServerLoginPacket packet) {
+  public boolean handle(final ServerLoginPacket packet) {
     assertState(LoginState.LOGIN_PACKET_EXPECTED);
     this.currentState = LoginState.LOGIN_PACKET_RECEIVED;
     IdentifiedKey playerKey = packet.getPlayerKey();
@@ -117,6 +189,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
       inbound.disconnect(Component.translatable("multiplayer.disconnect.missing_public_key"));
       return true;
     }
+
     inbound.setPlayerKey(playerKey);
     this.login = packet;
 
@@ -152,7 +225,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
           } else {
             mcConnection.setActiveSessionHandler(StateRegistry.LOGIN,
                 new AuthSessionHandler(server, inbound,
-                    GameProfile.forOfflinePlayer(login.getUsername()), false));
+                    GameProfile.forOfflinePlayer(login.getUsername()), false, null));
           }
         });
       });
@@ -164,14 +237,34 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
+  /**
+   * Handles a {@link LoginPluginResponsePacket} received during login plugin message exchange.
+   *
+   * <p>This delegates handling to {@link LoginInboundConnection#handleLoginPluginResponse}.</p>
+   *
+   * @param packet the plugin response
+   * @return {@code true} always
+   */
   @Override
-  public boolean handle(LoginPluginResponsePacket packet) {
+  public boolean handle(final LoginPluginResponsePacket packet) {
     this.inbound.handleLoginPluginResponse(packet);
     return true;
   }
 
+  /**
+   * Handles an {@link EncryptionResponsePacket} from the client.
+   *
+   * <p>This decrypts the shared secret and verification token, performs optional public key signature
+   * verification, and contacts Mojang’s session servers (if online-mode) to authenticate the user.
+   * If authentication succeeds, encryption is enabled and the session proceeds. If authentication fails,
+   * the connection is closed with a detailed error message.</p>
+   *
+   * @param packet the encryption response packet
+   * @return {@code true} if the encryption response was processed
+   * @throws IllegalStateException if required preconditions are not met (e.g., missing verify token or login packet)
+   */
   @Override
-  public boolean handle(EncryptionResponsePacket packet) {
+  public boolean handle(final EncryptionResponsePacket packet) {
     assertState(LoginState.ENCRYPTION_REQUEST_SENT);
     this.currentState = LoginState.ENCRYPTION_RESPONSE_RECEIVED;
     ServerLoginPacket login = this.login;
@@ -201,9 +294,21 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
       byte[] decryptedSharedSecret = decryptRsa(serverKeyPair, packet.getSharedSecret());
       String serverId = generateServerId(decryptedSharedSecret, serverKeyPair.getPublic());
 
+      String username = login.getUsername();
+      GameProfile cachedProfile = null;
+      if (profileResultCache != null) {
+        cachedProfile = profileResultCache.getIfPresent(username);
+      }
+
+      if (cachedProfile != null) {
+        mcConnection.enableEncryption(decryptedSharedSecret);
+        mcConnection.setActiveSessionHandler(StateRegistry.LOGIN,
+            new AuthSessionHandler(server, inbound, cachedProfile, true, serverId));
+        return true;
+      }
+
       String playerIp = ((InetSocketAddress) mcConnection.getRemoteAddress()).getHostString();
-      String url = String.format(MOJANG_HASJOINED_URL,
-          urlFormParameterEscaper().escape(login.getUsername()), serverId);
+      String url = String.format(MOJANG_HASJOINED_URL, urlFormParameterEscaper().escape(username), serverId);
 
       if (server.getConfiguration().shouldPreventClientProxyConnections()) {
         url += "&ip=" + urlFormParameterEscaper().escape(playerIp);
@@ -214,7 +319,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
                       server.getVersion().getName() + "/" + server.getVersion().getVersion())
               .uri(URI.create(url))
               .build();
-      //noinspection resource
+      // noinspection resource
       final HttpClient httpClient = server.createHttpClient();
       httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
           .whenCompleteAsync((response, throwable) -> {
@@ -235,15 +340,18 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
               mcConnection.enableEncryption(decryptedSharedSecret);
             } catch (GeneralSecurityException e) {
               logger.error("Unable to enable encryption for connection", e);
-              // At this point, the connection is encrypted, but something's wrong on our side and
+              // At this point, the connection is encrypted, but something's wrong on our side, and
               // we can't do anything about it.
               mcConnection.close(true);
               return;
             }
 
             if (response.statusCode() == 200) {
-              final GameProfile profile = GENERAL_GSON.fromJson(response.body(),
-                  GameProfile.class);
+              final GameProfile profile = GENERAL_GSON.fromJson(response.body(), GameProfile.class);
+              if (profileResultCache != null) {
+                profileResultCache.put(username, profile);
+              }
+
               // Not so fast, now we verify the public key for 1.19.1+
               if (inbound.getIdentifiedKey() != null
                   && inbound.getIdentifiedKey().getKeyRevision() == IdentifiedKey.Revision.LINKED_V2
@@ -254,10 +362,9 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
                 }
               }
               // All went well, initialize the session.
-              mcConnection.setActiveSessionHandler(StateRegistry.LOGIN,
-                  new AuthSessionHandler(server, inbound, profile, true));
+              mcConnection.setActiveSessionHandler(StateRegistry.LOGIN, new AuthSessionHandler(server, inbound, profile, true, serverId));
             } else if (response.statusCode() == 204) {
-              // Apparently an offline-mode user logged onto this online-mode proxy.
+              // Apparently, an offline-mode user logged onto this online-mode proxy.
               inbound.disconnect(
                   Component.translatable("velocity.error.online-mode-only", NamedTextColor.RED));
             } else {
@@ -281,12 +388,13 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
       logger.error("Unable to enable encryption", e);
       mcConnection.close(true);
     }
+
     return true;
   }
 
   private EncryptionRequestPacket generateEncryptionRequest() {
     byte[] verify = new byte[4];
-    ThreadLocalRandom.current().nextBytes(verify);
+    random.nextBytes(verify);
 
     EncryptionRequestPacket request = new EncryptionRequestPacket();
     request.setPublicKey(server.getServerKeyPair().getPublic().getEncoded());
@@ -294,31 +402,61 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
     return request;
   }
 
+  /**
+   * Handles any unknown or unexpected packet received during login.
+   *
+   * <p>Since no additional packets are expected, the connection is immediately closed.</p>
+   *
+   * @param buf the unrecognized packet buffer
+   */
   @Override
-  public void handleUnknown(ByteBuf buf) {
+  public void handleUnknown(final ByteBuf buf) {
     mcConnection.close(true);
   }
 
+  /**
+   * Called when the connection is closed during the login phase.
+   *
+   * <p>This triggers cleanup logic in the {@link LoginInboundConnection}, such as releasing held
+   * references or updating connection tracking.</p>
+   */
   @Override
   public void disconnected() {
     this.inbound.cleanup();
   }
 
-  private void assertState(LoginState expectedState) {
+  private void assertState(final LoginState expectedState) {
     if (this.currentState != expectedState) {
       if (MinecraftDecoder.DEBUG) {
         logger.error("{} Received an unexpected packet requiring state {}, but we are in {}",
             inbound,
             expectedState, this.currentState);
       }
+
       mcConnection.close(true);
     }
   }
 
   private enum LoginState {
+
+    /**
+     * Indicates that the server is expecting the initial {@link ServerLoginPacket} from the client.
+     */
     LOGIN_PACKET_EXPECTED,
+
+    /**
+     * The server has received the {@link ServerLoginPacket} from the client.
+     */
     LOGIN_PACKET_RECEIVED,
+
+    /**
+     * The server has sent an {@link EncryptionRequestPacket} to the client and is now waiting for a response.
+     */
     ENCRYPTION_REQUEST_SENT,
+
+    /**
+     * The server has received the {@link EncryptionResponsePacket} from the client and is processing it.
+     */
     ENCRYPTION_RESPONSE_RECEIVED
   }
 }

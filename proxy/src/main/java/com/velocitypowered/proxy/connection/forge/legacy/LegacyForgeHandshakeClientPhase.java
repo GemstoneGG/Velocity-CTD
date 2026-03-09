@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,10 +44,10 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
     }
 
     @Override
-    public void onFirstJoin(ConnectedPlayer player) {
+    public void onFirstJoin(final ConnectedPlayer player) {
       // We have something special to do for legacy Forge servers - during first connection the FML
       // handshake will getNewPhase to complete regardless. Thus, we need to ensure that a reset
-      // packet is ALWAYS sent on first switch.
+      // packet is ALWAYS sent on the first switch.
       //
       // As we know that calling this branch only happens on first join, we set that if we are a
       // Forge client that we must reset on the next switch.
@@ -55,9 +55,9 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
     }
 
     @Override
-    boolean onHandle(ConnectedPlayer player,
-        PluginMessagePacket message,
-        MinecraftConnection backendConn) {
+    boolean onHandle(final ConnectedPlayer player,
+                     final PluginMessagePacket message,
+                     final MinecraftConnection backendConn) {
       // If we stay in this phase, we do nothing because it means the packet wasn't handled.
       // Returning false indicates this
       return false;
@@ -87,11 +87,11 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
     }
 
     @Override
-    boolean onHandle(ConnectedPlayer player,
-        PluginMessagePacket message,
-        MinecraftConnection backendConn) {
+    boolean onHandle(final ConnectedPlayer player,
+                     final PluginMessagePacket message,
+                     final MinecraftConnection backendConn) {
       // Read the mod list if we haven't already.
-      if (!player.getModInfo().isPresent()) {
+      if (player.getModInfo().isEmpty()) {
         List<ModInfo.Mod> mods = LegacyForgeUtil.readModList(message);
         if (!mods.isEmpty()) {
           player.setModInfo(new ModInfo("FML", mods));
@@ -114,7 +114,8 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
   },
 
   /**
-   * Waiting on the server to send another ACK. Transition to {@link #PENDING_COMPLETE} when client
+   * Waiting on the server to send another ACK.
+   * Transition to {@link #PENDING_COMPLETE} when the client
    * sends another ACK
    */
   WAITING_SERVER_COMPLETE(LegacyForgeConstants.ACK_DISCRIMINATOR) {
@@ -125,7 +126,8 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
   },
 
   /**
-   * Waiting on the server to send yet another ACK. Transition to {@link #COMPLETE} when client
+   * Waiting on the server to send another ACK.
+   * Transition to {@link #COMPLETE} when the client
    * sends another ACK
    */
   PENDING_COMPLETE(LegacyForgeConstants.ACK_DISCRIMINATOR) {
@@ -145,7 +147,7 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
    */
   COMPLETE(null) {
     @Override
-    public void resetConnectionPhase(ConnectedPlayer player) {
+    public void resetConnectionPhase(final ConnectedPlayer player) {
       player.getConnection().write(LegacyForgeUtil.resetPacket());
       player.setPhase(LegacyForgeHandshakeClientPhase.NOT_STARTED);
     }
@@ -156,9 +158,9 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
     }
 
     @Override
-    boolean onHandle(ConnectedPlayer player,
-        PluginMessagePacket message,
-        MinecraftConnection backendConn) {
+    boolean onHandle(final ConnectedPlayer player,
+                     final PluginMessagePacket message,
+                     final MinecraftConnection backendConn) {
       super.onHandle(player, message, backendConn);
 
       // just in case the timing is awful
@@ -173,6 +175,16 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
     }
   };
 
+  /**
+   * The discriminator value of a {@link PluginMessagePacket} used to determine whether the Forge
+   * handshake should advance to the next {@link LegacyForgeHandshakeClientPhase}.
+   *
+   * <p>Legacy Forge packets are sent using plugin messages with a unique integer discriminator as the
+   * first value. This field represents the expected discriminator for a given handshake phase.
+   * When such a packet is received, the phase transitions to the result of {@link #nextPhase()}.</p>
+   *
+   * <p>If this field is {@code null}, the phase is terminal and does not transition.</p>
+   */
   @Nullable
   private final Integer packetToAdvanceOn;
 
@@ -181,17 +193,17 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
    *
    * @param packetToAdvanceOn The ID of the packet discriminator that indicates that the client has
    *                          moved onto a new phase, and as such, Velocity should do so too
-   *                          (inspecting {@link #nextPhase()}. A null indicates there is
+   *                          (inspecting {@link #nextPhase()}). A null indicates there is
    *                          no further phase to transition to.
    */
-  LegacyForgeHandshakeClientPhase(Integer packetToAdvanceOn) {
+  LegacyForgeHandshakeClientPhase(final @Nullable Integer packetToAdvanceOn) {
     this.packetToAdvanceOn = packetToAdvanceOn;
   }
 
   @Override
-  public final boolean handle(ConnectedPlayer player,
-      PluginMessagePacket message,
-      VelocityServerConnection server) {
+  public final boolean handle(final ConnectedPlayer player,
+                              final PluginMessagePacket message,
+                              final VelocityServerConnection server) {
     if (server != null) {
       MinecraftConnection backendConn = server.getConnection();
       if (backendConn != null
@@ -219,9 +231,9 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
    * @param backendConn The backend connection to write to, if required.
    * @return true if handled, false otherwise.
    */
-  boolean onHandle(ConnectedPlayer player,
-      PluginMessagePacket message,
-      MinecraftConnection backendConn) {
+  boolean onHandle(final ConnectedPlayer player,
+                   final PluginMessagePacket message,
+                   final MinecraftConnection backendConn) {
     // Send the packet on to the server.
     backendConn.write(message.retain());
 
@@ -235,7 +247,7 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
   }
 
   /**
-   * Gets the next phase, if any (will return self if we are at the end of the handshake).
+   * Gets the next phase if any (returns self if we are at the end of the handshake).
    *
    * @return The next phase
    */
@@ -249,9 +261,8 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
    * @param packet The packet
    * @return The phase to transition to, which may be the same as before.
    */
-  private LegacyForgeHandshakeClientPhase getNewPhase(PluginMessagePacket packet) {
-    if (packetToAdvanceOn != null
-        && LegacyForgeUtil.getHandshakePacketDiscriminator(packet) == packetToAdvanceOn) {
+  private LegacyForgeHandshakeClientPhase getNewPhase(final PluginMessagePacket packet) {
+    if (packetToAdvanceOn != null && LegacyForgeUtil.getHandshakePacketDiscriminator(packet) == packetToAdvanceOn) {
       return nextPhase();
     }
 

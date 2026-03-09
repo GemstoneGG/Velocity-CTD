@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -118,8 +118,7 @@ public interface TabList {
    * @deprecated Internal usage. Use {@link TabListEntry.Builder} instead.
    */
   @Deprecated
-  default TabListEntry buildEntry(GameProfile profile, @Nullable Component displayName, int latency,
-                          int gameMode) {
+  default TabListEntry buildEntry(GameProfile profile, @Nullable Component displayName, int latency, int gameMode) {
     return buildEntry(profile, displayName, latency, gameMode, null, true);
   }
 
@@ -135,8 +134,8 @@ public interface TabList {
    * @deprecated Internal usage. Use {@link TabListEntry.Builder} instead.
    */
   @Deprecated
-  default TabListEntry buildEntry(GameProfile profile, @Nullable Component displayName, int latency,
-                          int gameMode, @Nullable IdentifiedKey key) {
+  default TabListEntry buildEntry(GameProfile profile, @Nullable Component displayName, int latency, int gameMode,
+                                  @Nullable IdentifiedKey key) {
     return buildEntry(profile, displayName, latency, gameMode, null, true);
   }
 
@@ -153,8 +152,8 @@ public interface TabList {
    * @deprecated Internal usage. Use {@link TabListEntry.Builder} instead.
    */
   @Deprecated
-  default TabListEntry buildEntry(GameProfile profile, @Nullable Component displayName, int latency,
-                          int gameMode, @Nullable ChatSession chatSession) {
+  default TabListEntry buildEntry(GameProfile profile, @Nullable Component displayName, int latency, int gameMode,
+                                  @Nullable ChatSession chatSession) {
     return buildEntry(profile, displayName, latency, gameMode, chatSession, true);
   }
 
@@ -172,7 +171,7 @@ public interface TabList {
    */
   @Deprecated
   default TabListEntry buildEntry(GameProfile profile, @Nullable Component displayName, int latency,
-                          int gameMode, @Nullable ChatSession chatSession, boolean listed) {
+                                  int gameMode, @Nullable ChatSession chatSession, boolean listed) {
     return buildEntry(profile, displayName, latency, gameMode, chatSession, listed, 0);
   }
 
@@ -191,7 +190,7 @@ public interface TabList {
    */
   @Deprecated
   default TabListEntry buildEntry(GameProfile profile, @Nullable Component displayName, int latency,
-                          int gameMode, @Nullable ChatSession chatSession, boolean listed, int listOrder) {
+                                  int gameMode, @Nullable ChatSession chatSession, boolean listed, int listOrder) {
     return buildEntry(profile, displayName, latency, gameMode, chatSession, listed, listOrder, true);
   }
 

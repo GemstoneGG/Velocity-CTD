@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -12,6 +12,7 @@ import com.velocitypowered.api.util.Favicon;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import net.kyori.adventure.text.Component;
 
 /**
  * Exposes certain proxy configuration information that plugins may use.
@@ -19,7 +20,7 @@ import java.util.Optional;
 public interface ProxyConfig {
 
   /**
-   * Whether GameSpy 4 queries are accepted by the proxy.
+   * Whether the proxy accepts GameSpy 4 queries.
    *
    * @return queries enabled
    */
@@ -51,7 +52,14 @@ public interface ProxyConfig {
    *
    * @return the motd component
    */
-  net.kyori.adventure.text.Component getMotd();
+  Component getMotd();
+
+  /**
+   * Get the MOTD hover legacy component shown in the tab list.
+   *
+   * @return the motd legacy component
+   */
+  List<Component> getMotdHover();
 
   /**
    * Get the maximum players shown in the tab list.
@@ -61,12 +69,20 @@ public interface ProxyConfig {
   int getShowMaxPlayers();
 
   /**
-   * Get whether the proxy is online mode. This determines if players are authenticated with Mojang.
-   * servers.
+   * Get whether the proxy is online mode.
+   * This determines if players are authenticated with Mojang's
+   * Authentication Servers.
    *
    * @return online mode enabled
    */
   boolean isOnlineMode();
+
+  /**
+   * Whether the proxy should tell client that proxy prevents chat reports, useful in NoChatReports mod. (1.19+).
+   * 
+   * @return does prevents chat reports
+   */
+  boolean doesPreventChatReports();
 
   /**
    * If client's ISP/AS sent from this proxy is different from the one from Mojang's
@@ -83,8 +99,22 @@ public interface ProxyConfig {
    * does. For a view of all registered servers, see {@link ProxyServer#getAllServers()}.
    *
    * @return registered servers map
+   * @deprecated use {@link #getBackendServers()} instead.
    */
+  @Deprecated(forRemoval = true, since = "3.4.0")
   Map<String, String> getServers();
+
+  /**
+   * Get a Map of all servers registered in <code>velocity.toml</code>. This method does
+   * <strong>not</strong> return all the servers currently in memory, although in most cases it
+   * does. For a view of all registered servers, see {@link ProxyServer#getAllServers()}.
+   *
+   * @return registered servers map with, instead of the only address, the Backend Server Object for each
+   *     of them which contains the address of the server and its info forwarding mode.
+   * @since 3.4.0
+   * @see com.velocitypowered.api.proxy.server.ServerInfoForwardingMode
+   */
+  Map<String, BackendServerConfig> getBackendServers();
 
   /**
    * Get the order of servers that players will be connected to.
@@ -96,9 +126,23 @@ public interface ProxyConfig {
   /**
    * Get forced servers mapped to a given virtual host.
    *
-   * @return list of server names
+   * @return mapped list of server names
    */
   Map<String, List<String>> getForcedHosts();
+
+  /**
+   * Whether the proxy should cache Mojang profile results to reduce login API pressure.
+   *
+   * @return true if profile result caching is enabled
+   */
+  boolean isCachePlayerProfileResultEnabled();
+
+  /**
+   * How long (in minutes) to cache Mojang profile results.
+   *
+   * @return the profile cache expiration time in minutes
+   */
+  int getProfileCacheExpiryMinutes();
 
   /**
    * Get the minimum compression threshold for packets.
@@ -159,20 +203,20 @@ public interface ProxyConfig {
   /**
    * Get whether we should forward commands to the backend if the player is rate limited.
    *
-   * @return whether to forward commands if rate limited
+   * @return whether to forward commands if rate-limited
    */
   boolean isForwardCommandsIfRateLimited();
 
   /**
    * Get the kick limit for commands that are rate limited.
-   * If this limit is 0 or less, the player will be not be kicked.
+   * If this limit is 0 or less, the player will not be kicked.
    *
-   * @return the rate limited command rate limit
+   * @return the rate-limited command rate limit
    */
   int getKickAfterRateLimitedCommands();
 
   /**
-   * Get whether the proxy should kick players who are command rate limited.
+   * Get whether the proxy should kick players who are command rate-limited.
    *
    * @return whether to kick players who are rate limited
    */
@@ -189,9 +233,9 @@ public interface ProxyConfig {
 
   /**
    * Get the kick limit for tab completes that are rate limited.
-   * If this limit is 0 or less, the player will be not be kicked.
+   * If this limit is 0 or less, the player will not be kicked.
    *
-   * @return the rate limited command rate limit
+   * @return the rate-limited command rate limit
    */
   int getKickAfterRateLimitedTabCompletes();
 

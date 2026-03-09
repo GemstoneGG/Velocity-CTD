@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -29,10 +29,9 @@ public interface SignedMessage extends KeySigned {
   UUID getSignerUuid();
 
   /**
-   * If true the signature of this message applies to a stylized component instead.
+   * If true, the signature of this message applies to a stylized component instead.
    *
    * @return signature signs preview
    */
   boolean isPreviewSigned();
-
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -13,28 +13,48 @@ import com.velocitypowered.api.event.ResultedEvent;
 import com.velocitypowered.api.event.annotation.AwaitingEvent;
 import com.velocitypowered.api.event.command.CommandExecuteEvent.CommandResult;
 import java.util.Optional;
+import net.kyori.adventure.text.event.ClickEvent;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * This event is fired when someone executes a command. Velocity will wait for this event to finish
  * firing before trying to handle the command and/or forwarding it to the server.
+ *
+ * <p><strong>Rate limiting:</strong> Depending on proxy configuration, excessively fast command
+ * submissions may be dropped, forwarded directly to the backend, or cause the player to be kicked
+ * before plugin handling. In those cases, this event may not fire.</p>
  */
 @AwaitingEvent
 public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
 
+  /**
+   * The source that initiated the command.
+   */
   private final CommandSource commandSource;
+
+  /**
+   * The raw command string without the leading slash.
+   */
   private final String command;
+
+  /**
+   * The result of the event, indicating whether the command should proceed.
+   */
   private CommandResult result;
-  private InvocationInfo invocationInfo;
+
+  /**
+   * Information about how the command was invoked.
+   */
+  private final InvocationInfo invocationInfo;
 
   /**
    * Constructs a CommandExecuteEvent.
    *
    * @param commandSource the source executing the command
-   * @param command the command being executed without first slash
+   * @param command the command being executed without a first slash
    */
-  public CommandExecuteEvent(CommandSource commandSource, String command) {
+  public CommandExecuteEvent(final CommandSource commandSource, final String command) {
     this(commandSource, command, new InvocationInfo(SignedState.UNSUPPORTED, Source.API));
   }
 
@@ -42,10 +62,10 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
    * Constructs a CommandExecuteEvent.
    *
    * @param commandSource the source executing the command
-   * @param command the command being executed without first slash
+   * @param command the command being executed without a first slash
    * @param invocationInfo the invocation info of this command
    */
-  public CommandExecuteEvent(CommandSource commandSource, String command, InvocationInfo invocationInfo) {
+  public CommandExecuteEvent(final CommandSource commandSource, final String command, final InvocationInfo invocationInfo) {
     this.commandSource = Preconditions.checkNotNull(commandSource, "commandSource");
     this.command = Preconditions.checkNotNull(command, "command");
     this.result = CommandResult.allowed();
@@ -119,6 +139,7 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
    * @since 3.4.0
    */
   public enum SignedState {
+
     /**
      * Indicates that the command was executed from a signed source with signed message arguments,
      * This is currently only possible by typing a command in chat with signed arguments.
@@ -128,22 +149,25 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
      * @since 3.4.0
      */
     SIGNED_WITH_ARGS,
+
     /**
-     * Indicates that the command was executed from an signed source with no signed message arguments,
+     * Indicates that the command was executed from a signed source with no signed message arguments,
      * This is currently only possible by typing a command in chat.
      *
      * @since 3.4.0
      */
     SIGNED_WITHOUT_ARGS,
+
     /**
      * Indicates that the command was executed from an unsigned source,
-     * such as clicking on a component with a {@link net.kyori.adventure.text.event.ClickEvent.Action#RUN_COMMAND}.
+     * such as clicking on a component with a {@link ClickEvent.Action#RUN_COMMAND}.
      *
      * <p>Clients running version 1.20.5 or later will send this state.</p>
      *
      * @since 3.4.0
      */
     UNSIGNED,
+
     /**
      * Indicates that the command invocation does not support signing.
      *
@@ -160,12 +184,14 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
    * @since 3.4.0
    */
   public enum Source {
+
     /**
      * Indicates that the command was invoked by a player.
      *
      * @since 3.4.0
      */
     PLAYER,
+
     /**
      * Indicates that the command was invoked programmatically through an API call.
      *
@@ -179,12 +205,34 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
    */
   public static final class CommandResult implements ResultedEvent.Result {
 
+    /**
+     * The default result allowing the command to proceed.
+     */
     private static final CommandResult ALLOWED = new CommandResult(true, false, null);
+
+    /**
+     * The default result denying the command execution.
+     */
     private static final CommandResult DENIED = new CommandResult(false, false, null);
+
+    /**
+     * The default result indicating the command should be forwarded to the backend server.
+     */
     private static final CommandResult FORWARD_TO_SERVER = new CommandResult(false, true, null);
 
+    /**
+     * The command string override, or {@code null} if none was provided.
+     */
     private final @Nullable String command;
+
+    /**
+     * Whether the command is allowed to execute.
+     */
     private final boolean status;
+
+    /**
+     * Whether the command should be forwarded to the backend server.
+     */
     private final boolean forward;
 
     private CommandResult(final boolean status, final boolean forward, final @Nullable String command) {

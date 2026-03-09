@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -68,7 +68,7 @@ public class ProtocolUtilsTest {
     }
   }
 
-  private void writeReadTestOld(ByteBuf buf, int test) {
+  private void writeReadTestOld(final ByteBuf buf, final int test) {
     buf.clear();
     writeVarIntOld(buf, test);
     assertEquals(test, ProtocolUtils.readVarInt(buf));
@@ -82,7 +82,7 @@ public class ProtocolUtilsTest {
     }
   }
 
-  private void writeReadTest3Bytes(ByteBuf buf, int test) {
+  private void writeReadTest3Bytes(final ByteBuf buf, final int test) {
     buf.clear();
     buf.writeMedium(encode21BitVarInt(test));
     assertEquals(test, ProtocolUtils.readVarInt(buf));
@@ -109,6 +109,7 @@ public class ProtocolUtilsTest {
       varintNew.clear();
       varintOld.clear();
     }
+
     assertEquals(bytesNew, bytesOld, "byte sizes differ");
   }
 
@@ -127,10 +128,11 @@ public class ProtocolUtilsTest {
       varintNew.clear();
       varintOld.clear();
     }
+
     assertEquals(bytesNew, bytesOld, "byte sizes differ");
   }
 
-  private static int oldReadVarIntSafely(ByteBuf buf) {
+  private static int oldReadVarIntSafely(final ByteBuf buf) {
     int i = 0;
     int maxRead = Math.min(5, buf.readableBytes());
     for (int j = 0; j < maxRead; j++) {
@@ -140,10 +142,11 @@ public class ProtocolUtilsTest {
         return i;
       }
     }
+
     return Integer.MIN_VALUE;
   }
 
-  private void writeVarIntOld(ByteBuf buf, int value) {
+  private void writeVarIntOld(final ByteBuf buf, int value) {
     while (true) {
       if ((value & 0xFFFFFF80) == 0) {
         buf.writeByte(value);

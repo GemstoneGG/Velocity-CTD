@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,27 +34,60 @@ import io.netty.buffer.ByteBuf;
  */
 public class TitleTextPacket extends GenericTitlePacket {
 
+  /**
+   * The text component representing the main title.
+   */
   private ComponentHolder component;
 
+  /**
+   * Constructs a new {@code TitleTextPacket} with the {@link ActionType#SET_TITLE} preset.
+   */
   public TitleTextPacket() {
     setAction(ActionType.SET_TITLE);
   }
 
+  /**
+   * Encodes this {@code TitleTextPacket} into the provided {@link ByteBuf}.
+   *
+   * <p>This writes the serialized title component to the buffer according to the
+   * specified protocol version.</p>
+   *
+   * @param buf the buffer to write to
+   * @param direction the packet direction (clientbound or serverbound)
+   * @param version the protocol version to use during encoding
+   */
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     component.write(buf);
   }
 
+  /**
+   * Returns the {@link ComponentHolder} representing the main title content.
+   *
+   * @return the title component
+   */
   @Override
   public ComponentHolder getComponent() {
     return component;
   }
 
+  /**
+   * Sets the {@link ComponentHolder} that defines the main title content.
+   *
+   * @param component the text component to display as the title
+   */
   @Override
-  public void setComponent(ComponentHolder component) {
+  public void setComponent(final ComponentHolder component) {
     this.component = component;
   }
 
+  /**
+   * Returns a string representation of this {@code TitleTextPacket}.
+   *
+   * <p>The output includes the component text that will be displayed in the title.</p>
+   *
+   * @return a human-readable string describing the packet
+   */
   @Override
   public String toString() {
     return "TitleTextPacket{"
@@ -62,8 +95,16 @@ public class TitleTextPacket extends GenericTitlePacket {
         + '}';
   }
 
+  /**
+   * Handles this {@code TitleTextPacket} by delegating it to the session handler.
+   *
+   * <p>This calls {@link MinecraftSessionHandler#handle(TitleTextPacket)}.</p>
+   *
+   * @param handler the session handler responsible for processing the packet
+   * @return {@code true} if the handler processed the packet successfully
+   */
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,21 +34,44 @@ import org.lanternpowered.lmbda.LambdaType;
 
 final class CustomHandlerAdapter<F> {
 
+  /**
+   * The name of this handler adapter, typically identifying its purpose or usage style.
+   */
   final String name;
+
+  /**
+   * A function that converts an instance of the functional interface {@code F}
+   * into a handler function that consumes a target and an event and returns an {@link EventTask}.
+   */
   private final Function<F, BiFunction<Object, Object, EventTask>> handlerBuilder;
+
+  /**
+   * A predicate used to determine if a method should be handled by this adapter.
+   */
   final Predicate<Method> filter;
+
+  /**
+   * A validator function that performs custom checks on candidate methods.
+   * It may add error messages to the provided list if validation fails.
+   */
   final BiConsumer<Method, List<String>> validator;
+
+  /**
+   * The lambda type associated with the functional interface {@code F}.
+   */
   private final LambdaType<F> functionType;
+
+  /**
+   * The {@link MethodHandles.Lookup} used to access the target method.
+   */
   private final MethodHandles.Lookup methodHandlesLookup;
 
   @SuppressWarnings("unchecked")
-  CustomHandlerAdapter(
-      final String name,
-      final Predicate<Method> filter,
-      final BiConsumer<Method, List<String>> validator,
-      final TypeToken<F> invokeFunctionType,
-      final Function<F, BiFunction<Object, Object, EventTask>> handlerBuilder,
-      final MethodHandles.Lookup methodHandlesLookup) {
+  CustomHandlerAdapter(final String name, final Predicate<Method> filter,
+                       final BiConsumer<Method, List<String>> validator,
+                       final TypeToken<F> invokeFunctionType,
+                       final Function<F, BiFunction<Object, Object, EventTask>> handlerBuilder,
+                       final MethodHandles.Lookup methodHandlesLookup) {
     this.name = name;
     this.filter = filter;
     this.validator = validator;
@@ -57,8 +80,7 @@ final class CustomHandlerAdapter<F> {
     this.methodHandlesLookup = methodHandlesLookup;
   }
 
-  UntargetedEventHandler buildUntargetedHandler(final Method method)
-      throws IllegalAccessException {
+  UntargetedEventHandler buildUntargetedHandler(final Method method) throws IllegalAccessException {
     final MethodHandle methodHandle = methodHandlesLookup.unreflect(method);
     final MethodHandles.Lookup defineLookup = MethodHandles.privateLookupIn(
         method.getDeclaringClass(), methodHandlesLookup);
@@ -66,15 +88,15 @@ final class CustomHandlerAdapter<F> {
     final F invokeFunction = LambdaFactory.create(lambdaType, methodHandle);
     final BiFunction<Object, Object, EventTask> handlerFunction =
         handlerBuilder.apply(invokeFunction);
-    return targetInstance -> new EventHandler() {
+    return targetInstance -> new EventHandler<>() {
 
       @Override
-      public void execute(Object event) {
+      public void execute(final Object event) {
         throw new UnsupportedOperationException();
       }
 
       @Override
-      public @Nullable EventTask executeAsync(Object event) {
+      public @Nullable EventTask executeAsync(final Object event) {
         return handlerFunction.apply(targetInstance, event);
       }
     };

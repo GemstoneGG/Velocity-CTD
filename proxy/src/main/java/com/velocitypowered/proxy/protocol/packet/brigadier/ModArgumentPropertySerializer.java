@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,18 +21,31 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jetbrains.annotations.NotNull;
 
-class ModArgumentPropertySerializer implements ArgumentPropertySerializer<ModArgumentProperty> {
+/**
+ * A special {@link ArgumentPropertySerializer} implementation for mod-defined argument types
+ * represented by {@link ModArgumentProperty}.
+ *
+ * <p>This serializer handles deserialization of mod-specific arguments that include a
+ * {@link ArgumentIdentifier} and an arbitrary binary payload. These arguments are typically
+ * used by modding platforms or extensions to define custom Brigadier-compatible types.</p>
+ *
+ * <p>Serialization is explicitly unsupported, as mod arguments are meant to be deserialized
+ * only. The {@link ArgumentPropertyRegistry} handles raw passthrough of these types at runtime.</p>
+ */
+final class ModArgumentPropertySerializer implements ArgumentPropertySerializer<ModArgumentProperty> {
 
+  /**
+   * A shared singleton instance of the {@code ModArgumentPropertySerializer}.
+   */
   static final ModArgumentPropertySerializer MOD = new ModArgumentPropertySerializer();
 
   private ModArgumentPropertySerializer() {
-
   }
 
   @Override
-  public @Nullable ModArgumentProperty deserialize(ByteBuf buf, ProtocolVersion version) {
+  public @NotNull ModArgumentProperty deserialize(final ByteBuf buf, final ProtocolVersion version) {
     ArgumentIdentifier identifier;
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19)) {
       int idx = ProtocolUtils.readVarInt(buf);
@@ -47,7 +60,7 @@ class ModArgumentPropertySerializer implements ArgumentPropertySerializer<ModArg
   }
 
   @Override
-  public void serialize(ModArgumentProperty object, ByteBuf buf, ProtocolVersion version) {
+  public void serialize(final ModArgumentProperty object, final ByteBuf buf, final ProtocolVersion version) {
     // This is special-cased by ArgumentPropertyRegistry
     throw new UnsupportedOperationException();
   }

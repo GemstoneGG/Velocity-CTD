@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,11 +18,27 @@
 package com.velocitypowered.proxy.protocol;
 
 /**
- * Describes various events fired during the course of a connection.
+ * Describes various events fired during a connection.
  */
 public enum VelocityConnectionEvent {
+
+  /**
+   * Fired when packet compression is enabled on the connection.
+   */
   COMPRESSION_ENABLED,
+
+  /**
+   * Fired when packet compression is disabled on the connection.
+   */
   COMPRESSION_DISABLED,
+
+  /**
+   * Fired when encryption (e.g., using a shared secret) is enabled on the connection.
+   */
   ENCRYPTION_ENABLED,
+
+  /**
+   * Fired when the protocol version of the connection changes (e.g., during handshake).
+   */
   PROTOCOL_VERSION_CHANGED
 }

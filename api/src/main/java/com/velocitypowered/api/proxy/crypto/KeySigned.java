@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -48,8 +48,7 @@ public interface KeySigned {
    *
    * @return an RSA signature
    */
-  @Nullable
-  byte[] getSignature();
+  byte @Nullable [] getSignature();
 
   /**
    * Validates the signature, expiry temporal and key against the
@@ -74,5 +73,4 @@ public interface KeySigned {
   default byte[] getSalt() {
     return null;
   }
-
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,11 +28,30 @@ import com.velocitypowered.proxy.connection.client.ClientConnectionPhase;
  */
 public class ConnectionTypeImpl implements ConnectionType {
 
+  /**
+   * The initial connection phase for the client.
+   *
+   * <p>This phase defines how Velocity will interpret and handle packets sent by the client
+   * when the connection is first established (e.g., mod negotiation or handshake state).</p>
+   */
   private final ClientConnectionPhase initialClientPhase;
+
+  /**
+   * The initial connection phase for the backend server.
+   *
+   * <p>This phase defines how Velocity will handle and forward packets to the backend server
+   * during the early stages of the connection (e.g., Forge handshake state or login state).</p>
+   */
   private final BackendConnectionPhase initialBackendPhase;
 
-  public ConnectionTypeImpl(ClientConnectionPhase initialClientPhase,
-      BackendConnectionPhase initialBackendPhase) {
+  /**
+   * Constructs a new {@link ConnectionTypeImpl} with the given client and backend phases.
+   *
+   * @param initialClientPhase  the phase that should be used to interpret the initial client connection
+   * @param initialBackendPhase the phase that should be used when connecting to a backend server
+   */
+  public ConnectionTypeImpl(final ClientConnectionPhase initialClientPhase,
+                            final BackendConnectionPhase initialBackendPhase) {
     this.initialClientPhase = initialClientPhase;
     this.initialBackendPhase = initialBackendPhase;
   }
@@ -47,10 +66,10 @@ public class ConnectionTypeImpl implements ConnectionType {
     return initialBackendPhase;
   }
 
+  @SuppressWarnings("checkstyle:DesignForExtension")
   @Override
-  public GameProfile addGameProfileTokensIfRequired(GameProfile original,
-      PlayerInfoForwarding forwardingType) {
+  public GameProfile addGameProfileTokensIfRequired(final GameProfile original,
+                                                    final PlayerInfoForwarding forwardingType) {
     return original;
   }
 }
-

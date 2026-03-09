@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -15,6 +15,20 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class SkinParts {
 
+  /**
+   * The bitmask representing the enabled skin parts.
+   *
+   * <p>Each bit corresponds to a part of the player's skin:
+   * <ul>
+   *   <li>0 - cape</li>
+   *   <li>1 - jacket</li>
+   *   <li>2 - left sleeve</li>
+   *   <li>3 - right sleeve</li>
+   *   <li>4 - left pants</li>
+   *   <li>5 - right pants</li>
+   *   <li>6 - hat</li>
+   * </ul>
+   */
   private final byte bitmask;
 
   /**
@@ -22,7 +36,7 @@ public final class SkinParts {
    *
    * @param skinBitmask the bitmask representing which skin parts are enabled
    */
-  public SkinParts(byte skinBitmask) {
+  public SkinParts(final byte skinBitmask) {
     this.bitmask = skinBitmask;
   }
 
@@ -90,13 +104,15 @@ public final class SkinParts {
   }
 
   @Override
-  public boolean equals(@Nullable final Object o) {
+  public boolean equals(final @Nullable Object o) {
     if (this == o) {
       return true;
     }
+
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
+
     final SkinParts skinParts = (SkinParts) o;
     return bitmask == skinParts.bitmask;
   }

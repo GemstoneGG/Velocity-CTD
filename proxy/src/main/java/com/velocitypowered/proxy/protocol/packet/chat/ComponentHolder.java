@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ import io.netty.buffer.ByteBuf;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import net.kyori.adventure.nbt.BinaryTag;
 import net.kyori.adventure.nbt.BinaryTagIO;
 import net.kyori.adventure.nbt.BinaryTagType;
@@ -57,25 +58,66 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
  * transmitting text components.
  */
 public class ComponentHolder {
+
+  /**
+   * Logger instance for reporting errors during serialization/deserialization.
+   */
   private static final Logger logger = LogManager.getLogger(ComponentHolder.class);
+
+  /**
+   * The maximum allowed size for JSON strings, used when reading components from buffer.
+   */
   public static final int DEFAULT_MAX_STRING_SIZE = 262143;
 
+  /**
+   * The protocol version associated with this component's format.
+   */
   private final ProtocolVersion version;
+
+  /**
+   * The parsed {@link Component} form, lazily initialized.
+   */
   private @MonotonicNonNull Component component;
+
+  /**
+   * The JSON string form of the component, lazily serialized or deserialized.
+   */
   private @MonotonicNonNull String json;
+
+  /**
+   * The binary (NBT) form of the component, lazily serialized or deserialized.
+   */
   private @MonotonicNonNull BinaryTag binaryTag;
 
-  public ComponentHolder(ProtocolVersion version, Component component) {
+  /**
+   * Creates a new {@code ComponentHolder} using a parsed {@link Component}.
+   *
+   * @param version the protocol version
+   * @param component the component to store
+   */
+  public ComponentHolder(final ProtocolVersion version, final Component component) {
     this.version = version;
     this.component = component;
   }
 
-  public ComponentHolder(ProtocolVersion version, String json) {
+  /**
+   * Creates a new {@code ComponentHolder} using a JSON representation.
+   *
+   * @param version the protocol version
+   * @param json the component JSON string
+   */
+  public ComponentHolder(final ProtocolVersion version, final String json) {
     this.version = version;
     this.json = json;
   }
 
-  public ComponentHolder(ProtocolVersion version, BinaryTag binaryTag) {
+  /**
+   * Creates a new {@code ComponentHolder} using a binary tag representation.
+   *
+   * @param version the protocol version
+   * @param binaryTag the binary tag containing the component
+   */
+  public ComponentHolder(final ProtocolVersion version, final BinaryTag binaryTag) {
     this.version = version;
     this.binaryTag = binaryTag;
   }
@@ -98,13 +140,12 @@ public class ComponentHolder {
           json = deserialize(binaryTag).toString();
           component = ProtocolUtils.getJsonChatSerializer(version).deserialize(json);
         } catch (Exception ex) {
-          logger.error(
-              "Error converting binary component to JSON component! "
-                  + "Binary: " + binaryTag + " JSON: " + json, ex);
+          logger.error("Error converting binary component to JSON component! Binary: {} JSON: {}", binaryTag, json, ex);
           throw ex;
         }
       }
     }
+
     return component;
   }
 
@@ -119,6 +160,7 @@ public class ComponentHolder {
     if (json == null) {
       json = ProtocolUtils.getJsonChatSerializer(version).serialize(getComponent());
     }
+
     return json;
   }
 
@@ -135,6 +177,7 @@ public class ComponentHolder {
       // TODO: replace this with adventure-text-serializer-nbt
       binaryTag = serialize(ProtocolUtils.getJsonChatSerializer(version).serializeToTree(getComponent()));
     }
+
     return binaryTag;
   }
 
@@ -148,7 +191,7 @@ public class ComponentHolder {
    * @return the {@link BinaryTag} representing the serialized JSON element
    * @throws IllegalArgumentException if the JSON element is of an unsupported or unknown type
    */
-  public static BinaryTag serialize(JsonElement json) {
+  public static BinaryTag serialize(final JsonElement json) {
     if (json instanceof JsonPrimitive jsonPrimitive) {
       if (jsonPrimitive.isNumber()) {
         final Number number = json.getAsNumber();
@@ -233,6 +276,7 @@ public class ComponentHolder {
               }
             });
         default -> {
+          // This does absolutely nothing.
         }
       }
 
@@ -251,7 +295,7 @@ public class ComponentHolder {
    * @return the {@link JsonElement} representing the deserialized NBT data
    * @throws IllegalArgumentException if the NBT tag type is unsupported or unknown
    */
-  public static JsonElement deserialize(BinaryTag tag) {
+  public static JsonElement deserialize(final BinaryTag tag) {
     return switch (tag.type().id()) {
       // BinaryTagTypes.BYTE
       case 1 -> new JsonPrimitive(((ByteBinaryTag) tag).value());
@@ -300,7 +344,7 @@ public class ComponentHolder {
           // the second compound tag will have an empty key mapped to "test2"
           // without this fix this would lead to an invalid json component:
           // [{"text":"test1"},{"":"test2"}]
-          jsonObject.add(key.isEmpty() ? "text" : key, deserialize(compound.get(key)));
+          jsonObject.add(key.isEmpty() ? "text" : key, deserialize(Objects.requireNonNull(compound.get(key))));
         });
 
         yield jsonObject;
@@ -344,7 +388,7 @@ public class ComponentHolder {
    * @param version the {@link ProtocolVersion} indicating how the component should be deserialized
    * @return a {@link ComponentHolder} containing the deserialized component
    */
-  public static ComponentHolder read(ByteBuf buf, ProtocolVersion version) {
+  public static ComponentHolder read(final ByteBuf buf, final ProtocolVersion version) {
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       return new ComponentHolder(version,
           ProtocolUtils.readBinaryTag(buf, version, BinaryTagIO.reader()));
@@ -364,7 +408,7 @@ public class ComponentHolder {
    *
    * @param buf the {@link ByteBuf} where the component data will be written
    */
-  public void write(ByteBuf buf) {
+  public void write(final ByteBuf buf) {
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       ProtocolUtils.writeBinaryTag(buf, version, getBinaryTag());
     } else {

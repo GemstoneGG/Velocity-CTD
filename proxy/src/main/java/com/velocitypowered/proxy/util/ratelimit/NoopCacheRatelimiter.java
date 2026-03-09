@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,10 +23,17 @@ import org.jetbrains.annotations.NotNull;
  * A {@link Ratelimiter} that does no rate-limiting.
  */
 enum NoopCacheRatelimiter implements Ratelimiter<Object> {
+
+  /**
+   * Singleton instance of the {@link NoopCacheRatelimiter}, which performs no rate limiting.
+   *
+   * <p>This instance always allows all operations unconditionally by returning {@code true}
+   * for every {@link #attempt(Object)} call, effectively disabling rate limiting logic.</p>
+   */
   INSTANCE;
 
   @Override
-  public boolean attempt(@NotNull Object key) {
+  public boolean attempt(final @NotNull Object key) {
     return true;
   }
 }

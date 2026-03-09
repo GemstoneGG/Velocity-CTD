@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import java.util.List;
 
-class LegacyForgeUtil {
+final class LegacyForgeUtil {
 
   private LegacyForgeUtil() {
     throw new AssertionError();
@@ -39,10 +39,10 @@ class LegacyForgeUtil {
   /**
    * Gets the discriminator from the FML|HS packet (the first byte in the data).
    *
-   * @param message The message to analyse
+   * @param message The message to analyze
    * @return The discriminator
    */
-  static byte getHandshakePacketDiscriminator(PluginMessagePacket message) {
+  static byte getHandshakePacketDiscriminator(final PluginMessagePacket message) {
     Preconditions.checkArgument(message.getChannel().equals(FORGE_LEGACY_HANDSHAKE_CHANNEL));
     Preconditions.checkArgument(message.content().isReadable());
     return message.content().getByte(0);
@@ -52,9 +52,9 @@ class LegacyForgeUtil {
    * Gets the mod list from the mod list packet and parses it.
    *
    * @param message The message
-   * @return The list of mods. May be empty.
+   * @return The list of mods. Maybe empty.
    */
-  static List<ModInfo.Mod> readModList(PluginMessagePacket message) {
+  static List<ModInfo.Mod> readModList(final PluginMessagePacket message) {
     Preconditions.checkNotNull(message, "message");
     Preconditions.checkArgument(message.getChannel().equals(FORGE_LEGACY_HANDSHAKE_CHANNEL),
         "message is not a FML HS plugin message");

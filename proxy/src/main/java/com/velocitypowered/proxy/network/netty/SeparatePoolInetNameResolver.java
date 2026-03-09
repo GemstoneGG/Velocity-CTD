@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,9 +27,11 @@ import io.netty.resolver.DefaultNameResolver;
 import io.netty.resolver.InetNameResolver;
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import io.netty.util.concurrent.Promise;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,9 +45,24 @@ import java.util.concurrent.TimeUnit;
  */
 public final class SeparatePoolInetNameResolver extends InetNameResolver {
 
+  /**
+   * Executor used to run DNS resolution off the Netty thread.
+   */
   private final ExecutorService resolveExecutor;
+
+  /**
+   * The Netty delegate resolver for actual DNS resolution.
+   */
   private final InetNameResolver delegate;
+
+  /**
+   * Cache storing previously resolved hostnames.
+   */
   private final Cache<String, List<InetAddress>> cache;
+
+  /**
+   * Lazily initialized {@link AddressResolverGroup} wrapper.
+   */
   private AddressResolverGroup<InetSocketAddress> resolverGroup;
 
   /**
@@ -54,13 +71,12 @@ public final class SeparatePoolInetNameResolver extends InetNameResolver {
    * @param executor the {@link EventExecutor} which is used to notify the listeners of the
    *                 {@link Future} returned by {@link #resolve(String)}
    */
-  public SeparatePoolInetNameResolver(EventExecutor executor) {
+  public SeparatePoolInetNameResolver(final EventExecutor executor) {
     super(executor);
-    this.resolveExecutor = Executors.newSingleThreadExecutor(
-        new ThreadFactoryBuilder()
-            .setNameFormat("Velocity DNS Resolver")
-            .setDaemon(true)
-            .build());
+    this.resolveExecutor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
+        .setNameFormat("Velocity DNS Resolver")
+        .setDaemon(true)
+        .build());
     this.delegate = new DefaultNameResolver(executor);
     this.cache = Caffeine.newBuilder()
         .expireAfterWrite(30, TimeUnit.SECONDS)
@@ -68,7 +84,7 @@ public final class SeparatePoolInetNameResolver extends InetNameResolver {
   }
 
   @Override
-  protected void doResolve(String inetHost, Promise<InetAddress> promise) throws Exception {
+  protected void doResolve(final String inetHost, final Promise<InetAddress> promise) {
     List<InetAddress> addresses = cache.getIfPresent(inetHost);
     if (addresses != null) {
       promise.trySuccess(addresses.getFirst());
@@ -82,6 +98,7 @@ public final class SeparatePoolInetNameResolver extends InetNameResolver {
             cache.put(inetHost, ImmutableList.of((InetAddress) future.getNow()));
           }
         });
+
         this.delegate.resolve(inetHost, promise);
       });
     } catch (RejectedExecutionException e) {
@@ -90,8 +107,7 @@ public final class SeparatePoolInetNameResolver extends InetNameResolver {
   }
 
   @Override
-  protected void doResolveAll(String inetHost, Promise<List<InetAddress>> promise)
-      throws Exception {
+  protected void doResolveAll(final String inetHost, final Promise<List<InetAddress>> promise) {
     List<InetAddress> addresses = cache.getIfPresent(inetHost);
     if (addresses != null) {
       promise.trySuccess(addresses);
@@ -99,17 +115,24 @@ public final class SeparatePoolInetNameResolver extends InetNameResolver {
     }
 
     try {
-      promise.addListener(future -> {
+      promise.addListener((GenericFutureListener<Future<List<InetAddress>>>) future -> {
         if (future.isSuccess()) {
-          cache.put(inetHost, (List<InetAddress>) future.getNow());
+          List<InetAddress> result = future.getNow();
+          cache.put(inetHost, Collections.unmodifiableList(result));
         }
       });
+
       resolveExecutor.execute(() -> this.delegate.resolveAll(inetHost, promise));
     } catch (RejectedExecutionException e) {
       promise.setFailure(e);
     }
   }
 
+  /**
+   * Shuts down the internal resolution executor.
+   *
+   * <p>This method should be called during server shutdown to prevent thread leaks.</p>
+   */
   public void shutdown() {
     this.resolveExecutor.shutdown();
   }
@@ -121,13 +144,14 @@ public final class SeparatePoolInetNameResolver extends InetNameResolver {
    */
   public AddressResolverGroup<InetSocketAddress> asGroup() {
     if (this.resolverGroup == null) {
-      this.resolverGroup = new AddressResolverGroup<InetSocketAddress>() {
+      this.resolverGroup = new AddressResolverGroup<>() {
         @Override
-        protected AddressResolver<InetSocketAddress> newResolver(EventExecutor executor) {
+        protected AddressResolver<InetSocketAddress> newResolver(final EventExecutor executor) {
           return asAddressResolver();
         }
       };
     }
+
     return this.resolverGroup;
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -22,8 +22,19 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @AwaitingEvent
 public final class PlayerChatEvent implements ResultedEvent<PlayerChatEvent.ChatResult> {
 
+  /**
+   * The player who sent the chat message.
+   */
   private final Player player;
+
+  /**
+   * The raw chat message sent by the player.
+   */
   private final String message;
+
+  /**
+   * The result determining whether the message should be forwarded to the server.
+   */
   private ChatResult result;
 
   /**
@@ -32,7 +43,7 @@ public final class PlayerChatEvent implements ResultedEvent<PlayerChatEvent.Chat
    * @param player the player sending the message
    * @param message the message being sent
    */
-  public PlayerChatEvent(Player player, String message) {
+  public PlayerChatEvent(final Player player, final String message) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.message = Preconditions.checkNotNull(message, "message");
     this.result = ChatResult.allowed();
@@ -48,9 +59,9 @@ public final class PlayerChatEvent implements ResultedEvent<PlayerChatEvent.Chat
   }
 
   /**
-   * Gets the (possibly modified) chat message to be sent.
+   * Gets the raw chat message the player sent.
    *
-   * @return an {@link Optional} containing the message, or empty if none
+   * @return the original chat message
    */
   public String getMessage() {
     return message;
@@ -69,7 +80,7 @@ public final class PlayerChatEvent implements ResultedEvent<PlayerChatEvent.Chat
    */
   @Deprecated
   @Override
-  public void setResult(ChatResult result) {
+  public void setResult(final ChatResult result) {
     this.result = Preconditions.checkNotNull(result, "result");
   }
 
@@ -87,13 +98,27 @@ public final class PlayerChatEvent implements ResultedEvent<PlayerChatEvent.Chat
    */
   public static final class ChatResult implements ResultedEvent.Result {
 
+    /**
+     * A result allowing the chat message to be forwarded to the server unchanged.
+     */
     private static final ChatResult ALLOWED = new ChatResult(true, null);
+
+    /**
+     * A result preventing the chat message from being forwarded.
+     */
     private static final ChatResult DENIED = new ChatResult(false, null);
 
-    private @Nullable String message;
+    /**
+     * The message to send instead of the original, or {@code null} to use the original message.
+     */
+    private final @Nullable String message;
+
+    /**
+     * Whether the chat message is allowed to be forwarded.
+     */
     private final boolean status;
 
-    private ChatResult(boolean status, @Nullable String message) {
+    private ChatResult(final boolean status, final @Nullable String message) {
       this.status = status;
       this.message = message;
     }
@@ -141,7 +166,7 @@ public final class PlayerChatEvent implements ResultedEvent<PlayerChatEvent.Chat
      * @param message the message to use instead
      * @return a result with a new message
      */
-    public static ChatResult message(@NonNull String message) {
+    public static ChatResult message(final @NonNull String message) {
       Preconditions.checkNotNull(message, "message");
       return new ChatResult(true, message);
     }

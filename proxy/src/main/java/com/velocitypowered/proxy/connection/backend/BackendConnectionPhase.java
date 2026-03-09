@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,9 +37,8 @@ public interface BackendConnectionPhase {
    * @param message The message to handle
    * @return true if handled, false otherwise.
    */
-  default boolean handle(VelocityServerConnection server,
-      ConnectedPlayer player,
-      PluginMessagePacket message) {
+  default boolean handle(VelocityServerConnection server, ConnectedPlayer player,
+                         PluginMessagePacket message) {
     return false;
   }
 
@@ -57,7 +56,7 @@ public interface BackendConnectionPhase {
    * is connecting to a new server.
    *
    * @param serverConnection The server the player is disconnecting from
-   * @param player           The player
+   * @param player The player
    */
   default void onDepartForNewServer(VelocityServerConnection serverConnection,
       ConnectedPlayer player) {

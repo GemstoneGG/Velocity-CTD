@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,6 +73,9 @@ import org.lanternpowered.lmbda.LambdaType;
  */
 public class VelocityEventManager implements EventManager {
 
+  /**
+   * Maps {@link PostOrder} values to numerical priorities for sorting handlers.
+   */
   private static final Enum2IntMap<PostOrder> POST_ORDER_MAP = new Enum2IntMap.Builder<>(PostOrder.class)
       .put(PostOrder.FIRST, Short.MAX_VALUE - 1)
       .put(PostOrder.EARLY, Short.MAX_VALUE / 2)
@@ -81,32 +84,77 @@ public class VelocityEventManager implements EventManager {
       .put(PostOrder.LAST, Short.MIN_VALUE + 1)
       .put(PostOrder.CUSTOM, 0)
       .build();
+
+  /**
+   * Logger instance for logging event handler diagnostics and errors.
+   */
   private static final Logger logger = LogManager.getLogger(VelocityEventManager.class);
 
+  /**
+   * Lookup instance for unreflecting handler methods.
+   */
   private static final MethodHandles.Lookup methodHandlesLookup = MethodHandles.lookup();
+
+  /**
+   * LambdaType used to create implementations of {@link EventTaskHandler}.
+   */
   private static final LambdaType<EventTaskHandler> untargetedEventTaskHandlerType =
       LambdaType.of(EventTaskHandler.class);
+
+  /**
+   * LambdaType used to create implementations of {@link VoidHandler}.
+   */
   private static final LambdaType<VoidHandler> untargetedVoidHandlerType =
       LambdaType.of(VoidHandler.class);
+
+  /**
+   * LambdaType used to create implementations of {@link WithContinuationHandler}.
+   */
   private static final LambdaType<WithContinuationHandler> untargetedWithContinuationHandlerType =
       LambdaType.of(WithContinuationHandler.class);
 
+  /**
+   * Comparator used to sort handlers by descending order (higher priority runs first).
+   */
   private static final Comparator<HandlerRegistration> handlerComparator =
       Collections.reverseOrder(Comparator.comparingInt(o -> o.order));
 
+  /**
+   * The plugin manager used to validate plugin ownership and container resolution.
+   */
   private final PluginManager pluginManager;
 
+  /**
+   * Stores all registered event handlers, grouped by their declared event type.
+   */
   private final ListMultimap<Class<?>, HandlerRegistration> handlersByType =
       ArrayListMultimap.create();
+
+  /**
+   * Cache of baked event handler arrays per event type, used for dispatch.
+   */
   private final LoadingCache<Class<?>, HandlersCache> handlersCache =
       Caffeine.newBuilder().build(this::bakeHandlers);
 
+  /**
+   * Cache of method-to-untargeted-handler adapters, used for lambda dispatch generation.
+   */
   private final LoadingCache<Method, UntargetedEventHandler> untargetedMethodHandlers =
       Caffeine.newBuilder().weakValues().build(this::buildUntargetedMethodHandler);
 
+  /**
+   * Lock protecting modification of registered handlers.
+   */
   private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
+  /**
+   * Custom handler adapters registered via {@link #registerHandlerAdapter}.
+   */
   private final List<CustomHandlerAdapter<?>> handlerAdapters = new ArrayList<>();
+
+  /**
+   * Tracks compatible supertype and interface mappings for a given event class.
+   */
   private final EventTypeTracker eventTypeTracker = new EventTypeTracker();
 
   /**
@@ -122,14 +170,11 @@ public class VelocityEventManager implements EventManager {
    * Registers a new continuation adapter function.
    */
   @SuppressWarnings({"unchecked", "rawtypes"})
-  public <F> void registerHandlerAdapter(
-      final String name,
-      final Predicate<Method> filter,
-      final BiConsumer<Method, List<String>> validator,
-      final TypeToken<F> invokeFunctionType,
-      final Function<F, BiFunction<Object, Object, EventTask>> handlerBuilder) {
-    handlerAdapters.add(new CustomHandlerAdapter(name, filter, validator,
-        invokeFunctionType, handlerBuilder, methodHandlesLookup));
+  public <F> void registerHandlerAdapter(final String name, final Predicate<Method> filter,
+                                         final BiConsumer<Method, List<String>> validator,
+                                         final TypeToken<F> invokeFunctionType,
+                                         final Function<F, BiFunction<Object, Object, EventTask>> handlerBuilder) {
+    handlerAdapters.add(new CustomHandlerAdapter(name, filter, validator, invokeFunctionType, handlerBuilder, methodHandlesLookup));
   }
 
   /**
@@ -137,10 +182,29 @@ public class VelocityEventManager implements EventManager {
    */
   static final class HandlerRegistration {
 
+    /**
+     * The plugin that registered the handler.
+     */
     final PluginContainer plugin;
+
+    /**
+     * The priority ordering value of this handler.
+     */
     final short order;
+
+    /**
+     * The event class this handler listens to.
+     */
     final Class<?> eventType;
+
+    /**
+     * The actual event handler function.
+     */
     final EventHandler<Object> handler;
+
+    /**
+     * Indicates whether this handler must run on an async thread.
+     */
     final AsyncType asyncType;
 
     /**
@@ -148,9 +212,9 @@ public class VelocityEventManager implements EventManager {
      */
     final Object instance;
 
-    public HandlerRegistration(final PluginContainer plugin, final short order,
-        final Class<?> eventType, final Object instance, final EventHandler<Object> handler,
-        final AsyncType asyncType) {
+    HandlerRegistration(final PluginContainer plugin, final short order,
+                        final Class<?> eventType, final Object instance, final EventHandler<Object> handler,
+                        final AsyncType asyncType) {
       this.plugin = plugin;
       this.order = order;
       this.eventType = eventType;
@@ -161,15 +225,18 @@ public class VelocityEventManager implements EventManager {
   }
 
   enum AsyncType {
+
     /**
      * The event will never run async, everything is handled on the netty thread.
      */
     NEVER,
+
     /**
      * The event will initially start on the thread calling the {@code fire} method, and possibly
      * switch over to an async thread.
      */
     SOMETIMES,
+
     /**
      * The complete event will be handled on an async thread.
      */
@@ -178,10 +245,17 @@ public class VelocityEventManager implements EventManager {
 
   static final class HandlersCache {
 
+    /**
+     * The maximum {@link AsyncType} required by any of the handlers.
+     */
     final AsyncType asyncType;
+
+    /**
+     * The array of event handler registrations.
+     */
     final HandlerRegistration[] handlers;
 
-    HandlersCache(AsyncType asyncType, final HandlerRegistration[] handlers) {
+    HandlersCache(final AsyncType asyncType, final HandlerRegistration[] handlers) {
       this.asyncType = asyncType;
       this.handlers = handlers;
     }
@@ -225,13 +299,13 @@ public class VelocityEventManager implements EventManager {
    * @param method The method to generate an untargeted handler for
    * @return The untargeted handler
    */
-  private UntargetedEventHandler buildUntargetedMethodHandler(final Method method)
-      throws IllegalAccessException {
+  private UntargetedEventHandler buildUntargetedMethodHandler(final Method method) throws IllegalAccessException {
     for (final CustomHandlerAdapter<?> handlerAdapter : handlerAdapters) {
       if (handlerAdapter.filter.test(method)) {
         return handlerAdapter.buildUntargetedHandler(method);
       }
     }
+
     final MethodHandles.Lookup lookup = MethodHandles.privateLookupIn(
         method.getDeclaringClass(), methodHandlesLookup);
     final MethodHandle methodHandle = lookup.unreflect(method);
@@ -243,21 +317,45 @@ public class VelocityEventManager implements EventManager {
     } else {
       type = untargetedVoidHandlerType;
     }
+
     return LambdaFactory.create(type.defineClassesWith(lookup), methodHandle);
   }
 
   static final class MethodHandlerInfo {
 
+    /**
+     * The actual method.
+     */
     final Method method;
+
+    /**
+     * The async execution policy determined for this handler.
+     */
     final AsyncType asyncType;
+
+    /**
+     * The resolved event type for the method.
+     */
     final @Nullable Class<?> eventType;
+
+    /**
+     * The post order of this method.
+     */
     final short order;
+
+    /**
+     * A string of validation error messages, if any.
+     */
     final @Nullable String errors;
+
+    /**
+     * The type of the continuation parameter, if declared.
+     */
     final @Nullable Class<?> continuationType;
 
     private MethodHandlerInfo(final Method method, final AsyncType asyncType,
-        final @Nullable Class<?> eventType, final short order, final @Nullable String errors,
-        final @Nullable Class<?> continuationType) {
+                              final @Nullable Class<?> eventType, final short order,
+                              final @Nullable String errors, final @Nullable Class<?> continuationType) {
       this.method = method;
       this.asyncType = asyncType;
       this.eventType = eventType;
@@ -268,12 +366,13 @@ public class VelocityEventManager implements EventManager {
   }
 
   private void collectMethods(final Class<?> targetClass,
-      final Map<String, MethodHandlerInfo> collected) {
+                              final Map<String, MethodHandlerInfo> collected) {
     for (final Method method : targetClass.getDeclaredMethods()) {
       final Subscribe subscribe = method.getAnnotation(Subscribe.class);
       if (subscribe == null) {
         continue;
       }
+
       String key = method.getName()
           + "("
           + Arrays.stream(method.getParameterTypes())
@@ -283,16 +382,20 @@ public class VelocityEventManager implements EventManager {
       if (Modifier.isPrivate(method.getModifiers())) {
         key = targetClass.getName() + "$" + key;
       }
+
       if (collected.containsKey(key)) {
         continue;
       }
+
       final Set<String> errors = new HashSet<>();
       if (Modifier.isStatic(method.getModifiers())) {
         errors.add("method must not be static");
       }
+
       if (Modifier.isAbstract(method.getModifiers())) {
         errors.add("method must not be abstract");
       }
+
       Class<?> eventType = null;
       Class<?> continuationType = null;
       CustomHandlerAdapter<?> handlerAdapter = null;
@@ -308,6 +411,7 @@ public class VelocityEventManager implements EventManager {
             break;
           }
         }
+
         if (handlerAdapter != null) {
           final List<String> adapterErrors = new ArrayList<>();
           handlerAdapter.validator.accept(method, adapterErrors);
@@ -323,6 +427,7 @@ public class VelocityEventManager implements EventManager {
           }
         }
       }
+
       AsyncType asyncType = AsyncType.NEVER;
       final Class<?> returnType = method.getReturnType();
       if (handlerAdapter == null) {
@@ -333,7 +438,7 @@ public class VelocityEventManager implements EventManager {
               + "EventTask.Basic or EventTask.WithContinuation");
         } else if (returnType == EventTask.class) {
           // technically, for compatibility, we *should* assume that the method must be invoked
-          // async, however, from examining some publicly-available plugins, developers did
+          // async, however, from examining some publicly available plugins, developers did
           // generally follow the contract and returned an EventTask only if they wanted this
           // behavior. enable it for them.
           asyncType = AsyncType.SOMETIMES;
@@ -361,6 +466,7 @@ public class VelocityEventManager implements EventManager {
       collected.put(key, new MethodHandlerInfo(method, asyncType, eventType, order, errorsJoined,
           continuationType));
     }
+
     final Class<?> superclass = targetClass.getSuperclass();
     if (superclass != Object.class) {
       collectMethods(superclass, collected);
@@ -376,6 +482,7 @@ public class VelocityEventManager implements EventManager {
     } finally {
       lock.writeLock().unlock();
     }
+
     // Invalidate all the affected event subtypes
     handlersCache.invalidateAll(registrations.stream()
         .flatMap(registration -> eventTypeTracker.getFriendsOf(registration.eventType).stream())
@@ -383,6 +490,14 @@ public class VelocityEventManager implements EventManager {
         .collect(Collectors.toList()));
   }
 
+  /**
+   * Registers all event listener methods in the given {@code listener} object on behalf of the specified plugin.
+   *
+   * <p>This will inspect all {@code @Subscribe} methods and adapt them into handlers based on their signature.</p>
+   *
+   * @param plugin the plugin registering the listener
+   * @param listener the listener instance containing event methods
+   */
   @Override
   public void register(final Object plugin, final Object listener) {
     requireNonNull(listener, "listener");
@@ -390,29 +505,49 @@ public class VelocityEventManager implements EventManager {
     if (plugin == listener) {
       throw new IllegalArgumentException("The plugin main instance is automatically registered.");
     }
+
     registerInternally(pluginContainer, listener);
   }
 
+  /**
+   * Registers an individual event handler for the specified event type and {@link PostOrder}.
+   *
+   * <p>Custom post orders are not supported by this method—use the short-based variant instead.</p>
+   *
+   * @param plugin the plugin registering the handler
+   * @param eventClass the event type
+   * @param order the event firing order
+   * @param handler the handler to invoke
+   * @param <E> the event type
+   */
   @Override
-  @SuppressWarnings("unchecked")
-  public <E> void register(final Object plugin, final Class<E> eventClass,
-      final PostOrder order, final EventHandler<E> handler) {
+  public <E> void register(final Object plugin, final Class<E> eventClass, final PostOrder order, final EventHandler<E> handler) {
     if (order == PostOrder.CUSTOM) {
       throw new IllegalArgumentException(
           "This method does not support custom post orders. Use the overload with short instead."
       );
     }
+
     register(plugin, eventClass, (short) POST_ORDER_MAP.get(order), handler, AsyncType.ALWAYS);
   }
 
+  /**
+   * Registers an individual event handler with an explicit short-based order priority.
+   *
+   * @param plugin the plugin registering the handler
+   * @param eventClass the event type
+   * @param postOrder the numeric event priority
+   * @param handler the handler to invoke
+   * @param <E> the event type
+   */
   @Override
-  public <E> void register(Object plugin, Class<E> eventClass, short postOrder,
-      EventHandler<E> handler) {
+  public <E> void register(final Object plugin, final Class<E> eventClass, final short postOrder, final EventHandler<E> handler) {
     register(plugin, eventClass, postOrder, handler, AsyncType.SOMETIMES);
   }
 
-  private  <E> void register(Object plugin, Class<E> eventClass, short postOrder,
-      EventHandler<E> handler, AsyncType asyncType) {
+  @SuppressWarnings("unchecked")
+  private <E> void register(final Object plugin, final Class<E> eventClass, final short postOrder,
+                            final EventHandler<E> handler, final AsyncType ignoredAsyncType) {
     final PluginContainer pluginContainer = pluginManager.ensurePluginContainer(plugin);
     requireNonNull(eventClass, "eventClass");
     requireNonNull(handler, "handler");
@@ -441,6 +576,7 @@ public class VelocityEventManager implements EventManager {
             info.method.getName(), info.method.getDeclaringClass().getName(), info.errors);
         continue;
       }
+
       final UntargetedEventHandler untargetedHandler = untargetedMethodHandlers.get(info.method);
       assert untargetedHandler != null;
       if (info.eventType == null) {
@@ -455,12 +591,23 @@ public class VelocityEventManager implements EventManager {
     register(registrations);
   }
 
+  /**
+   * Unregisters all event listeners associated with the given plugin.
+   *
+   * @param plugin the plugin to remove listeners for
+   */
   @Override
   public void unregisterListeners(final Object plugin) {
     final PluginContainer pluginContainer = pluginManager.ensurePluginContainer(plugin);
     unregisterIf(registration -> registration.plugin == pluginContainer);
   }
 
+  /**
+   * Unregisters all event listeners from a specific handler instance for a given plugin.
+   *
+   * @param plugin the plugin the handler belongs to
+   * @param handler the specific instance to unregister
+   */
   @Override
   public void unregisterListener(final Object plugin, final Object handler) {
     final PluginContainer pluginContainer = pluginManager.ensurePluginContainer(plugin);
@@ -469,6 +616,13 @@ public class VelocityEventManager implements EventManager {
         registration.plugin == pluginContainer && registration.instance == handler);
   }
 
+  /**
+   * Unregisters a specific handler function from the given plugin.
+   *
+   * @param plugin the plugin the handler belongs to
+   * @param handler the handler instance
+   * @param <E> the event type
+   */
   @Override
   public <E> void unregister(final Object plugin, final EventHandler<E> handler) {
     unregisterListener(plugin, handler);
@@ -510,6 +664,11 @@ public class VelocityEventManager implements EventManager {
     return handlersCache != null && handlersCache.handlers.length > 0;
   }
 
+  /**
+   * Fires an event without waiting for a result.
+   *
+   * @param event the event to fire
+   */
   @Override
   public void fireAndForget(final Object event) {
     requireNonNull(event, "event");
@@ -518,9 +677,18 @@ public class VelocityEventManager implements EventManager {
       // Optimization: nobody's listening.
       return;
     }
+
     fire(null, event, handlersCache);
   }
 
+  /**
+   * Fires an event and returns a {@link CompletableFuture} that completes
+   * once all handlers have finished executing.
+   *
+   * @param event the event to fire
+   * @param <E> the event type
+   * @return a future that completes with the original event once finished
+   */
   @Override
   public <E> CompletableFuture<E> fire(final E event) {
     requireNonNull(event, "event");
@@ -529,24 +697,24 @@ public class VelocityEventManager implements EventManager {
       // Optimization: nobody's listening.
       return CompletableFuture.completedFuture(event);
     }
+
     final CompletableFuture<E> future = new CompletableFuture<>();
     fire(future, event, handlersCache);
     return future;
   }
 
   private <E> void fire(final @Nullable CompletableFuture<E> future,
-      final E event, final HandlersCache handlersCache) {
+                        final E event, final HandlersCache handlersCache) {
     final HandlerRegistration registration = handlersCache.handlers[0];
     if (registration.asyncType == AsyncType.ALWAYS) {
-      registration.plugin.getExecutorService().execute(
-          () -> fire(future, event, 0, true, handlersCache.handlers));
+      registration.plugin.getExecutorService().execute(() -> fire(future, event, 0, true, handlersCache.handlers));
     } else {
       fire(future, event, 0, false, handlersCache.handlers);
     }
   }
 
   private <E> void fire(final @Nullable CompletableFuture<E> future, final E event,
-      final int offset, final boolean currentlyAsync, final HandlerRegistration[] registrations) {
+                        final int offset, final boolean currentlyAsync, final HandlerRegistration[] registrations) {
     for (int i = offset; i < registrations.length; i++) {
       final HandlerRegistration registration = registrations[i];
       try {
@@ -554,6 +722,7 @@ public class VelocityEventManager implements EventManager {
         if (eventTask == null) {
           continue;
         }
+
         final ContinuationTask<E> continuationTask = new ContinuationTask<>(eventTask,
             registrations, future, event, i, currentlyAsync);
         if (currentlyAsync || !eventTask.requiresAsync()) {
@@ -563,6 +732,7 @@ public class VelocityEventManager implements EventManager {
         } else {
           registration.plugin.getExecutorService().execute(continuationTask);
         }
+
         // fire will continue in another thread once the async task is
         // executed and the continuation is resumed
         return;
@@ -570,24 +740,42 @@ public class VelocityEventManager implements EventManager {
         logHandlerException(registration, t);
       }
     }
+
     if (future != null) {
       future.complete(event);
     }
   }
 
+  /**
+   * Default state indicating the continuation has not been started yet.
+   */
   private static final int TASK_STATE_DEFAULT = 0;
+
+  /**
+   * State indicating the continuation task is currently executing.
+   */
   private static final int TASK_STATE_EXECUTING = 1;
+
+  /**
+   * State indicating the task has resumed and should immediately continue
+   * with the next handler in the same thread.
+   */
   private static final int TASK_STATE_CONTINUE_IMMEDIATELY = 2;
 
+  /**
+   * A {@link VarHandle} for accessing the {@code resumed} field in {@link ContinuationTask}.
+   */
   private static final VarHandle CONTINUATION_TASK_RESUMED;
+
+  /**
+   * A {@link VarHandle} for accessing the {@code state} field in {@link ContinuationTask}.
+   */
   private static final VarHandle CONTINUATION_TASK_STATE;
 
   static {
     try {
-      CONTINUATION_TASK_RESUMED = MethodHandles.lookup()
-          .findVarHandle(ContinuationTask.class, "resumed", boolean.class);
-      CONTINUATION_TASK_STATE = MethodHandles.lookup()
-          .findVarHandle(ContinuationTask.class, "state", int.class);
+      CONTINUATION_TASK_RESUMED = MethodHandles.lookup().findVarHandle(ContinuationTask.class, "resumed", boolean.class);
+      CONTINUATION_TASK_STATE = MethodHandles.lookup().findVarHandle(ContinuationTask.class, "state", int.class);
     } catch (final ReflectiveOperationException e) {
       throw new IllegalStateException();
     }
@@ -595,29 +783,62 @@ public class VelocityEventManager implements EventManager {
 
   final class ContinuationTask<E> implements Continuation, Runnable {
 
+    /**
+     * The {@link EventTask} to be executed for this continuation.
+     */
     private final EventTask task;
+
+    /**
+     * The index of the current handler being processed in the handler list.
+     */
     private final int index;
+
+    /**
+     * The array of all registered handlers for the current event.
+     */
     private final HandlerRegistration[] registrations;
+
+    /**
+     * The {@link CompletableFuture} representing the async result of this event, if applicable.
+     */
     private final @Nullable CompletableFuture<E> future;
+
+    /**
+     * Whether the task is currently executing asynchronously.
+     */
     private final boolean currentlyAsync;
+
+    /**
+     * The event instance being fired through the event pipeline.
+     */
     private final E event;
+
+    /**
+     * The thread that originally initiated firing this event.
+     */
     private final Thread firedOnThread;
 
-    // This field is modified via a VarHandle, so this field is used and cannot be final.
-    @SuppressWarnings({"UnusedVariable", "FieldMayBeFinal", "FieldCanBeLocal"})
+    /**
+     * Tracks the current execution state of the continuation task.
+     *
+     * <p>This field is modified using a {@link VarHandle} to ensure correct memory semantics
+     * across threads. It must not be declared {@code final}.</p>
+     */
     private volatile int state = TASK_STATE_DEFAULT;
 
-    // This field is modified via a VarHandle, so this field is used and cannot be final.
-    @SuppressWarnings({"UnusedVariable", "FieldMayBeFinal"})
+    /**
+     * Indicates whether this continuation has already been resumed.
+     *
+     * <p>This field is modified using a {@link VarHandle}, so it must remain mutable and cannot be declared {@code final}.
+     * Only one thread is permitted to successfully transition this from {@code false} to {@code true}.</p>
+     */
+    @SuppressWarnings({"FieldMayBeFinal"})
     private volatile boolean resumed = false;
 
-    private ContinuationTask(
-        final EventTask task,
-        final HandlerRegistration[] registrations,
-        final @Nullable CompletableFuture<E> future,
-        final E event,
-        final int index,
-        final boolean currentlyAsync) {
+    private ContinuationTask(final EventTask task,
+                             final HandlerRegistration[] registrations,
+                             final @Nullable CompletableFuture<E> future,
+                             final E event, final int index, final boolean currentlyAsync) {
       this.task = task;
       this.registrations = registrations;
       this.future = future;
@@ -647,8 +868,8 @@ public class VelocityEventManager implements EventManager {
         // continuation was resumed before
         resume(t, false);
       }
-      return !CONTINUATION_TASK_STATE.compareAndSet(
-          this, TASK_STATE_EXECUTING, TASK_STATE_DEFAULT);
+
+      return !CONTINUATION_TASK_STATE.compareAndSet(this, TASK_STATE_EXECUTING, TASK_STATE_DEFAULT);
     }
 
     @Override
@@ -662,20 +883,25 @@ public class VelocityEventManager implements EventManager {
       if (!changed && validateOnlyOnce) {
         throw new IllegalStateException("The continuation can only be resumed once.");
       }
+
       final HandlerRegistration registration = registrations[index];
       if (exception != null) {
         logHandlerException(registration, exception);
       }
+
       if (!changed) {
         return;
       }
+
       if (index + 1 == registrations.length) {
         // Optimization: don't schedule a task just to complete the future
         if (future != null) {
           future.complete(event);
         }
+
         return;
       }
+
       if (!CONTINUATION_TASK_STATE.compareAndSet(
           this, TASK_STATE_EXECUTING, TASK_STATE_CONTINUE_IMMEDIATELY)) {
         // We established earlier that registrations[index + 1] is a valid index.
@@ -699,10 +925,9 @@ public class VelocityEventManager implements EventManager {
     }
   }
 
-  private static void logHandlerException(
-      final HandlerRegistration registration, final Throwable t) {
+  private static void logHandlerException(final HandlerRegistration registration, final Throwable t) {
     final PluginDescription pluginDescription = registration.plugin.getDescription();
     logger.error("Couldn't pass {} to {} {}", registration.eventType.getSimpleName(),
-            pluginDescription.getId(), pluginDescription.getVersion().orElse(""), t);
+        pluginDescription.getId(), pluginDescription.getVersion().orElse(""), t);
   }
 }

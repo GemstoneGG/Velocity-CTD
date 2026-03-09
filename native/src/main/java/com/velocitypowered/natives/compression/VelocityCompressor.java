@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,8 +27,24 @@ import java.util.zip.DataFormatException;
  * implementation.
  */
 public interface VelocityCompressor extends Disposable, Native {
-  void inflate(ByteBuf source, ByteBuf destination, int uncompressedSize)
-      throws DataFormatException;
 
+  /**
+   * Decompresses the provided compressed {@code source} buffer into the {@code destination} buffer.
+   *
+   * @param source the compressed input buffer
+   * @param destination the buffer to write decompressed data into
+   * @param uncompressedSize the expected size of the decompressed data
+   * @throws DataFormatException if decompression fails due to corrupted or invalid data
+   */
+  void inflate(ByteBuf source, ByteBuf destination, int uncompressedSize) throws DataFormatException;
+
+  /**
+   * Compresses the data from the {@code source} buffer and writes the compressed result into
+   * the {@code destination} buffer.
+   *
+   * @param source the raw input buffer to compress
+   * @param destination the buffer to write compressed data into
+   * @throws DataFormatException if compression fails due to an internal error
+   */
   void deflate(ByteBuf source, ByteBuf destination) throws DataFormatException;
 }

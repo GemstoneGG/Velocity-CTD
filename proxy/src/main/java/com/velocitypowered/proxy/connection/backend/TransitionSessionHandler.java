@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
 import com.velocitypowered.proxy.protocol.packet.JoinGamePacket;
 import com.velocitypowered.proxy.protocol.packet.KeepAlivePacket;
 import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
-import java.io.IOException;
+import com.velocitypowered.proxy.queue.ServerQueueStatus;
 import java.util.concurrent.CompletableFuture;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,11 +48,29 @@ import org.apache.logging.log4j.Logger;
  */
 public class TransitionSessionHandler implements MinecraftSessionHandler {
 
+  /**
+   * Logger instance for reporting session handler events and errors.
+   */
   private static final Logger logger = LogManager.getLogger(TransitionSessionHandler.class);
 
+  /**
+   * The main Velocity server instance.
+   */
   private final VelocityServer server;
+
+  /**
+   * The connection to the backend server being transitioned to.
+   */
   private final VelocityServerConnection serverConn;
+
+  /**
+   * A future representing the result of the connection attempt.
+   */
   private final CompletableFuture<Impl> resultFuture;
+
+  /**
+   * Handles BungeeCord-compatible plugin messaging during transition.
+   */
   private final BungeeCordMessageResponder bungeecordMessageResponder;
 
   /**
@@ -62,16 +80,23 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
    * @param serverConn   the server connection
    * @param resultFuture the result future
    */
-  TransitionSessionHandler(VelocityServer server,
-      VelocityServerConnection serverConn,
-      CompletableFuture<Impl> resultFuture) {
+  TransitionSessionHandler(final VelocityServer server,
+                           final VelocityServerConnection serverConn,
+                           final CompletableFuture<Impl> resultFuture) {
     this.server = server;
     this.serverConn = serverConn;
     this.resultFuture = resultFuture;
-    this.bungeecordMessageResponder = new BungeeCordMessageResponder(server,
-        serverConn.getPlayer());
+    this.bungeecordMessageResponder = new BungeeCordMessageResponder(server, serverConn.getPlayer());
   }
 
+  /**
+   * Called before handling a packet in the transition phase.
+   *
+   * <p>If the backend server connection is no longer active, the session is disconnected and
+   * the packet is not processed.</p>
+   *
+   * @return {@code true} if the connection is obsolete and should stop handling packets
+   */
   @Override
   public boolean beforeHandle() {
     if (!serverConn.isActive()) {
@@ -79,18 +104,36 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
       serverConn.disconnect();
       return true;
     }
+
     return false;
   }
 
+  /**
+   * Handles an inbound {@link KeepAlivePacket} during the transition phase.
+   *
+   * <p>The packet is forwarded to the backend server to keep the connection alive.</p>
+   *
+   * @param packet the keep-alive packet
+   * @return {@code true} if the packet was forwarded
+   */
   @Override
-  public boolean handle(KeepAlivePacket packet) {
+  public boolean handle(final KeepAlivePacket packet) {
     serverConn.ensureConnected().write(packet);
     return true;
   }
 
+  /**
+   * Handles a {@link JoinGamePacket} during the transition phase.
+   *
+   * <p>This finalizes the connection switch by applying the new session handler, updating player
+   * state, and completing the result future.</p>
+   *
+   * @param packet the join game packet
+   * @return {@code true} if the transition was completed
+   */
   @Override
-  public boolean handle(JoinGamePacket packet) {
-    MinecraftConnection smc = serverConn.ensureConnected();
+  public boolean handle(final JoinGamePacket packet) {
+    final MinecraftConnection smc = serverConn.ensureConnected();
     final RegisteredServer previousServer = serverConn.getPreviousServer().orElse(null);
     final ConnectedPlayer player = serverConn.getPlayer();
     final VelocityServerConnection existingConnection = player.getConnectedServer();
@@ -121,20 +164,18 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
 
           // Change the client to use the ClientPlaySessionHandler if required.
           ClientPlaySessionHandler playHandler;
-          if (player.getConnection()
-              .getActiveSessionHandler() instanceof ClientPlaySessionHandler sessionHandler) {
+          if (player.getConnection().getActiveSessionHandler() instanceof ClientPlaySessionHandler sessionHandler) {
             playHandler = sessionHandler;
           } else {
             playHandler = new ClientPlaySessionHandler(server, player);
             player.getConnection().setActiveSessionHandler(StateRegistry.PLAY, playHandler);
           }
-          assert playHandler != null;
+
           playHandler.handleBackendJoinGame(packet, serverConn);
 
           // Set the new play session handler for the server. We will have nothing more to do
           // with this connection once this task finishes up.
-          smc.setActiveSessionHandler(StateRegistry.PLAY,
-              new BackendPlaySessionHandler(server, serverConn));
+          smc.setActiveSessionHandler(StateRegistry.PLAY, new BackendPlaySessionHandler(server, serverConn));
 
           // Now set the connected server.
           serverConn.getPlayer().setConnectedServer(serverConn);
@@ -150,9 +191,19 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
             serverConn.ensureConnected().write(player.getClientSettingsPacket());
           }
 
+          if (server.getMultiProxyHandler().isRedisEnabled()) {
+            server.getMultiProxyHandler().handleServerSwitch(player,
+                serverConn.getServerInfo().getName());
+          }
+
+          if (this.server.getQueueManager().isQueueEnabled()) {
+            ServerQueueStatus status = this.server.getQueueManager().getQueue(serverConn.getServer()
+                .getServerInfo().getName());
+            status.dequeue(player.getUniqueId(), false);
+          }
+
           // We're done! :)
-          server.getEventManager().fireAndForget(new ServerPostConnectEvent(player,
-              previousServer));
+          server.getEventManager().fireAndForget(new ServerPostConnectEvent(player, previousServer));
           resultFuture.complete(ConnectionRequestResults.successful(serverConn.getServer()));
         }, smc.eventLoop()).exceptionally(exc -> {
           logger.error("Unable to switch to new server {} for {}",
@@ -166,17 +217,24 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
+  /**
+   * Handles a {@link DisconnectPacket} received from the backend during the transition.
+   *
+   * <p>If the backend is using Forge and the handshake is incomplete, the disconnect is treated as unsafe.
+   * Otherwise, the disconnect is handled normally.</p>
+   *
+   * @param packet the disconnect packet
+   * @return {@code true} after processing the disconnect
+   */
   @Override
-  public boolean handle(DisconnectPacket packet) {
+  public boolean handle(final DisconnectPacket packet) {
     final MinecraftConnection connection = serverConn.ensureConnected();
     serverConn.disconnect();
 
     // If we were in the middle of the Forge handshake, it is not safe to proceed. We must kick
     // the client.
-    if (connection.getType() == ConnectionTypes.LEGACY_FORGE
-        && !serverConn.getPhase().consideredComplete()) {
-      resultFuture.complete(ConnectionRequestResults.forUnsafeDisconnect(packet,
-          serverConn.getServer()));
+    if (connection.getType() == ConnectionTypes.LEGACY_FORGE && !serverConn.getPhase().consideredComplete()) {
+      resultFuture.complete(ConnectionRequestResults.forUnsafeDisconnect(packet, serverConn.getServer()));
     } else {
       resultFuture.complete(ConnectionRequestResults.forDisconnect(packet, serverConn.getServer()));
     }
@@ -184,8 +242,17 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
+  /**
+   * Handles a {@link PluginMessagePacket} during the transition phase.
+   *
+   * <p>Plugin messages are used to support Forge handshakes, branding, and other transition state logic.
+   * If the backend enters the {@code HELLO} phase, the previous server connection is marked as {@code IN_TRANSITION}.</p>
+   *
+   * @param packet the plugin message
+   * @return {@code true} if the packet was processed or forwarded
+   */
   @Override
-  public boolean handle(PluginMessagePacket packet) {
+  public boolean handle(final PluginMessagePacket packet) {
     if (bungeecordMessageResponder.process(packet)) {
       return true;
     }
@@ -200,10 +267,10 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
           existingConnection.setConnectionPhase(IN_TRANSITION);
 
           // Tell the player that we're leaving and we just aren't coming back.
-          existingConnection.getPhase().onDepartForNewServer(existingConnection,
-              serverConn.getPlayer());
+          existingConnection.getPhase().onDepartForNewServer(existingConnection, serverConn.getPlayer());
         }
       }
+
       return true;
     }
 
@@ -211,9 +278,14 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
+  /**
+   * Called when the backend connection is closed unexpectedly during the transition phase.
+   *
+   * <p>This shuts down the player session and performs cleanup.</p>
+   */
   @Override
   public void disconnected() {
-    resultFuture
-        .completeExceptionally(new IOException("Unexpectedly disconnected from remote server"));
+    final ConnectedPlayer player = serverConn.getPlayer();
+    player.teardown();
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,27 +34,64 @@ import io.netty.buffer.ByteBuf;
  */
 public class CodeOfConductPacket extends DeferredByteBufHolder implements MinecraftPacket {
 
+  /**
+   * Constructs a new {@code CodeOfConductPacket}.
+   *
+   * <p>Initializes with no content until decoded.</p>
+   */
   public CodeOfConductPacket() {
     super(null);
   }
 
+  /**
+   * Decodes the code of conduct content from the provided buffer.
+   *
+   * @param buf the buffer containing the packet data
+   * @param direction the packet direction
+   * @param protocolVersion the protocol version
+   */
   @Override
-  public void decode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
+  public void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     this.replace(buf.readRetainedSlice(buf.readableBytes()));
   }
 
+  /**
+   * Encodes the code of conduct content into the provided buffer.
+   *
+   * @param buf the target buffer
+   * @param direction the packet direction
+   * @param protocolVersion the protocol version
+   */
   @Override
-  public void encode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
+  public void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     buf.writeBytes(this.content());
   }
 
+  /**
+   * Dispatches this packet to the given session handler.
+   *
+   * @param handler the session handler
+   * @return {@code true} if the packet was handled
+   */
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
+  /**
+   * Provides an estimated number of bytes required to encode this code of conduct packet.
+   *
+   * <p>Because this packet’s payload is entirely contained in its retained buffer,
+   * the encoded size is equal to the number of readable bytes in that buffer. This
+   * value is used to preallocate the encoder’s output buffer to avoid resizing
+   * during write operations.</p>
+   *
+   * @param direction the packet direction (clientbound or serverbound)
+   * @param version the Minecraft protocol version
+   * @return the exact number of readable bytes in the content buffer
+   */
   @Override
-  public int encodeSizeHint(Direction direction, ProtocolVersion version) {
+  public int encodeSizeHint(final Direction direction, final ProtocolVersion version) {
     return content().readableBytes();
   }
 }

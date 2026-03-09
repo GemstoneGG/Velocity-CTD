@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -69,23 +69,54 @@ import org.jetbrains.annotations.VisibleForTesting;
  */
 public class VelocityCommandManager implements CommandManager {
 
+  /**
+   * The command dispatcher that holds the full Brigadier command graph.
+   * Guarded by the {@linkplain #lock read/write lock}.
+   */
   private final @GuardedBy("lock") CommandDispatcher<CommandSource> dispatcher;
+
+  /**
+   * The lock guarding concurrent access to {@link #dispatcher}.
+   */
   private final ReadWriteLock lock;
 
+  /**
+   * The event manager used to dispatch command-related events.
+   */
   private final VelocityEventManager eventManager;
+
+  /**
+   * A list of all command registrars supported by the proxy.
+   */
   private final List<CommandRegistrar<?>> registrars;
+
+  /**
+   * The suggestion provider responsible for computing command completions.
+   */
   private final SuggestionsProvider<CommandSource> suggestionsProvider;
+
+  /**
+   * The injector used to dynamically inject a player's command graph.
+   */
   private final CommandGraphInjector<CommandSource> injector;
+
+  /**
+   * A mapping of all known aliases to their corresponding {@link CommandMeta}.
+   */
   private final Map<String, CommandMeta> commandMetas;
+
+  /**
+   * The plugin manager used to retrieve plugin containers and executor services.
+   */
   private final PluginManager pluginManager;
 
   /**
    * Constructs a command manager.
    *
    * @param eventManager the event manager
+   * @param pluginManager the plugin manager
    */
-  public VelocityCommandManager(final VelocityEventManager eventManager,
-      PluginManager pluginManager) {
+  public VelocityCommandManager(final VelocityEventManager eventManager, final PluginManager pluginManager) {
     this.pluginManager = pluginManager;
     this.lock = new ReentrantReadWriteLock();
     this.dispatcher = new CommandDispatcher<>();
@@ -100,28 +131,59 @@ public class VelocityCommandManager implements CommandManager {
     this.commandMetas = new ConcurrentHashMap<>();
   }
 
-  public void setAnnounceProxyCommands(boolean announceProxyCommands) {
+  /**
+   * Sets whether the proxy's commands should be suggested to players.
+   *
+   * <p>When {@code false}, suggestions for proxy-level commands will be hidden
+   * from players (e.g., to avoid suggesting `/velocity` to regular users).
+   *
+   * @param announceProxyCommands {@code true} to suggest proxy commands, {@code false} otherwise
+   */
+  public final void setAnnounceProxyCommands(final boolean announceProxyCommands) {
     this.suggestionsProvider.setAnnounceProxyCommands(announceProxyCommands);
   }
 
+  /**
+   * Creates a {@link CommandMeta.Builder} for a command alias.
+   *
+   * @param alias the primary alias for the command
+   * @return a new {@link CommandMeta.Builder}
+   */
   @Override
   public CommandMeta.Builder metaBuilder(final String alias) {
     Preconditions.checkNotNull(alias, "alias");
     return new VelocityCommandMeta.Builder(alias);
   }
 
+  /**
+   * Creates a {@link CommandMeta.Builder} for a {@link BrigadierCommand}.
+   *
+   * @param command the Brigadier command instance
+   * @return a new {@link CommandMeta.Builder}
+   */
   @Override
   public CommandMeta.Builder metaBuilder(final BrigadierCommand command) {
     Preconditions.checkNotNull(command, "command");
     return new VelocityCommandMeta.Builder(command.getNode().getName());
   }
 
+  /**
+   * Registers a {@link BrigadierCommand} with the proxy command system.
+   *
+   * @param command the command to register
+   */
   @Override
   public void register(final BrigadierCommand command) {
     Preconditions.checkNotNull(command, "command");
     register(metaBuilder(command).build(), command);
   }
 
+  /**
+   * Registers a {@link Command} with associated {@link CommandMeta}.
+   *
+   * @param meta    the command metadata
+   * @param command the command implementation
+   */
   @Override
   public void register(final CommandMeta meta, final Command command) {
     Preconditions.checkNotNull(meta, "meta");
@@ -156,7 +218,7 @@ public class VelocityCommandManager implements CommandManager {
    * @throws IllegalArgumentException if the registrar cannot register the command
    */
   private <T extends Command> void internalRegister(final CommandRegistrar<T> registrar,
-      final Command command, final CommandMeta meta) {
+                                                    final Command command, final CommandMeta meta) {
     final Class<T> superInterface = registrar.registrableSuperInterface();
     registrar.register(meta, superInterface.cast(command));
     for (String alias : meta.getAliases()) {
@@ -172,9 +234,15 @@ public class VelocityCommandManager implements CommandManager {
         registrarsFound.add(registrar);
       }
     }
+
     return registrarsFound;
   }
 
+  /**
+   * Unregisters a command by its alias.
+   *
+   * @param alias the alias of the command
+   */
   @Override
   public void unregister(final String alias) {
     Preconditions.checkNotNull(alias, "alias");
@@ -189,8 +257,13 @@ public class VelocityCommandManager implements CommandManager {
     }
   }
 
+  /**
+   * Unregisters all aliases associated with the given {@link CommandMeta}.
+   *
+   * @param meta the command metadata
+   */
   @Override
-  public void unregister(CommandMeta meta) {
+  public void unregister(final CommandMeta meta) {
     Preconditions.checkNotNull(meta, "meta");
     lock.writeLock().lock();
     try {
@@ -207,8 +280,14 @@ public class VelocityCommandManager implements CommandManager {
     }
   }
 
+  /**
+   * Retrieves the {@link CommandMeta} associated with a given alias.
+   *
+   * @param alias the command alias
+   * @return the associated {@link CommandMeta}, or {@code null} if not found
+   */
   @Override
-  public @Nullable CommandMeta getCommandMeta(String alias) {
+  public @Nullable CommandMeta getCommandMeta(final String alias) {
     Preconditions.checkNotNull(alias, "alias");
     return commandMetas.get(alias);
   }
@@ -222,7 +301,7 @@ public class VelocityCommandManager implements CommandManager {
    * @return the {@link CompletableFuture} of the event
    */
   public CompletableFuture<CommandExecuteEvent> callCommandEvent(final CommandSource source,
-      final String cmdLine, final CommandExecuteEvent.InvocationInfo invocationInfo) {
+                                                                 final String cmdLine, final CommandExecuteEvent.InvocationInfo invocationInfo) {
     Preconditions.checkNotNull(source, "source");
     Preconditions.checkNotNull(cmdLine, "cmdLine");
     return eventManager.fire(new CommandExecuteEvent(source, cmdLine, invocationInfo));
@@ -247,7 +326,8 @@ public class VelocityCommandManager implements CommandManager {
         } else {
           source.sendMessage(Component.text(e.getMessage(), NamedTextColor.RED));
         }
-        result = com.velocitypowered.api.command.CommandResult.SYNTAX_ERROR;
+
+        result = CommandResult.SYNTAX_ERROR;
         // This is, of course, a lie, but the API will need to change...
         return true;
       } else {
@@ -256,20 +336,28 @@ public class VelocityCommandManager implements CommandManager {
       }
     } catch (final Throwable e) {
       // Ugly, ugly swallowing of everything Throwable, because plugins are naughty.
+      // "Ugly indeed, but with proper spacing... umm... uhh... yeah still ugly..."
       throw new RuntimeException("Unable to invoke command " + parsed.getReader().getString() + " for " + source, e);
     } finally {
       eventManager.fireAndForget(new PostCommandInvocationEvent(source, parsed.getReader().getString(), result));
     }
   }
 
+  /**
+   * Executes a command asynchronously via the proxy API.
+   *
+   * @param source  the command source
+   * @param cmdLine the raw command string
+   * @return a future that completes with {@code true} if executed locally
+   */
   @Override
   public CompletableFuture<Boolean> executeAsync(final CommandSource source, final String cmdLine) {
     Preconditions.checkNotNull(source, "source");
     Preconditions.checkNotNull(cmdLine, "cmdLine");
 
     CommandExecuteEvent.InvocationInfo invocationInfo = new CommandExecuteEvent.InvocationInfo(
-                    CommandExecuteEvent.SignedState.UNSUPPORTED,
-                    CommandExecuteEvent.Source.API
+        CommandExecuteEvent.SignedState.UNSUPPORTED,
+        CommandExecuteEvent.Source.API
     );
 
     return callCommandEvent(source, cmdLine, invocationInfo).thenComposeAsync(event -> {
@@ -279,20 +367,25 @@ public class VelocityCommandManager implements CommandManager {
       }
       final ParseResults<CommandSource> parsed = this.parse(
           commandResult.getCommand().orElse(cmdLine), source);
-      return CompletableFuture.supplyAsync(
-          () -> executeImmediately0(source, parsed), this.getAsyncExecutor(parsed)
+      return CompletableFuture.supplyAsync(() -> executeImmediately0(source, parsed), this.getAsyncExecutor(parsed)
       );
     }, figureAsyncExecutorForParsing());
   }
 
+  /**
+   * Immediately executes a command asynchronously, skipping command event dispatch.
+   *
+   * @param source  the command source
+   * @param cmdLine the command input
+   * @return a future that completes with {@code true} if executed locally
+   */
   @Override
   public CompletableFuture<Boolean> executeImmediatelyAsync(
       final CommandSource source, final String cmdLine) {
     Preconditions.checkNotNull(source, "source");
     Preconditions.checkNotNull(cmdLine, "cmdLine");
 
-    return CompletableFuture.supplyAsync(
-        () -> this.parse(cmdLine, source), figureAsyncExecutorForParsing()
+    return CompletableFuture.supplyAsync(() -> this.parse(cmdLine, source), figureAsyncExecutorForParsing()
     ).thenCompose(
         parsed -> CompletableFuture.supplyAsync(
             () -> executeImmediately0(source, parsed), this.getAsyncExecutor(parsed)
@@ -300,16 +393,28 @@ public class VelocityCommandManager implements CommandManager {
     );
   }
 
+  /**
+   * Provides legacy-style tab completions (string list).
+   *
+   * @param source  the source requesting suggestions
+   * @param cmdLine the current input string
+   * @return a future of suggestion strings
+   */
   @Override
-  public CompletableFuture<List<String>> offerSuggestions(final CommandSource source,
-      final String cmdLine) {
+  public CompletableFuture<List<String>> offerSuggestions(final CommandSource source, final String cmdLine) {
     return offerBrigadierSuggestions(source, cmdLine)
         .thenApply(suggestions -> Lists.transform(suggestions.getList(), Suggestion::getText));
   }
 
+  /**
+   * Provides full Brigadier {@link Suggestions} based on the command graph.
+   *
+   * @param source  the source requesting completions
+   * @param cmdLine the input being completed
+   * @return a future of {@link Suggestions}
+   */
   @Override
-  public CompletableFuture<Suggestions> offerBrigadierSuggestions(
-      final CommandSource source, final String cmdLine) {
+  public CompletableFuture<Suggestions> offerBrigadierSuggestions(final CommandSource source, final String cmdLine) {
     Preconditions.checkNotNull(source, "source");
     Preconditions.checkNotNull(cmdLine, "cmdLine");
 
@@ -319,8 +424,7 @@ public class VelocityCommandManager implements CommandManager {
     } catch (final Throwable e) {
       // Again, plugins are naughty
       return CompletableFuture.failedFuture(
-          new RuntimeException("Unable to provide suggestions for " + cmdLine + " for " + source,
-              e));
+          new RuntimeException("Unable to provide suggestions for " + cmdLine + " for " + source, e));
     }
   }
 
@@ -341,6 +445,11 @@ public class VelocityCommandManager implements CommandManager {
     }
   }
 
+  /**
+   * Returns all registered command aliases.
+   *
+   * @return a collection of command aliases
+   */
   @Override
   public Collection<String> getAliases() {
     lock.readLock().lock();
@@ -354,39 +463,76 @@ public class VelocityCommandManager implements CommandManager {
     }
   }
 
+  /**
+   * Checks if a command is registered with the given alias.
+   *
+   * @param alias the alias to check
+   * @return {@code true} if the command exists
+   */
   @Override
   public boolean hasCommand(final String alias) {
     return getCommand(alias) != null;
   }
 
+  /**
+   * Checks if the command alias exists and the source is permitted to use it.
+   *
+   * @param alias  the command alias
+   * @param source the command source
+   * @return {@code true} if the source can execute the command
+   */
   @Override
-  public boolean hasCommand(String alias, CommandSource source) {
+  public boolean hasCommand(final String alias, final CommandSource source) {
     Preconditions.checkNotNull(source, "source");
     CommandNode<CommandSource> command = getCommand(alias);
     return command != null && command.canUse(source);
   }
 
-  CommandNode<CommandSource> getCommand(final String alias) {
+  /**
+   * Gets the command node associated with the given alias.
+   *
+   * @param alias the command alias to look up
+   * @return the command node, or {@code null} if none exists
+   */
+  public final CommandNode<CommandSource> getCommand(final String alias) {
     Preconditions.checkNotNull(alias, "alias");
     return dispatcher.getRoot().getChild(alias.toLowerCase(Locale.ENGLISH));
   }
 
-  @VisibleForTesting // this constitutes unsafe publication
+  /**
+   * Returns the root {@link RootCommandNode} of the Brigadier command dispatcher.
+   *
+   * <p>This exposes the underlying command graph for testing or low-level manipulation.
+   * It is intended for internal or test use only.</p>
+   *
+   * <p><strong>Warning:</strong> This method constitutes <em>unsafe publication</em>.
+   * External access to the root node may result in race conditions or inconsistent state
+   * if modifications occur concurrently without proper synchronization. Use with caution.</p>
+   *
+   * @return the root command node of the dispatcher
+   */
+  @VisibleForTesting
   RootCommandNode<CommandSource> getRoot() {
     return dispatcher.getRoot();
   }
 
+  /**
+   * Returns the {@link CommandGraphInjector} used to populate per-source command trees.
+   *
+   * @return the command graph injector
+   */
   public CommandGraphInjector<CommandSource> getInjector() {
     return injector;
   }
 
-  private Executor getAsyncExecutor(ParseResults<CommandSource> parse) {
+  private Executor getAsyncExecutor(final ParseResults<CommandSource> parse) {
     Object registrant;
     if (parse.getContext().getCommand() instanceof VelocityBrigadierCommandWrapper vbcw) {
       registrant = vbcw.registrant() == null ? VelocityVirtualPlugin.INSTANCE : vbcw.registrant();
     } else {
       registrant = VelocityVirtualPlugin.INSTANCE;
     }
+
     return pluginManager.ensurePluginContainer(registrant).getExecutorService();
   }
 

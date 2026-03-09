@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -241,7 +241,6 @@ public class SuggestionsProviderTests extends CommandTestSuite {
     assertPlayerSuggestions("hello ", "suggestion");
   }
 
-
   @Test
   void testDoesNotSuggestHintIfHintSuggestionProviderFutureCompletesExceptionally() {
     final var hint = RequiredArgumentBuilder
@@ -274,6 +273,10 @@ public class SuggestionsProviderTests extends CommandTestSuite {
 
   static final class NoSuggestionsCommand implements RawCommand {
 
+    /**
+     * Singleton instance of {@link NoSuggestionsCommand}, used in tests to disable argument suggestions
+     * and ensure suggestion results come from hints or aliases only.
+     */
     static final NoSuggestionsCommand INSTANCE = new NoSuggestionsCommand();
 
     private NoSuggestionsCommand() {
@@ -286,7 +289,7 @@ public class SuggestionsProviderTests extends CommandTestSuite {
 
     @Override
     public List<String> suggest(final Invocation invocation) {
-      return ImmutableList.of();
+      return RawCommand.super.suggest(invocation);
     }
   }
 
@@ -308,7 +311,7 @@ public class SuggestionsProviderTests extends CommandTestSuite {
     assertSuggestions("offset bu", "bump");
     for (int i = 10; i < 20; i++) {
       final Suggestions suggestions = manager.offerBrigadierSuggestions(source, "offset " + "bump ".repeat(i)).join();
-      assertEquals(7 + 5 * i, suggestions.getList().get(0).getRange().getStart());
+      assertEquals(7 + 5 * i, suggestions.getList().getFirst().getRange().getStart());
     }
   }
 }

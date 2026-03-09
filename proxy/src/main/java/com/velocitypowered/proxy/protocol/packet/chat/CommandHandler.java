@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,10 +41,26 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public interface CommandHandler<T extends MinecraftPacket> {
 
+  /**
+   * Shared logger for command handler operations.
+   */
   Logger logger = LogManager.getLogger(CommandHandler.class);
 
+  /**
+   * Returns the class of packet this handler supports.
+   *
+   * @return the supported packet class
+   */
   Class<T> packetClass();
 
+  /**
+   * Handles a command-specific packet of type {@code T}.
+   *
+   * <p>This method must be implemented by the handler to define how to process
+   * an incoming command-related packet.</p>
+   *
+   * @param packet the packet to process
+   */
   void handlePlayerCommandInternal(T packet);
 
   /**
@@ -60,12 +76,26 @@ public interface CommandHandler<T extends MinecraftPacket> {
       handlePlayerCommandInternal(packetClass().cast(packet));
       return true;
     }
+
     return false;
   }
 
+  /**
+   * Immediately runs a command through the proxy’s command system and provides
+   * a result to the given function.
+   *
+   * <p>This method bypasses event dispatch and runs the command synchronously
+   * in a future.</p>
+   *
+   * @param server the proxy server
+   * @param player the player executing the command
+   * @param command the command string to execute
+   * @param hasRunPacketFunction function to convert result into a {@link MinecraftPacket}
+   * @return future that resolves with the resulting packet
+   */
   default CompletableFuture<MinecraftPacket> runCommand(VelocityServer server,
-      ConnectedPlayer player, String command,
-      Function<Boolean, MinecraftPacket> hasRunPacketFunction) {
+                                                        ConnectedPlayer player, String command,
+                                                        Function<Boolean, MinecraftPacket> hasRunPacketFunction) {
     return server.getCommandManager().executeImmediatelyAsync(player, command)
         .thenApply(hasRunPacketFunction);
   }
@@ -91,24 +121,23 @@ public interface CommandHandler<T extends MinecraftPacket> {
    * @param invocationInfo signing metadata for the event dispatch
    */
   default void queueCommandResult(VelocityServer server, ConnectedPlayer player,
-      BiFunction<CommandExecuteEvent, LastSeenMessages, CompletableFuture<MinecraftPacket>> futurePacketCreator,
-      String message, Instant timestamp, @Nullable LastSeenMessages lastSeenMessages,
+                                  BiFunction<CommandExecuteEvent, LastSeenMessages, CompletableFuture<MinecraftPacket>> futurePacketCreator,
+                                  String message, Instant timestamp, @Nullable LastSeenMessages lastSeenMessages,
                                   CommandExecuteEvent.InvocationInfo invocationInfo) {
-    CompletableFuture<CommandExecuteEvent> eventFuture = server.getCommandManager().callCommandEvent(player, message,
-            invocationInfo);
+    CompletableFuture<CommandExecuteEvent> eventFuture = server.getCommandManager().callCommandEvent(player, message, invocationInfo);
     player.getChatQueue().queuePacket(
         newLastSeenMessages -> eventFuture
-        .thenComposeAsync(event -> futurePacketCreator.apply(event, newLastSeenMessages))
-        .thenApply(pkt -> {
-          if (server.getConfiguration().isLogCommandExecutions()) {
-            logger.info("{} -> executed command /{}", player, message);
-          }
-          return pkt;
-        }).exceptionally(e -> {
-          logger.info("Exception occurred while running command for {}", player.getUsername(), e);
-          player.sendMessage(
-              Component.translatable("velocity.command.generic-error", NamedTextColor.RED));
-          return null;
-        }), timestamp, lastSeenMessages);
+            .thenComposeAsync(event -> futurePacketCreator.apply(event, newLastSeenMessages))
+            .thenApply(pkt -> {
+              if (server.getConfiguration().isLogCommandExecutions()) {
+                logger.info("{} -> executed command /{}", player, message);
+              }
+
+              return pkt;
+            }).exceptionally(e -> {
+              logger.info("Exception occurred while running command for {}", player.getUsername(), e);
+              player.sendMessage(Component.translatable("velocity.command.generic-error", NamedTextColor.RED));
+              return null;
+            }), timestamp, lastSeenMessages);
   }
 }

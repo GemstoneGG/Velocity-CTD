@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -27,21 +27,60 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class QueryResponse {
 
+  /**
+   * The hostname to display in the query response.
+   */
   private final String hostname;
+
+  /**
+   * The game version to display in the query response.
+   */
   private final String gameVersion;
+
+  /**
+   * The map name to display in the query response.
+   */
   private final String map;
+
+  /**
+   * The number of players currently online.
+   */
   private final int currentPlayers;
+
+  /**
+   * The maximum number of players the server reports it can support.
+   */
   private final int maxPlayers;
+
+  /**
+   * The proxy's externally visible hostname.
+   */
   private final String proxyHost;
+
+  /**
+   * The proxy's externally visible port.
+   */
   private final int proxyPort;
+
+  /**
+   * The list of player names to include in the query response.
+   */
   private final ImmutableCollection<String> players;
+
+  /**
+   * The reported proxy software version.
+   */
   private final String proxyVersion;
+
+  /**
+   * The list of plugins reported in the query response.
+   */
   private final ImmutableCollection<PluginInformation> plugins;
 
   @VisibleForTesting
-  QueryResponse(String hostname, String gameVersion, String map, int currentPlayers,
-      int maxPlayers, String proxyHost, int proxyPort, ImmutableCollection<String> players,
-      String proxyVersion, ImmutableCollection<PluginInformation> plugins) {
+  QueryResponse(final String hostname, final String gameVersion, final String map, final int currentPlayers,
+                final int maxPlayers, final String proxyHost, final int proxyPort, final ImmutableCollection<String> players,
+                final String proxyVersion, final ImmutableCollection<PluginInformation> plugins) {
     this.hostname = hostname;
     this.gameVersion = gameVersion;
     this.map = map;
@@ -55,8 +94,8 @@ public final class QueryResponse {
   }
 
   /**
-   * Get hostname which will be used to reply to the query. By default it is {@link
-   * ProxyConfig#getMotd()} in plain text without colour codes.
+   * Get hostname which will be used to reply to the query. By default, it is {@link
+   * ProxyConfig#getMotd()} in plain text without color codes.
    *
    * @return hostname
    */
@@ -65,7 +104,7 @@ public final class QueryResponse {
   }
 
   /**
-   * Get game version which will be used to reply to the query. By default supported Minecraft
+   * Get a game version which will be used to reply to the query. By default, supported Minecraft
    * versions range is sent.
    *
    * @return game version
@@ -85,7 +124,7 @@ public final class QueryResponse {
   }
 
   /**
-   * Get current online player count which will be used to reply to the query.
+   * Get the current online player count which will be used to reply to the query.
    *
    * @return online player count
    */
@@ -121,7 +160,7 @@ public final class QueryResponse {
   }
 
   /**
-   * Get collection of players which will be used to reply to the query.
+   * Get a collection of players which will be used to reply to the query.
    *
    * @return collection of players
    */
@@ -139,7 +178,7 @@ public final class QueryResponse {
   }
 
   /**
-   * Get list of plugins which will be used to reply to the query.
+   * Get a list of plugins which will be used to reply to the query.
    *
    * @return collection of plugins
    */
@@ -179,13 +218,15 @@ public final class QueryResponse {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
+
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
+
     QueryResponse response = (QueryResponse) o;
     return currentPlayers == response.currentPlayers
         && maxPlayers == response.maxPlayers
@@ -226,18 +267,56 @@ public final class QueryResponse {
    * A builder for {@link QueryResponse} objects.
    */
   public static final class Builder {
+
+    /**
+     * The hostname to return in the query response.
+     */
     private @MonotonicNonNull String hostname;
+
+    /**
+     * The game version string.
+     */
     private @MonotonicNonNull String gameVersion;
+
+    /**
+     * The map name for the query response.
+     */
     private @MonotonicNonNull String map;
+
+    /**
+     * The proxy hostname.
+     */
     private @MonotonicNonNull String proxyHost;
+
+    /**
+     * The proxy software version.
+     */
     private @MonotonicNonNull String proxyVersion;
 
+    /**
+     * The current number of players online.
+     */
     private int currentPlayers;
+
+    /**
+     * The maximum number of players the server reports.
+     */
     private int maxPlayers;
+
+    /**
+     * The proxy port to advertise in the response.
+     */
     private int proxyPort;
 
-    private List<String> players = new ArrayList<>();
-    private List<PluginInformation> plugins = new ArrayList<>();
+    /**
+     * The list of player names to include in the response.
+     */
+    private final List<String> players = new ArrayList<>();
+
+    /**
+     * The list of plugins to include in the response.
+     */
+    private final List<PluginInformation> plugins = new ArrayList<>();
 
     private Builder() {
     }
@@ -248,7 +327,7 @@ public final class QueryResponse {
      * @param hostname the hostname to set
      * @return this builder, for chaining
      */
-    public Builder hostname(String hostname) {
+    public Builder hostname(final String hostname) {
       this.hostname = Preconditions.checkNotNull(hostname, "hostname");
       return this;
     }
@@ -259,7 +338,7 @@ public final class QueryResponse {
      * @param gameVersion the game version to set
      * @return this builder, for chaining
      */
-    public Builder gameVersion(String gameVersion) {
+    public Builder gameVersion(final String gameVersion) {
       this.gameVersion = Preconditions.checkNotNull(gameVersion, "gameVersion");
       return this;
     }
@@ -270,7 +349,7 @@ public final class QueryResponse {
      * @param map the map to set
      * @return this builder, for chaining
      */
-    public Builder map(String map) {
+    public Builder map(final String map) {
       this.map = Preconditions.checkNotNull(map, "map");
       return this;
     }
@@ -281,7 +360,7 @@ public final class QueryResponse {
      * @param currentPlayers a non-negative number representing all players online
      * @return this builder, for chaining
      */
-    public Builder currentPlayers(int currentPlayers) {
+    public Builder currentPlayers(final int currentPlayers) {
       Preconditions.checkArgument(currentPlayers >= 0, "currentPlayers cannot be negative");
       this.currentPlayers = currentPlayers;
       return this;
@@ -293,7 +372,7 @@ public final class QueryResponse {
      * @param maxPlayers a non-negative number representing the maximum number of builders
      * @return this builder, for chaining
      */
-    public Builder maxPlayers(int maxPlayers) {
+    public Builder maxPlayers(final int maxPlayers) {
       Preconditions.checkArgument(maxPlayers >= 0, "maxPlayers cannot be negative");
       this.maxPlayers = maxPlayers;
       return this;
@@ -305,7 +384,7 @@ public final class QueryResponse {
      * @param proxyHost the host where the proxy is running
      * @return this instance, for chaining
      */
-    public Builder proxyHost(String proxyHost) {
+    public Builder proxyHost(final String proxyHost) {
       this.proxyHost = Preconditions.checkNotNull(proxyHost, "proxyHost");
       return this;
     }
@@ -316,7 +395,7 @@ public final class QueryResponse {
      * @param proxyPort the port where the proxy is running
      * @return this instance, for chaining
      */
-    public Builder proxyPort(int proxyPort) {
+    public Builder proxyPort(final int proxyPort) {
       Preconditions
           .checkArgument(proxyPort >= 1 && proxyPort <= 65535, "proxyPort must be between 1-65535");
       this.proxyPort = proxyPort;
@@ -329,7 +408,7 @@ public final class QueryResponse {
      * @param players the players to add
      * @return this builder, for chaining
      */
-    public Builder players(Collection<String> players) {
+    public Builder players(final Collection<String> players) {
       this.players.addAll(Preconditions.checkNotNull(players, "players"));
       return this;
     }
@@ -340,7 +419,7 @@ public final class QueryResponse {
      * @param players the players to add
      * @return this builder, for chaining
      */
-    public Builder players(String... players) {
+    public Builder players(final String... players) {
       this.players.addAll(Arrays.asList(Preconditions.checkNotNull(players, "players")));
       return this;
     }
@@ -361,29 +440,29 @@ public final class QueryResponse {
      * @param proxyVersion the proxy version to set
      * @return this builder, for chaining
      */
-    public Builder proxyVersion(String proxyVersion) {
+    public Builder proxyVersion(final String proxyVersion) {
       this.proxyVersion = Preconditions.checkNotNull(proxyVersion, "proxyVersion");
       return this;
     }
 
     /**
-     * Adds the specified plugins to the plugins list.
+     * Adds the specified plugins to the plugin list.
      *
      * @param plugins the plugins to add
      * @return this builder, for chaining
      */
-    public Builder plugins(Collection<PluginInformation> plugins) {
+    public Builder plugins(final Collection<PluginInformation> plugins) {
       this.plugins.addAll(Preconditions.checkNotNull(plugins, "plugins"));
       return this;
     }
 
     /**
-     * Adds the specified plugins to the plugins list.
+     * Adds the specified plugins to the plugin list.
      *
      * @param plugins the plugins to add
      * @return this builder, for chaining
      */
-    public Builder plugins(PluginInformation... plugins) {
+    public Builder plugins(final PluginInformation... plugins) {
       this.plugins.addAll(Arrays.asList(plugins));
       return this;
     }
@@ -425,10 +504,17 @@ public final class QueryResponse {
    */
   public static final class PluginInformation {
 
+    /**
+     * The name of the plugin.
+     */
     private final String name;
+
+    /**
+     * The version of the plugin, or {@code null} if not present.
+     */
     private final @Nullable String version;
 
-    PluginInformation(String name, @Nullable String version) {
+    PluginInformation(final String name, final @Nullable String version) {
       this.name = Preconditions.checkNotNull(name, "name");
       this.version = version;
     }
@@ -458,7 +544,7 @@ public final class QueryResponse {
      * @param version the version of the plugin (nullable)
      * @return a new {@link PluginInformation} instance
      */
-    public static PluginInformation of(String name, @Nullable String version) {
+    public static PluginInformation of(final String name, final @Nullable String version) {
       return new PluginInformation(name, version);
     }
 
@@ -471,13 +557,15 @@ public final class QueryResponse {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
       if (this == o) {
         return true;
       }
+
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
+
       PluginInformation that = (PluginInformation) o;
       return name.equals(that.name) && Objects.equals(version, that.version);
     }

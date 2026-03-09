@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,23 +32,25 @@ import io.netty.buffer.ByteBuf;
  * are sent together, enabling efficient transmission and processing of related data.</p>
  */
 public final class BundleDelimiterPacket implements MinecraftPacket {
+
+  /**
+   * Singleton instance of the {@code BundleDelimiterPacket}.
+   */
   public static final BundleDelimiterPacket INSTANCE = new BundleDelimiterPacket();
 
   private BundleDelimiterPacket() {
   }
 
   @Override
-  public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
-
+  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
   }
 
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
-
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
   }
 
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

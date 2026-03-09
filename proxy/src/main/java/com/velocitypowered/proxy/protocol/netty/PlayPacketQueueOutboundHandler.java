@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Queues up any pending PLAY packets while the client is in the CONFIG state.
  *
- * <p>Much of the Velocity API (i.e. chat messages) utilize PLAY packets, however the client is
+ * <p>Much of the Velocity API (i.e., chat messages) utilize PLAY packets; however, the client is
  * incapable of receiving these packets during the CONFIG state. Certain events such as the
  * ServerPreConnectEvent may be called during this time, and we need to ensure that any API that
  * uses these packets will work as expected.
@@ -42,20 +42,39 @@ import org.jetbrains.annotations.NotNull;
  */
 public class PlayPacketQueueOutboundHandler extends ChannelDuplexHandler {
 
+  /**
+   * The CONFIG-state protocol registry used to determine which packets are safe to send early.
+   */
   private final StateRegistry.PacketRegistry.ProtocolRegistry registry;
+
+  /**
+   * The queue of outbound packets to be released once the PLAY state is reached.
+   */
   private final Queue<MinecraftPacket> queue = new ArrayDeque<>();
 
   /**
-   * Provides registries for client &amp; server bound packets.
+   * Provides registries for "client" &amp; server bound packets.
    *
    * @param version the protocol version
+   * @param direction the direction of packet flow (typically {@code CLIENTBOUND})
    */
-  public PlayPacketQueueOutboundHandler(ProtocolVersion version, ProtocolUtils.Direction direction) {
+  public PlayPacketQueueOutboundHandler(final ProtocolVersion version, final ProtocolUtils.Direction direction) {
     this.registry = StateRegistry.CONFIG.getProtocolRegistry(direction, version);
   }
 
+  /**
+   * Intercepts outbound {@link MinecraftPacket}s during the CONFIG protocol state.
+   *
+   * <p>If the packet type is valid for the CONFIG state, it is written immediately.
+   * Otherwise, it is queued until the channel enters the PLAY state.</p>
+   *
+   * @param ctx the Netty channel context
+   * @param msg the outbound message
+   * @param promise the write promise for asynchronous completion
+   * @throws Exception if an I/O error occurs
+   */
   @Override
-  public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+  public void write(final ChannelHandlerContext ctx, final Object msg, final ChannelPromise promise) throws Exception {
     if (!(msg instanceof final MinecraftPacket packet)) {
       ctx.write(msg, promise);
       return;
@@ -72,19 +91,35 @@ public class PlayPacketQueueOutboundHandler extends ChannelDuplexHandler {
     this.queue.offer(packet);
   }
 
+  /**
+   * Invoked when the channel becomes inactive.
+   *
+   * <p>This clears and releases all queued packets since they can no longer be delivered.</p>
+   *
+   * @param ctx the Netty channel context
+   * @throws Exception if an error occurs during cleanup
+   */
   @Override
-  public void channelInactive(@NotNull ChannelHandlerContext ctx) throws Exception {
+  public void channelInactive(final @NotNull ChannelHandlerContext ctx) throws Exception {
     this.releaseQueue(ctx, false);
 
     super.channelInactive(ctx);
   }
 
+  /**
+   * Called when this handler is removed from the pipeline.
+   *
+   * <p>If the channel is still active, all queued packets are flushed downstream.
+   * Otherwise, queued packets are released to prevent memory leaks.</p>
+   *
+   * @param ctx the Netty channel context
+   */
   @Override
-  public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+  public void handlerRemoved(final ChannelHandlerContext ctx) {
     this.releaseQueue(ctx, ctx.channel().isActive());
   }
 
-  private void releaseQueue(ChannelHandlerContext ctx, boolean active) {
+  private void releaseQueue(final ChannelHandlerContext ctx, final boolean active) {
     // Send out all the queued packets
     MinecraftPacket packet;
     while ((packet = this.queue.poll()) != null) {

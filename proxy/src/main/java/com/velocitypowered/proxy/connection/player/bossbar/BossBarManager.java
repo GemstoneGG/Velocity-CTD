@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,25 +24,51 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Handles dropping and resending boss bar packets on versions 1.20.2 and newer because the client now
- * deletes all boss bars during the login phase, and sending update packets would cause the client to be disconnected.
+ * Manages all boss bar state for a connected player. This manager is responsible for tracking
+ * which {@link VelocityBossBarImplementation boss bars} are currently visible to the player,
+ * handling when packets should be suppressed, and resending boss bar information when switching
+ * servers.
+ *
+ * <p>Starting with Minecraft 1.20.2, the client clears all boss bars during the login phase.
+ * To avoid disconnects caused by sending update packets at the wrong time, this manager can
+ * temporarily drop outgoing packets and re-send boss bar state only once it is safe to do so.</p>
  */
 public final class BossBarManager {
 
+  /**
+   * The player that owns this boss bar manager.
+   */
   private final ConnectedPlayer player;
+
+  /**
+   * The set of boss bars currently associated with this player. These are resent when
+   * a server switch occurs.
+   */
   private final Set<VelocityBossBarImplementation> bossBars = new HashSet<>();
 
+  /**
+   * Whether packets should be dropped instead of sent to the client.
+   * This is used during server login/transition.
+   */
   private boolean dropPackets = false;
 
-  public BossBarManager(ConnectedPlayer player) {
+  /**
+   * Creates a new {@code BossBarManager} for the given player.
+   *
+   * @param player the player whose boss bars are being managed
+   */
+  public BossBarManager(final ConnectedPlayer player) {
     this.player = player;
   }
 
   /**
-   * Records the specified boss bar to be re-sent when a player changes server, and sends the update packet
-   * if the client is able to receive it and not be disconnected.
+   * Records the specified boss bar as active for this player and attempts to send an update packet.
+   * If packets are currently being dropped, the bar is still tracked but the packet is not written.
+   *
+   * @param bar the boss bar being updated
+   * @param packet the packet representing the boss bar update
    */
-  public synchronized void writeUpdate(VelocityBossBarImplementation bar, BossBarPacket packet) {
+  public synchronized void writeUpdate(final VelocityBossBarImplementation bar, final BossBarPacket packet) {
     this.bossBars.add(bar);
     if (!this.dropPackets) {
       this.player.getConnection().write(packet);
@@ -50,9 +76,13 @@ public final class BossBarManager {
   }
 
   /**
-   * Removes the specified boss bar from the player to ensure it is not re-sent.
+   * Removes the specified boss bar from tracking and attempts to send a removal packet to the client.
+   * If packets are currently being dropped, the removal is tracked locally but no packet is written.
+   *
+   * @param bar the boss bar being removed
+   * @param packet the packet representing the boss bar removal
    */
-  public synchronized void remove(VelocityBossBarImplementation bar, BossBarPacket packet) {
+  public synchronized void remove(final VelocityBossBarImplementation bar, final BossBarPacket packet) {
     this.bossBars.remove(bar);
     if (!this.dropPackets) {
       this.player.getConnection().write(packet);
@@ -60,18 +90,22 @@ public final class BossBarManager {
   }
 
   /**
-   * Re-creates the boss bars the player can see with any updates that may have occurred in the meantime,
-   * and allows update packets for those boss bars to be sent.
+   * Re-creates all tracked boss bars for this player. This is typically called after a server
+   * switch, once the client is ready to receive boss bar data again. After re-sending, further
+   * updates will no longer be dropped.
    */
   public synchronized void sendBossBars() {
     for (VelocityBossBarImplementation bossBar : bossBars) {
       bossBar.createDirect(player);
     }
+
     this.dropPackets = false;
   }
 
   /**
-   * Prevents the player from receiving boss bar update packets while logging in to a new server.
+   * Marks this manager to temporarily drop all boss bar packets. This should be called when
+   * the player is entering a new server to avoid sending packets during the login/configuration
+   * phase, which can otherwise disconnect the client.
    */
   public synchronized void dropPackets() {
     this.dropPackets = true;

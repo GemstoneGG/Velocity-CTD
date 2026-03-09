@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -20,9 +20,19 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class PluginDependency {
 
+  /**
+   * The ID of the plugin this dependency refers to.
+   */
   private final String id;
+
+  /**
+   * The version of the plugin this dependency should match, or {@code null} if not specified.
+   */
   private final @Nullable String version;
 
+  /**
+   * Whether this dependency is optional.
+   */
   private final boolean optional;
 
   /**
@@ -30,9 +40,9 @@ public final class PluginDependency {
    *
    * @param id the plugin ID
    * @param version an optional version
-   * @param optional whether or not this dependency is optional
+   * @param optional whether this dependency is optional
    */
-  public PluginDependency(String id, @Nullable String version, boolean optional) {
+  public PluginDependency(final String id, final @Nullable String version, final boolean optional) {
     this.id = checkNotNull(id, "id");
     checkArgument(!id.isEmpty(), "id cannot be empty");
     this.version = emptyToNull(version);
@@ -67,13 +77,15 @@ public final class PluginDependency {
   }
 
   @Override
-  public boolean equals(@Nullable Object o) {
+  public boolean equals(final @Nullable Object o) {
     if (this == o) {
       return true;
     }
+
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
+
     PluginDependency that = (PluginDependency) o;
     return optional == that.optional
         && Objects.equals(id, that.id)

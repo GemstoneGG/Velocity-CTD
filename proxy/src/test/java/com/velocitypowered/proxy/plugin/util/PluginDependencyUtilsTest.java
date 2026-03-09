@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,41 +30,67 @@ import org.junit.jupiter.api.Test;
 
 class PluginDependencyUtilsTest {
 
+  /**
+   * Plugin with no dependencies.
+   */
   private static final PluginDescription NO_DEPENDENCY = testDescription("trivial");
+
+  /**
+   * Another plugin with no dependencies.
+   */
   private static final PluginDescription NO_DEPENDENCY_2 = testDescription("trivial2");
+
+  /**
+   * Plugin that depends on {@code trivial}.
+   */
   private static final PluginDescription HAS_DEPENDENCY_1 = testDescription("dependent1",
       new PluginDependency("trivial", null, false));
+
+  /**
+   * Plugin that depends on {@code dependent1}.
+   */
   private static final PluginDescription HAS_DEPENDENCY_2 = testDescription("dependent2",
       new PluginDependency("dependent1", null, false));
+
+  /**
+   * Another plugin that depends on {@code trivial}.
+   */
   private static final PluginDescription HAS_DEPENDENCY_3 = testDescription("dependent3",
       new PluginDependency("trivial", null, false));
 
+  /**
+   * First plugin involved in a circular dependency (depends on {@code oval}).
+   */
   private static final PluginDescription CIRCULAR_DEPENDENCY_1 = testDescription("circle",
       new PluginDependency("oval", "", false));
+
+  /**
+   * Second plugin involved in a circular dependency (depends on {@code circle}).
+   */
   private static final PluginDescription CIRCULAR_DEPENDENCY_2 = testDescription("oval",
       new PluginDependency("circle", "", false));
 
   @Test
-  void sortCandidatesTrivial() throws Exception {
+  void sortCandidatesTrivial() {
     List<PluginDescription> descriptionList = new ArrayList<>();
     assertEquals(descriptionList, PluginDependencyUtils.sortCandidates(descriptionList));
   }
 
   @Test
-  void sortCandidatesSingleton() throws Exception {
+  void sortCandidatesSingleton() {
     List<PluginDescription> plugins = ImmutableList.of(NO_DEPENDENCY);
     assertEquals(plugins, PluginDependencyUtils.sortCandidates(plugins));
   }
 
   @Test
-  void sortCandidatesBasicDependency() throws Exception {
+  void sortCandidatesBasicDependency() {
     List<PluginDescription> plugins = ImmutableList.of(HAS_DEPENDENCY_1, NO_DEPENDENCY);
     List<PluginDescription> expected = ImmutableList.of(NO_DEPENDENCY, HAS_DEPENDENCY_1);
     assertEquals(expected, PluginDependencyUtils.sortCandidates(plugins));
   }
 
   @Test
-  void sortCandidatesNestedDependency() throws Exception {
+  void sortCandidatesNestedDependency() {
     List<PluginDescription> plugins = ImmutableList.of(HAS_DEPENDENCY_1, HAS_DEPENDENCY_2,
         NO_DEPENDENCY);
     List<PluginDescription> expected = ImmutableList.of(NO_DEPENDENCY, HAS_DEPENDENCY_1,
@@ -73,7 +99,7 @@ class PluginDependencyUtilsTest {
   }
 
   @Test
-  void sortCandidatesTypical() throws Exception {
+  void sortCandidatesTypical() {
     List<PluginDescription> plugins = ImmutableList.of(HAS_DEPENDENCY_2, NO_DEPENDENCY_2,
         HAS_DEPENDENCY_1, NO_DEPENDENCY);
     List<PluginDescription> expected = ImmutableList.of(NO_DEPENDENCY, HAS_DEPENDENCY_1,
@@ -82,7 +108,7 @@ class PluginDependencyUtilsTest {
   }
 
   @Test
-  void sortCandidatesMultiplePluginsDependentOnOne() throws Exception {
+  void sortCandidatesMultiplePluginsDependentOnOne() {
     List<PluginDescription> plugins = ImmutableList.of(HAS_DEPENDENCY_3, HAS_DEPENDENCY_1,
         NO_DEPENDENCY);
     List<PluginDescription> expected = ImmutableList.of(NO_DEPENDENCY, HAS_DEPENDENCY_1,
@@ -91,12 +117,12 @@ class PluginDependencyUtilsTest {
   }
 
   @Test
-  void sortCandidatesCircularDependency() throws Exception {
+  void sortCandidatesCircularDependency() {
     List<PluginDescription> descs = ImmutableList.of(CIRCULAR_DEPENDENCY_1, CIRCULAR_DEPENDENCY_2);
     assertThrows(IllegalStateException.class, () -> PluginDependencyUtils.sortCandidates(descs));
   }
 
-  private static PluginDescription testDescription(String id, PluginDependency... dependencies) {
+  private static PluginDescription testDescription(final String id, final PluginDependency... dependencies) {
     return new VelocityPluginDescription(
         id, "tuxed", "0.1", null, null, ImmutableList.of(),
         ImmutableList.copyOf(dependencies), null

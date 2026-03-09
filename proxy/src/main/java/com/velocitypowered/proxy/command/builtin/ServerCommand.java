@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,8 +30,11 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
+import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.command.VelocityCommands;
+import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.List;
-import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.TranslatableComponent;
@@ -43,50 +46,93 @@ import net.kyori.adventure.text.minimessage.translation.Argument;
  * Implements Velocity's {@code /server} command.
  */
 public final class ServerCommand {
+
+  /**
+   * The name of the server argument.
+   */
   private static final String SERVER_ARG = "server";
+
+  /**
+   * The maximum number of servers to list in the command output before showing an error.
+   */
   public static final int MAX_SERVERS_TO_LIST = 50;
 
-  @SuppressWarnings("checkstyle:MissingJavadocMethod")
-  public static BrigadierCommand create(final ProxyServer server) {
+  /**
+   * The instance of {@link VelocityServer} to retrieve configuration and server metadata.
+   */
+  private final VelocityServer server;
+
+  /**
+   * Constructs a new {@link ServerCommand} instance.
+   *
+   * @param server the Velocity server instance
+   */
+  public ServerCommand(final VelocityServer server) {
+    this.server = server;
+  }
+
+  /**
+   * Registers or unregisters the command based on the configuration value.
+   *
+   * @param isServerEnabled whether the server command is enabled in the configuration
+   */
+  public void register(final boolean isServerEnabled) {
+    if (!isServerEnabled) {
+      return;
+    }
+
     final LiteralCommandNode<CommandSource> node = BrigadierCommand
         .literalArgumentBuilder("server")
-        .requires(src -> src instanceof Player
-                && src.getPermissionValue("velocity.command.server") != Tristate.FALSE)
+        .requires(src -> src instanceof Player && src.getPermissionValue("velocity.command.server") != Tristate.FALSE)
         .executes(ctx -> {
+          if (server.getConfiguration().isOverrideServerCommandUsage()) {
+            return VelocityCommands.emitUsage(ctx, "server");
+          }
+
           final Player player = (Player) ctx.getSource();
           outputServerInformation(player, server);
           return Command.SINGLE_SUCCESS;
         })
         .then(BrigadierCommand.requiredArgumentBuilder(SERVER_ARG, StringArgumentType.word())
-            .suggests((ctx, builder) -> {
-              final String argument = ctx.getArguments().containsKey(SERVER_ARG)
-                      ? StringArgumentType.getString(ctx, SERVER_ARG)
-                      : "";
-              for (final RegisteredServer sv : server.getAllServers()) {
-                final String serverName = sv.getServerInfo().getName();
-                if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
-                  builder.suggest(serverName);
-                }
-              }
-              return builder.buildFuture();
-            })
+            .suggests(VelocityCommands.suggestServer(server, SERVER_ARG, true))
             .executes(ctx -> {
               final Player player = (Player) ctx.getSource();
-              // Trying to connect to a server.
-              final String serverName = StringArgumentType.getString(ctx, SERVER_ARG);
-              final Optional<RegisteredServer> toConnect = server.getServer(serverName);
-              if (toConnect.isEmpty()) {
-                player.sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
-                        .arguments(Argument.string("server", serverName)));
+              final VelocityRegisteredServer registeredServer = VelocityCommands.getServer(this.server, ctx, SERVER_ARG, true);
+
+              if (registeredServer == null) {
                 return -1;
               }
 
-              player.createConnectionRequest(toConnect.get()).fireAndForget();
+              ServerConnection connection = player.getCurrentServer().orElse(null);
+              if (connection != null && connection.getServerInfo().getName()
+                      .equalsIgnoreCase(registeredServer.getServerInfo().getName())) {
+                player.sendMessage(Component.translatable("velocity.error.already-connected"));
+                return -1;
+              }
+
+              if (this.server.getConfiguration().getQueue().getNoQueueServers() == null
+                      || this.server.getConfiguration().getQueue().getNoQueueServers().contains(registeredServer.getServerInfo().getName())
+                      || !server.getQueueManager().isQueueEnabled()
+                      || player.hasPermission("velocity.queue.bypass")) {
+                player.createConnectionRequest(registeredServer).connectWithIndication();
+                return Command.SINGLE_SUCCESS;
+              }
+
+              server.getQueueManager().queue(player, registeredServer);
               return Command.SINGLE_SUCCESS;
             })
         ).build();
 
-    return new BrigadierCommand(node);
+    final BrigadierCommand command = new BrigadierCommand(node);
+    String[] aliases = server.getConfiguration().getServerAliases().toArray(new String[0]);
+
+    server.getCommandManager().register(
+        server.getCommandManager().metaBuilder(command)
+            .aliases(aliases)
+            .plugin(VelocityVirtualPlugin.INSTANCE)
+            .build(),
+        command
+    );
   }
 
   private static void outputServerInformation(final Player executor,
@@ -96,14 +142,24 @@ public final class ServerCommand {
         .map(ServerInfo::getName)
         .orElse("<unknown>");
     executor.sendMessage(Component.translatable(
-        "velocity.command.server-current-server",
-        NamedTextColor.YELLOW,
-        Component.text(currentServer)));
+        "velocity.command.server-current-server", NamedTextColor.YELLOW)
+            .arguments(Argument.string("server", currentServer)));
 
-    final List<RegisteredServer> servers = BuiltinCommandUtil.sortedServerList(server);
+    final List<RegisteredServer> servers = VelocityCommands.sortedServerList(server);
     if (servers.size() > MAX_SERVERS_TO_LIST) {
       executor.sendMessage(Component.translatable(
           "velocity.command.server-too-many", NamedTextColor.RED));
+      return;
+    }
+
+    // Filter servers based on player permissions
+    final List<RegisteredServer> accessibleServers = servers.stream()
+        .filter(rs -> executor.getPermissionValue("velocity.command.server."
+            + rs.getServerInfo().getName()) != Tristate.FALSE)
+        .toList();
+
+    if (accessibleServers.isEmpty()) {
+      // No accessible servers, return without showing the list
       return;
     }
 
@@ -112,10 +168,10 @@ public final class ServerCommand {
         .append(Component.translatable("velocity.command.server-available",
             NamedTextColor.YELLOW))
         .appendSpace();
-    for (int i = 0; i < servers.size(); i++) {
-      final RegisteredServer rs = servers.get(i);
+    for (int i = 0; i < accessibleServers.size(); i++) {
+      final RegisteredServer rs = accessibleServers.get(i);
       serverListBuilder.append(formatServerComponent(currentServer, rs));
-      if (i != servers.size() - 1) {
+      if (i != accessibleServers.size() - 1) {
         serverListBuilder.append(Component.text(", ", NamedTextColor.GRAY));
       }
     }
@@ -124,7 +180,7 @@ public final class ServerCommand {
   }
 
   private static TextComponent formatServerComponent(final String currentPlayerServer,
-                                              final RegisteredServer server) {
+                                                     final RegisteredServer server) {
     final ServerInfo serverInfo = server.getServerInfo();
     final TextComponent.Builder serverTextComponent = Component.text()
             .content(serverInfo.getName());
@@ -136,7 +192,7 @@ public final class ServerCommand {
     } else {
       playersTextComponent.key("velocity.command.server-tooltip-players-online");
     }
-    playersTextComponent.arguments(Argument.component("players", Component.text(connectedPlayers)));
+    playersTextComponent.arguments(Argument.numeric("players", connectedPlayers));
     if (serverInfo.getName().equals(currentPlayerServer)) {
       serverTextComponent.color(NamedTextColor.GREEN)
           .hoverEvent(
@@ -155,6 +211,7 @@ public final class ServerCommand {
                       .append(playersTextComponent))
           );
     }
+
     return serverTextComponent.build();
   }
 }

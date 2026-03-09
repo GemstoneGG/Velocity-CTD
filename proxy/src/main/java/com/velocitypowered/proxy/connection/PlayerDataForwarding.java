@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,33 +35,82 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.jspecify.annotations.Nullable;
 
-@SuppressWarnings({"MissingJavadocMethod", "MissingJavadocType"})
+/**
+ * Provides utility methods for handling Velocity's player data forwarding formats.
+ *
+ * <p>These methods construct forwarding payloads used to securely pass player identity
+ * and profile information to backend servers, supporting both modern and legacy modes.</p>
+ *
+ * <p>This class is not instantiable.</p>
+ *
+ * @since 3.3.0
+ */
 public final class PlayerDataForwarding {
+
+  /**
+   * The HMAC algorithm used to sign modern forwarding payloads.
+   */
   private static final String ALGORITHM = "HmacSHA256";
 
+  /**
+   * The channel name used for Velocity's modern player forwarding.
+   */
   public static final String CHANNEL = "velocity:player_info";
 
+  /**
+   * Modern forwarding version 1: basic forwarding with profile and address.
+   */
   public static final int MODERN_DEFAULT = 1;
+
+  /**
+   * Modern forwarding version 2: includes an {@link IdentifiedKey} for secure forwarding.
+   */
   public static final int MODERN_WITH_KEY = 2;
+
+  /**
+   * Modern forwarding version 3: includes {@link IdentifiedKey} and signer UUID.
+   */
   public static final int MODERN_WITH_KEY_V2 = 3;
+
+  /**
+   * Modern forwarding version 4: lazy session forwarding introduced in Minecraft 1.19.3+.
+   */
   public static final int MODERN_LAZY_SESSION = 4;
+
+  /**
+   * The highest supported modern forwarding version.
+   */
   public static final int MODERN_MAX_VERSION = MODERN_LAZY_SESSION;
 
+  /**
+   * The character used to separate fields in legacy forwarding strings.
+   */
   private static final char LEGACY_SEPARATOR = '\0';
 
+  /**
+   * The property key used to embed a BungeeGuard token in the profile properties.
+   */
   private static final String BUNGEE_GUARD_TOKEN_PROPERTY_NAME = "bungeeguard-token";
 
   private PlayerDataForwarding() {
   }
 
-  public static ByteBuf createForwardingData(
-      final byte[] secret,
-      final String address,
-      final ProtocolVersion protocol,
-      final GameProfile profile,
-      final @Nullable IdentifiedKey key,
-      final int requestedVersion
-  ) {
+  /**
+   * Constructs a {@link ByteBuf} containing Velocity's modern forwarding format,
+   * including protocol version, player profile, and optional cryptographic key data.
+   * A signed MAC is appended for validation by the backend.
+   *
+   * @param secret the shared HMAC secret used to sign the forwarding payload
+   * @param address the connecting player’s IP address
+   * @param protocol the player's {@link ProtocolVersion}
+   * @param profile the player's {@link GameProfile}
+   * @param key the optional {@link IdentifiedKey} for secure forwarding
+   * @param requestedVersion the requested forwarding version
+   * @return a {@link ByteBuf} containing the full forwarding payload
+   * @throws RuntimeException if HMAC signing fails due to an invalid key
+   */
+  public static ByteBuf createForwardingData(final byte[] secret, final String address, final ProtocolVersion protocol,
+                                             final GameProfile profile, final @Nullable IdentifiedKey key, final int requestedVersion) {
     final ByteBuf forwarded = Unpooled.buffer(2048);
     try {
       final int actualVersion = findForwardingVersion(requestedVersion, protocol, key);
@@ -80,7 +129,7 @@ public final class PlayerDataForwarding {
         ProtocolUtils.writePlayerKey(forwarded, key);
 
         // Provide the signer UUID since the UUID may differ from the
-        // assigned UUID. Doing that breaks the signatures anyway but the server
+        // assigned UUID. Doing that breaks the signatures anyway, but the server
         // should be able to verify the key independently.
         if (actualVersion >= MODERN_WITH_KEY_V2) {
           if (key.getSignatureHolder() != null) {
@@ -113,8 +162,7 @@ public final class PlayerDataForwarding {
   private static int findForwardingVersion(
       int requested,
       final ProtocolVersion protocol,
-      final @Nullable IdentifiedKey key
-  ) {
+      final @Nullable IdentifiedKey key) {
     // Ensure we are in range
     requested = Math.min(requested, MODERN_MAX_VERSION);
     if (requested > MODERN_DEFAULT) {
@@ -126,7 +174,7 @@ public final class PlayerDataForwarding {
       if (key != null) {
         return switch (key.getKeyRevision()) {
           case GENERIC_V1 -> MODERN_WITH_KEY;
-          // Since V2 is not backwards compatible we have to throw the key if v2 and requested is v1
+          // Since V2 is not backwards compatible, we have to throw the key if v2 and requested is v1
           case LINKED_V2 -> requested >= MODERN_WITH_KEY_V2
                   ? MODERN_WITH_KEY_V2
                   : MODERN_DEFAULT;
@@ -135,14 +183,24 @@ public final class PlayerDataForwarding {
         return MODERN_DEFAULT;
       }
     }
+
     return MODERN_DEFAULT;
   }
 
-  public static String createLegacyForwardingAddress(
-      final String serverAddress,
-      final String playerAddress,
-      final GameProfile profile
-  ) {
+  /**
+   * Creates a legacy-style forwarding address string for BungeeCord IP forwarding.
+   *
+   * <p>This format embeds the server address, player IP, UUID (without dashes), and
+   * serialized game profile properties into a single {@code \0}-delimited string.</p>
+   *
+   * @param serverAddress the hostname or address of the backend server
+   * @param playerAddress the IP address of the player
+   * @param profile the game profile of the player
+   * @return a formatted forwarding address string suitable for legacy forwarding
+   * @since 3.3.0
+   */
+  public static String createLegacyForwardingAddress(final String serverAddress, final String playerAddress,
+                                                     final GameProfile profile) {
     return createLegacyForwardingAddress(
         serverAddress,
         playerAddress,
@@ -151,12 +209,18 @@ public final class PlayerDataForwarding {
     );
   }
 
-  private static String createLegacyForwardingAddress(
-      final String serverAddress,
-      final String playerAddress,
-      final GameProfile profile,
-      final UnaryOperator<List<GameProfile.Property>> propertiesTransform
-  ) {
+  /**
+   * Constructs a legacy forwarding address string for BungeeCord-style IP forwarding,
+   * with optional property transformation applied.
+   *
+   * @param serverAddress the address of the server
+   * @param playerAddress the IP address of the player
+   * @param profile the game profile of the player
+   * @param propertiesTransform a transformation applied to the profile's properties
+   * @return the formatted forwarding string
+   */
+  private static String createLegacyForwardingAddress(final String serverAddress, final String playerAddress, final GameProfile profile,
+                                                      final UnaryOperator<List<GameProfile.Property>> propertiesTransform) {
     // BungeeCord IP forwarding is simply a special injection after the "address" in the handshake,
     // separated by \0 (the null byte). In order, you send the original host, the player's IP, their
     // UUID (undashed), and if you are in online-mode, their login properties (from Mojang).
@@ -167,23 +231,27 @@ public final class PlayerDataForwarding {
         .append(LEGACY_SEPARATOR)
         .append(profile.getUndashedId())
         .append(LEGACY_SEPARATOR);
-    GENERAL_GSON
-        .toJson(propertiesTransform.apply(profile.getProperties()), data);
+    GENERAL_GSON.toJson(propertiesTransform.apply(profile.getProperties()), data);
     return data.toString();
   }
 
-  public static String createBungeeGuardForwardingAddress(
-      final String serverAddress,
-      final String playerAddress,
-      final GameProfile profile,
-      final byte[] forwardingSecret
-  ) {
+  /**
+   * Constructs a BungeeCord forwarding address with an additional BungeeGuard token
+   * embedded in the profile properties.
+   *
+   * @param serverAddress the address of the server
+   * @param playerAddress the IP address of the player
+   * @param profile the game profile of the player
+   * @param forwardingSecret the secret to embed as a BungeeGuard token
+   * @return the formatted forwarding address string
+   */
+  public static String createBungeeGuardForwardingAddress(final String serverAddress, final String playerAddress,
+                                                          final GameProfile profile, final byte[] forwardingSecret) {
     // Append forwarding secret as a BungeeGuard token.
     final GameProfile.Property property = new GameProfile.Property(
         BUNGEE_GUARD_TOKEN_PROPERTY_NAME,
         new String(forwardingSecret, StandardCharsets.UTF_8),
-        ""
-    );
+        "");
     return createLegacyForwardingAddress(
         serverAddress,
         playerAddress,

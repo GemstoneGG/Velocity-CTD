@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.Component;
 
 /**
  * Provides an interface to a Minecraft server proxy.
@@ -34,7 +35,7 @@ public interface ProxyServer extends Audience {
    *
    * @param reason message to kick online players with
    */
-  void shutdown(net.kyori.adventure.text.Component reason);
+  void shutdown(Component reason);
 
   /**
    * Shuts down the proxy, kicking players with the default reason.
@@ -106,7 +107,7 @@ public interface ProxyServer extends Audience {
    * Matches all {@link Player}s whose names start with the provided partial name.
    *
    * @param partialName the partial name to check for
-   * @return a collection of mathed {@link Player}s
+   * @return a collection of matched {@link Player}s
    */
   Collection<Player> matchPlayer(String partialName);
 
@@ -114,7 +115,7 @@ public interface ProxyServer extends Audience {
    * Matches all {@link RegisteredServer}s whose names start with the provided partial name.
    *
    * @param partialName the partial name to check for
-   * @return a collection of mathed {@link RegisteredServer}s
+   * @return a collection of matched {@link RegisteredServer}s
    */
   Collection<RegisteredServer> matchServer(String partialName);
 
@@ -127,7 +128,7 @@ public interface ProxyServer extends Audience {
   RegisteredServer createRawRegisteredServer(ServerInfo server);
 
   /**
-   * Registers a server with this proxy. A server with this name should not already exist.
+   * Registers a server with this proxy. A server with this name should not exist.
    *
    * @param server the server to register
    * @return the newly registered server
@@ -216,13 +217,13 @@ public interface ProxyServer extends Audience {
    * - Use HTTPS with a valid certificate.
    * - Be in a crawler-accessible location. Having it behind Cloudflare or other DoS/Bot/crawler
    *   protection may cause issues in downloading.
-   * - Be on a web-server with enough bandwidth and reliable connection
+   * - Be on a web-server with enough bandwidth and reliable connection,
    *   so the download does not time out or fail.</p>
    *
    * <p>Do also make sure that the resource pack is in the correct format for the version
    * of the client. It is also highly recommended to always provide the resource-pack SHA-1 hash
    * of the resource pack with {@link ResourcePackInfo.Builder#setHash(byte[])}
-   * whenever possible to save bandwidth. If a hash is present the client will first check
+   * whenever possible to save bandwidth. If a hash is present, the client will first check
    * if it already has a resource pack by that hash cached.</p>
    *
    * @param url The url where the resource pack can be found

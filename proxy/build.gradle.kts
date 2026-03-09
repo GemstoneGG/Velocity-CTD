@@ -3,6 +3,8 @@ import io.papermc.fill.model.BuildChannel
 
 plugins {
     application
+    `maven-publish`
+    id("velocity-publish")
     id("velocity-init-manifest")
     alias(libs.plugins.shadow)
     alias(libs.plugins.fill)
@@ -91,6 +93,9 @@ tasks {
         // Exclude Checker Framework annotations
         exclude("org/checkerframework/checker/**")
 
+        // Exclude original Guice HiddenClassDefiner to use patched version without sun.misc.Unsafe
+        exclude("com/google/inject/internal/aop/HiddenClassDefiner.class")
+
         relocate("org.bstats", "com.velocitypowered.proxy.bstats")
 
         // Include Configurate 3
@@ -107,6 +112,15 @@ tasks {
     named<JavaExec>("run") {
         workingDir = file("run").also(File::mkdirs)
         standardInput = System.`in` // Doesn't work?
+    }
+
+    withType<JavaCompile>().configureEach {
+        options.compilerArgs.addAll(
+            listOf(
+                "-Alog4j.graalvm.groupId=${project.group}",
+                "-Alog4j.graalvm.artifactId=${project.name}"
+            )
+        )
     }
 }
 
@@ -148,6 +162,7 @@ dependencies {
     implementation(variantOf(libs.netty.transport.native.kqueue) { classifier("osx-x86_64") })
     implementation(variantOf(libs.netty.transport.native.kqueue) { classifier("osx-aarch_64") })
 
+    implementation(libs.lettuce.core)
     implementation(libs.jopt)
     implementation(libs.terminalconsoleappender)
     runtimeOnly(libs.jline)

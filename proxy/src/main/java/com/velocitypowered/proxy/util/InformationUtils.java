@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Helper class for {@code /velocity dump}.
@@ -54,7 +55,7 @@ public enum InformationUtils {
    * @param proxy the proxy instance to retrieve from
    * @return {@link JsonArray} containing zero or more {@link JsonObject}
    */
-  public static JsonArray collectPluginInfo(ProxyServer proxy) {
+  public static JsonArray collectPluginInfo(final ProxyServer proxy) {
     List<PluginContainer> allPlugins = ImmutableList.copyOf(
         proxy.getPluginManager().getPlugins());
     JsonArray plugins = new JsonArray();
@@ -66,31 +67,40 @@ public enum InformationUtils {
       if (desc.getName().isPresent()) {
         current.addProperty("name", desc.getName().get());
       }
+
       if (desc.getVersion().isPresent()) {
         current.addProperty("version", desc.getVersion().get());
       }
+
       if (!desc.getAuthors().isEmpty()) {
         JsonArray authorsArray = new JsonArray();
         for (String author : desc.getAuthors()) {
           authorsArray.add(author);
         }
+
         current.add("authors", authorsArray);
       }
+
       if (desc.getDescription().isPresent()) {
         current.addProperty("description", desc.getDescription().get());
       }
+
       if (desc.getUrl().isPresent()) {
         current.addProperty("url", desc.getUrl().get());
       }
+
       if (!desc.getDependencies().isEmpty()) {
         JsonArray dependencies = new JsonArray();
         for (PluginDependency dependency : desc.getDependencies()) {
           dependencies.add(dependency.getId());
         }
+
         current.add("dependencies", dependencies);
       }
+
       plugins.add(current);
     }
+
     return plugins;
   }
 
@@ -122,9 +132,10 @@ public enum InformationUtils {
    * Creates a {@link JsonObject} containing information about the forced hosts of the
    * {@link ProxyConfig} instance.
    *
+   * @param config the proxy configuration containing forced host mappings
    * @return {@link JsonArray} containing forced hosts
    */
-  public static JsonObject collectForcedHosts(ProxyConfig config) {
+  public static JsonObject collectForcedHosts(final ProxyConfig config) {
     JsonObject forcedHosts = new JsonObject();
     Map<String, List<String>> allForcedHosts = ImmutableMap.copyOf(
         config.getForcedHosts());
@@ -133,8 +144,10 @@ public enum InformationUtils {
       for (int i = 0; i < entry.getValue().size(); i++) {
         host.add(entry.getValue().get(i));
       }
+
       forcedHosts.add(entry.getKey(), host);
     }
+
     return forcedHosts;
   }
 
@@ -144,45 +157,53 @@ public enum InformationUtils {
    * @param address The address to redact
    * @return {@link String} address with public parts redacted
    */
-  public static String anonymizeInetAddress(InetAddress address) {
+  public static String anonymizeInetAddress(final InetAddress address) {
     return switch (address) {
       case Inet4Address v4 -> {
         if (v4.isAnyLocalAddress() || v4.isLoopbackAddress()
-                || v4.isLinkLocalAddress()
-                || v4.isSiteLocalAddress()) {
+              || v4.isLinkLocalAddress()
+              || v4.isSiteLocalAddress()) {
           yield address.getHostAddress();
         } else {
           byte[] addr = v4.getAddress();
           yield (addr[0] & 0xff) + "." + (addr[1] & 0xff) + ".XXX.XXX";
         }
-      } case Inet6Address v6 -> {
+      }
+      case Inet6Address v6 -> {
         if (v6.isAnyLocalAddress() || v6.isLoopbackAddress()
-                || v6.isSiteLocalAddress()
-                || v6.isSiteLocalAddress()) {
+            || v6.isSiteLocalAddress()
+            || v6.isSiteLocalAddress()) {
           yield address.getHostAddress();
         } else {
-          String[] bits = v6.getHostAddress().split(":");
-          String ret = "";
-          boolean flag = false;
-          for (int iter = 0; iter < bits.length; iter++) {
-            if (flag) {
-              ret += ":X";
-              continue;
-            }
-            if (!bits[iter].equals("0")) {
-              if (iter == 0) {
-                ret = bits[iter];
-              } else {
-                ret = "::" + bits[iter];
-              }
-              flag = true;
-            }
-          }
-          yield ret;
+          yield getStringBuilder(v6).toString();
         }
       }
       default -> address.getHostAddress();
     };
+  }
+
+  private static @NotNull StringBuilder getStringBuilder(final Inet6Address v6) {
+    String[] bits = v6.getHostAddress().split(":");
+    StringBuilder ret = new StringBuilder();
+    boolean flag = false;
+    for (int iter = 0; iter < bits.length; iter++) {
+      if (flag) {
+        ret.append(":X");
+        continue;
+      }
+
+      if (!bits[iter].equals("0")) {
+        if (iter == 0) {
+          ret.append(bits[iter]);
+        } else {
+          ret.append("::").append(bits[iter]);
+        }
+
+        flag = true;
+      }
+    }
+
+    return ret;
   }
 
   /**
@@ -192,7 +213,7 @@ public enum InformationUtils {
    * @param server the server to evaluate
    * @return {@link JsonObject} containing server and diagnostic info
    */
-  public static JsonObject collectServerInfo(RegisteredServer server) {
+  public static JsonObject collectServerInfo(final RegisteredServer server) {
     JsonObject info = new JsonObject();
     info.addProperty("currentPlayers", server.getPlayersConnected().size());
     InetSocketAddress iaddr = server.getServerInfo().getAddress();
@@ -202,6 +223,7 @@ public enum InformationUtils {
     } else {
       info.addProperty("host", anonymizeInetAddress(iaddr.getAddress()));
     }
+
     info.addProperty("port", iaddr.getPort());
     return info;
   }
@@ -213,7 +235,7 @@ public enum InformationUtils {
    * @param version the proxy instance to retrieve from
    * @return {@link JsonObject} containing environment info
    */
-  public static JsonObject collectProxyInfo(ProxyVersion version) {
+  public static JsonObject collectProxyInfo(final ProxyVersion version) {
     return (JsonObject) serializeObject(version, false);
   }
 
@@ -224,7 +246,7 @@ public enum InformationUtils {
    * @param config the config instance to retrieve from
    * @return {@link JsonObject} containing select config values
    */
-  public static JsonObject collectProxyConfig(ProxyConfig config) {
+  public static JsonObject collectProxyConfig(final ProxyConfig config) {
     return (JsonObject) serializeObject(config, true);
   }
 
@@ -234,7 +256,7 @@ public enum InformationUtils {
    * @param json the {@link JsonElement} object
    * @return the human-readable String
    */
-  public static String toHumanReadableString(JsonElement json) {
+  public static String toHumanReadableString(final JsonElement json) {
     return GSON_WITHOUT_EXCLUDES.toJson(json);
   }
 
@@ -244,24 +266,32 @@ public enum InformationUtils {
    * @param toParse the String to parse
    * @return {@link JsonObject} object
    */
-  public static JsonObject parseString(String toParse) {
+  public static JsonObject parseString(final String toParse) {
     return GSON_WITHOUT_EXCLUDES.fromJson(toParse, JsonObject.class);
   }
 
-  private static JsonElement serializeObject(Object toSerialize, boolean withExcludes) {
+  private static JsonElement serializeObject(final Object toSerialize, final boolean withExcludes) {
     return JsonParser.parseString(
-        withExcludes ? GSON_WITH_EXCLUDES.toJson(toSerialize) :
-            GSON_WITHOUT_EXCLUDES.toJson(toSerialize));
+        withExcludes ? GSON_WITH_EXCLUDES.toJson(toSerialize) : GSON_WITHOUT_EXCLUDES.toJson(toSerialize));
   }
 
+  /**
+   * A {@link Gson} instance configured to pretty-print JSON and exclude fields
+   * not marked with {@link com.google.gson.annotations.Expose}.
+   *
+   * <p>Used when output should be restricted to explicitly exposed fields only.</p>
+   */
   private static final Gson GSON_WITH_EXCLUDES = new GsonBuilder()
       .setPrettyPrinting()
       .excludeFieldsWithoutExposeAnnotation()
       .create();
 
+  /**
+   * A {@link Gson} instance configured to pretty-print JSON without excluding any fields.
+   *
+   * <p>Used when full serialization is desired regardless of {@link com.google.gson.annotations.Expose}.</p>
+   */
   private static final Gson GSON_WITHOUT_EXCLUDES = new GsonBuilder()
       .setPrettyPrinting()
       .create();
-
-
 }

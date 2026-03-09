@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,27 +25,41 @@ package com.velocitypowered.proxy.util.concurrent;
  */
 public final class Once {
 
+  /**
+   * Represents an uninitialized state.
+   */
   private static final int NOT_STARTED = 0;
+
+  /**
+   * Represents a completed state.
+   */
   private static final int COMPLETED = 1;
 
+  /**
+   * The completion flag. Volatile to ensure visibility across threads.
+   */
   private volatile int completed = NOT_STARTED;
+
+  /**
+   * The lock object used to synchronize execution of the runnable.
+   */
   private final Object lock = new Object();
 
   /**
    * Calls {@code runnable.run()} exactly once if this instance is being called for the first time,
    * otherwise the invocation shall wait until {@code runnable.run()} completes. The first runnable
    * used when this function is called is run. Future calls to this method once the initial runnable
-   * completes are no-ops - a new instance should be used instead.
+   * completions are no-ops - a new instance should be used instead.
    *
    * @param runnable the runnable to run
    */
-  public void run(Runnable runnable) {
+  public void run(final Runnable runnable) {
     if (completed == NOT_STARTED) {
       slowRun(runnable);
     }
   }
 
-  private void slowRun(Runnable runnable) {
+  private void slowRun(final Runnable runnable) {
     synchronized (lock) {
       if (completed == NOT_STARTED) {
         try {

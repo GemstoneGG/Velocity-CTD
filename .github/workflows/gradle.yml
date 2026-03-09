@@ -2,7 +2,10 @@
 # For more information see: https://docs.github.com/actions/language-and-framework-guides/building-and-testing-java-with-gradle
 
 name: Java CI with Gradle
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - libdeflate
 
 jobs:
   build:
@@ -21,3 +24,41 @@ jobs:
         distribution: 'zulu'
     - name: Build with Gradle
       run: ./gradlew build
+
+    - name: Generate Release Tag
+      id: release_tag
+      run: |
+        # Fetch all tags from remote
+        git fetch --tags
+          
+        # Get the latest build number from existing releases
+        LATEST_BUILD=0
+        
+        # Check if there are existing build tags and find the highest number
+        if git tag | grep -E "^build-[0-9]+$" > /dev/null; then
+          LATEST_BUILD=$(git tag | grep -E "^build-[0-9]+$" | sed 's/build-//' | sort -n | tail -1)
+        fi
+        
+        # Debug output
+        echo "All tags:"
+        git tag
+        echo "Build tags found:"
+        git tag | grep -E "^build-[0-9]+$" || echo "No build tags found"
+        echo "Latest build number found: $LATEST_BUILD"
+          
+        # Increment the build number
+        NEW_BUILD=$((LATEST_BUILD + 1))
+        
+        echo "tag=build-$NEW_BUILD" >> $GITHUB_OUTPUT
+        echo "Generated tag: build-$NEW_BUILD"
+        echo "Previous highest build: $LATEST_BUILD"
+        echo "New build number: $NEW_BUILD"
+
+    - name: Upload Velocity
+      uses: marvinpinto/action-automatic-releases@master
+      with:
+        title: "Velocity-CTD"
+        automatic_release_tag: "${{ steps.release_tag.outputs.tag }}"
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        files: "*/build/libs/*.jar"
+        prerelease: false

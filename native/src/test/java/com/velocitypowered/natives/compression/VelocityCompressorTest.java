@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@ import com.velocitypowered.natives.util.Natives;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
-import java.io.IOException;
 import java.util.Random;
 import java.util.function.Supplier;
 import java.util.zip.DataFormatException;
@@ -38,10 +37,13 @@ import org.junit.jupiter.api.condition.EnabledOnOs;
 
 class VelocityCompressorTest {
 
+  /**
+   * Test data buffer filled with random bytes for compression testing.
+   */
   private static final byte[] TEST_DATA = new byte[1 << 14];
 
   @BeforeAll
-  static void checkNatives() throws IOException {
+  static void checkNatives() {
     Natives.compress.getLoadedVariant();
     new Random(1).nextBytes(TEST_DATA);
   }
@@ -77,7 +79,7 @@ class VelocityCompressorTest {
     check(compressor, () -> Unpooled.buffer(TEST_DATA.length + 32));
   }
 
-  private void check(VelocityCompressor compressor, Supplier<ByteBuf> bufSupplier)
+  private void check(final VelocityCompressor compressor, final Supplier<ByteBuf> bufSupplier)
       throws DataFormatException {
     ByteBuf source = bufSupplier.get();
     ByteBuf dest = bufSupplier.get();
@@ -86,7 +88,7 @@ class VelocityCompressorTest {
     source.writeBytes(TEST_DATA);
     int uncompressedData = source.readableBytes();
 
-    try {
+    try (compressor) {
       compressor.deflate(source, dest);
       compressor.inflate(dest, decompressed, uncompressedData);
       source.readerIndex(0);
@@ -95,7 +97,6 @@ class VelocityCompressorTest {
       source.release();
       dest.release();
       decompressed.release();
-      compressor.close();
     }
   }
 }

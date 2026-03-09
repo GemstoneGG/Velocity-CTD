@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,19 +35,42 @@ import org.apache.logging.log4j.Logger;
  */
 public class InitialConnectSessionHandler implements MinecraftSessionHandler {
 
+  /**
+   * The logger instance for logging events related to {@link InitialConnectSessionHandler}.
+   */
   private static final Logger logger = LogManager.getLogger(InitialConnectSessionHandler.class);
 
+  /**
+   * The player associated with this session.
+   */
   private final ConnectedPlayer player;
 
+  /**
+   * The Velocity server instance.
+   */
   private final VelocityServer server;
 
-  InitialConnectSessionHandler(ConnectedPlayer player, VelocityServer server) {
+  InitialConnectSessionHandler(final ConnectedPlayer player, final VelocityServer server) {
     this.player = player;
     this.server = server;
   }
 
+  /**
+   * Handles a {@link PluginMessagePacket} sent by the client during the initial connection state.
+   *
+   * <p>If the player has an in-flight backend connection, this method attempts to:
+   * <ul>
+   *   <li>Handle the packet using the current connection phase (e.g., Forge handshake).</li>
+   *   <li>Process BungeeCord-compatible plugin messages.</li>
+   *   <li>Fire a {@link PluginMessageEvent} for known registered channels.</li>
+   * </ul>
+   * If the channel is unknown, the packet is forwarded as-is to the backend server.</p>
+   *
+   * @param packet the plugin message sent by the client
+   * @return {@code true} always
+   */
   @Override
-  public boolean handle(PluginMessagePacket packet) {
+  public boolean handle(final PluginMessagePacket packet) {
     VelocityServerConnection serverConn = player.getConnectionInFlight();
     if (serverConn != null) {
       if (player.getPhase().handle(player, packet, serverConn)) {
@@ -65,8 +88,7 @@ public class InitialConnectSessionHandler implements MinecraftSessionHandler {
       }
 
       byte[] copy = ByteBufUtil.getBytes(packet.content());
-      PluginMessageEvent event = new PluginMessageEvent(serverConn, serverConn.getPlayer(), id,
-          copy);
+      PluginMessageEvent event = new PluginMessageEvent(serverConn, serverConn.getPlayer(), id, copy);
       server.getEventManager().fire(event)
           .thenAcceptAsync(pme -> {
             if (pme.getResult().isAllowed() && serverConn.isActive()) {
@@ -80,12 +102,19 @@ public class InitialConnectSessionHandler implements MinecraftSessionHandler {
             return null;
           });
     }
+
     return true;
   }
 
+  /**
+   * Called when the client disconnects during the initial connection phase.
+   *
+   * <p>This performs teardown of the player session, releasing any in-flight connections
+   * and cleaning up associated state.</p>
+   */
   @Override
   public void disconnected() {
-    // the user cancelled the login process
+    // the user canceled the login process
     player.teardown();
   }
 }

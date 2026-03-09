@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -12,8 +12,8 @@ import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Represents a connextion that is in the login phase. This is most useful in conjunction
- * for login plugin messages.
+ * Represents a connection that is in the login phase. This is most useful in conjunction
+ *  with login plugin messages.
  */
 public interface LoginPhaseConnection extends InboundConnection, KeyIdentifiable {
 
@@ -26,8 +26,7 @@ public interface LoginPhaseConnection extends InboundConnection, KeyIdentifiable
    * @param contents the message to send
    * @param consumer the consumer that will respond to the message
    */
-  void sendLoginPluginMessage(ChannelIdentifier identifier, byte[] contents,
-      MessageConsumer consumer);
+  void sendLoginPluginMessage(ChannelIdentifier identifier, byte[] contents, MessageConsumer consumer);
 
   /**
    * Consumes the message.

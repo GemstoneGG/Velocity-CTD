@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,15 +33,36 @@ import io.netty.buffer.ByteBuf;
  */
 public class RegistryIdArgumentSerializer implements ArgumentPropertySerializer<Integer> {
 
+  /**
+   * A shared singleton instance of the {@code RegistryIdArgumentSerializer}.
+   */
   static final RegistryIdArgumentSerializer REGISTRY_ID = new RegistryIdArgumentSerializer();
 
+  /**
+   * Deserializes an integer registry ID from the given {@link ByteBuf}.
+   *
+   * <p>This method uses VarInt encoding as defined in the Minecraft protocol.</p>
+   *
+   * @param buf the input buffer containing the encoded integer
+   * @param protocolVersion the protocol version in use
+   * @return the decoded registry ID as an {@link Integer}
+   */
   @Override
-  public Integer deserialize(ByteBuf buf, ProtocolVersion protocolVersion) {
+  public Integer deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
     return ProtocolUtils.readVarInt(buf);
   }
 
+  /**
+   * Serializes the given registry ID into the specified {@link ByteBuf}.
+   *
+   * <p>The integer is encoded as a VarInt for efficient transmission.</p>
+   *
+   * @param object the registry ID to encode
+   * @param buf the output buffer to write the data into
+   * @param protocolVersion the protocol version in use
+   */
   @Override
-  public void serialize(Integer object, ByteBuf buf, ProtocolVersion protocolVersion) {
+  public void serialize(final Integer object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeVarInt(buf, object);
   }
 }

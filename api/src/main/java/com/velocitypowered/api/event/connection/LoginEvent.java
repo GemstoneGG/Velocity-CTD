@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -11,6 +11,7 @@ import com.google.common.base.Preconditions;
 import com.velocitypowered.api.event.ResultedEvent;
 import com.velocitypowered.api.event.annotation.AwaitingEvent;
 import com.velocitypowered.api.proxy.Player;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * This event is fired once the player has been authenticated, but before they connect to a server.
@@ -21,17 +22,43 @@ import com.velocitypowered.api.proxy.Player;
 @AwaitingEvent
 public final class LoginEvent implements ResultedEvent<ResultedEvent.ComponentResult> {
 
+  /**
+   * The player who has successfully authenticated.
+   */
   private final Player player;
+
+  /**
+   * The server ID hash sent to Mojang for authentication, or {@code null} if offline-mode.
+   */
+  private final String serverIdHash;
+
+  /**
+   * The result of the login event, determining whether the player is allowed to proceed.
+   */
   private ComponentResult result;
 
   /**
    * Constructs a new {@link LoginEvent}.
    *
    * @param player the player who has completed authentication
+   * @param serverIdHash the server ID hash sent to Mojang for authentication,
+   *                     or {@code null} if the connection is in offline-mode
    */
-  public LoginEvent(Player player) {
+  public LoginEvent(final Player player, final @Nullable String serverIdHash) {
     this.player = Preconditions.checkNotNull(player, "player");
+    this.serverIdHash = serverIdHash;
     this.result = ComponentResult.allowed();
+  }
+
+  /**
+   * Constructs a new {@link LoginEvent}.
+   *
+   * @param player the player who has completed authentication
+   * @deprecated Use {@link #LoginEvent(Player, String)}.
+   */
+  @Deprecated(forRemoval = true)
+  public LoginEvent(final Player player) {
+    this(player, null);
   }
 
   /**
@@ -43,13 +70,23 @@ public final class LoginEvent implements ResultedEvent<ResultedEvent.ComponentRe
     return player;
   }
 
+  /**
+   * Returns the server ID hash that was sent to Mojang to authenticate the player.
+   * If the connection was in offline-mode, this returns {@code null}.
+   *
+   * @return the server ID hash that was sent to Mojang to authenticate the player
+   */
+  public @Nullable String getServerIdHash() {
+    return serverIdHash;
+  }
+
   @Override
   public ComponentResult getResult() {
     return result;
   }
 
   @Override
-  public void setResult(ComponentResult result) {
+  public void setResult(final ComponentResult result) {
     this.result = Preconditions.checkNotNull(result, "result");
   }
 
@@ -57,6 +94,7 @@ public final class LoginEvent implements ResultedEvent<ResultedEvent.ComponentRe
   public String toString() {
     return "LoginEvent{"
         + "player=" + player
+        + ", serverIdHash=" + serverIdHash
         + ", result=" + result
         + '}';
   }

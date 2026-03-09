@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,14 @@ import java.util.function.Function;
  */
 public class ChatBuilderFactory {
 
+  /**
+   * The protocol version used to determine the appropriate chat builder implementation.
+   */
   private final ProtocolVersion version;
+
+  /**
+   * A function that produces a {@link ChatBuilderV2} instance from a protocol version.
+   */
   private final Function<ProtocolVersion, ChatBuilderV2> builderFunction;
 
   /**
@@ -39,7 +46,7 @@ public class ChatBuilderFactory {
    *
    * @param version the protocol version to be used by the chat builder factory
    */
-  public ChatBuilderFactory(ProtocolVersion version) {
+  public ChatBuilderFactory(final ProtocolVersion version) {
     this.version = version;
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19_3)) {
       this.builderFunction = SessionChatBuilder::new;
@@ -50,6 +57,12 @@ public class ChatBuilderFactory {
     }
   }
 
+  /**
+   * Returns a version-appropriate {@link ChatBuilderV2} instance for constructing
+   * chat components or message payloads.
+   *
+   * @return a builder implementation based on the protocol version
+   */
   public ChatBuilderV2 builder() {
     return this.builderFunction.apply(this.version);
   }

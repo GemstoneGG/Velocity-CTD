@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,11 +17,12 @@
 
 package com.velocitypowered.proxy.protocol.netty;
 
+import static io.netty.channel.ChannelHandler.Sharable;
+
 import com.velocitypowered.natives.encryption.JavaVelocityCipher;
 import com.velocitypowered.natives.util.Natives;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageEncoder;
 import java.util.List;
@@ -29,25 +30,30 @@ import java.util.List;
 /**
  * Handler for appending a length for Minecraft packets.
  */
-@ChannelHandler.Sharable
-public class MinecraftVarintLengthEncoder extends MessageToMessageEncoder<ByteBuf> {
+@Sharable
+public final class MinecraftVarintLengthEncoder extends MessageToMessageEncoder<ByteBuf> {
 
+  /**
+   * A shared singleton instance of this encoder.
+   */
   public static final MinecraftVarintLengthEncoder INSTANCE = new MinecraftVarintLengthEncoder();
 
+  /**
+   * Whether the current cipher implementation is {@link JavaVelocityCipher}, implying use of
+   * heap buffers for best compatibility.
+   */
   static final boolean IS_JAVA_CIPHER = Natives.cipher.get() == JavaVelocityCipher.FACTORY;
 
   private MinecraftVarintLengthEncoder() {
   }
 
   @Override
-  protected void encode(ChannelHandlerContext ctx, ByteBuf buf,
-      List<Object> list) throws Exception {
+  protected void encode(final ChannelHandlerContext ctx, final ByteBuf buf,
+                        final List<Object> list) throws Exception {
     final int length = buf.readableBytes();
     final int varintLength = ProtocolUtils.varIntBytes(length);
 
-    final ByteBuf lenBuf = IS_JAVA_CIPHER
-        ? ctx.alloc().heapBuffer(varintLength)
-        : ctx.alloc().directBuffer(varintLength);
+    final ByteBuf lenBuf = IS_JAVA_CIPHER ? ctx.alloc().heapBuffer(varintLength) : ctx.alloc().directBuffer(varintLength);
 
     ProtocolUtils.writeVarInt(lenBuf, length);
     list.add(lenBuf);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -29,7 +29,7 @@ public interface InboundConnection {
    * Returns the hostname that the user entered into the client, if applicable.
    * <br/>
    * This is partially processed, including removing a trailing dot, and discarding data after a null byte.
-
+   *
    * @return the hostname from the client
    */
   Optional<InetSocketAddress> getVirtualHost();
@@ -42,9 +42,9 @@ public interface InboundConnection {
   Optional<String> getRawVirtualHost();
 
   /**
-   * Determine whether or not the player remains online.
+   * Determine whether the player remains online.
    *
-   * @return whether or not the player active
+   * @return whether the player active
    */
   boolean isActive();
 

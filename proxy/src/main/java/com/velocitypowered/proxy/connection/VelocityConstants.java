@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,11 +20,16 @@ package com.velocitypowered.proxy.connection;
 /**
  * Various useful constants.
  */
-public class VelocityConstants {
+public final class VelocityConstants {
 
   private VelocityConstants() {
     throw new AssertionError();
   }
 
+  /**
+   * A shared, immutable empty byte array instance.
+   *
+   * <p>Used to avoid unnecessary allocations for empty byte arrays.</p>
+   */
   public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 }

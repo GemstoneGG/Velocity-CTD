@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,24 +36,57 @@ import net.kyori.adventure.nbt.BinaryTagIO;
  */
 public class DialogShowPacket implements MinecraftPacket {
 
+  /**
+   * The state registry associated with the current protocol phase.
+   * Used to determine whether the packet is being used in CONFIG state or not.
+   */
   private final StateRegistry state;
+
+  /**
+   * The dialog ID.
+   * If {@code 0}, a dialog should be displayed and {@link #nbt} will contain the dialog contents.
+   */
   private int id;
+
+  /**
+   * The NBT data representing the dialog content.
+   * This is only present if {@link #id} is {@code 0}.
+   */
   private BinaryTag nbt;
 
+  /**
+   * Constructs a new DialogShowPacket for the specified protocol state.
+   *
+   * @param state the state registry representing the current protocol phase
+   */
   public DialogShowPacket(final StateRegistry state) {
     this.state = state;
   }
 
+  /**
+   * Decodes the dialog packet from the given buffer.
+   *
+   * @param buf the buffer to read from
+   * @param direction the direction of the packet (SERVERBOUND or CLIENTBOUND)
+   * @param protocolVersion the current protocol version
+   */
   @Override
-  public void decode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
+  public void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     this.id = this.state == StateRegistry.CONFIG ? 0 : ProtocolUtils.readVarInt(buf);
     if (this.id == 0) {
       this.nbt = ProtocolUtils.readBinaryTag(buf, protocolVersion, BinaryTagIO.reader());
     }
   }
 
+  /**
+   * Encodes the dialog packet into the given buffer.
+   *
+   * @param buf the buffer to write to
+   * @param direction the direction of the packet (SERVERBOUND or CLIENTBOUND)
+   * @param protocolVersion the current protocol version
+   */
   @Override
-  public void encode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
+  public void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     if (this.state == StateRegistry.CONFIG) {
       ProtocolUtils.writeBinaryTag(buf, protocolVersion, this.nbt);
     } else {
@@ -64,8 +97,14 @@ public class DialogShowPacket implements MinecraftPacket {
     }
   }
 
+  /**
+   * Handles this packet using the given session handler.
+   *
+   * @param handler the Minecraft session handler
+   * @return true if the packet was handled, false otherwise
+   */
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

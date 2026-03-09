@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,17 +29,33 @@ import net.kyori.adventure.translation.GlobalTranslator;
  * Velocity Translation Mapper.
  */
 public enum TranslatableMapper implements BiConsumer<TranslatableComponent, Consumer<Component>> {
+
+  /**
+   * Singleton instance of the {@link TranslatableMapper} used to resolve and render
+   * {@link TranslatableComponent} objects to localized {@link Component} instances
+   * using the {@link GlobalTranslator}.
+   *
+   * <p>This instance is registered in the {@link #FLATTENER} for use during
+   * text flattening, enabling proper localization of translatable messages based on
+   * the user's locale or a best-match fallback.</p>
+   */
   INSTANCE;
 
+  /**
+   * A {@link ComponentFlattener} instance
+   * customized to handle {@link TranslatableComponent}s
+   * using Velocity’s {@link TranslatableMapper}.
+   *
+   * <p>This flattener is used to convert complex Adventure components into plain text
+   * for display in legacy contexts (e.g. console logs, plugin messages).</p>
+   */
   public static final ComponentFlattener FLATTENER = ComponentFlattener.basic().toBuilder()
-          .complexMapper(TranslatableComponent.class, TranslatableMapper.INSTANCE)
-          .build();
+      .complexMapper(TranslatableComponent.class, TranslatableMapper.INSTANCE)
+      .build();
 
   @Override
-  public void accept(
-          final TranslatableComponent translatableComponent,
-          final Consumer<Component> componentConsumer
-  ) {
+  public void accept(final TranslatableComponent translatableComponent,
+                     final Consumer<Component> componentConsumer) {
     final Locale locale = ClosestLocaleMatcher.INSTANCE.lookupClosest(Locale.getDefault());
     if (GlobalTranslator.translator().canTranslate(translatableComponent.key(), locale)) {
       componentConsumer.accept(GlobalTranslator.render(translatableComponent, locale));
@@ -48,6 +64,7 @@ public enum TranslatableMapper implements BiConsumer<TranslatableComponent, Cons
       if (fallback == null) {
         fallback = translatableComponent.key();
       }
+
       componentConsumer.accept(Component.text(fallback));
     }
   }

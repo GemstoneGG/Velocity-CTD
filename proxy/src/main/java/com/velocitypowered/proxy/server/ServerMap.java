@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,10 +36,23 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class ServerMap {
 
+  /**
+   * The {@link VelocityServer} instance backing this server map,
+   * or {@code null} if not initialized in a running proxy context (e.g., testing).
+   */
   private final @Nullable VelocityServer server;
+
+  /**
+   * A thread-safe map of lowercase server names to their {@link RegisteredServer} instances.
+   */
   private final Map<String, RegisteredServer> servers = new ConcurrentHashMap<>();
 
-  public ServerMap(@Nullable VelocityServer server) {
+  /**
+   * Creates a new {@code ServerMap} for managing registered servers.
+   *
+   * @param server the Velocity server instance, may be {@code null}
+   */
+  public ServerMap(final @Nullable VelocityServer server) {
     this.server = server;
   }
 
@@ -49,12 +62,17 @@ public class ServerMap {
    * @param name the name to look up
    * @return the server, if it exists
    */
-  public Optional<RegisteredServer> getServer(String name) {
+  public Optional<RegisteredServer> getServer(final String name) {
     Preconditions.checkNotNull(name, "server");
     String lowerName = name.toLowerCase(Locale.US);
     return Optional.ofNullable(servers.get(lowerName));
   }
 
+  /**
+   * Returns an immutable snapshot of all registered servers currently known to the proxy.
+   *
+   * @return a collection of all {@link RegisteredServer} instances
+   */
   public Collection<RegisteredServer> getAllServers() {
     return ImmutableList.copyOf(servers.values());
   }
@@ -66,7 +84,7 @@ public class ServerMap {
    * @param serverInfo the server to create a registered server with
    * @return the {@link RegisteredServer} built from the {@link ServerInfo}
    */
-  public RegisteredServer createRawRegisteredServer(ServerInfo serverInfo) {
+  public RegisteredServer createRawRegisteredServer(final ServerInfo serverInfo) {
     return new VelocityRegisteredServer(server, serverInfo);
   }
 
@@ -76,7 +94,7 @@ public class ServerMap {
    * @param serverInfo the server to register
    * @return the registered server
    */
-  public RegisteredServer register(ServerInfo serverInfo) {
+  public RegisteredServer register(final ServerInfo serverInfo) {
     Preconditions.checkNotNull(serverInfo, "serverInfo");
     String lowerName = serverInfo.getName().toLowerCase(Locale.US);
     RegisteredServer rs = createRawRegisteredServer(serverInfo);
@@ -101,7 +119,7 @@ public class ServerMap {
    *
    * @param serverInfo the server to unregister
    */
-  public void unregister(ServerInfo serverInfo) {
+  public void unregister(final ServerInfo serverInfo) {
     Preconditions.checkNotNull(serverInfo, "serverInfo");
     String lowerName = serverInfo.getName().toLowerCase(Locale.US);
     RegisteredServer rs = servers.get(lowerName);
@@ -109,6 +127,7 @@ public class ServerMap {
       throw new IllegalArgumentException(
           "Server with name " + serverInfo.getName() + " is not registered!");
     }
+
     Preconditions.checkArgument(rs.getServerInfo().equals(serverInfo),
         "Trying to remove server %s with differing information", serverInfo.getName());
     Preconditions.checkState(servers.remove(lowerName, rs),

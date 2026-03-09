@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -17,13 +17,13 @@ import java.util.UUID;
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
+ * with the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * copies or significant portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -39,13 +39,23 @@ import java.util.UUID;
  * UUIDs. As the native Java 9+ UUID.toString() implementation dashes its UUIDs, we use the FastUUID
  * methods, which ought to be faster than a String.replace().
  */
-class FastUuidSansHyphens {
+final class FastUuidSansHyphens {
 
+  /**
+   * The length of a Mojang UUID string (32 hex characters, no dashes).
+   */
   private static final int MOJANG_BROKEN_UUID_LENGTH = 32;
 
+  /**
+   * Hexadecimal characters used for UUID string encoding.
+   */
   private static final char[] HEX_DIGITS =
-      new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+      new char[] {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
+  /**
+   * A lookup table for converting ASCII characters to hexadecimal values.
+   * Initialized with -1 for invalid entries.
+   */
   private static final long[] HEX_VALUES = new long[128];
 
   static {

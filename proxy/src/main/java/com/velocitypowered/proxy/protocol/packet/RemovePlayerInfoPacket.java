@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,46 +33,98 @@ import java.util.UUID;
  */
 public class RemovePlayerInfoPacket implements MinecraftPacket {
 
+  /**
+   * The collection of player profile UUIDs to remove from the player list.
+   */
   private Collection<UUID> profilesToRemove;
 
+  /**
+   * Constructs an empty {@code RemovePlayerInfoPacket}.
+   * This constructor initializes the internal collection to an empty list.
+   */
   public RemovePlayerInfoPacket() {
     this.profilesToRemove = new ArrayList<>();
   }
 
-  public RemovePlayerInfoPacket(Collection<UUID> profilesToRemove) {
+  /**
+   * Constructs a {@code RemovePlayerInfoPacket} with the specified profiles to remove.
+   *
+   * @param profilesToRemove the collection of player UUIDs to remove from the player list
+   */
+  public RemovePlayerInfoPacket(final Collection<UUID> profilesToRemove) {
     this.profilesToRemove = profilesToRemove;
   }
 
+  /**
+   * Gets the collection of player profile UUIDs to remove from the player list.
+   *
+   * @return the collection of UUIDs
+   */
   public Collection<UUID> getProfilesToRemove() {
     return profilesToRemove;
   }
 
-  public void setProfilesToRemove(Collection<UUID> profilesToRemove) {
+  /**
+   * Sets the collection of player profile UUIDs to remove from the player list.
+   *
+   * @param profilesToRemove the collection of UUIDs
+   */
+  public void setProfilesToRemove(final Collection<UUID> profilesToRemove) {
     this.profilesToRemove = profilesToRemove;
   }
 
+  /**
+   * Decodes the {@code RemovePlayerInfoPacket} from the provided {@link ByteBuf}.
+   *
+   * <p>This method reads a list of UUIDs representing player profiles that should
+   * be removed from the tab list, based on the expected count prefix.</p>
+   *
+   * @param buf the byte buffer to read from
+   * @param direction the direction of the packet (clientbound or serverbound)
+   * @param protocolVersion the protocol version in use
+   */
   @Override
-  public void decode(ByteBuf buf, ProtocolUtils.Direction direction,
-      ProtocolVersion protocolVersion) {
+  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                     final ProtocolVersion protocolVersion) {
     int length = ProtocolUtils.readVarInt(buf);
     Collection<UUID> profilesToRemove = Lists.newArrayListWithCapacity(length);
     for (int idx = 0; idx < length; idx++) {
       profilesToRemove.add(ProtocolUtils.readUuid(buf));
     }
+
     this.profilesToRemove = profilesToRemove;
   }
 
+  /**
+   * Encodes this {@code RemovePlayerInfoPacket} into the provided {@link ByteBuf}.
+   *
+   * <p>This writes the number of UUIDs followed by each player profile UUID
+   * that should be removed from the tab list.</p>
+   *
+   * @param buf the byte buffer to write to
+   * @param direction the direction of the packet (clientbound or serverbound)
+   * @param protocolVersion the protocol version in use
+   */
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction,
-      ProtocolVersion protocolVersion) {
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                     final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeVarInt(buf, this.profilesToRemove.size());
     for (UUID uuid : this.profilesToRemove) {
       ProtocolUtils.writeUuid(buf, uuid);
     }
   }
 
+  /**
+   * Handles this packet using the provided {@link MinecraftSessionHandler}.
+   *
+   * <p>Delegates the handling of this packet to the session handler's
+   * {@code handle(RemovePlayerInfoPacket)} method.</p>
+   *
+   * @param handler the session handler responsible for processing this packet
+   * @return {@code true} if the packet was handled successfully; {@code false} otherwise
+   */
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

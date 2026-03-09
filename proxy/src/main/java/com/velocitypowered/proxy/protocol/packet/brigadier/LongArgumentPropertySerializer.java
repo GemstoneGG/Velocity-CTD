@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,16 +25,28 @@ import com.mojang.brigadier.arguments.LongArgumentType;
 import com.velocitypowered.api.network.ProtocolVersion;
 import io.netty.buffer.ByteBuf;
 
-class LongArgumentPropertySerializer implements ArgumentPropertySerializer<LongArgumentType> {
+/**
+ * The {@code LongArgumentPropertySerializer} handles serialization and deserialization
+ * of {@link LongArgumentType}, preserving optional minimum and maximum bounds.
+ *
+ * <p>This serializer is used for command arguments that accept long integer values,
+ * which are useful for time, ticks, or large numeric ranges in Minecraft commands.</p>
+ *
+ * <p>Like other numeric serializers, it uses a single flag byte to encode the presence
+ * of minimum and maximum values, followed by the respective long values when present.</p>
+ */
+final class LongArgumentPropertySerializer implements ArgumentPropertySerializer<LongArgumentType> {
 
+  /**
+   * A shared singleton instance of {@code LongArgumentPropertySerializer}.
+   */
   static final LongArgumentPropertySerializer LONG = new LongArgumentPropertySerializer();
 
   private LongArgumentPropertySerializer() {
-
   }
 
   @Override
-  public LongArgumentType deserialize(ByteBuf buf, ProtocolVersion protocolVersion) {
+  public LongArgumentType deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
     byte flags = buf.readByte();
     long minimum = (flags & HAS_MINIMUM) != 0 ? buf.readLong() : Long.MIN_VALUE;
     long maximum = (flags & HAS_MAXIMUM) != 0 ? buf.readLong() : Long.MAX_VALUE;
@@ -42,7 +54,7 @@ class LongArgumentPropertySerializer implements ArgumentPropertySerializer<LongA
   }
 
   @Override
-  public void serialize(LongArgumentType object, ByteBuf buf, ProtocolVersion protocolVersion) {
+  public void serialize(final LongArgumentType object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
     boolean hasMinimum = object.getMinimum() != Long.MIN_VALUE;
     boolean hasMaximum = object.getMaximum() != Long.MAX_VALUE;
     byte flag = getFlags(hasMinimum, hasMaximum);
@@ -51,6 +63,7 @@ class LongArgumentPropertySerializer implements ArgumentPropertySerializer<LongA
     if (hasMinimum) {
       buf.writeLong(object.getMinimum());
     }
+
     if (hasMaximum) {
       buf.writeLong(object.getMaximum());
     }

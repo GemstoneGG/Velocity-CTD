@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -20,7 +20,7 @@ public interface ChannelMessageSink {
    *
    * @param identifier the channel identifier to send the message on
    * @param data the data to send
-   * @return whether or not the message could be sent
+   * @return whether the message could be sent
    */
   boolean sendPluginMessage(@NotNull ChannelIdentifier identifier, byte @NotNull[] data);
 
@@ -41,7 +41,5 @@ public interface ChannelMessageSink {
    * @return whether the message could be sent
    */
   @ApiStatus.Experimental
-  boolean sendPluginMessage(
-          @NotNull ChannelIdentifier identifier,
-          @NotNull PluginMessageEncoder dataEncoder);
+  boolean sendPluginMessage(@NotNull ChannelIdentifier identifier, @NotNull PluginMessageEncoder dataEncoder);
 }

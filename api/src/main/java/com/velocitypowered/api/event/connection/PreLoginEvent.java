@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -13,6 +13,7 @@ import com.velocitypowered.api.event.annotation.AwaitingEvent;
 import com.velocitypowered.api.proxy.InboundConnection;
 import java.util.Optional;
 import java.util.UUID;
+import net.kyori.adventure.text.Component;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -23,18 +24,31 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * with the login process, but you should try to limit the work done in any event that fires during
  * the login process.
  *
- * <p>
- *   As of Velocity 3.1.0, you may cast the {@link InboundConnection} to a
- *   {@link com.velocitypowered.api.proxy.LoginPhaseConnection} to allow a
- *   proxy plugin to send login plugin messages to the client.
- * </p>
+ * <p>As of Velocity 3.1.0, you may cast the {@link InboundConnection} to a
+ * {@link com.velocitypowered.api.proxy.LoginPhaseConnection} to allow a
+ * proxy plugin to send login plugin messages to the client.</p>
  */
 @AwaitingEvent
 public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLoginComponentResult> {
 
+  /**
+   * The inbound connection associated with this pre-login attempt.
+   */
   private final InboundConnection connection;
+
+  /**
+   * The username provided by the connecting player.
+   */
   private final String username;
+
+  /**
+   * The UUID of the connecting player, if available.
+   */
   private final @Nullable UUID uuid;
+
+  /**
+   * The result of the pre-login event, indicating whether the player is allowed to proceed.
+   */
   private PreLoginComponentResult result;
 
   /**
@@ -88,7 +102,7 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
    * up to 1.20.1 it is optional and from 1.20.2 it will always be available.</p>
    *
    * @return the uuid
-   * @sinceMinecraft 1.19.3
+   * @since Minecraft 1.19.3
    */
   public @Nullable UUID getUniqueId() {
     return uuid;
@@ -119,18 +133,36 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
    */
   public static final class PreLoginComponentResult implements ResultedEvent.Result {
 
+    /**
+     * A result allowing the player to connect normally.
+     */
     private static final PreLoginComponentResult ALLOWED = new PreLoginComponentResult(
         Result.ALLOWED, null);
+
+    /**
+     * A result allowing the player to connect and forcing online mode for authentication.
+     */
     private static final PreLoginComponentResult FORCE_ONLINEMODE = new PreLoginComponentResult(
         Result.FORCE_ONLINE, null);
+
+    /**
+     * A result allowing the player to connect and forcing offline mode.
+     */
     private static final PreLoginComponentResult FORCE_OFFLINEMODE = new PreLoginComponentResult(
         Result.FORCE_OFFLINE, null);
 
+    /**
+     * The login result type (e.g., allowed, denied, forced mode).
+     */
     private final Result result;
-    private final net.kyori.adventure.text.Component reason;
 
-    private PreLoginComponentResult(Result result,
-        net.kyori.adventure.text.@Nullable Component reason) {
+    /**
+     * The message to show to the player if the login is denied.
+     */
+    private final Component reason;
+
+    private PreLoginComponentResult(final Result result,
+                                    final @Nullable Component reason) {
       this.result = result;
       this.reason = reason;
     }
@@ -143,9 +175,9 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
     /**
      * Gets the reason component shown to the player if the connection is denied.
      *
-     * @return the reason as a {@link net.kyori.adventure.text.Component}, or empty if not denied
+     * @return the reason as a {@link Component}, or empty if not denied
      */
-    public Optional<net.kyori.adventure.text.Component> getReasonComponent() {
+    public Optional<Component> getReasonComponent() {
       return Optional.ofNullable(reason);
     }
 
@@ -188,7 +220,7 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
 
     /**
      * Returns a result indicating the connection will be allowed through the proxy, but the
-     * connection will be forced to use online mode provided that the proxy is in offline mode. This
+     * connection will be forced to use online mode if the proxy is in offline mode. This
      * acts similarly to {@link #allowed()} on an online-mode proxy.
      *
      * @return the result
@@ -213,16 +245,32 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
      * @param reason the reason for disallowing the connection
      * @return a new result
      */
-    public static PreLoginComponentResult denied(net.kyori.adventure.text.Component reason) {
+    public static PreLoginComponentResult denied(final Component reason) {
       Preconditions.checkNotNull(reason, "reason");
       return new PreLoginComponentResult(Result.DISALLOWED, reason);
     }
 
     private enum Result {
-      ALLOWED,
-      FORCE_ONLINE,
-      FORCE_OFFLINE,
-      DISALLOWED
+
+    /**
+     * The connection is allowed without any modifications to the proxy’s default mode.
+     */
+    ALLOWED,
+
+    /**
+     * The connection is allowed, and the proxy will enforce online mode for this connection.
+     */
+    FORCE_ONLINE,
+
+    /**
+     * The connection is allowed, and the proxy will enforce offline mode for this connection.
+     */
+    FORCE_OFFLINE,
+
+    /**
+     * The connection is denied and will be disconnected.
+     */
+    DISALLOWED
     }
   }
 }

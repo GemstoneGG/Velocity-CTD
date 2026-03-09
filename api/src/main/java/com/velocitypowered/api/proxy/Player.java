@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -44,7 +44,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Represents a player who is connected to the proxy.
+ * Represents a player connected to the proxy.
  */
 public interface Player extends
     /* Fundamental Velocity interfaces */
@@ -202,7 +202,7 @@ public interface Player extends
   void disconnect(Component reason);
 
   /**
-   * Sends chat input onto the players current server as if they typed it into the client chat box.
+   * Sends chat input onto the player's current server as if they typed it into the client chat box.
    *
    * @param input the chat input to send
    */
@@ -211,7 +211,7 @@ public interface Player extends
   /**
    * Sends the specified resource pack from {@code url} to the user. If at all possible, send the
    * resource pack using {@link #sendResourcePack(String, byte[])}. To monitor the status of the
-   * sent resource pack, subscribe to {@link PlayerResourcePackStatusEvent}.
+   * "sent" resource pack, subscribe to {@link PlayerResourcePackStatusEvent}.
    *
    * @param url the URL for the resource pack
    * @deprecated Use {@link #sendResourcePackOffer(ResourcePackInfo)} instead
@@ -221,7 +221,7 @@ public interface Player extends
 
   /**
    * Sends the specified resource pack from {@code url} to the user, using the specified 20-byte
-   * SHA-1 hash. To monitor the status of the sent resource pack, subscribe to
+   * SHA-1 hash. To monitor the status of the "sent" resource pack, subscribe to
    * {@link PlayerResourcePackStatusEvent}.
    *
    * @param url the URL for the resource pack
@@ -233,7 +233,7 @@ public interface Player extends
 
   /**
    * Queues and sends a new Resource-pack offer to the player.
-   * To monitor the status of the sent resource pack, subscribe to
+   * To monitor the status of the "sent" resource pack, subscribe to
    * {@link PlayerResourcePackStatusEvent}.
    * To create a {@link ResourcePackInfo} use the
    * {@link ProxyServer#createResourcePackBuilder(String)} builder.
@@ -335,16 +335,13 @@ public interface Player extends
   }
 
   @Override
-  default @NotNull HoverEvent<HoverEvent.ShowEntity> asHoverEvent(
-          @NotNull UnaryOperator<HoverEvent.ShowEntity> op) {
-    return HoverEvent.showEntity(op.apply(HoverEvent.ShowEntity.showEntity(this, getUniqueId(),
-            Component.text(getUsername()))));
+  default @NotNull HoverEvent<HoverEvent.ShowEntity> asHoverEvent(final @NotNull UnaryOperator<HoverEvent.ShowEntity> op) {
+    return HoverEvent.showEntity(op.apply(HoverEvent.ShowEntity.showEntity(this, getUniqueId(), Component.text(getUsername()))));
   }
 
-  @SuppressWarnings("UnstableApiUsage") // permitted implementation
+  @SuppressWarnings("UnstableApiUsage") // Permitted unstable implementation
   @Override
-  default void applySkinToPlayerHeadContents(
-      final PlayerHeadObjectContents.@NotNull Builder builder) {
+  default void applySkinToPlayerHeadContents(final PlayerHeadObjectContents.@NotNull Builder builder) {
     builder.skin(this.getGameProfile());
     if (this.hasSentPlayerSettings()) {
       builder.hat(this.getPlayerSettings().getSkinParts().hasHat());
@@ -358,10 +355,6 @@ public interface Player extends
    */
   @Nullable String getClientBrand();
 
-  //
-  // Custom Chat Completions API
-  //
-
   /**
    * Add custom chat completion suggestions shown to the player while typing a message.
    *
@@ -372,7 +365,7 @@ public interface Player extends
   /**
    * Remove custom chat completion suggestions shown to the player while typing a message.
    *
-   * <p>Online player names can't be removed with this method, it will only affect
+   * <p>Online player names can't be removed with this method; it will only affect
    * custom completions added by {@link #addCustomChatCompletions(Collection)}
    * or {@link #setCustomChatCompletions(Collection)}.
    *
@@ -405,7 +398,7 @@ public interface Player extends
    *     Unsupported Adventure Operations</a>
    */
   @Override
-  default void playSound(@NotNull Sound sound) {
+  default void playSound(final @NotNull Sound sound) {
   }
 
   /**
@@ -418,7 +411,7 @@ public interface Player extends
    *     Unsupported Adventure Operations</a>
    */
   @Override
-  default void playSound(@NotNull Sound sound, double x, double y, double z) {
+  default void playSound(final @NotNull Sound sound, final double x, final double y, final double z) {
   }
 
   /**
@@ -432,11 +425,11 @@ public interface Player extends
    * @param emitter the emitter of the sound; may be another player of this player's server
    * @since 3.4.0
    * @sinceMinecraft 1.19.3
-   * @apiNote This method is currently only implemented for players on 1.19.3+
-   *     and requires a present {@link #getCurrentServer} for the emitting player as well as this player.
+   * @apiNote This method is currently only implemented for players on 1.19.3+ and
+   *     requires a present {@link #getCurrentServer} for the emitting player as well as this player.
    */
   @Override
-  default void playSound(@NotNull Sound sound, @NotNull Sound.Emitter emitter) {
+  default void playSound(final @NotNull Sound sound, final @NotNull Sound.Emitter emitter) {
   }
 
   /**
@@ -448,7 +441,7 @@ public interface Player extends
    * @apiNote This method is currently only implemented for players on 1.19.3+.
    */
   @Override
-  default void stopSound(@NotNull SoundStop stop) {
+  default void stopSound(final @NotNull SoundStop stop) {
   }
 
   /**
@@ -461,7 +454,7 @@ public interface Player extends
    *     Unsupported Adventure Operations</a>
    */
   @Override
-  default void openBook(@NotNull Book book) {
+  default void openBook(final @NotNull Book book) {
   }
 
   /**
@@ -474,7 +467,7 @@ public interface Player extends
    *     Unsupported Adventure Operations</a>
    */
   @Override
-  default void showDialog(@NotNull DialogLike dialog) {
+  default void showDialog(final @NotNull DialogLike dialog) {
   }
 
   /**
@@ -506,7 +499,7 @@ public interface Player extends
    * @param data the data of the cookie
    * @throws IllegalArgumentException if the player is from a version lower than 1.20.5
    * @since 3.3.0
-   * @sinceMinecraft 1.20.5
+   * @since Minecraft 1.20.5
    */
   void storeCookie(Key key, byte[] data);
 
@@ -519,7 +512,7 @@ public interface Player extends
    * @param key the identifier of the cookie
    * @throws IllegalArgumentException if the player is from a version lower than 1.20.5
    * @since 3.3.0
-   * @sinceMinecraft 1.20.5
+   * @since Minecraft 1.20.5
    */
   void requestCookie(Key key);
 
@@ -531,7 +524,19 @@ public interface Player extends
    * @param links an ordered list of {@link ServerLink}s to send to the player
    * @throws IllegalArgumentException if the player is from a version lower than 1.21
    * @since 3.3.0
-   * @sinceMinecraft 1.21
+   * @since Minecraft 1.21
    */
   void setServerLinks(@NotNull List<ServerLink> links);
+
+  /**
+   * Gets the custom queue priority in case they have one.
+   * If a player does not have a custom queue priority for a specified server,
+   * global priority is checked. If the player doesn't have a global priority
+   * too, 0 is returned.
+   *
+   * @param server The server to check priority for
+   *
+   * @return Custom queue priority of player, or 0.
+   */
+  int getQueuePriority(String server);
 }

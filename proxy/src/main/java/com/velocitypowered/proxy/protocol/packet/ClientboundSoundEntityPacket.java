@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,12 +34,31 @@ import org.jetbrains.annotations.Nullable;
  */
 public class ClientboundSoundEntityPacket implements MinecraftPacket {
 
+  /**
+   * Fallback random instance for generating sound seeds when none are provided.
+   */
   private static final Random SEEDS_RANDOM = new Random();
 
+  /**
+   * The sound to play, including name, source, volume, pitch, and optional seed.
+   */
   private Sound sound;
+
+  /**
+   * A fixed attenuation range for the sound, or {@code null} if default range applies.
+   */
   private @Nullable Float fixedRange;
+
+  /**
+   * The entity ID of the sound emitter.
+   */
   private int emitterEntityId;
 
+  /**
+   * Constructs an empty sound entity packet.
+   *
+   * <p>This is primarily used for deserialization.</p>
+   */
   public ClientboundSoundEntityPacket() {
   }
 
@@ -50,20 +69,32 @@ public class ClientboundSoundEntityPacket implements MinecraftPacket {
    * @param fixedRange the fixed attenuation range, or {@code null} to use the default
    * @param emitterEntityId the entity ID of the sound emitter
    */
-  public ClientboundSoundEntityPacket(Sound sound, @Nullable Float fixedRange, int emitterEntityId) {
+  public ClientboundSoundEntityPacket(final Sound sound, final @Nullable Float fixedRange, final int emitterEntityId) {
     this.sound = sound;
     this.fixedRange = fixedRange;
     this.emitterEntityId = emitterEntityId;
   }
 
+  /**
+   * Decoding is not implemented for this packet.
+   *
+   * @throws UnsupportedOperationException always
+   */
   @Override
-  public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
+  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     throw new UnsupportedOperationException("Decode is not implemented");
   }
 
+  /**
+   * Encodes this packet to the buffer.
+   *
+   * @param buf the buffer to write to
+   * @param direction the protocol direction
+   * @param protocolVersion the client protocol version
+   */
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-    ProtocolUtils.writeVarInt(buf, 0); // version-dependent, hardcoded sound ID
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
+    ProtocolUtils.writeVarInt(buf, 0); // Version-dependent, hardcoded sound ID
 
     ProtocolUtils.writeMinimalKey(buf, sound.name());
 
@@ -83,33 +114,68 @@ public class ClientboundSoundEntityPacket implements MinecraftPacket {
     buf.writeLong(sound.seed().orElse(SEEDS_RANDOM.nextLong()));
   }
 
+  /**
+   * Passes this packet to the active {@link MinecraftSessionHandler}.
+   *
+   * @param handler the session handler
+   * @return {@code true} if handled, {@code false} otherwise
+   */
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
+  /**
+   * Gets the sound to play.
+   *
+   * @return the sound
+   */
   public Sound getSound() {
     return sound;
   }
 
-  public void setSound(Sound sound) {
+  /**
+   * Sets the sound to play.
+   *
+   * @param sound the sound
+   */
+  public void setSound(final Sound sound) {
     this.sound = sound;
   }
 
+  /**
+   * Gets the fixed attenuation range for the sound.
+   *
+   * @return the fixed range, or {@code null} if default
+   */
   public @Nullable Float getFixedRange() {
     return fixedRange;
   }
 
-  public void setFixedRange(@Nullable Float fixedRange) {
+  /**
+   * Sets the fixed attenuation range for the sound.
+   *
+   * @param fixedRange the fixed range, or {@code null} to use default
+   */
+  public void setFixedRange(final @Nullable Float fixedRange) {
     this.fixedRange = fixedRange;
   }
 
+  /**
+   * Gets the entity ID of the sound emitter.
+   *
+   * @return the emitter entity ID
+   */
   public int getEmitterEntityId() {
     return emitterEntityId;
   }
 
-  public void setEmitterEntityId(int emitterEntityId) {
+  /**
+   * Sets the entity ID of the sound emitter.
+   *
+   * @param emitterEntityId the emitter entity ID
+   */
+  public void setEmitterEntityId(final int emitterEntityId) {
     this.emitterEntityId = emitterEntityId;
   }
-
 }

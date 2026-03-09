@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -23,8 +23,20 @@ import java.util.List;
  */
 @AwaitingEvent
 public class TabCompleteEvent {
+
+  /**
+   * The player who requested the tab completion.
+   */
   private final Player player;
+
+  /**
+   * The partial input that triggered the tab completion request.
+   */
   private final String partialMessage;
+
+  /**
+   * The list of tab completion suggestions. This list is mutable and may be modified by plugins.
+   */
   private final List<String> suggestions;
 
   /**
@@ -34,7 +46,7 @@ public class TabCompleteEvent {
    * @param partialMessage the partial message
    * @param suggestions the initial list of suggestions
    */
-  public TabCompleteEvent(Player player, String partialMessage, List<String> suggestions) {
+  public TabCompleteEvent(final Player player, final String partialMessage, final List<String> suggestions) {
     this.player = checkNotNull(player, "player");
     this.partialMessage = checkNotNull(partialMessage, "partialMessage");
     this.suggestions = new ArrayList<>(checkNotNull(suggestions, "suggestions"));
@@ -67,6 +79,14 @@ public class TabCompleteEvent {
     return suggestions;
   }
 
+  /**
+   * Returns a string representation of this {@code TabCompleteEvent}.
+   *
+   * <p>The output includes the player who requested the tab completion, the partial message that triggered it,
+   * and the current list of suggestions (which may have been modified by plugins).</p>
+   *
+   * @return a human-readable string describing the tab complete event
+   */
   @Override
   public String toString() {
     return "TabCompleteEvent{"

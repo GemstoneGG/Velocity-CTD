@@ -1,7 +1,7 @@
 /*
  * This file is part of commons, licensed under the MIT License.
  *
- * Copyright (c) 2021-2024 Seiama
+ * Copyright (c) 2021-2026 Seiama
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 package com.velocitypowered.api.util;
 
 import org.jspecify.annotations.NullMarked;
@@ -34,6 +35,7 @@ import org.jspecify.annotations.NullMarked;
 @NullMarked
 @SuppressWarnings("ComparableType") // allows us to be more flexible
 public interface Ordered<T> extends Comparable<T> {
+
   /**
    * Checks if {@code this} is greater than {@code that}.
    *

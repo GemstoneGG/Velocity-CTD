@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -60,8 +60,8 @@ public interface CommandMeta {
      *
      * @param node the command node
      * @return this builder, for chaining
-     * @throws IllegalArgumentException if the node is executable, i.e. has a non-null
-     *         {@link com.mojang.brigadier.Command}, or has a redirect.
+     * @throws IllegalArgumentException if the node is executable, i.e., has a non-null
+     *         {@link Command}, or has a redirect.
      */
     Builder hint(CommandNode<CommandSource> node);
 

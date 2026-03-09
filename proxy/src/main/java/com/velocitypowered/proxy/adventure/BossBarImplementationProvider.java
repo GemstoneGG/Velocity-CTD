@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,12 +20,31 @@ package com.velocitypowered.proxy.adventure;
 import com.google.auto.service.AutoService;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.bossbar.BossBarImplementation;
+import org.jetbrains.annotations.NotNull;
 
+/**
+ * Provides an implementation of {@link BossBarImplementation.Provider} for Velocity.
+ * This class is responsible for creating instances of {@link BossBarImplementation}
+ * that are associated with {@link BossBar} objects in the Velocity proxy.
+ *
+ * <p>The {@link VelocityBossBarImplementation} listens to the boss bar's state and
+ * updates the proxy-side boss bar accordingly.</p>
+ */
 @AutoService(BossBarImplementation.Provider.class)
-@SuppressWarnings("MissingJavadocType")
+@SuppressWarnings("UnstableApiUsage")
 public class BossBarImplementationProvider implements BossBarImplementation.Provider {
+
+  /**
+   * Creates a new {@link VelocityBossBarImplementation} for the given {@link BossBar}.
+   *
+   * <p>This method also registers the implementation as a listener to the provided boss bar,
+   * enabling it to react to updates such as name, progress, or visibility changes.</p>
+   *
+   * @param bar the {@link BossBar} for which to create a proxy-side implementation
+   * @return a new {@link VelocityBossBarImplementation} instance
+   */
   @Override
-  public BossBarImplementation create(final BossBar bar) {
+  public @NotNull BossBarImplementation create(final @NotNull BossBar bar) {
     final VelocityBossBarImplementation impl = new VelocityBossBarImplementation(bar);
     bar.addListener(impl);
     return impl;

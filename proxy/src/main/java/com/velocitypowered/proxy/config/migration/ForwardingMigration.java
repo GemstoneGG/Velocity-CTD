@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,9 +26,10 @@ import java.nio.file.Path;
 import org.apache.logging.log4j.Logger;
 
 /**
- * Migrate old forwarding secret settings to modern version using an external file.
+ * Migrate old forwarding secret settings to the modern version using an external file.
  */
 public final class ForwardingMigration implements ConfigurationMigration {
+
   @Override
   public boolean shouldMigrate(final CommentedFileConfig config) {
     return configVersion(config) < 2.0;
@@ -52,9 +53,11 @@ public final class ForwardingMigration implements ConfigurationMigration {
       Files.createFile(path);
       Files.writeString(path, actualSecret == null ? generateRandomString(12) : actualSecret);
     }
+
     if (actualSecret != null) {
       config.remove("forwarding-secret");
     }
+
     config.set("forwarding-secret-file", "forwarding.secret");
     config.setComment("forwarding-secret-file", """
                 If you are using modern or BungeeGuard IP forwarding, \

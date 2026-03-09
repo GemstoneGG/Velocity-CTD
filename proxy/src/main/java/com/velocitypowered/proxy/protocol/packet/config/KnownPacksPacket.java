@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,15 +34,38 @@ import io.netty.buffer.ByteBuf;
  */
 public class KnownPacksPacket implements MinecraftPacket {
 
+  /**
+   * The maximum number of known packs allowed in a serverbound packet.
+   *
+   * <p>This limit is controlled by the {@code velocity.max-known-packs} system property
+   * (defaults to 64) to prevent abuse or protocol overflows.</p>
+   */
   private static final int MAX_LENGTH_PACKS = Integer.getInteger("velocity.max-known-packs", 64);
-  private static final QuietDecoderException TOO_MANY_PACKS =
-      new QuietDecoderException("too many known packs");
 
+  /**
+   * Thrown when too many packs are received in a serverbound packet.
+   */
+  private static final QuietDecoderException TOO_MANY_PACKS = new QuietDecoderException("too many known packs");
+
+  /**
+   * The array of known resource packs being synchronized.
+   */
   private KnownPack[] packs;
 
+  /**
+   * Decodes this known packs packet from the provided {@link ByteBuf}.
+   *
+   * <p>This reads a list of known resource packs, each with a namespace, ID, and version.
+   * If the packet is serverbound and exceeds the configured maximum limit, it throws
+   * a {@link QuietDecoderException}.</p>
+   *
+   * @param buf the buffer to read from
+   * @param direction the direction of the packet
+   * @param protocolVersion the Minecraft protocol version
+   * @throws QuietDecoderException if too many packs are received in a serverbound context
+   */
   @Override
-  public void decode(ByteBuf buf, ProtocolUtils.Direction direction,
-                     ProtocolVersion protocolVersion) {
+  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     final int packCount = ProtocolUtils.readVarInt(buf);
     if (direction == ProtocolUtils.Direction.SERVERBOUND && packCount > MAX_LENGTH_PACKS) {
       throw TOO_MANY_PACKS;
@@ -57,9 +80,18 @@ public class KnownPacksPacket implements MinecraftPacket {
     this.packs = packs;
   }
 
+  /**
+   * Encodes this known packs packet into the given {@link ByteBuf}.
+   *
+   * <p>This writes all known packs (namespace, ID, version) into the buffer
+   * using the current protocol version format.</p>
+   *
+   * @param buf the buffer to write to
+   * @param direction the direction of the packet
+   * @param protocolVersion the Minecraft protocol version
+   */
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction,
-                     ProtocolVersion protocolVersion) {
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeVarInt(buf, packs.length);
 
     for (KnownPack pack : packs) {
@@ -67,8 +99,17 @@ public class KnownPacksPacket implements MinecraftPacket {
     }
   }
 
+  /**
+   * Handles this known packs packet using the specified {@link MinecraftSessionHandler}.
+   *
+   * <p>This delegates handling to {@code handler.handle(this)} to sync known resource
+   * packs with the server session.</p>
+   *
+   * @param handler the session handler responsible for processing this packet
+   * @return {@code true} if the packet was handled successfully
+   */
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
@@ -84,11 +125,11 @@ public class KnownPacksPacket implements MinecraftPacket {
    * @param version the version of the resource pack
    */
   public record KnownPack(String namespace, String id, String version) {
-    private static KnownPack read(ByteBuf buf) {
+    private static KnownPack read(final ByteBuf buf) {
       return new KnownPack(ProtocolUtils.readString(buf), ProtocolUtils.readString(buf), ProtocolUtils.readString(buf));
     }
 
-    private void write(ByteBuf buf) {
+    private void write(final ByteBuf buf) {
       ProtocolUtils.writeString(buf, namespace);
       ProtocolUtils.writeString(buf, id);
       ProtocolUtils.writeString(buf, version);

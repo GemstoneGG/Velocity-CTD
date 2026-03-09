@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -18,17 +18,26 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * This event is fired once the player has successfully connected to the target server and the
  * connection to the previous server has been de-established.
  *
- * <p>
- *   <strong>Note</strong>: For historical reasons, Velocity does wait on this event to finish
- *   firing before continuing the server connection process. This behavior is
- *   <strong>deprecated</strong> and likely to be removed in Polymer.
- * </p>
+ * <p><strong>Note</strong>: For historical reasons, Velocity does wait on this event to finish
+ * firing before continuing the server connection process. This behavior is
+ * <strong>deprecated</strong> and likely to be removed in Polymer.</p>
  */
 @AwaitingEvent
 public final class ServerConnectedEvent {
 
+  /**
+   * The player who has connected to the new server.
+   */
   private final Player player;
+
+  /**
+   * The server the player has successfully connected to.
+   */
   private final RegisteredServer server;
+
+  /**
+   * The server the player was previously connected to, or {@code null} if none.
+   */
   private final @Nullable RegisteredServer previousServer;
 
   /**
@@ -38,8 +47,8 @@ public final class ServerConnectedEvent {
    * @param server the server the player was connected to
    * @param previousServer the server the player was previously connected to, null if none
    */
-  public ServerConnectedEvent(Player player, RegisteredServer server,
-      @Nullable RegisteredServer previousServer) {
+  public ServerConnectedEvent(final Player player, final RegisteredServer server,
+                              final @Nullable RegisteredServer previousServer) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.server = Preconditions.checkNotNull(server, "server");
     this.previousServer = previousServer;

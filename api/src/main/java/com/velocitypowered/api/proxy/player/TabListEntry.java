@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -18,6 +18,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * Represents a single entry in a {@link TabList}.
  */
 public interface TabListEntry extends KeyIdentifiable {
+
   /**
    * Returns the {@link ChatSession} associated with this entry.
    *
@@ -31,6 +32,7 @@ public interface TabListEntry extends KeyIdentifiable {
     if (session == null) {
       return null;
     }
+
     return getChatSession().getIdentifiedKey();
   }
 
@@ -51,11 +53,11 @@ public interface TabListEntry extends KeyIdentifiable {
   GameProfile getProfile();
 
   /**
-   * Returns {@link Optional} text {@link net.kyori.adventure.text.Component}, which if present is
+   * Returns {@link Optional} text {@link Component}, which when present is
    * the text displayed for {@code this} entry in the {@link TabList}, otherwise
    * {@link GameProfile#getName()} is shown.
    *
-   * @return {@link Optional} text {@link net.kyori.adventure.text.Component} of name displayed in
+   * @return {@link Optional} text {@link Component} of name displayed in
    *     the tab list
    */
   Optional<Component> getDisplayNameComponent();
@@ -72,15 +74,15 @@ public interface TabListEntry extends KeyIdentifiable {
   /**
    * Returns the latency for {@code this} entry.
    *
-   * <p>The icon shown in the tab list is calculated by the latency as follows:</p>
+   * <p>The latency calculates the icon shown in the tab list as follows:</p>
    *
    * <ul>
-   *  <li>A negative latency will display the no connection icon</li>
+   *  <li>Negative latency will display the no connection icon</li>
    *  <li>0-150 will display 5 bars</li>
    *  <li>150-300 will display 4 bars</li>
    *  <li>300-600 will display 3 bars</li>
    *  <li>600-1000 will display 2 bars</li>
-   *  <li>A latency greater than 1 second will display 1 bar</li>
+   *  <li>Latency greater than 1 second will display 1 bar</li>
    * </ul>
    *
    * @return latency set for {@code this} entry
@@ -90,7 +92,7 @@ public interface TabListEntry extends KeyIdentifiable {
   /**
    * Sets the latency for {@code this} entry to the specified value.
    *
-   * @param latency to changed to
+   * @param latency to change to
    * @return {@code this}, for chaining
    * @see #getLatency()
    */
@@ -121,7 +123,7 @@ public interface TabListEntry extends KeyIdentifiable {
   TabListEntry setGameMode(int gameMode);
 
   /**
-   * Returns whether or not this player will be visible to other players in the tab list.
+   * Returns whether this player will be visible to other players in the tab list.
    *
    * @return Whether this entry is listed; only changeable in 1.19.3 and above
    */
@@ -143,7 +145,7 @@ public interface TabListEntry extends KeyIdentifiable {
    * Returns the order/priority of this entry in the tab list.
    *
    * @return order of this entry
-   * @sinceMinecraft 1.21.2
+   * @since Minecraft 1.21.2
    */
   default int getListOrder() {
     return 0;
@@ -154,7 +156,7 @@ public interface TabListEntry extends KeyIdentifiable {
    *
    * @param order order of this entry
    * @return {@code this}, for chaining
-   * @sinceMinecraft 1.21.2
+   * @since Minecraft 1.21.2
    */
   default TabListEntry setListOrder(int order) {
     return this;
@@ -164,7 +166,7 @@ public interface TabListEntry extends KeyIdentifiable {
    * Returns whether this entry's hat layer is shown in the tab list.
    *
    * @return whether to show this entry's hat layer
-   * @sinceMinecraft 1.21.4
+   * @since Minecraft 1.21.4
    */
   default boolean isShowHat() {
     return true;
@@ -175,7 +177,7 @@ public interface TabListEntry extends KeyIdentifiable {
    *
    * @param showHat whether to show this entry's hat layer
    * @return {@code this}, for chaining
-   * @sinceMinecraft 1.21.4
+   * @since Minecraft 1.21.4
    */
   default TabListEntry setShowHat(boolean showHat) {
     return this;
@@ -195,17 +197,51 @@ public interface TabListEntry extends KeyIdentifiable {
    *
    * @see TabListEntry
    */
-  class Builder {
+  final class Builder {
 
+    /**
+     * The parent tab list this entry will belong to.
+     */
     private @Nullable TabList tabList;
+
+    /**
+     * The profile used to identify and render the tab entry.
+     */
     private @Nullable GameProfile profile;
+
+    /**
+     * The display name override for the tab entry.
+     */
     private @Nullable Component displayName;
+
+    /**
+     * The latency (ping) shown for this entry.
+     */
     private int latency = 0;
+
+    /**
+     * The game mode displayed for this entry.
+     */
     private int gameMode = 0;
+
+    /**
+     * Whether the entry should be visible in the tab list.
+     */
     private boolean listed = true;
+
+    /**
+     * The order or priority of this entry in the tab list.
+     */
     private int listOrder = 0;
+
+    /**
+     * Whether the hat layer should be shown in the tab list.
+     */
     private boolean showHat;
 
+    /**
+     * The chat session associated with this entry, if any.
+     */
     private @Nullable ChatSession chatSession;
 
     private Builder() {
@@ -218,7 +254,7 @@ public interface TabListEntry extends KeyIdentifiable {
      * @param tabList to set
      * @return {@code this}, for chaining
      */
-    public Builder tabList(TabList tabList) {
+    public Builder tabList(final TabList tabList) {
       this.tabList = tabList;
       return this;
     }
@@ -230,7 +266,7 @@ public interface TabListEntry extends KeyIdentifiable {
      * @return {@code this}, for chaining
      * @see TabListEntry#getProfile()
      */
-    public Builder profile(GameProfile profile) {
+    public Builder profile(final GameProfile profile) {
       this.profile = profile;
       return this;
     }
@@ -240,15 +276,15 @@ public interface TabListEntry extends KeyIdentifiable {
      *
      * <p>This only works for players currently <b>not</b> connected to this proxy.</p>
      *
-     * <p>For any player currently connected to this proxy this will be filled automatically.</p>
+     * <p>For any player currently connected to this proxy, this will be filled automatically.</p>
      *
-     * <p>Will ignore mismatching key revisions data.</p>
+     * <p>Will ignore mismatching key revision's data.</p>
      *
      * @param chatSession session to set
      * @return {@code this}, for chaining
      * @see TabListEntry#getChatSession()
      */
-    public Builder chatSession(ChatSession chatSession) {
+    public Builder chatSession(final ChatSession chatSession) {
       this.chatSession = chatSession;
       return this;
     }
@@ -260,7 +296,7 @@ public interface TabListEntry extends KeyIdentifiable {
      * @return {@code this}, for chaining
      * @see TabListEntry#getDisplayNameComponent() ()
      */
-    public Builder displayName(@Nullable Component displayName) {
+    public Builder displayName(final @Nullable Component displayName) {
       this.displayName = displayName;
       return this;
     }
@@ -272,7 +308,7 @@ public interface TabListEntry extends KeyIdentifiable {
      * @return {@code this}, for chaining
      * @see TabListEntry#getLatency()
      */
-    public Builder latency(int latency) {
+    public Builder latency(final int latency) {
       this.latency = latency;
       return this;
     }
@@ -284,7 +320,7 @@ public interface TabListEntry extends KeyIdentifiable {
      * @return {@code this}, for chaining
      * @see TabListEntry#getGameMode()
      */
-    public Builder gameMode(int gameMode) {
+    public Builder gameMode(final int gameMode) {
       this.gameMode = gameMode;
       return this;
     }
@@ -296,7 +332,7 @@ public interface TabListEntry extends KeyIdentifiable {
      * @return {@code this}, for chaining
      * @see TabListEntry#isListed()
      */
-    public Builder listed(boolean listed) {
+    public Builder listed(final boolean listed) {
       this.listed = listed;
       return this;
     }
@@ -306,10 +342,10 @@ public interface TabListEntry extends KeyIdentifiable {
      *
      * @param order to set
      * @return {@code this}, for chaining
-     * @sinceMinecraft 1.21.2
+     * @since Minecraft 1.21.2
      * @see TabListEntry#getListOrder()
      */
-    public Builder listOrder(int order) {
+    public Builder listOrder(final int order) {
       this.listOrder = order;
       return this;
     }
@@ -321,7 +357,7 @@ public interface TabListEntry extends KeyIdentifiable {
      * @return {@code this}, for chaining
      * @see TabListEntry#isShowHat()
      */
-    public Builder showHat(boolean showHat) {
+    public Builder showHat(final boolean showHat) {
       this.showHat = showHat;
       return this;
     }
@@ -331,6 +367,7 @@ public interface TabListEntry extends KeyIdentifiable {
      *
      * @return the constructed {@link TabListEntry}
      */
+    @SuppressWarnings("deprecation")
     public TabListEntry build() {
       if (tabList == null) {
         throw new IllegalStateException("The Tablist must be set when building a TabListEntry");

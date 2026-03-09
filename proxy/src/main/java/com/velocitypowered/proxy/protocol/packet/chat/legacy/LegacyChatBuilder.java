@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,21 +34,42 @@ import net.kyori.adventure.text.Component;
  */
 public class LegacyChatBuilder extends ChatBuilderV2 {
 
-  public LegacyChatBuilder(ProtocolVersion version) {
+  /**
+   * Constructs a new {@code LegacyChatBuilder} for the specified protocol version.
+   *
+   * @param version the protocol version targeted by this builder
+   */
+  public LegacyChatBuilder(final ProtocolVersion version) {
     super(version);
   }
 
+  /**
+   * Builds a {@link LegacyChatPacket} for sending a chat message to the client.
+   *
+   * <p>This method constructs a packet compatible with older Minecraft versions
+   * by serializing the message as a legacy JSON string. If the sender identity is not set,
+   * it falls back to {@link Identity#nil()}.</p>
+   *
+   * @return the constructed {@link LegacyChatPacket} to send to the client
+   */
   @Override
   public MinecraftPacket toClient() {
-    // This is temporary
-    UUID identity = sender == null ? (senderIdentity == null ? Identity.nil().uuid()
-        : senderIdentity.uuid()) : sender.getUniqueId();
+    // This is temporary (this also has been here for a good while)
+    UUID identity = sender == null ? (senderIdentity == null ? Identity.nil().uuid() : senderIdentity.uuid()) : sender.getUniqueId();
     Component msg = component == null ? Component.text(message) : component;
 
-    return new LegacyChatPacket(ProtocolUtils.getJsonChatSerializer(version).serialize(msg), type.getId(),
-        identity);
+    return new LegacyChatPacket(ProtocolUtils.getJsonChatSerializer(version).serialize(msg), type.getId(), identity);
   }
 
+  /**
+   * Builds a {@link LegacyChatPacket} for sending a chat message to the server.
+   *
+   * <p>This method creates a new {@code LegacyChatPacket} and populates it with the plain
+   * message content. No identity, chat type, or additional metadata is applied, as this format
+   * targets legacy client-to-server communication.</p>
+   *
+   * @return the constructed {@link LegacyChatPacket} to send to the server
+   */
   @Override
   public MinecraftPacket toServer() {
     LegacyChatPacket chat = new LegacyChatPacket();

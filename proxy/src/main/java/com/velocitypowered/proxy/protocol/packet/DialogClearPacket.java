@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,23 +30,26 @@ import io.netty.buffer.ByteBuf;
  * <p>This packet is used during the configuration phase (1.21.6+) to
  * instruct the client to dismiss an active dialog window.</p>
  */
-public class DialogClearPacket implements MinecraftPacket {
+public final class DialogClearPacket implements MinecraftPacket {
 
+  /**
+   * Singleton instance of {@link DialogClearPacket}, as the packet has no payload.
+   */
   public static final DialogClearPacket INSTANCE = new DialogClearPacket();
 
   private DialogClearPacket() {
   }
 
   @Override
-  public void decode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
+  public void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
   }
 
   @Override
-  public void encode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
+  public void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
   }
 
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

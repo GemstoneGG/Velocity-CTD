@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,28 +29,66 @@ import java.util.concurrent.Executors;
  */
 public class VelocityPluginContainer implements PluginContainer {
 
+  /**
+   * The plugin's metadata, including ID, name, version, and dependencies.
+   */
   private final PluginDescription description;
+
+  /**
+   * The instance of the plugin's main class, set after instantiation.
+   */
   private Object instance;
+
+  /**
+   * Lazily initialized executor service used to run plugin tasks asynchronously.
+   */
   private volatile ExecutorService service;
 
-  public VelocityPluginContainer(PluginDescription description) {
+  /**
+   * Constructs a new {@link VelocityPluginContainer} for the specified plugin.
+   *
+   * @param description the plugin's description metadata
+   */
+  public VelocityPluginContainer(final PluginDescription description) {
     this.description = description;
   }
 
+  /**
+   * Returns the plugin's {@link PluginDescription}.
+   *
+   * @return the plugin description
+   */
   @Override
   public PluginDescription getDescription() {
     return this.description;
   }
 
+  /**
+   * Returns the instance of the plugin's main class, if it has been initialized.
+   *
+   * @return an {@link Optional} containing the plugin instance, or empty if not yet available
+   */
   @Override
   public Optional<?> getInstance() {
     return Optional.ofNullable(instance);
   }
 
-  public void setInstance(Object instance) {
+  /**
+   * Sets the plugin instance created by the plugin loader.
+   *
+   * @param instance the plugin main class instance
+   */
+  public void setInstance(final Object instance) {
     this.instance = instance;
   }
 
+  /**
+   * Returns the {@link ExecutorService} used by this plugin for asynchronous task execution.
+   *
+   * <p>The service is created lazily and is named after the plugin for visibility in thread dumps.</p>
+   *
+   * @return the plugin's executor service
+   */
   @Override
   public ExecutorService getExecutorService() {
     if (this.service == null) {
@@ -58,11 +96,10 @@ public class VelocityPluginContainer implements PluginContainer {
         if (this.service == null) {
           String name = this.description.getName().orElse(this.description.getId());
           this.service = Executors.unconfigurableExecutorService(
-              Executors.newCachedThreadPool(
-                new ThreadFactoryBuilder().setDaemon(true)
-                    .setNameFormat(name + " - Task Executor #%d")
-                    .setDaemon(true)
-                    .build()
+              Executors.newCachedThreadPool(new ThreadFactoryBuilder().setDaemon(true)
+                  .setNameFormat(name + " - Task Executor #%d")
+                  .setDaemon(true)
+                  .build()
               )
           );
         }
@@ -72,6 +109,11 @@ public class VelocityPluginContainer implements PluginContainer {
     return this.service;
   }
 
+  /**
+   * Returns whether the executor service has already been created.
+   *
+   * @return {@code true} if the executor service is initialized, {@code false} otherwise
+   */
   public boolean hasExecutorService() {
     return this.service != null;
   }

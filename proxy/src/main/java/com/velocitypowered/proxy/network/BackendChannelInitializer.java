@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,24 +42,43 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings("WeakerAccess")
 public class BackendChannelInitializer extends ChannelInitializer<Channel> {
 
+  /**
+   * The Velocity server instance used to access configuration and shared components.
+   */
   private final VelocityServer server;
 
-  public BackendChannelInitializer(VelocityServer server) {
+  /**
+   * Constructs a new {@link BackendChannelInitializer}.
+   *
+   * @param server the {@link VelocityServer} instance
+   */
+  public BackendChannelInitializer(final VelocityServer server) {
     this.server = server;
   }
 
+  /**
+   * Initializes the Netty pipeline for a backend server channel.
+   *
+   * <p>This configures the following handlers, in order:</p>
+   * <ul>
+   *   <li>{@code FRAME_DECODER}: handles VarInt-length-based packet framing for clientbound data</li>
+   *   <li>{@code READ_TIMEOUT}: disconnects idle connections after the configured timeout</li>
+   *   <li>{@code FRAME_ENCODER}: encodes outgoing packets with VarInt length prefix</li>
+   *   <li>{@code MINECRAFT_DECODER}: decodes incoming clientbound Minecraft protocol packets</li>
+   *   <li>{@code FLOW_HANDLER}: controls Netty auto-read behavior during configuration phases</li>
+   *   <li>{@code MINECRAFT_ENCODER}: encodes serverbound Minecraft protocol packets</li>
+   * </ul>
+   *
+   * @param ch the Netty {@link Channel} to initialize
+   */
   @Override
-  protected void initChannel(Channel ch) {
+  protected void initChannel(final Channel ch) {
     ch.pipeline()
         .addLast(FRAME_DECODER, new MinecraftVarintFrameDecoder(ProtocolUtils.Direction.CLIENTBOUND))
-        .addLast(READ_TIMEOUT,
-            new ReadTimeoutHandler(server.getConfiguration().getReadTimeout(),
-                TimeUnit.MILLISECONDS))
+        .addLast(READ_TIMEOUT, new ReadTimeoutHandler(server.getConfiguration().getReadTimeout(), TimeUnit.MILLISECONDS))
         .addLast(FRAME_ENCODER, MinecraftVarintLengthEncoder.INSTANCE)
-        .addLast(MINECRAFT_DECODER,
-            new MinecraftDecoder(ProtocolUtils.Direction.CLIENTBOUND))
+        .addLast(MINECRAFT_DECODER, new MinecraftDecoder(ProtocolUtils.Direction.CLIENTBOUND))
         .addLast(FLOW_HANDLER, new AutoReadHolderHandler())
-        .addLast(MINECRAFT_ENCODER,
-            new MinecraftEncoder(ProtocolUtils.Direction.SERVERBOUND));
+        .addLast(MINECRAFT_ENCODER, new MinecraftEncoder(ProtocolUtils.Direction.SERVERBOUND));
   }
 }

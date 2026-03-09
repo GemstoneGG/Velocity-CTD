@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -17,15 +17,26 @@ import org.jetbrains.annotations.NotNull;
 /**
  * This event is fired when a request for server information is sent by a remote client, or when the
  * server sends the MOTD and favicon to the client after a successful login. Velocity will
- * wait on this event to finish firing before delivering the results to the remote client, but
+ * wait on this event to finish firing before delivering the results to the remote client. However,
  * you are urged to handle this event as quickly as possible when handling this event due to the
- * amount of ping packets a client can send.
+ * number of ping packets a client can send.
  */
 @AwaitingEvent
 public final class ProxyPingEvent implements ResultedEvent<ResultedEvent.GenericResult> {
 
+  /**
+   * The inbound connection that requested the server ping.
+   */
   private final InboundConnection connection;
+
+  /**
+   * The ping response that will be sent to the client.
+   */
   private ServerPing ping;
+
+  /**
+   * The result determining whether the ping response should be sent or the connection closed.
+   */
   private GenericResult result = GenericResult.allowed();
 
   /**
@@ -49,7 +60,7 @@ public final class ProxyPingEvent implements ResultedEvent<ResultedEvent.Generic
   }
 
   /**
-   * Get the ServerPing to send to the connection.
+   * Get the ServerPing to "send" to the connection.
    *
    * @return the ServerPing to send
    */
@@ -69,8 +80,8 @@ public final class ProxyPingEvent implements ResultedEvent<ResultedEvent.Generic
   /**
    * Gets whether to avoid sending a ping response to the connection.
    *
-   * @return if a ping response to the connection will be avoided
-   * @apiNote For the ProxyPingEvent executed to obtain the MOTD for the ServerData
+   * @return if a ping response to the connection is avoided
+   * @apiNote For the ProxyPingEvent executed to get the MOTD for the ServerData
    *     sent to players of versions higher than 1.19.1,
    *     the cancellation of this event will have no effect.
    */
@@ -83,8 +94,8 @@ public final class ProxyPingEvent implements ResultedEvent<ResultedEvent.Generic
    * Sets whether to avoid sending a ping response to the connection.
    * This will automatically close the connection.
    *
-   * @param result if a ping response to the connection will be avoided
-   * @apiNote For the ProxyPingEvent executed to obtain the MOTD for the ServerData
+   * @param result if a ping response to the connection is avoided
+   * @apiNote For the ProxyPingEvent executed to get the MOTD for the ServerData
    *     sent to players of versions higher than 1.19.1,
    *     the cancellation of this event will have no effect.
    */

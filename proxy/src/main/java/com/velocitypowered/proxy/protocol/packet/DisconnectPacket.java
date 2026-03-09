@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,14 +36,33 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class DisconnectPacket implements MinecraftPacket {
 
+  /**
+   * The component holder containing the disconnection reason to be sent to the client.
+   *
+   * <p>This may be {@code null} until it is explicitly set or populated via decoding.</p>
+   */
   private @Nullable ComponentHolder reason;
+
+  /**
+   * The {@link StateRegistry} representing the protocol state (e.g., LOGIN or PLAY)
+   * during which this packet is processed.
+   *
+   * <p>This value determines how the reason component is serialized.</p>
+   */
   private final StateRegistry state;
 
-  public DisconnectPacket(StateRegistry state) {
+  /**
+   * Constructs a new {@code DisconnectPacket} for the specified protocol state.
+   *
+   * <p>The reason for disconnection can be set later via {@link #setReason(ComponentHolder)}.</p>
+   *
+   * @param state the protocol state (e.g., {@link StateRegistry#LOGIN} or {@link StateRegistry#PLAY})
+   */
+  public DisconnectPacket(final StateRegistry state) {
     this.state = state;
   }
 
-  private DisconnectPacket(StateRegistry state, ComponentHolder reason) {
+  private DisconnectPacket(final StateRegistry state, final ComponentHolder reason) {
     this.state = state;
     this.reason = Preconditions.checkNotNull(reason, "reason");
   }
@@ -58,10 +77,17 @@ public class DisconnectPacket implements MinecraftPacket {
     if (reason == null) {
       throw new IllegalStateException("No reason specified");
     }
+
     return reason;
   }
 
-  public void setReason(@Nullable ComponentHolder reason) {
+  /**
+   * Sets the disconnection reason that will be sent to the client.
+   *
+   * @param reason the {@link ComponentHolder} containing the disconnection message,
+   *               or {@code null} to clear it
+   */
+  public void setReason(final @Nullable ComponentHolder reason) {
     this.reason = reason;
   }
 
@@ -72,19 +98,49 @@ public class DisconnectPacket implements MinecraftPacket {
         + '}';
   }
 
+  /**
+   * Decodes this disconnect packet from the given {@link ByteBuf}.
+   *
+   * <p>This reads the disconnection reason component based on the current protocol state.
+   * If the packet is being decoded during the login state, it uses a fixed protocol version
+   * to ensure compatibility.</p>
+   *
+   * @param buf the buffer to read from
+   * @param direction the direction of the packet
+   * @param version the Minecraft protocol version
+   */
   @Override
-  public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     reason = ComponentHolder.read(buf, state == StateRegistry.LOGIN
-          ? ProtocolVersion.MINECRAFT_1_20_2 : version);
+        ? ProtocolVersion.MINECRAFT_1_20_2 : version);
   }
 
+  /**
+   * Encodes this disconnect packet into the given {@link ByteBuf}.
+   *
+   * <p>This writes the reason component using the format appropriate to the current
+   * protocol state.</p>
+   *
+   * @param buf the buffer to write to
+   * @param direction the direction of the packet
+   * @param version the Minecraft protocol version
+   * @throws IllegalStateException if no reason is set before encoding
+   */
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     getReason().write(buf);
   }
 
+  /**
+   * Handles this disconnect packet using the specified {@link MinecraftSessionHandler}.
+   *
+   * <p>This delegates handling to {@code handler.handle(this)} to apply disconnection logic.</p>
+   *
+   * @param handler the session handler responsible for processing this packet
+   * @return {@code true} if the packet was handled successfully
+   */
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
@@ -96,9 +152,9 @@ public class DisconnectPacket implements MinecraftPacket {
    * @param state the state in which the disconnection occurs
    * @return the created {@code DisconnectPacket}
    */
-  public static DisconnectPacket create(Component component, ProtocolVersion version, StateRegistry state) {
+  public static DisconnectPacket create(final Component component, final ProtocolVersion version, final StateRegistry state) {
     Preconditions.checkNotNull(component, "component");
     return new DisconnectPacket(state, new ComponentHolder(state == StateRegistry.LOGIN
-            ? ProtocolVersion.MINECRAFT_1_20_2 : version, component));
+        ? ProtocolVersion.MINECRAFT_1_20_2 : version, component));
   }
 }

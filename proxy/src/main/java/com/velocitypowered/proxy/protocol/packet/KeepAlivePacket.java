@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,13 +30,28 @@ import io.netty.buffer.ByteBuf;
  */
 public class KeepAlivePacket implements MinecraftPacket {
 
+  /**
+   * The randomly generated ID used in the keep-alive check. This value is sent by the server
+   * and must be returned by the client to confirm that the connection is still active.
+   */
   private long randomId;
 
+  /**
+   * Gets the randomly generated ID associated with this keep-alive packet.
+   * This ID must be echoed back by the client to validate the connection.
+   *
+   * @return the keep-alive ID
+   */
   public long getRandomId() {
     return randomId;
   }
 
-  public void setRandomId(long randomId) {
+  /**
+   * Sets the randomly generated ID for this keep-alive packet.
+   *
+   * @param randomId the keep-alive ID to set
+   */
+  public void setRandomId(final long randomId) {
     this.randomId = randomId;
   }
 
@@ -47,8 +62,18 @@ public class KeepAlivePacket implements MinecraftPacket {
         + '}';
   }
 
+  /**
+   * Decodes this keep-alive packet from the given {@link ByteBuf}.
+   *
+   * <p>This method reads the keep-alive ID according to the protocol version. Depending
+   * on the version, the ID is encoded as a {@code long}, {@code varint}, or {@code int}.</p>
+   *
+   * @param buf the buffer to read from
+   * @param direction the direction of the packet (clientbound or serverbound)
+   * @param version the Minecraft protocol version
+   */
   @Override
-  public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_12_2)) {
       randomId = buf.readLong();
     } else if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
@@ -58,8 +83,18 @@ public class KeepAlivePacket implements MinecraftPacket {
     }
   }
 
+  /**
+   * Encodes this keep-alive packet into the given {@link ByteBuf}.
+   *
+   * <p>This method writes the keep-alive ID using the appropriate encoding for
+   * the specified protocol version.</p>
+   *
+   * @param buf the buffer to write to
+   * @param direction the direction of the packet (clientbound or serverbound)
+   * @param version the Minecraft protocol version
+   */
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_12_2)) {
       buf.writeLong(randomId);
     } else if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
@@ -69,8 +104,17 @@ public class KeepAlivePacket implements MinecraftPacket {
     }
   }
 
+  /**
+   * Handles this keep-alive packet using the specified {@link MinecraftSessionHandler}.
+   *
+   * <p>This delegates processing to {@code handler.handle(this)} for further
+   * connection validation logic.</p>
+   *
+   * @param handler the session handler to process the packet
+   * @return {@code true} if the packet was handled successfully
+   */
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

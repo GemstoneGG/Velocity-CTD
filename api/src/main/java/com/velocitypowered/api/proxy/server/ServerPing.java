@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -20,19 +20,44 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
-import org.jspecify.annotations.Nullable;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Represents a 1.7 and above server list ping response. This class is immutable.
  */
 public final class ServerPing {
 
+  /**
+   * The protocol version data shown to the client.
+   */
   private final Version version;
+
+  /**
+   * The player list data, or {@code null} if hidden.
+   */
   private final @Nullable Players players;
+
+  /**
+   * The MOTD (Message of the Day) component.
+   */
   private final @Nullable Component description;
+
+  /**
+   * The favicon shown to the client, or {@code null} if not set.
+   */
   private final @Nullable Favicon favicon;
+
+  /**
+   * The mod info sent in the ping response, or {@code null} if none.
+   */
   private final @Nullable ModInfo modinfo;
 
+  /**
+   * Whether the proxy should tell client that proxy prevents chat reports, useful in NoChatReports mod. (1.19+).
+   */
+  private final boolean preventsChatReports;
+  
   /**
    * Constructs an initial ServerPing instance.
    *
@@ -41,8 +66,8 @@ public final class ServerPing {
    * @param description the MOTD for the server
    * @param favicon the server's favicon, or {@code null} if not set
    */
-  public ServerPing(Version version, @Nullable Players players,
-      net.kyori.adventure.text.Component description, @Nullable Favicon favicon) {
+  public ServerPing(final Version version, final @Nullable Players players,
+                    final Component description, final @Nullable Favicon favicon) {
     this(version, players, description, favicon, ModInfo.DEFAULT);
   }
 
@@ -50,19 +75,36 @@ public final class ServerPing {
    * Constructs a ServerPing instance.
    *
    * @param version the version of the server
-   * @param players the players on the server
+   * @param players the players on the server, or {@code null} if not shown
    * @param description the MOTD for the server
-   * @param favicon the server's favicon
-   * @param modinfo the mods this server runs
+   * @param favicon the server's favicon, or {@code null} if not set
+   * @param modinfo the mod info for the server, or {@code null} if not present
    */
-  public ServerPing(Version version, @Nullable Players players,
-                    Component description, @Nullable Favicon favicon,
-                    @Nullable ModInfo modinfo) {
+  public ServerPing(final Version version, final @Nullable Players players,
+                    final Component description, final @Nullable Favicon favicon,
+                    final @Nullable ModInfo modinfo) {
+    this(version, players, description, favicon, modinfo, false);
+  }
+
+  /**
+   * Constructs a ServerPing instance.
+   *
+   * @param version the version of the server
+   * @param players the players on the server, or {@code null} if not shown
+   * @param description the MOTD for the server
+   * @param favicon the server's favicon, or {@code null} if not set
+   * @param modinfo the mod info for the server, or {@code null} if not present
+   * @param preventsChatReports the mark of chat reports for the server
+   */
+  public ServerPing(final Version version, final @Nullable Players players,
+                    final Component description, final @Nullable Favicon favicon,
+                    final @Nullable ModInfo modinfo, final boolean preventsChatReports) {
     this.version = Preconditions.checkNotNull(version, "version");
     this.players = players;
     this.description = Preconditions.checkNotNull(description, "description");
     this.favicon = favicon;
     this.modinfo = modinfo;
+    this.preventsChatReports = preventsChatReports;
   }
 
   /**
@@ -111,6 +153,15 @@ public final class ServerPing {
     return Optional.ofNullable(modinfo);
   }
 
+  /**
+   * Whether the proxy should tell client that proxy prevents chat reports, useful in NoChatReports mod. (1.19+).
+   *
+   * @return does prevents chat reports
+   */
+  public boolean getPreventsChatReports() {
+    return preventsChatReports;
+  }
+
   @Override
   public String toString() {
     return "ServerPing{"
@@ -119,28 +170,32 @@ public final class ServerPing {
         + ", description=" + description
         + ", favicon=" + favicon
         + ", modinfo=" + modinfo
+        + ", preventsChatReports=" + preventsChatReports
         + '}';
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
+
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
+
     ServerPing ping = (ServerPing) o;
     return Objects.equals(version, ping.version)
         && Objects.equals(players, ping.players)
         && Objects.equals(description, ping.description)
         && Objects.equals(favicon, ping.favicon)
-        && Objects.equals(modinfo, ping.modinfo);
+        && Objects.equals(modinfo, ping.modinfo)
+        && Objects.equals(preventsChatReports, ping.preventsChatReports);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(version, players, description, favicon, modinfo);
+    return Objects.hash(version, players, description, favicon, modinfo, preventsChatReports);
   }
 
   /**
@@ -161,6 +216,7 @@ public final class ServerPing {
     } else {
       builder.nullOutPlayers = true;
     }
+
     builder.description = description;
     builder.favicon = favicon;
     builder.nullOutModinfo = modinfo == null;
@@ -168,6 +224,9 @@ public final class ServerPing {
       builder.modType = modinfo.getType();
       builder.mods.addAll(modinfo.getMods());
     }
+
+    builder.preventsChatReports = preventsChatReports;
+
     return builder;
   }
 
@@ -185,19 +244,62 @@ public final class ServerPing {
    */
   public static final class Builder {
 
+    /**
+     * The protocol version to report.
+     */
     private Version version = new Version(0, "Unknown");
+
+    /**
+     * The current number of online players.
+     */
     private int onlinePlayers;
+
+    /**
+     * The maximum number of allowed players.
+     */
     private int maximumPlayers;
+
+    /**
+     * The sample players to show in the player list.
+     */
     private final List<SamplePlayer> samplePlayers = new ArrayList<>();
+
+    /**
+     * The mod loader type (e.g., "FML", "fabric").
+     */
     private String modType = "FML";
+
+    /**
+     * The list of mods reported in the ping.
+     */
     private final List<ModInfo.Mod> mods = new ArrayList<>();
+
+    /**
+     * The MOTD component.
+     */
     private Component description;
+
+    /**
+     * The favicon to send in the response, or {@code null} if none.
+     */
     private @Nullable Favicon favicon;
+
+    /**
+     * Whether the player list should be hidden (nullified).
+     */
     private boolean nullOutPlayers;
+
+    /**
+     * Whether mod information should be omitted from the response.
+     */
     private boolean nullOutModinfo;
 
-    private Builder() {
+    /**
+     * Whether the proxy should tell client that proxy prevents chat reports, useful in NoChatReports mod. (1.19+).
+     */
+    private boolean preventsChatReports;
 
+    private Builder() {
     }
 
     /**
@@ -206,7 +308,7 @@ public final class ServerPing {
      * @param version version info to set
      * @return this builder, for chaining
      */
-    public Builder version(Version version) {
+    public Builder version(final Version version) {
       this.version = Preconditions.checkNotNull(version, "version");
       return this;
     }
@@ -217,7 +319,7 @@ public final class ServerPing {
      * @param onlinePlayers number for online players to set
      * @return this builder, for chaining
      */
-    public Builder onlinePlayers(int onlinePlayers) {
+    public Builder onlinePlayers(final int onlinePlayers) {
       this.onlinePlayers = onlinePlayers;
       return this;
     }
@@ -229,7 +331,7 @@ public final class ServerPing {
      * @param maximumPlayers number for maximum players to set
      * @return this builder, for chaining
      */
-    public Builder maximumPlayers(int maximumPlayers) {
+    public Builder maximumPlayers(final int maximumPlayers) {
       this.maximumPlayers = maximumPlayers;
       return this;
     }
@@ -240,7 +342,7 @@ public final class ServerPing {
      * @param players array of SamplePlayers to add
      * @return this builder, for chaining
      */
-    public Builder samplePlayers(SamplePlayer... players) {
+    public Builder samplePlayers(final SamplePlayer... players) {
       this.samplePlayers.addAll(Arrays.asList(players));
       return this;
     }
@@ -251,7 +353,7 @@ public final class ServerPing {
      * @param players collection of SamplePlayers to add
      * @return this builder, for chaining
      */
-    public Builder samplePlayers(Collection<SamplePlayer> players) {
+    public Builder samplePlayers(final Collection<SamplePlayer> players) {
       this.samplePlayers.addAll(players);
       return this;
     }
@@ -262,7 +364,7 @@ public final class ServerPing {
      * @param modType the mod type to set
      * @return this builder, for chaining
      */
-    public Builder modType(String modType) {
+    public Builder modType(final String modType) {
       this.modType = Preconditions.checkNotNull(modType, "modType");
       return this;
     }
@@ -273,7 +375,7 @@ public final class ServerPing {
      * @param mods array of mods to use
      * @return this builder, for chaining
      */
-    public Builder mods(ModInfo.Mod... mods) {
+    public Builder mods(final ModInfo.Mod... mods) {
       this.mods.addAll(Arrays.asList(mods));
       return this;
     }
@@ -281,10 +383,10 @@ public final class ServerPing {
     /**
      * Uses the modified {@code mods} list in the response.
      *
-     * @param mods the mods list to use
+     * @param mods the mod list to use
      * @return this builder, for chaining
      */
-    public Builder mods(ModInfo mods) {
+    public Builder mods(final ModInfo mods) {
       Preconditions.checkNotNull(mods, "mods");
       this.modType = mods.getType();
       this.mods.clear();
@@ -323,7 +425,7 @@ public final class ServerPing {
     }
 
     /**
-     * Enables nulling Players in the response.
+     * Enables nullifying Players in the response.
      * This will display the player count as {@code ???}.
      *
      * @return this builder, for chaining
@@ -339,7 +441,7 @@ public final class ServerPing {
      * @param description Component to use as the description.
      * @return this builder, for chaining
      */
-    public Builder description(Component description) {
+    public Builder description(final Component description) {
       this.description = Preconditions.checkNotNull(description, "description");
       return this;
     }
@@ -350,7 +452,7 @@ public final class ServerPing {
      * @param favicon Favicon instance to use.
      * @return this builder, for chaining
      */
-    public Builder favicon(Favicon favicon) {
+    public Builder favicon(final Favicon favicon) {
       this.favicon = Preconditions.checkNotNull(favicon, "favicon");
       return this;
     }
@@ -366,6 +468,17 @@ public final class ServerPing {
     }
 
     /**
+     * Whether the proxy should tell client that proxy prevents chat reports, useful in NoChatReports mod. (1.19+).
+     *
+     * @param bool does prevents chat reports
+     * @return this builder, for chaining
+     */
+    public Builder preventsChatReports(boolean bool) {
+      this.preventsChatReports = bool;
+      return this;
+    }
+
+    /**
      * Uses the information from this builder to create a new {@link ServerPing} instance. The
      * builder can be re-used after this event has been called.
      *
@@ -375,12 +488,14 @@ public final class ServerPing {
       if (this.version == null) {
         throw new IllegalStateException("version not specified");
       }
+
       if (this.description == null) {
         throw new IllegalStateException("no server description supplied");
       }
+
       return new ServerPing(version,
           nullOutPlayers ? null : new Players(onlinePlayers, maximumPlayers, samplePlayers),
-          description, favicon, nullOutModinfo ? null : new ModInfo(modType, mods));
+          description, favicon, nullOutModinfo ? null : new ModInfo(modType, mods), preventsChatReports);
     }
 
     /**
@@ -455,6 +570,15 @@ public final class ServerPing {
       return mods;
     }
 
+    /**
+     * Whether the proxy should tell client that proxy prevents chat reports, useful in NoChatReports mod. (1.19+).
+     *
+     * @return does prevents chat reports
+     */
+    public boolean getPreventsChatReports() {
+      return preventsChatReports;
+    }
+
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
@@ -468,6 +592,7 @@ public final class ServerPing {
           .add("favicon", favicon)
           .add("nullOutPlayers", nullOutPlayers)
           .add("nullOutModinfo", nullOutModinfo)
+          .add("preventsChatReports", preventsChatReports)
           .toString();
     }
   }
@@ -480,7 +605,14 @@ public final class ServerPing {
    */
   public static final class Version {
 
+    /**
+     * The numeric protocol version.
+     */
     private final int protocol;
+
+    /**
+     * The user-facing name of the protocol version.
+     */
     private final String name;
 
     /**
@@ -489,7 +621,7 @@ public final class ServerPing {
      * @param protocol the protocol version as an integer
      * @param name a friendly name for the protocol version
      */
-    public Version(int protocol, String name) {
+    public Version(final int protocol, final String name) {
       this.protocol = protocol;
       this.name = Preconditions.checkNotNull(name, "name");
     }
@@ -504,7 +636,7 @@ public final class ServerPing {
     }
 
     /**
-     * Gets the user-facing name of the server version.
+     * Gets the user-friendly name of the server version.
      *
      * @return the version name
      */
@@ -521,13 +653,15 @@ public final class ServerPing {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
       if (this == o) {
         return true;
       }
+
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
+
       Version version = (Version) o;
       return protocol == version.protocol && Objects.equals(name, version.name);
     }
@@ -544,8 +678,19 @@ public final class ServerPing {
    */
   public static final class Players {
 
+    /**
+     * The number of online players.
+     */
     private final int online;
+
+    /**
+     * The maximum number of players the server claims to support.
+     */
     private final int max;
+
+    /**
+     * The sample player entries to show to the client.
+     */
     private final List<SamplePlayer> sample;
 
     /**
@@ -555,7 +700,7 @@ public final class ServerPing {
      * @param max the maximum number of players
      * @param sample a sample of players on the server
      */
-    public Players(int online, int max, List<SamplePlayer> sample) {
+    public Players(final int online, final int max, final List<SamplePlayer> sample) {
       this.online = online;
       this.max = max;
       this.sample = ImmutableList.copyOf(sample);
@@ -591,22 +736,24 @@ public final class ServerPing {
     @Override
     public String toString() {
       return "Players{"
-          + "online=" + online
-          + ", max=" + max
+          + "online='" + online + "'"
+          + ", max='" + max + "'"
           + ", sample=" + sample
           + '}';
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
       if (this == o) {
         return true;
       }
+
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
+
       Players players = (Players) o;
-      return online == players.online && max == players.max
+      return Objects.equals(online, players.online) && Objects.equals(max, players.max)
           && Objects.equals(sample, players.sample);
     }
 
@@ -624,26 +771,36 @@ public final class ServerPing {
     /**
      * A constant representing an anonymous sample player with a null UUID and generic name.
      */
-    public static final SamplePlayer ANONYMOUS = new SamplePlayer(
-        "Anonymous Player",
-        new UUID(0L, 0L)
-    );
+    public static final SamplePlayer ANONYMOUS = new SamplePlayer("Anonymous Player", new UUID(0L, 0L));
+
     /**
      * The legacy string name of the player.
      */
     private final String name;
+
     /**
      * The unique identifier (UUID) of the player.
      */
     private final UUID id;
 
     /**
-     * Constructs a SamplePlayer with the given name and UUID.
+     * Constructs a SamplePlayer from a {@link Component}-based name.
      *
-     * @param name the name of the player
+     * @param name the name of the player as a {@link Component}
      * @param id the UUID of the player
      */
-    public SamplePlayer(String name, UUID id) {
+    public SamplePlayer(final Component name, final UUID id) {
+      this.name = LegacyComponentSerializer.builder().hexCharacter('#').build().serialize(name);
+      this.id = id;
+    }
+
+    /**
+     * Constructs a SamplePlayer from a legacy string-based name.
+     *
+     * @param name the name of the player as a string
+     * @param id the UUID of the player
+     */
+    public SamplePlayer(final String name, final UUID id) {
       this.name = name;
       this.id = id;
     }
@@ -654,7 +811,16 @@ public final class ServerPing {
      * @return the player name
      */
     public String getName() {
-      return name;
+      return this.name;
+    }
+
+    /**
+     * Gets the name of the sample player as a {@link Component}.
+     *
+     * @return the component name
+     */
+    public Component getComponentName() {
+      return LegacyComponentSerializer.legacyAmpersand().deserialize(name);
     }
 
     /**
@@ -669,26 +835,28 @@ public final class ServerPing {
     @Override
     public String toString() {
       return "SamplePlayer{"
-          + "name='" + name + '\''
+          + "name=" + name
           + ", id=" + id
           + '}';
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
       if (this == o) {
         return true;
       }
+
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
+
       SamplePlayer that = (SamplePlayer) o;
-      return Objects.equals(name, that.name) && Objects.equals(id, that.id);
+      return Objects.equals(id, that.id);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(name, id);
+      return Objects.hash(id);
     }
   }
 }

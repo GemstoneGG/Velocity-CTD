@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -36,7 +36,7 @@ public interface EventTask {
   boolean requiresAsync();
 
   /**
-   * Runs this event task with the given {@link Continuation}. The continuation must be notified
+   * Runs this event task with given {@link Continuation}. The continuation must be notified
    * when the task is completed, either with {@link Continuation#resume()} if the task was
    * successful or {@link Continuation#resumeWithException(Throwable)} if an exception occurred.
    *
@@ -62,7 +62,7 @@ public interface EventTask {
     return new EventTask() {
 
       @Override
-      public void execute(Continuation continuation) {
+      public void execute(final Continuation continuation) {
         task.run();
         continuation.resume();
       }
@@ -108,7 +108,6 @@ public interface EventTask {
    */
   // The Error Prone annotation here is spurious. The Future is handled via the CompletableFuture
   // API, which does NOT use the traditional blocking model.
-  @SuppressWarnings("FutureReturnValueIgnored")
   static EventTask resumeWhenComplete(final CompletableFuture<?> future) {
     requireNonNull(future, "future");
     return withContinuation(continuation -> future.whenComplete((result, cause) -> {

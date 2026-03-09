@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,43 +34,109 @@ import java.time.Instant;
  */
 public class SessionPlayerChatPacket implements MinecraftPacket {
 
+  /**
+   * The raw message content provided by the player.
+   */
   protected String message;
+
+  /**
+   * The timestamp indicating when the message was sent.
+   */
   protected Instant timestamp;
+
+  /**
+   * A random salt used in the signature computation.
+   */
   protected long salt;
+
+  /**
+   * Indicates whether the message is signed by the client.
+   */
   protected boolean signed;
+
+  /**
+   * The cryptographic signature for this message (256 bytes), if {@link #signed} is {@code true}.
+   */
   protected byte[] signature;
+
+  /**
+   * The last seen message metadata used for validating context and preventing spoofing.
+   */
   protected LastSeenMessages lastSeenMessages;
 
+  /**
+   * Constructs an empty {@code SessionPlayerChatPacket} for decoding purposes.
+   */
   public SessionPlayerChatPacket() {
   }
 
+  /**
+   * Returns the raw message string.
+   *
+   * @return the message
+   */
   public String getMessage() {
     return message;
   }
 
+  /**
+   * Returns the message's timestamp.
+   *
+   * @return the timestamp
+   */
   public Instant getTimestamp() {
     return timestamp;
   }
 
+  /**
+   * Returns the salt used during signing.
+   *
+   * @return the salt
+   */
   public long getSalt() {
     return salt;
   }
 
+  /**
+   * Returns whether the message is signed.
+   *
+   * @return {@code true} if signed, {@code false} otherwise
+   */
   public boolean isSigned() {
     return signed;
   }
 
+  /**
+   * Returns the cryptographic signature.
+   *
+   * @return a byte array containing the signature (or empty if unsigned)
+   */
   public byte[] getSignature() {
     return signature;
   }
 
+  /**
+   * Returns the last seen messages metadata.
+   *
+   * @return the {@link LastSeenMessages}
+   */
   public LastSeenMessages getLastSeenMessages() {
     return lastSeenMessages;
   }
 
+  /**
+   * Decodes this session-based player chat packet from the given {@link ByteBuf}.
+   *
+   * <p>This reads the message content, timestamp, salt, signature presence flag,
+   * fixed-length signature (if signed), and the {@link LastSeenMessages} metadata.</p>
+   *
+   * @param buf the buffer to read from
+   * @param direction the direction of the packet
+   * @param protocolVersion the Minecraft protocol version
+   */
   @Override
-  public void decode(ByteBuf buf, ProtocolUtils.Direction direction,
-      ProtocolVersion protocolVersion) {
+  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                     final ProtocolVersion protocolVersion) {
     this.message = ProtocolUtils.readString(buf, 256);
     this.timestamp = Instant.ofEpochMilli(buf.readLong());
     this.salt = buf.readLong();
@@ -80,12 +146,23 @@ public class SessionPlayerChatPacket implements MinecraftPacket {
     } else {
       this.signature = new byte[0];
     }
+
     this.lastSeenMessages = new LastSeenMessages(buf, protocolVersion);
   }
 
+  /**
+   * Encodes this session-based player chat packet into the given {@link ByteBuf}.
+   *
+   * <p>This writes the message content, timestamp, salt, signature flag, signature bytes (if signed),
+   * and the {@link LastSeenMessages} metadata to the buffer.</p>
+   *
+   * @param buf the buffer to write to
+   * @param direction the direction of the packet
+   * @param protocolVersion the Minecraft protocol version
+   */
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction,
-      ProtocolVersion protocolVersion) {
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
+                     final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeString(buf, this.message);
     buf.writeLong(this.timestamp.toEpochMilli());
     buf.writeLong(this.salt);
@@ -93,15 +170,31 @@ public class SessionPlayerChatPacket implements MinecraftPacket {
     if (this.signed) {
       buf.writeBytes(this.signature);
     }
+
     this.lastSeenMessages.encode(buf, protocolVersion);
   }
 
+  /**
+   * Handles this session-based player chat packet using the specified {@link MinecraftSessionHandler}.
+   *
+   * <p>This delegates packet processing to {@code handler.handle(this)} for signature
+   * validation, context matching, and chat routing.</p>
+   *
+   * @param handler the session handler responsible for processing this packet
+   * @return {@code true} if the packet was handled successfully
+   */
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
-  protected static byte[] readMessageSignature(ByteBuf buf) {
+  /**
+   * Reads a fixed-length (256 byte) signature from the buffer.
+   *
+   * @param buf the buffer
+   * @return the 256-byte signature
+   */
+  protected static byte[] readMessageSignature(final ByteBuf buf) {
     byte[] signature = new byte[256];
     buf.readBytes(signature);
     return signature;
@@ -116,7 +209,7 @@ public class SessionPlayerChatPacket implements MinecraftPacket {
    * @param lastSeenMessages the last seen messages to associate with the new packet
    * @return a new {@code SessionPlayerChatPacket} with the updated last seen messages
    */
-  public SessionPlayerChatPacket withLastSeenMessages(LastSeenMessages lastSeenMessages) {
+  public SessionPlayerChatPacket withLastSeenMessages(final LastSeenMessages lastSeenMessages) {
     SessionPlayerChatPacket packet = new SessionPlayerChatPacket();
     packet.message = message;
     packet.timestamp = timestamp;

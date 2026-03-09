@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -18,7 +18,15 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * firing.
  */
 public class ServerPostConnectEvent {
+
+  /**
+   * The player who has completed the connection to the server.
+   */
   private final Player player;
+
+  /**
+   * The server the player was previously connected to, or {@code null} if they were not connected to any server before.
+   */
   private final RegisteredServer previousServer;
 
   /**
@@ -28,8 +36,8 @@ public class ServerPostConnectEvent {
    * @param previousServer the server the player was previously connected to, or {@code null}
    *                       if the player had not been connected to a server before
    */
-  public ServerPostConnectEvent(Player player,
-      @Nullable RegisteredServer previousServer) {
+  public ServerPostConnectEvent(final Player player,
+                                final @Nullable RegisteredServer previousServer) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.previousServer = previousServer;
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -16,21 +16,38 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 /**
  * This event is fired after the {@link com.velocitypowered.api.event.connection.PreLoginEvent} in
  * order to set up the game profile for the user. This can be used to configure a custom profile for
- * a user, i.e. skin replacement.
+ * a user, i.e., skin replacement.
  *
- * <p>
- *   Velocity will wait for this event to finish firing before proceeding with the rest of the login
- *   process, but you should try to limit the work done in any event that fires during the login
- *   process.
- * </p>
+ * <p>Velocity will wait for this event to finish firing before proceeding with the rest of the login
+ * process, but you should try to limit the work done in any event that fires during the login
+ * process.</p>
  */
 @AwaitingEvent
 public final class GameProfileRequestEvent {
 
+  /**
+   * The username associated with the connection, derived from the original profile.
+   */
   private final String username;
+
+  /**
+   * The inbound connection attempting to log in.
+   */
   private final InboundConnection connection;
+
+  /**
+   * The original game profile generated or retrieved by the proxy.
+   */
   private final GameProfile originalProfile;
+
+  /**
+   * Whether the player is connecting in online mode.
+   */
   private final boolean onlineMode;
+
+  /**
+   * The custom game profile to use for the connection, or {@code null} to use the original profile.
+   */
   private @Nullable GameProfile gameProfile;
 
   /**
@@ -38,10 +55,10 @@ public final class GameProfileRequestEvent {
    *
    * @param connection the connection connecting to the proxy
    * @param originalProfile the original {@link GameProfile} for the user
-   * @param onlineMode whether or not the user connected in online or offline mode
+   * @param onlineMode whether the user connected in online or offline mode
    */
-  public GameProfileRequestEvent(InboundConnection connection, GameProfile originalProfile,
-      boolean onlineMode) {
+  public GameProfileRequestEvent(final InboundConnection connection, final GameProfile originalProfile,
+                                 final boolean onlineMode) {
     this.connection = Preconditions.checkNotNull(connection, "connection");
     this.originalProfile = Preconditions.checkNotNull(originalProfile, "originalProfile");
     this.username = originalProfile.getName();
@@ -100,7 +117,7 @@ public final class GameProfileRequestEvent {
    *
    * @param gameProfile the profile for this connection, {@code null} uses the original profile
    */
-  public void setGameProfile(@Nullable GameProfile gameProfile) {
+  public void setGameProfile(final @Nullable GameProfile gameProfile) {
     this.gameProfile = gameProfile;
   }
 
@@ -111,5 +128,4 @@ public final class GameProfileRequestEvent {
         + ", gameProfile=" + gameProfile
         + "}";
   }
-
 }

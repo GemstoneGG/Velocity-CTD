@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -24,7 +24,7 @@ public class InvalidPluginException extends Exception {
    *
    * @param message the detail message
    */
-  public InvalidPluginException(String message) {
+  public InvalidPluginException(final String message) {
     super(message);
   }
 
@@ -34,7 +34,7 @@ public class InvalidPluginException extends Exception {
    * @param message the detail message
    * @param cause the cause of the exception
    */
-  public InvalidPluginException(String message, Throwable cause) {
+  public InvalidPluginException(final String message, final Throwable cause) {
     super(message, cause);
   }
 
@@ -43,7 +43,7 @@ public class InvalidPluginException extends Exception {
    *
    * @param cause the cause of the exception
    */
-  public InvalidPluginException(Throwable cause) {
+  public InvalidPluginException(final Throwable cause) {
     super(cause);
   }
 }

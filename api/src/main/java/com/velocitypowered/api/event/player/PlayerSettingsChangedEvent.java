@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -19,7 +19,14 @@ import com.velocitypowered.api.proxy.player.PlayerSettings;
  */
 public final class PlayerSettingsChangedEvent {
 
+  /**
+   * The player whose client settings have changed.
+   */
   private final Player player;
+
+  /**
+   * The new client settings sent by the player.
+   */
   private final PlayerSettings playerSettings;
 
   /**
@@ -28,7 +35,7 @@ public final class PlayerSettingsChangedEvent {
    * @param player the player who changed settings
    * @param playerSettings the new settings sent by the client
    */
-  public PlayerSettingsChangedEvent(Player player, PlayerSettings playerSettings) {
+  public PlayerSettingsChangedEvent(final Player player, final PlayerSettings playerSettings) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.playerSettings = Preconditions.checkNotNull(playerSettings, "playerSettings");
   }

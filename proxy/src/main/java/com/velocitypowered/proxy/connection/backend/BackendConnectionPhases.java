@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,15 +39,16 @@ public final class BackendConnectionPhases {
    * The backend connection is unknown at this time.
    */
   public static final BackendConnectionPhase UNKNOWN = new BackendConnectionPhase() {
+
     @Override
     public boolean consideredComplete() {
       return false;
     }
 
     @Override
-    public boolean handle(VelocityServerConnection serverConn,
-        ConnectedPlayer player,
-        PluginMessagePacket message) {
+    public boolean handle(final VelocityServerConnection serverConn,
+                          final ConnectedPlayer player,
+                          final PluginMessagePacket message) {
       // The connection may be legacy forge. If so, the Forge handler will deal with this
       // for us. Otherwise, we have nothing to do.
       return LegacyForgeHandshakeBackendPhase.NOT_STARTED.handle(serverConn, player, message);
@@ -60,9 +61,10 @@ public final class BackendConnectionPhases {
    * in-flight connection instead.
    */
   public static final BackendConnectionPhase IN_TRANSITION = new BackendConnectionPhase() {
+
     @Override
     public boolean consideredComplete() {
-      return true;
+      return BackendConnectionPhase.super.consideredComplete();
     }
   };
 

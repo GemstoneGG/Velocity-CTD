@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,16 +24,39 @@ package com.velocitypowered.proxy.protocol.packet.chat;
  * or game info.
  */
 public enum ChatType {
+
+  /**
+   * Standard player chat messages that appear in the chat box.
+   * These messages are typically sent by players and displayed with their name prefix.
+   */
   CHAT((byte) 0),
+
+  /**
+   * System messages that are displayed in the chat box but are not attributed to a player.
+   * These are often used for administrative messages or notifications.
+   */
   SYSTEM((byte) 1),
+
+  /**
+   * Game information messages that appear above the hotbar (action bar).
+   * These messages are often transient and used for status updates or prompts.
+   */
   GAME_INFO((byte) 2);
 
+  /**
+   * The raw byte value of the chat type, used in legacy protocol serialization.
+   */
   private final byte raw;
 
-  ChatType(byte raw) {
+  ChatType(final byte raw) {
     this.raw = raw;
   }
 
+  /**
+   * Returns the protocol-specific byte ID for this chat type.
+   *
+   * @return the raw byte value of the chat type
+   */
   public byte getId() {
     return raw;
   }

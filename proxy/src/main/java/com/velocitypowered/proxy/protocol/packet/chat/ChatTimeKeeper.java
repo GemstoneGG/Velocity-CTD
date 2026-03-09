@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,8 +26,14 @@ import java.time.Instant;
  */
 public class ChatTimeKeeper {
 
+  /**
+   * The most recent timestamp observed for chat message tracking.
+   */
   private Instant lastTimestamp;
 
+  /**
+   * Constructs a new {@code ChatTimeKeeper} with an initial timestamp of {@link Instant#MIN}.
+   */
   public ChatTimeKeeper() {
     this.lastTimestamp = Instant.MIN;
   }
@@ -44,11 +50,12 @@ public class ChatTimeKeeper {
    * @return {@code true} if the timestamp was successfully updated, {@code false}
    *                      if the provided instant is before the current timestamp
    */
-  public boolean update(Instant instant) {
+  public boolean update(final Instant instant) {
     if (instant.isBefore(this.lastTimestamp)) {
       this.lastTimestamp = instant;
       return false;
     }
+
     this.lastTimestamp = instant;
     return true;
   }

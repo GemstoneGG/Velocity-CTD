@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2025 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,23 +29,41 @@ import io.netty.buffer.ByteBuf;
  *
  * <p>This packet has no payload and is represented as a singleton.</p>
  */
-public class CodeOfConductAcceptPacket implements MinecraftPacket {
+public final class CodeOfConductAcceptPacket implements MinecraftPacket {
 
+  /**
+   * Singleton instance, as the packet carries no data.
+   */
   public static final CodeOfConductAcceptPacket INSTANCE = new CodeOfConductAcceptPacket();
 
+  /**
+   * Creates a new instance. Use {@link #INSTANCE}.
+   */
   private CodeOfConductAcceptPacket() {
   }
 
+  /**
+   * Decodes this packet from the given buffer.
+   */
   @Override
-  public void decode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
+  public void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
   }
 
+  /**
+   * Encodes this packet into the given buffer.
+   */
   @Override
-  public void encode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
+  public void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
   }
 
+  /**
+   * Dispatches this packet to the provided session handler.
+   *
+   * @param handler the session handler
+   * @return {@code true} if the packet was handled
+   */
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

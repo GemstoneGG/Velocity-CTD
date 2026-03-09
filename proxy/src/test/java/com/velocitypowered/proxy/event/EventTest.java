@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,17 +40,30 @@ import org.junit.jupiter.api.TestInstance;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class EventTest {
 
+  /**
+   * Thread name used to identify continuation execution threads in tests.
+   */
   public static final String CONTINUATION_TEST_THREAD_NAME = "Continuation test thread";
+
+  /**
+   * Simulated plugin manager instance for test execution.
+   */
   private final FakePluginManager pluginManager = new FakePluginManager();
+
+  /**
+   * Event manager used to fire and handle Velocity events in unit tests.
+   */
   private final VelocityEventManager eventManager = new VelocityEventManager(pluginManager);
 
+  /**
+   * Shuts down the plugin manager after all tests have completed.
+   */
   @AfterAll
-  void shutdown() throws Exception {
+  void shutdown() {
     pluginManager.shutdown();
   }
 
   static final class TestEvent {
-
   }
 
   static void assertSyncThread(final Thread thread) {
@@ -80,15 +93,9 @@ public class EventTest {
     final AtomicLong listener2Invoked = new AtomicLong();
     final AtomicLong listener3Invoked = new AtomicLong();
 
-    eventManager.register(FakePluginManager.PLUGIN_A, TestEvent.class, event -> {
-      listener1Invoked.set(System.nanoTime());
-    });
-    eventManager.register(FakePluginManager.PLUGIN_B, TestEvent.class, event -> {
-      listener2Invoked.set(System.nanoTime());
-    });
-    eventManager.register(FakePluginManager.PLUGIN_A, TestEvent.class, event -> {
-      listener3Invoked.set(System.nanoTime());
-    });
+    eventManager.register(FakePluginManager.PLUGIN_A, TestEvent.class, event -> listener1Invoked.set(System.nanoTime()));
+    eventManager.register(FakePluginManager.PLUGIN_B, TestEvent.class, event -> listener2Invoked.set(System.nanoTime()));
+    eventManager.register(FakePluginManager.PLUGIN_A, TestEvent.class, event -> listener3Invoked.set(System.nanoTime()));
 
     try {
       eventManager.fire(new TestEvent()).get();
@@ -111,12 +118,10 @@ public class EventTest {
     eventManager.register(FakePluginManager.PLUGIN_A, TestEvent.class, event ->
         listener1Invoked.set(System.nanoTime()));
     eventManager.register(FakePluginManager.PLUGIN_B, TestEvent.class,
-        (AwaitingEventExecutor<TestEvent>) event -> EventTask.withContinuation(continuation -> {
-          new Thread(() -> {
-            listener2Invoked.set(System.nanoTime());
-            continuation.resume();
-          }).start();
-        }));
+        (AwaitingEventExecutor<TestEvent>) event -> EventTask.withContinuation(continuation -> new Thread(() -> {
+          listener2Invoked.set(System.nanoTime());
+          continuation.resume();
+        }).start()));
     eventManager.register(FakePluginManager.PLUGIN_A, TestEvent.class, event ->
         listener3Invoked.set(System.nanoTime()));
 
@@ -142,11 +147,19 @@ public class EventTest {
 
   static final class AlwaysSyncListener {
 
+    /**
+     * The thread on which the event handler was executed. Used to assert the
+     * correct thread context (sync or async).
+     */
     @MonotonicNonNull Thread thread;
+
+    /**
+     * A result counter used to verify the number of times the handler methods were executed.
+     */
     int result;
 
     @Subscribe(async = false)
-    void sync(TestEvent event) {
+    void sync(final TestEvent event) {
       result++;
       thread = Thread.currentThread();
     }
@@ -164,25 +177,40 @@ public class EventTest {
 
   static final class AlwaysAsyncListener {
 
+    /**
+     * The thread that executed the first subscribed event handler.
+     */
     @MonotonicNonNull Thread threadA;
+
+    /**
+     * The thread that executed the second subscribed event handler or the continuation logic.
+     */
     @MonotonicNonNull Thread threadB;
+
+    /**
+     * The thread that executed the final subscribed event handler, usually after a continuation.
+     */
     @MonotonicNonNull Thread threadC;
+
+    /**
+     * The result counter used to verify how many times the listener methods were invoked.
+     */
     int result;
 
     @Subscribe(async = true, order = PostOrder.EARLY)
-    void firstAsync(TestEvent event) {
+    void firstAsync(final TestEvent event) {
       result++;
       threadA = Thread.currentThread();
     }
 
     @Subscribe
-    EventTask secondAsync(TestEvent event) {
+    EventTask secondAsync(final TestEvent event) {
       threadB = Thread.currentThread();
       return EventTask.async(() -> result++);
     }
 
     @Subscribe(order = PostOrder.LATE)
-    void thirdAsync(TestEvent event) {
+    void thirdAsync(final TestEvent event) {
       result++;
       threadC = Thread.currentThread();
     }
@@ -201,20 +229,39 @@ public class EventTest {
 
   static final class SometimesAsyncListener {
 
+    /**
+     * The thread that executed the first subscribed handler or synchronous method.
+     */
     @MonotonicNonNull Thread threadA;
+
+    /**
+     * The thread that executed the second subscribed handler or initiated an asynchronous task.
+     */
     @MonotonicNonNull Thread threadB;
+
+    /**
+     * The thread that executed the continuation or asynchronous part of the event task.
+     */
     @MonotonicNonNull Thread threadC;
+
+    /**
+     * The thread that executed the final handler, typically invoked after asynchronous logic.
+     */
     @MonotonicNonNull Thread threadD;
+
+    /**
+     * Counter tracking how many handlers or continuations were invoked during the event test.
+     */
     int result;
 
     @Subscribe(order = PostOrder.EARLY, async = false)
-    void notAsync(TestEvent event) {
+    void notAsync(final TestEvent event) {
       result++;
       threadA = Thread.currentThread();
     }
 
     @Subscribe
-    EventTask notAsyncUntilTask(TestEvent event) {
+    EventTask notAsyncUntilTask(final TestEvent event) {
       threadB = Thread.currentThread();
       return EventTask.async(() -> {
         threadC = Thread.currentThread();
@@ -223,7 +270,7 @@ public class EventTest {
     }
 
     @Subscribe(order = PostOrder.LATE, async = false)
-    void stillAsyncAfterTask(TestEvent event) {
+    void stillAsyncAfterTask(final TestEvent event) {
       threadD = Thread.currentThread();
       result++;
     }
@@ -241,14 +288,28 @@ public class EventTest {
 
   static final class ContinuationListener {
 
+    /**
+     * The thread that executed the first part of the event handler.
+     */
     @MonotonicNonNull Thread threadA;
+
+    /**
+     * The thread that executed the continuation-resume logic inside the event task.
+     */
     @MonotonicNonNull Thread threadB;
+
+    /**
+     * The thread that executed the final handler invoked after the continuation resumes.
+     */
     @MonotonicNonNull Thread threadC;
 
+    /**
+     * An atomic counter used to track the number of times the continuation logic has progressed.
+     */
     final AtomicInteger value = new AtomicInteger();
 
     @Subscribe(order = PostOrder.EARLY)
-    EventTask continuation(TestEvent event) {
+    EventTask continuation(final TestEvent event) {
       threadA = Thread.currentThread();
       return EventTask.withContinuation(continuation -> {
         value.incrementAndGet();
@@ -266,7 +327,7 @@ public class EventTest {
     }
 
     @Subscribe(order = PostOrder.LATE)
-    void afterContinuation(TestEvent event) {
+    void afterContinuation(final TestEvent event) {
       threadC = Thread.currentThread();
     }
   }
@@ -284,13 +345,28 @@ public class EventTest {
 
   static final class ResumeContinuationImmediatelyListener {
 
+    /**
+     * The thread that executed the first event handler.
+     */
     @MonotonicNonNull Thread threadA;
+
+    /**
+     * The thread that executed the continuation logic.
+     */
     @MonotonicNonNull Thread threadB;
+
+    /**
+     * The thread that executed the final event handler after the continuation resumed.
+     */
     @MonotonicNonNull Thread threadC;
+
+    /**
+     * A counter tracking how many times event handlers have executed.
+     */
     int result;
 
     @Subscribe(order = PostOrder.EARLY)
-    EventTask continuation(TestEvent event) {
+    EventTask continuation(final TestEvent event) {
       threadA = Thread.currentThread();
       return EventTask.withContinuation(continuation -> {
         threadB = Thread.currentThread();
@@ -300,7 +376,7 @@ public class EventTest {
     }
 
     @Subscribe(order = PostOrder.LATE)
-    void afterContinuation(TestEvent event) {
+    void afterContinuation(final TestEvent event) {
       threadC = Thread.currentThread();
       result++;
     }
@@ -318,21 +394,35 @@ public class EventTest {
 
   static final class ContinuationParameterListener {
 
+    /**
+     * The thread that executed the first event handler.
+     */
     @MonotonicNonNull Thread threadA;
+
+    /**
+     * The thread that executed the second event handler, expected to run asynchronously.
+     */
     @MonotonicNonNull Thread threadB;
+
+    /**
+     * The thread that executed the third event handler, expected to run after continuation.
+     */
     @MonotonicNonNull Thread threadC;
 
+    /**
+     * Tracks the number of times the event logic has been executed.
+     */
     final AtomicInteger result = new AtomicInteger();
 
     @Subscribe
-    void resume(TestEvent event, Continuation continuation) {
+    void resume(final TestEvent event, final Continuation continuation) {
       threadA = Thread.currentThread();
       result.incrementAndGet();
       continuation.resume();
     }
 
     @Subscribe(order = PostOrder.LATE)
-    void resumeFromCustomThread(TestEvent event, Continuation continuation) {
+    void resumeFromCustomThread(final TestEvent event, final Continuation continuation) {
       threadB = Thread.currentThread();
       new Thread(() -> {
         try {
@@ -346,7 +436,7 @@ public class EventTest {
     }
 
     @Subscribe(order = PostOrder.LAST)
-    void afterCustomThread(TestEvent event, Continuation continuation) {
+    void afterCustomThread(final TestEvent event, final Continuation continuation) {
       threadC = Thread.currentThread();
       result.incrementAndGet();
       continuation.resume();
@@ -362,6 +452,9 @@ public class EventTest {
 
   private static final class FancyContinuationImpl implements FancyContinuation {
 
+    /**
+     * The {@link Continuation} instance used to control the resumption of event execution.
+     */
     private final Continuation continuation;
 
     private FancyContinuationImpl(final Continuation continuation) {
@@ -399,7 +492,8 @@ public class EventTest {
                 + "the second is the fancy continuation");
           }
         },
-        new TypeToken<TriConsumer<Object, Object, FancyContinuation>>() {},
+        new TypeToken<TriConsumer<Object, Object, FancyContinuation>>() {
+        },
         invokeFunction -> (instance, event) ->
             EventTask.withContinuation(continuation ->
                 invokeFunction.accept(instance, event, new FancyContinuationImpl(continuation))
@@ -411,10 +505,13 @@ public class EventTest {
 
   static final class FancyContinuationListener {
 
+    /**
+     * The result counter used to track the number of completed event handler stages.
+     */
     int result;
 
     @Subscribe
-    void continuation(TestEvent event, FancyContinuation continuation) {
+    void continuation(final TestEvent event, final FancyContinuation continuation) {
       result++;
       continuation.resume();
     }

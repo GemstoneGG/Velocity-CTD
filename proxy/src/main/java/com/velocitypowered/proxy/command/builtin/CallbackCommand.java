@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,17 @@ import java.util.UUID;
  */
 public final class CallbackCommand implements Command<CommandSource> {
 
-  @SuppressWarnings("checkstyle:MissingJavadocMethod")
+  /**
+   * Creates a new {@link BrigadierCommand} instance with a predefined command structure.
+   *
+   * <p>This method constructs a {@link LiteralCommandNode} with the command name
+   * {@code "velocity:callback"} and a required argument {@code "id"} of type {@link StringArgumentType#word()}.
+   * The command is executed by the {@link CallbackCommand} when invoked.</p>
+   *
+   * <p>The method returns a new {@link BrigadierCommand} that wraps the constructed command node.</p>
+   *
+   * @return a new {@link BrigadierCommand} instance with the defined command structure
+   */
   public static BrigadierCommand create() {
     final LiteralCommandNode<CommandSource> node = BrigadierCommand
         .literalArgumentBuilder("velocity:callback")

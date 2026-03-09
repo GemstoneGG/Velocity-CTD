@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ public interface Disposable extends Closeable {
 
   /**
    * Disposes this object. After this call returns, any use of this object becomes invalid. Multiple
-   * calls to this function should be safe: there should be no side-effects once an object is
+   * calls to this function should be safe: there should be no side effects once an object is
    * disposed.
    */
   @Override

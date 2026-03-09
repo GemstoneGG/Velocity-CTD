@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -14,7 +14,7 @@ import java.lang.annotation.Target;
 import org.intellij.lang.annotations.Pattern;
 
 /**
- * Indicates that the {@link Plugin} depends on another plugin in order to enable.
+ * Indicates that the {@link Plugin} depends on another plugin to enable.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({})
@@ -30,7 +30,7 @@ public @interface Dependency {
   String id();
 
   /**
-   * Whether or not the dependency is not required to enable this plugin. By default this is
+   * Whether the dependency is not required to enable this plugin. By default, this is
    * {@code false}, meaning that the dependency is required to enable this plugin.
    *
    * @return true if the dependency is not required for the plugin to work

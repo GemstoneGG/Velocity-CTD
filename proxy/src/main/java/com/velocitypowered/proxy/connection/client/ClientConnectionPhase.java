@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,9 +37,7 @@ public interface ClientConnectionPhase {
    * @param server  The backend connection to use
    * @return true if handled, false otherwise.
    */
-  default boolean handle(ConnectedPlayer player,
-      PluginMessagePacket message,
-      VelocityServerConnection server) {
+  default boolean handle(ConnectedPlayer player, PluginMessagePacket message, VelocityServerConnection server) {
     return false;
   }
 
@@ -64,6 +62,7 @@ public interface ClientConnectionPhase {
    *
    * @return true if so
    */
+  @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   default boolean consideredComplete() {
     return true;
   }

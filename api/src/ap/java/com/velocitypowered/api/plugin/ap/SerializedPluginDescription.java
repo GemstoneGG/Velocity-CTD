@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -11,6 +11,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.velocitypowered.api.plugin.Plugin;
+import com.velocitypowered.api.plugin.PluginDescription;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -20,7 +21,7 @@ import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Serialized version of {@link com.velocitypowered.api.plugin.PluginDescription}.
+ * Serialized version of {@link PluginDescription}.
  */
 public final class SerializedPluginDescription {
 
@@ -31,6 +32,7 @@ public final class SerializedPluginDescription {
    * digits, hyphens, and underscores. The total length must not exceed 64 characters.</p>
    */
   public static final String ID_PATTERN_STRING = "[a-z][a-z0-9-_]{0,63}";
+
   /**
    * The compiled pattern used to validate plugin IDs.
    *
@@ -40,18 +42,63 @@ public final class SerializedPluginDescription {
   public static final Pattern ID_PATTERN = Pattern.compile(ID_PATTERN_STRING);
 
   // @Nullable is used here to make GSON skip these in the serialized file
+
+  /**
+   * The plugin's unique identifier.
+   *
+   * <p>This field is required and must match {@link #ID_PATTERN}.</p>
+   */
   private final String id;
+
+  /**
+   * The plugin's human-readable name.
+   *
+   * <p>This field is optional and may be {@code null} if not specified.</p>
+   */
   private final @Nullable String name;
+
+  /**
+   * The plugin's version string.
+   *
+   * <p>This field is optional and may be {@code null} if not specified.</p>
+   */
   private final @Nullable String version;
+
+  /**
+   * A short description of the plugin.
+   *
+   * <p>This field is optional and may be {@code null} if not specified.</p>
+   */
   private final @Nullable String description;
+
+  /**
+   * The URL associated with the plugin (e.g., homepage or documentation).
+   *
+   * <p>This field is optional and may be {@code null} if not specified.</p>
+   */
   private final @Nullable String url;
+
+  /**
+   * The list of authors who contributed to the plugin.
+   *
+   * <p>This field may be {@code null} or empty if no authors were declared.</p>
+   */
   private final @Nullable List<String> authors;
+
+  /**
+   * The list of dependencies declared by the plugin.
+   *
+   * <p>This field may be {@code null} or empty if no dependencies were declared.</p>
+   */
   private final @Nullable List<Dependency> dependencies;
+
+  /**
+   * The fully qualified name of the plugin's main class.
+   */
   private final String main;
 
-  private SerializedPluginDescription(String id, String name, String version, String description,
-      String url,
-      List<String> authors, List<Dependency> dependencies, String main) {
+  private SerializedPluginDescription(final String id, final String name, final String version, final String description,
+                                      final String url, final List<String> authors, final List<Dependency> dependencies, final String main) {
     Preconditions.checkNotNull(id, "id");
     Preconditions.checkArgument(ID_PATTERN.matcher(id).matches(), "id is not valid");
     this.id = id;
@@ -65,11 +112,12 @@ public final class SerializedPluginDescription {
     this.main = Preconditions.checkNotNull(main, "main");
   }
 
-  static SerializedPluginDescription from(Plugin plugin, String qualifiedName) {
+  static SerializedPluginDescription from(final Plugin plugin, final String qualifiedName) {
     List<Dependency> dependencies = new ArrayList<>();
     for (com.velocitypowered.api.plugin.Dependency dependency : plugin.dependencies()) {
       dependencies.add(new Dependency(dependency.id(), dependency.optional()));
     }
+
     return new SerializedPluginDescription(plugin.id(), plugin.name(), plugin.version(),
         plugin.description(), plugin.url(),
         Arrays.stream(plugin.authors()).filter(author -> !author.isEmpty())
@@ -77,9 +125,11 @@ public final class SerializedPluginDescription {
   }
 
   /**
-   * Gets the ID of the plugin this dependency refers to.
+   * Gets the ID of the plugin.
    *
-   * @return the plugin ID
+   * <p>The ID must conform to {@link #ID_PATTERN} and is a unique identifier for the plugin.</p>
+   *
+   * @return the plugin's ID
    */
   public String getId() {
     return id;
@@ -153,7 +203,7 @@ public final class SerializedPluginDescription {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -191,11 +241,26 @@ public final class SerializedPluginDescription {
   }
 
   /**
-   * Represents a dependency.
+   * Represents a dependency declared by a plugin.
+   *
+   * <p>A dependency consists of an identifier (typically the plugin ID) and a flag
+   * indicating whether the dependency is optional. Required dependencies must be present
+   * for the plugin to load, whereas optional dependencies may or may not be available at runtime.</p>
    */
   public static final class Dependency {
 
+    /**
+     * The plugin's unique identifier.
+     *
+     * <p>This field is required and must match {@link #ID_PATTERN}.</p>
+     */
     private final String id;
+
+    /**
+     * Whether this dependency is optional.
+     *
+     * <p>If {@code true}, the plugin will still load even if this dependency is not present.</p>
+     */
     private final boolean optional;
 
     /**
@@ -204,7 +269,7 @@ public final class SerializedPluginDescription {
      * @param id the ID of the dependent plugin
      * @param optional whether the dependency is optional
      */
-    public Dependency(String id, boolean optional) {
+    public Dependency(final String id, final boolean optional) {
       this.id = id;
       this.optional = optional;
     }
@@ -230,13 +295,15 @@ public final class SerializedPluginDescription {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
       if (this == o) {
         return true;
       }
+
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
+
       Dependency that = (Dependency) o;
       return optional == that.optional
           && Objects.equals(id, that.id);

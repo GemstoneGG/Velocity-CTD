@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,14 @@ package com.velocitypowered.proxy.plugin.virtual;
 /**
  * A singleton plugin object that represents the Velocity proxy itself.
  */
-public class VelocityVirtualPlugin {
+public final class VelocityVirtualPlugin {
+
+  /**
+   * The singleton instance of the Velocity virtual plugin.
+   *
+   * <p>This instance is used to represent the core Velocity proxy in contexts where a plugin
+   * object is required.</p>
+   */
   @SuppressWarnings("InstantiationOfUtilityClass")
   public static final VelocityVirtualPlugin INSTANCE = new VelocityVirtualPlugin();
 

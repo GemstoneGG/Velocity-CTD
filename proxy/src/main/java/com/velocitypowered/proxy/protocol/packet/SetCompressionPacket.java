@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2021 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,20 +29,45 @@ import io.netty.buffer.ByteBuf;
  */
 public class SetCompressionPacket implements MinecraftPacket {
 
+  /**
+   * The compression threshold in bytes.
+   *
+   * <p>Any packets larger than this threshold will be compressed.</p>
+   */
   private int threshold;
 
+  /**
+   * Constructs an empty {@code SetCompressionPacket}.
+   *
+   * <p>Fields must be populated before encoding.</p>
+   */
   public SetCompressionPacket() {
   }
 
-  public SetCompressionPacket(int threshold) {
+  /**
+   * Constructs a {@code SetCompressionPacket} with the given compression threshold.
+   *
+   * @param threshold the compression threshold in bytes
+   */
+  public SetCompressionPacket(final int threshold) {
     this.threshold = threshold;
   }
 
+  /**
+   * Gets the compression threshold value.
+   *
+   * @return the compression threshold in bytes
+   */
   public int getThreshold() {
     return threshold;
   }
 
-  public void setThreshold(int threshold) {
+  /**
+   * Sets the compression threshold value.
+   *
+   * @param threshold the compression threshold in bytes
+   */
+  public void setThreshold(final int threshold) {
     this.threshold = threshold;
   }
 
@@ -53,18 +78,44 @@ public class SetCompressionPacket implements MinecraftPacket {
         + '}';
   }
 
+  /**
+   * Decodes this compression packet from the given {@link ByteBuf}.
+   *
+   * <p>This reads the compression threshold value encoded as a VarInt.</p>
+   *
+   * @param buf the buffer to read from
+   * @param direction the direction of the packet (clientbound or serverbound)
+   * @param version the Minecraft protocol version
+   */
   @Override
-  public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     this.threshold = ProtocolUtils.readVarInt(buf);
   }
 
+  /**
+   * Encodes this compression packet into the given {@link ByteBuf}.
+   *
+   * <p>This writes the compression threshold value as a VarInt.</p>
+   *
+   * @param buf the buffer to write to
+   * @param direction the direction of the packet (clientbound or serverbound)
+   * @param version the Minecraft protocol version
+   */
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     ProtocolUtils.writeVarInt(buf, threshold);
   }
 
+  /**
+   * Handles this compression packet using the specified {@link MinecraftSessionHandler}.
+   *
+   * <p>This delegates processing to {@code handler.handle(this)} to apply compression settings.</p>
+   *
+   * @param handler the session handler responsible for handling this packet
+   * @return {@code true} if the packet was handled successfully
+   */
   @Override
-  public boolean handle(MinecraftSessionHandler handler) {
+  public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

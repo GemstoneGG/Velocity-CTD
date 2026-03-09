@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,8 @@ import java.util.stream.Collectors;
 /**
  * Handles sorting plugin dependencies into an order that satisfies all dependencies.
  */
-public class PluginDependencyUtils {
+@SuppressWarnings("UnstableApiUsage")
+public final class PluginDependencyUtils {
 
   private PluginDependencyUtils() {
     throw new AssertionError();
@@ -49,19 +50,18 @@ public class PluginDependencyUtils {
    * @return the sorted list of plugins
    * @throws IllegalStateException if there is a circular loop in the dependency graph
    */
-  public static List<PluginDescription> sortCandidates(List<PluginDescription> candidates) {
+  public static List<PluginDescription> sortCandidates(final List<PluginDescription> candidates) {
     List<PluginDescription> sortedCandidates = new ArrayList<>(candidates);
     sortedCandidates.sort(Comparator.comparing(PluginDescription::getId));
 
     // Create a graph and populate it with plugin dependencies. Specifically, each graph has plugin
-    // nodes, and edges that represent the dependencies that plugin relies on. Non-existent plugins
+    // nodes and edges that represent the dependencies that plugin relies on. Non-existent plugins
     // are ignored.
     MutableGraph<PluginDescription> graph = GraphBuilder.directed()
         .allowsSelfLoops(false)
         .expectedNodeCount(sortedCandidates.size())
         .build();
-    Map<String, PluginDescription> candidateMap = Maps.uniqueIndex(sortedCandidates,
-        PluginDescription::getId);
+    Map<String, PluginDescription> candidateMap = Maps.uniqueIndex(sortedCandidates, PluginDescription::getId);
 
     for (PluginDescription description : sortedCandidates) {
       graph.addNode(description);
@@ -77,7 +77,7 @@ public class PluginDependencyUtils {
 
     // Now we do the depth-first search. The most accessible description of the algorithm is on
     // Wikipedia: https://en.wikipedia.org/w/index.php?title=Topological_sorting&oldid=1036420482,
-    // section "Depth-first search." Apparently this algorithm originates from "Introduction to
+    // section "Depth-first search." Apparently, this algorithm originates from "Introduction to
     // Algorithms" (2nd ed.)
     List<PluginDescription> sorted = new ArrayList<>();
     Map<PluginDescription, Mark> marks = new HashMap<>();
@@ -89,9 +89,9 @@ public class PluginDependencyUtils {
     return sorted;
   }
 
-  private static void visitNode(Graph<PluginDescription> dependencyGraph, PluginDescription current,
-      Map<PluginDescription, Mark> visited, List<PluginDescription> sorted,
-      Deque<PluginDescription> currentDependencyScanStack) {
+  private static void visitNode(final Graph<PluginDescription> dependencyGraph, final PluginDescription current,
+                                final Map<PluginDescription, Mark> visited, final List<PluginDescription> sorted,
+                                final Deque<PluginDescription> currentDependencyScanStack) {
     Mark mark = visited.getOrDefault(current, Mark.NOT_VISITED);
     if (mark == Mark.VISITED) {
       // Visited this node already, nothing to do.
@@ -122,8 +122,21 @@ public class PluginDependencyUtils {
   }
 
   private enum Mark {
+
+    /**
+     * The plugin has not been visited yet during the traversal.
+     */
     NOT_VISITED,
+
+    /**
+     * The plugin is currently being visited (part of the current recursion stack).
+     * This helps detect circular dependencies.
+     */
     VISITING,
+
+    /**
+     * The plugin and all its dependencies have been fully visited and sorted.
+     */
     VISITED
   }
 }
