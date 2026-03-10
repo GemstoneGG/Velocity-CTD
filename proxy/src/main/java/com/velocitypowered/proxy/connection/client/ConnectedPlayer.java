@@ -2452,11 +2452,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
     // Check if the server uses modern forwarding and the client is too old
     PlayerInfoForwarding serverForwardingMode = ((VelocityRegisteredServer) server).getConfiguredPlayerInfoForwarding();
-    if (serverForwardingMode == PlayerInfoForwarding.MODERN && clientProtocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_13)) {
+    if (serverForwardingMode == PlayerInfoForwarding.MODERN && clientProtocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_7_2)) {
       // Disconnect the player with an appropriate message
       disconnect(Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
           .arguments(
-              Argument.string("min", "1.13"),
+              Argument.string("min", "1.7.2"),
               Argument.string("max", ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
       return true;
     }

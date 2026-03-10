@@ -235,7 +235,7 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
 
     // Determine if we're using Forge (1.8 to 1.12, may not be the case in 1.13).
     if (handshake.getServerAddress().endsWith(LegacyForgeConstants.HANDSHAKE_HOSTNAME_TOKEN)
-        && handshake.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_13)) {
+            && handshake.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_7_2)) { 
       return ConnectionTypes.LEGACY_FORGE;
     } else if (handshake.getProtocolVersion().noGreaterThan(ProtocolVersion.MINECRAFT_1_7_6)) {
       // 1.7 Forge will not notify us during handshake. UNDETERMINED will listen for incoming
