@@ -31,6 +31,7 @@ import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.command.builtin.BuiltinCommand;
+import com.velocitypowered.proxy.command.builtin.CommandMessages;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.translation.Argument;
@@ -92,9 +93,7 @@ public class GkickCommand implements BuiltinCommand {
     final ConnectedPlayer player = server.getPlayer(playerName).orElse(null);
 
     if (player == null) {
-      context.getSource().sendMessage(
-          Component.translatable("velocity.command.gkick.no-server")
-      );
+      context.getSource().sendMessage(CommandMessages.PLAYER_NOT_FOUND);
       return 0;
     }
 
