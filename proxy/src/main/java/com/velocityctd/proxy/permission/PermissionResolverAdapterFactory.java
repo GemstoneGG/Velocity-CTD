@@ -141,13 +141,15 @@ public final class PermissionResolverAdapterFactory {
       Runtime.getRuntime().addShutdownHook(new Thread(() -> {
         try {
           loader.close();
-        } catch (IOException ignored) {
+        } catch (IOException exception) {
+          throw new RuntimeException(exception);
         }
       }));
     } else {
       try {
         loader.close();
-      } catch (IOException ignored) {
+      } catch (IOException exception) {
+        throw new RuntimeException(exception);
       }
     }
 
