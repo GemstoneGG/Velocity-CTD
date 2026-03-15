@@ -115,8 +115,8 @@ public class TransferCommand implements BuiltinCommand {
                     .executes(ctx -> VelocityCommands.emitUsage(ctx, label()))
                     .then(BrigadierCommand.requiredArgumentBuilder("proxy-id", StringArgumentType.word())
                             .suggests((ctx, builder) -> {
-                              String argument = ctx.getArguments().containsKey("proxy")
-                                      ? ctx.getArgument("proxy", String.class)
+                              String argument = ctx.getArguments().containsKey("proxy-id")
+                                      ? ctx.getArgument("proxy-id", String.class)
                                       : "";
                               for (ProxyAddress address : server.getConfiguration().getProxyAddresses()) {
                                 if (address.proxyId().regionMatches(true, 0, argument, 0, argument.length())) {
