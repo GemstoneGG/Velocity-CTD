@@ -162,6 +162,7 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
    * also re-broadcasts all server statuses and queue states so non-master proxies recover.</p>
    */
   private void reloadFromRedis() {
+    queues.clear();
     loadFromRedis();
 
     if (isMasterProxy()) {
