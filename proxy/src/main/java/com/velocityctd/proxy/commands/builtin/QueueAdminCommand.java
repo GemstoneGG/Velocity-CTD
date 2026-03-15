@@ -288,7 +288,7 @@ public class QueueAdminCommand implements BuiltinCommand {
                   ctx.getSource().sendMessage(builder.build());
                 });
       }
-      return -1;
+      return Command.SINGLE_SUCCESS;
     } else if (server == null) {
       ctx.getSource().sendMessage(Component.translatable("velocity.command.server-does-not-exist")
               .arguments(Component.text(serverName)));
@@ -299,9 +299,8 @@ public class QueueAdminCommand implements BuiltinCommand {
 
     if (this.server.getConfiguration().getQueue().getNoQueueServers().contains(server.getServerInfo().getName())) {
       String newName = serverName;
-      if (serverName.equalsIgnoreCase("current")) {
-        VelocityServerConnection conn = ((ConnectedPlayer) ctx.getSource())
-            .getCurrentServer().orElse(null);
+      if (serverName.equalsIgnoreCase("current") && ctx.getSource() instanceof ConnectedPlayer cp) {
+        VelocityServerConnection conn = cp.getCurrentServer().orElse(null);
         if (conn != null) {
           newName = conn.getServerInfo().getName();
         }
@@ -346,27 +345,20 @@ public class QueueAdminCommand implements BuiltinCommand {
     VelocityQueue queue = server.getQueue();
     String serverName = server.getServerInfo().getName();
     if (queue.getState() == QueueState.PAUSED) {
-      queue.setState(QueueState.ACTIVE);
-
-      ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.unpause")
+      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-paused")
               .arguments(Component.text(serverName)));
-
-      queue.broadcastMessage(
-          q -> Component.translatable("velocity.queue.command.unpaused")
-              .arguments(Component.text(serverName))
-      );
-      return Command.SINGLE_SUCCESS;
-    } else {
-      queue.setState(QueueState.PAUSED);
-
-      ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.pause")
-              .arguments(Component.text(serverName)));
-
-      queue.broadcastMessage(
-          q -> Component.translatable("velocity.queue.command.paused")
-              .arguments(Component.text(serverName))
-      );
+      return -1;
     }
+
+    queue.setState(QueueState.PAUSED);
+
+    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.pause")
+            .arguments(Component.text(serverName)));
+
+    queue.broadcastMessage(
+        q -> Component.translatable("velocity.queue.command.paused")
+            .arguments(Component.text(serverName))
+    );
 
     return Command.SINGLE_SUCCESS;
   }
@@ -637,18 +629,10 @@ public class QueueAdminCommand implements BuiltinCommand {
 
     String playerName = ctx.getArgument("player", String.class);
 
-    if (this.server.isRedisEnabled()) {
-      if (!this.server.getRedis().getPlayerService().isPlayerOnline(playerName)) {
-        ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-                .arguments(Argument.string("player", playerName)));
-        return -1;
-      }
-    } else {
-      if (this.server.getPlayer(playerName).isEmpty()) {
-        ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-                .arguments(Argument.string("player", playerName)));
-        return -1;
-      }
+    if (this.server.getPlayer(playerName).isEmpty()) {
+      ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
+              .arguments(Argument.string("player", playerName)));
+      return -1;
     }
 
     List<VelocityRegisteredServer> servers;
@@ -706,18 +690,10 @@ public class QueueAdminCommand implements BuiltinCommand {
   private int removeRedis(CommandContext<CommandSource> ctx) {
     String playerName = ctx.getArgument("player", String.class);
 
-    if (this.server.isRedisEnabled()) {
-      if (!this.server.getRedis().getPlayerService().isPlayerOnline(playerName)) {
-        ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-                .arguments(Argument.string("player", playerName)));
-        return -1;
-      }
-    } else {
-      if (this.server.getPlayer(playerName).isEmpty()) {
-        ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-                .arguments(Argument.string("player", playerName)));
-        return -1;
-      }
+    if (!this.server.getRedis().getPlayerService().isPlayerOnline(playerName)) {
+      ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
+              .arguments(Argument.string("player", playerName)));
+      return -1;
     }
 
     List<VelocityRegisteredServer> servers;
