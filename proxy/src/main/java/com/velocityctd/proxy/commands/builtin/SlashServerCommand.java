@@ -25,6 +25,7 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.command.builtin.BuiltinCommand;
+import com.velocitypowered.proxy.command.builtin.CommandMessages;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
@@ -67,7 +68,10 @@ public class SlashServerCommand implements BuiltinCommand {
   }
 
   private int send(CommandContext<CommandSource> ctx) {
-    ConnectedPlayer player = (ConnectedPlayer) ctx.getSource();
+    if (!(ctx.getSource() instanceof ConnectedPlayer player)) {
+      ctx.getSource().sendMessage(CommandMessages.PLAYERS_ONLY);
+      return -1;
+    }
 
     VelocityServerConnection connection = player.getCurrentServer().orElse(null);
     if (connection != null && connection.getServer() == registeredServer) {
