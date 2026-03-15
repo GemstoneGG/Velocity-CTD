@@ -17,7 +17,6 @@
 
 package com.velocityctd.proxy.commands.builtin;
 
-import static java.util.Objects.requireNonNull;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
@@ -70,10 +69,16 @@ public class HubCommand implements BuiltinCommand {
     }
 
     VelocityServerConnection con = player.getCurrentServer().orElse(null);
-    requireNonNull(con);
+    if (con == null) {
+      player.sendMessage(Component.translatable("velocity.command.no-fallbacks"));
+      return 0;
+    }
 
     VelocityRegisteredServer currentServer = con.getServer();
-    requireNonNull(currentServer);
+    if (currentServer == null) {
+      player.sendMessage(Component.translatable("velocity.command.no-fallbacks"));
+      return 0;
+    }
 
     List<String> serversToTry = FallbackServerResolver.resolveServersToTry(server, player);
     if (serversToTry.contains(currentServer.getServerInfo().getName())) {
@@ -83,7 +88,10 @@ public class HubCommand implements BuiltinCommand {
     }
 
     ConnectedPlayer connectedPlayer = currentServer.getPlayer(player.getUniqueId());
-    requireNonNull(connectedPlayer);
+    if (connectedPlayer == null) {
+      player.sendMessage(Component.translatable("velocity.command.no-fallbacks"));
+      return 0;
+    }
 
     VelocityRegisteredServer nextServer = connectedPlayer.currentServerRetrySession().getNextServerToTry().orElse(null);
     if (nextServer == null) {
