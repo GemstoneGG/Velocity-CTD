@@ -54,6 +54,7 @@ public final class PermissionResolverAdapterFactory {
 
   private static volatile boolean hasLoadedProvider = false;
   private static volatile @Nullable PermissionResolverProvider cachedProvider = null;
+  private static volatile @Nullable PluginClassLoader integrationLoader = null;
 
   private PermissionResolverAdapterFactory() {
   }
@@ -127,13 +128,30 @@ public final class PermissionResolverAdapterFactory {
       return Optional.empty();
     }
 
-    ClassLoader integrationLoader = new PluginClassLoader(new URL[] {jarUrl});
+    PluginClassLoader loader = new PluginClassLoader(new URL[] {jarUrl});
 
-    return ServiceLoader.load(PermissionResolverProvider.class, integrationLoader)
+    Optional<PermissionResolverProvider> provider = ServiceLoader.load(PermissionResolverProvider.class, loader)
         .stream()
         .map(ServiceLoader.Provider::get)
         .filter(PermissionResolverProvider::isAvailable)
         .findFirst();
+
+    if (provider.isPresent()) {
+      integrationLoader = loader;
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        try {
+          loader.close();
+        } catch (IOException ignored) {
+        }
+      }));
+    } else {
+      try {
+        loader.close();
+      } catch (IOException ignored) {
+      }
+    }
+
+    return provider;
   }
 
   /**
