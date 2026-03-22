@@ -191,10 +191,8 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
             serverConn.ensureConnected().write(player.getClientSettingsPacket());
           }
 
-          if (server.isRedisEnabled()) {
-            server.getRedis().getPlayerService().onPlayerSwitchServer(player,
-                serverConn.getServerInfo().getName());
-          }
+          server.getClusterPlayerService().onPlayerSwitchServer(player,
+              serverConn.getServerInfo().getName());
 
           if (this.server.isQueueEnabled()) {
             final VelocityQueue queue = this.server.getQueueManager().getQueue(serverConn.getServer()

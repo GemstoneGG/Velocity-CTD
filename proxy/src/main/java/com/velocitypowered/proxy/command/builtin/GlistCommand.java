@@ -19,21 +19,18 @@ package com.velocitypowered.proxy.command.builtin;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 
-import com.google.common.collect.ImmutableList;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
+import com.velocityctd.proxy.cluster.ClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
-import com.velocityctd.proxy.redis.VelocityRedis;
-import com.velocityctd.proxy.redis.impl.depot.PlayerEntry;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
-import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.List;
@@ -113,13 +110,13 @@ public class GlistCommand implements BuiltinCommand {
   }
 
   private void sendTotalProxyCount(CommandSource target) {
-    int online = server.getPlayerCount();
+    int online = server.getClusterPlayerService().getTotalPlayerCount();
 
     String msgKey = (online == 1)
         ? "velocity.command.glist-player-singular"
         : "velocity.command.glist-player-plural";
 
-    if (server.isRedisEnabled()) {
+    if (server.getClusterProxyService().isMultiProxy()) {
       msgKey += "-proxy-plural";
     }
 
@@ -136,30 +133,16 @@ public class GlistCommand implements BuiltinCommand {
   private void sendServerPlayers(CommandSource target, boolean fromAll, VelocityRegisteredServer server) {
     int totalPlayers = 0;
     List<Component> players = new ArrayList<>();
-    VelocityRedis redis = this.server.getRedis();
+    String selfProxyId = this.server.getClusterProxyService().getSelfProxyId();
 
-    if (this.server.isRedisEnabled() && redis != null) {
-      for (String proxyId : redis.getProxyService().getAllProxyIds()) {
-        for (PlayerEntry playerEntry : redis.getPlayerService().getPlayerEntriesOnProxy(proxyId)) {
-          if (playerEntry.getServerName() == null || !playerEntry.getServerName().equals(server.getServerInfo().getName())) {
-            continue;
-          }
-
-          String key = "velocity.command.glist.proxy-"
-                  + (proxyId.equals(this.server.getProxyId()) ? "self" : "other");
-          Component hover = Component.translatable(key).arguments(Component.text(proxyId));
-          players.add(Component.text(playerEntry.getUsername()).hoverEvent(HoverEvent.showText(hover)));
-          totalPlayers += 1;
-        }
-      }
-    } else {
-      List<ConnectedPlayer> onServer = ImmutableList.copyOf(server.getPlayersConnected());
-      totalPlayers = onServer.size();
-
-      for (ConnectedPlayer player : onServer) {
-        Component hover = Component.translatable("velocity.command.glist.proxy-self");
-        players.add(Component.text(player.getUsername()).hoverEvent(HoverEvent.showText(hover)));
-      }
+    for (ClusterPlayer player : this.server.getClusterPlayerService().getPlayersOnServer(server.getServerInfo().getName())) {
+      String proxyId = player.getProxyId();
+      String key = "velocity.command.glist.proxy-"
+              + (proxyId == null || proxyId.equals(selfProxyId) ? "self" : "other");
+      Component hover = Component.translatable(key)
+              .arguments(Component.text(proxyId != null ? proxyId : selfProxyId));
+      players.add(Component.text(player.getUsername()).hoverEvent(HoverEvent.showText(hover)));
+      totalPlayers += 1;
     }
 
     if (totalPlayers == 0 && fromAll) {

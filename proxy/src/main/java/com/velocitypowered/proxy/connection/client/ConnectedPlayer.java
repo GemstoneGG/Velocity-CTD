@@ -437,9 +437,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     }
 
     if (this.fullyConnected) {
-      if (this.server.isRedisEnabled()) {
-        this.server.getRedis().getPlayerService().onPlayerDisconnect(this);
-      }
+      this.server.getClusterPlayerService().onPlayerDisconnect(this);
 
       if (this.server.isQueueEnabled()) {
         this.server.getQueueManager().onPlayerDisconnect(this);

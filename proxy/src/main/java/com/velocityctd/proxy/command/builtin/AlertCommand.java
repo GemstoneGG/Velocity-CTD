@@ -22,7 +22,6 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.velocityctd.proxy.command.CommandUtils;
-import com.velocityctd.proxy.redis.impl.packet.VelocityAlert;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
@@ -76,11 +75,7 @@ public class AlertCommand implements BuiltinCommand {
     TranslatableComponent alertComponent = Component.translatable("velocity.command.alert.message",
             NamedTextColor.WHITE, ComponentUtils.colorify(message));
 
-    if (server.isRedisEnabled()) {
-      new VelocityAlert(alertComponent).publish();
-    } else {
-      server.sendMessage(alertComponent);
-    }
+    server.getClusterPlayerService().broadcastAlert(alertComponent);
 
     return Command.SINGLE_SUCCESS;
   }

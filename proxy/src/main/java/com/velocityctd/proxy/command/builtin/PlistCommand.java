@@ -24,8 +24,8 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
+import com.velocityctd.proxy.cluster.ClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
-import com.velocityctd.proxy.redis.impl.depot.PlayerEntry;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
@@ -34,6 +34,7 @@ import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.command.builtin.BuiltinCommand;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import net.kyori.adventure.text.Component;
@@ -66,7 +67,7 @@ public class PlistCommand implements BuiltinCommand {
 
   @Override
   public BrigadierCommand build() {
-    if (!server.isRedisEnabled()) {
+    if (!server.getClusterProxyService().isMultiProxy()) {
       return null;
     }
 
@@ -93,7 +94,7 @@ public class PlistCommand implements BuiltinCommand {
 
   private int totalCount(CommandContext<CommandSource> context) {
     CommandSource source = context.getSource();
-    sendTotalProxyCount(source, null, this.server.getPlayerCount());
+    sendTotalProxyCount(source, null, this.server.getClusterPlayerService().getTotalPlayerCount());
 
     if (!context.getArguments().containsKey(PROXY_ARG)) {
       source.sendMessage(
@@ -105,7 +106,7 @@ public class PlistCommand implements BuiltinCommand {
   }
 
   private Optional<String> validateProxy(String proxyName, CommandSource source) {
-    return server.getRedis().getProxyService().getAllProxyIds().stream()
+    return server.getClusterProxyService().getAllProxyIds().stream()
             .filter(proxyId -> proxyId.equalsIgnoreCase(proxyName))
             .findFirst()
             .or(() -> {
@@ -160,7 +161,7 @@ public class PlistCommand implements BuiltinCommand {
       return Command.SINGLE_SUCCESS;
     }
 
-    List<PlayerEntry> proxyPlayers = server.getRedis().getPlayerService().getPlayerEntriesOnProxy(validatedProxy.get());
+    Collection<ClusterPlayer> proxyPlayers = server.getClusterPlayerService().getPlayersOnProxy(validatedProxy.get());
     sendTotalProxyCount(context.getSource(), validatedProxy.get(), proxyPlayers.size());
     return Command.SINGLE_SUCCESS;
   }
@@ -210,10 +211,9 @@ public class PlistCommand implements BuiltinCommand {
     List<Component> players = new ArrayList<>();
     int totalPlayers = 0;
 
-    for (PlayerEntry playerEntry : this.server.getRedis().getPlayerService().getAll()) {
-      if ((proxyId == null || playerEntry.getProxyId().equalsIgnoreCase(proxyId))
-          && server.getServerInfo().getName().equalsIgnoreCase(playerEntry.getServerName())) {
-        players.add(Component.text(playerEntry.getUsername()));
+    for (ClusterPlayer player : this.server.getClusterPlayerService().getPlayersOnServer(server.getServerInfo().getName())) {
+      if (proxyId == null || (player.getProxyId() != null && player.getProxyId().equalsIgnoreCase(proxyId))) {
+        players.add(Component.text(player.getUsername()));
         totalPlayers++;
       }
     }

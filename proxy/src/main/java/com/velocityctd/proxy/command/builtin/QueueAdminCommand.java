@@ -25,12 +25,11 @@ import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
-import com.velocityctd.api.queue.QueueEntryData;
 import com.velocityctd.api.queue.QueueState;
+import com.velocityctd.proxy.cluster.ClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
 import com.velocityctd.proxy.queue.VelocityQueue;
 import com.velocityctd.proxy.queue.VelocityQueueEntry;
-import com.velocityctd.proxy.redis.impl.depot.PlayerEntry;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
@@ -42,6 +41,7 @@ import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -389,10 +389,6 @@ public class QueueAdminCommand implements BuiltinCommand {
   }
 
   private int add(CommandContext<CommandSource> ctx) {
-    if (this.server.isRedisEnabled()) {
-      return addRedis(ctx);
-    }
-
     VelocityRegisteredServer server = CommandUtils.getServer(this.server, ctx, "server", false);
     String playerName = ctx.getArgument("player", String.class);
 
@@ -400,12 +396,14 @@ public class QueueAdminCommand implements BuiltinCommand {
       return SINGLE_SUCCESS;
     }
 
-    ConnectedPlayer player = this.server.getPlayer(playerName).orElse(null);
-    if (player == null) {
+    Optional<ClusterPlayer> maybePlayer = this.server.getClusterPlayerService().getPlayer(playerName);
+    if (maybePlayer.isEmpty()) {
       ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
               .arguments(Argument.string("player", playerName)));
       return SINGLE_SUCCESS;
     }
+
+    ClusterPlayer player = maybePlayer.get();
 
     if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
       for (VelocityQueue queue : this.server.getQueueManager().getQueues()) {
@@ -419,8 +417,8 @@ public class QueueAdminCommand implements BuiltinCommand {
       }
     }
 
-    VelocityServerConnection conn = player.getCurrentServer().orElse(null);
-    if (conn != null && conn.getServerInfo().getName().equalsIgnoreCase(server.getServerInfo().getName())) {
+    String conn = player.getServerName();
+    if (conn != null && conn.equalsIgnoreCase(server.getServerInfo().getName())) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-connected")
               .arguments(Argument.string("player", player.getUsername())));
       return SINGLE_SUCCESS;
@@ -434,15 +432,7 @@ public class QueueAdminCommand implements BuiltinCommand {
       return SINGLE_SUCCESS;
     }
 
-    if (!player.checkVersionCompatibility(server)) {
-      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.version-incompatible")
-              .arguments(
-                      Argument.string("player", player.getUsername()),
-                      Argument.string("server", server.getServerInfo().getName())));
-      return SINGLE_SUCCESS;
-    }
-
-    server.getQueue().enqueue(player);
+    server.getQueue().enqueue(player.toQueueEntryData(server.getServerInfo().getName()));
 
     ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.added")
             .arguments(
@@ -452,68 +442,7 @@ public class QueueAdminCommand implements BuiltinCommand {
     return SINGLE_SUCCESS;
   }
 
-  private int addRedis(CommandContext<CommandSource> ctx) {
-    VelocityRegisteredServer server = CommandUtils.getServer(this.server, ctx, "server", false);
-    String playerName = ctx.getArgument("player", String.class);
-
-    if (server == null) {
-      return SINGLE_SUCCESS;
-    }
-
-    PlayerEntry playerEntry = this.server.getRedis().getPlayerService().getPlayerEntry(playerName);
-    if (playerEntry == null) {
-      ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-              .arguments(Argument.string("player", playerName)));
-      return SINGLE_SUCCESS;
-    }
-
-    if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
-      for (VelocityQueue queue : this.server.getQueueManager().getQueues()) {
-        if (queue.contains(playerEntry.getUniqueId())) {
-          ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-queued.other")
-                  .arguments(
-                          Argument.string("player", playerEntry.getUsername()),
-                          Argument.string("server", queue.getName())));
-          return SINGLE_SUCCESS;
-        }
-      }
-    }
-
-    String conn = playerEntry.getServerName();
-    if (conn != null && conn.equalsIgnoreCase(server.getServerInfo().getName())) {
-      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-connected")
-              .arguments(Argument.string("player", playerEntry.getUsername())));
-      return SINGLE_SUCCESS;
-    }
-
-    if (server.getQueue().contains(playerEntry.getUniqueId())) {
-      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-queued.other")
-              .arguments(
-                      Argument.string("player", playerEntry.getUsername()),
-                      Argument.string("server", server.getServerInfo().getName())));
-      return SINGLE_SUCCESS;
-    }
-
-    server.getQueue().enqueue(new QueueEntryData(
-            playerEntry.getUniqueId(),
-            playerEntry.getUsername(),
-            playerEntry.getQueuePriorities().getOrDefault(server.getServerInfo().getName(), 0),
-            playerEntry.isFullServerBypass(),
-            playerEntry.isQueueBypass()));
-
-    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.added")
-            .arguments(
-                    Argument.string("player", playerEntry.getUsername()),
-                    Argument.string("server", server.getServerInfo().getName())));
-
-    return SINGLE_SUCCESS;
-  }
-
   private int addAll(CommandContext<CommandSource> ctx) {
-    if (this.server.isRedisEnabled()) {
-      return addAllRedis(ctx);
-    }
-
     VelocityRegisteredServer from = CommandUtils.getServer(this.server, ctx, "from", true);
     if (from == null) {
       return SINGLE_SUCCESS;
@@ -529,10 +458,13 @@ public class QueueAdminCommand implements BuiltinCommand {
       return SINGLE_SUCCESS;
     }
 
-    List<ConnectedPlayer> connected = new ArrayList<>();
-    for (ConnectedPlayer player : this.server.getAllPlayers()) {
-      VelocityServerConnection conn = player.getCurrentServer().orElse(null);
-      if (conn != null && conn.getServerInfo().getName().equalsIgnoreCase(from.getServerInfo().getName())) {
+    String fromName = from.getServerInfo().getName();
+    String toName = to.getServerInfo().getName();
+
+    List<ClusterPlayer> eligible = new ArrayList<>();
+    for (ClusterPlayer player : this.server.getClusterPlayerService().getAllPlayers()) {
+      String conn = player.getServerName();
+      if (conn != null && conn.equalsIgnoreCase(fromName)) {
         if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
           boolean alreadyQueued = this.server.getQueueManager().getQueues().stream()
                   .anyMatch(queue -> queue.contains(player.getUniqueId()));
@@ -541,99 +473,41 @@ public class QueueAdminCommand implements BuiltinCommand {
           }
         }
         if (!to.getQueue().contains(player.getUniqueId())) {
-          connected.add(player);
+          eligible.add(player);
         }
       }
     }
 
-    if (connected.isEmpty()) {
+    if (eligible.isEmpty()) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.addall-no-players-queued", NamedTextColor.RED)
               .arguments(
-                      Argument.string("from", from.getServerInfo().getName()),
-                      Argument.string("to", to.getServerInfo().getName())));
+                      Argument.string("from", fromName),
+                      Argument.string("to", toName)));
       return SINGLE_SUCCESS;
     }
-    for (ConnectedPlayer player : connected) {
-      to.getQueue().enqueue(player);
+    for (ClusterPlayer player : eligible) {
+      to.getQueue().enqueue(player.toQueueEntryData(toName));
     }
 
-    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.addedall-player" + (connected.size() == 1 ? "" : "s"))
+    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.addedall-player" + (eligible.size() == 1 ? "" : "s"))
             .arguments(
-                    Argument.numeric("count", connected.size()),
-                    Argument.string("server", to.getServerInfo().getName())));
-
-    return SINGLE_SUCCESS;
-  }
-
-  private int addAllRedis(CommandContext<CommandSource> ctx) {
-    VelocityRegisteredServer from = CommandUtils.getServer(this.server, ctx, "from", true);
-    if (from == null) {
-      return SINGLE_SUCCESS;
-    }
-
-    VelocityRegisteredServer to = CommandUtils.getServer(this.server, ctx, "to", false);
-    if (to == null) {
-      return SINGLE_SUCCESS;
-    }
-
-    if (to.getServerInfo().getName().equalsIgnoreCase(from.getServerInfo().getName())) {
-      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.same-server-queue"));
-      return SINGLE_SUCCESS;
-    }
-
-    List<PlayerEntry> connected = new ArrayList<>();
-    for (PlayerEntry playerEntry : this.server.getRedis().getPlayerService().getAll()) {
-      String conn = playerEntry.getServerName();
-      if (conn != null && conn.equalsIgnoreCase(from.getServerInfo().getName())) {
-        if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
-          boolean alreadyQueued = this.server.getQueueManager().getQueues().stream()
-                  .anyMatch(status -> status.contains(playerEntry.getUniqueId()));
-          if (alreadyQueued) {
-            continue;
-          }
-        }
-        if (!to.getQueue().contains(playerEntry.getUniqueId())) {
-          connected.add(playerEntry);
-        }
-      }
-    }
-
-    if (connected.isEmpty()) {
-      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.addall-no-players-queued", NamedTextColor.RED)
-              .arguments(
-                      Argument.string("from", from.getServerInfo().getName()),
-                      Argument.string("to", to.getServerInfo().getName())));
-      return SINGLE_SUCCESS;
-    }
-    for (PlayerEntry playerEntry : connected) {
-      to.getQueue().enqueue(new QueueEntryData(
-              playerEntry.getUniqueId(),
-              playerEntry.getUsername(),
-              playerEntry.getQueuePriorities().getOrDefault(to.getServerInfo().getName(), 0),
-              playerEntry.isFullServerBypass(),
-              playerEntry.isQueueBypass()));
-    }
-
-    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.addedall-player" + (connected.size() == 1 ? "" : "s"))
-            .arguments(
-                    Argument.numeric("count", connected.size()),
-                    Argument.string("server", to.getServerInfo().getName())));
+                    Argument.numeric("count", eligible.size()),
+                    Argument.string("server", toName)));
 
     return SINGLE_SUCCESS;
   }
 
   private int remove(CommandContext<CommandSource> ctx) {
-    if (this.server.isRedisEnabled()) {
-      return removeRedis(ctx);
-    }
-
     String playerName = ctx.getArgument("player", String.class);
 
-    if (this.server.getPlayer(playerName).isEmpty()) {
+    Optional<ClusterPlayer> maybePlayer = this.server.getClusterPlayerService().getPlayer(playerName);
+    if (maybePlayer.isEmpty()) {
       ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
               .arguments(Argument.string("player", playerName)));
       return SINGLE_SUCCESS;
     }
+
+    ClusterPlayer player = maybePlayer.get();
 
     List<VelocityRegisteredServer> servers;
     if (ctx.getArguments().containsKey("server")) {
@@ -644,11 +518,6 @@ public class QueueAdminCommand implements BuiltinCommand {
       servers = List.of(registeredServer);
     } else {
       servers = new ArrayList<>(this.server.getAllServers());
-    }
-
-    ConnectedPlayer player = this.server.getPlayer(playerName).orElse(null);
-    if (player == null) {
-      return SINGLE_SUCCESS;
     }
 
     boolean handledSpecific = false;
@@ -687,73 +556,7 @@ public class QueueAdminCommand implements BuiltinCommand {
     return SINGLE_SUCCESS;
   }
 
-  private int removeRedis(CommandContext<CommandSource> ctx) {
-    String playerName = ctx.getArgument("player", String.class);
-
-    if (!this.server.getRedis().getPlayerService().isPlayerOnline(playerName)) {
-      ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-              .arguments(Argument.string("player", playerName)));
-      return SINGLE_SUCCESS;
-    }
-
-    List<VelocityRegisteredServer> servers;
-    if (ctx.getArguments().containsKey("server")) {
-      VelocityRegisteredServer registeredServer = CommandUtils.getServer(server, ctx, "server", false);
-      if (registeredServer == null) {
-        return SINGLE_SUCCESS;
-      }
-
-      servers = List.of(registeredServer);
-    } else {
-      servers = new ArrayList<>(this.server.getAllServers());
-    }
-
-    PlayerEntry playerEntry = this.server.getRedis().getPlayerService().getPlayerEntry(playerName);
-    if (playerEntry == null) {
-      return SINGLE_SUCCESS;
-    }
-
-    boolean handledSpecific = false;
-    int amountDone = 0;
-
-    for (VelocityRegisteredServer server : servers) {
-      if (servers.size() == 1 && server.getQueue().contains(playerEntry.getUniqueId())) {
-        ctx.getSource().sendMessage(Component.translatable("velocity.queue.remove-success")
-                .arguments(Argument.string("player", playerEntry.getUsername()),
-                        Argument.string("server", server.getServerInfo().getName())));
-        handledSpecific = true;
-      } else if (servers.size() == 1) {
-        ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.not-in-queue.other.specific")
-                .arguments(Argument.string("player", playerEntry.getUsername()),
-                        Argument.string("server", server.getServerInfo().getName())));
-        handledSpecific = true;
-      }
-
-      if (server.getQueue().contains(playerEntry.getUniqueId())) {
-        amountDone++;
-        server.getQueue().dequeue(playerEntry.getUniqueId());
-      }
-    }
-
-    if (!handledSpecific && amountDone == 0) {
-      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.not-in-queue.other")
-              .arguments(Argument.string("player", playerEntry.getUsername())));
-      return SINGLE_SUCCESS;
-    }
-
-    if (servers.size() > 1) {
-      ctx.getSource().sendMessage(Component.translatable("velocity.queue.remove-all-success")
-              .arguments(Argument.string("player", playerEntry.getUsername())));
-    }
-
-    return SINGLE_SUCCESS;
-  }
-
   private int removeAll(CommandContext<CommandSource> ctx) {
-    if (this.server.isRedisEnabled()) {
-      return this.removeAllRedis(ctx);
-    }
-
     VelocityRegisteredServer server = CommandUtils.getServer(this.server, ctx, "server", true);
     if (server == null) {
       return SINGLE_SUCCESS;
@@ -761,7 +564,7 @@ public class QueueAdminCommand implements BuiltinCommand {
 
     int amount = 0;
 
-    for (ConnectedPlayer player : this.server.getAllPlayers()) {
+    for (ClusterPlayer player : this.server.getClusterPlayerService().getAllPlayers()) {
       if (server.getQueue().contains(player.getUniqueId())) {
         amount++;
         server.getQueue().dequeue(player.getUniqueId());
@@ -778,35 +581,6 @@ public class QueueAdminCommand implements BuiltinCommand {
             .arguments(
                     Argument.numeric("count", amount),
                     Argument.string("server", server.getServerInfo().getName())));
-    return SINGLE_SUCCESS;
-  }
-
-  private int removeAllRedis(CommandContext<CommandSource> ctx) {
-    VelocityRegisteredServer server = CommandUtils.getServer(this.server, ctx, "server", true);
-    if (server == null) {
-      return SINGLE_SUCCESS;
-    }
-
-    int amount = 0;
-
-    for (PlayerEntry playerEntry : this.server.getRedis().getPlayerService().getAll()) {
-      if (server.getQueue().contains(playerEntry.getUniqueId())) {
-        amount++;
-        server.getQueue().dequeue(playerEntry.getUniqueId());
-      }
-    }
-
-    if (amount == 0) {
-      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.removeall-no-players-queued")
-              .arguments(Component.text(server.getServerInfo().getName())));
-      return SINGLE_SUCCESS;
-    }
-
-    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.removedall-player" + (amount == 1 ? "" : "s"))
-            .arguments(
-                    Argument.numeric("count", amount),
-                    Argument.string("server", server.getServerInfo().getName())));
-
     return SINGLE_SUCCESS;
   }
 

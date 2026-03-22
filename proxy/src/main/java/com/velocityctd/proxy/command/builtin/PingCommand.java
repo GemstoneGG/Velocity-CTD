@@ -21,8 +21,8 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import com.velocityctd.proxy.cluster.ClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
-import com.velocityctd.proxy.redis.impl.transaction.VelocityGetPlayerPing;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
@@ -30,6 +30,7 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.builtin.BuiltinCommand;
 import com.velocitypowered.proxy.command.builtin.CommandMessages;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
+import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.translation.Argument;
@@ -100,29 +101,14 @@ public class PingCommand implements BuiltinCommand {
               .arguments(Argument.numeric("ping", ping))
       );
     } else {
-      if (server.isRedisEnabled()) {
-        if (!this.server.getRedis().getPlayerService().isPlayerOnline(username)) {
-          context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-              .arguments(Argument.string("player", username)));
-          return -1;
-        }
-
-        new VelocityGetPlayerPing(context.getSource(), username)
-            .publish();
-      } else {
-        if (player == null) {
-          context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-              .arguments(Argument.string("player", username)));
-          return -1;
-        }
-
-        Component component = Component.translatable("velocity.command.ping.other", NamedTextColor.GREEN)
-            .arguments(
-                Argument.string("player", player.getUsername()),
-                Argument.numeric("ping", player.getPing()));
-
-        context.getSource().sendMessage(component);
+      Optional<ClusterPlayer> maybeClusterPlayer = this.server.getClusterPlayerService().getPlayer(username);
+      if (maybeClusterPlayer.isEmpty()) {
+        context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
+            .arguments(Argument.string("player", username)));
+        return -1;
       }
+
+      maybeClusterPlayer.get().queryPing(context.getSource());
     }
 
     return Command.SINGLE_SUCCESS;

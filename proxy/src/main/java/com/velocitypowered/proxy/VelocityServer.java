@@ -22,6 +22,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.velocityctd.proxy.cluster.ClusterPlayerService;
+import com.velocityctd.proxy.cluster.ClusterProxyService;
+import com.velocityctd.proxy.cluster.local.LocalClusterPlayerService;
+import com.velocityctd.proxy.cluster.local.LocalClusterProxyService;
+import com.velocityctd.proxy.cluster.redis.RedisClusterPlayerService;
+import com.velocityctd.proxy.cluster.redis.RedisClusterProxyService;
 import com.velocityctd.proxy.command.builtin.AlertCommand;
 import com.velocityctd.proxy.command.builtin.AlertRawCommand;
 import com.velocityctd.proxy.command.builtin.FindCommand;
@@ -332,6 +338,16 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    */
   private @MonotonicNonNull VelocityRedis redis;
 
+  /**
+   * The cluster player service for tracking and querying players across the cluster.
+   */
+  private @MonotonicNonNull ClusterPlayerService clusterPlayerService;
+
+  /**
+   * The cluster proxy service for proxy discovery.
+   */
+  private @MonotonicNonNull ClusterProxyService clusterProxyService;
+
   VelocityServer(final ProxyOptions options) {
     pluginManager = new VelocityPluginManager(this);
     eventManager = new VelocityEventManager(pluginManager);
@@ -516,12 +532,20 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
     if (configuration.getRedis().isEnabled()) {
       redis = new VelocityRedis(this);
-    }
 
-    if (configuration.getQueue().isEnabled()) {
-      queueManager = isRedisEnabled()
-          ? new RedisVelocityQueueManager(this)
-          : new VelocityQueueManager(this);
+      clusterPlayerService = new RedisClusterPlayerService(this, redis);
+      clusterProxyService = new RedisClusterProxyService(redis);
+
+      if (configuration.getQueue().isEnabled()) {
+        queueManager = new RedisVelocityQueueManager(this);
+      }
+    } else {
+      clusterPlayerService = new LocalClusterPlayerService(this);
+      clusterProxyService = new LocalClusterProxyService(this);
+
+      if (configuration.getQueue().isEnabled()) {
+        queueManager = new VelocityQueueManager(this);
+      }
     }
 
     registerCommands();
@@ -1111,16 +1135,13 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   }
 
   private @Nullable ProxyAddress getProxyAddressToUse() {
-    if (!this.isRedisEnabled()) {
+    if (!this.getClusterProxyService().isMultiProxy()) {
       return null;
     }
 
     DynamicProxyFilterMode filter = getConfiguration().getDynamicProxyFilter();
     List<ProxyAddress> addresses = new ArrayList<>(getConfiguration().getProxyAddresses().stream().toList());
-
-    if (isRedisEnabled()) {
-      addresses.removeIf(address -> getProxyId().equalsIgnoreCase(address.proxyId()));
-    }
+    addresses.removeIf(address -> getProxyId().equalsIgnoreCase(address.proxyId()));
 
     if (addresses.isEmpty()) {
       return null;
@@ -1307,6 +1328,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   @Override
   public Optional<ConnectedPlayer> getPlayer(final String username) {
     Preconditions.checkNotNull(username, "username");
+
     return Optional.ofNullable(connectionsByName.get(username.toLowerCase(Locale.US)));
   }
 
@@ -1371,11 +1393,18 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    */
   @Override
   public int getPlayerCount() {
-    if (this.isRedisEnabled()) {
-      return this.redis.getPlayerService().getTotalPlayerCount();
-    } else {
-      return connectionsByUuid.size();
-    }
+    return clusterPlayerService.getTotalPlayerCount();
+  }
+
+  /**
+   * Gets the number of players currently connected to the proxy.
+   * Regardless of if Redis is enabled or not, this returns the local
+   * player count only.
+   *
+   * @return the number of locally connected players
+   */
+  public int getLocalPlayerCount() {
+    return connectionsByUuid.size();
   }
 
   /**
@@ -1514,9 +1543,12 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    */
   @Override
   public @NonNull Iterable<? extends Audience> audiences() {
-    Collection<Audience> audiences = new ArrayList<>(this.getPlayerCount() + 1);
-    audiences.add(this.console);
-    audiences.addAll(this.getAllPlayers());
+    Collection<ConnectedPlayer> connectedPlayers = getAllPlayers();
+
+    Collection<Audience> audiences = new ArrayList<>(connectedPlayers.size() + 1);
+    audiences.add(console);
+    audiences.addAll(connectedPlayers);
+
     return audiences;
   }
 
@@ -1570,6 +1602,24 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   @Override
   public boolean isQueueEnabled() {
     return this.configuration.getQueue().isEnabled();
+  }
+
+  /**
+   * Gets the cluster player service.
+   *
+   * @return the cluster player service
+   */
+  public ClusterPlayerService getClusterPlayerService() {
+    return clusterPlayerService;
+  }
+
+  /**
+   * Gets the cluster proxy service.
+   *
+   * @return the cluster proxy service
+   */
+  public ClusterProxyService getClusterProxyService() {
+    return clusterProxyService;
   }
 
   /**

@@ -159,11 +159,10 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
    */
   @Override
   public long getTotalPlayerCount() {
-    if (this.server != null && this.server.isRedisEnabled()) {
-      return this.server.getRedis().getPlayerService().getPlayerEntriesInServer(getServerInfo().getName()).size();
-    } else {
+    if (this.server == null) {
       return getPlayersConnected().size();
     }
+    return this.server.getClusterPlayerService().getPlayersOnServerCount(getServerInfo().getName());
   }
 
   /**
@@ -177,13 +176,13 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
    */
   @Override
   public List<PlayerInfo> getPlayerInfo() {
-    if (this.server == null || !this.server.isRedisEnabled()) {
+    if (this.server == null) {
       List<PlayerInfo> info = new ArrayList<>();
       players.forEach((uuid, player) -> info.add(new PlayerInfo(player.getUsername(), player.getUniqueId())));
       return info;
     }
 
-    return this.server.getRedis().getPlayerService().getPlayerEntriesInServer(getServerInfo().getName()).stream()
+    return this.server.getClusterPlayerService().getPlayersOnServer(getServerInfo().getName()).stream()
             .map(entry -> new PlayerInfo(entry.getUsername(), entry.getUniqueId()))
             .toList();
   }

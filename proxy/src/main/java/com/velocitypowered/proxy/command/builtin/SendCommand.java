@@ -23,14 +23,11 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import com.velocityctd.proxy.cluster.ClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
-import com.velocityctd.proxy.redis.VelocityRedis;
-import com.velocityctd.proxy.redis.impl.depot.PlayerEntry;
-import com.velocityctd.proxy.redis.impl.packet.VelocitySwitchServer;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
-import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -58,11 +55,9 @@ public class SendCommand implements BuiltinCommand {
   private static final char SERVER_PREFIX = '+';
 
   private final VelocityServer server;
-  private final VelocityRedis redis;
 
   public SendCommand(VelocityServer server) {
     this.server = server;
-    this.redis = server.getRedis();
   }
 
   @Override
@@ -94,21 +89,10 @@ public class SendCommand implements BuiltinCommand {
 
   private CompletableFuture<Suggestions> suggestPlayers(CommandContext<CommandSource> ctx, SuggestionsBuilder builder) {
     String input = builder.getRemaining();
-    boolean redisEnabled = server.isRedisEnabled();
 
-    if (redisEnabled) {
-      for (PlayerEntry entry : redis.getPlayerService().getAll()) {
-        String name = entry.getUsername();
-        if (startsWithIgnoreCase(name, input)) {
-          builder.suggest(name);
-        }
-      }
-    } else {
-      for (ConnectedPlayer p : server.getAllPlayers()) {
-        String name = p.getUsername();
-        if (startsWithIgnoreCase(name, input)) {
-          builder.suggest(name);
-        }
+    for (String name : server.getClusterPlayerService().getPlayerNames()) {
+      if (startsWithIgnoreCase(name, input)) {
+        builder.suggest(name);
       }
     }
 
@@ -158,13 +142,11 @@ public class SendCommand implements BuiltinCommand {
       return 0;
     }
 
-    MoveBackend backend = server.isRedisEnabled() ? new RedisBackend() : new LocalBackend();
-
     VelocityRegisteredServer target = maybeTarget.get();
 
     // all
     if (equalsIgnoreCase(selector, ALL)) {
-      return sendAll(ctx, backend, target);
+      return sendAll(ctx, target);
     }
 
     // current
@@ -186,7 +168,7 @@ public class SendCommand implements BuiltinCommand {
         return 0;
       }
 
-      return sendFromServers(ctx, backend, fromServers, target);
+      return sendFromServers(ctx, fromServers, target);
     }
 
     // +pattern
@@ -200,11 +182,11 @@ public class SendCommand implements BuiltinCommand {
         return 0;
       }
 
-      return sendFromServers(ctx, backend, fromServers, target);
+      return sendFromServers(ctx, fromServers, target);
     }
 
     // single player
-    return sendSinglePlayer(ctx, backend, selector, target);
+    return sendSinglePlayer(ctx, selector, target);
   }
 
   private Collection<VelocityRegisteredServer> lookupServers(String selector, @Nullable ConnectedPlayer sourcePlayer) {
@@ -261,12 +243,12 @@ public class SendCommand implements BuiltinCommand {
     }
   }
 
-  private int sendAll(CommandContext<CommandSource> ctx, MoveBackend backend, VelocityRegisteredServer target) {
+  private int sendAll(CommandContext<CommandSource> ctx, VelocityRegisteredServer target) {
     String toName = target.getServerInfo().getName();
-    List<String> players = backend.allPlayers();
+    Collection<ClusterPlayer> players = server.getClusterPlayerService().getAllPlayers();
 
-    for (String name : players) {
-      backend.move(name, toName);
+    for (ClusterPlayer player : players) {
+      player.move(toName);
     }
 
     int count = players.size();
@@ -282,7 +264,6 @@ public class SendCommand implements BuiltinCommand {
   }
 
   private int sendFromServers(CommandContext<CommandSource> ctx,
-                              MoveBackend backend,
                               Collection<VelocityRegisteredServer> fromServers,
                               VelocityRegisteredServer target) {
     String toName = target.getServerInfo().getName();
@@ -298,7 +279,7 @@ public class SendCommand implements BuiltinCommand {
         continue;
       }
 
-      List<String> players = backend.playersOnServer(fromName);
+      Collection<ClusterPlayer> players = server.getClusterPlayerService().getPlayersOnServer(fromName);
       if (players.isEmpty()) {
         ctx.getSource().sendMessage(Component.translatable("velocity.command.send-server-none")
             .arguments(
@@ -309,8 +290,8 @@ public class SendCommand implements BuiltinCommand {
         continue;
       }
 
-      for (String player : players) {
-        backend.move(player, toName);
+      for (ClusterPlayer player : players) {
+        player.move(toName);
       }
 
       int moved = players.size();
@@ -333,11 +314,11 @@ public class SendCommand implements BuiltinCommand {
     return Command.SINGLE_SUCCESS;
   }
 
-  private int sendSinglePlayer(CommandContext<CommandSource> ctx, MoveBackend backend, String playerInput, VelocityRegisteredServer target) {
+  private int sendSinglePlayer(CommandContext<CommandSource> ctx, String playerInput, VelocityRegisteredServer target) {
     String toName = target.getServerInfo().getName();
 
-    String canonical = backend.canonicalName(playerInput).orElse(null);
-    if (canonical == null) {
+    Optional<ClusterPlayer> maybePlayer = server.getClusterPlayerService().getPlayer(playerInput);
+    if (maybePlayer.isEmpty()) {
       ctx.getSource().sendMessage(CommandMessages.PLAYER_NOT_FOUND
           .arguments(
               Argument.string("player", playerInput)
@@ -346,167 +327,25 @@ public class SendCommand implements BuiltinCommand {
       return 0;
     }
 
-    String currentServer = backend.serverOf(canonical).orElse(null);
-    if (equalsIgnoreCase(currentServer, toName)) {
+    ClusterPlayer player = maybePlayer.get();
+    if (equalsIgnoreCase(player.getServerName(), toName)) {
       ctx.getSource().sendMessage(Component.translatable("velocity.command.send-player-none")
           .arguments(
-              Argument.string("player", canonical),
+              Argument.string("player", player.getUsername()),
               Argument.string("server", toName)
           ));
 
       return Command.SINGLE_SUCCESS;
     }
 
-    backend.move(canonical, toName);
+    player.move(toName);
     ctx.getSource().sendMessage(Component.translatable("velocity.command.send-player")
         .arguments(
-            Argument.string("player", canonical),
+            Argument.string("player", player.getUsername()),
             Argument.string("server", toName)
         ));
 
     return Command.SINGLE_SUCCESS;
-  }
-
-  private interface MoveBackend {
-
-    List<String> allPlayers();
-
-    List<String> playersOnServer(String backendServerName);
-
-    Optional<String> canonicalName(String playerInput);
-
-    Optional<String> serverOf(String canonicalName);
-
-    void move(String canonicalName, String targetServerName);
-  }
-
-  private class LocalBackend implements MoveBackend {
-
-    @Override
-    public List<String> allPlayers() {
-      List<String> out = new ArrayList<>();
-      for (ConnectedPlayer p : server.getAllPlayers()) {
-        out.add(p.getUsername());
-      }
-      return out;
-    }
-
-    @Override
-    public List<String> playersOnServer(String backendServerName) {
-      Optional<VelocityRegisteredServer> rs = server.getServer(backendServerName);
-      if (rs.isEmpty()) {
-        return Collections.emptyList();
-      }
-      List<String> out = new ArrayList<>();
-      for (ConnectedPlayer p : rs.get().getPlayersConnected()) {
-        out.add(p.getUsername());
-      }
-      return out;
-    }
-
-    @Override
-    public Optional<String> canonicalName(String playerInput) {
-      return server.getPlayer(playerInput).map(ConnectedPlayer::getUsername);
-    }
-
-    @Override
-    public Optional<String> serverOf(String canonicalName) {
-      return server.getPlayer(canonicalName)
-          .flatMap(ConnectedPlayer::getCurrentServer)
-          .map(VelocityServerConnection::getServerInfo)
-          .map(ServerInfo::getName);
-    }
-
-    @Override
-    public void move(String canonicalName, String targetServerName) {
-      Optional<ConnectedPlayer> p = server.getPlayer(canonicalName);
-      if (p.isEmpty()) {
-        return;
-      }
-
-      server.getServer(targetServerName).ifPresent(
-          target -> p.get().createConnectionRequest(target).fireAndForget()
-      );
-    }
-  }
-
-  private class RedisBackend implements MoveBackend {
-
-    private Optional<PlayerEntry> byLowerName(String name) {
-      String needle = name.toLowerCase();
-      for (PlayerEntry entry : redis.getPlayerService().getAll()) {
-        String username = entry.getUsername();
-        if (username != null && username.toLowerCase().equals(needle)) {
-          return Optional.of(entry);
-        }
-      }
-
-      return Optional.empty();
-    }
-
-    private List<PlayerEntry> byLowerServer(String serverName) {
-      String needle = serverName.toLowerCase();
-      List<PlayerEntry> out = new ArrayList<>();
-      for (PlayerEntry entry : redis.getPlayerService().getAll()) {
-        String current = entry.getServerName();
-        if (current != null && current.toLowerCase().equals(needle)) {
-          out.add(entry);
-        }
-      }
-
-      return out;
-    }
-
-    @Override
-    public List<String> allPlayers() {
-      List<PlayerEntry> all = redis.getPlayerService().getAll();
-      List<String> out = new ArrayList<>(all.size());
-      for (PlayerEntry e : all) {
-        String name = e.getUsername();
-        if (name != null) {
-          out.add(name);
-        }
-      }
-
-      return out;
-    }
-
-    @Override
-    public List<String> playersOnServer(String backendServerName) {
-      List<PlayerEntry> list = byLowerServer(backendServerName);
-      if (list.isEmpty()) {
-        return Collections.emptyList();
-      }
-
-      List<String> out = new ArrayList<>(list.size());
-      for (PlayerEntry e : list) {
-        String name = e.getUsername();
-        if (name != null) {
-          out.add(name);
-        }
-      }
-
-      return out;
-    }
-
-    @Override
-    public Optional<String> canonicalName(String playerInput) {
-      return byLowerName(playerInput).map(PlayerEntry::getUsername);
-    }
-
-    @Override
-    public Optional<String> serverOf(String canonicalName) {
-      return byLowerName(canonicalName).map(PlayerEntry::getServerName);
-    }
-
-    @Override
-    public void move(String canonicalName, String targetServerName) {
-      byLowerName(canonicalName)
-          .map(PlayerEntry::getUsername)
-          .ifPresent(username -> {
-            new VelocitySwitchServer(username, targetServerName).publish();
-          });
-    }
   }
 
   private static boolean equalsIgnoreCase(@Nullable String a, @Nullable String b) {

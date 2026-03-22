@@ -25,7 +25,6 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.velocityctd.api.queue.QueueState;
-import com.velocityctd.proxy.redis.impl.depot.PlayerEntry;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.proxy.VelocityServer;
@@ -36,6 +35,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -183,7 +183,7 @@ public class CommandUtils {
           ? ctx.getArgument(argName, String.class)
           : "";
 
-      List<String> possibilities = new ArrayList<>(server.getRedis().getProxyService().getAllProxyIds());
+      List<String> possibilities = new ArrayList<>(server.getClusterProxyService().getAllProxyIds());
       possibilities.addAll(Arrays.asList(magicProxies));
 
       for (String possibility : possibilities) {
@@ -210,18 +210,11 @@ public class CommandUtils {
     final String argument = ctx.getArguments().containsKey("player")
         ? ctx.getArgument("player", String.class)
         : "";
-    if (includeRemote && server.isRedisEnabled()) {
-      for (PlayerEntry playerEntry : server.getRedis().getPlayerService().getAll()) {
-        if (playerEntry.getUsername().regionMatches(true, 0, argument, 0, argument.length())) {
-          builder.suggest(playerEntry.getUsername());
-        }
-      }
+    final Collection<String> playerNames = includeRemote
+        ? server.getClusterPlayerService().getPlayerNames()
+        : server.getAllPlayers().stream().map(ConnectedPlayer::getUsername).toList();
 
-      return builder.buildFuture();
-    }
-
-    for (final ConnectedPlayer player : server.getAllPlayers()) {
-      final String playerName = player.getUsername();
+    for (final String playerName : playerNames) {
       if (playerName.regionMatches(true, 0, argument, 0, argument.length())) {
         builder.suggest(playerName);
       }

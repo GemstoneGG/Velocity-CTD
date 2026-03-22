@@ -21,9 +21,8 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
+import com.velocityctd.proxy.cluster.ClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
-import com.velocityctd.proxy.redis.impl.depot.PlayerEntry;
-import com.velocityctd.proxy.redis.impl.transaction.VelocityTransferRemote;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.network.ProtocolVersion;
@@ -93,18 +92,7 @@ public class TransferCommand implements BuiltinCommand {
                         }
                       }
 
-                      if (server.isRedisEnabled()) {
-                        for (PlayerEntry playerEntry : server.getRedis().getPlayerService().getAll()) {
-                          if (playerEntry.getUsername().regionMatches(true, 0, argument, 0, argument.length())) {
-                            builder.suggest(playerEntry.getUsername());
-                          }
-                        }
-
-                        return builder.buildFuture();
-                      }
-
-                      for (ConnectedPlayer player : server.getAllPlayers()) {
-                        String playerName = player.getUsername();
+                      for (String playerName : server.getClusterPlayerService().getPlayerNames()) {
                         if (playerName.regionMatches(true, 0, argument, 0, argument.length())) {
                           builder.suggest(playerName);
                         }
@@ -131,20 +119,12 @@ public class TransferCommand implements BuiltinCommand {
             .findFirst()
             .orElse(null);
 
-    if (this.server.isRedisEnabled()) {
-      if (!this.server.getRedis().getPlayerService().isPlayerOnline(player) && !player.equalsIgnoreCase("all")
-              && !player.equalsIgnoreCase("current") && !player.startsWith("+")) {
-        context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-                .arguments(Argument.string("player", player)));
-        return -1;
-      }
-    } else {
-      if (this.server.getPlayer(player).isEmpty() && !player.equalsIgnoreCase("all") && !player.equalsIgnoreCase("current")
-              && !player.startsWith("+")) {
-        context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-                .arguments(Argument.string("player", player)));
-        return -1;
-      }
+    if (!player.equalsIgnoreCase("all") && !player.equalsIgnoreCase("current")
+            && !player.startsWith("+")
+            && !this.server.getClusterPlayerService().isPlayerOnline(player)) {
+      context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
+              .arguments(Argument.string("player", player)));
+      return -1;
     }
 
     if (address == null) {
@@ -211,40 +191,19 @@ public class TransferCommand implements BuiltinCommand {
         }
       }).delay(1, TimeUnit.SECONDS).schedule();
     } else {
-      if (this.server.isRedisEnabled()) {
-        PlayerEntry playerEntry = this.server.getRedis().getPlayerService().getPlayerEntry(player);
-
-        if (playerEntry == null || playerEntry.getUsername() == null || playerEntry.getProxyId() == null) {
-          context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-                  .arguments(Argument.string("player", player)));
-          return -1;
-        }
-
-        context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.player")
-                .arguments(Argument.string("player", playerEntry.getUsername()),
-                        Argument.string("proxy", normalizedProxyId)));
-
-        new VelocityTransferRemote(context.getSource(), playerEntry.getUniqueId(), proxyId, address.ip(), address.port())
-                .publish();
-      } else {
-        Optional<ConnectedPlayer> maybePlayer = this.server.getPlayer(player);
-        if (maybePlayer.isEmpty()) {
-          context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
-                  .arguments(Argument.string("player", player)));
-          return -1;
-        }
-
-        ConnectedPlayer connectedPlayer = maybePlayer.get();
-        if (connectedPlayer.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
-          context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.player")
-                  .arguments(Argument.string("player", connectedPlayer.getUsername()),
-                          Argument.string("proxy", normalizedProxyId)));
-          connectedPlayer.transferToHost(new InetSocketAddress(address.ip(), address.port()));
-        } else {
-          context.getSource().sendMessage(Component.translatable("velocity.command.transfer.invalid-version")
-                  .arguments(Argument.string("player", connectedPlayer.getUsername())));
-        }
+      Optional<ClusterPlayer> maybeClusterPlayer = this.server.getClusterPlayerService().getPlayer(player);
+      if (maybeClusterPlayer.isEmpty()) {
+        context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
+                .arguments(Argument.string("player", player)));
+        return -1;
       }
+
+      ClusterPlayer clusterPlayer = maybeClusterPlayer.get();
+      context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.player")
+              .arguments(Argument.string("player", clusterPlayer.getUsername()),
+                      Argument.string("proxy", normalizedProxyId)));
+
+      clusterPlayer.transfer(context.getSource(), address.ip(), address.port());
     }
 
     return Command.SINGLE_SUCCESS;

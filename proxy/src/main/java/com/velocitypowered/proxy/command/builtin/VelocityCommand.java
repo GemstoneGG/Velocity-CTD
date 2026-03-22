@@ -30,12 +30,8 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
+import com.velocityctd.proxy.cluster.ClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
-import com.velocityctd.proxy.redis.VelocityRedis;
-import com.velocityctd.proxy.redis.impl.depot.PlayerEntry;
-import com.velocityctd.proxy.redis.impl.packet.VelocitySudo;
-import com.velocityctd.proxy.redis.impl.transaction.VelocityReload;
-import com.velocityctd.proxy.redis.impl.transaction.VelocityUptime;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
@@ -45,7 +41,6 @@ import com.velocitypowered.api.util.ProxyVersion;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.ConfigDetector;
 import com.velocitypowered.proxy.config.ConfigDetector.ConfigAnalysis;
-import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import com.velocitypowered.proxy.util.InformationUtils;
 import java.io.BufferedReader;
@@ -67,6 +62,7 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -168,26 +164,15 @@ public class VelocityCommand implements BuiltinCommand {
                         }
                       }
 
-                      if ((argument.isEmpty() || argument.startsWith("-")) && server.isRedisEnabled()) {
-                        for (String id : server.getRedis().getProxyService().getAllProxyIds()) {
+                      if ((argument.isEmpty() || argument.startsWith("-")) && server.getClusterProxyService().isMultiProxy()) {
+                        for (String id : server.getClusterProxyService().getAllProxyIds()) {
                           if (id.regionMatches(true, 0, argument, 1, argument.length() - 1)) {
                             builder.suggest("-" + id);
                           }
                         }
                       }
 
-                      if (server.isRedisEnabled()) {
-                        for (PlayerEntry playerEntry : server.getRedis().getPlayerService().getAll()) {
-                          if (playerEntry.getUsername().regionMatches(true, 0, argument, 0, argument.length())) {
-                            builder.suggest(playerEntry.getUsername());
-                          }
-                        }
-
-                        return builder.buildFuture();
-                      }
-
-                      for (ConnectedPlayer player : server.getAllPlayers()) {
-                        String playerName = player.getUsername();
+                      for (String playerName : server.getClusterPlayerService().getPlayerNames()) {
                         if (playerName.regionMatches(true, 0, argument, 0, argument.length())) {
                           builder.suggest(playerName);
                         }
@@ -211,7 +196,7 @@ public class VelocityCommand implements BuiltinCommand {
             .requires(source -> source.getPermissionValue("velocity.command.uptime") == Tristate.TRUE)
             .executes(new Uptime(server));
 
-    if (server.isRedisEnabled()) {
+    if (server.getClusterProxyService().isMultiProxy()) {
       reload = reload.then(
               BrigadierCommand.requiredArgumentBuilder("proxy", StringArgumentType.string())
                       .suggests(CommandUtils.suggestProxy(server, "proxy"))
@@ -295,12 +280,9 @@ public class VelocityCommand implements BuiltinCommand {
       CommandSource source = context.getSource();
       String proxyId = StringArgumentType.getString(context, "proxy");
 
-      String realId = null;
-      for (String s : server.getRedis().getProxyService().getAllProxyIds()) {
-        if (s.equalsIgnoreCase(proxyId)) {
-          realId = s;
-        }
-      }
+      String realId = server.getClusterProxyService().getAllProxyIds().stream()
+          .filter(s -> s.equalsIgnoreCase(proxyId))
+          .findFirst().orElse(null);
 
       if (realId == null) {
         source.sendMessage(Component.translatable("velocity.command.proxy-does-not-exist")
@@ -311,8 +293,7 @@ public class VelocityCommand implements BuiltinCommand {
       source.sendMessage(Component.translatable("velocity.command.uptime-remote")
               .arguments(Component.text(realId)));
 
-      new VelocityUptime(source, realId)
-              .publish();
+      server.getClusterProxyService().queryProxyUptime(source, realId);
       return Command.SINGLE_SUCCESS;
     }
   }
@@ -321,67 +302,43 @@ public class VelocityCommand implements BuiltinCommand {
 
     @Override
     public int run(CommandContext<CommandSource> context) {
-      VelocityRedis redis = this.server.getRedis();
       CommandSource source = context.getSource();
       String sudoTarget = context.getArgument("target", String.class);
       String messageOrCommand = context.getArgument("message/command", String.class);
 
       if (sudoTarget.equalsIgnoreCase("all")) {
-        boolean doneOne = false;
-        if (this.server.isRedisEnabled()) {
-          for (PlayerEntry playerEntry : redis.getPlayerService().getAll()) {
-            new VelocitySudo(playerEntry.getUniqueId(), messageOrCommand)
-                    .publish();
-            doneOne = true;
-          }
-
-          if (!doneOne) {
-            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.no-players"));
-          } else {
-            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
-                    .arguments(Argument.string("target", "everyone"),
-                            Argument.string("message", messageOrCommand)));
-          }
-          return Command.SINGLE_SUCCESS;
+        Collection<ClusterPlayer> allPlayers = this.server.getClusterPlayerService().getAllPlayers();
+        if (allPlayers.isEmpty()) {
+          source.sendMessage(Component.translatable("velocity.command.sudo.no-players"));
         } else {
-          for (ConnectedPlayer player : server.getAllPlayers()) {
-            if (this.server.getCommandManager().hasCommand(messageOrCommand)) {
-              this.server.getCommandManager().executeAsync(player, messageOrCommand);
-            } else {
-              player.spoofChatInput(messageOrCommand);
-            }
-            doneOne = true;
+          for (ClusterPlayer player : allPlayers) {
+            player.sudo(messageOrCommand);
           }
-          if (!doneOne) {
-            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.no-players"));
-          } else {
-            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
-                    .arguments(Argument.string("target", "everyone"),
-                            Argument.string("message", messageOrCommand)));
-          }
+          source.sendMessage(Component.translatable("velocity.command.sudo.success")
+                  .arguments(Argument.string("target", "everyone"),
+                          Argument.string("message", messageOrCommand)));
         }
       } else if (sudoTarget.length() > 1 && sudoTarget.startsWith("-")
-              && redis.getProxyService().getAllProxyIdsLowerCase().contains(sudoTarget.substring(1).toLowerCase())) {
-        boolean doneOne = false;
-        for (PlayerEntry playerEntry : redis.getPlayerService().getAll()) {
-          if (playerEntry.getProxyId().equalsIgnoreCase(sudoTarget.substring(1))) {
-            new VelocitySudo(playerEntry.getUniqueId(), messageOrCommand)
-                    .publish();
-            doneOne = true;
-          }
+              && this.server.getClusterProxyService().isMultiProxy()) {
+        String proxyPrefix = sudoTarget.substring(1);
+        String realId = this.server.getClusterProxyService().getAllProxyIds().stream()
+            .filter(id -> id.equalsIgnoreCase(proxyPrefix))
+            .findFirst().orElse(null);
+
+        if (realId == null) {
+          source.sendMessage(Component.translatable("velocity.command.sudo.invalid-proxy")
+                  .arguments(Component.text(proxyPrefix)));
+          return Command.SINGLE_SUCCESS;
         }
 
-        String realId = null;
-        for (String proxyId : redis.getProxyService().getAllProxyIds()) {
-          if (proxyId.equalsIgnoreCase(sudoTarget.substring(1))) {
-            realId = proxyId;
-          }
-        }
-
-        if (!doneOne) {
-          context.getSource().sendMessage(Component.translatable("velocity.command.sudo.no-players"));
+        Collection<ClusterPlayer> proxyPlayers = this.server.getClusterPlayerService().getPlayersOnProxy(realId);
+        if (proxyPlayers.isEmpty()) {
+          source.sendMessage(Component.translatable("velocity.command.sudo.no-players"));
         } else {
-          context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
+          for (ClusterPlayer player : proxyPlayers) {
+            player.sudo(messageOrCommand);
+          }
+          source.sendMessage(Component.translatable("velocity.command.sudo.success")
                   .arguments(Argument.string("target", realId),
                           Argument.string("message", messageOrCommand)));
         }
@@ -392,47 +349,24 @@ public class VelocityCommand implements BuiltinCommand {
                   .arguments(Component.text(sudoTarget)));
           return Command.SINGLE_SUCCESS;
         }
-        VelocityRegisteredServer registeredServer = this.server.getServer(sudoTarget.substring(1)).orElse(null);
+        String serverName = sudoTarget.substring(1);
+        VelocityRegisteredServer registeredServer = this.server.getServer(serverName).orElse(null);
         if (registeredServer == null) {
           source.sendMessage(Component.translatable("velocity.command.sudo.invalid-server")
-                  .arguments(Component.text(sudoTarget.substring(1))));
+                  .arguments(Component.text(serverName)));
           return Command.SINGLE_SUCCESS;
         }
 
-        boolean doneOne = false;
-        if (this.server.isRedisEnabled()) {
-          for (PlayerEntry playerEntry : redis.getPlayerService().getAll()) {
-            if (playerEntry.getServerName().equalsIgnoreCase(sudoTarget.substring(1))) {
-              new VelocitySudo(playerEntry.getUniqueId(), messageOrCommand)
-                      .publish();
-              doneOne = true;
-            }
-          }
-
-          if (!doneOne) {
-            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.no-players"));
-          } else {
-            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
-                    .arguments(Argument.string("target", registeredServer.getServerInfo().getName()),
-                            Argument.string("message", messageOrCommand)));
-          }
-          return Command.SINGLE_SUCCESS;
+        Collection<ClusterPlayer> serverPlayers = this.server.getClusterPlayerService().getPlayersOnServer(serverName);
+        if (serverPlayers.isEmpty()) {
+          source.sendMessage(Component.translatable("velocity.command.sudo.no-players"));
         } else {
-          for (ConnectedPlayer player : registeredServer.getPlayersConnected()) {
-            if (this.server.getCommandManager().hasCommand(messageOrCommand)) {
-              this.server.getCommandManager().executeAsync(player, messageOrCommand);
-            } else {
-              player.spoofChatInput(messageOrCommand);
-            }
-            doneOne = true;
+          for (ClusterPlayer player : serverPlayers) {
+            player.sudo(messageOrCommand);
           }
-          if (!doneOne) {
-            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.no-players"));
-          } else {
-            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
-                    .arguments(Argument.string("target", registeredServer.getServerInfo().getName()),
-                            Argument.string("message", messageOrCommand)));
-          }
+          source.sendMessage(Component.translatable("velocity.command.sudo.success")
+                  .arguments(Argument.string("target", registeredServer.getServerInfo().getName()),
+                          Argument.string("message", messageOrCommand)));
         }
       } else {
         if (sudoTarget.startsWith("-") && sudoTarget.length() > 1) {
@@ -440,39 +374,19 @@ public class VelocityCommand implements BuiltinCommand {
                   .arguments(Component.text(sudoTarget.substring(1))));
           return Command.SINGLE_SUCCESS;
         }
-        if (this.server.isRedisEnabled()) {
-          PlayerEntry playerEntry = redis.getPlayerService().getPlayerEntry(sudoTarget);
-          if (playerEntry == null) {
-            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.invalid-player")
-                    .arguments(Argument.string("player", sudoTarget)));
-            return Command.SINGLE_SUCCESS;
-          }
 
-          new VelocitySudo(playerEntry.getUniqueId(), messageOrCommand)
-                  .publish();
-          context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
-                  .arguments(Argument.string("target", playerEntry.getUsername()),
-                          Argument.string("message", messageOrCommand)));
+        Optional<ClusterPlayer> maybePlayer = this.server.getClusterPlayerService().getPlayer(sudoTarget);
+        if (maybePlayer.isEmpty()) {
+          source.sendMessage(Component.translatable("velocity.command.sudo.invalid-player")
+                  .arguments(Argument.string("player", sudoTarget)));
           return Command.SINGLE_SUCCESS;
-        } else {
-          ConnectedPlayer player = this.server.getPlayer(sudoTarget).orElse(null);
-
-          if (player == null) {
-            context.getSource().sendMessage(Component.translatable("velocity.command.sudo.invalid-player")
-                    .arguments(Argument.string("player", sudoTarget)));
-            return Command.SINGLE_SUCCESS;
-          }
-
-          if (this.server.getCommandManager().hasCommand(messageOrCommand)) {
-            this.server.getCommandManager().executeAsync(player, messageOrCommand);
-          } else {
-            player.spoofChatInput(messageOrCommand);
-          }
-
-          context.getSource().sendMessage(Component.translatable("velocity.command.sudo.success")
-                  .arguments(Argument.string("target", player.getUsername()),
-                          Argument.string("message", messageOrCommand)));
         }
+
+        ClusterPlayer player = maybePlayer.get();
+        player.sudo(messageOrCommand);
+        source.sendMessage(Component.translatable("velocity.command.sudo.success")
+                .arguments(Argument.string("target", player.getUsername()),
+                        Argument.string("message", messageOrCommand)));
       }
       return Command.SINGLE_SUCCESS;
     }
@@ -512,12 +426,9 @@ public class VelocityCommand implements BuiltinCommand {
       CommandSource source = context.getSource();
       String proxyId = StringArgumentType.getString(context, "proxy");
 
-      String realId = null;
-      for (String s : server.getRedis().getProxyService().getAllProxyIds()) {
-        if (s.equalsIgnoreCase(proxyId)) {
-          realId = s;
-        }
-      }
+      String realId = server.getClusterProxyService().getAllProxyIds().stream()
+          .filter(s -> s.equalsIgnoreCase(proxyId))
+          .findFirst().orElse(null);
 
       if (realId == null) {
         source.sendMessage(Component.translatable("velocity.command.proxy-does-not-exist")
@@ -528,8 +439,7 @@ public class VelocityCommand implements BuiltinCommand {
       source.sendMessage(Component.translatable("velocity.command.reload-remote")
               .arguments(Component.text(realId)));
 
-      new VelocityReload(source, realId)
-              .publish();
+      server.getClusterProxyService().reloadProxy(source, realId);
       return Command.SINGLE_SUCCESS;
     }
   }

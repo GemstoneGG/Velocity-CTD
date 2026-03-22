@@ -22,18 +22,14 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import com.velocityctd.proxy.cluster.ClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
-import com.velocityctd.proxy.redis.VelocityRedis;
-import com.velocityctd.proxy.redis.impl.depot.PlayerEntry;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.builtin.BuiltinCommand;
 import com.velocitypowered.proxy.command.builtin.CommandMessages;
-import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
-import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -71,84 +67,32 @@ public class FindCommand implements BuiltinCommand {
   }
 
   private int find(CommandContext<CommandSource> context) {
-    if (server.isRedisEnabled()) {
-      return findRedis(context);
-    }
-
     String player = context.getArgument("player", String.class);
-    Optional<ConnectedPlayer> maybePlayer = server.getPlayer(player);
+    Optional<ClusterPlayer> maybePlayer = server.getClusterPlayerService().getPlayer(player);
     if (maybePlayer.isEmpty()) {
       context.getSource().sendMessage(
           CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", player))
       );
-
       return 0;
     }
 
-    // Can't be null, already checking if it's empty before
-    ConnectedPlayer p = maybePlayer.get();
-    VelocityServerConnection connection = p.getCurrentServer().orElse(null);
-    if (connection == null) {
+    ClusterPlayer clusterPlayer = maybePlayer.get();
+    if (clusterPlayer.getServerName() == null) {
       context.getSource().sendMessage(
           CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", player))
       );
-
       return 0;
     }
 
-    VelocityRegisteredServer server = connection.getServer();
-    if (server == null) {
-      context.getSource().sendMessage(
-          CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", player))
-      );
-
-      return 0;
-    }
+    String serverDisplay = clusterPlayer.getProxyId() != null
+        ? clusterPlayer.getServerName() + " (" + clusterPlayer.getProxyId() + ")"
+        : clusterPlayer.getServerName();
 
     context.getSource().sendMessage(
         Component.translatable("velocity.command.find.message", NamedTextColor.YELLOW)
             .arguments(
-                Argument.string("player", p.getUsername()),
-                Argument.string("server", server.getServerInfo().getName())));
-
-    return Command.SINGLE_SUCCESS;
-  }
-
-  private int findRedis(CommandContext<CommandSource> context) {
-    VelocityRedis redis = server.getRedis();
-    String player = context.getArgument("player", String.class);
-    if (!redis.getPlayerService().isPlayerOnline(player)) {
-      context.getSource().sendMessage(
-          CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", player))
-      );
-
-      return 0;
-    }
-
-    PlayerEntry playerEntry = redis.getPlayerService().getPlayerEntry(player);
-
-    if (playerEntry == null || playerEntry.getServerName() == null) {
-      context.getSource().sendMessage(
-          CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", player))
-      );
-
-      return 0;
-    }
-
-    VelocityRegisteredServer server = this.server.getServer(playerEntry.getServerName()).orElse(null);
-    if (server == null) {
-      context.getSource().sendMessage(
-          CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", player))
-      );
-
-      return 0;
-    }
-
-    context.getSource().sendMessage(
-        Component.translatable("velocity.command.find.message", NamedTextColor.YELLOW)
-            .arguments(
-                Argument.string("player", playerEntry.getUsername()),
-                Argument.string("server", server.getServerInfo().getName() + " (" + playerEntry.getProxyId() + ")")));
+                Argument.string("player", clusterPlayer.getUsername()),
+                Argument.string("server", serverDisplay)));
 
     return Command.SINGLE_SUCCESS;
   }

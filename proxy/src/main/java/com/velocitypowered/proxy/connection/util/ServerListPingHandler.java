@@ -88,8 +88,8 @@ public class ServerListPingHandler {
     List<ServerPing.SamplePlayer> samplePlayers;
     if (configuration.getSamplePlayersInPing()) {
       List<ServerPing.SamplePlayer> unshuffledPlayers;
-      if (server.isRedisEnabled()) {
-        unshuffledPlayers = server.getRedis().getPlayerService().getAll().stream()
+      if (server.getClusterProxyService().isMultiProxy()) {
+        unshuffledPlayers = server.getClusterPlayerService().getAllPlayers().stream()
             .map(entry -> new ServerPing.SamplePlayer(entry.getUsername(), entry.getUniqueId()))
             .collect(Collectors.toList());
       } else {
@@ -119,7 +119,8 @@ public class ServerListPingHandler {
 
     return new ServerPing(
         new ServerPing.Version(version.getProtocol(), formatVersionString(serverPingVersion, version)),
-        new ServerPing.Players(server.getPlayerCount(), configuration.getShowMaxPlayers(), samplePlayers),
+        new ServerPing.Players(server.getClusterPlayerService().getTotalPlayerCount(),
+            configuration.getShowMaxPlayers(), samplePlayers),
         configuration.getMotd(),
         configuration.getFavicon().orElse(null),
         configuration.isAnnounceForge() ? ModInfo.DEFAULT : null,
@@ -128,20 +129,20 @@ public class ServerListPingHandler {
   }
 
   private String formatVersionString(final String raw, final ProtocolVersion version) {
-    final String minVersionIntroducedIn =
-        ProtocolVersion.getVersionByName(this.server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn();
-    final String maxVersionDisplay = this.server.getConfiguration().getMaximumVersion()
+    final String minVersionIntroducedIn = ProtocolVersion.getVersionByName(
+        server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn();
+    final String maxVersionDisplay = server.getConfiguration().getMaximumVersion()
         .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
     return raw
         .replaceAll("\\{protocol-min}", minVersionIntroducedIn)
         .replaceAll("\\{protocol-max}", maxVersionDisplay)
         .replaceAll("\\{protocol}", version.getVersionIntroducedIn())
-        .replaceAll("\\{proxy-brand}", this.server.getVersion().getName())
-        .replaceAll("\\{proxy-brand-custom}", this.server.getConfiguration().getProxyBrandCustom())
-        .replaceAll("\\{proxy-version}", this.server.getVersion().getVersion())
-        .replaceAll("\\{proxy-vendor}", this.server.getVersion().getVendor())
-        .replaceAll("\\{player-count}", String.valueOf(this.server.getPlayerCount()))
-        .replaceAll("\\{max-players}", String.valueOf(this.server.getConfiguration().getShowMaxPlayers()));
+        .replaceAll("\\{proxy-brand}", server.getVersion().getName())
+        .replaceAll("\\{proxy-brand-custom}", server.getConfiguration().getProxyBrandCustom())
+        .replaceAll("\\{proxy-version}", server.getVersion().getVersion())
+        .replaceAll("\\{proxy-vendor}", server.getVersion().getVendor())
+        .replaceAll("\\{player-count}", String.valueOf(server.getClusterPlayerService().getTotalPlayerCount()))
+        .replaceAll("\\{max-players}", String.valueOf(server.getConfiguration().getShowMaxPlayers()));
   }
 
   private CompletableFuture<ServerPing> attemptPingPassthrough(final VelocityInboundConnection connection,

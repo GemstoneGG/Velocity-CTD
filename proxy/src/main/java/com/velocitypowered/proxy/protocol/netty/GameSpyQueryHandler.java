@@ -136,7 +136,7 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
         .hostname(PlainTextComponentSerializer.plainText().serialize(server.getConfiguration().getMotd()))
         .gameVersion(ProtocolVersion.SUPPORTED_VERSION_STRING)
         .map(server.getConfiguration().getQueryMap())
-        .currentPlayers(server.getPlayerCount())
+        .currentPlayers(server.getClusterPlayerService().getTotalPlayerCount())
         .maxPlayers(server.getConfiguration().getShowMaxPlayers())
         .proxyPort(server.getConfiguration().getBind().getPort())
         .proxyHost(server.getConfiguration().getBind().getHostString())

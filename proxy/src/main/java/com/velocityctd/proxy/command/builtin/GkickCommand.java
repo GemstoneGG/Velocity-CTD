@@ -22,17 +22,15 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import com.velocityctd.proxy.cluster.ClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
-import com.velocityctd.proxy.redis.VelocityRedis;
-import com.velocityctd.proxy.redis.impl.depot.PlayerEntry;
-import com.velocityctd.proxy.redis.impl.packet.VelocityKick;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.builtin.BuiltinCommand;
 import com.velocitypowered.proxy.command.builtin.CommandMessages;
-import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
+import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.translation.Argument;
 
@@ -81,58 +79,22 @@ public class GkickCommand implements BuiltinCommand {
   }
 
   private int executeKick(final CommandContext<CommandSource> context) {
-    if (server.isRedisEnabled()) {
-      return executeKickRedis(context);
-    }
-
-    return executeKickLocal(context);
-  }
-
-  private int executeKickLocal(final CommandContext<CommandSource> context) {
     final String playerName = context.getArgument("player", String.class);
-    final ConnectedPlayer player = server.getPlayer(playerName).orElse(null);
+    Optional<ClusterPlayer> maybePlayer = server.getClusterPlayerService().getPlayer(playerName);
 
-    if (player == null) {
+    if (maybePlayer.isEmpty()) {
       context.getSource().sendMessage(
           CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", playerName))
       );
       return 0;
     }
 
-    player.disconnect0(parseReason(context), true);
+    ClusterPlayer player = maybePlayer.get();
+    player.kick(parseReason(context));
 
     context.getSource().sendMessage(
         Component.translatable("velocity.command.gkick.message")
             .arguments(Argument.string("0", player.getUsername()))
-    );
-
-    return Command.SINGLE_SUCCESS;
-  }
-
-  private int executeKickRedis(final CommandContext<CommandSource> context) {
-    final VelocityRedis redis = server.getRedis();
-    final String playerName = context.getArgument("player", String.class);
-
-    if (!redis.getPlayerService().isPlayerOnline(playerName)) {
-      context.getSource().sendMessage(
-          CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", playerName))
-      );
-      return 0;
-    }
-
-    final PlayerEntry entry = redis.getPlayerService().getPlayerEntry(playerName);
-    if (entry == null) {
-      context.getSource().sendMessage(
-          CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", playerName))
-      );
-      return 0;
-    }
-
-    new VelocityKick(entry.getUniqueId(), parseReason(context)).publish();
-
-    context.getSource().sendMessage(
-        Component.translatable("velocity.command.gkick.message")
-            .arguments(Argument.string("0", entry.getUsername()))
     );
 
     return Command.SINGLE_SUCCESS;
