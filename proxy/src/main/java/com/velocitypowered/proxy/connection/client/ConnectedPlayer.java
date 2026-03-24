@@ -133,6 +133,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.Collections;
 import net.kyori.adventure.audience.MessageType;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.identity.Identity;
@@ -272,11 +273,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private @Nullable ModInfo modInfo;
 
   /**
-   * The set of boss bars currently displayed to the player.
-   */
-  private final Set<VelocityBossBarImplementation> bossBars = new HashSet<>();
-
-  /**
    * The current header line of the player's tab list.
    */
   private Component playerListHeader = Component.empty();
@@ -285,6 +281,18 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * The current footer line of the player's tab list.
    */
   private Component playerListFooter = Component.empty();
+
+  /**
+   * The set of boss bars currently displayed to the player.
+   */
+  private final Set<VelocityBossBarImplementation> bossBars = new HashSet<>();
+
+  /**
+   * Cache for queue priorities to avoid O(n) recomputation on every tablist/status update.
+   * Uses volatile fields for thread-safe reads without synchronization.
+   */
+  private volatile long queuePrioritiesCacheExpiry = 0;
+  private volatile Map<String, Integer> cachedQueuePriorities = null;
 
   /**
    * The player's tab list implementation, varying by protocol version.
@@ -1968,7 +1976,12 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    */
   @Override
   public Map<String, Integer> getQueuePriorities() {
-    final Map<String, Integer> priorities = new HashMap<>();
+    long now = System.currentTimeMillis();
+    if (now < queuePrioritiesCacheExpiry && cachedQueuePriorities != null) {
+      return cachedQueuePriorities;
+    }
+
+    final Map<String, Integer> priorities = new HashMap<>(server.getAllServers().size() + 1);
 
     for (VelocityRegisteredServer server : server.getAllServers()) {
       final String serverName = server.getServerInfo().getName();
@@ -1977,7 +1990,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
     priorities.put("all", getQueuePriority("all"));
 
-    return priorities;
+    // Cache for 5 seconds (5000 ms) to avoid repeated O(n) permission lookups
+    cachedQueuePriorities = Collections.unmodifiableMap(priorities);
+    queuePrioritiesCacheExpiry = now + 5000;
+    return cachedQueuePriorities;
   }
 
   /**

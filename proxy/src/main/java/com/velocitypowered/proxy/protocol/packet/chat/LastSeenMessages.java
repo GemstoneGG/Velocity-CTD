@@ -101,7 +101,17 @@ public class LastSeenMessages {
    */
   public void encode(final ByteBuf buf, final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeVarInt(buf, offset);
-    buf.writeBytes(Arrays.copyOf(acknowledged.toByteArray(), DIV_FLOOR));
+    // Avoid array copy: write bytes directly with padding if needed
+    byte[] raw = acknowledged.toByteArray();
+    if (raw.length >= DIV_FLOOR) {
+      buf.writeBytes(raw, 0, DIV_FLOOR);
+    } else {
+      buf.writeBytes(raw);
+      // Pad with zeros to reach DIV_FLOOR bytes
+      for (int i = raw.length; i < DIV_FLOOR; i++) {
+        buf.writeByte(0);
+      }
+    }
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_21_5)) {
       buf.writeByte(this.checksum);
     }

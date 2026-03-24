@@ -48,7 +48,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.translation.Argument;
 import org.apache.logging.log4j.LogManager;
@@ -81,10 +83,28 @@ public class VelocityQueueManager implements QueueManager {
   protected final Map<String, VelocityQueue> queues = new ConcurrentHashMap<>();
 
   /**
+   * Index for fast lookup of which queue a player is in.
+   * Maintained automatically on enqueue/dequeue operations.
+   */
+  private final Map<UUID, VelocityQueue> playerToQueueIndex = new ConcurrentHashMap<>();
+
+  /**
    * Holds all scheduled tasks to remove players from all queues (after a player's timeout).
    * Stored such that they can be cancelled on join.
    */
   private final Map<UUID, ScheduledTask> pendingTimeoutTasks = new ConcurrentHashMap<>();
+
+  /**
+   * Lock for atomic operations that need to check-then-act across multiple queues.
+   * This lock is only held for brief critical sections (few microseconds).
+   */
+  private final ReentrantLock operationLock = new ReentrantLock();
+
+  /**
+   * Reusable set to track which players were transferred this tick.
+   * Cleared at the start of each runTransfer() call.
+   */
+  private final Set<UUID> transferredThisTick = new HashSet<>();
 
   private @Nullable ScheduledTask transferTask;
   private @Nullable ScheduledTask actionBarTask;
@@ -92,8 +112,9 @@ public class VelocityQueueManager implements QueueManager {
 
   /**
    * Monotonically increasing tick counter used for the round-robin action-bar display.
+   * Volatile ensures visibility across threads without full synchronization.
    */
-  private int actionBarTick = 0;
+  private volatile int actionBarTick = 0;
 
   /**
    * Constructs a new {@link VelocityQueueManager} and starts periodic tasks.
@@ -201,11 +222,20 @@ public class VelocityQueueManager implements QueueManager {
 
   @Override
   public @Nullable VelocityQueue getQueueFor(final @NotNull UUID uniqueId) {
+    // Fast path: check index first
+    VelocityQueue cached = playerToQueueIndex.get(uniqueId);
+    if (cached != null && cached.contains(uniqueId)) {
+      return cached;
+    }
+
+    // Slow path: linear search (should be rare if index is maintained correctly)
     for (VelocityQueue q : queues.values()) {
       if (q.contains(uniqueId)) {
+        playerToQueueIndex.put(uniqueId, q); // Update index
         return q;
       }
     }
+
     return null;
   }
 
@@ -216,54 +246,75 @@ public class VelocityQueueManager implements QueueManager {
 
   public void queue(final @NotNull ConnectedPlayer player, final @NotNull VelocityRegisteredServer targetServer) {
     final String targetName = targetServer.getServerInfo().getName();
-    final VelocityQueue queue = getQueue(targetName);
-
+    final UUID playerId = player.getUniqueId();
     final VelocityConfiguration.Queue config = server.getConfiguration().getQueue();
+
+    // Fast path - no queueing needed (no lock required)
     if (!config.isEnabled() || player.hasPermission("velocity.queue.bypass")) {
       player.createConnectionRequest(targetServer).connectWithIndication();
       return;
     }
 
-    if (queue.contains(player)) {
-      player.sendMessage(Component.translatable("velocity.queue.error.already-queued")
-          .arguments(Component.text(targetName)));
-      return;
-    }
-
-    if (!config.isAllowMultiQueue()) {
-      for (VelocityQueue q : queues.values()) {
-        if (q.contains(player)) {
-          q.dequeue(player);
-          player.sendMessage(Component.translatable("velocity.queue.error.queued-swap")
-              .arguments(
-                  Argument.string("from", q.getName()),
-                  Argument.string("to", targetName)));
-          break;
-        }
-      }
-    }
-
-    if (queue.getState() == PAUSED && !config.isAllowPausedQueueJoining()) {
-      player.sendMessage(Component.translatable("velocity.queue.error.paused")
-          .arguments(Component.text(targetName)));
-      return;
-    }
+    // Remove any existing index entry (player might be moving queues)
+    playerToQueueIndex.remove(playerId);
 
     if (!player.checkVersionCompatibility(targetServer)) {
       return;
     }
 
-    queue.enqueue(player);
+    // Critical section: check-then-act across multiple queues must be atomic
+    operationLock.lock();
+    try {
+      final VelocityQueue queue = getQueue(targetName);
+
+      if (queue.contains(player)) {
+        player.sendMessage(Component.translatable("velocity.queue.error.already-queued")
+            .arguments(Component.text(targetName)));
+        return;
+      }
+
+      if (!config.isAllowMultiQueue()) {
+        for (VelocityQueue q : queues.values()) {
+          if (q.contains(player)) {
+            q.dequeue(player);
+            playerToQueueIndex.remove(playerId); // Remove from index for old queue
+            player.sendMessage(Component.translatable("velocity.queue.error.queued-swap")
+                .arguments(
+                    Argument.string("from", q.getName()),
+                    Argument.string("to", targetName)));
+            break;
+          }
+        }
+      }
+
+      if (queue.getState() == PAUSED && !config.isAllowPausedQueueJoining()) {
+        player.sendMessage(Component.translatable("velocity.queue.error.paused")
+            .arguments(Component.text(targetName)));
+        return;
+      }
+
+      queue.enqueue(player);
+      playerToQueueIndex.put(playerId, queue); // Update index
+    } finally {
+      operationLock.unlock();
+    }
+
     player.sendMessage(Component.translatable("velocity.queue.command.queued")
         .arguments(Component.text(targetName)));
   }
 
   @Override
   public void removePlayerEntirely(final @NotNull UUID uniqueId) {
-    for (VelocityQueue queue : queues.values()) {
-      if (queue.contains(uniqueId)) {
-        queue.dequeue(uniqueId);
+    operationLock.lock();
+    try {
+      for (VelocityQueue queue : queues.values()) {
+        if (queue.contains(uniqueId)) {
+          queue.dequeue(uniqueId);
+        }
       }
+      playerToQueueIndex.remove(uniqueId); // Always remove from index
+    } finally {
+      operationLock.unlock();
     }
   }
 
@@ -274,35 +325,40 @@ public class VelocityQueueManager implements QueueManager {
     }
   }
 
-  /**
-   * Called when a player disconnects from the proxy. Removes the player from all queues
-   * after an optional grace period determined by their permissions.
-   *
-   * @param player the player who disconnected
-   */
+   /**
+    * Called when a player disconnects from the proxy. Removes the player from all queues
+    * after an optional grace period determined by their permissions.
+    *
+    * @param player the player who disconnected
+    */
   public void onPlayerDisconnect(final @NotNull ConnectedPlayer player) {
-    if (!isQueued(player)) {
-      return;
-    }
+    operationLock.lock();
+    try {
+      if (!isQueued(player)) {
+        return;
+      }
 
-    if (server.isShuttingDown()) {
-      removePlayerEntirely(player);
-      return;
-    }
+      if (server.isShuttingDown()) {
+        removePlayerEntirely(player);
+        return;
+      }
 
-    final int timeout = getTimeoutInSeconds(player);
-    if (timeout <= 0) {
-      LOGGER.debug("Removing player {} from all queues immediately (no timeout).", player.getUsername());
-      removePlayerEntirely(player);
-    } else {
-      LOGGER.debug("Removing player {} from all queues in {} second(s) (has timeout).", player.getUsername(), timeout);
-      UUID playerUniqueId = player.getUniqueId();
-      ScheduledTask task = server.getScheduler()
-          .buildTask(VelocityVirtualPlugin.INSTANCE, () -> removePlayerEntirely(playerUniqueId))
-          .delay(timeout, TimeUnit.SECONDS)
-          .schedule();
+      final int timeout = getTimeoutInSeconds(player);
+      if (timeout <= 0) {
+        LOGGER.debug("Removing player {} from all queues immediately (no timeout).", player.getUsername());
+        removePlayerEntirely(player);
+      } else {
+        LOGGER.debug("Removing player {} from all queues in {} second(s) (has timeout).", player.getUsername(), timeout);
+        UUID playerUniqueId = player.getUniqueId();
+        ScheduledTask task = server.getScheduler()
+            .buildTask(VelocityVirtualPlugin.INSTANCE, () -> removePlayerEntirely(playerUniqueId))
+            .delay(timeout, TimeUnit.SECONDS)
+            .schedule();
 
-      pendingTimeoutTasks.put(playerUniqueId, task);
+        pendingTimeoutTasks.put(playerUniqueId, task);
+      }
+    } finally {
+      operationLock.unlock();
     }
   }
 
@@ -361,31 +417,37 @@ public class VelocityQueueManager implements QueueManager {
       return;
     }
 
-    final Set<UUID> transferredThisTick = new HashSet<>();
+    // Reuse the set cleared each tick - avoids allocation
+    transferredThisTick.clear();
 
-    queues.values().stream()
-        .filter(q -> q.getState() == ACTIVE)
-        .filter(q -> q.getServerStatus().isActive())
-        .filter(q -> q.size() > 0)
-        .forEach(queue -> {
-          final VelocityQueueEntry candidate = queue.getInternalEntries().stream()
-              .filter(e -> !transferredThisTick.contains(e.getUniqueId()))
-              .filter(e -> queue.getServerStatus() != FULL || e.isFullBypass())
-              .filter(e -> !e.isWaitingForConnection())
-              .findFirst()
-              .orElse(null);
+    // Simple for-loop instead of streams for better performance
+    for (VelocityQueue queue : queues.values()) {
+      if (queue.getState() != ACTIVE) continue;
+      if (!queue.getServerStatus().isActive()) continue;
+      if (queue.size() == 0) continue;
 
-          if (candidate == null) {
-            return;
-          }
+      // Find first eligible candidate
+      VelocityQueueEntry candidate = null;
+      for (VelocityQueueEntry entry : queue.getInternalEntries()) {
+        UUID uuid = entry.getUniqueId();
+        if (transferredThisTick.contains(uuid)) continue;
+        if (queue.getServerStatus() == FULL && !entry.isFullBypass()) continue;
+        if (entry.isWaitingForConnection()) continue;
+        candidate = entry;
+        break;
+      }
 
-          if (isPlayerOnline(candidate.getUniqueId())) {
-            queue.transferEntry(candidate);
-            transferredThisTick.add(candidate.getUniqueId());
-          } else {
-            queue.removeEntry(candidate);
-          }
-        });
+      if (candidate == null) {
+        continue;
+      }
+
+      if (isPlayerOnline(candidate.getUniqueId())) {
+        queue.transferEntry(candidate);
+        transferredThisTick.add(candidate.getUniqueId());
+      } else {
+        queue.removeEntry(candidate);
+      }
+    }
   }
 
   private void pingBackends() {
@@ -441,18 +503,23 @@ public class VelocityQueueManager implements QueueManager {
     }
 
     // Collect all entries per player UUID (player may be in multiple queues)
-    final Map<UUID, List<VelocityQueueEntry>> byPlayer = new HashMap<>();
+    // Estimate initial capacity to reduce rehashing
+    final Map<UUID, List<VelocityQueueEntry>> byPlayer = new HashMap<>(queues.size() * 4);
 
-    queues.values()
-        .stream()
-        .sorted(Comparator.comparing(VelocityQueue::getName))
-        .forEach(queue -> {
-          for (VelocityQueueEntry entry : queue.getInternalEntries()) {
-            byPlayer.computeIfAbsent(entry.getUniqueId(), k -> new ArrayList<>()).add(entry);
-          }
-        });
+    // Copy queues to list and sort by name (alphabetical order for consistent display)
+    List<VelocityQueue> queueList = new ArrayList<>(queues.values());
+    queueList.sort(Comparator.comparing(VelocityQueue::getName));
 
+    // Iterate sorted queues and collect entries
+    for (VelocityQueue queue : queueList) {
+      for (VelocityQueueEntry entry : queue.getInternalEntries()) {
+        byPlayer.computeIfAbsent(entry.getUniqueId(), k -> new ArrayList<>(4)).add(entry);
+      }
+    }
+
+    // Send action bar for each player, rotating through their entries
     for (List<VelocityQueueEntry> entries : byPlayer.values()) {
+      if (entries.isEmpty()) continue;
       final int index = (actionBarTick / TICKS_PER_ACTION_BAR_CHANGE) % entries.size();
       final VelocityQueueEntry entry = entries.get(index);
       sendActionBar(entry);

@@ -46,6 +46,12 @@ public class VelocityQueueEntry implements QueueEntry {
   protected volatile boolean queueBypass;
 
   /**
+   * The insertion order timestamp (monotonic) used for FIFO tie-breaking when
+   * priorities are equal. Set by QueuePlayerList during insertion.
+   */
+  private transient long insertionOrder;
+
+  /**
    * Injected after construction or deserialization.
    */
   protected transient VelocityServer server;
@@ -142,6 +148,20 @@ public class VelocityQueueEntry implements QueueEntry {
     }
 
     return position;
+  }
+
+  /**
+   * Returns the insertion order timestamp. Used for FIFO ordering within the same priority.
+   */
+  long getInsertionOrder() {
+    return insertionOrder;
+  }
+
+  /**
+   * Sets the insertion order. Package-private for use by QueuePlayerList.
+   */
+  void setInsertionOrder(final long insertionOrder) {
+    this.insertionOrder = insertionOrder;
   }
 
   @Override
@@ -262,7 +282,7 @@ public class VelocityQueueEntry implements QueueEntry {
    * <p>No-op in local mode. The Redis subclass overrides this to publish a
    * {@code WAITING_CHANGE} sync packet to all other proxies.</p>
    */
-  protected void publishWaitingChange() {
+protected void publishWaitingChange() {
     // no-op
   }
 }

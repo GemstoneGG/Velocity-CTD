@@ -21,8 +21,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.velocitypowered.api.plugin.PluginContainer;
 import com.velocitypowered.api.plugin.PluginManager;
 import com.velocitypowered.api.scheduler.ScheduledTask;
@@ -31,13 +29,13 @@ import com.velocitypowered.api.scheduler.TaskStatus;
 import com.velocitypowered.proxy.plugin.loader.VelocityPluginContainer;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
@@ -70,10 +68,10 @@ public class VelocityScheduler implements Scheduler {
   private final SchedulerBackend backend;
 
   /**
-   * A multimap of plugin instances to their active scheduled tasks.
+   * A map of plugin instances to their active scheduled tasks.
+   * Uses ConcurrentHashMap for thread-safe access without global locking.
    */
-  private final Multimap<Object, ScheduledTask> tasksByPlugin = Multimaps.synchronizedMultimap(
-      Multimaps.newSetMultimap(new IdentityHashMap<>(), HashSet::new));
+  private final ConcurrentMap<Object, Set<ScheduledTask>> tasksByPlugin = new ConcurrentHashMap<>();
 
   /**
    * Initializes the scheduler.
@@ -140,23 +138,27 @@ public class VelocityScheduler implements Scheduler {
   public @NonNull Collection<ScheduledTask> tasksByPlugin(final @NonNull Object plugin) {
     checkNotNull(plugin, "plugin");
     checkArgument(pluginManager.fromInstance(plugin).isPresent(), "plugin is not registered");
-    final Collection<ScheduledTask> tasks = tasksByPlugin.get(plugin);
-    synchronized (tasksByPlugin) {
-      return Set.copyOf(tasks);
+    Set<ScheduledTask> tasks = tasksByPlugin.get(plugin);
+    if (tasks == null) {
+      return Set.of();
     }
+    // Return a snapshot copy - no synchronization needed due to ConcurrentHashMap
+    return List.copyOf(tasks);
   }
 
-  /**
-   * Shuts down the Velocity scheduler.
-   *
-   * @return {@code true} if all tasks finished, {@code false} otherwise
-   * @throws InterruptedException if the current thread was interrupted
-   */
+   /**
+    * Shuts down the Velocity scheduler.
+    *
+    * @return {@code true} if all tasks finished, {@code false} otherwise
+    * @throws InterruptedException if the current thread was interrupted
+    */
   public boolean shutdown() throws InterruptedException {
-    Collection<ScheduledTask> terminating;
-    synchronized (tasksByPlugin) {
-      terminating = ImmutableList.copyOf(tasksByPlugin.values());
+    // Collect all tasks from all plugins (concurrent-safe iteration)
+    List<ScheduledTask> terminating = new ArrayList<>();
+    for (Set<ScheduledTask> tasks : tasksByPlugin.values()) {
+      terminating.addAll(tasks);
     }
+    terminating = List.copyOf(terminating);
 
     for (ScheduledTask task : terminating) {
       task.cancel();
@@ -268,7 +270,11 @@ public class VelocityScheduler implements Scheduler {
     @Override
     public ScheduledTask schedule() {
       VelocityTask task = new VelocityTask(container, runnable, consumer, delay, repeat);
-      container.getInstance().ifPresent(instance -> tasksByPlugin.put(instance, task));
+      container.getInstance().ifPresent(instance -> {
+        Set<ScheduledTask> tasks = tasksByPlugin.computeIfAbsent(instance,
+            k -> ConcurrentHashMap.newKeySet());
+        tasks.add(task);
+      });
       task.schedule();
       return task;
     }
@@ -399,9 +405,16 @@ public class VelocityScheduler implements Scheduler {
       });
     }
 
-    private void onFinish() {
-      tasksByPlugin.remove(plugin(), this);
-    }
+     private void onFinish() {
+       Object plugin = plugin();
+       Set<ScheduledTask> tasks = tasksByPlugin.get(plugin);
+       if (tasks != null) {
+         tasks.remove(this);
+         if (tasks.isEmpty()) {
+           tasksByPlugin.remove(plugin);
+         }
+       }
+     }
 
     public void awaitCompletion() {
       try {

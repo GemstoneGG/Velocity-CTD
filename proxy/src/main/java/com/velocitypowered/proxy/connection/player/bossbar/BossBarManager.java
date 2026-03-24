@@ -20,8 +20,8 @@ package com.velocitypowered.proxy.connection.player.bossbar;
 import com.velocitypowered.proxy.adventure.VelocityBossBarImplementation;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.BossBarPacket;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Manages all boss bar state for a connected player. This manager is responsible for tracking
@@ -42,15 +42,16 @@ public final class BossBarManager {
 
   /**
    * The set of boss bars currently associated with this player. These are resent when
-   * a server switch occurs.
+   * a server switch occurs. Uses a concurrent set for lock-free access.
    */
-  private final Set<VelocityBossBarImplementation> bossBars = new HashSet<>();
+  private final Set<VelocityBossBarImplementation> bossBars = ConcurrentHashMap.newKeySet();
 
   /**
    * Whether packets should be dropped instead of sent to the client.
-   * This is used during server login/transition.
+   * This is used during server login/transition. Volatile ensures visibility
+   * without synchronization.
    */
-  private boolean dropPackets = false;
+  private volatile boolean dropPackets = false;
 
   /**
    * Creates a new {@code BossBarManager} for the given player.
@@ -61,14 +62,14 @@ public final class BossBarManager {
     this.player = player;
   }
 
-  /**
+   /**
    * Records the specified boss bar as active for this player and attempts to send an update packet.
    * If packets are currently being dropped, the bar is still tracked but the packet is not written.
    *
    * @param bar the boss bar being updated
    * @param packet the packet representing the boss bar update
    */
-  public synchronized void writeUpdate(final VelocityBossBarImplementation bar, final BossBarPacket packet) {
+  public void writeUpdate(final VelocityBossBarImplementation bar, final BossBarPacket packet) {
     this.bossBars.add(bar);
     if (!this.dropPackets) {
       this.player.getConnection().write(packet);
@@ -82,7 +83,7 @@ public final class BossBarManager {
    * @param bar the boss bar being removed
    * @param packet the packet representing the boss bar removal
    */
-  public synchronized void remove(final VelocityBossBarImplementation bar, final BossBarPacket packet) {
+  public void remove(final VelocityBossBarImplementation bar, final BossBarPacket packet) {
     this.bossBars.remove(bar);
     if (!this.dropPackets) {
       this.player.getConnection().write(packet);
@@ -94,11 +95,12 @@ public final class BossBarManager {
    * switch, once the client is ready to receive boss bar data again. After re-sending, further
    * updates will no longer be dropped.
    */
-  public synchronized void sendBossBars() {
-    for (VelocityBossBarImplementation bossBar : bossBars) {
+  public void sendBossBars() {
+    // Snapshot the set to avoid concurrent modification issues during iteration
+    Set<VelocityBossBarImplementation> snapshot = new java.util.HashSet<>(bossBars);
+    for (VelocityBossBarImplementation bossBar : snapshot) {
       bossBar.createDirect(player);
     }
-
     this.dropPackets = false;
   }
 
@@ -107,7 +109,7 @@ public final class BossBarManager {
    * the player is entering a new server to avoid sending packets during the login/configuration
    * phase, which can otherwise disconnect the client.
    */
-  public synchronized void dropPackets() {
+  public void dropPackets() {
     this.dropPackets = true;
   }
 }

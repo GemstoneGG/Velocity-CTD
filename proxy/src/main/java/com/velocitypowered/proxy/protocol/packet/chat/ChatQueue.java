@@ -26,6 +26,7 @@ import java.time.Instant;
 import java.util.BitSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,7 +42,9 @@ public class ChatQueue implements AutoCloseable {
 
   /**
    * Internal lock for coordinating serialized access to the queue.
+   * Deprecated: Now using lock-free CAS on headRef. Kept for backward compatibility.
    */
+  @Deprecated
   private final Object internalLock = new Object();
 
   /**
@@ -55,9 +58,12 @@ public class ChatQueue implements AutoCloseable {
   private final ChatState chatState = new ChatState();
 
   /**
-   * The current head of the async packet queue chain.
+   * The current head of the async packet queue chain, stored in an AtomicReference
+   * to allow lock-free updates. Each new task is chained to the current head
+   * using compare-and-set loop to ensure ordering.
    */
-  private CompletableFuture<Void> head = CompletableFuture.completedFuture(null);
+  private final AtomicReference<CompletableFuture<Void>> headRef =
+      new AtomicReference<>(CompletableFuture.completedFuture(null));
 
   /**
    * Whether the queue is closed and no further tasks may be submitted.
@@ -73,32 +79,46 @@ public class ChatQueue implements AutoCloseable {
     this.player = player;
   }
 
+  /**
+   * Queues a task to be executed in order, after all previously queued tasks complete.
+   * This method uses lock-free CAS operations to enqueue tasks without blocking,
+   * significantly improving throughput under high concurrency.
+   *
+   * @param task the task to execute, receiving the current chat state and server connection
+   */
   private void queueTask(final Task task) {
-    synchronized (internalLock) {
-      if (closed) {
-        throw new IllegalStateException("ChatQueue has already been closed");
-      }
-
-      MinecraftConnection smc = player.getCurrentServer()
-          .map(VelocityServerConnection::getConnection)
-          .orElse(null);
-
-      if (smc == null) {
-        return;
-      }
-
-      head = head.thenCompose(v -> {
-        if (closed) {
-          return CompletableFuture.completedFuture(null);
-        }
-
-        try {
-          return task.update(chatState, smc).exceptionally(ignored -> null);
-        } catch (Throwable ignored) {
-          return CompletableFuture.completedFuture(null);
-        }
-      });
+    if (closed) {
+      throw new IllegalStateException("ChatQueue has already been closed");
     }
+
+    // Capture the server connection at enqueue time (like original synchronized version)
+    MinecraftConnection smc = player.getCurrentServer()
+        .map(VelocityServerConnection::getConnection)
+        .orElse(null);
+
+    if (smc == null) {
+      return;
+    }
+
+    // Build the task lambda that will be composed
+    Function<Void, CompletableFuture<Void>> composeTask = v -> {
+      if (closed) {
+        return CompletableFuture.completedFuture(null);
+      }
+      try {
+        return task.update(chatState, smc).exceptionally(ignored -> null);
+      } catch (Throwable ignored) {
+        return CompletableFuture.completedFuture(null);
+      }
+    };
+
+    // Atomically update the head using CAS loop
+    CompletableFuture<Void> currentHead;
+    CompletableFuture<Void> newHead;
+    do {
+      currentHead = headRef.get();
+      newHead = currentHead.thenCompose(composeTask);
+    } while (!headRef.compareAndSet(currentHead, newHead));
   }
 
   /**

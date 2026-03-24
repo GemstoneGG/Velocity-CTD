@@ -19,6 +19,7 @@ package com.velocityctd.proxy.redis.provider;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.velocityctd.proxy.redis.depot.Depot;
 import com.velocityctd.proxy.redis.depot.DepotEntry;
 import com.velocityctd.proxy.redis.packet.RedisPacket;
@@ -330,26 +331,32 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     private final String name;
 
-    /**
-     * The class representing the value type stored in this depot.
-     */
-    private final Class<V> valueClass;
+  /**
+   * The class representing the value type stored in this depot.
+   */
+  private final Class<V> valueClass;
 
-    /**
-     * The synchronous Pub/Sub commands used to interact with Redis hashes for this depot.
-     */
-    private final RedisPubSubCommands<String, String> connection;
+  /**
+   * Cached TypeToken for efficient Gson deserialization without reflection overhead.
+   */
+  private final TypeToken<V> typeToken;
 
-    /**
-     * Constructs a new {@link LettuceDepot} instance.
-     *
-     * @param valueClass the class of the depot value
-     */
-    public LettuceDepot(final @NotNull Class<V> valueClass) {
-      this.name = valueClass.getSimpleName().toLowerCase();
-      this.valueClass = valueClass;
-      this.connection = client.connectPubSub().sync();
-    }
+  /**
+   * The synchronous Pub/Sub commands used to interact with Redis hashes for this depot.
+   */
+  private final RedisPubSubCommands<String, String> connection;
+
+  /**
+   * Constructs a new {@link LettuceDepot} instance.
+   *
+   * @param valueClass the class of the depot value
+   */
+  public LettuceDepot(final @NotNull Class<V> valueClass) {
+    this.name = valueClass.getSimpleName().toLowerCase();
+    this.valueClass = valueClass;
+    this.typeToken = TypeToken.get(valueClass);
+    this.connection = client.connectPubSub().sync();
+  }
 
     /**
      * Checks whether a value is present in the depot for the given key.
@@ -433,18 +440,18 @@ public final class LettuceProvider extends AbstractRedisProvider {
       return GSON.toJson(entry, this.valueClass);
     }
 
-    /**
-     * Deserializes the specified JSON string into an entry and associates it with this depot.
-     *
-     * @param data the JSON string to deserialize
-     * @return the deserialized entry
-     */
-    private @NotNull V deserialize(final @NotNull String data) {
-      final V entry = GSON.fromJson(data, this.valueClass);
-      entry.setDepot(this);
+  /**
+   * Deserializes the specified JSON string into an entry and associates it with this depot.
+   *
+   * @param data the JSON string to deserialize
+   * @return the deserialized entry
+   */
+  private @NotNull V deserialize(final @NotNull String data) {
+    final V entry = GSON.fromJson(data, this.typeToken);
+    entry.setDepot(this);
 
-      return entry;
-    }
+    return entry;
+  }
 
     /**
      * Parses the specified key into a string suitable for use in Redis.
