@@ -1263,9 +1263,19 @@ public final class VelocityConfiguration implements ProxyConfig {
           "VELOCITY_FORWARDING_SECRET", "");
       if (forwardingSecretString.isBlank()) {
         final String forwardSecretFile = config.get("forwarding-secret-file");
-        final Path secretPath = forwardSecretFile == null
-            ? defaultForwardingSecretPath
-            : Path.of(forwardSecretFile);
+        Path secretPath;
+        if (forwardSecretFile != null) {
+          // Validate the path to prevent path traversal attacks
+          try {
+            secretPath = validateFilePath(forwardSecretFile, null);
+          } catch (SecurityException e) {
+            throw new RuntimeException(
+                "Invalid forwarding-secret-file path: " + forwardSecretFile
+                + ". " + e.getMessage(), e);
+          }
+        } else {
+          secretPath = defaultForwardingSecretPath;
+        }
         if (Files.exists(secretPath)) {
           if (Files.isRegularFile(secretPath)) {
             forwardingSecretString = String.join("", Files.readAllLines(secretPath));
@@ -1464,6 +1474,54 @@ public final class VelocityConfiguration implements ProxyConfig {
     }
 
     return builder.toString();
+  }
+
+  /**
+   * Validates a file path to prevent path traversal attacks.
+   * Rejects paths containing ".." sequences that could escape the config directory.
+   *
+   * @param path the file path to validate (user-provided)
+   * @param baseDir the base directory to validate against (optional, null to skip)
+   * @return the validated Path object
+   * @throws SecurityException if the path contains path traversal characters or escapes the base directory
+   */
+  public static Path validateFilePath(final String path, final Path baseDir) {
+    if (path == null || path.isBlank()) {
+      throw new SecurityException("File path cannot be null or blank");
+    }
+
+    // Check for path traversal characters
+    if (path.contains("..") || path.contains("./")) {
+      throw new SecurityException(
+          "File path contains path traversal characters ('..'). "
+          + "This is a potential security vulnerability. Path: " + path);
+    }
+
+    // Check for other dangerous characters
+    if (path.contains("\\..") || path.contains("../") || path.contains("..\\")) {
+      throw new SecurityException(
+          "File path contains path traversal sequences. Path: " + path);
+    }
+
+    // Normalize the path to remove any normalization tricks
+    final Path normalizedPath = Path.of(path).normalize();
+
+    // If baseDir is provided, validate the path stays within it
+    if (baseDir != null) {
+      try {
+        final Path resolvedPath = baseDir.resolve(normalizedPath).normalize();
+        if (!resolvedPath.startsWith(baseDir)) {
+          throw new SecurityException(
+              "File path escapes the base directory. "
+              + "Resolved path: " + resolvedPath + " (base: " + baseDir + ")");
+        }
+        return resolvedPath;
+      } catch (java.nio.file.InvalidPathException e) {
+        throw new SecurityException("Invalid file path: " + path, e);
+      }
+    }
+
+    return normalizedPath;
   }
 
   /**
