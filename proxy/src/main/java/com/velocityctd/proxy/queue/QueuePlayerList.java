@@ -18,76 +18,79 @@
 package com.velocityctd.proxy.queue;
 
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Encapsulates the ordered player deque and its UUID lookup index for a {@link VelocityQueue}.
+ * Encapsulates the ordered player queue and its UUID lookup index for a {@link VelocityQueue}.
+ *
+ * <p>Uses a {@link PriorityBlockingQueue} for efficient priority-ordered insertion
+ * combined with a {@link ConcurrentHashMap} for O(1) UUID lookups.</p>
  */
 public final class QueuePlayerList {
 
-  private final ConcurrentLinkedDeque<VelocityQueueEntry> players = new ConcurrentLinkedDeque<>();
+  /**
+   * Sorts entries by priority (higher first), then by insertion order (lower first) for FIFO.
+   */
+  private static final Comparator<VelocityQueueEntry> PRIORITY_COMPARATOR =
+      Comparator.comparingInt(VelocityQueueEntry::getPriority).reversed()
+                .thenComparingLong(VelocityQueueEntry::getInsertionOrder);
+
+  private final PriorityBlockingQueue<VelocityQueueEntry> queue;
   private final ConcurrentHashMap<UUID, VelocityQueueEntry> index = new ConcurrentHashMap<>();
+  private final AtomicLong insertionCounter = new AtomicLong(0);
+
+  public QueuePlayerList() {
+    this.queue = new PriorityBlockingQueue<>(1000, PRIORITY_COMPARATOR);
+  }
 
   /**
    * Inserts the entry in descending priority order, preserving FIFO within the same priority tier.
    * Silently ignores the call if an entry with the same UUID is already present.
    */
-  public synchronized void insertByPriority(final VelocityQueueEntry entry) {
+  public void insertByPriority(final VelocityQueueEntry entry) {
     if (index.containsKey(entry.getUniqueId())) {
       return;
     }
 
-    final Iterator<VelocityQueueEntry> it = players.iterator();
-    int position = 0;
-    boolean inserted = false;
-
-    while (it.hasNext()) {
-      if (it.next().getPriority() < entry.getPriority()) {
-        insertAt(entry, position);
-        inserted = true;
-        break;
-      }
-      position++;
-    }
-
-    if (!inserted) {
-      players.addLast(entry);
-    }
-
+    entry.setInsertionOrder(insertionCounter.getAndIncrement());
+    queue.put(entry);
     index.put(entry.getUniqueId(), entry);
     rebuildPositions();
   }
 
   /**
-   * Appends the entry to the tail of the deque without priority sorting.
-   * Used when restoring entries from a Redis depot snapshot, where ordering
-   * is already correct.
+   * Appends the entry to the queue. Used when restoring entries from a Redis depot snapshot,
+   * where ordering is already correct.
    */
-  public synchronized void addLast(final VelocityQueueEntry entry) {
-    players.addLast(entry);
+  public void addLast(final VelocityQueueEntry entry) {
+    entry.setInsertionOrder(insertionCounter.getAndIncrement());
+    queue.put(entry);
     index.put(entry.getUniqueId(), entry);
-    entry.setPosition(players.size());
+    entry.setPosition(queue.size());
   }
 
   /**
    * Removes the entry with the given UUID, if present.
    */
-  public synchronized void remove(final UUID uniqueId) {
-    players.removeIf(p -> p.getUniqueId().equals(uniqueId));
-    index.remove(uniqueId);
-    rebuildPositions();
+  public void remove(final UUID uniqueId) {
+    VelocityQueueEntry removed = index.remove(uniqueId);
+    if (removed != null) {
+      queue.remove(removed);
+      rebuildPositions();
+    }
   }
 
   /**
    * Removes all entries.
    */
-  public synchronized void clear() {
-    players.clear();
+  public void clear() {
+    queue.clear();
     index.clear();
   }
 
@@ -113,22 +116,17 @@ public final class QueuePlayerList {
   }
 
   /**
-   * Returns an unmodifiable ordered snapshot of all entries.
+   * Returns an unmodifiable ordered snapshot of all entries in priority order.
    */
   public List<VelocityQueueEntry> snapshot() {
-    return List.copyOf(players);
-  }
-
-  private void insertAt(final VelocityQueueEntry entry, final int position) {
-    final List<VelocityQueueEntry> tempList = new ArrayList<>(players);
-    tempList.add(position, entry);
-    players.clear();
-    players.addAll(tempList);
+    List<VelocityQueueEntry> list = new ArrayList<>(queue);
+    list.sort(PRIORITY_COMPARATOR);
+    return List.copyOf(list);
   }
 
   private void rebuildPositions() {
     int pos = 1;
-    for (final VelocityQueueEntry entry : players) {
+    for (VelocityQueueEntry entry : snapshot()) {
       entry.setPosition(pos++);
     }
   }

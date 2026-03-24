@@ -46,6 +46,12 @@ public class VelocityQueueEntry implements QueueEntry {
   protected volatile boolean queueBypass;
 
   /**
+   * Monotonic counter used to maintain FIFO order when priorities are equal.
+   * Set by the owning queue list when the entry is inserted.
+   */
+  private transient long insertionOrder;
+
+  /**
    * Injected after construction or deserialization.
    */
   protected transient VelocityServer server;
@@ -147,6 +153,20 @@ public class VelocityQueueEntry implements QueueEntry {
   @Override
   public VelocityQueue getQueue() {
     return queue;
+  }
+
+  /**
+   * Returns the insertion order of this entry, used for FIFO tie-breaking.
+   */
+  long getInsertionOrder() {
+    return insertionOrder;
+  }
+
+  /**
+   * Sets the insertion order. Package-private - only called by QueuePlayerList.
+   */
+  void setInsertionOrder(final long insertionOrder) {
+    this.insertionOrder = insertionOrder;
   }
 
   /**
