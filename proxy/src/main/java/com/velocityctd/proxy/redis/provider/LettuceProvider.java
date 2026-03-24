@@ -159,11 +159,26 @@ public final class LettuceProvider extends AbstractRedisProvider {
     // Validate the Redis host to prevent SSRF attacks
     validateRedisHost(config.getHost());
 
-    this.client = RedisClient.create(RedisURI.Builder.redis(config.getHost(), config.getPort())
+    // Build the Redis URI with proper SSL configuration
+    final RedisURI.Builder uriBuilder = RedisURI.Builder.redis(config.getHost(), config.getPort())
             .withAuthentication(Objects.requireNonNullElse(config.getUsername(), ""),
-                    Objects.requireNonNullElse(config.getPassword(), ""))
-            .withSsl(config.isUseSsl())
-            .build());
+                    Objects.requireNonNullElse(config.getPassword(), ""));
+
+    if (config.isUseSsl()) {
+      // Enable SSL with JVM's default trust manager for certificate validation
+      // The JVM's default SSL context uses the system trust store (cacerts)
+      // which validates server certificates by default.
+      // For self-signed certificates, add the CA certificate to the JVM trust store:
+      //   keytool -import -alias redis-ca -keystore $JAVA_HOME/lib/security/cacerts -file redis-ca.crt
+      uriBuilder.withSsl(true);
+      LOGGER.info("SSL enabled for Redis connection to {}:{} (using JVM trust store)",
+              config.getHost(), config.getPort());
+    } else {
+      uriBuilder.withSsl(false);
+      LOGGER.debug("SSL disabled for Redis connection to {}:{}", config.getHost(), config.getPort());
+    }
+
+    this.client = RedisClient.create(uriBuilder.build());
   }
 
   /**
