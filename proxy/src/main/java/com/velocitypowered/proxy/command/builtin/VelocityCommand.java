@@ -103,6 +103,44 @@ public class VelocityCommand implements BuiltinCommand {
 
   private static final String USAGE = "/velocity <%s>";
 
+  /**
+   * Logger used for sudo command audit logging.
+   */
+  private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager
+      .getLogger(VelocityCommand.class);
+
+  /**
+   * Whitelist of commands allowed to be executed via sudo.
+   * Only these commands can be sudo'd to prevent command injection attacks.
+   * Messages (not starting with /) are always allowed.
+   */
+  private static final java.util.Set<String> ALLOWED_SUDO_COMMANDS = java.util.Set.of(
+      "say", "tell", "msg", "w", "me", "list", "who"
+  );
+
+  /**
+   * Validates that a command string is allowed to be executed via sudo.
+   * Commands starting with '/' are checked against the whitelist.
+   * Non-command messages (no leading '/') are always allowed.
+   *
+   * @param commandOrMessage the command or message to validate
+   * @return true if allowed, false if blocked
+   */
+  private static boolean isCommandAllowedInSudo(final String commandOrMessage) {
+    if (commandOrMessage == null || commandOrMessage.isBlank()) {
+      return false;
+    }
+
+    // If it doesn't start with '/', it's a message, which is always allowed
+    if (!commandOrMessage.startsWith("/")) {
+      return true;
+    }
+
+    // Extract the command name (first word after '/')
+    String commandName = commandOrMessage.substring(1).split("\\s+", 2)[0].toLowerCase();
+    return ALLOWED_SUDO_COMMANDS.contains(commandName);
+  }
+
   private final VelocityServer server;
 
   public VelocityCommand(VelocityServer server) {
@@ -325,6 +363,25 @@ public class VelocityCommand implements BuiltinCommand {
       CommandSource source = context.getSource();
       String sudoTarget = context.getArgument("target", String.class);
       String messageOrCommand = context.getArgument("message/command", String.class);
+
+      // Validate the command against whitelist
+      if (!isCommandAllowedInSudo(messageOrCommand)) {
+        String commandName = messageOrCommand.startsWith("/")
+            ? messageOrCommand.substring(1).split("\\s+", 2)[0].toLowerCase()
+            : "";
+        LOGGER.warn("Blocked sudo command '{}' from {} (not in whitelist)",
+            messageOrCommand, source instanceof ConnectedPlayer cp ? cp.getUsername() : source.toString());
+        context.getSource().sendMessage(
+            Component.text("Command '" + commandName + "' is not allowed via sudo.",
+                NamedTextColor.RED)
+        );
+        return Command.SINGLE_SUCCESS;
+      }
+
+      // Log the sudo operation for audit
+      LOGGER.info("Sudo command executed by {}: {} on target {}",
+          source instanceof ConnectedPlayer cp ? cp.getUsername() : source.toString(),
+          messageOrCommand, sudoTarget);
 
       if (sudoTarget.equalsIgnoreCase("all")) {
         boolean doneOne = false;
