@@ -96,6 +96,12 @@ public class VelocityQueueManager implements QueueManager {
   private int actionBarTick = 0;
 
   /**
+   * Reusable set for tracking transferred players within a single transfer tick.
+   * Cleared each tick instead of allocating a new HashSet.
+   */
+  private final Set<UUID> transferredThisTick = new HashSet<>();
+
+  /**
    * Constructs a new {@link VelocityQueueManager} and starts periodic tasks.
    *
    * <p>The constructor calls {@link #preInitialize()} before filling in server queues
@@ -361,7 +367,7 @@ public class VelocityQueueManager implements QueueManager {
       return;
     }
 
-    final Set<UUID> transferredThisTick = new HashSet<>();
+    transferredThisTick.clear();
 
     queues.values().stream()
         .filter(q -> q.getState() == ACTIVE)
