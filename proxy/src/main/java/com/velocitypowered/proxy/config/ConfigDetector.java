@@ -24,10 +24,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,38 +39,64 @@ import org.jetbrains.annotations.NotNull;
  * Detects outdated configuration files by comparing them to the default embedded configuration.
  * This class provides detailed analysis of configuration differences and missing options.
  *
- * @param logger the logger used to output configuration analysis results
+ * <p>This implementation includes caching to avoid expensive repeated parsing and tree traversal.
+ * Cached results are invalidated based on file modification times.</p>
  */
-public record ConfigDetector(Logger logger) {
+public class ConfigDetector {
 
-  /**
-   * Path to the embedded default Velocity configuration resource.
-   */
   private static final String DEFAULT_CONFIG_RESOURCE = "default-velocity.toml";
 
-  /**
-   * Configuration sections that are ignored during analysis.
-   *
-   * <p>These sections are user-specific and should not be flagged
-   * as missing or deprecated when comparing configurations.</p>
-   */
   private static final Set<String> IGNORED_SECTIONS = Set.of("servers", "server-links",
           "forced-hosts", "slash-servers", "playercaps", "proxy-addresses",
           "command-aliases", "proxy-command-aliases", "auto-queue-servers");
 
+  private final Logger logger;
+
+  // Cache for parsed default config (static, shared)
+  private static volatile CommentedConfig cachedDefaultConfig = null;
+  private static volatile long defaultConfigCacheTimestamp = 0;
+  private static final long DEFAULT_CONFIG_TTL_MS = 60_000; // 1 minute
+
+  // Analysis cache per config file
+  private static final ConcurrentMap<Path, AnalysisCacheEntry> ANALYSIS_CACHE = new ConcurrentHashMap<>();
+  private static final long ANALYSIS_CACHE_TTL_MS = 10_000; // 10 seconds
+
   /**
-   * Configuration analysis result containing details about outdated configurations.
+   * Creates a new ConfigDetector with the specified logger.
    *
-   * @param isOutdated        whether the configuration is outdated
-   * @param currentVersion    the current configuration version
-   * @param latestVersion     the latest available configuration version
-   * @param missingOptions    list of missing configuration options
-   * @param deprecatedOptions list of deprecated configuration options
-   * @param recommendations   list of recommendations for configuration improvements
+   * @param logger the logger to use for configuration analysis output
    */
-  public record ConfigAnalysis(boolean isOutdated, String currentVersion, String latestVersion,
-                               List<String> missingOptions, List<String> deprecatedOptions,
-                               List<String> recommendations) {
+  public ConfigDetector(Logger logger) {
+    this.logger = logger;
+  }
+
+  /**
+   * Configuration analysis result.
+   */
+  public static final class ConfigAnalysis {
+    private final boolean isOutdated;
+    private final String currentVersion;
+    private final String latestVersion;
+    private final List<String> missingOptions;
+    private final List<String> deprecatedOptions;
+    private final List<String> recommendations;
+
+    public ConfigAnalysis(boolean isOutdated, String currentVersion, String latestVersion,
+        List<String> missingOptions, List<String> deprecatedOptions, List<String> recommendations) {
+      this.isOutdated = isOutdated;
+      this.currentVersion = currentVersion;
+      this.latestVersion = latestVersion;
+      this.missingOptions = List.copyOf(missingOptions);
+      this.deprecatedOptions = List.copyOf(deprecatedOptions);
+      this.recommendations = List.copyOf(recommendations);
+    }
+
+    public boolean isOutdated() { return isOutdated; }
+    public String currentVersion() { return currentVersion; }
+    public String latestVersion() { return latestVersion; }
+    public List<String> missingOptions() { return missingOptions; }
+    public List<String> deprecatedOptions() { return deprecatedOptions; }
+    public List<String> recommendations() { return recommendations; }
 
     @Override
     public @NotNull String toString() {
@@ -92,7 +122,7 @@ public record ConfigDetector(Logger logger) {
 
       if (!recommendations.isEmpty()) {
         sb.append("  Recommendations:\n");
-        for (String rec : recommendations) {
+        for (String rec : recommendations()) {
           sb.append("    - ").append(rec).append("\n");
         }
       }
@@ -102,30 +132,52 @@ public record ConfigDetector(Logger logger) {
   }
 
   /**
-   * Analyzes the configuration file for outdated options and missing configurations.
-   *
-   * @param configPath the path to the configuration file to analyze
-   * @return a ConfigAnalysis object containing the analysis results
-   * @throws IOException if there's an error reading the configuration files
+   * Cache entry for analysis results.
    */
+  private static final class AnalysisCacheEntry {
+    final long lastModified;
+    final ConfigAnalysis analysis;
+    final long cachedAt;
+
+    AnalysisCacheEntry(long lastModified, ConfigAnalysis analysis) {
+      this.lastModified = lastModified;
+      this.analysis = analysis;
+      this.cachedAt = System.currentTimeMillis();
+    }
+
+    boolean isExpired() {
+      return System.currentTimeMillis() - cachedAt > ANALYSIS_CACHE_TTL_MS;
+    }
+  }
+
   public ConfigAnalysis analyzeConfiguration(final Path configPath) throws IOException {
-    CommentedConfig defaultConfig = loadDefaultConfig();
+    // Check cache first
+    long fileLastModified = Files.getLastModifiedTime(configPath).toMillis();
+    AnalysisCacheEntry cachedEntry = ANALYSIS_CACHE.get(configPath);
+    if (cachedEntry != null
+        && cachedEntry.lastModified == fileLastModified
+        && !cachedEntry.isExpired()) {
+      return cachedEntry.analysis;
+    }
+
+    // Load or get cached default config
+    CommentedConfig defaultConfig = getCachedDefaultConfig();
     if (defaultConfig == null) {
       throw new IOException("Could not load default configuration from resources");
     }
 
+    // Load current config
     CommentedFileConfig currentConfig = CommentedFileConfig.builder(configPath)
         .preserveInsertionOrder()
         .sync()
         .build();
     currentConfig.load();
 
+    // Create merged analysis config
     CommentedConfig analysisConfig = CommentedConfig.inMemory();
-    
     for (CommentedConfig.Entry entry : currentConfig.entrySet()) {
       analysisConfig.set(entry.getKey(), entry.getValue());
     }
-    
     for (CommentedConfig.Entry entry : defaultConfig.entrySet()) {
       if (!analysisConfig.contains(entry.getKey())) {
         analysisConfig.set(entry.getKey(), entry.getValue());
@@ -137,23 +189,29 @@ public record ConfigDetector(Logger logger) {
 
     List<String> missingOptions = findMissingOptions(defaultConfig, analysisConfig);
     List<String> deprecatedOptions = findDeprecatedOptions(defaultConfig, analysisConfig);
-    List<String> recommendations = generateRecommendations(currentVersion, latestVersion, missingOptions, deprecatedOptions);
+    List<String> recommendations = generateRecommendations(currentVersion, latestVersion,
+        missingOptions, deprecatedOptions);
 
     boolean isOutdated = !currentVersion.equals(latestVersion)
         || !missingOptions.isEmpty() || !deprecatedOptions.isEmpty();
 
-    return new ConfigAnalysis(isOutdated, currentVersion, latestVersion,
+    ConfigAnalysis analysis = new ConfigAnalysis(isOutdated, currentVersion, latestVersion,
         missingOptions, deprecatedOptions, recommendations);
+
+    // Cache the result
+    ANALYSIS_CACHE.put(configPath, new AnalysisCacheEntry(fileLastModified, analysis));
+
+    return analysis;
   }
 
-  /**
-   * Loads the default embedded configuration from resources.
-   *
-   * @return the default configuration as a CommentedConfig
-   * @throws IOException if there's an error reading the default configuration
-   */
-  private CommentedConfig loadDefaultConfig() throws IOException {
-    URL defaultConfigUrl = VelocityConfiguration.class.getClassLoader()
+  private CommentedConfig getCachedDefaultConfig() throws IOException {
+    long now = System.currentTimeMillis();
+    if (cachedDefaultConfig != null && now - defaultConfigCacheTimestamp < DEFAULT_CONFIG_TTL_MS) {
+      return cachedDefaultConfig;
+    }
+
+    // Reload default config
+    URL defaultConfigUrl = ConfigDetector.class.getClassLoader()
         .getResource(DEFAULT_CONFIG_RESOURCE);
     if (defaultConfigUrl == null) {
       throw new IOException("Default configuration resource not found: " + DEFAULT_CONFIG_RESOURCE);
@@ -162,31 +220,18 @@ public record ConfigDetector(Logger logger) {
     try (InputStream is = defaultConfigUrl.openStream()) {
       String content = new String(is.readAllBytes(), StandardCharsets.UTF_8);
       TomlParser parser = new TomlParser();
-      return parser.parse(content);
+      cachedDefaultConfig = parser.parse(content);
+      defaultConfigCacheTimestamp = now;
+      return cachedDefaultConfig;
     }
   }
 
-  /**
-   * Finds options that exist in the default config but are missing from the current config.
-   *
-   * @param defaultConfig the default configuration
-   * @param currentConfig the current configuration
-   * @return list of missing option paths
-   */
   private List<String> findMissingOptions(final CommentedConfig defaultConfig, final CommentedConfig currentConfig) {
     List<String> missingOptions = new ArrayList<>();
     findMissingOptionsRecursive(defaultConfig, currentConfig, "", missingOptions);
     return missingOptions;
   }
 
-  /**
-   * Recursively finds missing options by traversing the configuration tree.
-   *
-   * @param defaultConfig  the default configuration
-   * @param currentConfig  the current configuration
-   * @param currentPath    the current path being checked
-   * @param missingOptions list to collect missing options
-   */
   private void findMissingOptionsRecursive(final CommentedConfig defaultConfig, final CommentedConfig currentConfig,
                                            final String currentPath, final List<String> missingOptions) {
     for (CommentedConfig.Entry entry : defaultConfig.entrySet()) {
@@ -211,29 +256,14 @@ public record ConfigDetector(Logger logger) {
     }
   }
 
-  /**
-   * Finds deprecated options that exist in the current config but not in the default config.
-   *
-   * @param defaultConfig the default configuration
-   * @param currentConfig the current configuration
-   * @return list of deprecated option paths
-   */
   private List<String> findDeprecatedOptions(final CommentedConfig defaultConfig, final CommentedConfig currentConfig) {
     List<String> deprecatedOptions = new ArrayList<>();
     findDeprecatedOptionsRecursive(defaultConfig, currentConfig, "", deprecatedOptions);
     return deprecatedOptions;
   }
 
-  /**
-   * Recursively finds deprecated options by traversing the configuration tree.
-   *
-   * @param defaultConfig the default configuration
-   * @param currentConfig the current configuration
-   * @param currentPath the current path being checked
-   * @param deprecatedOptions list to collect deprecated options
-   */
   private void findDeprecatedOptionsRecursive(final CommentedConfig defaultConfig, final CommentedConfig currentConfig,
-                                              final String currentPath, final List<String> deprecatedOptions) {
+                                               final String currentPath, final List<String> deprecatedOptions) {
     for (CommentedConfig.Entry entry : currentConfig.entrySet()) {
       String key = entry.getKey();
       String fullPath = currentPath.isEmpty() ? key : currentPath + "." + key;
@@ -256,15 +286,6 @@ public record ConfigDetector(Logger logger) {
     }
   }
 
-  /**
-   * Generates recommendations based on the analysis results.
-   *
-   * @param currentVersion the current config version
-   * @param latestVersion the latest config version
-   * @param missingOptions list of missing options
-   * @param deprecatedOptions list of deprecated options
-   * @return list of recommendations
-   */
   private List<String> generateRecommendations(final String currentVersion, final String latestVersion,
                                                final List<String> missingOptions, final List<String> deprecatedOptions) {
     List<String> recommendations = new ArrayList<>();
@@ -288,11 +309,6 @@ public record ConfigDetector(Logger logger) {
     return recommendations;
   }
 
-  /**
-   * Logs the configuration analysis results.
-   *
-   * @param analysis the configuration analysis results
-   */
   public void logAnalysis(final ConfigAnalysis analysis) {
     if (!analysis.isOutdated()) {
       logger.info("Configuration is up to date (version {})", analysis.currentVersion());
@@ -317,12 +333,6 @@ public record ConfigDetector(Logger logger) {
     }
   }
 
-  /**
-   * Checks if a configuration file needs to be updated and logs the results.
-   *
-   * @param configPath the path to the configuration file
-   * @return true if the configuration is outdated, false otherwise
-   */
   public boolean checkAndLogConfiguration(final Path configPath) {
     try {
       ConfigAnalysis analysis = analyzeConfiguration(configPath);
@@ -331,6 +341,27 @@ public record ConfigDetector(Logger logger) {
     } catch (IOException e) {
       logger.error("Failed to analyze configuration file: {}", configPath, e);
       return false;
+    }
+  }
+
+  /**
+   * Clears the default configuration cache. Useful for testing.
+   */
+  public static void clearDefaultConfigCache() {
+    cachedDefaultConfig = null;
+    defaultConfigCacheTimestamp = 0;
+  }
+
+  /**
+   * Clears the analysis cache for a specific config file.
+   *
+   * @param configPath the config path to clear, or null to clear all
+   */
+  public void clearAnalysisCache(Path configPath) {
+    if (configPath == null) {
+      ANALYSIS_CACHE.clear();
+    } else {
+      ANALYSIS_CACHE.remove(configPath);
     }
   }
 }
