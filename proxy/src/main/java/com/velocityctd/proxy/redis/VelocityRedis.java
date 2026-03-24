@@ -105,6 +105,16 @@ public final class VelocityRedis {
   }
 
   /**
+   * Returns the synchronous Redis pub/sub command interface for key operations.
+   * Used for atomic leader election in VelocityQueueManager.
+   *
+   * @return the sync publisher, or null if not initialized
+   */
+  public io.lettuce.core.pubsub.api.sync.RedisPubSubCommands<String, String> getSyncPublisher() {
+    return ((com.velocityctd.proxy.redis.provider.LettuceProvider) provider).getSyncPublisher();
+  }
+
+  /**
    * Shuts down the Redis service and all associated depot services.
    *
    * <p>This method ensures that all resources, connections, and cached entries

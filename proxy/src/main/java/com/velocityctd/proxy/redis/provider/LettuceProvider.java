@@ -459,8 +459,18 @@ public final class LettuceProvider extends AbstractRedisProvider {
      * @param key the key to parse
      * @return the string representation of the key
      */
-    private @NotNull String parseKey(final K key) {
-      return String.valueOf(key);
-    }
-  }
+     private @NotNull String parseKey(final K key) {
+       return String.valueOf(key);
+     }
+   }
+
+   /**
+    * Returns the synchronous Redis pub/sub command interface used for key operations.
+    * This is used for atomic leader election operations in RedisVelocityQueueManager.
+    *
+    * @return the sync publisher
+    */
+   public RedisPubSubCommands<String, String> getSyncPublisher() {
+     return this.syncPublisher;
+   }
 }

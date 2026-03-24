@@ -25,13 +25,17 @@ import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotService;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueSync;
 import com.velocityctd.proxy.queue.util.QueueComponents;
 import com.velocityctd.proxy.redis.impl.packet.VelocityActionBar;
+import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
+import io.lettuce.core.ScriptOutputType;
+import io.lettuce.core.pubsub.api.sync.RedisPubSubCommands;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 
@@ -40,8 +44,42 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class RedisVelocityQueueManager extends VelocityQueueManager {
 
+  /**
+   * Redis key for the leader lock. Only one proxy can hold this lock at a time.
+   */
+  private static final String LEADER_LOCK_KEY = "velocity:queue:leader";
+
+  /**
+   * Leader lock lease duration in milliseconds. Must be less than
+   * the scheduling period of the leader renewal task.
+   */
+  private static final long LEADER_LOCK_TTL_MS = 5000; // 5 seconds
+
+  /**
+   * How often to attempt to acquire or renew the leader lock (ms).
+   * Should be slightly less than half the TTL to ensure timely renewal.
+   */
+  private static final long LEADER_ELECTION_INTERVAL_MS = 2000; // 2 seconds
+
+  /**
+   * The unique ID of this proxy instance.
+   */
+  private final String proxyId;
+
+  /**
+   * The current leader lock value (proxy ID) if this proxy is the leader, null otherwise.
+   * Volatile for visibility across threads.
+   */
+  private volatile String currentLeader = null;
+
+  /**
+   * Task that periodically maintains leader status or attempts to acquire leadership.
+   */
+  private ScheduledTask leaderElectionTask;
+
   public RedisVelocityQueueManager(final @NotNull VelocityServer server) {
     super(server);
+    this.proxyId = server.getProxyId();
   }
 
   @Override
@@ -51,6 +89,13 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
 
   @Override
   protected void postInitialize() {
+    // Start the leader election/renewal task
+    leaderElectionTask = server.getScheduler()
+        .buildTask(VelocityVirtualPlugin.INSTANCE, this::performLeaderElection)
+        .delay(0, TimeUnit.MILLISECONDS)
+        .repeat(LEADER_ELECTION_INTERVAL_MS, TimeUnit.MILLISECONDS)
+        .schedule();
+
     server.getRedis().addReconnectListener(() ->
         server.getScheduler()
             .buildTask(VelocityVirtualPlugin.INSTANCE, this::reloadFromRedis)
@@ -60,31 +105,115 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
 
   @Override
   public boolean isMasterProxy() {
-    final List<String> masterProxies = server.getConfiguration().getQueue().getMasterProxyIds();
-    final List<String> activeProxies = new ArrayList<>(
-        server.getRedis().getProxyService().getAllProxyIds());
-    Collections.sort(activeProxies);
-
-    final String ownId = server.getProxyId();
-
-    if (masterProxies.isEmpty() || (masterProxies.size() == 1 && masterProxies.getFirst().isEmpty())) {
-      // No explicit master list: alphabetically-first active proxy is master
-      return !activeProxies.isEmpty() && activeProxies.getFirst().equalsIgnoreCase(ownId);
+    // Fast path: if we already hold the leader lock, we're master
+    if (proxyId.equals(currentLeader)) {
+      return true;
     }
 
-    // Find the first master-proxy ID that is currently active
-    activeProxies.retainAll(masterProxies);
-    if (activeProxies.isEmpty()) {
+    // Slow path: try to acquire the lock (atomic operation in Redis)
+    return tryAcquireLeaderLock();
+  }
+
+  /**
+   * Attempts to acquire the Redis leader lock using atomic SET NX EX.
+   * Only one proxy can succeed at a time.
+   *
+   * @return true if this proxy successfully acquired the lock, false otherwise
+   */
+  private boolean tryAcquireLeaderLock() {
+    try {
+      RedisPubSubCommands<String, String> sync = server.getRedis().getSyncPublisher();
+      // Use SET with NX (only set if not exists) and EX (expiration in seconds)
+      String result = sync.set(LEADER_LOCK_KEY, proxyId, 
+          new io.lettuce.core.SetArgs().nx().px(LEADER_LOCK_TTL_MS));
+
+      if ("OK".equals(result)) {
+        // Successfully acquired the lock
+        currentLeader = proxyId;
+        return true;
+      }
+
+      // Lock held by someone else
+      return false;
+    } catch (Exception e) {
+      server.getLogger().warn("Failed to acquire leader lock from Redis", e);
       return false;
     }
+  }
 
-    for (String candidate : masterProxies) {
-      if (activeProxies.contains(candidate)) {
-        return candidate.equalsIgnoreCase(ownId);
-      }
+  /**
+   * Renews the leader lock if this proxy is currently the leader.
+   * Uses Lua script or multiple commands to ensure atomicity.
+   */
+  private void renewLeaderLock() {
+    if (!proxyId.equals(currentLeader)) {
+      return;
     }
 
-    return false;
+    try {
+      RedisPubSubCommands<String, String> sync = server.getRedis().getSyncPublisher();
+      // Check if we still hold the lock, then update expiration
+      // Use a Lua script for atomicity: if value equals our ID, set new expiration
+      String script =
+          "if redis.call('GET', KEYS[1]) == ARGV[1] then " +
+          "  return redis.call('PEXPIRE', KEYS[1], ARGV[2]) " +
+          "else " +
+          "  return 0 " +
+          "end";
+
+      Long result = sync.eval(script, 
+          ScriptOutputType.INTEGER,
+          LEADER_LOCK_KEY, proxyId, String.valueOf(LEADER_LOCK_TTL_MS));
+
+      if (result == 0) {
+        // Lost the lock (someone else took it or it expired and was taken)
+        currentLeader = null;
+      }
+    } catch (Exception e) {
+      server.getLogger().warn("Failed to renew leader lock from Redis", e);
+    }
+  }
+
+  /**
+   * Periodically called task that either acquires or renews the leader lock.
+   * This is the main leader election mechanism.
+   */
+  private void performLeaderElection() {
+    if (currentLeader == null) {
+      // We're not leader, try to become one
+      tryAcquireLeaderLock();
+    } else {
+      // We are leader, renew our lock
+      renewLeaderLock();
+    }
+  }
+
+  @Override
+  public void teardown() {
+    super.teardown();
+    if (leaderElectionTask != null) {
+      leaderElectionTask.cancel();
+    }
+    // Release the lock if we are leader
+    if (proxyId.equals(currentLeader)) {
+      try {
+        RedisPubSubCommands<String, String> sync = server.getRedis().getSyncPublisher();
+        if (sync != null) {
+          // Only delete if we still own it (using Lua script for safety)
+          String script =
+              "if redis.call('GET', KEYS[1]) == ARGV[1] then " +
+              "  return redis.call('DEL', KEYS[1]) " +
+              "else " +
+              "  return 0 " +
+              "end";
+          sync.eval(script,
+              ScriptOutputType.INTEGER,
+              LEADER_LOCK_KEY, proxyId);
+        }
+      } catch (Exception ignored) {
+        // Redis might be down, ignore
+      }
+    }
   }
 
   @Override
