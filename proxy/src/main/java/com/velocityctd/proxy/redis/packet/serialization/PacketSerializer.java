@@ -23,6 +23,9 @@ import com.google.gson.JsonObject;
 import com.velocityctd.proxy.redis.packet.GenericPacket;
 import com.velocityctd.proxy.redis.packet.RedisPacket;
 import java.lang.reflect.Modifier;
+import java.util.Set;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -30,6 +33,11 @@ import org.jetbrains.annotations.Nullable;
  * Represents a utility class for serializing {@link RedisPacket} objects to JSON strings using {@link Gson}.
  */
 public final class PacketSerializer {
+
+  /**
+   * Logger used for security warnings when blocked packet types are encountered.
+   */
+  private static final Logger LOGGER = LogManager.getLogger(PacketSerializer.class);
 
   /**
    * Shared {@link Gson} instance configured for Redis packet (de)serialization, excluding
@@ -40,6 +48,54 @@ public final class PacketSerializer {
           .disableHtmlEscaping()
           .serializeNulls()
           .create();
+
+  /**
+   * Whitelist of allowed Redis packet classes that can be deserialized.
+   * Only classes in this set can be loaded via Class.forName() to prevent
+   * Remote Code Execution (RCE) attacks via malicious JSON payloads.
+   */
+  private static final Set<String> ALLOWED_PACKET_TYPES = Set.of(
+      // Base packet types
+      "com.velocityctd.proxy.redis.packet.GenericPacket",
+      "com.velocityctd.proxy.redis.packet.EmptyPacket",
+
+      // Typed packets
+      "com.velocityctd.proxy.redis.packet.typed.ComponentPacket",
+      "com.velocityctd.proxy.redis.packet.typed.StringPacket",
+      "com.velocityctd.proxy.redis.packet.typed.BooleanPacket",
+      "com.velocityctd.proxy.redis.packet.typed.IntegerPacket",
+      "com.velocityctd.proxy.redis.packet.typed.LongPacket",
+      "com.velocityctd.proxy.redis.packet.typed.UuidPacket",
+      "com.velocityctd.proxy.redis.packet.typed.MapPacket",
+      "com.velocityctd.proxy.redis.packet.typed.RecordPacket",
+
+      // Concrete packets
+      "com.velocityctd.proxy.redis.impl.packet.VelocityActionBar",
+      "com.velocityctd.proxy.redis.impl.packet.VelocityAlert",
+      "com.velocityctd.proxy.redis.impl.packet.VelocityKick",
+      "com.velocityctd.proxy.redis.impl.packet.VelocityMessage",
+      "com.velocityctd.proxy.redis.impl.packet.VelocityRemote",
+      "com.velocityctd.proxy.redis.impl.packet.VelocitySudo",
+      "com.velocityctd.proxy.redis.impl.packet.VelocitySwitchServer",
+      "com.velocityctd.proxy.queue.redis.packet.VelocityQueueTransfer",
+      "com.velocityctd.proxy.queue.redis.packet.VelocityQueueSync",
+
+      // Transaction types
+      "com.velocityctd.proxy.redis.impl.transaction.VelocityGetPlayerPing",
+      "com.velocityctd.proxy.redis.impl.transaction.VelocityReload",
+      "com.velocityctd.proxy.redis.impl.transaction.VelocityTransferRemote",
+      "com.velocityctd.proxy.redis.impl.transaction.VelocityUptime"
+  );
+
+  /**
+   * Validates that a class name is in the allowed whitelist.
+   *
+   * @param className the fully qualified class name to validate
+   * @return true if the class is allowed for deserialization, false otherwise
+   */
+  private static boolean isAllowedPacketType(final @NotNull String className) {
+    return ALLOWED_PACKET_TYPES.contains(className);
+  }
 
   /**
    * Serializes a {@link RedisPacket} to a JSON string using {@link Gson}.
@@ -68,6 +124,8 @@ public final class PacketSerializer {
 
   /**
    * Deserializes a JSON string to a {@link RedisPacket} object using {@link Gson}.
+   * The type field in the JSON is validated against the whitelist before deserialization
+   * to prevent Remote Code Execution (RCE) attacks.
    *
    * @param serializedPacket the JSON string to deserialize
    * @param <T>              the type of the packet
@@ -81,11 +139,23 @@ public final class PacketSerializer {
       return null;
     }
 
-    try {
-      final Class<T> type = (Class<T>) Class.forName(redisPacket.getType());
+    final String typeName = redisPacket.getType();
+    if (typeName == null || typeName.isBlank()) {
+      return (T) redisPacket;
+    }
 
+    // Validate the type is in the allowed whitelist
+    if (!isAllowedPacketType(typeName)) {
+      LOGGER.warn("Blocked deserialization of packet type '{}' (not in whitelist). "
+          + "Possible malicious Redis packet injection.", typeName);
+      return (T) redisPacket;
+    }
+
+    try {
+      final Class<T> type = (Class<T>) Class.forName(typeName);
       return PacketSerializer.GSON.fromJson(serializedPacket, type);
     } catch (ClassNotFoundException ignored) {
+      // Class not found, return the generic packet
       return (T) redisPacket;
     }
   }
