@@ -297,7 +297,12 @@ public enum ProtocolVersion implements Ordered<@NotNull ProtocolVersion> {
   /**
    * Minecraft 1.21.11.
    */
-  MINECRAFT_1_21_11(774, "1.21.11");
+  MINECRAFT_1_21_11(774, "1.21.11"),
+
+  /**
+   * Minecraft 26.1.
+   */
+  MINECRAFT_26_1(775, "26.1");
 
   /**
    * Bitmask shift used to encode snapshot protocol versions.

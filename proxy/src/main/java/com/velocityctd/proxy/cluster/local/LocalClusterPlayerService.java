@@ -19,6 +19,7 @@ package com.velocityctd.proxy.cluster.local;
 
 import com.velocityctd.proxy.cluster.ClusterPlayer;
 import com.velocityctd.proxy.cluster.ClusterPlayerService;
+import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.Collection;
@@ -97,6 +98,10 @@ public final class LocalClusterPlayerService implements ClusterPlayerService {
 
   @Override
   public void onPlayerSwitchServer(final ConnectedPlayer player, final String serverName) {
+  }
+
+  @Override
+  public void onPlayerSettingsChange(final ConnectedPlayer player, final PlayerSettings settings) {
   }
 
   @Override

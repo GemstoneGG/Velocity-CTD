@@ -17,6 +17,7 @@
 
 package com.velocityctd.proxy.cluster;
 
+import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.Collection;
 import java.util.Optional;
@@ -49,6 +50,8 @@ public interface ClusterPlayerService {
   void onPlayerDisconnect(ConnectedPlayer player);
 
   void onPlayerSwitchServer(ConnectedPlayer player, String serverName);
+
+  void onPlayerSettingsChange(ConnectedPlayer player, PlayerSettings settings);
 
   Collection<String> getPlayerNames();
 

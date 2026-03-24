@@ -73,6 +73,11 @@ public final class RedisClusterPlayer implements ClusterPlayer {
   }
 
   @Override
+  public boolean isClientListingAllowed() {
+    return redisEntry.isClientListingAllowed();
+  }
+
+  @Override
   public void kick(final Component reason) {
     new VelocityKick(redisEntry.getUniqueId(), reason).publish();
   }

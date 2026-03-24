@@ -87,22 +87,17 @@ public class ServerListPingHandler {
 
     List<ServerPing.SamplePlayer> samplePlayers;
     if (configuration.getSamplePlayersInPing()) {
-      List<ServerPing.SamplePlayer> unshuffledPlayers;
-      if (server.getClusterProxyService().isMultiProxy()) {
-        unshuffledPlayers = server.getClusterPlayerService().getAllPlayers().stream()
-            .map(entry -> new ServerPing.SamplePlayer(entry.getUsername(), entry.getUniqueId()))
-            .collect(Collectors.toList());
-      } else {
-        unshuffledPlayers = server.getAllPlayers().stream()
-            .map(player -> {
-              if (player.getPlayerSettings().isClientListingAllowed()) {
-                return new ServerPing.SamplePlayer(player.getUsername(), player.getUniqueId());
-              } else {
-                return ServerPing.SamplePlayer.ANONYMOUS;
-              }
-            })
-            .collect(Collectors.toList());
-      }
+      List<ServerPing.SamplePlayer> unshuffledPlayers = server.getClusterPlayerService()
+          .getAllPlayers()
+          .stream()
+          .map(player -> {
+            if (player.isClientListingAllowed()) {
+              return new ServerPing.SamplePlayer(player.getUsername(), player.getUniqueId());
+            } else {
+              return ServerPing.SamplePlayer.ANONYMOUS;
+            }
+          })
+          .collect(Collectors.toList());
 
       Collections.shuffle(unshuffledPlayers);
       int limit = Math.min(12, unshuffledPlayers.size());

@@ -592,6 +592,7 @@ public final class VelocityConfiguration implements ProxyConfig {
   public List<Component> getMotdHover() {
     if (motdHoverComponents == null) {
       motdHoverComponents = motdHover.stream()
+          .map(s -> s.isEmpty() ? " " : s)
           .map(MiniMessage.miniMessage()::deserialize)
           .toList();
     }

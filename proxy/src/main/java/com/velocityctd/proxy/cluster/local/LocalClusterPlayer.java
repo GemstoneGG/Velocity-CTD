@@ -70,6 +70,11 @@ public final class LocalClusterPlayer implements ClusterPlayer {
   }
 
   @Override
+  public boolean isClientListingAllowed() {
+    return player.getPlayerSettings().isClientListingAllowed();
+  }
+
+  @Override
   public void kick(final Component reason) {
     player.disconnect0(reason, true);
   }

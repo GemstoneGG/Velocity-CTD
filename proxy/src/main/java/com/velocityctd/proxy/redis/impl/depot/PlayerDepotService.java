@@ -20,6 +20,7 @@ package com.velocityctd.proxy.redis.impl.depot;
 import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.depot.AbstractDepotService;
 import com.velocityctd.proxy.redis.impl.packet.VelocityKick;
+import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -174,6 +175,22 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
     }
 
     playerEntry.setServerName(serverName);
+    playerEntry.upsert();
+  }
+
+  /**
+   * Called when a {@link ConnectedPlayer} changes its {@link PlayerSettings}.
+   *
+   * @param player the player that got its settings changed
+   * @param settings the new settings
+   */
+  public void onPlayerSettingsChange(final ConnectedPlayer player, final PlayerSettings settings) {
+    final PlayerEntry playerEntry = this.getPlayerEntry(player.getUniqueId());
+    if (playerEntry == null) {
+      return;
+    }
+
+    playerEntry.setClientListingAllowed(settings.isClientListingAllowed());
     playerEntry.upsert();
   }
 

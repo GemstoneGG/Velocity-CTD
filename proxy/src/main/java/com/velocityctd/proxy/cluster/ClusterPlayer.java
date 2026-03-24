@@ -40,6 +40,8 @@ public interface ClusterPlayer {
 
   @Nullable String getIpAddress();
 
+  boolean isClientListingAllowed();
+
   void kick(Component reason);
 
   void sudo(String command);

@@ -34,7 +34,7 @@ import org.jetbrains.annotations.Unmodifiable;
  * to LuckPerm's {@link PermissionFunction#getPermissionValue(String)} implementation, and provides more
  * advanced permission methods through the use of the LuckPerms API.
  */
-public class LuckpermsPermissionResolver implements PermissionResolver {
+public final class LuckpermsPermissionResolver implements PermissionResolver {
 
   private final Player player;
   private final PermissionFunction delegate;
@@ -46,7 +46,7 @@ public class LuckpermsPermissionResolver implements PermissionResolver {
    * @param delegate the LuckPerms PermissionFunction delegate. It's expected, though not required, that this
    *                 is a {@code me.lucko.luckperms.velocity.service.PlayerPermissionProvider}.
    */
-  public LuckpermsPermissionResolver(Player player, PermissionFunction delegate) {
+  LuckpermsPermissionResolver(Player player, PermissionFunction delegate) {
     this.player = player;
     this.delegate = delegate;
   }

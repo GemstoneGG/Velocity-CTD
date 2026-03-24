@@ -30,7 +30,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * {@code net.luckperms.api.LuckPermsProvider} is available on the classpath, effectively checking
  * if we have the LuckPerms plugin installed and available for the advanced permission checks.
  */
-public class LuckpermsPermissionResolverProvider implements PermissionResolverProvider {
+public final class LuckpermsPermissionResolverProvider implements PermissionResolverProvider {
 
   @Override
   public boolean isAvailable() {

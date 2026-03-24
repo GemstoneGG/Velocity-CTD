@@ -673,6 +673,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     final ClientSettingsWrapper cs = new ClientSettingsWrapper(clientSettingsPacket);
     this.settings = cs;
     server.getEventManager().fireAndForget(new PlayerSettingsChangedEvent(this, cs));
+
+    this.server.getClusterPlayerService().onPlayerSettingsChange(this, cs);
   }
 
   /**
