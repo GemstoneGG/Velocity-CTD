@@ -56,6 +56,83 @@ public final class LettuceProvider extends AbstractRedisProvider {
   private static final Logger LOGGER = LoggerFactory.getLogger(LettuceProvider.class);
 
   /**
+   * Validates that a Redis host is not a private/internal IP to prevent SSRF attacks.
+   * Blocks:
+   * - 169.254.x.x (AWS/cloud metadata endpoint)
+   * - 10.x.x.x, 172.16-31.x.x, 192.168.x.x (RFC 1918 private ranges)
+   * - 127.0.0.1 (IPv4 localhost)
+   * - ::1, ::0 (IPv6 localhost)
+   * - 0.0.0.0 (any)
+   * - 255.255.255.255 (broadcast)
+   *
+   * @param host the host to validate
+   * @throws SecurityException if the host is a private/internal IP
+   */
+  private static void validateRedisHost(final String host) {
+    if (host == null || host.isBlank()) {
+      throw new SecurityException("Redis host cannot be null or blank");
+    }
+
+    // Check for blocked hostnames/IPs
+    final String lowerHost = host.toLowerCase();
+
+    // Block localhost and broadcast
+    if (lowerHost.equals("localhost") || lowerHost.equals("127.0.0.1")
+        || lowerHost.equals("::1") || lowerHost.equals("::0")
+        || lowerHost.equals("0.0.0.0") || lowerHost.equals("255.255.255.255")) {
+      throw new SecurityException(
+          "Redis host '" + host + "' is blocked (localhost/broadcast address). "
+          + "This is a potential SSRF vulnerability.");
+    }
+
+    // Parse IP address to check private ranges
+    try {
+      java.net.InetAddress addr = java.net.InetAddress.getByName(host);
+
+      // Block 169.254.x.x (AWS/cloud metadata)
+      if (addr instanceof java.net.Inet4Address inet4) {
+        byte[] bytes = inet4.getAddress();
+        if (bytes.length == 4) {
+          int b0 = bytes[0] & 0xFF;
+          int b1 = bytes[1] & 0xFF;
+
+          // AWS metadata: 169.254.169.254 (also 169.254.x.x in general)
+          if (b0 == 169 && b1 == 254) {
+            throw new SecurityException(
+                "Redis host '" + host + "' is in AWS metadata range (169.254.x.x). "
+                + "This is a potential SSRF vulnerability.");
+          }
+
+          // RFC 1918: 10.0.0.0/8
+          if (b0 == 10) {
+            throw new SecurityException(
+                "Redis host '" + host + "' is in private range (10.x.x.x). "
+                + "This is a potential SSRF vulnerability.");
+          }
+
+          // RFC 1918: 172.16.0.0/12
+          if (b0 == 172 && b1 >= 16 && b1 <= 31) {
+            throw new SecurityException(
+                "Redis host '" + host + "' is in private range (172.16-31.x.x). "
+                + "This is a potential SSRF vulnerability.");
+          }
+
+          // RFC 1918: 192.168.0.0/16
+          if (b0 == 192 && b1 == 168) {
+            throw new SecurityException(
+                "Redis host '" + host + "' is in private range (192.168.x.x). "
+                + "This is a potential SSRF vulnerability.");
+          }
+        }
+      }
+    } catch (java.net.UnknownHostException e) {
+      // Hostname resolution failed - that's fine, might be a valid hostname
+      // The actual connection will fail later with a proper error
+      LOGGER.debug("Could not resolve Redis host for validation: {}", host);
+    }
+  }
+
+  /**
    * The underlying Lettuce {@link RedisClient} used to establish Redis connections.
    */
   private final RedisClient client;
@@ -78,6 +155,9 @@ public final class LettuceProvider extends AbstractRedisProvider {
    */
   public LettuceProvider(final VelocityConfiguration.Redis config) {
     super();
+
+    // Validate the Redis host to prevent SSRF attacks
+    validateRedisHost(config.getHost());
 
     this.client = RedisClient.create(RedisURI.Builder.redis(config.getHost(), config.getPort())
             .withAuthentication(Objects.requireNonNullElse(config.getUsername(), ""),
