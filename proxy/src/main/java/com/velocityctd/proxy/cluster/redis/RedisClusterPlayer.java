@@ -26,11 +26,11 @@ import com.velocityctd.proxy.redis.impl.packet.VelocitySudo;
 import com.velocityctd.proxy.redis.impl.packet.VelocitySwitchServer;
 import com.velocityctd.proxy.redis.impl.transaction.VelocityGetPlayerPing;
 import com.velocityctd.proxy.redis.impl.transaction.VelocityTransferRemote;
-import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.Nullable;
 
@@ -93,8 +93,8 @@ public final class RedisClusterPlayer implements ClusterPlayer {
   }
 
   @Override
-  public void transfer(final CommandSource source, final String ip, final int port) {
-    new VelocityTransferRemote(source, redisEntry.getUniqueId(), redisEntry.getProxyId(), ip, port).publish();
+  public CompletableFuture<Boolean> transfer(final String ip, final int port) {
+    return new VelocityTransferRemote(redisEntry.getUniqueId(), redisEntry.getProxyId(), ip, port).publish();
   }
 
   @Override
@@ -103,8 +103,8 @@ public final class RedisClusterPlayer implements ClusterPlayer {
   }
 
   @Override
-  public void queryPing(final CommandSource source) {
-    new VelocityGetPlayerPing(source, redisEntry.getUsername()).publish();
+  public CompletableFuture<Long> queryPing() {
+    return new VelocityGetPlayerPing(redisEntry.getUsername()).publish();
   }
 
   @Override

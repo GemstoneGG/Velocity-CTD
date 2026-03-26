@@ -19,15 +19,16 @@ package com.velocityctd.proxy.cluster.local;
 
 import com.velocityctd.api.queue.QueueEntryData;
 import com.velocityctd.proxy.cluster.ClusterPlayer;
-import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
+import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.minimessage.translation.Argument;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -95,8 +96,18 @@ public final class LocalClusterPlayer implements ClusterPlayer {
   }
 
   @Override
-  public void transfer(final CommandSource source, final String ip, final int port) {
-    player.transferToHost(new InetSocketAddress(ip, port));
+  public CompletableFuture<Boolean> transfer(final String ip, final int port) {
+    if (player.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
+      return CompletableFuture.completedFuture(false);
+    }
+
+    CompletableFuture<Boolean> fut = new CompletableFuture<>();
+    server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+      player.transferToHost(new InetSocketAddress(ip, port));
+      fut.complete(true);
+    }).delay(100, TimeUnit.MILLISECONDS).schedule();
+
+    return fut;
   }
 
   @Override
@@ -105,12 +116,8 @@ public final class LocalClusterPlayer implements ClusterPlayer {
   }
 
   @Override
-  public void queryPing(final CommandSource source) {
-    source.sendMessage(Component.translatable("velocity.command.ping.other",
-        NamedTextColor.GREEN)
-        .arguments(
-            Argument.string("player", player.getUsername()),
-            Argument.numeric("ping", player.getPing())));
+  public CompletableFuture<Long> queryPing() {
+    return CompletableFuture.completedFuture(player.getPing());
   }
 
   @Override

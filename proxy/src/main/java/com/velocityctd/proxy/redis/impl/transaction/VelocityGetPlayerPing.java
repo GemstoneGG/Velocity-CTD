@@ -17,26 +17,20 @@
 
 package com.velocityctd.proxy.redis.impl.transaction;
 
-import com.velocityctd.proxy.redis.impl.PacketBehaviour;
-import com.velocityctd.proxy.redis.packet.typed.ComponentPacket;
 import com.velocityctd.proxy.redis.packet.typed.StringPacket;
-import com.velocitypowered.api.command.CommandSource;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents a transaction that gets the ping of a player.
  */
-public final class VelocityGetPlayerPing extends VelocityTransaction<StringPacket, ComponentPacket> {
+public final class VelocityGetPlayerPing extends VelocityTransaction<StringPacket, Long> {
 
   /**
    * Constructs a new {@link VelocityGetPlayerPing} transaction.
    *
-   * @param source the command source to send the result to
    * @param username the username of the player to get the ping of
    */
-  public VelocityGetPlayerPing(final @NotNull CommandSource source, final @NotNull String username) {
-    super(new StringPacket(username), source, "redis.command.ping.timeout");
-
-    this.onComplete(packet -> PacketBehaviour.SEND_COMPONENT.behave(source, packet));
+  public VelocityGetPlayerPing(final @NotNull String username) {
+    super(new StringPacket(username));
   }
 }

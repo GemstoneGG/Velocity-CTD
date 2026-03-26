@@ -17,32 +17,25 @@
 
 package com.velocityctd.proxy.redis.impl.transaction;
 
-import com.velocityctd.proxy.redis.impl.PacketBehaviour;
 import com.velocityctd.proxy.redis.impl.packet.VelocityRemote;
-import com.velocityctd.proxy.redis.packet.annotation.OneWayPacket;
-import com.velocityctd.proxy.redis.packet.typed.ComponentPacket;
-import com.velocitypowered.api.command.CommandSource;
 import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents a transaction that transfers a player to a remote server.
  */
-@OneWayPacket
-public final class VelocityTransferRemote extends VelocityTransaction<VelocityRemote, ComponentPacket> {
+public final class VelocityTransferRemote extends VelocityTransaction<VelocityRemote, Boolean> {
 
   /**
    * Constructs a new {@link VelocityTransferRemote} transaction.
    *
-   * @param source the command source to send the result to
    * @param uniqueId the player's unique ID
    * @param proxyId the ID of the proxy the player is on
    * @param ip the IP address of the remote server
    * @param port the port of the remote server
    */
-  public VelocityTransferRemote(final @NotNull CommandSource source, final UUID uniqueId, final String proxyId, final String ip, final int port) {
-    super(new VelocityRemote(uniqueId, proxyId, ip, port), source, "redis.command.transfer.timeout");
-
-    this.onComplete(packet -> PacketBehaviour.SEND_COMPONENT.behave(source, packet));
+  public VelocityTransferRemote(final @NotNull UUID uniqueId, final @NotNull String proxyId,
+                                final @NotNull String ip, final int port) {
+    super(new VelocityRemote(uniqueId, proxyId, ip, port));
   }
 }

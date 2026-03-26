@@ -17,8 +17,8 @@
 
 package com.velocityctd.proxy.cluster;
 
-import com.velocitypowered.api.command.CommandSource;
 import java.util.Collection;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Provides proxy discovery and cross-proxy operations across the cluster.
@@ -31,7 +31,7 @@ public interface ClusterProxyService {
 
   boolean isMultiProxy();
 
-  void reloadProxy(CommandSource source, String proxyId);
+  CompletableFuture<Boolean> reloadProxy(String proxyId);
 
-  void queryProxyUptime(CommandSource source, String proxyId);
+  CompletableFuture<Long> queryProxyUptime(String proxyId);
 }

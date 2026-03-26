@@ -23,6 +23,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocityctd.proxy.cluster.ClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
+import com.velocityctd.proxy.util.CompletableUtils;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.network.ProtocolVersion;
@@ -38,14 +39,20 @@ import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.translation.Argument;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implements Velocity-CTD's {@code /transfer} command.
  * Sends players to another proxy if they're above 1.20.5.
  */
 public class TransferCommand implements BuiltinCommand {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(TransferCommand.class);
 
   private final VelocityServer server;
 
@@ -203,7 +210,17 @@ public class TransferCommand implements BuiltinCommand {
               .arguments(Argument.string("player", clusterPlayer.getUsername()),
                       Argument.string("proxy", normalizedProxyId)));
 
-      clusterPlayer.transfer(context.getSource(), address.ip(), address.port());
+      clusterPlayer.transfer(address.ip(), address.port()).thenAccept(success -> {
+        context.getSource().sendMessage(Component.translatable("velocity.command.transfer.invalid-version")
+            .arguments(Argument.string("player", clusterPlayer.getUsername())));
+      }).exceptionally(ex -> {
+        if (CompletableUtils.cause(ex) instanceof TimeoutException) {
+          context.getSource().sendMessage(Component.translatable("velocity.command.transfer.timeout", NamedTextColor.RED));
+        } else {
+          LOGGER.error("Failed to transfer player {}", clusterPlayer.getUsername(), ex);
+        }
+        return null;
+      });
     }
 
     return Command.SINGLE_SUCCESS;

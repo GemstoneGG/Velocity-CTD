@@ -34,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
  * directly or through typed packet subclasses.</p>
  */
 public abstract sealed class AbstractRedisPacket implements RedisPacket
-    permits EmptyPacket, GenericPacket {
+    permits DataPacket, EmptyPacket, GenericPacket {
 
   /**
    * A unique internal identifier automatically assigned to this packet.

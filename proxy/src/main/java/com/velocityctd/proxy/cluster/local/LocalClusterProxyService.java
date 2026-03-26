@@ -18,12 +18,10 @@
 package com.velocityctd.proxy.cluster.local;
 
 import com.velocityctd.proxy.cluster.ClusterProxyService;
-import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.proxy.VelocityServer;
 import java.util.Collection;
 import java.util.List;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Local (single-proxy) implementation of {@link ClusterProxyService}.
@@ -52,23 +50,16 @@ public final class LocalClusterProxyService implements ClusterProxyService {
   }
 
   @Override
-  public void reloadProxy(final CommandSource source, final String proxyId) {
+  public CompletableFuture<Boolean> reloadProxy(final String proxyId) {
     try {
-      if (this.server.reloadConfiguration()) {
-        source.sendMessage(Component.translatable("velocity.command.reload-success",
-            NamedTextColor.GREEN));
-      } else {
-        source.sendMessage(Component.translatable("velocity.command.reload-failure",
-            NamedTextColor.RED));
-      }
+      return CompletableFuture.completedFuture(this.server.reloadConfiguration());
     } catch (Exception e) {
-      source.sendMessage(Component.translatable("velocity.command.reload-failure",
-          NamedTextColor.RED));
+      return CompletableFuture.completedFuture(false);
     }
   }
 
   @Override
-  public void queryProxyUptime(final CommandSource source, final String proxyId) {
-    // Delegate to local uptime - handled in the command itself
+  public CompletableFuture<Long> queryProxyUptime(final String proxyId) {
+    return CompletableFuture.completedFuture((System.currentTimeMillis() - server.getStartTime()) / 1000);
   }
 }

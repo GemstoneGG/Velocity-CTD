@@ -32,6 +32,7 @@ import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocityctd.proxy.cluster.ClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
+import com.velocityctd.proxy.util.CompletableUtils;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
@@ -65,6 +66,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -244,11 +246,10 @@ public class VelocityCommand implements BuiltinCommand {
   /**
    * Returns the component used by {@code /velocity uptime}.
    *
-   * @param server the proxy server
+   * @param timeInSeconds the uptime in seconds
    * @return the component used by {@code /velocity uptime}
    */
-  public static Component getUptimeComponent(VelocityServer server) {
-    long timeInSeconds = (System.currentTimeMillis() - server.getStartTime()) / 1000;
+  private static Component getUptimeComponent(long timeInSeconds) {
     int days = (int) TimeUnit.SECONDS.toDays(timeInSeconds);
     long hours = TimeUnit.SECONDS.toHours(timeInSeconds) - (days * 24L);
     long minutes = TimeUnit.SECONDS.toMinutes(timeInSeconds) - (TimeUnit.SECONDS.toHours(timeInSeconds) * 60);
@@ -268,12 +269,14 @@ public class VelocityCommand implements BuiltinCommand {
     @Override
     public int run(CommandContext<CommandSource> context) {
       CommandSource source = context.getSource();
-      source.sendMessage(getUptimeComponent(server));
+      source.sendMessage(getUptimeComponent((System.currentTimeMillis() - server.getStartTime()) / 1000));
       return Command.SINGLE_SUCCESS;
     }
   }
 
   private record UptimeRemote(VelocityServer server) implements Command<CommandSource> {
+
+    private static final Logger LOGGER = LogManager.getLogger(UptimeRemote.class);
 
     @Override
     public int run(CommandContext<CommandSource> context) {
@@ -290,10 +293,16 @@ public class VelocityCommand implements BuiltinCommand {
         return -1;
       }
 
-      source.sendMessage(Component.translatable("velocity.command.uptime-remote")
-              .arguments(Component.text(realId)));
-
-      server.getClusterProxyService().queryProxyUptime(source, realId);
+      server.getClusterProxyService().queryProxyUptime(realId).thenAccept(uptimeSeconds -> {
+        source.sendMessage(getUptimeComponent(uptimeSeconds));
+      }).exceptionally(ex -> {
+        if (CompletableUtils.cause(ex) instanceof TimeoutException) {
+          source.sendMessage(Component.translatable("velocity.command.uptime.timeout", NamedTextColor.RED));
+        } else {
+          LOGGER.error("Failed to query proxy uptime for {}", realId, ex);
+        }
+        return null;
+      });
       return Command.SINGLE_SUCCESS;
     }
   }
@@ -421,6 +430,8 @@ public class VelocityCommand implements BuiltinCommand {
 
   private record ReloadRemote(VelocityServer server) implements Command<CommandSource> {
 
+    private static final Logger LOGGER = LogManager.getLogger(ReloadRemote.class);
+
     @Override
     public int run(CommandContext<CommandSource> context) {
       CommandSource source = context.getSource();
@@ -436,10 +447,20 @@ public class VelocityCommand implements BuiltinCommand {
         return -1;
       }
 
-      source.sendMessage(Component.translatable("velocity.command.reload-remote")
-              .arguments(Component.text(realId)));
-
-      server.getClusterProxyService().reloadProxy(source, realId);
+      server.getClusterProxyService().reloadProxy(realId).thenAccept(success -> {
+        if (success) {
+          source.sendMessage(Component.translatable("velocity.command.reload-success", NamedTextColor.GREEN));
+        } else {
+          source.sendMessage(Component.translatable("velocity.command.reload-failure", NamedTextColor.RED));
+        }
+      }).exceptionally(ex -> {
+        if (CompletableUtils.cause(ex) instanceof TimeoutException) {
+          source.sendMessage(Component.translatable("velocity.command.reload.timeout", NamedTextColor.RED));
+        } else {
+          LOGGER.error("Failed to reload proxy {}", realId, ex);
+        }
+        return null;
+      });
       return Command.SINGLE_SUCCESS;
     }
   }

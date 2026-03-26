@@ -18,6 +18,7 @@
 package com.velocityctd.proxy.redis.transaction;
 
 import com.google.common.base.Preconditions;
+import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocityctd.proxy.redis.packet.RedisPacket;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -26,13 +27,14 @@ import org.jetbrains.annotations.Nullable;
  * Represents a handler for a {@link Transaction}.
  *
  * <p>A {@code TransactionHandler} knows how to transform an incoming {@link RedisPacket}
- * into a reply packet of type {@code R}, and is associated with a specific
- * {@link Transaction} class.</p>
+ * into a response of type {@code R}, and is associated with a specific
+ * {@link Transaction} class. The response is automatically wrapped in a
+ * {@link DataPacket} for transmission.</p>
  *
  * @param <T> the type of the 'sent' {@link RedisPacket} handled by this transaction
- * @param <R> the type of the reply {@link RedisPacket} produced by this handler
+ * @param <R> the type of the response data produced by this handler
  */
-public abstract class TransactionHandler<T extends RedisPacket, R extends RedisPacket> {
+public abstract class TransactionHandler<T extends RedisPacket, R> {
 
   /**
    * The transaction class that this handler is responsible for.
@@ -49,30 +51,31 @@ public abstract class TransactionHandler<T extends RedisPacket, R extends RedisP
   }
 
   /**
-   * Handles the given Redis packet and produces a reply packet, if needed.
+   * Handles the given Redis packet and produces a response, if needed.
    *
    * @param packet the incoming packet to handle
-   * @return a newly created reply packet, or {@code null} if no reply is required
+   * @return the response data, or {@code null} if no reply is required
    */
   public abstract @Nullable R handlePacket(T packet);
 
   /**
-   * Creates the reply packet for the given incoming {@link RedisPacket}, if any.
+   * Creates the reply {@link DataPacket} for the given incoming {@link RedisPacket}, if any.
    *
-   * <p>This method delegates to {@link #handlePacket(RedisPacket)} and, if a reply packet
-   * is returned, propagates the transaction ID from the incoming packet and marks the
-   * reply as a transaction response.</p>
+   * <p>This method delegates to {@link #handlePacket(RedisPacket)} and, if a response
+   * is returned, wraps it in a {@link DataPacket} and propagates the transaction ID
+   * from the incoming packet.</p>
    *
-   * @param redisPacket the packet to create the reply packet from
-   * @return {@code null} if no reply packet is needed, otherwise the reply packet
+   * @param redisPacket the packet to create the reply from
+   * @return {@code null} if no reply is needed, otherwise a {@link DataPacket} containing the response
    */
-  public @Nullable R getReplyPacket(final @NotNull RedisPacket redisPacket) {
-    // noinspection unchecked
-    final R replyPacket = this.handlePacket((T) redisPacket);
-    if (replyPacket == null) {
+  @SuppressWarnings("unchecked")
+  public @Nullable DataPacket getReplyPacket(final @NotNull RedisPacket redisPacket) {
+    final R result = this.handlePacket((T) redisPacket);
+    if (result == null) {
       return null;
     }
 
+    final DataPacket replyPacket = new DataPacket(result);
     Preconditions.checkNotNull(redisPacket.getTransactionId());
     replyPacket.setTransactionId(redisPacket.getTransactionId());
     replyPacket.setReply(true);

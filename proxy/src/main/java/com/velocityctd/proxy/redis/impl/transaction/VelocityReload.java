@@ -17,26 +17,20 @@
 
 package com.velocityctd.proxy.redis.impl.transaction;
 
-import com.velocityctd.proxy.redis.impl.PacketBehaviour;
-import com.velocityctd.proxy.redis.packet.typed.ComponentPacket;
 import com.velocityctd.proxy.redis.packet.typed.StringPacket;
-import com.velocitypowered.api.command.CommandSource;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents a transaction that reloads any proxy.
  */
-public final class VelocityReload extends VelocityTransaction<StringPacket, ComponentPacket> {
+public final class VelocityReload extends VelocityTransaction<StringPacket, Boolean> {
 
   /**
    * Constructs a new {@link VelocityReload} transaction.
    *
-   * @param source the command source to send the result to
    * @param proxyId the id of the proxy to reload
    */
-  public VelocityReload(final @NotNull CommandSource source, final @NotNull String proxyId) {
-    super(new StringPacket(proxyId), source, "redis.command.reload.timeout");
-
-    this.onComplete(packet -> PacketBehaviour.SEND_COMPONENT.behave(source, packet));
+  public VelocityReload(final @NotNull String proxyId) {
+    super(new StringPacket(proxyId));
   }
 }

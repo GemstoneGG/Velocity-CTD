@@ -17,26 +17,20 @@
 
 package com.velocityctd.proxy.redis.impl.transaction;
 
-import com.velocityctd.proxy.redis.impl.PacketBehaviour;
-import com.velocityctd.proxy.redis.packet.typed.ComponentPacket;
 import com.velocityctd.proxy.redis.packet.typed.StringPacket;
-import com.velocitypowered.api.command.CommandSource;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents a transaction that gets the uptime of any proxy.
  */
-public final class VelocityUptime extends VelocityTransaction<StringPacket, ComponentPacket> {
+public final class VelocityUptime extends VelocityTransaction<StringPacket, Long> {
 
   /**
    * Constructs a new {@link VelocityUptime} transaction.
    *
-   * @param source the command source to send the result to
    * @param proxyId the id of the proxy to get the uptime of
    */
-  public VelocityUptime(final @NotNull CommandSource source, final @NotNull String proxyId) {
-    super(new StringPacket(proxyId), source, "redis.command.uptime.timeout");
-
-    this.onComplete(packet -> PacketBehaviour.SEND_COMPONENT.behave(source, packet));
+  public VelocityUptime(final @NotNull String proxyId) {
+    super(new StringPacket(proxyId));
   }
 }

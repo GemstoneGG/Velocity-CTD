@@ -18,10 +18,10 @@
 package com.velocityctd.proxy.cluster;
 
 import com.velocityctd.api.queue.QueueEntryData;
-import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.Nullable;
 
@@ -48,11 +48,11 @@ public interface ClusterPlayer {
 
   void move(String targetServer);
 
-  void transfer(CommandSource source, String ip, int port);
+  CompletableFuture<Boolean> transfer(String ip, int port);
 
   void sendMessage(Component message);
 
-  void queryPing(CommandSource source);
+  CompletableFuture<Long> queryPing();
 
   QueueEntryData toQueueEntryData(String serverName);
 
