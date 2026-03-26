@@ -93,7 +93,7 @@ public enum TransactionHandlerRegistry {
   VELOCITY_TRANSFER_REMOTE(VelocityTransferRemote.class, (server, packet) -> {
     final ConnectedPlayer connectedPlayer = server.getPlayer(packet.getPayload()).orElse(null);
     if (connectedPlayer == null) {
-      return false;
+      return null;
     }
 
     if (connectedPlayer.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
