@@ -206,13 +206,16 @@ public class TransferCommand implements BuiltinCommand {
       }
 
       ClusterPlayer clusterPlayer = maybeClusterPlayer.get();
-      context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.player")
-              .arguments(Argument.string("player", clusterPlayer.getUsername()),
-                      Argument.string("proxy", normalizedProxyId)));
 
       clusterPlayer.transfer(address.ip(), address.port()).thenAccept(success -> {
-        context.getSource().sendMessage(Component.translatable("velocity.command.transfer.invalid-version")
-            .arguments(Argument.string("player", clusterPlayer.getUsername())));
+        if (success) {
+          context.getSource().sendMessage(Component.translatable("velocity.command.transfer.success.player")
+              .arguments(Argument.string("player", clusterPlayer.getUsername()),
+                  Argument.string("proxy", normalizedProxyId)));
+        } else {
+          context.getSource().sendMessage(Component.translatable("velocity.command.transfer.invalid-version")
+              .arguments(Argument.string("player", clusterPlayer.getUsername())));
+        }
       }).exceptionally(ex -> {
         if (CompletableUtils.cause(ex) instanceof TimeoutException) {
           context.getSource().sendMessage(Component.translatable("velocity.command.transfer.timeout", NamedTextColor.RED));
