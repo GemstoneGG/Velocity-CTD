@@ -126,7 +126,7 @@ public final class RedisClusterPlayerService implements ClusterPlayerService {
 
   @Override
   public void broadcastAlert(final Component message) {
-    DataPacket.publish(new VelocityAlert(message));
+    DataPacket.of(new VelocityAlert(message)).publish();
   }
 
   private RedisClusterPlayer toRedisPlayer(PlayerEntry playerEntry) {

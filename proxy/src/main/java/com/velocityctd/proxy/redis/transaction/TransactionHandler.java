@@ -17,36 +17,33 @@
 
 package com.velocityctd.proxy.redis.transaction;
 
-import com.google.common.base.Preconditions;
-import com.velocityctd.proxy.redis.packet.DataPacket;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Represents a handler for a {@link Transaction}.
+ * Represents a handler for incoming {@link TransactionData}.
  *
  * <p>A {@code TransactionHandler} knows how to transform incoming data
  * into a response of type {@code R}, and is associated with a specific
- * {@link Transaction} class. The response is automatically wrapped in a
- * {@link DataPacket} for transmission.</p>
+ * {@link TransactionData} class.</p>
  *
- * @param <T> the type of the sent data handled by this transaction
+ * @param <T> the type of the data handled by this handler
  * @param <R> the type of the response data produced by this handler
  */
-public abstract class TransactionHandler<T, R> {
+public abstract class TransactionHandler<T extends TransactionData<R>, R> {
 
   /**
-   * The transaction class that this handler is responsible for.
+   * The data class that this handler is responsible for.
    */
-  private final Class<? extends Transaction<T, R>> transactionClass;
+  private final Class<T> dataClass;
 
   /**
    * Constructs a new {@link TransactionHandler}.
    *
-   * @param transactionClass the class of the transaction
+   * @param dataClass the class of the data this handler processes
    */
-  public TransactionHandler(final @NotNull Class<? extends Transaction<T, R>> transactionClass) {
-    this.transactionClass = transactionClass;
+  public TransactionHandler(final @NotNull Class<T> dataClass) {
+    this.dataClass = dataClass;
   }
 
   /**
@@ -58,37 +55,11 @@ public abstract class TransactionHandler<T, R> {
   public abstract @Nullable R handleData(T data);
 
   /**
-   * Creates the reply {@link DataPacket} for the given incoming {@link DataPacket}, if any.
+   * Gets the data class associated with this handler.
    *
-   * <p>This method extracts the payload from the incoming packet, delegates to
-   * {@link #handleData(Object)} and, if a response is returned, wraps it in a
-   * {@link DataPacket} and propagates the transaction ID from the incoming packet.</p>
-   *
-   * @param incomingPacket the packet to create the reply from
-   * @return {@code null} if no reply is needed, otherwise a {@link DataPacket} containing the response
+   * @return the data class
    */
-  @SuppressWarnings("unchecked")
-  public @Nullable DataPacket getReplyPacket(final @NotNull DataPacket incomingPacket) {
-    final T data = (T) incomingPacket.getPayload();
-    final R result = this.handleData(data);
-    if (result == null) {
-      return null;
-    }
-
-    final DataPacket replyPacket = new DataPacket(result);
-    Preconditions.checkNotNull(incomingPacket.getTransactionId());
-    replyPacket.setTransactionId(incomingPacket.getTransactionId());
-    replyPacket.setReply(true);
-
-    return replyPacket;
-  }
-
-  /**
-   * Gets the class of the {@link Transaction} associated with this handler.
-   *
-   * @return the transaction class
-   */
-  public Class<? extends Transaction<T, R>> getTransactionClass() {
-    return transactionClass;
+  public Class<T> getDataClass() {
+    return dataClass;
   }
 }

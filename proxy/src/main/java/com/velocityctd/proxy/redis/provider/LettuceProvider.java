@@ -133,27 +133,9 @@ public final class LettuceProvider extends AbstractRedisProvider {
         }
 
         if (!dataPacket.isReply()) {
-          final TransactionHandler<?, ?> transactionHandler = transactionHandlers.get(Preconditions.checkNotNull(
-                  dataPacket.getTransactionType(), "transactionType is null"));
-          if (transactionHandler == null) {
-            return;
-          }
-
-          final DataPacket replyPacket = transactionHandler.getReplyPacket(dataPacket);
-          if (replyPacket == null) {
-            return;
-          }
-
-          LettuceProvider.this.publish(replyPacket);
+          handleTransactionRequest(dataPacket);
         } else {
-          final UUID transactionId = Preconditions.checkNotNull(dataPacket.getTransactionId());
-
-          final Transaction<?, ?> transaction = PENDING_TRANSACTIONS.remove(transactionId);
-          if (transaction == null) {
-            return;
-          }
-
-          transaction.complete(dataPacket);
+          handleTransactionReply(dataPacket);
         }
       }
     });
@@ -257,6 +239,48 @@ public final class LettuceProvider extends AbstractRedisProvider {
     } catch (Throwable ignored) {
       LOGGER.warn("Failed to handle one way packet of type '{}', ignoring", dataPacket.getPayloadType());
     }
+  }
+
+  /**
+   * Handles an incoming transaction request by extracting the payload, delegating to the
+   * registered {@link TransactionHandler}, and wrapping the result in a reply {@link DataPacket}.
+   *
+   * @param dataPacket the incoming transaction request packet
+   */
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private void handleTransactionRequest(final @NotNull DataPacket dataPacket) {
+    final TransactionHandler transactionHandler = transactionHandlers.get(dataPacket.getPayloadType());
+    if (transactionHandler == null) {
+      return;
+    }
+
+    final Object result = transactionHandler.handleData(dataPacket.getPayload());
+    if (result == null) {
+      return;
+    }
+
+    final DataPacket replyPacket = DataPacket.of(result);
+    replyPacket.setTransactionId(Preconditions.checkNotNull(dataPacket.getTransactionId()));
+    replyPacket.setReply(true);
+
+    this.publish(replyPacket);
+  }
+
+  /**
+   * Handles an incoming transaction reply by extracting the payload and completing
+   * the pending {@link Transaction}.
+   *
+   * @param dataPacket the incoming transaction reply packet
+   */
+  private void handleTransactionReply(final @NotNull DataPacket dataPacket) {
+    final UUID transactionId = Preconditions.checkNotNull(dataPacket.getTransactionId());
+
+    final Transaction<?, ?> transaction = PENDING_TRANSACTIONS.remove(transactionId);
+    if (transaction == null) {
+      return;
+    }
+
+    transaction.complete(dataPacket.getPayload());
   }
 
   /**

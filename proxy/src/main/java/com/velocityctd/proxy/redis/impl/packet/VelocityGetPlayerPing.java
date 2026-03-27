@@ -17,14 +17,12 @@
 
 package com.velocityctd.proxy.redis.impl.packet;
 
-import java.util.UUID;
+import com.velocityctd.proxy.redis.transaction.TransactionData;
 
 /**
- * Data record used to transfer a player to a remote address.
+ * Data record representing a request to get the ping of a player.
  *
- * @param uniqueId the player's unique ID
- * @param ip the IP address of the remote server
- * @param port the port of the remote server
+ * @param username the username of the player to get the ping of
  */
-public record VelocityRemote(UUID uniqueId, String ip, int port) {
+public record VelocityGetPlayerPing(String username) implements TransactionData<Long> {
 }

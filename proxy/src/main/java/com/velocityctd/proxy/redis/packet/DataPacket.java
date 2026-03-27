@@ -67,12 +67,6 @@ public final class DataPacket {
   private @MonotonicNonNull UUID transactionId;
 
   /**
-   * The transaction type associated with this packet, identifying the
-   * transaction class this packet belongs to.
-   */
-  private @MonotonicNonNull String transactionType;
-
-  /**
    * The deserialized payload object, cached after first access.
    */
   private transient Object rawPayload;
@@ -83,11 +77,15 @@ public final class DataPacket {
    * @param payload the payload to serialize
    * @param <T> the type of the payload
    */
-  public <T> DataPacket(final @NotNull T payload) {
+  private <T> DataPacket(final @NotNull T payload) {
     this.packetId = UUID.randomUUID();
     this.payload = PacketSerializer.GSON.toJson(payload);
     this.payloadType = payload.getClass().getName();
     this.rawPayload = payload;
+  }
+
+  public static <T> DataPacket of(final @NotNull T payload) {
+    return new DataPacket(payload);
   }
 
   /**
@@ -154,24 +152,6 @@ public final class DataPacket {
   }
 
   /**
-   * Gets the transaction type associated with this packet.
-   *
-   * @return the transaction type string, or {@code null} if this is a one-way packet
-   */
-  public @Nullable String getTransactionType() {
-    return this.transactionType;
-  }
-
-  /**
-   * Sets the transaction type for this packet.
-   *
-   * @param transactionType the transaction type identifier
-   */
-  public void setTransactionType(final @NotNull String transactionType) {
-    this.transactionType = transactionType;
-  }
-
-  /**
    * Deserializes and returns the payload.
    *
    * @param <T> the target type
@@ -205,16 +185,6 @@ public final class DataPacket {
     }
 
     redis.getProvider().publish(this);
-  }
-
-  /**
-   * Creates and publishes a one-way {@link DataPacket} carrying the given payload.
-   *
-   * @param payload the data to publish
-   * @param <T> the type of the payload
-   */
-  public static <T> void publish(final @NotNull T payload) {
-    new DataPacket(payload).publish();
   }
 
   @Override

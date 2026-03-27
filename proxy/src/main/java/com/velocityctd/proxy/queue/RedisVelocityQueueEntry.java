@@ -57,7 +57,7 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
     this.waitingForConnection = true;
     publishWaitingChange();
 
-    DataPacket.publish(new VelocityQueueTransfer(getUniqueId(), getQueue().getName()));
+    DataPacket.of(new VelocityQueueTransfer(getUniqueId(), getQueue().getName())).publish();
 
     this.server.getScheduler()
         .buildTask(VelocityVirtualPlugin.INSTANCE, this::abortTransfer)
@@ -91,10 +91,10 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
    */
   @Override
   protected void publishWaitingChange() {
-    DataPacket.publish(VelocityQueueSync.waitingChange(
+    DataPacket.of(VelocityQueueSync.waitingChange(
         getQueue().getName(), getUniqueId(), this.waitingForConnection,
         this.connectionAttempts, this.priority, this.fullBypass, this.queueBypass
-    ));
+    )).publish();
   }
 
   /**

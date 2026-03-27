@@ -102,7 +102,7 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
   protected void sendActionBar(final VelocityQueueEntry entry) {
     final Component component = QueueComponents.createActionbarComponent(entry);
     if (component != null) {
-      DataPacket.publish(new VelocityActionBar(entry.getUniqueId(), component));
+      DataPacket.of(new VelocityActionBar(entry.getUniqueId(), component)).publish();
     }
   }
 
@@ -164,8 +164,8 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
 
     if (isMasterProxy()) {
       for (VelocityQueue queue : queues.values()) {
-        DataPacket.publish(VelocityQueueSync.statusChange(queue.getName(), queue.getServerStatus()));
-        DataPacket.publish(VelocityQueueSync.stateChange(queue.getName(), queue.getState()));
+        DataPacket.of(VelocityQueueSync.statusChange(queue.getName(), queue.getServerStatus())).publish();
+        DataPacket.of(VelocityQueueSync.stateChange(queue.getName(), queue.getState())).publish();
       }
     }
   }

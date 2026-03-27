@@ -18,27 +18,25 @@
 package com.velocityctd.proxy.redis.transaction;
 
 import com.velocityctd.proxy.redis.VelocityRedis;
-import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocityctd.proxy.redis.provider.RedisProvider;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * Represents a transaction process that sends data of type {@link T} and produces a result of
- * type {@link R}. The result is delivered via a {@link CompletableFuture} that completes when
- * a reply is received or times out.
+ * Represents a transaction process that sends {@link TransactionData} and produces a result
+ * of type {@link R}. The result is delivered via a {@link CompletableFuture} that completes
+ * when a reply is received or times out.
  *
- * <p>The sent data is automatically wrapped in a {@link DataPacket} for transport.</p>
+ * <p>The transaction holds only the raw data to be sent. The provider is responsible for
+ * wrapping the data in a transport envelope at publish time.</p>
  *
- * @param <T> the type of the sent data (any GSON-serializable type)
+ * @param <T> the type of the sent data, implementing {@link TransactionData}
  * @param <R> the type of the expected response data
  */
-public abstract class Transaction<T, R> {
+public final class Transaction<T extends TransactionData<R>, R> {
 
   /**
    * The default timeout value (in seconds) used for transactions.
@@ -51,19 +49,14 @@ public abstract class Transaction<T, R> {
   public static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.SECONDS;
 
   /**
-   * Shared logger for transaction-related debug and warning messages.
-   */
-  private static final Logger LOGGER = LoggerFactory.getLogger(Transaction.class);
-
-  /**
    * Unique identifier assigned to this transaction.
    */
   private final UUID transactionId;
 
   /**
-   * The {@link DataPacket} wrapping the sent data for transport.
+   * The raw data to be sent as part of this transaction.
    */
-  private final DataPacket sentPacket;
+  private final T sentData;
 
   /**
    * The future that will be completed with the response data when a reply
@@ -82,15 +75,25 @@ public abstract class Transaction<T, R> {
   private TimeUnit timeUnit = DEFAULT_TIME_UNIT;
 
   /**
-   * Constructs a new {@link Transaction} by wrapping the given data in a {@link DataPacket}.
+   * Constructs a new {@link Transaction} with the given data.
    *
    * @param sentData the data to send
    */
-  public Transaction(final @NotNull T sentData) {
+  private Transaction(final @NotNull T sentData) {
     this.transactionId = UUID.randomUUID();
-    this.sentPacket = new DataPacket(sentData);
-    this.sentPacket.setTransactionId(this.transactionId);
-    this.sentPacket.setTransactionType(this.getClass().getName());
+    this.sentData = sentData;
+  }
+
+  /**
+   * Creates a new {@link Transaction} wrapping the given data.
+   *
+   * @param data the data to send
+   * @param <T> the type of the data
+   * @param <R> the type of the expected response
+   * @return a new transaction
+   */
+  public static <T extends TransactionData<R>, R> Transaction<T, R> of(final @NotNull T data) {
+    return new Transaction<>(data);
   }
 
   /**
@@ -139,23 +142,19 @@ public abstract class Transaction<T, R> {
   }
 
   /**
-   * Complete the {@link Transaction} with the data from the given reply packet.
+   * Complete the {@link Transaction} with the given result data.
    * If the future has already been completed (e.g. by a previous reply or timeout),
    * this call is silently ignored.
    *
-   * @param replyPacket the reply packet containing the response data
+   * @param result the response data
    */
-  public void complete(final DataPacket replyPacket) {
+  @SuppressWarnings("unchecked")
+  public void complete(final Object result) {
     if (this.future.isDone()) {
       return;
     }
 
-    try {
-      this.future.complete(replyPacket.getPayload());
-    } catch (Exception e) {
-      LOGGER.warn("Failed to deserialize reply data: {}", e.getMessage());
-      this.future.completeExceptionally(e);
-    }
+    this.future.complete((R) result);
   }
 
   /**
@@ -178,12 +177,12 @@ public abstract class Transaction<T, R> {
   }
 
   /**
-   * Get the {@link DataPacket} wrapping the sent data.
+   * Get the raw data to be sent as part of this transaction.
    *
-   * @return the sent packet
+   * @return the sent data
    */
-  public DataPacket getSentPacket() {
-    return sentPacket;
+  public T getSentData() {
+    return sentData;
   }
 
   /**

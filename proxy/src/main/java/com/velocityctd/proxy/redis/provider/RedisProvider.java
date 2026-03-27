@@ -23,6 +23,7 @@ import com.velocityctd.proxy.redis.depot.DepotEntry;
 import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocityctd.proxy.redis.registration.RouteRegistration;
 import com.velocityctd.proxy.redis.transaction.Transaction;
+import com.velocityctd.proxy.redis.transaction.TransactionData;
 import com.velocityctd.proxy.redis.transaction.TransactionHandler;
 import java.util.concurrent.TimeUnit;
 import org.jetbrains.annotations.NotNull;
@@ -104,11 +105,11 @@ public sealed interface RedisProvider permits AbstractRedisProvider {
   void registerTransaction(@NotNull TransactionHandler<?, ?> transactionHandler);
 
   /**
-   * Unregister a {@link TransactionHandler} for a specific transaction class, if it exists.
+   * Unregister a {@link TransactionHandler} for a specific data class, if it exists.
    *
-   * @param transactionClass the class of the transaction to unregister
+   * @param dataClass the data class whose handler should be removed
    */
-  void unregisterTransaction(@NotNull Class<? extends Transaction<?, ?>> transactionClass);
+  void unregisterTransaction(@NotNull Class<? extends TransactionData<?>> dataClass);
 
   /**
    * Create a {@link Depot} that can hold objects of a specific type.

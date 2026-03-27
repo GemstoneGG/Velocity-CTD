@@ -18,11 +18,11 @@
 package com.velocityctd.proxy.redis.impl;
 
 import com.velocityctd.proxy.redis.VelocityRedis;
-import com.velocityctd.proxy.redis.impl.transaction.VelocityGetPlayerPing;
-import com.velocityctd.proxy.redis.impl.transaction.VelocityReload;
-import com.velocityctd.proxy.redis.impl.transaction.VelocityTransferRemote;
-import com.velocityctd.proxy.redis.impl.transaction.VelocityUptime;
-import com.velocityctd.proxy.redis.transaction.Transaction;
+import com.velocityctd.proxy.redis.impl.packet.VelocityGetPlayerPing;
+import com.velocityctd.proxy.redis.impl.packet.VelocityReload;
+import com.velocityctd.proxy.redis.impl.packet.VelocityTransferRemote;
+import com.velocityctd.proxy.redis.impl.packet.VelocityUptime;
+import com.velocityctd.proxy.redis.transaction.TransactionData;
 import com.velocityctd.proxy.redis.transaction.TransactionHandler;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.VelocityServer;
@@ -35,8 +35,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 /**
  * Registry that holds all {@link TransactionHandler} entries for the VelocityRedis module.
  *
- * <p>This registry is used to register the 'handle' section of the {@link Transaction} only. Its
- * completing and timeout behaviours are processed in the {@link Transaction} class itself.</p>
+ * <p>This registry is used to register the 'handle' section of transactions only. The
+ * completing and timeout behaviours are processed in the
+ * {@link com.velocityctd.proxy.redis.transaction.Transaction Transaction} class itself.</p>
  */
 public enum TransactionHandlerRegistry {
 
@@ -44,7 +45,7 @@ public enum TransactionHandlerRegistry {
    * Handles the {@link VelocityGetPlayerPing} transaction by replying with the player's ping.
    */
   VELOCITY_GET_PLAYER_PING(VelocityGetPlayerPing.class, (server, data) -> {
-    final ConnectedPlayer player = server.getPlayer((String) data).orElse(null);
+    final ConnectedPlayer player = server.getPlayer(data.username()).orElse(null);
     if (player == null) {
       return null;
     }
@@ -56,7 +57,7 @@ public enum TransactionHandlerRegistry {
    * Handles the {@link VelocityUptime} transaction by replying with the proxy's uptime.
    */
   VELOCITY_UPTIME(VelocityUptime.class, (server, data) -> {
-    if (!((String) data).equalsIgnoreCase(server.getProxyId())) {
+    if (!data.proxyId().equalsIgnoreCase(server.getProxyId())) {
       return null;
     }
 
@@ -67,7 +68,7 @@ public enum TransactionHandlerRegistry {
    * Handles the {@link VelocityReload} transaction by reloading the proxy's configuration.
    */
   VELOCITY_RELOAD(VelocityReload.class, (server, data) -> {
-    if (!((String) data).equalsIgnoreCase(server.getProxyId())) {
+    if (!data.proxyId().equalsIgnoreCase(server.getProxyId())) {
       return null;
     }
 
@@ -89,9 +90,7 @@ public enum TransactionHandlerRegistry {
    * Handles the {@link VelocityTransferRemote} transaction by transferring a player to another remote/proxy.
    */
   VELOCITY_TRANSFER_REMOTE(VelocityTransferRemote.class, (server, data) -> {
-    final com.velocityctd.proxy.redis.impl.packet.VelocityRemote remote =
-            (com.velocityctd.proxy.redis.impl.packet.VelocityRemote) data;
-    final ConnectedPlayer connectedPlayer = server.getPlayer(remote.uniqueId()).orElse(null);
+    final ConnectedPlayer connectedPlayer = server.getPlayer(data.uniqueId()).orElse(null);
     if (connectedPlayer == null) {
       return null;
     }
@@ -101,7 +100,7 @@ public enum TransactionHandlerRegistry {
     }
 
     server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () ->
-          connectedPlayer.transferToHost(new InetSocketAddress(remote.ip(), remote.port()))).delay(1, TimeUnit.SECONDS).schedule();
+          connectedPlayer.transferToHost(new InetSocketAddress(data.ip(), data.port()))).delay(1, TimeUnit.SECONDS).schedule();
 
     return true;
   }),
@@ -112,9 +111,9 @@ public enum TransactionHandlerRegistry {
    */
   private final TransactionHandler<?, ?> transactionHandler;
 
-  <T, R> TransactionHandlerRegistry(final Class<? extends Transaction<T, R>> transactionClass,
-                                     final Delegate<T, R> delegate) {
-    this.transactionHandler = new TransactionHandler<>(transactionClass) {
+  <T extends TransactionData<R>, R> TransactionHandlerRegistry(final Class<T> dataClass,
+                                                                final Delegate<T, R> delegate) {
+    this.transactionHandler = new TransactionHandler<>(dataClass) {
 
       @Override
       public @Nullable R handleData(final T data) {
@@ -124,7 +123,7 @@ public enum TransactionHandlerRegistry {
   }
 
   /**
-   * Get the {@link TransactionHandler} for this {@link Transaction}.
+   * Get the {@link TransactionHandler} for this transaction.
    *
    * @return the transaction handler
    */
@@ -140,7 +139,7 @@ public enum TransactionHandlerRegistry {
    * @param <R> the type of the response data
    */
   @FunctionalInterface
-  public interface Delegate<T, R> {
+  public interface Delegate<T extends TransactionData<R>, R> {
 
     /**
      * Handles the incoming data and produces a response, or {@code null} if

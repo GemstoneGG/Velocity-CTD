@@ -15,22 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.impl.transaction;
+package com.velocityctd.proxy.redis.impl.packet;
 
-import com.velocityctd.proxy.redis.transaction.Transaction;
-import org.jetbrains.annotations.NotNull;
+import com.velocityctd.proxy.redis.transaction.TransactionData;
 
 /**
- * Represents a transaction that gets the ping of a player.
+ * Data record representing a request to reload a proxy.
+ *
+ * @param proxyId the id of the proxy to reload
  */
-public final class VelocityGetPlayerPing extends Transaction<String, Long> {
-
-  /**
-   * Constructs a new {@link VelocityGetPlayerPing} transaction.
-   *
-   * @param username the username of the player to get the ping of
-   */
-  public VelocityGetPlayerPing(final @NotNull String username) {
-    super(username);
-  }
+public record VelocityReload(String proxyId) implements TransactionData<Boolean> {
 }

@@ -15,22 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.impl.transaction;
+package com.velocityctd.proxy.redis.impl.packet;
 
-import com.velocityctd.proxy.redis.transaction.Transaction;
-import org.jetbrains.annotations.NotNull;
+import com.velocityctd.proxy.redis.transaction.TransactionData;
 
 /**
- * Represents a transaction that reloads any proxy.
+ * Data record representing a request to get the uptime of a proxy.
+ *
+ * @param proxyId the id of the proxy to get the uptime of
  */
-public final class VelocityReload extends Transaction<String, Boolean> {
-
-  /**
-   * Constructs a new {@link VelocityReload} transaction.
-   *
-   * @param proxyId the id of the proxy to reload
-   */
-  public VelocityReload(final @NotNull String proxyId) {
-    super(proxyId);
-  }
+public record VelocityUptime(String proxyId) implements TransactionData<Long> {
 }

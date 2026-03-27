@@ -15,22 +15,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.impl.transaction;
+package com.velocityctd.proxy.redis.impl.packet;
 
-import com.velocityctd.proxy.redis.transaction.Transaction;
-import org.jetbrains.annotations.NotNull;
+import com.velocityctd.proxy.redis.transaction.TransactionData;
+import java.util.UUID;
 
 /**
- * Represents a transaction that gets the uptime of any proxy.
+ * Data record used to transfer a player to a remote address.
+ *
+ * @param uniqueId the player's unique ID
+ * @param ip the IP address of the remote server
+ * @param port the port of the remote server
  */
-public final class VelocityUptime extends Transaction<String, Long> {
-
-  /**
-   * Constructs a new {@link VelocityUptime} transaction.
-   *
-   * @param proxyId the id of the proxy to get the uptime of
-   */
-  public VelocityUptime(final @NotNull String proxyId) {
-    super(proxyId);
-  }
+public record VelocityTransferRemote(UUID uniqueId, String ip, int port) implements TransactionData<Boolean> {
 }

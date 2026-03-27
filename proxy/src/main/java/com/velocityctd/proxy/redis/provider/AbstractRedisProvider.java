@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocityctd.proxy.redis.registration.RouteRegistration;
 import com.velocityctd.proxy.redis.transaction.Transaction;
+import com.velocityctd.proxy.redis.transaction.TransactionData;
 import com.velocityctd.proxy.redis.transaction.TransactionHandler;
 import com.velocityctd.proxy.redis.transaction.cache.TransactionCache;
 import java.util.HashMap;
@@ -87,15 +88,17 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
   }
 
   /**
-   * Publishes a transaction's sent packet and registers the transaction for timeout handling.
+   * Publishes a transaction by wrapping its data in a {@link DataPacket} and registering
+   * the transaction for timeout handling.
    *
-   * @param transaction the transaction whose packet should be published
+   * @param transaction the transaction to publish
    * @param timeout the timeout value
    * @param timeUnit the time unit of the timeout
    */
   @Override
   public void publish(final @NotNull Transaction<?, ?> transaction, final int timeout, final TimeUnit timeUnit) {
-    final DataPacket sentPacket = transaction.getSentPacket();
+    final DataPacket sentPacket = DataPacket.of(transaction.getSentData());
+    sentPacket.setTransactionId(transaction.getTransactionId());
 
     HANDLED_PACKETS.put(sentPacket, (byte) 0);
     PENDING_TRANSACTIONS.put(transaction, timeout, timeUnit);
@@ -136,32 +139,32 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
   }
 
   /**
-   * Registers a {@link TransactionHandler} for a given {@link Transaction} type.
+   * Registers a {@link TransactionHandler} for a given {@link TransactionData} type.
    *
    * @param transactionHandler the handler to register
    */
   @Override
   public void registerTransaction(final @NotNull TransactionHandler<?, ?> transactionHandler) {
-    final Class<? extends Transaction<?, ?>> transactionClass = transactionHandler.getTransactionClass();
+    final Class<?> dataClass = transactionHandler.getDataClass();
 
-    if (this.transactionHandlers.containsKey(transactionClass.getName())) {
-      LOGGER.debug("Transaction handler for '{}' already exists, overwriting", transactionClass.getSimpleName());
+    if (this.transactionHandlers.containsKey(dataClass.getName())) {
+      LOGGER.debug("Transaction handler for '{}' already exists, overwriting", dataClass.getSimpleName());
     }
 
-    this.transactionHandlers.put(transactionClass.getName(), transactionHandler);
+    this.transactionHandlers.put(dataClass.getName(), transactionHandler);
   }
 
   /**
-   * Unregisters the {@link TransactionHandler} associated with the given transaction class, if present.
+   * Unregisters the {@link TransactionHandler} associated with the given data class, if present.
    *
-   * @param transactionClass the transaction class whose handler should be removed
+   * @param dataClass the data class whose handler should be removed
    */
   @Override
-  public void unregisterTransaction(final @NotNull Class<? extends Transaction<?, ?>> transactionClass) {
-    if (this.transactionHandlers.remove(transactionClass.getName()) == null) {
-      LOGGER.debug("Transaction handler for '{}' does not exist, ignoring", transactionClass.getSimpleName());
+  public void unregisterTransaction(final @NotNull Class<? extends TransactionData<?>> dataClass) {
+    if (this.transactionHandlers.remove(dataClass.getName()) == null) {
+      LOGGER.debug("Transaction handler for '{}' does not exist, ignoring", dataClass.getSimpleName());
     } else {
-      LOGGER.debug("Unregistered transaction handler for '{}'", transactionClass.getSimpleName());
+      LOGGER.debug("Unregistered transaction handler for '{}'", dataClass.getSimpleName());
     }
   }
 

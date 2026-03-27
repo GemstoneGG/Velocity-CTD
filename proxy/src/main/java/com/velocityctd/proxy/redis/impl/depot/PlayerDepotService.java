@@ -122,7 +122,7 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
         // Only send a VelocityKick if the existing player is on a DIFFERENT proxy.
         // If they are on this proxy, registerConnection() already kicked them locally.
         if (existingEntry != null && !existingEntry.getProxyId().equalsIgnoreCase(this.redis.getProxyId())) {
-          DataPacket.publish(new VelocityKick(player.getUniqueId(), component, existingEntry.getProxyId()));
+          DataPacket.of(new VelocityKick(player.getUniqueId(), component, existingEntry.getProxyId())).publish();
         }
       } else {
         final Component component = Component.translatable("velocity.error.already-connected-proxy.remote");

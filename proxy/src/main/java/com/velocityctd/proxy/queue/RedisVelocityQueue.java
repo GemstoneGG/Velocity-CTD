@@ -77,10 +77,10 @@ public final class RedisVelocityQueue extends VelocityQueue {
   public void enqueue(final @NotNull QueueEntryData data) {
     super.enqueue(data);
 
-    DataPacket.publish(VelocityQueueSync.enqueue(
+    DataPacket.of(VelocityQueueSync.enqueue(
         getName(), data.uniqueId(), data.username(), data.priority(),
         data.fullBypass(), data.queueBypass()
-    ));
+    )).publish();
     persistAsync();
   }
 
@@ -88,7 +88,7 @@ public final class RedisVelocityQueue extends VelocityQueue {
   public void dequeue(final @NotNull UUID uniqueId) {
     super.dequeue(uniqueId);
 
-    DataPacket.publish(VelocityQueueSync.dequeue(getName(), uniqueId));
+    DataPacket.of(VelocityQueueSync.dequeue(getName(), uniqueId)).publish();
     persistAsync();
   }
 
@@ -98,7 +98,7 @@ public final class RedisVelocityQueue extends VelocityQueue {
     super.setServerStatus(status);
 
     if (getServerStatus() != prev) {
-      DataPacket.publish(VelocityQueueSync.statusChange(getName(), status));
+      DataPacket.of(VelocityQueueSync.statusChange(getName(), status)).publish();
       persistAsync();
     }
   }
@@ -109,7 +109,7 @@ public final class RedisVelocityQueue extends VelocityQueue {
     super.setState(state);
 
     if (getState() != prev) {
-      DataPacket.publish(VelocityQueueSync.stateChange(getName(), state));
+      DataPacket.of(VelocityQueueSync.stateChange(getName(), state)).publish();
       persistAsync();
     }
   }
@@ -125,7 +125,7 @@ public final class RedisVelocityQueue extends VelocityQueue {
   void removeEntry(final VelocityQueueEntry entry) {
     super.removeEntry(entry);
 
-    DataPacket.publish(VelocityQueueSync.dequeue(getName(), entry.getUniqueId()));
+    DataPacket.of(VelocityQueueSync.dequeue(getName(), entry.getUniqueId())).publish();
     persistAsync();
   }
 
@@ -133,7 +133,7 @@ public final class RedisVelocityQueue extends VelocityQueue {
   public void broadcastMessage(final @NotNull Function<VelocityQueueEntry, Component> componentFn) {
     for (VelocityQueueEntry entry : getEntries()) {
       final Component msg = componentFn.apply(entry);
-      DataPacket.publish(new VelocityMessage(entry.getUniqueId(), msg));
+      DataPacket.of(new VelocityMessage(entry.getUniqueId(), msg)).publish();
     }
   }
 
