@@ -17,14 +17,10 @@
 
 package com.velocitypowered.proxy.connection.client;
 
-import static com.google.common.net.UrlEscapers.urlFormParameterEscaper;
-import static com.velocitypowered.proxy.VelocityServer.GENERAL_GSON;
 import static com.velocitypowered.proxy.connection.VelocityConstants.EMPTY_BYTE_ARRAY;
 import static com.velocitypowered.proxy.crypto.EncryptionUtils.decryptRsa;
 import static com.velocitypowered.proxy.crypto.EncryptionUtils.generateServerId;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
@@ -45,25 +41,17 @@ import com.velocitypowered.proxy.protocol.packet.ServerLoginPacket;
 import com.velocitypowered.proxy.util.VelocityProperties;
 import io.netty.buffer.ByteBuf;
 import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.MessageDigest;
-import java.time.Duration;
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Handles authenticating the player to Mojang's servers.
@@ -79,14 +67,6 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
    * Shared {@link ThreadLocalRandom} instance for generating secure values like verify tokens.
    */
   private static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
-
-  /**
-   * The URL used to verify that a player has joined using Mojang's session server.
-   */
-  private static final String MOJANG_HASJOINED_URL =
-      System.getProperty("mojang.sessionserver",
-              "https://sessionserver.mojang.com/session/minecraft/hasJoined")
-          .concat("?username=%s&serverId=%s");
 
   /**
    * The Velocity server instance.
@@ -123,11 +103,6 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
    */
   private final boolean forceKeyAuthentication;
 
-  /**
-   * Caffeine-backed profile result cache used to avoid excessive Mojang API calls.
-   */
-  private final Cache<@NotNull UUID, GameProfile> profileResultCache;
-
   InitialLoginSessionHandler(final VelocityServer server, final MinecraftConnection mcConnection,
                              final LoginInboundConnection inbound) {
     this.server = Preconditions.checkNotNull(server, "server");
@@ -135,20 +110,6 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
     this.inbound = Preconditions.checkNotNull(inbound, "inbound");
     this.forceKeyAuthentication = VelocityProperties.readBoolean(
             "auth.forceSecureProfiles", server.getConfiguration().isForceKeyAuthentication());
-
-    int expiration = server.getConfiguration().getProfileCacheExpiryMinutes();
-    if (!server.getConfiguration().isCachePlayerProfileResultEnabled()) {
-      this.profileResultCache = null;
-    } else {
-      if (expiration <= 0) {
-        expiration = 1;
-      }
-
-      this.profileResultCache = Caffeine.newBuilder()
-          .expireAfterWrite(Duration.ofMinutes(expiration))
-          .maximumSize(10_000) // To ensure invalid sessions cannot flood cache
-          .build();
-    }
   }
 
   /**
@@ -295,98 +256,48 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
       }
 
       byte[] decryptedSharedSecret = decryptRsa(serverKeyPair, packet.getSharedSecret());
+
+      // Go ahead and enable encryption. Once the client sends EncryptionResponse, encryption
+      // is enabled.
+      mcConnection.enableEncryption(decryptedSharedSecret);
+
       String serverId = generateServerId(decryptedSharedSecret, serverKeyPair.getPublic());
-
-      UUID holderUuid = Objects.requireNonNull(login.getHolderUuid(), "holderUuid");
-      GameProfile cachedProfile = null;
-      if (profileResultCache != null) {
-        cachedProfile = profileResultCache.getIfPresent(holderUuid);
-      }
-
-      if (cachedProfile != null) {
-        mcConnection.enableEncryption(decryptedSharedSecret);
-        mcConnection.setActiveSessionHandler(StateRegistry.LOGIN,
-            new AuthSessionHandler(server, inbound, cachedProfile, true, serverId));
-        return true;
-      }
-
       String playerIp = ((InetSocketAddress) mcConnection.getRemoteAddress()).getHostString();
-      String url = String.format(MOJANG_HASJOINED_URL, urlFormParameterEscaper().escape(login.getUsername()), serverId);
 
-      if (server.getConfiguration().shouldPreventClientProxyConnections()) {
-        url += "&ip=" + urlFormParameterEscaper().escape(playerIp);
-      }
-
-      final HttpRequest httpRequest = HttpRequest.newBuilder()
-              .setHeader("User-Agent",
-                      server.getVersion().getName() + "/" + server.getVersion().getVersion())
-              .uri(URI.create(url))
-              .build();
-      // noinspection resource
-      final HttpClient httpClient = server.createHttpClient();
-      httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
-          .whenCompleteAsync((response, throwable) -> {
-            if (mcConnection.isClosed()) {
-              // The player disconnected after we authenticated them.
-              return;
-            }
-
-            if (throwable != null) {
-              LOGGER.error("Unable to authenticate player", throwable);
-              inbound.disconnect(Component.translatable("multiplayer.disconnect.authservers_down"));
-              return;
-            }
-
-            // Go ahead and enable encryption. Once the client sends EncryptionResponse, encryption
-            // is enabled.
-            try {
-              mcConnection.enableEncryption(decryptedSharedSecret);
-            } catch (GeneralSecurityException e) {
-              LOGGER.error("Unable to enable encryption for connection", e);
-              // At this point, the connection is encrypted, but something's wrong on our side, and
-              // we can't do anything about it.
-              mcConnection.close(true);
-              return;
-            }
-
-            if (response.statusCode() == 200) {
-              final GameProfile profile = GENERAL_GSON.fromJson(response.body(), GameProfile.class);
-              if (profileResultCache != null) {
-                profileResultCache.put(holderUuid, profile);
-              }
-
-              // Not so fast, now we verify the public key for 1.19.1+
-              if (inbound.getIdentifiedKey() != null
-                  && inbound.getIdentifiedKey().getKeyRevision() == IdentifiedKey.Revision.LINKED_V2
-                  && inbound.getIdentifiedKey() instanceof final IdentifiedKeyImpl key) {
-                if (!key.internalAddHolder(profile.getId())) {
-                  inbound.disconnect(
-                      Component.translatable("multiplayer.disconnect.invalid_public_key"));
+      server.getGameProfileFetcher().fetchProfile(playerIp, login.getUsername(), serverId)
+              .whenCompleteAsync((response, throwable) -> {
+                if (mcConnection.isClosed()) {
+                  // The player disconnected after we authenticated them.
+                  return;
                 }
-              }
-              // All went well, initialize the session.
-              mcConnection.setActiveSessionHandler(StateRegistry.LOGIN, new AuthSessionHandler(server, inbound, profile, true, serverId));
-            } else if (response.statusCode() == 204) {
-              // Apparently, an offline-mode user logged onto this online-mode proxy.
-              inbound.disconnect(
-                  Component.translatable("velocity.error.online-mode-only", NamedTextColor.RED));
-            } else {
-              // Something else went wrong
-              LOGGER.error(
-                  "Got an unexpected error code {} whilst contacting Mojang to log in {} ({})",
-                  response.statusCode(), login.getUsername(), playerIp);
-              inbound.disconnect(Component.translatable("multiplayer.disconnect.authservers_down"));
-            }
-          }, mcConnection.eventLoop())
-          .thenRun(() -> {
-            try {
-              httpClient.close();
-            } catch (Exception e) {
-              // In Java 21, the HttpClient does not throw any Exception
-              // when trying to clean its resources, so this should not happen
-              LOGGER.error("An unknown error occurred while trying to close an HttpClient", e);
-            }
-          });
+
+                if (throwable != null || !response.status().success()) {
+                  if (throwable != null) {
+                    LOGGER.error("Exception while fetching profile", throwable);
+                  }
+
+                  switch (response.status()) {
+                    case ERROR_AUTH_DOWN -> inbound.disconnect(Component.translatable("multiplayer.disconnect.authservers_down"));
+                    case ERROR_OFFLINE_USER -> inbound.disconnect(Component.translatable("velocity.error.online-mode-only", NamedTextColor.RED));
+                    default -> throw new IllegalStateException("Unhandled error '" + response.status() + "'.");
+                  }
+                  return;
+                }
+
+                GameProfile profile = response.gameProfile();
+
+                // Not so fast, now we verify the public key for 1.19.1+
+                if (inbound.getIdentifiedKey() != null
+                    && inbound.getIdentifiedKey().getKeyRevision() == IdentifiedKey.Revision.LINKED_V2
+                    && inbound.getIdentifiedKey() instanceof final IdentifiedKeyImpl key) {
+                  if (!key.internalAddHolder(profile.getId())) {
+                    inbound.disconnect(Component.translatable("multiplayer.disconnect.invalid_public_key"));
+                  }
+                }
+
+                // All went well, initialize the session.
+                mcConnection.setActiveSessionHandler(StateRegistry.LOGIN, new AuthSessionHandler(server, inbound, profile, true, serverId));
+              }, mcConnection.eventLoop());
     } catch (GeneralSecurityException e) {
       LOGGER.error("Unable to enable encryption", e);
       mcConnection.close(true);

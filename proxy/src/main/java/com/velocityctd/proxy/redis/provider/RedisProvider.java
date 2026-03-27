@@ -27,6 +27,7 @@ import com.velocityctd.proxy.redis.transaction.TransactionData;
 import com.velocityctd.proxy.redis.transaction.TransactionHandler;
 import java.util.concurrent.TimeUnit;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents a Redis provider.
@@ -119,6 +120,14 @@ public sealed interface RedisProvider permits AbstractRedisProvider {
    * @return a new depot instance
    */
   <K, V extends DepotEntry<K, V>> @NotNull Depot<K, V> createDepot(Class<V> valueClass);
+
+  /**
+   * Gets the value associated with a key.
+   *
+   * @param key the key to look up
+   * @return the value, or {@code null} if none exists
+   */
+  @Nullable String get(@NotNull String key);
 
   /**
    * Sets a key with an expiry time in seconds.

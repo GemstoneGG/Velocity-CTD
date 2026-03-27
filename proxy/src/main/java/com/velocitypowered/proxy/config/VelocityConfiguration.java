@@ -592,6 +592,9 @@ public final class VelocityConfiguration implements ProxyConfig {
   public List<Component> getMotdHover() {
     if (motdHoverComponents == null) {
       motdHoverComponents = motdHover.stream()
+          // Fix for Fast Server Pings < 1.0.8 showing "Anonymous Players" on an empty line.
+          // See https://github.com/vansencool/FastServerPings/issues/8
+          // May be removed after a while.
           .map(s -> s.isEmpty() ? " " : s)
           .map(MiniMessage.miniMessage()::deserialize)
           .toList();

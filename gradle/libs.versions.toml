@@ -3,12 +3,12 @@ configurate3 = "3.7.3"
 configurate4 = "4.2.0"
 flare = "2.0.1"
 log4j = "2.25.3"
-netty = "4.2.10.Final"
+netty = "4.2.12.Final"
 lettuce = "7.5.0.RELEASE"
 
 [plugins]
 fill = "io.papermc.fill.gradle:1.0.10"
-shadow = "com.gradleup.shadow:9.4.0"
+shadow = "com.gradleup.shadow:9.4.1"
 spotless = "com.diffplug.spotless:8.4.0"
 
 [libraries]

@@ -294,6 +294,22 @@ public final class LettuceProvider extends AbstractRedisProvider {
   }
 
   /**
+   * Gets the value associated with a key using the regular (non-pub/sub) connection.
+   *
+   * @param key the key to look up
+   * @return the value, or {@code null} if none exists
+   */
+  @Override
+  public @Nullable String get(final @NotNull String key) {
+    if (this.syncPublisher == null) {
+      LOGGER.warn("Attempted to get key '{}' but the sync connection is not initialized", key);
+      return null;
+    }
+
+    return this.syncPublisher.get(key);
+  }
+
+  /**
    * Sets a key with an expiry time in seconds using the regular (non-pub/sub) connection.
    *
    * @param key        the key to set
