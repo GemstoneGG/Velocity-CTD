@@ -30,12 +30,10 @@ public final class VelocityTransferRemote extends VelocityTransaction<VelocityRe
    * Constructs a new {@link VelocityTransferRemote} transaction.
    *
    * @param uniqueId the player's unique ID
-   * @param proxyId the ID of the proxy the player is on
    * @param ip the IP address of the remote server
    * @param port the port of the remote server
    */
-  public VelocityTransferRemote(final @NotNull UUID uniqueId, final @NotNull String proxyId,
-                                final @NotNull String ip, final int port) {
-    super(new VelocityRemote(uniqueId, proxyId, ip, port));
+  public VelocityTransferRemote(final @NotNull UUID uniqueId, final @NotNull String ip, final int port) {
+    super(new VelocityRemote(uniqueId, ip, port));
   }
 }

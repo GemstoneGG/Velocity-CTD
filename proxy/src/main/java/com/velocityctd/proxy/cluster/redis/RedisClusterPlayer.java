@@ -94,7 +94,7 @@ public final class RedisClusterPlayer implements ClusterPlayer {
 
   @Override
   public CompletableFuture<Boolean> transfer(final String ip, final int port) {
-    return new VelocityTransferRemote(redisEntry.getUniqueId(), redisEntry.getProxyId(), ip, port).publish();
+    return new VelocityTransferRemote(redisEntry.getUniqueId(), ip, port).publish();
   }
 
   @Override
