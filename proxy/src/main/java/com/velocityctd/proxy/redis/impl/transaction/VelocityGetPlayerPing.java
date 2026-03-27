@@ -17,13 +17,13 @@
 
 package com.velocityctd.proxy.redis.impl.transaction;
 
-import com.velocityctd.proxy.redis.packet.typed.StringPacket;
+import com.velocityctd.proxy.redis.transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents a transaction that gets the ping of a player.
  */
-public final class VelocityGetPlayerPing extends VelocityTransaction<StringPacket, Long> {
+public final class VelocityGetPlayerPing extends Transaction<String, Long> {
 
   /**
    * Constructs a new {@link VelocityGetPlayerPing} transaction.
@@ -31,6 +31,6 @@ public final class VelocityGetPlayerPing extends VelocityTransaction<StringPacke
    * @param username the username of the player to get the ping of
    */
   public VelocityGetPlayerPing(final @NotNull String username) {
-    super(new StringPacket(username));
+    super(username);
   }
 }

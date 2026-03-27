@@ -29,67 +29,78 @@ import com.velocityctd.proxy.redis.impl.packet.VelocityKick;
 import com.velocityctd.proxy.redis.impl.packet.VelocityMessage;
 import com.velocityctd.proxy.redis.impl.packet.VelocitySudo;
 import com.velocityctd.proxy.redis.impl.packet.VelocitySwitchServer;
-import com.velocityctd.proxy.redis.packet.RedisPacket;
 import com.velocityctd.proxy.redis.registration.RouteRegistration;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Represents a registry that holds all {@link RouteRegistration} for the VelocityRedis module. An
- * internal {@link Function} is used to handle the data and create a response from the data.
+ * Registry that holds all {@link RouteRegistration} entries for one-way Redis messages.
  */
 public enum RouteRegistry {
 
   /**
-   * Handles the {@link VelocityAlert} packet by sending a message to all players on the proxy.
+   * Handles the {@link VelocityAlert} data by sending a message to all players on the proxy.
    */
-  VELOCITY_ALERT(VelocityAlert.class, PacketBehaviour.SEND_COMPONENT::behave),
+  VELOCITY_ALERT(VelocityAlert.class, (server, data) -> {
+    if (data.component() != null) {
+      server.sendMessage(data.component());
+    }
+  }),
 
   /**
-   * Handles the {@link VelocitySwitchServer} packet by switching the player to the specified server.
+   * Handles the {@link VelocitySwitchServer} data by switching the player to the specified server.
    */
-  VELOCITY_SWITCH_SERVER(VelocitySwitchServer.class, (server, packet) -> {
-    final ConnectedPlayer player = server.getPlayer(packet.getUsername()).orElse(null);
+  VELOCITY_SWITCH_SERVER(VelocitySwitchServer.class, (server, data) -> {
+    final ConnectedPlayer player = server.getPlayer(data.username()).orElse(null);
     if (player == null) {
       return;
     }
 
-    server.getServer(packet.getServerName()).ifPresent(targetServer ->
+    server.getServer(data.serverName()).ifPresent(targetServer ->
             player.createConnectionRequest(targetServer).connectWithIndication());
   }),
 
   /**
-   * Handles the {@link VelocityMessage} packet by sending a message to the specified target.
+   * Handles the {@link VelocityMessage} data by sending a message to the specified target.
    */
-  VELOCITY_MESSAGE(VelocityMessage.class, (server, packet) -> packet.sendMessage(server)),
-
-  /**
-   * Handles the {@link VelocityActionBar} packet by sending an action bar to the specified target.
-   */
-  VELOCITY_ACTION_BAR(VelocityActionBar.class, (server, packet) -> {
-    final Component component = packet.deserialize();
+  VELOCITY_MESSAGE(VelocityMessage.class, (server, data) -> {
+    final Component component = data.component();
     if (component == null) {
       return;
     }
 
-    server.getPlayer(packet.getUniqueId()).ifPresent(player -> player.sendActionBar(component));
+    if (data.playerUniqueId() != null) {
+      server.getPlayer(data.playerUniqueId()).ifPresent(player -> player.sendMessage(component));
+    } else if (data.commandSource() != null) {
+      data.commandSource().sendMessage(server, component);
+    }
   }),
 
   /**
-   * Handles the {@link VelocitySudo} packet by letting the specified player execute a command or chat message.
+   * Handles the {@link VelocityActionBar} data by sending an action bar to the specified target.
    */
-  VELOCITY_SUDO(VelocitySudo.class, (server, packet) -> {
-    final ConnectedPlayer player = server.getPlayer(packet.getPayload()).orElse(null);
+  VELOCITY_ACTION_BAR(VelocityActionBar.class, (server, data) -> {
+    if (data.component() == null) {
+      return;
+    }
+
+    server.getPlayer(data.uniqueId()).ifPresent(player -> player.sendActionBar(data.component()));
+  }),
+
+  /**
+   * Handles the {@link VelocitySudo} data by letting the specified player execute a command or chat message.
+   */
+  VELOCITY_SUDO(VelocitySudo.class, (server, data) -> {
+    final ConnectedPlayer player = server.getPlayer(data.uniqueId()).orElse(null);
     if (player == null) {
       return;
     }
 
-    final String message = packet.getMessage();
+    final String message = data.message();
     if (message.startsWith("/")) {
       final String fullCommand = message.substring(1);
       final String commandLabel = fullCommand.split(" ")[0];
@@ -103,20 +114,20 @@ public enum RouteRegistry {
   }),
 
   /**
-   * Handles the {@link VelocityKick} packet by kicking the specified player with a reason.
+   * Handles the {@link VelocityKick} data by kicking the specified player with a reason.
    */
-  VELOCITY_KICK(VelocityKick.class, (server, packet) -> {
-    final String targetProxyId = packet.getTargetProxyId();
+  VELOCITY_KICK(VelocityKick.class, (server, data) -> {
+    final String targetProxyId = data.targetProxyId();
     if (targetProxyId != null && !targetProxyId.equalsIgnoreCase(server.getRedis().getProxyId())) {
       return;
     }
 
-    final ConnectedPlayer player = server.getPlayer(packet.getUniqueId()).orElse(null);
+    final ConnectedPlayer player = server.getPlayer(data.uniqueId()).orElse(null);
     if (player == null) {
       return;
     }
 
-    Component component = packet.deserialize();
+    Component component = data.component();
     if (component == null) {
       component = Component.text("You have been kicked from the proxy.", NamedTextColor.RED);
     }
@@ -125,28 +136,28 @@ public enum RouteRegistry {
   }),
 
   /**
-   * Handles the {@link VelocityQueueSync} packet by applying the state change to the local queue.
+   * Handles the {@link VelocityQueueSync} data by applying the state change to the local queue.
    */
-  VELOCITY_QUEUE_SYNC(VelocityQueueSync.class, (server, packet) -> {
+  VELOCITY_QUEUE_SYNC(VelocityQueueSync.class, (server, data) -> {
     RedisVelocityQueueManager redisVelocityQueueManager = ((RedisVelocityQueueManager) server.getQueueManager());
-    redisVelocityQueueManager.handleSync(packet);
+    redisVelocityQueueManager.handleSync(data);
   }),
 
   /**
-   * Handles the {@link VelocityQueueTransfer} packet by transferring the player to their target server.
+   * Handles the {@link VelocityQueueTransfer} data by transferring the player to their target server.
    */
-  VELOCITY_QUEUE(VelocityQueueTransfer.class, (server, packet) -> {
+  VELOCITY_QUEUE(VelocityQueueTransfer.class, (server, data) -> {
     final VelocityQueue queue;
     try {
-      queue = server.getQueueManager().getQueue(packet.getQueueName());
+      queue = server.getQueueManager().getQueue(data.queueName());
     } catch (IllegalArgumentException ignored) {
       return; // unknown server - stale or malformed packet
     }
 
-    final ConnectedPlayer player = server.getPlayer(packet.getPayload()).orElse(null);
+    final ConnectedPlayer player = server.getPlayer(data.uniqueId()).orElse(null);
     if (player == null) {
-      if (!server.getRedis().getPlayerService().isPlayerOnline(packet.getPayload())) {
-        final VelocityQueueEntry entry = queue.getEntry(packet.getPayload());
+      if (!server.getRedis().getPlayerService().isPlayerOnline(data.uniqueId())) {
+        final VelocityQueueEntry entry = queue.getEntry(data.uniqueId());
         if (entry != null) {
           entry.abortTransfer();
         }
@@ -154,7 +165,7 @@ public enum RouteRegistry {
       return;
     }
 
-    final VelocityQueueEntry entry = queue.getEntry(packet.getPayload());
+    final VelocityQueueEntry entry = queue.getEntry(data.uniqueId());
     if (entry == null) {
       return;
     }
@@ -163,21 +174,21 @@ public enum RouteRegistry {
   });
 
   /**
-   * The {@link RouteRegistration} that defines how this Redis packet type
+   * The {@link RouteRegistration} that defines how this data type
    * is routed and handled within the proxy.
    */
-  private final RouteRegistration<? extends RedisPacket> routeRegistration;
+  private final RouteRegistration<?> routeRegistration;
 
-  <T extends RedisPacket> RouteRegistry(final Class<T> packetClass, final @NotNull BiConsumer<VelocityServer, T> route) {
-    this.routeRegistration = RouteRegistration.consumer(packetClass, packet -> route.accept(VelocityRedis.INSTANCE.getServer(), packet));
+  <T> RouteRegistry(final Class<T> dataClass, final @NotNull BiConsumer<VelocityServer, T> route) {
+    this.routeRegistration = RouteRegistration.consumer(dataClass, data -> route.accept(VelocityRedis.INSTANCE.getServer(), data));
   }
 
   /**
    * Gets the {@link RouteRegistration} associated with this route entry.
    *
-   * @return the route registration for this Redis packet type
+   * @return the route registration for this data type
    */
-  public RouteRegistration<? extends RedisPacket> getRouteRegistration() {
+  public RouteRegistration<?> getRouteRegistration() {
     return routeRegistration;
   }
 }

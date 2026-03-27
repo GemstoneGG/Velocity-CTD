@@ -18,13 +18,14 @@
 package com.velocityctd.proxy.redis.impl.transaction;
 
 import com.velocityctd.proxy.redis.impl.packet.VelocityRemote;
+import com.velocityctd.proxy.redis.transaction.Transaction;
 import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents a transaction that transfers a player to a remote server.
  */
-public final class VelocityTransferRemote extends VelocityTransaction<VelocityRemote, Boolean> {
+public final class VelocityTransferRemote extends Transaction<VelocityRemote, Boolean> {
 
   /**
    * Constructs a new {@link VelocityTransferRemote} transaction.

@@ -17,13 +17,13 @@
 
 package com.velocityctd.proxy.redis.impl.transaction;
 
-import com.velocityctd.proxy.redis.packet.typed.StringPacket;
+import com.velocityctd.proxy.redis.transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents a transaction that reloads any proxy.
  */
-public final class VelocityReload extends VelocityTransaction<StringPacket, Boolean> {
+public final class VelocityReload extends Transaction<String, Boolean> {
 
   /**
    * Constructs a new {@link VelocityReload} transaction.
@@ -31,6 +31,6 @@ public final class VelocityReload extends VelocityTransaction<StringPacket, Bool
    * @param proxyId the id of the proxy to reload
    */
   public VelocityReload(final @NotNull String proxyId) {
-    super(new StringPacket(proxyId));
+    super(proxyId);
   }
 }

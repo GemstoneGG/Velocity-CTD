@@ -26,6 +26,7 @@ import com.velocityctd.proxy.redis.impl.packet.VelocitySudo;
 import com.velocityctd.proxy.redis.impl.packet.VelocitySwitchServer;
 import com.velocityctd.proxy.redis.impl.transaction.VelocityGetPlayerPing;
 import com.velocityctd.proxy.redis.impl.transaction.VelocityTransferRemote;
+import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.Optional;
@@ -79,17 +80,17 @@ public final class RedisClusterPlayer implements ClusterPlayer {
 
   @Override
   public void kick(final Component reason) {
-    new VelocityKick(redisEntry.getUniqueId(), reason).publish();
+    DataPacket.publish(new VelocityKick(redisEntry.getUniqueId(), reason));
   }
 
   @Override
   public void sudo(final String command) {
-    new VelocitySudo(redisEntry.getUniqueId(), command).publish();
+    DataPacket.publish(new VelocitySudo(redisEntry.getUniqueId(), command));
   }
 
   @Override
   public void move(final String targetServer) {
-    new VelocitySwitchServer(redisEntry.getUsername(), targetServer).publish();
+    DataPacket.publish(new VelocitySwitchServer(redisEntry.getUsername(), targetServer));
   }
 
   @Override
@@ -99,7 +100,7 @@ public final class RedisClusterPlayer implements ClusterPlayer {
 
   @Override
   public void sendMessage(final Component message) {
-    new VelocityMessage(redisEntry.getUniqueId(), message).publish();
+    DataPacket.publish(new VelocityMessage(redisEntry.getUniqueId(), message));
   }
 
   @Override

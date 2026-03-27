@@ -17,70 +17,26 @@
 
 package com.velocityctd.proxy.redis.impl.packet;
 
-import com.velocityctd.proxy.redis.packet.annotation.OneWayPacket;
-import com.velocityctd.proxy.redis.packet.typed.ComponentPacket;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Represents a packet used to remotely kick a player from another proxy.
+ * Data record used to remotely kick a player from another proxy.
  *
- * <p>This packet transports both the unique player identifier and the
- * disconnect message, and is handled as a one-way message across proxies.</p>
+ * @param uniqueId the unique identifier of the player being kicked
+ * @param component the disconnect message
+ * @param targetProxyId the proxy ID that should process this kick, or {@code null} for all proxies
  */
-@OneWayPacket
-public final class VelocityKick extends ComponentPacket {
+public record VelocityKick(UUID uniqueId, Component component, @Nullable String targetProxyId) {
 
   /**
-   * The unique identifier of the player being kicked.
-   */
-  private final UUID uniqueId;
-
-  /**
-   * The proxy ID that should process this kick, or {@code null} if all proxies should process it.
-   */
-  private final @Nullable String targetProxyId;
-
-  /**
-   * Constructs a new {@link VelocityKick} packet that targets all proxies.
+   * Constructs a new {@link VelocityKick} that targets all proxies.
    *
    * @param uniqueId the player's unique ID
-   * @param component the message to send
+   * @param component the disconnect message
    */
   public VelocityKick(final UUID uniqueId, final Component component) {
     this(uniqueId, component, null);
-  }
-
-  /**
-   * Constructs a new {@link VelocityKick} packet targeted at a specific proxy.
-   *
-   * @param uniqueId the player's unique ID
-   * @param component the message to send
-   * @param targetProxyId the proxy that should process this kick, or {@code null} for all proxies
-   */
-  public VelocityKick(final UUID uniqueId, final Component component, final @Nullable String targetProxyId) {
-    super(component);
-
-    this.uniqueId = uniqueId;
-    this.targetProxyId = targetProxyId;
-  }
-
-  /**
-   * Gets the player's unique ID.
-   *
-   * @return the player's unique ID
-   */
-  public UUID getUniqueId() {
-    return uniqueId;
-  }
-
-  /**
-   * Gets the target proxy ID for this kick.
-   *
-   * @return the target proxy ID, or {@code null} if all proxies should process this kick
-   */
-  public @Nullable String getTargetProxyId() {
-    return targetProxyId;
   }
 }

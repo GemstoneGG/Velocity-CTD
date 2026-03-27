@@ -18,69 +18,37 @@
 package com.velocityctd.proxy.redis.impl.packet;
 
 import com.velocityctd.proxy.redis.impl.model.EncodedCommandSource;
-import com.velocityctd.proxy.redis.packet.annotation.OneWayPacket;
-import com.velocityctd.proxy.redis.packet.typed.ComponentPacket;
-import com.velocitypowered.proxy.VelocityServer;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Represents a packet that sends a message to a player or a command source.
+ * Data record used to send a message to a player or command source.
+ *
+ * @param playerUniqueId the player's unique ID, or {@code null} if targeting a command source
+ * @param commandSource the encoded command source, or {@code null} if targeting a player
+ * @param component the message to send
  */
-@OneWayPacket
-public final class VelocityMessage extends ComponentPacket {
+public record VelocityMessage(@Nullable UUID playerUniqueId, @Nullable EncodedCommandSource commandSource,
+                               Component component) {
 
   /**
-   * The encoded representation of the command source that should receive this message,
-   * or {@code null} if the message targets a specific player instead.
+   * Constructs a new {@link VelocityMessage} targeting a specific player.
+   *
+   * @param playerUniqueId the player's unique ID
+   * @param component the message to send
    */
-  private EncodedCommandSource commandSource = null;
+  public VelocityMessage(final UUID playerUniqueId, final Component component) {
+    this(playerUniqueId, null, component);
+  }
 
   /**
-   * The unique identifier of the player who should receive this message,
-   * or {@code null} if the message targets a command source instead.
-   */
-  private UUID playerUniqueId = null;
-
-  /**
-   * Constructs a new {@link VelocityMessage} packet.
+   * Constructs a new {@link VelocityMessage} targeting a command source.
    *
    * @param commandSource the command source to send the message to
    * @param component the message to send
    */
   public VelocityMessage(final EncodedCommandSource commandSource, final Component component) {
-    super(component);
-    this.commandSource = commandSource;
-  }
-
-  /**
-   * Constructs a new {@link VelocityMessage} packet.
-   *
-   * @param playerUniqueId the player's unique ID to send the message to
-   * @param component the message to send
-   */
-  public VelocityMessage(final UUID playerUniqueId, final Component component) {
-    super(component);
-    this.playerUniqueId = playerUniqueId;
-  }
-
-  /**
-   * Sends the message to the specified server.
-   *
-   * @param server the server to send the message to
-   */
-  public void sendMessage(final VelocityServer server) {
-    final Component component = this.deserialize();
-    if (component == null) {
-      return;
-    }
-
-    if (this.playerUniqueId != null) {
-      server.getPlayer(this.playerUniqueId).ifPresent(player -> {
-        player.sendMessage(component);
-      });
-    } else if (this.commandSource != null) {
-      this.commandSource.sendMessage(server, component);
-    }
+    this(null, commandSource, component);
   }
 }

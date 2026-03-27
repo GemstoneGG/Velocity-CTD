@@ -17,40 +17,14 @@
 
 package com.velocityctd.proxy.redis.impl.packet;
 
-import com.velocityctd.proxy.redis.packet.annotation.OneWayPacket;
-import com.velocityctd.proxy.redis.packet.typed.ComponentPacket;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
-import org.jetbrains.annotations.NotNull;
 
 /**
- * Represents a packet that sends an action bar message to a player.
+ * Data record used to send an action bar message to a player.
+ *
+ * @param uniqueId the unique identifier of the player
+ * @param component the action bar message
  */
-@OneWayPacket
-public final class VelocityActionBar extends ComponentPacket {
-
-  /**
-   * The unique identifier of the player who should receive the action bar message.
-   */
-  private final UUID uniqueId;
-
-  /**
-   * Constructs a new {@link VelocityActionBar} packet.
-   *
-   * @param uniqueId the uniqueId if the player to send the message to.
-   * @param component the message to send.
-   */
-  public VelocityActionBar(final @NotNull UUID uniqueId, final Component component) {
-    super(component);
-    this.uniqueId = uniqueId;
-  }
-
-  /**
-   * Gets the unique identifier of the player to send the message to.
-   *
-   * @return the unique identifier of the player
-   */
-  public UUID getUniqueId() {
-    return uniqueId;
-  }
+public record VelocityActionBar(UUID uniqueId, Component component) {
 }

@@ -17,53 +17,14 @@
 
 package com.velocityctd.proxy.redis.impl.packet;
 
-import com.velocityctd.proxy.redis.packet.typed.UuidPacket;
 import java.util.UUID;
 
 /**
- * Represents a packet that sends a player to a remote address.
+ * Data record used to transfer a player to a remote address.
+ *
+ * @param uniqueId the player's unique ID
+ * @param ip the IP address of the remote server
+ * @param port the port of the remote server
  */
-public final class VelocityRemote extends UuidPacket {
-
-  /**
-   * The IP address of the remote server the player should be sent to.
-   */
-  private final String ip;
-
-  /**
-   * The port number of the remote server the player should be sent to.
-   */
-  private final int port;
-
-  /**
-   * Constructs a new {@link VelocityRemote} packet.
-   *
-   * @param uniqueId the player's unique ID
-   * @param ip the IP address of the remote server
-   * @param port the port of the remote server
-   */
-  public VelocityRemote(final UUID uniqueId, final String ip, final int port) {
-    super(uniqueId);
-
-    this.ip = ip;
-    this.port = port;
-  }
-
-  /**
-   * Gets the IP address of the remote server.
-   *
-   * @return the IP address of the remote server
-   */
-  public String getIp() {
-    return ip;
-  }
-
-  /**
-   * Gets the port of the remote server.
-   *
-   * @return the port of the remote server
-   */
-  public int getPort() {
-    return port;
-  }
+public record VelocityRemote(UUID uniqueId, String ip, int port) {
 }

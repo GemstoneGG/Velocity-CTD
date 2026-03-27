@@ -19,7 +19,6 @@ package com.velocityctd.proxy.redis.transaction;
 
 import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.packet.DataPacket;
-import com.velocityctd.proxy.redis.packet.RedisPacket;
 import com.velocityctd.proxy.redis.provider.RedisProvider;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -30,14 +29,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Represents a transaction process that has a {@link T sent-packet} and produces a result of
+ * Represents a transaction process that sends data of type {@link T} and produces a result of
  * type {@link R}. The result is delivered via a {@link CompletableFuture} that completes when
  * a reply is received or times out.
  *
- * @param <T> the type of the sent {@link RedisPacket}
+ * <p>The sent data is automatically wrapped in a {@link DataPacket} for transport.</p>
+ *
+ * @param <T> the type of the sent data (any GSON-serializable type)
  * @param <R> the type of the expected response data
  */
-public class Transaction<T extends RedisPacket, R> {
+public abstract class Transaction<T, R> {
 
   /**
    * The default timeout value (in seconds) used for transactions.
@@ -60,9 +61,9 @@ public class Transaction<T extends RedisPacket, R> {
   private final UUID transactionId;
 
   /**
-   * The packet sent as part of this transaction.
+   * The {@link DataPacket} wrapping the sent data for transport.
    */
-  private final T sentPacket;
+  private final DataPacket sentPacket;
 
   /**
    * The future that will be completed with the response data when a reply
@@ -81,14 +82,13 @@ public class Transaction<T extends RedisPacket, R> {
   private TimeUnit timeUnit = DEFAULT_TIME_UNIT;
 
   /**
-   * Constructs a new {@link Transaction} given an instance of the required sent-packet
-   * and the expected response type.
+   * Constructs a new {@link Transaction} by wrapping the given data in a {@link DataPacket}.
    *
-   * @param sentPacket   the sent-packet instance to publish
+   * @param sentData the data to send
    */
-  public Transaction(final @NotNull T sentPacket) {
+  public Transaction(final @NotNull T sentData) {
     this.transactionId = UUID.randomUUID();
-    this.sentPacket = sentPacket;
+    this.sentPacket = new DataPacket(sentData);
     this.sentPacket.setTransactionId(this.transactionId);
     this.sentPacket.setTransactionType(this.getClass().getName());
   }
@@ -145,22 +145,16 @@ public class Transaction<T extends RedisPacket, R> {
    *
    * @param replyPacket the reply packet containing the response data
    */
-  public void complete(final RedisPacket replyPacket) {
+  public void complete(final DataPacket replyPacket) {
     if (this.future.isDone()) {
       return;
     }
 
-    if (replyPacket instanceof DataPacket dataPacket) {
-      try {
-        this.future.complete(dataPacket.getPayload());
-      } catch (Exception e) {
-        LOGGER.warn("Failed to deserialize reply data: {}", e.getMessage());
-        this.future.completeExceptionally(e);
-      }
-    } else {
-      LOGGER.warn("Reply packet is not a DataPacket: {}", replyPacket.getClass().getName());
-      this.future.completeExceptionally(
-          new IllegalStateException("Expected DataPacket reply, got " + replyPacket.getClass().getName()));
+    try {
+      this.future.complete(replyPacket.getPayload());
+    } catch (Exception e) {
+      LOGGER.warn("Failed to deserialize reply data: {}", e.getMessage());
+      this.future.completeExceptionally(e);
     }
   }
 
@@ -184,11 +178,11 @@ public class Transaction<T extends RedisPacket, R> {
   }
 
   /**
-   * Get the sent-packet of the {@link Transaction}.
+   * Get the {@link DataPacket} wrapping the sent data.
    *
-   * @return the sent-packet of the transaction
+   * @return the sent packet
    */
-  public T getSentPacket() {
+  public DataPacket getSentPacket() {
     return sentPacket;
   }
 

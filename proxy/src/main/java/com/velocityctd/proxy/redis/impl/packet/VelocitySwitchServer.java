@@ -17,53 +17,11 @@
 
 package com.velocityctd.proxy.redis.impl.packet;
 
-import com.velocityctd.proxy.redis.packet.annotation.OneWayPacket;
-import com.velocityctd.proxy.redis.packet.typed.StringPacket;
-
 /**
- * Represents a packet that sends a player to a specific server.
+ * Data record used to switch a player to a specific server.
+ *
+ * @param username the username of the player
+ * @param serverName the name of the target server
  */
-@OneWayPacket
-public final class VelocitySwitchServer extends StringPacket {
-
-  /**
-   * The username of the player who should be switched to another server.
-   */
-  private final String username;
-
-  /**
-   * The name of the server the player should be switched to.
-   */
-  private final String serverName;
-
-  /**
-   * Constructs a new {@link VelocitySwitchServer} packet.
-   *
-   * @param username the username of the player to switch to the server of.
-   * @param serverName the name of the server to switch to.
-   */
-  public VelocitySwitchServer(final String username, final String serverName) {
-    super(username);
-
-    this.username = username;
-    this.serverName = serverName;
-  }
-
-  /**
-   * Gets the username of the player to switch to the server of.
-   *
-   * @return the username of the player to switch to the server of.
-   */
-  public String getUsername() {
-    return username;
-  }
-
-  /**
-   * Gets the name of the server to switch to.
-   *
-   * @return the name of the server to switch to.
-   */
-  public String getServerName() {
-    return serverName;
-  }
+public record VelocitySwitchServer(String username, String serverName) {
 }

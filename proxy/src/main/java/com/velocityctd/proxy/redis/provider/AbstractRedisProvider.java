@@ -20,7 +20,7 @@ package com.velocityctd.proxy.redis.provider;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
-import com.velocityctd.proxy.redis.packet.RedisPacket;
+import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocityctd.proxy.redis.registration.RouteRegistration;
 import com.velocityctd.proxy.redis.transaction.Transaction;
 import com.velocityctd.proxy.redis.transaction.TransactionHandler;
@@ -49,9 +49,9 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
 
   /**
    * Cache of packets that have already been handled recently, used to prevent duplicate
-   * processing of the same {@link RedisPacket}. Uses a dummy {@link Byte} value as the cache value.
+   * processing of the same {@link DataPacket}. Uses a dummy {@link Byte} value as the cache value.
    */
-  protected static final Cache<@NotNull RedisPacket, @NotNull Byte> HANDLED_PACKETS = CacheBuilder.newBuilder() // byte = dummy value
+  protected static final Cache<@NotNull DataPacket, @NotNull Byte> HANDLED_PACKETS = CacheBuilder.newBuilder()
           .expireAfterWrite(10, TimeUnit.SECONDS).build();
 
   /**
@@ -67,10 +67,10 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
   private final List<Runnable> reconnectListeners = new CopyOnWriteArrayList<>();
 
   /**
-   * The registry of all route registrations keyed by packet class name.
+   * The registry of all route registrations keyed by data class name.
    */
   @MonotonicNonNull
-  protected final Map<String, RouteRegistration<? extends RedisPacket>> routeRegistrations;
+  protected final Map<String, RouteRegistration<?>> routeRegistrations;
 
   /**
    * The registry of all transaction handlers keyed by transaction class name.
@@ -92,11 +92,10 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
    * @param transaction the transaction whose packet should be published
    * @param timeout the timeout value
    * @param timeUnit the time unit of the timeout
-   * @param <T> the type of the Redis packet used in the transaction
    */
   @Override
-  public <T extends RedisPacket> void publish(final @NotNull Transaction<T, ?> transaction, final int timeout, final TimeUnit timeUnit) {
-    final T sentPacket = transaction.getSentPacket();
+  public void publish(final @NotNull Transaction<?, ?> transaction, final int timeout, final TimeUnit timeUnit) {
+    final DataPacket sentPacket = transaction.getSentPacket();
 
     HANDLED_PACKETS.put(sentPacket, (byte) 0);
     PENDING_TRANSACTIONS.put(transaction, timeout, timeUnit);
@@ -105,34 +104,34 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
   }
 
   /**
-   * Registers a route for a specific {@link RedisPacket} type.
+   * Registers a route for a specific data type.
    *
    * @param routeRegistration the route registration to add
-   * @param <T> the type of Redis packet handled by the route
+   * @param <T> the type of data handled by the route
    */
   @Override
-  public <T extends RedisPacket> void registerRoute(final @NotNull RouteRegistration<T> routeRegistration) {
-    final Class<T> packetClass = routeRegistration.getPacketClass();
+  public <T> void registerRoute(final @NotNull RouteRegistration<T> routeRegistration) {
+    final Class<T> dataClass = routeRegistration.getDataClass();
 
-    if (this.routeRegistrations.containsKey(packetClass.getName())) {
-      LOGGER.debug("Route registration for '{}' already exists, overwriting", packetClass.getSimpleName());
+    if (this.routeRegistrations.containsKey(dataClass.getName())) {
+      LOGGER.debug("Route registration for '{}' already exists, overwriting", dataClass.getSimpleName());
     }
 
-    this.routeRegistrations.put(packetClass.getName(), routeRegistration);
+    this.routeRegistrations.put(dataClass.getName(), routeRegistration);
   }
 
   /**
-   * Unregisters the route associated with the given packet class, if present.
+   * Unregisters the route associated with the given data class, if present.
    *
-   * @param packetClass the Redis packet class whose route should be removed
-   * @param <T> the type of Redis packet handled by the route
+   * @param dataClass the data class whose route should be removed
+   * @param <T> the type of data handled by the route
    */
   @Override
-  public <T extends RedisPacket> void unregisterRoute(final @NotNull Class<T> packetClass) {
-    if (this.routeRegistrations.remove(packetClass.getName()) == null) {
-      LOGGER.debug("Route registration for '{}' does not exist, ignoring", packetClass.getSimpleName());
+  public <T> void unregisterRoute(final @NotNull Class<T> dataClass) {
+    if (this.routeRegistrations.remove(dataClass.getName()) == null) {
+      LOGGER.debug("Route registration for '{}' does not exist, ignoring", dataClass.getSimpleName());
     } else {
-      LOGGER.debug("Unregistered route registration for '{}'", packetClass.getSimpleName());
+      LOGGER.debug("Unregistered route registration for '{}'", dataClass.getSimpleName());
     }
   }
 
@@ -169,15 +168,11 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
   /**
    * Gets an immutable list of all registered {@link RouteRegistration} instances.
    *
-   * @param <T> the type of Redis packet for which route registrations are requested
    * @return an immutable list of route registrations
    */
   @Override
-  public <T extends RedisPacket> @NotNull ImmutableList<@NotNull RouteRegistration<T>> getRouteRegistrations() {
-    // noinspection unchecked
-    return this.routeRegistrations.values().stream()
-            .map(routeRegistration -> (RouteRegistration<T>) routeRegistration)
-            .collect(ImmutableList.toImmutableList());
+  public @NotNull ImmutableList<@NotNull RouteRegistration<?>> getRouteRegistrations() {
+    return ImmutableList.copyOf(this.routeRegistrations.values());
   }
 
   /**

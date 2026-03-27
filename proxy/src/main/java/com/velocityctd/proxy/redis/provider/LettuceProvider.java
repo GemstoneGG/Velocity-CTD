@@ -21,9 +21,8 @@ import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import com.velocityctd.proxy.redis.depot.Depot;
 import com.velocityctd.proxy.redis.depot.DepotEntry;
-import com.velocityctd.proxy.redis.packet.RedisPacket;
+import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocityctd.proxy.redis.packet.serialization.PacketSerializer;
-import com.velocityctd.proxy.redis.registration.ConsumerRouteRegistration;
 import com.velocityctd.proxy.redis.registration.RouteRegistration;
 import com.velocityctd.proxy.redis.transaction.Transaction;
 import com.velocityctd.proxy.redis.transaction.TransactionHandler;
@@ -122,39 +121,39 @@ public final class LettuceProvider extends AbstractRedisProvider {
           return;
         }
 
-        final RedisPacket redisPacket = PacketSerializer.deserialize(message);
-        if (redisPacket == null) {
+        final DataPacket dataPacket = PacketSerializer.deserialize(message);
+        if (dataPacket == null) {
           LOGGER.warn("Received a null packet from channel '{}', ignoring", channel);
           return;
         }
 
-        if (redisPacket.isOneWay()) {
-          handleOneWay(redisPacket);
+        if (dataPacket.isOneWay()) {
+          handleOneWay(dataPacket);
           return;
         }
 
-        if (!redisPacket.isReply()) {
+        if (!dataPacket.isReply()) {
           final TransactionHandler<?, ?> transactionHandler = transactionHandlers.get(Preconditions.checkNotNull(
-                  redisPacket.getTransactionType(), "transactionType is null"));
+                  dataPacket.getTransactionType(), "transactionType is null"));
           if (transactionHandler == null) {
             return;
           }
 
-          final RedisPacket replyPacket = transactionHandler.getReplyPacket(redisPacket);
+          final DataPacket replyPacket = transactionHandler.getReplyPacket(dataPacket);
           if (replyPacket == null) {
             return;
           }
 
           LettuceProvider.this.publish(replyPacket);
         } else {
-          final UUID transactionId = Preconditions.checkNotNull(redisPacket.getTransactionId());
+          final UUID transactionId = Preconditions.checkNotNull(dataPacket.getTransactionId());
 
           final Transaction<?, ?> transaction = PENDING_TRANSACTIONS.remove(transactionId);
           if (transaction == null) {
             return;
           }
 
-          transaction.complete(redisPacket);
+          transaction.complete(dataPacket);
         }
       }
     });
@@ -195,15 +194,14 @@ public final class LettuceProvider extends AbstractRedisProvider {
   }
 
   /**
-   * Publishes the given Redis packet to the configured Redis channel.
+   * Publishes the given {@link DataPacket} to the configured Redis channel.
    *
    * <p>If the publisher has not been initialized yet, a warning is logged and the packet is not sent.</p>
    *
    * @param packet the packet to publish
-   * @param <T> the type of the Redis packet
    */
   @Override
-  public <T extends RedisPacket> void publish(final @NotNull T packet) {
+  public void publish(final @NotNull DataPacket packet) {
     if (this.publisher == null) {
       LOGGER.warn("Attempted to publish a packet to channel '{}' but the publisher is not initialized", CHANNEL);
       return;
@@ -241,26 +239,23 @@ public final class LettuceProvider extends AbstractRedisProvider {
   }
 
   /**
-   * Handles a one-way {@link RedisPacket} by routing it through a registered {@link RouteRegistration}, if present.
+   * Handles a one-way {@link DataPacket} by routing it through a registered {@link RouteRegistration}, if present.
    *
-   * @param redisPacket the one-way packet to handle
-   * @param <T> the type of Redis packet
+   * @param dataPacket the one-way packet to handle
    */
   @SuppressWarnings("unchecked")
-  private <T extends RedisPacket> void handleOneWay(final @NotNull T redisPacket) {
-    final RouteRegistration<T> routeRegistration = (RouteRegistration<T>) routeRegistrations.get(redisPacket.getType());
+  private void handleOneWay(final @NotNull DataPacket dataPacket) {
+    final RouteRegistration<Object> routeRegistration = (RouteRegistration<Object>) routeRegistrations.get(dataPacket.getPayloadType());
     if (routeRegistration == null) {
       LOGGER.warn("Received a packet of type '{}' from channel '{}', but no route registration exists, ignoring",
-              redisPacket.getType(), CHANNEL);
+              dataPacket.getPayloadType(), CHANNEL);
       return;
     }
 
     try {
-      if (routeRegistration instanceof ConsumerRouteRegistration<T> consumerRegistration) {
-        consumerRegistration.getConsumer().accept(redisPacket);
-      }
+      routeRegistration.getConsumer().accept(dataPacket.getPayload());
     } catch (Throwable ignored) {
-      LOGGER.warn("Failed to handle one way packet of type '{}', ignoring", redisPacket.getType());
+      LOGGER.warn("Failed to handle one way packet of type '{}', ignoring", dataPacket.getPayloadType());
     }
   }
 

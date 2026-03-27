@@ -17,22 +17,12 @@
 
 package com.velocityctd.proxy.redis.impl.packet;
 
-import com.velocityctd.proxy.redis.packet.annotation.OneWayPacket;
-import com.velocityctd.proxy.redis.packet.typed.ComponentPacket;
 import net.kyori.adventure.text.Component;
 
 /**
- * Represents a packet that sends an alert message to all proxies.
+ * Data record used to send an alert message to all proxies.
+ *
+ * @param component the alert message
  */
-@OneWayPacket
-public final class VelocityAlert extends ComponentPacket {
-
-  /**
-   * Constructs a new {@link VelocityAlert} packet.
-   *
-   * @param component the message to send.
-   */
-  public VelocityAlert(final Component component) {
-    super(component);
-  }
+public record VelocityAlert(Component component) {
 }

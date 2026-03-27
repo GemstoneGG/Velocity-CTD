@@ -17,38 +17,13 @@
 
 package com.velocityctd.proxy.queue.redis.packet;
 
-import com.velocityctd.proxy.redis.packet.annotation.OneWayPacket;
-import com.velocityctd.proxy.redis.packet.typed.UuidPacket;
 import java.util.UUID;
 
 /**
- * Represents a redis packet that contains a queue transfer request.
+ * Data record representing a queue transfer request.
+ *
+ * @param uniqueId the player's unique ID
+ * @param queueName the name of the queue the player should be transferred into
  */
-@OneWayPacket
-public final class VelocityQueueTransfer extends UuidPacket {
-
-  /**
-   * The name of the queue the player should be transferred into.
-   */
-  private final String queueName;
-
-  /**
-   * Constructs a new {@link VelocityQueueTransfer}.
-   *
-   * @param uniqueId  the player's unique id
-   * @param queueName the queue name
-   */
-  public VelocityQueueTransfer(final UUID uniqueId, final String queueName) {
-    super(uniqueId);
-    this.queueName = queueName;
-  }
-
-  /**
-   * Gets the queue name.
-   *
-   * @return the queue name
-   */
-  public String getQueueName() {
-    return queueName;
-  }
+public record VelocityQueueTransfer(UUID uniqueId, String queueName) {
 }

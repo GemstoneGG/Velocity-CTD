@@ -17,13 +17,13 @@
 
 package com.velocityctd.proxy.redis.impl.transaction;
 
-import com.velocityctd.proxy.redis.packet.typed.StringPacket;
+import com.velocityctd.proxy.redis.transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents a transaction that gets the uptime of any proxy.
  */
-public final class VelocityUptime extends VelocityTransaction<StringPacket, Long> {
+public final class VelocityUptime extends Transaction<String, Long> {
 
   /**
    * Constructs a new {@link VelocityUptime} transaction.
@@ -31,6 +31,6 @@ public final class VelocityUptime extends VelocityTransaction<StringPacket, Long
    * @param proxyId the id of the proxy to get the uptime of
    */
   public VelocityUptime(final @NotNull String proxyId) {
-    super(new StringPacket(proxyId));
+    super(proxyId);
   }
 }

@@ -17,41 +17,70 @@
 
 package com.velocityctd.proxy.redis.registration;
 
-import com.velocityctd.proxy.redis.packet.RedisPacket;
 import java.util.function.Consumer;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Represents a route registration for a specific {@link RedisPacket} type.
+ * Represents a route registration for a specific data type received from Redis.
  *
- * <p>A {@code RouteRegistration} defines how a particular packet type should be handled
- * once received from Redis. Implementations may wrap consumer-based handlers,
- * transactional handlers, or alternate dispatch strategies.</p>
+ * <p>A {@code RouteRegistration} defines how a particular data type should be handled
+ * once received as a one-way message from Redis.</p>
  *
- * @param <T> the type of {@link RedisPacket} handled by this route registration
+ * @param <T> the type of data handled by this route registration
  */
-public sealed interface RouteRegistration<T extends RedisPacket> permits AbstractRouteRegistration {
+public final class RouteRegistration<T> {
 
   /**
-   * Creates a new {@link ConsumerRouteRegistration} for the given {@link RedisPacket}
-   * class and consumer handler.
-   *
-   * @param packetClass the concrete packet class this route handles
-   * @param consumer the consumer to invoke when a packet of type {@code T} is received
-   * @param <T> the type of the packet handled by the consumer
-   * @return a new {@link ConsumerRouteRegistration} instance
+   * The class type of the data associated with this route registration.
    */
-  @Contract("_, _ -> new")
-  static <T extends RedisPacket> @NotNull ConsumerRouteRegistration<T> consumer(final Class<T> packetClass,
-                                                                                final Consumer<T> consumer) {
-    return new ConsumerRouteRegistration<>(packetClass, consumer);
+  private final Class<T> dataClass;
+
+  /**
+   * The {@link Consumer} that processes data of type {@code T}.
+   */
+  private final Consumer<T> consumer;
+
+  /**
+   * Constructs a new {@link RouteRegistration}.
+   *
+   * @param dataClass the data class this registration handles
+   * @param consumer the consumer that will process incoming data of type {@code T}
+   */
+  public RouteRegistration(final Class<T> dataClass, final Consumer<T> consumer) {
+    this.dataClass = dataClass;
+    this.consumer = consumer;
   }
 
   /**
-   * Gets the packet class associated with this route registration.
+   * Creates a new {@link RouteRegistration} for the given data class and consumer handler.
    *
-   * @return the {@link Class} object representing the packet type handled by this registration
+   * @param dataClass the concrete data class this route handles
+   * @param consumer the consumer to invoke when data of type {@code T} is received
+   * @param <T> the type of the data handled by the consumer
+   * @return a new {@link RouteRegistration} instance
    */
-  Class<T> getPacketClass();
+  @Contract("_, _ -> new")
+  public static <T> @NotNull RouteRegistration<T> consumer(final Class<T> dataClass,
+                                                            final Consumer<T> consumer) {
+    return new RouteRegistration<>(dataClass, consumer);
+  }
+
+  /**
+   * Gets the data class associated with this route registration.
+   *
+   * @return the {@link Class} object representing the data type handled by this registration
+   */
+  public Class<T> getDataClass() {
+    return dataClass;
+  }
+
+  /**
+   * Gets the {@link Consumer} responsible for handling data associated with this route.
+   *
+   * @return the consumer tied to this route registration
+   */
+  public Consumer<T> getConsumer() {
+    return consumer;
+  }
 }

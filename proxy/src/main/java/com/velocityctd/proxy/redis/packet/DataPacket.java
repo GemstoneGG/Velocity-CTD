@@ -17,17 +17,31 @@
 
 package com.velocityctd.proxy.redis.packet;
 
+import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.packet.serialization.PacketSerializer;
+import java.util.Objects;
+import java.util.UUID;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * A generic reply packet that carries any GSON-serializable payload.
+ * The single envelope type for all Redis communication.
  *
- * <p>The payload is stored as a pre-serialized JSON string alongside its
- * fully qualified class name, allowing type-safe deserialization without
- * needing a concrete packet subclass per data type.</p>
+ * <p>A {@code DataPacket} wraps any GSON-serializable payload alongside its
+ * fully qualified class name, allowing type-safe deserialization on the
+ * receiving end without needing concrete packet subclasses per data type.</p>
+ *
+ * <p>The packet carries transport metadata (packet ID, transaction info,
+ * reply flag) used by the Redis provider for routing and correlation.</p>
  */
-public final class DataPacket extends AbstractRedisPacket {
+public final class DataPacket {
+
+  /**
+   * A unique internal identifier automatically assigned to this packet.
+   * Used for equality and tracking packet flow across the Redis pipeline.
+   */
+  private final UUID packetId;
 
   /**
    * The GSON-serialized JSON representation of the payload.
@@ -36,10 +50,31 @@ public final class DataPacket extends AbstractRedisPacket {
 
   /**
    * The fully qualified class name of the payload type,
-   * used for deserialization.
+   * used for deserialization and routing.
    */
   private final String payloadType;
 
+  /**
+   * Indicates whether this packet instance represents a reply to another packet.
+   */
+  private boolean reply;
+
+  /**
+   * The transaction identifier associated with this packet, if any.
+   * Present when a packet participates in a request–reply transaction.
+   * If {@code null}, the packet is treated as one-way.
+   */
+  private @MonotonicNonNull UUID transactionId;
+
+  /**
+   * The transaction type associated with this packet, identifying the
+   * transaction class this packet belongs to.
+   */
+  private @MonotonicNonNull String transactionType;
+
+  /**
+   * The deserialized payload object, cached after first access.
+   */
   private transient Object rawPayload;
 
   /**
@@ -49,18 +84,100 @@ public final class DataPacket extends AbstractRedisPacket {
    * @param <T> the type of the payload
    */
   public <T> DataPacket(final @NotNull T payload) {
+    this.packetId = UUID.randomUUID();
     this.payload = PacketSerializer.GSON.toJson(payload);
     this.payloadType = payload.getClass().getName();
-
     this.rawPayload = payload;
   }
 
   /**
-   * Deserializes the payload into the specified type.
+   * Gets the unique internal identifier assigned to this packet.
+   *
+   * @return the packet's unique identifier
+   */
+  public UUID getId() {
+    return packetId;
+  }
+
+  /**
+   * Gets the fully qualified class name of the payload type.
+   *
+   * @return the payload type string
+   */
+  public String getPayloadType() {
+    return payloadType;
+  }
+
+  /**
+   * Determines whether this packet is one-way (not part of a transaction).
+   *
+   * @return {@code true} if this packet has no transaction ID
+   */
+  public boolean isOneWay() {
+    return transactionId == null;
+  }
+
+  /**
+   * Checks whether this packet represents a reply to another packet.
+   *
+   * @return {@code true} if this packet is a reply
+   */
+  public boolean isReply() {
+    return reply;
+  }
+
+  /**
+   * Marks whether this packet is a reply to another packet.
+   *
+   * @param reply {@code true} if this packet represents a reply
+   */
+  public void setReply(final boolean reply) {
+    this.reply = reply;
+  }
+
+  /**
+   * Gets the transaction identifier associated with this packet, if present.
+   *
+   * @return the transaction ID, or {@code null} if this is a one-way packet
+   */
+  public @Nullable UUID getTransactionId() {
+    return this.transactionId;
+  }
+
+  /**
+   * Sets the transaction identifier for this packet.
+   *
+   * @param transactionId the transaction ID to assign
+   */
+  public void setTransactionId(final @NotNull UUID transactionId) {
+    this.transactionId = transactionId;
+  }
+
+  /**
+   * Gets the transaction type associated with this packet.
+   *
+   * @return the transaction type string, or {@code null} if this is a one-way packet
+   */
+  public @Nullable String getTransactionType() {
+    return this.transactionType;
+  }
+
+  /**
+   * Sets the transaction type for this packet.
+   *
+   * @param transactionType the transaction type identifier
+   */
+  public void setTransactionType(final @NotNull String transactionType) {
+    this.transactionType = transactionType;
+  }
+
+  /**
+   * Deserializes and returns the payload.
    *
    * @param <T> the target type
    * @return the deserialized payload
    */
+  @SuppressWarnings("unchecked")
   public <T> T getPayload() {
     if (rawPayload == null) {
       Class<?> clazz;
@@ -73,7 +190,45 @@ public final class DataPacket extends AbstractRedisPacket {
       rawPayload = PacketSerializer.GSON.fromJson(payload, clazz);
     }
 
-    //noinspection unchecked
     return (T) rawPayload;
+  }
+
+  /**
+   * Publishes this packet using the active {@link VelocityRedis} provider.
+   *
+   * @throws IllegalStateException if Redis has not been initialized
+   */
+  public void publish() {
+    final VelocityRedis redis = VelocityRedis.INSTANCE;
+    if (redis == null) {
+      throw new IllegalStateException("Tried to publish packet without Redis being initialized.");
+    }
+
+    redis.getProvider().publish(this);
+  }
+
+  /**
+   * Creates and publishes a one-way {@link DataPacket} carrying the given payload.
+   *
+   * @param payload the data to publish
+   * @param <T> the type of the payload
+   */
+  public static <T> void publish(final @NotNull T payload) {
+    new DataPacket(payload).publish();
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    DataPacket that = (DataPacket) o;
+    return Objects.equals(packetId, that.packetId);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(packetId);
   }
 }

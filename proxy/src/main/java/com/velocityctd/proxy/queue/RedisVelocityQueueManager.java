@@ -25,6 +25,7 @@ import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotService;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueSync;
 import com.velocityctd.proxy.queue.util.QueueComponents;
 import com.velocityctd.proxy.redis.impl.packet.VelocityActionBar;
+import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
@@ -101,36 +102,31 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
   protected void sendActionBar(final VelocityQueueEntry entry) {
     final Component component = QueueComponents.createActionbarComponent(entry);
     if (component != null) {
-      new VelocityActionBar(entry.getUniqueId(), component).publish();
+      DataPacket.publish(new VelocityActionBar(entry.getUniqueId(), component));
     }
   }
 
   /**
-   * Applies a {@link VelocityQueueSync} packet received from another proxy to the local
+   * Applies a {@link VelocityQueueSync} received from another proxy to the local
    * in-memory queue.
    *
-   * @param packet the incoming sync packet
+   * @param sync the incoming sync data
    */
-  public void handleSync(final @NotNull VelocityQueueSync packet) {
-    final VelocityQueueSync.Payload p = packet.getPayload();
-    if (p == null) {
-      return;
-    }
-
+  public void handleSync(final @NotNull VelocityQueueSync sync) {
     final RedisVelocityQueue queue;
     try {
-      queue = (RedisVelocityQueue) getQueue(p.serverName());
+      queue = (RedisVelocityQueue) getQueue(sync.serverName());
     } catch (IllegalArgumentException ignored) {
       return; // unknown server
     }
 
-    switch (p.action()) {
-      case ENQUEUE -> queue.applyEnqueue(p);
-      case DEQUEUE -> queue.applyDequeue(p.playerUuid());
-      case STATE_CHANGE -> queue.applyStateChange(p.newState());
-      case STATUS_CHANGE -> queue.applyStatusChange(p.newStatus());
-      case WAITING_CHANGE -> queue.applyWaitingChange(p);
-      default -> throw new IllegalStateException("Unknown action " + p.action() + ".");
+    switch (sync.action()) {
+      case ENQUEUE -> queue.applyEnqueue(sync);
+      case DEQUEUE -> queue.applyDequeue(sync.playerUuid());
+      case STATE_CHANGE -> queue.applyStateChange(sync.newState());
+      case STATUS_CHANGE -> queue.applyStatusChange(sync.newStatus());
+      case WAITING_CHANGE -> queue.applyWaitingChange(sync);
+      default -> throw new IllegalStateException("Unknown action " + sync.action() + ".");
     }
   }
 
@@ -168,10 +164,8 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
 
     if (isMasterProxy()) {
       for (VelocityQueue queue : queues.values()) {
-        new VelocityQueueSync(VelocityQueueSync.Payload.statusChange(
-            queue.getName(), queue.getServerStatus())).publish();
-        new VelocityQueueSync(VelocityQueueSync.Payload.stateChange(
-            queue.getName(), queue.getState())).publish();
+        DataPacket.publish(VelocityQueueSync.statusChange(queue.getName(), queue.getServerStatus()));
+        DataPacket.publish(VelocityQueueSync.stateChange(queue.getName(), queue.getState()));
       }
     }
   }

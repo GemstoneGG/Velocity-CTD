@@ -22,7 +22,6 @@ import com.velocityctd.proxy.redis.impl.transaction.VelocityGetPlayerPing;
 import com.velocityctd.proxy.redis.impl.transaction.VelocityReload;
 import com.velocityctd.proxy.redis.impl.transaction.VelocityTransferRemote;
 import com.velocityctd.proxy.redis.impl.transaction.VelocityUptime;
-import com.velocityctd.proxy.redis.packet.RedisPacket;
 import com.velocityctd.proxy.redis.transaction.Transaction;
 import com.velocityctd.proxy.redis.transaction.TransactionHandler;
 import com.velocitypowered.api.network.ProtocolVersion;
@@ -34,19 +33,18 @@ import java.util.concurrent.TimeUnit;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Represents a registry that holds all {@link TransactionHandler} for the VelocityRedis module. An
- * internal {@link Delegate} is used to handle the data and create a response from the data.
+ * Registry that holds all {@link TransactionHandler} entries for the VelocityRedis module.
  *
- * <p>This registry is used to register the 'handle' section of the {@link Transaction} only. It's
+ * <p>This registry is used to register the 'handle' section of the {@link Transaction} only. Its
  * completing and timeout behaviours are processed in the {@link Transaction} class itself.</p>
  */
 public enum TransactionHandlerRegistry {
 
   /**
-   * Handles the {@link VelocityGetPlayerPing} packet by replying with the player's ping if the player is on the proxy.
+   * Handles the {@link VelocityGetPlayerPing} transaction by replying with the player's ping.
    */
-  VELOCITY_GET_PLAYER_PING(VelocityGetPlayerPing.class, (server, packet) -> {
-    final ConnectedPlayer player = server.getPlayer(packet.getPayload()).orElse(null);
+  VELOCITY_GET_PLAYER_PING(VelocityGetPlayerPing.class, (server, data) -> {
+    final ConnectedPlayer player = server.getPlayer((String) data).orElse(null);
     if (player == null) {
       return null;
     }
@@ -55,10 +53,10 @@ public enum TransactionHandlerRegistry {
   }),
 
   /**
-   * Handles the {@link VelocityUptime} packet by replying with the proxy's uptime if the packet is for this proxy.
+   * Handles the {@link VelocityUptime} transaction by replying with the proxy's uptime.
    */
-  VELOCITY_UPTIME(VelocityUptime.class, (server, packet) -> {
-    if (!packet.getPayload().equalsIgnoreCase(server.getProxyId())) {
+  VELOCITY_UPTIME(VelocityUptime.class, (server, data) -> {
+    if (!((String) data).equalsIgnoreCase(server.getProxyId())) {
       return null;
     }
 
@@ -66,10 +64,10 @@ public enum TransactionHandlerRegistry {
   }),
 
   /**
-   * Handles the {@link VelocityReload} packet by reloading the proxy's configuration if the packet is for this proxy.
+   * Handles the {@link VelocityReload} transaction by reloading the proxy's configuration.
    */
-  VELOCITY_RELOAD(VelocityReload.class, (server, packet) -> {
-    if (!packet.getPayload().equalsIgnoreCase(server.getProxyId())) {
+  VELOCITY_RELOAD(VelocityReload.class, (server, data) -> {
+    if (!((String) data).equalsIgnoreCase(server.getProxyId())) {
       return null;
     }
 
@@ -88,10 +86,12 @@ public enum TransactionHandlerRegistry {
   }),
 
   /**
-   * Handles the {@link VelocityTransferRemote} packet by transferring a player to another remote/proxy.
+   * Handles the {@link VelocityTransferRemote} transaction by transferring a player to another remote/proxy.
    */
-  VELOCITY_TRANSFER_REMOTE(VelocityTransferRemote.class, (server, packet) -> {
-    final ConnectedPlayer connectedPlayer = server.getPlayer(packet.getPayload()).orElse(null);
+  VELOCITY_TRANSFER_REMOTE(VelocityTransferRemote.class, (server, data) -> {
+    final com.velocityctd.proxy.redis.impl.packet.VelocityRemote remote =
+            (com.velocityctd.proxy.redis.impl.packet.VelocityRemote) data;
+    final ConnectedPlayer connectedPlayer = server.getPlayer(remote.uniqueId()).orElse(null);
     if (connectedPlayer == null) {
       return null;
     }
@@ -101,7 +101,7 @@ public enum TransactionHandlerRegistry {
     }
 
     server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () ->
-          connectedPlayer.transferToHost(new InetSocketAddress(packet.getIp(), packet.getPort()))).delay(1, TimeUnit.SECONDS).schedule();
+          connectedPlayer.transferToHost(new InetSocketAddress(remote.ip(), remote.port()))).delay(1, TimeUnit.SECONDS).schedule();
 
     return true;
   }),
@@ -112,21 +112,13 @@ public enum TransactionHandlerRegistry {
    */
   private final TransactionHandler<?, ?> transactionHandler;
 
-  /**
-   * Create a new {@link Transaction} registry, which holds the {@link TransactionHandler}.
-   *
-   * @param transactionClass the class of the {@link Transaction}
-   * @param delegate         the delegate to handle the data, which is passed to the {@link TransactionHandler}
-   * @param <T>              the type of the data (extends {@link RedisPacket})
-   * @param <R>              the type of the response data
-   */
-  <T extends RedisPacket, R> TransactionHandlerRegistry(final Class<? extends Transaction<T, R>> transactionClass,
-                                                        final Delegate<T, R> delegate) {
+  <T, R> TransactionHandlerRegistry(final Class<? extends Transaction<T, R>> transactionClass,
+                                     final Delegate<T, R> delegate) {
     this.transactionHandler = new TransactionHandler<>(transactionClass) {
 
       @Override
-      public @Nullable R handlePacket(final T packet) {
-        return delegate.handleData(VelocityRedis.INSTANCE.getServer(), packet);
+      public @Nullable R handleData(final T data) {
+        return delegate.handleData(VelocityRedis.INSTANCE.getServer(), data);
       }
     };
   }
@@ -144,18 +136,18 @@ public enum TransactionHandlerRegistry {
    * Functional interface for handling data in a transaction, used for
    * creating a response from the data.
    *
-   * @param <T> the type of the data (extends {@link RedisPacket})
+   * @param <T> the type of the data
    * @param <R> the type of the response data
    */
   @FunctionalInterface
-  public interface Delegate<T extends RedisPacket, R> {
+  public interface Delegate<T, R> {
 
     /**
      * Handles the incoming data and produces a response, or {@code null} if
      * no reply should be sent.
      *
      * @param server the {@link VelocityServer} handling the transaction
-     * @param data   the incoming Redis packet data
+     * @param data   the incoming data
      * @return the response data, or {@code null} if no reply is required
      */
     @Nullable R handleData(VelocityServer server, T data);

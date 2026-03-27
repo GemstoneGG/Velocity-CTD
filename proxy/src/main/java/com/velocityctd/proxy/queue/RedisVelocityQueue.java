@@ -23,6 +23,7 @@ import com.velocityctd.api.queue.ServerStatus;
 import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotEntry;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueSync;
 import com.velocityctd.proxy.redis.impl.packet.VelocityMessage;
+import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.List;
@@ -76,10 +77,10 @@ public final class RedisVelocityQueue extends VelocityQueue {
   public void enqueue(final @NotNull QueueEntryData data) {
     super.enqueue(data);
 
-    new VelocityQueueSync(VelocityQueueSync.Payload.enqueue(
+    DataPacket.publish(VelocityQueueSync.enqueue(
         getName(), data.uniqueId(), data.username(), data.priority(),
         data.fullBypass(), data.queueBypass()
-    )).publish();
+    ));
     persistAsync();
   }
 
@@ -87,7 +88,7 @@ public final class RedisVelocityQueue extends VelocityQueue {
   public void dequeue(final @NotNull UUID uniqueId) {
     super.dequeue(uniqueId);
 
-    new VelocityQueueSync(VelocityQueueSync.Payload.dequeue(getName(), uniqueId)).publish();
+    DataPacket.publish(VelocityQueueSync.dequeue(getName(), uniqueId));
     persistAsync();
   }
 
@@ -97,7 +98,7 @@ public final class RedisVelocityQueue extends VelocityQueue {
     super.setServerStatus(status);
 
     if (getServerStatus() != prev) {
-      new VelocityQueueSync(VelocityQueueSync.Payload.statusChange(getName(), status)).publish();
+      DataPacket.publish(VelocityQueueSync.statusChange(getName(), status));
       persistAsync();
     }
   }
@@ -108,7 +109,7 @@ public final class RedisVelocityQueue extends VelocityQueue {
     super.setState(state);
 
     if (getState() != prev) {
-      new VelocityQueueSync(VelocityQueueSync.Payload.stateChange(getName(), state)).publish();
+      DataPacket.publish(VelocityQueueSync.stateChange(getName(), state));
       persistAsync();
     }
   }
@@ -124,7 +125,7 @@ public final class RedisVelocityQueue extends VelocityQueue {
   void removeEntry(final VelocityQueueEntry entry) {
     super.removeEntry(entry);
 
-    new VelocityQueueSync(VelocityQueueSync.Payload.dequeue(getName(), entry.getUniqueId())).publish();
+    DataPacket.publish(VelocityQueueSync.dequeue(getName(), entry.getUniqueId()));
     persistAsync();
   }
 
@@ -132,7 +133,7 @@ public final class RedisVelocityQueue extends VelocityQueue {
   public void broadcastMessage(final @NotNull Function<VelocityQueueEntry, Component> componentFn) {
     for (VelocityQueueEntry entry : getEntries()) {
       final Component msg = componentFn.apply(entry);
-      new VelocityMessage(entry.getUniqueId(), msg).publish();
+      DataPacket.publish(new VelocityMessage(entry.getUniqueId(), msg));
     }
   }
 
@@ -151,9 +152,9 @@ public final class RedisVelocityQueue extends VelocityQueue {
    * triggering this class's publish override.</p>
    */
   @ApiStatus.Internal
-  void applyEnqueue(final VelocityQueueSync.Payload p) {
-    super.enqueue(new QueueEntryData(p.playerUuid(), p.username(),
-        p.priority(), p.fullBypass(), p.queueBypass()));
+  void applyEnqueue(final VelocityQueueSync sync) {
+    super.enqueue(new QueueEntryData(sync.playerUuid(), sync.username(),
+        sync.priority(), sync.fullBypass(), sync.queueBypass()));
   }
 
   /**
@@ -184,12 +185,12 @@ public final class RedisVelocityQueue extends VelocityQueue {
    * Applies a WAITING_CHANGE sync received from another proxy.
    */
   @ApiStatus.Internal
-  void applyWaitingChange(final VelocityQueueSync.Payload p) {
+  void applyWaitingChange(final VelocityQueueSync sync) {
     for (RedisVelocityQueueEntry entry : getInternalEntries()) {
-      if (entry.getUniqueId().equals(p.playerUuid())) {
+      if (entry.getUniqueId().equals(sync.playerUuid())) {
         entry.applyWaitingChangeFromPacket(
-            p.waitingForConnection(), p.connectionAttempts(),
-            p.updatedPriority(), p.updatedFullBypass(), p.updatedQueueBypass()
+            sync.waitingForConnection(), sync.connectionAttempts(),
+            sync.updatedPriority(), sync.updatedFullBypass(), sync.updatedQueueBypass()
         );
 
         break;

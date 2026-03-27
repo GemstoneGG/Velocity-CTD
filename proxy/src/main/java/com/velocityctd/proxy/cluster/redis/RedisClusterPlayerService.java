@@ -23,6 +23,7 @@ import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.impl.depot.PlayerDepotService;
 import com.velocityctd.proxy.redis.impl.depot.PlayerEntry;
 import com.velocityctd.proxy.redis.impl.packet.VelocityAlert;
+import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -125,7 +126,7 @@ public final class RedisClusterPlayerService implements ClusterPlayerService {
 
   @Override
   public void broadcastAlert(final Component message) {
-    new VelocityAlert(message).publish();
+    DataPacket.publish(new VelocityAlert(message));
   }
 
   private RedisClusterPlayer toRedisPlayer(PlayerEntry playerEntry) {

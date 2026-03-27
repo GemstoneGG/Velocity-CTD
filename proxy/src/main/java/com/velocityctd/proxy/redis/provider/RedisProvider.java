@@ -20,7 +20,7 @@ package com.velocityctd.proxy.redis.provider;
 import com.google.common.collect.ImmutableList;
 import com.velocityctd.proxy.redis.depot.Depot;
 import com.velocityctd.proxy.redis.depot.DepotEntry;
-import com.velocityctd.proxy.redis.packet.RedisPacket;
+import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocityctd.proxy.redis.registration.RouteRegistration;
 import com.velocityctd.proxy.redis.transaction.Transaction;
 import com.velocityctd.proxy.redis.transaction.TransactionHandler;
@@ -48,12 +48,11 @@ public sealed interface RedisProvider permits AbstractRedisProvider {
   void disconnect();
 
   /**
-   * Publish a {@link RedisPacket} to the channel on the Redis.
+   * Publish a {@link DataPacket} to the channel on the Redis.
    *
    * @param packet the packet to publish
-   * @param <T>    the type of the packet
    */
-  <T extends RedisPacket> void publish(@NotNull T packet);
+  void publish(@NotNull DataPacket packet);
 
   /**
    * Publish a {@link Transaction} to all subscribers on the Redis.
@@ -61,44 +60,41 @@ public sealed interface RedisProvider permits AbstractRedisProvider {
    * @param transaction the transaction to publish
    * @param timeout     the timeout in seconds (default = 5)
    * @param timeUnit    the time unit of the timeout (default = seconds)
-   * @param <T>         the type of the sent-packet
    */
-  <T extends RedisPacket> void publish(@NotNull Transaction<T, ?> transaction, int timeout, TimeUnit timeUnit);
+  void publish(@NotNull Transaction<?, ?> transaction, int timeout, TimeUnit timeUnit);
 
   /**
    * Publish a {@link Transaction} to all subscribers on the Redis.
    *
    * @param transaction the transaction to publish
-   * @param <T>         the type of the sent-packet
    * @see #publish(Transaction, int, TimeUnit)
    */
-  default <T extends RedisPacket> void publish(final @NotNull Transaction<T, ?> transaction) {
+  default void publish(final @NotNull Transaction<?, ?> transaction) {
     publish(transaction, transaction.getTimeout(), transaction.getTimeUnit());
   }
 
   /**
-   * Register a {@link RouteRegistration} for a specific packet class.
+   * Register a {@link RouteRegistration} for a specific data class.
    *
    * @param routeRegistration the route registration to register
-   * @param <T>               the type of the packet
+   * @param <T>               the type of the data
    */
-  <T extends RedisPacket> void registerRoute(@NotNull RouteRegistration<T> routeRegistration);
+  <T> void registerRoute(@NotNull RouteRegistration<T> routeRegistration);
 
   /**
-   * Unregister a {@link RouteRegistration} for a specific packet class, if it exists.
+   * Unregister a {@link RouteRegistration} for a specific data class, if it exists.
    *
-   * @param packetClass the class of the packet to unregister
-   * @param <T>         the type of the packet
+   * @param dataClass the class of the data to unregister
+   * @param <T>       the type of the data
    */
-  <T extends RedisPacket> void unregisterRoute(@NotNull Class<T> packetClass);
+  <T> void unregisterRoute(@NotNull Class<T> dataClass);
 
   /**
    * Get an immutable list of all route registrations.
    *
-   * @param <T> the type of the packet
    * @return the immutable list of all route registrations
    */
-  <T extends RedisPacket> @NotNull ImmutableList<@NotNull RouteRegistration<T>> getRouteRegistrations();
+  @NotNull ImmutableList<@NotNull RouteRegistration<?>> getRouteRegistrations();
 
   /**
    * Register a {@link TransactionHandler} for a specific transaction class.
