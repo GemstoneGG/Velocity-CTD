@@ -17,6 +17,8 @@
 
 package com.velocityctd.proxy.redis.handler;
 
+import static java.util.concurrent.CompletableFuture.completedFuture;
+
 import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.data.VelocityGetPlayerPing;
 import com.velocityctd.proxy.redis.data.VelocityReload;
@@ -29,6 +31,7 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import java.net.InetSocketAddress;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -50,7 +53,7 @@ public enum TransactionHandlerRegistry {
       return null;
     }
 
-    return player.getPing();
+    return completedFuture(player.getPing());
   }),
 
   /**
@@ -61,7 +64,7 @@ public enum TransactionHandlerRegistry {
       return null;
     }
 
-    return (System.currentTimeMillis() - server.getStartTime()) / 1000;
+    return completedFuture((System.currentTimeMillis() - server.getStartTime()) / 1000);
   }),
 
   /**
@@ -79,10 +82,10 @@ public enum TransactionHandlerRegistry {
       } else {
         server.getLogger().error("Failed to reload Velocity configuration on remote request!");
       }
-      return success;
+      return completedFuture(success);
     } catch (Exception e) {
       server.getLogger().error("Failed to reload Velocity configuration on remote request!", e);
-      return false;
+      return completedFuture(false);
     }
   }),
 
@@ -96,13 +99,16 @@ public enum TransactionHandlerRegistry {
     }
 
     if (connectedPlayer.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
-      return false;
+      return completedFuture(false);
     }
 
-    server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () ->
-          connectedPlayer.transferToHost(new InetSocketAddress(data.ip(), data.port()))).delay(1, TimeUnit.SECONDS).schedule();
+    CompletableFuture<Boolean> fut = new CompletableFuture<>();
+    server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+      connectedPlayer.transferToHost(new InetSocketAddress(data.ip(), data.port()));
+      fut.complete(true);
+    }).delay(100, TimeUnit.MILLISECONDS).schedule();
 
-    return true;
+    return fut;
   }),
   ;
 
@@ -116,7 +122,7 @@ public enum TransactionHandlerRegistry {
     this.transactionHandler = new TransactionHandler<>(dataClass) {
 
       @Override
-      public @Nullable R handleData(final T data) {
+      public @Nullable CompletableFuture<R> handleData(final T data) {
         return delegate.handleData(VelocityRedis.INSTANCE.getServer(), data);
       }
     };
@@ -142,13 +148,12 @@ public enum TransactionHandlerRegistry {
   public interface Delegate<T extends TransactionData<R>, R> {
 
     /**
-     * Handles the incoming data and produces a response, or {@code null} if
-     * no reply should be sent.
+     * Handles the incoming data and produces a response asynchronously.
      *
      * @param server the {@link VelocityServer} handling the transaction
      * @param data   the incoming data
-     * @return the response data, or {@code null} if no reply is required
+     * @return a future containing the response data, or {@code null} if no reply is required
      */
-    @Nullable R handleData(VelocityServer server, T data);
+    @Nullable CompletableFuture<R> handleData(VelocityServer server, T data);
   }
 }

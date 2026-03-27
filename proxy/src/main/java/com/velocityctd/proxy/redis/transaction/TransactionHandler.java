@@ -17,6 +17,7 @@
 
 package com.velocityctd.proxy.redis.transaction;
 
+import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -47,12 +48,13 @@ public abstract class TransactionHandler<T extends TransactionData<R>, R> {
   }
 
   /**
-   * Handles the given data and produces a response, if needed.
+   * Handles the given data and produces a response asynchronously.
    *
    * @param data the incoming data to handle
-   * @return the response data, or {@code null} if no reply is required
+   * @return a future containing the response data, or a future completing to {@code null}
+   *         if no reply is required
    */
-  public abstract @Nullable R handleData(T data);
+  public abstract @Nullable CompletableFuture<R> handleData(T data);
 
   /**
    * Gets the data class associated with this handler.

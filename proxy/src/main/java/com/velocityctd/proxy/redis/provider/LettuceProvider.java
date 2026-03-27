@@ -36,6 +36,7 @@ import io.lettuce.core.pubsub.api.sync.RedisPubSubCommands;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -254,16 +255,25 @@ public final class LettuceProvider extends AbstractRedisProvider {
       return;
     }
 
-    final Object result = transactionHandler.handleData(dataPacket.getPayload());
-    if (result == null) {
+    final CompletableFuture<?> future = transactionHandler.handleData(dataPacket.getPayload());
+    if (future == null) {
       return;
     }
 
-    final DataPacket replyPacket = DataPacket.of(result);
-    replyPacket.setTransactionId(Preconditions.checkNotNull(dataPacket.getTransactionId()));
-    replyPacket.setReply(true);
+    future.thenAccept(result -> {
+      if (result == null) {
+        return;
+      }
 
-    this.publish(replyPacket);
+      final DataPacket replyPacket = DataPacket.of(result);
+      replyPacket.setTransactionId(Preconditions.checkNotNull(dataPacket.getTransactionId()));
+      replyPacket.setReply(true);
+
+      this.publish(replyPacket);
+    }).exceptionally(throwable -> {
+      LOGGER.warn("Transaction handler for '{}' completed exceptionally", dataPacket.getPayloadType(), throwable);
+      return null;
+    });
   }
 
   /**
