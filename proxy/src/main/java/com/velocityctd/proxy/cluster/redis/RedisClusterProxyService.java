@@ -19,8 +19,8 @@ package com.velocityctd.proxy.cluster.redis;
 
 import com.velocityctd.proxy.cluster.ClusterProxyService;
 import com.velocityctd.proxy.redis.VelocityRedis;
-import com.velocityctd.proxy.redis.impl.packet.VelocityReload;
-import com.velocityctd.proxy.redis.impl.packet.VelocityUptime;
+import com.velocityctd.proxy.redis.data.VelocityReload;
+import com.velocityctd.proxy.redis.data.VelocityUptime;
 import com.velocityctd.proxy.redis.transaction.Transaction;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;

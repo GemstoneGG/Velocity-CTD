@@ -15,9 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.impl.depot;
+package com.velocityctd.proxy.redis.depot;
 
-import com.velocityctd.proxy.redis.depot.DepotEntry;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;

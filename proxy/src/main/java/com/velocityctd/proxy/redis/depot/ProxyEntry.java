@@ -15,14 +15,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.impl.packet;
+package com.velocityctd.proxy.redis.depot;
 
-import net.kyori.adventure.text.Component;
+import com.velocitypowered.proxy.VelocityServer;
+import org.jetbrains.annotations.NotNull;
 
 /**
- * Data record used to send an alert message to all proxies.
- *
- * @param component the alert message
+ * Represents a proxy entry in the depot.
  */
-public record VelocityAlert(Component component) {
+public final class ProxyEntry extends DepotEntry<String, ProxyEntry> {
+
+  /**
+   * Constructs a new {@link ProxyEntry}.
+   *
+   * @param server the proxy instance
+   */
+  public ProxyEntry(final @NotNull VelocityServer server) {
+    super(server.getProxyId());
+  }
 }

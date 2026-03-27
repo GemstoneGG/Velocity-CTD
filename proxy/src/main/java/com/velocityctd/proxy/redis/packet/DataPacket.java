@@ -18,7 +18,6 @@
 package com.velocityctd.proxy.redis.packet;
 
 import com.velocityctd.proxy.redis.VelocityRedis;
-import com.velocityctd.proxy.redis.packet.serialization.PacketSerializer;
 import java.util.Objects;
 import java.util.UUID;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;

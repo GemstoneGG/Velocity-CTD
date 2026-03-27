@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.registration;
+package com.velocityctd.proxy.redis.handler;
 
 import java.util.function.Consumer;
 import org.jetbrains.annotations.Contract;
@@ -24,12 +24,12 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Represents a route registration for a specific data type received from Redis.
  *
- * <p>A {@code RouteRegistration} defines how a particular data type should be handled
+ * <p>A {@link RouteHandler} defines how a particular data type should be handled
  * once received as a one-way message from Redis.</p>
  *
  * @param <T> the type of data handled by this route registration
  */
-public final class RouteRegistration<T> {
+public final class RouteHandler<T> {
 
   /**
    * The class type of the data associated with this route registration.
@@ -42,28 +42,28 @@ public final class RouteRegistration<T> {
   private final Consumer<T> consumer;
 
   /**
-   * Constructs a new {@link RouteRegistration}.
+   * Constructs a new {@link RouteHandler}.
    *
    * @param dataClass the data class this registration handles
    * @param consumer the consumer that will process incoming data of type {@code T}
    */
-  public RouteRegistration(final Class<T> dataClass, final Consumer<T> consumer) {
+  public RouteHandler(final Class<T> dataClass, final Consumer<T> consumer) {
     this.dataClass = dataClass;
     this.consumer = consumer;
   }
 
   /**
-   * Creates a new {@link RouteRegistration} for the given data class and consumer handler.
+   * Creates a new {@link RouteHandler} for the given data class and consumer handler.
    *
    * @param dataClass the concrete data class this route handles
    * @param consumer the consumer to invoke when data of type {@code T} is received
    * @param <T> the type of the data handled by the consumer
-   * @return a new {@link RouteRegistration} instance
+   * @return a new {@link RouteHandler} instance
    */
   @Contract("_, _ -> new")
-  public static <T> @NotNull RouteRegistration<T> consumer(final Class<T> dataClass,
-                                                            final Consumer<T> consumer) {
-    return new RouteRegistration<>(dataClass, consumer);
+  public static <T> @NotNull RouteHandler<T> consumer(final Class<T> dataClass,
+                                                      final Consumer<T> consumer) {
+    return new RouteHandler<>(dataClass, consumer);
   }
 
   /**

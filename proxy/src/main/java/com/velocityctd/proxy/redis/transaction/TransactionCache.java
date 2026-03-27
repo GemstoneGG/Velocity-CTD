@@ -15,10 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.transaction.cache;
+package com.velocityctd.proxy.redis.transaction;
 
 import com.velocityctd.proxy.redis.VelocityRedis;
-import com.velocityctd.proxy.redis.transaction.Transaction;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import java.util.HashMap;

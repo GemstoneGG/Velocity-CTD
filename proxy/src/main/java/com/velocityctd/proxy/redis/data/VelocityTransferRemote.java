@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.impl.packet;
+package com.velocityctd.proxy.redis.data;
 
 import com.velocityctd.proxy.redis.transaction.TransactionData;
 import java.util.UUID;

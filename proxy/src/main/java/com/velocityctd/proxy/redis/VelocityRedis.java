@@ -19,10 +19,10 @@ package com.velocityctd.proxy.redis;
 
 import com.google.common.base.Preconditions;
 import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotService;
-import com.velocityctd.proxy.redis.impl.RouteRegistry;
-import com.velocityctd.proxy.redis.impl.TransactionHandlerRegistry;
-import com.velocityctd.proxy.redis.impl.depot.PlayerDepotService;
-import com.velocityctd.proxy.redis.impl.depot.ProxyDepotService;
+import com.velocityctd.proxy.redis.depot.PlayerDepotService;
+import com.velocityctd.proxy.redis.depot.ProxyDepotService;
+import com.velocityctd.proxy.redis.handler.RouteHandlerRegistry;
+import com.velocityctd.proxy.redis.handler.TransactionHandlerRegistry;
 import com.velocityctd.proxy.redis.provider.AbstractRedisProvider;
 import com.velocityctd.proxy.redis.provider.LettuceProvider;
 import com.velocityctd.proxy.redis.provider.RedisProvider;
@@ -124,14 +124,14 @@ public final class VelocityRedis {
   }
 
   /**
-   * Registers all route registrations defined in {@link RouteRegistry} with the current
+   * Registers all route registrations defined in {@link RouteHandlerRegistry} with the current
    * {@link RedisProvider} instance.
    *
    * <p>Each route represents a "one-way" packet handler for incoming Redis packets.</p>
    */
   private void registerRoutes() {
-    for (RouteRegistry registry : RouteRegistry.values()) {
-      this.provider.registerRoute(registry.getRouteRegistration());
+    for (RouteHandlerRegistry registry : RouteHandlerRegistry.values()) {
+      this.provider.registerRoute(registry.getRouteHandler());
     }
   }
 

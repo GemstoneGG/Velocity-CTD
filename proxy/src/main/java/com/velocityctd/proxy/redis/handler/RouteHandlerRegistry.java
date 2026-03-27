@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.impl;
+package com.velocityctd.proxy.redis.handler;
 
 import com.velocityctd.proxy.queue.RedisVelocityQueueManager;
 import com.velocityctd.proxy.queue.VelocityQueue;
@@ -23,13 +23,12 @@ import com.velocityctd.proxy.queue.VelocityQueueEntry;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueSync;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueTransfer;
 import com.velocityctd.proxy.redis.VelocityRedis;
-import com.velocityctd.proxy.redis.impl.packet.VelocityActionBar;
-import com.velocityctd.proxy.redis.impl.packet.VelocityAlert;
-import com.velocityctd.proxy.redis.impl.packet.VelocityKick;
-import com.velocityctd.proxy.redis.impl.packet.VelocityMessage;
-import com.velocityctd.proxy.redis.impl.packet.VelocitySudo;
-import com.velocityctd.proxy.redis.impl.packet.VelocitySwitchServer;
-import com.velocityctd.proxy.redis.registration.RouteRegistration;
+import com.velocityctd.proxy.redis.data.VelocityActionBar;
+import com.velocityctd.proxy.redis.data.VelocityAlert;
+import com.velocityctd.proxy.redis.data.VelocityKick;
+import com.velocityctd.proxy.redis.data.VelocityMessage;
+import com.velocityctd.proxy.redis.data.VelocitySudo;
+import com.velocityctd.proxy.redis.data.VelocitySwitchServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.function.BiConsumer;
@@ -38,9 +37,9 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Registry that holds all {@link RouteRegistration} entries for one-way Redis messages.
+ * Registry that holds all {@link RouteHandler} entries for one-way Redis messages.
  */
-public enum RouteRegistry {
+public enum RouteHandlerRegistry {
 
   /**
    * Handles the {@link VelocityAlert} data by sending a message to all players on the proxy.
@@ -73,11 +72,7 @@ public enum RouteRegistry {
       return;
     }
 
-    if (data.playerUniqueId() != null) {
-      server.getPlayer(data.playerUniqueId()).ifPresent(player -> player.sendMessage(component));
-    } else if (data.commandSource() != null) {
-      data.commandSource().sendMessage(server, component);
-    }
+    server.getPlayer(data.uniqueId()).ifPresent(player -> player.sendMessage(component));
   }),
 
   /**
@@ -174,21 +169,21 @@ public enum RouteRegistry {
   });
 
   /**
-   * The {@link RouteRegistration} that defines how this data type
+   * The {@link RouteHandler} that defines how this data type
    * is routed and handled within the proxy.
    */
-  private final RouteRegistration<?> routeRegistration;
+  private final RouteHandler<?> routeHandler;
 
-  <T> RouteRegistry(final Class<T> dataClass, final @NotNull BiConsumer<VelocityServer, T> route) {
-    this.routeRegistration = RouteRegistration.consumer(dataClass, data -> route.accept(VelocityRedis.INSTANCE.getServer(), data));
+  <T> RouteHandlerRegistry(final Class<T> dataClass, final @NotNull BiConsumer<VelocityServer, T> route) {
+    this.routeHandler = RouteHandler.consumer(dataClass, data -> route.accept(VelocityRedis.INSTANCE.getServer(), data));
   }
 
   /**
-   * Gets the {@link RouteRegistration} associated with this route entry.
+   * Gets the {@link RouteHandler} associated with this route entry.
    *
    * @return the route registration for this data type
    */
-  public RouteRegistration<?> getRouteRegistration() {
-    return routeRegistration;
+  public RouteHandler<?> getRouteHandler() {
+    return routeHandler;
   }
 }

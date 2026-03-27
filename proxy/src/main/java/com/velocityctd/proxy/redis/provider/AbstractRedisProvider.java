@@ -20,12 +20,12 @@ package com.velocityctd.proxy.redis.provider;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
+import com.velocityctd.proxy.redis.handler.RouteHandler;
 import com.velocityctd.proxy.redis.packet.DataPacket;
-import com.velocityctd.proxy.redis.registration.RouteRegistration;
 import com.velocityctd.proxy.redis.transaction.Transaction;
+import com.velocityctd.proxy.redis.transaction.TransactionCache;
 import com.velocityctd.proxy.redis.transaction.TransactionData;
 import com.velocityctd.proxy.redis.transaction.TransactionHandler;
-import com.velocityctd.proxy.redis.transaction.cache.TransactionCache;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,7 +71,7 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
    * The registry of all route registrations keyed by data class name.
    */
   @MonotonicNonNull
-  protected final Map<String, RouteRegistration<?>> routeRegistrations;
+  protected final Map<String, RouteHandler<?>> routeHandlers;
 
   /**
    * The registry of all transaction handlers keyed by transaction class name.
@@ -83,7 +83,7 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
    * Constructs a new {@link AbstractRedisProvider}.
    */
   public AbstractRedisProvider() {
-    this.routeRegistrations = new HashMap<>();
+    this.routeHandlers = new HashMap<>();
     this.transactionHandlers = new HashMap<>();
   }
 
@@ -109,18 +109,18 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
   /**
    * Registers a route for a specific data type.
    *
-   * @param routeRegistration the route registration to add
+   * @param routeHandler the route registration to add
    * @param <T> the type of data handled by the route
    */
   @Override
-  public <T> void registerRoute(final @NotNull RouteRegistration<T> routeRegistration) {
-    final Class<T> dataClass = routeRegistration.getDataClass();
+  public <T> void registerRoute(final @NotNull RouteHandler<T> routeHandler) {
+    final Class<T> dataClass = routeHandler.getDataClass();
 
-    if (this.routeRegistrations.containsKey(dataClass.getName())) {
+    if (this.routeHandlers.containsKey(dataClass.getName())) {
       LOGGER.debug("Route registration for '{}' already exists, overwriting", dataClass.getSimpleName());
     }
 
-    this.routeRegistrations.put(dataClass.getName(), routeRegistration);
+    this.routeHandlers.put(dataClass.getName(), routeHandler);
   }
 
   /**
@@ -131,7 +131,7 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
    */
   @Override
   public <T> void unregisterRoute(final @NotNull Class<T> dataClass) {
-    if (this.routeRegistrations.remove(dataClass.getName()) == null) {
+    if (this.routeHandlers.remove(dataClass.getName()) == null) {
       LOGGER.debug("Route registration for '{}' does not exist, ignoring", dataClass.getSimpleName());
     } else {
       LOGGER.debug("Unregistered route registration for '{}'", dataClass.getSimpleName());
@@ -169,13 +169,13 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
   }
 
   /**
-   * Gets an immutable list of all registered {@link RouteRegistration} instances.
+   * Gets an immutable list of all registered {@link RouteHandler} instances.
    *
    * @return an immutable list of route registrations
    */
   @Override
-  public @NotNull ImmutableList<@NotNull RouteRegistration<?>> getRouteRegistrations() {
-    return ImmutableList.copyOf(this.routeRegistrations.values());
+  public @NotNull ImmutableList<@NotNull RouteHandler<?>> getRouteHandlers() {
+    return ImmutableList.copyOf(this.routeHandlers.values());
   }
 
   /**

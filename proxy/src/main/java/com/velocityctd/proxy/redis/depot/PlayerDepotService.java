@@ -15,11 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.impl.depot;
+package com.velocityctd.proxy.redis.depot;
 
 import com.velocityctd.proxy.redis.VelocityRedis;
-import com.velocityctd.proxy.redis.depot.AbstractDepotService;
-import com.velocityctd.proxy.redis.impl.packet.VelocityKick;
+import com.velocityctd.proxy.redis.data.VelocityKick;
 import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.api.scheduler.ScheduledTask;

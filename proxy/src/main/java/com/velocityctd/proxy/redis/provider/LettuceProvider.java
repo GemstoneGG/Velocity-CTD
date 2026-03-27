@@ -21,9 +21,9 @@ import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import com.velocityctd.proxy.redis.depot.Depot;
 import com.velocityctd.proxy.redis.depot.DepotEntry;
+import com.velocityctd.proxy.redis.handler.RouteHandler;
 import com.velocityctd.proxy.redis.packet.DataPacket;
-import com.velocityctd.proxy.redis.packet.serialization.PacketSerializer;
-import com.velocityctd.proxy.redis.registration.RouteRegistration;
+import com.velocityctd.proxy.redis.packet.PacketSerializer;
 import com.velocityctd.proxy.redis.transaction.Transaction;
 import com.velocityctd.proxy.redis.transaction.TransactionHandler;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
@@ -221,21 +221,21 @@ public final class LettuceProvider extends AbstractRedisProvider {
   }
 
   /**
-   * Handles a one-way {@link DataPacket} by routing it through a registered {@link RouteRegistration}, if present.
+   * Handles a one-way {@link DataPacket} by routing it through a registered {@link RouteHandler}, if present.
    *
    * @param dataPacket the one-way packet to handle
    */
   @SuppressWarnings("unchecked")
   private void handleOneWay(final @NotNull DataPacket dataPacket) {
-    final RouteRegistration<Object> routeRegistration = (RouteRegistration<Object>) routeRegistrations.get(dataPacket.getPayloadType());
-    if (routeRegistration == null) {
+    final RouteHandler<Object> routeHandler = (RouteHandler<Object>) routeHandlers.get(dataPacket.getPayloadType());
+    if (routeHandler == null) {
       LOGGER.warn("Received a packet of type '{}' from channel '{}', but no route registration exists, ignoring",
               dataPacket.getPayloadType(), CHANNEL);
       return;
     }
 
     try {
-      routeRegistration.getConsumer().accept(dataPacket.getPayload());
+      routeHandler.getConsumer().accept(dataPacket.getPayload());
     } catch (Throwable ignored) {
       LOGGER.warn("Failed to handle one way packet of type '{}', ignoring", dataPacket.getPayloadType());
     }

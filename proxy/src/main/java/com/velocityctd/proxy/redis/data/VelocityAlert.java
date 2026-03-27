@@ -15,14 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.impl.packet;
+package com.velocityctd.proxy.redis.data;
 
-import com.velocityctd.proxy.redis.transaction.TransactionData;
+import net.kyori.adventure.text.Component;
 
 /**
- * Data record representing a request to get the uptime of a proxy.
+ * Data record used to send an alert message to all proxies.
  *
- * @param proxyId the id of the proxy to get the uptime of
+ * @param component the alert message
  */
-public record VelocityUptime(String proxyId) implements TransactionData<Long> {
+public record VelocityAlert(Component component) {
 }

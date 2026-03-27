@@ -15,14 +15,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.impl.packet;
+package com.velocityctd.proxy.redis.data;
 
-import com.velocityctd.proxy.redis.transaction.TransactionData;
+import java.util.UUID;
+import net.kyori.adventure.text.Component;
 
 /**
- * Data record representing a request to reload a proxy.
+ * Data record used to send a message to a player or command source.
  *
- * @param proxyId the id of the proxy to reload
+ * @param uniqueId the player's unique ID
+ * @param component the message to send
  */
-public record VelocityReload(String proxyId) implements TransactionData<Boolean> {
+public record VelocityMessage(UUID uniqueId, Component component) {
 }

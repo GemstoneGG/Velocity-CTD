@@ -20,8 +20,8 @@ package com.velocityctd.proxy.redis.provider;
 import com.google.common.collect.ImmutableList;
 import com.velocityctd.proxy.redis.depot.Depot;
 import com.velocityctd.proxy.redis.depot.DepotEntry;
+import com.velocityctd.proxy.redis.handler.RouteHandler;
 import com.velocityctd.proxy.redis.packet.DataPacket;
-import com.velocityctd.proxy.redis.registration.RouteRegistration;
 import com.velocityctd.proxy.redis.transaction.Transaction;
 import com.velocityctd.proxy.redis.transaction.TransactionData;
 import com.velocityctd.proxy.redis.transaction.TransactionHandler;
@@ -75,15 +75,15 @@ public sealed interface RedisProvider permits AbstractRedisProvider {
   }
 
   /**
-   * Register a {@link RouteRegistration} for a specific data class.
+   * Register a {@link RouteHandler} for a specific data class.
    *
-   * @param routeRegistration the route registration to register
+   * @param routeHandler the route registration to register
    * @param <T>               the type of the data
    */
-  <T> void registerRoute(@NotNull RouteRegistration<T> routeRegistration);
+  <T> void registerRoute(@NotNull RouteHandler<T> routeHandler);
 
   /**
-   * Unregister a {@link RouteRegistration} for a specific data class, if it exists.
+   * Unregister a {@link RouteHandler} for a specific data class, if it exists.
    *
    * @param dataClass the class of the data to unregister
    * @param <T>       the type of the data
@@ -95,7 +95,7 @@ public sealed interface RedisProvider permits AbstractRedisProvider {
    *
    * @return the immutable list of all route registrations
    */
-  @NotNull ImmutableList<@NotNull RouteRegistration<?>> getRouteRegistrations();
+  @NotNull ImmutableList<@NotNull RouteHandler<?>> getRouteHandlers();
 
   /**
    * Register a {@link TransactionHandler} for a specific transaction class.

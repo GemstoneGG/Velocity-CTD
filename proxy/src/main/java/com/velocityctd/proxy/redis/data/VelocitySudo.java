@@ -15,13 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.impl.packet;
+package com.velocityctd.proxy.redis.data;
+
+import java.util.UUID;
 
 /**
- * Data record used to switch a player to a specific server.
+ * Data record used to execute a command or chat message on behalf of a player.
  *
- * @param username the username of the player
- * @param serverName the name of the target server
+ * @param uniqueId the player's unique ID
+ * @param message the message or command to execute
  */
-public record VelocitySwitchServer(String username, String serverName) {
+public record VelocitySudo(UUID uniqueId, String message) {
 }

@@ -15,14 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.impl.packet;
+package com.velocityctd.proxy.redis.data;
 
 import com.velocityctd.proxy.redis.transaction.TransactionData;
 
 /**
- * Data record representing a request to get the ping of a player.
+ * Data record representing a request to reload a proxy.
  *
- * @param username the username of the player to get the ping of
+ * @param proxyId the id of the proxy to reload
  */
-public record VelocityGetPlayerPing(String username) implements TransactionData<Long> {
+public record VelocityReload(String proxyId) implements TransactionData<Boolean> {
 }

@@ -15,28 +15,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.impl.packet;
+package com.velocityctd.proxy.redis.data;
 
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
-import org.jetbrains.annotations.Nullable;
 
 /**
- * Data record used to remotely kick a player from another proxy.
+ * Data record used to send an action bar message to a player.
  *
- * @param uniqueId the unique identifier of the player being kicked
- * @param component the disconnect message
- * @param targetProxyId the proxy ID that should process this kick, or {@code null} for all proxies
+ * @param uniqueId the unique identifier of the player
+ * @param component the action bar message
  */
-public record VelocityKick(UUID uniqueId, Component component, @Nullable String targetProxyId) {
-
-  /**
-   * Constructs a new {@link VelocityKick} that targets all proxies.
-   *
-   * @param uniqueId the player's unique ID
-   * @param component the disconnect message
-   */
-  public VelocityKick(final UUID uniqueId, final Component component) {
-    this(uniqueId, component, null);
-  }
+public record VelocityActionBar(UUID uniqueId, Component component) {
 }

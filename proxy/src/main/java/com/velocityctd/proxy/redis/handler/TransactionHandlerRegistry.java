@@ -15,13 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.impl;
+package com.velocityctd.proxy.redis.handler;
 
 import com.velocityctd.proxy.redis.VelocityRedis;
-import com.velocityctd.proxy.redis.impl.packet.VelocityGetPlayerPing;
-import com.velocityctd.proxy.redis.impl.packet.VelocityReload;
-import com.velocityctd.proxy.redis.impl.packet.VelocityTransferRemote;
-import com.velocityctd.proxy.redis.impl.packet.VelocityUptime;
+import com.velocityctd.proxy.redis.data.VelocityGetPlayerPing;
+import com.velocityctd.proxy.redis.data.VelocityReload;
+import com.velocityctd.proxy.redis.data.VelocityTransferRemote;
+import com.velocityctd.proxy.redis.data.VelocityUptime;
 import com.velocityctd.proxy.redis.transaction.TransactionData;
 import com.velocityctd.proxy.redis.transaction.TransactionHandler;
 import com.velocitypowered.api.network.ProtocolVersion;

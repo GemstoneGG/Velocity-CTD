@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.packet.serialization;
+package com.velocityctd.proxy.redis.packet;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -25,7 +25,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
-import com.velocityctd.proxy.redis.packet.DataPacket;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import net.kyori.adventure.text.Component;
