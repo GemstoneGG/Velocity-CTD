@@ -152,7 +152,7 @@ public class Transaction<T extends RedisPacket, R> {
 
     if (replyPacket instanceof DataPacket dataPacket) {
       try {
-        this.future.complete(dataPacket.getData());
+        this.future.complete(dataPacket.getPayload());
       } catch (Exception e) {
         LOGGER.warn("Failed to deserialize reply data: {}", e.getMessage());
         this.future.completeExceptionally(e);

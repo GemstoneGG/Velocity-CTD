@@ -32,13 +32,15 @@ public final class DataPacket extends AbstractRedisPacket {
   /**
    * The GSON-serialized JSON representation of the payload.
    */
-  private final String data;
+  private final String payload;
 
   /**
    * The fully qualified class name of the payload type,
    * used for deserialization.
    */
-  private final String dataType;
+  private final String payloadType;
+
+  private transient Object rawPayload;
 
   /**
    * Constructs a new {@link DataPacket} by serializing the given payload.
@@ -47,8 +49,10 @@ public final class DataPacket extends AbstractRedisPacket {
    * @param <T> the type of the payload
    */
   public <T> DataPacket(final @NotNull T payload) {
-    this.data = PacketSerializer.GSON.toJson(payload);
-    this.dataType = payload.getClass().getName();
+    this.payload = PacketSerializer.GSON.toJson(payload);
+    this.payloadType = payload.getClass().getName();
+
+    this.rawPayload = payload;
   }
 
   /**
@@ -57,15 +61,19 @@ public final class DataPacket extends AbstractRedisPacket {
    * @param <T> the target type
    * @return the deserialized payload
    */
-  public <T> T getData() {
-    Class<?> clazz;
-    try {
-      clazz = Class.forName(dataType);
-    } catch (ClassNotFoundException e) {
-      throw new RuntimeException(e);
+  public <T> T getPayload() {
+    if (rawPayload == null) {
+      Class<?> clazz;
+      try {
+        clazz = Class.forName(payloadType);
+      } catch (ClassNotFoundException e) {
+        throw new RuntimeException(e);
+      }
+
+      rawPayload = PacketSerializer.GSON.fromJson(payload, clazz);
     }
 
     //noinspection unchecked
-    return (T) PacketSerializer.GSON.fromJson(data, clazz);
+    return (T) rawPayload;
   }
 }
