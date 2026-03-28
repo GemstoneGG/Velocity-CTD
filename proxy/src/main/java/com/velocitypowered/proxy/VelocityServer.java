@@ -42,11 +42,9 @@ import com.velocityctd.proxy.command.builtin.QueueAdminCommand;
 import com.velocityctd.proxy.command.builtin.SlashServerCommand;
 import com.velocityctd.proxy.command.builtin.TransferCommand;
 import com.velocityctd.proxy.connection.profile.GameProfileFetcher;
-import com.velocityctd.proxy.connection.profile.cache.MemoryGameProfileCache;
 import com.velocityctd.proxy.queue.RedisVelocityQueueManager;
 import com.velocityctd.proxy.queue.VelocityQueueManager;
 import com.velocityctd.proxy.redis.VelocityRedis;
-import com.velocityctd.proxy.redis.profilecache.RedisGameProfileCache;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.Command;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
@@ -110,7 +108,6 @@ import java.net.http.HttpClient;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyPair;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -544,24 +541,9 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     }
 
     gameProfileFetcher = new GameProfileFetcher(this);
-    if (configuration.isCachePlayerProfileResultEnabled()) {
-      LOGGER.debug("Registering memory profile cache");
-      gameProfileFetcher.getCacheLayers().addFirst(new MemoryGameProfileCache(
-          Duration.ofMinutes(configuration.getProfileCacheExpiryMinutes()),
-          1_000
-      ));
-    }
 
     if (configuration.getRedis().isEnabled()) {
       redis = new VelocityRedis(this);
-
-      if (configuration.isCachePlayerProfileResultEnabled()) {
-        LOGGER.debug("Registering Redis profile cache");
-        gameProfileFetcher.getCacheLayers().addLast(new RedisGameProfileCache(
-            redis.getProvider(),
-            Duration.ofMinutes(configuration.getProfileCacheExpiryMinutes())
-        ));
-      }
 
       clusterPlayerService = new RedisClusterPlayerService(this, redis);
       clusterProxyService = new RedisClusterProxyService(redis);
