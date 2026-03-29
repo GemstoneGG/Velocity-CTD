@@ -42,6 +42,7 @@ import com.velocitypowered.proxy.protocol.packet.LegacyPingPacket;
 import io.netty.buffer.ByteBuf;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.http.HttpClient;
 import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -75,6 +76,12 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
   private final VelocityServer server;
 
   /**
+   * The {@link HttpClient} that will be passed to the {@link InitialLoginSessionHandler}.
+   * May be a shared instance.
+   */
+  private final HttpClient httpClient;
+
+  /**
    * The configured minimum version string used to validate connecting clients.
    */
   private final String minimumVersion;
@@ -94,9 +101,12 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
    *               and event handling.
    * @throws NullPointerException if either {@code connection} or {@code server} is {@code null}.
    */
-  public HandshakeSessionHandler(final MinecraftConnection connection, final VelocityServer server) {
+  public HandshakeSessionHandler(final MinecraftConnection connection,
+                                 final VelocityServer server,
+                                 final HttpClient httpClient) {
     this.connection = Preconditions.checkNotNull(connection, "connection");
     this.server = Preconditions.checkNotNull(server, "server");
+    this.httpClient = Preconditions.checkNotNull(httpClient, "httpClient");
     this.minimumVersion = server.getConfiguration().getMinimumVersion();
     this.maximumVersion = server.getConfiguration().getMaximumVersion()
         .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
@@ -226,7 +236,8 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
 
     final LoginInboundConnection lic = new LoginInboundConnection(ic);
     server.getEventManager().fireAndForget(new ConnectionHandshakeEvent(lic, handshake.getIntent()));
-    connection.setActiveSessionHandler(StateRegistry.LOGIN, new InitialLoginSessionHandler(server, connection, lic));
+    connection.setActiveSessionHandler(StateRegistry.LOGIN,
+        new InitialLoginSessionHandler(server, connection, lic, httpClient));
   }
 
   private ConnectionType getHandshakeConnectionType(final HandshakePacket handshake) {

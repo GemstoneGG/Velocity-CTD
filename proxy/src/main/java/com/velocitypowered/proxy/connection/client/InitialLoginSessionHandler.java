@@ -17,6 +17,8 @@
 
 package com.velocitypowered.proxy.connection.client;
 
+import static com.google.common.net.UrlEscapers.urlFormParameterEscaper;
+import static com.velocitypowered.proxy.VelocityServer.GENERAL_GSON;
 import static com.velocitypowered.proxy.connection.VelocityConstants.EMPTY_BYTE_ARRAY;
 import static com.velocitypowered.proxy.crypto.EncryptionUtils.decryptRsa;
 import static com.velocitypowered.proxy.crypto.EncryptionUtils.generateServerId;
@@ -41,6 +43,10 @@ import com.velocitypowered.proxy.protocol.packet.ServerLoginPacket;
 import com.velocitypowered.proxy.util.VelocityProperties;
 import io.netty.buffer.ByteBuf;
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.MessageDigest;
@@ -69,6 +75,14 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
   private static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
 
   /**
+   * The URL used to verify that a player has joined using Mojang's session server.
+   */
+  private static final String MOJANG_HASJOINED_URL =
+      System.getProperty("mojang.sessionserver",
+              "https://sessionserver.mojang.com/session/minecraft/hasJoined")
+          .concat("?username=%s&serverId=%s");
+
+  /**
    * The Velocity server instance.
    */
   private final VelocityServer server;
@@ -82,6 +96,12 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
    * The login connection interface that wraps initial inbound connection details.
    */
   private final LoginInboundConnection inbound;
+
+  /**
+   * The {@link HttpClient} used to fetch {@link #MOJANG_HASJOINED_URL}.
+   * May be a shared instance.
+   */
+  private final HttpClient httpClient;
 
   /**
    * The login packet sent by the client. May be {@code null} if not yet received.
@@ -104,12 +124,13 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
   private final boolean forceKeyAuthentication;
 
   InitialLoginSessionHandler(final VelocityServer server, final MinecraftConnection mcConnection,
-                             final LoginInboundConnection inbound) {
+                             final LoginInboundConnection inbound, final HttpClient httpClient) {
     this.server = Preconditions.checkNotNull(server, "server");
     this.mcConnection = Preconditions.checkNotNull(mcConnection, "mcConnection");
     this.inbound = Preconditions.checkNotNull(inbound, "inbound");
+    this.httpClient = Preconditions.checkNotNull(httpClient, "httpClient");
     this.forceKeyAuthentication = VelocityProperties.readBoolean(
-            "auth.forceSecureProfiles", server.getConfiguration().isForceKeyAuthentication());
+        "auth.forceSecureProfiles", server.getConfiguration().isForceKeyAuthentication());
   }
 
   /**
@@ -263,41 +284,57 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
 
       String serverId = generateServerId(decryptedSharedSecret, serverKeyPair.getPublic());
       String playerIp = ((InetSocketAddress) mcConnection.getRemoteAddress()).getHostString();
+      String url = String.format(MOJANG_HASJOINED_URL, urlFormParameterEscaper().escape(login.getUsername()), serverId);
 
-      server.getGameProfileFetcher().fetchProfile(playerIp, login.getUsername(), serverId)
-              .whenCompleteAsync((response, throwable) -> {
-                if (mcConnection.isClosed()) {
-                  // The player disconnected after we authenticated them.
-                  return;
+      if (server.getConfiguration().shouldPreventClientProxyConnections()) {
+        url += "&ip=" + urlFormParameterEscaper().escape(playerIp);
+      }
+
+      final HttpRequest httpRequest = HttpRequest.newBuilder()
+          .setHeader("User-Agent",
+              server.getVersion().getName() + "/" + server.getVersion().getVersion())
+          .uri(URI.create(url))
+          .build();
+
+      httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
+          .whenCompleteAsync((response, throwable) -> {
+            if (mcConnection.isClosed()) {
+              // The player disconnected after we authenticated them.
+              return;
+            }
+
+            if (throwable != null) {
+              LOGGER.error("Unable to authenticate player", throwable);
+              inbound.disconnect(Component.translatable("multiplayer.disconnect.authservers_down"));
+              return;
+            }
+
+            if (response.statusCode() == 200) {
+              final GameProfile profile = GENERAL_GSON.fromJson(response.body(), GameProfile.class);
+
+              // Not so fast, now we verify the public key for 1.19.1+
+              if (inbound.getIdentifiedKey() != null
+                  && inbound.getIdentifiedKey().getKeyRevision() == IdentifiedKey.Revision.LINKED_V2
+                  && inbound.getIdentifiedKey() instanceof final IdentifiedKeyImpl key) {
+                if (!key.internalAddHolder(profile.getId())) {
+                  inbound.disconnect(
+                      Component.translatable("multiplayer.disconnect.invalid_public_key"));
                 }
-
-                if (throwable != null || !response.status().success()) {
-                  if (throwable != null) {
-                    LOGGER.error("Exception while fetching profile", throwable);
-                  }
-
-                  switch (response.status()) {
-                    case ERROR_AUTH_DOWN -> inbound.disconnect(Component.translatable("multiplayer.disconnect.authservers_down"));
-                    case ERROR_OFFLINE_USER -> inbound.disconnect(Component.translatable("velocity.error.online-mode-only", NamedTextColor.RED));
-                    default -> throw new IllegalStateException("Unhandled error '" + response.status() + "'.");
-                  }
-                  return;
-                }
-
-                GameProfile profile = response.gameProfile();
-
-                // Not so fast, now we verify the public key for 1.19.1+
-                if (inbound.getIdentifiedKey() != null
-                    && inbound.getIdentifiedKey().getKeyRevision() == IdentifiedKey.Revision.LINKED_V2
-                    && inbound.getIdentifiedKey() instanceof final IdentifiedKeyImpl key) {
-                  if (!key.internalAddHolder(profile.getId())) {
-                    inbound.disconnect(Component.translatable("multiplayer.disconnect.invalid_public_key"));
-                  }
-                }
-
-                // All went well, initialize the session.
-                mcConnection.setActiveSessionHandler(StateRegistry.LOGIN, new AuthSessionHandler(server, inbound, profile, true, serverId));
-              }, mcConnection.eventLoop());
+              }
+              // All went well, initialize the session.
+              mcConnection.setActiveSessionHandler(StateRegistry.LOGIN, new AuthSessionHandler(server, inbound, profile, true, serverId));
+            } else if (response.statusCode() == 204) {
+              // Apparently, an offline-mode user logged onto this online-mode proxy.
+              inbound.disconnect(
+                  Component.translatable("velocity.error.online-mode-only", NamedTextColor.RED));
+            } else {
+              // Something else went wrong
+              LOGGER.error(
+                  "Got an unexpected error code {} whilst contacting Mojang to log in {} ({})",
+                  response.statusCode(), login.getUsername(), playerIp);
+              inbound.disconnect(Component.translatable("multiplayer.disconnect.authservers_down"));
+            }
+          }, mcConnection.eventLoop());
     } catch (GeneralSecurityException e) {
       LOGGER.error("Unable to enable encryption", e);
       mcConnection.close(true);

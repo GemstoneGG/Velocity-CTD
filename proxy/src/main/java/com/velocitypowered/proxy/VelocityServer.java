@@ -41,7 +41,6 @@ import com.velocityctd.proxy.command.builtin.ProxyAliasCommand;
 import com.velocityctd.proxy.command.builtin.QueueAdminCommand;
 import com.velocityctd.proxy.command.builtin.SlashServerCommand;
 import com.velocityctd.proxy.command.builtin.TransferCommand;
-import com.velocityctd.proxy.connection.profile.GameProfileFetcher;
 import com.velocityctd.proxy.queue.RedisVelocityQueueManager;
 import com.velocityctd.proxy.queue.VelocityQueueManager;
 import com.velocityctd.proxy.redis.VelocityRedis;
@@ -340,11 +339,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private @MonotonicNonNull VelocityRedis redis;
 
   /**
-   * The global {@link GameProfileFetcher} used by {@link com.velocitypowered.proxy.connection.client.InitialLoginSessionHandler}.
-   */
-  private @MonotonicNonNull GameProfileFetcher gameProfileFetcher;
-
-  /**
    * The cluster player service for tracking and querying players across the cluster.
    */
   private @MonotonicNonNull ClusterPlayerService clusterPlayerService;
@@ -398,10 +392,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    */
   public VelocityRedis getRedis() {
     return redis;
-  }
-
-  public @MonotonicNonNull GameProfileFetcher getGameProfileFetcher() {
-    return gameProfileFetcher;
   }
 
   @Override
@@ -539,8 +529,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         servers.register(new ServerInfo(entry.getKey(), AddressUtil.parseAddress(entry.getValue().address()), entry.getValue().forwardingMode()));
       }
     }
-
-    gameProfileFetcher = new GameProfileFetcher(this);
 
     if (configuration.getRedis().isEnabled()) {
       redis = new VelocityRedis(this);
