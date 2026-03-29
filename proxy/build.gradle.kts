@@ -93,9 +93,6 @@ tasks {
         // Exclude Checker Framework annotations
         exclude("org/checkerframework/checker/**")
 
-        // Exclude original Guice HiddenClassDefiner to use patched version without sun.misc.Unsafe
-        exclude("com/google/inject/internal/aop/HiddenClassDefiner.class")
-
         relocate("org.bstats", "com.velocitypowered.proxy.bstats")
 
         // Include Configurate 3

@@ -327,7 +327,7 @@ public class VelocityEventManager implements EventManager {
       type = UNTARGETED_VOID_HANDLER_TYPE;
     }
 
-    return LambdaFactory.create(type.defineClassesWith(lookup), methodHandle);
+    return LambdaFactory.create(type.defineClassesWith(METHOD_HANDLES_LOOKUP), methodHandle);
   }
 
   static final class MethodHandlerInfo {
