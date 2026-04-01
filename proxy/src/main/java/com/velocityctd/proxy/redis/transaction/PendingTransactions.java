@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Represents a map implementation of a transaction cache.
  */
-public final class TransactionCache extends HashMap<UUID, Transaction<?, ?>> {
+public final class PendingTransactions extends HashMap<UUID, Transaction<?, ?>> {
 
   /**
    * Tracks scheduled timeout tasks for each transaction ID stored in the cache.
@@ -52,11 +52,11 @@ public final class TransactionCache extends HashMap<UUID, Transaction<?, ?>> {
   private final TimeUnit timeUnit;
 
   /**
-   * Constructs a new {@link TransactionCache}.
+   * Constructs a new {@link PendingTransactions}.
    *
    * @param scheduler the scheduler to use for timeout tasks
    */
-  public TransactionCache(final @NotNull Scheduler scheduler) {
+  public PendingTransactions(final @NotNull Scheduler scheduler) {
     this.refreshTasks = new HashMap<>();
     this.scheduler = scheduler;
     this.delay = Transaction.DEFAULT_TIMEOUT;

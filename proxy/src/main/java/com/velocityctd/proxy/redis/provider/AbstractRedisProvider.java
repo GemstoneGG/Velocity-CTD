@@ -24,7 +24,7 @@ import com.velocityctd.proxy.redis.handler.RouteHandler;
 import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocityctd.proxy.redis.packet.PacketSerializer;
 import com.velocityctd.proxy.redis.transaction.Transaction;
-import com.velocityctd.proxy.redis.transaction.TransactionCache;
+import com.velocityctd.proxy.redis.transaction.PendingTransactions;
 import com.velocityctd.proxy.redis.transaction.TransactionData;
 import com.velocityctd.proxy.redis.transaction.TransactionHandler;
 import com.velocitypowered.api.scheduler.Scheduler;
@@ -59,9 +59,9 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
 
   /**
    * Cache of pending {@link Transaction} instances, which are automatically timed out
-   * via the associated {@link TransactionCache} callback.
+   * via the associated {@link PendingTransactions} callback.
    */
-  protected final TransactionCache pendingTransactions;
+  protected final PendingTransactions pendingTransactions;
 
   /**
    * The {@link PacketSerializer} instance used for packet (de)serialization.
@@ -93,7 +93,7 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
    */
   public AbstractRedisProvider(final @NotNull Scheduler scheduler,
                                final @NotNull PacketSerializer packetSerializer) {
-    this.pendingTransactions = new TransactionCache(scheduler);
+    this.pendingTransactions = new PendingTransactions(scheduler);
     this.packetSerializer = packetSerializer;
     this.routeHandlers = new HashMap<>();
     this.transactionHandlers = new HashMap<>();
