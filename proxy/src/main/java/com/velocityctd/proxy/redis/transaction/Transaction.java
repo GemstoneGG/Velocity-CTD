@@ -23,6 +23,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Represents a transaction process that sends {@link TransactionData} and produces a result
@@ -36,6 +38,8 @@ import org.jetbrains.annotations.NotNull;
  * @param <R> the type of the expected response data
  */
 public final class Transaction<T extends TransactionData<R>, R> {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(Transaction.class);
 
   /**
    * The default timeout value (in seconds) used for transactions.
@@ -144,7 +148,13 @@ public final class Transaction<T extends TransactionData<R>, R> {
       return;
     }
 
-    this.future.complete((R) result);
+    try {
+      this.future.complete((R) result);
+    } catch (ClassCastException e) {
+      LOGGER.warn("Transaction {} completed with unexpected result type '{}', expected a different type",
+          this.transactionId, result == null ? "null" : result.getClass().getName(), e);
+      this.future.completeExceptionally(e);
+    }
   }
 
   /**
