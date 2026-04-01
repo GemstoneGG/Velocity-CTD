@@ -69,6 +69,9 @@ public final class LocalClusterPlayerService implements VelocityClusterPlayerSer
 
   @Override
   public Collection<VelocityClusterPlayer> getPlayersOnProxy(final String proxyId) {
+    if (!this.server.getProxyId().equalsIgnoreCase(proxyId)) {
+      return List.of();
+    }
     return getAllPlayers();
   }
 

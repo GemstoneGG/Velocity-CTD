@@ -61,7 +61,7 @@ public final class RedisClusterPlayer implements VelocityClusterPlayer {
   }
 
   @Override
-  public @Nullable String getProxyId() {
+  public String getProxyId() {
     return redisEntry.getProxyId();
   }
 

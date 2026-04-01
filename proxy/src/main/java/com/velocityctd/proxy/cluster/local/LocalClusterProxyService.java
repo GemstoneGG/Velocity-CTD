@@ -53,6 +53,9 @@ public final class LocalClusterProxyService implements VelocityClusterProxyServi
 
   @Override
   public CompletableFuture<Boolean> reloadProxy(final String proxyId) {
+    if (!getSelfProxyId().equalsIgnoreCase(proxyId)) {
+      return completedFuture(false);
+    }
     try {
       return completedFuture(this.server.reloadConfiguration());
     } catch (Exception e) {
@@ -62,6 +65,9 @@ public final class LocalClusterProxyService implements VelocityClusterProxyServi
 
   @Override
   public CompletableFuture<Long> queryProxyUptime(final String proxyId) {
+    if (!getSelfProxyId().equalsIgnoreCase(proxyId)) {
+      return completedFuture(0L);
+    }
     return completedFuture((System.currentTimeMillis() - server.getStartTime()) / 1000);
   }
 }

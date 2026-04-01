@@ -57,8 +57,8 @@ public final class LocalClusterPlayer implements VelocityClusterPlayer {
   }
 
   @Override
-  public @Nullable String getProxyId() {
-    return null;
+  public String getProxyId() {
+    return server.getProxyId();
   }
 
   @Override

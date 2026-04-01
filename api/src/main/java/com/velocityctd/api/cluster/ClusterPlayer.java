@@ -40,9 +40,9 @@ public interface ClusterPlayer {
   /**
    * Gets the identifier of the proxy this player is connected to.
    *
-   * @return the proxy identifier, or {@code null} if unknown
+   * @return the proxy identifier
    */
-  @Nullable String getProxyId();
+  String getProxyId();
 
   /**
    * Gets the name of the backend server this player is currently on.

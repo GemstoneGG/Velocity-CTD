@@ -137,10 +137,8 @@ public class GlistCommand implements BuiltinCommand {
 
     for (VelocityClusterPlayer player : this.server.getClusterPlayerService().getPlayersOnServer(server.getServerInfo().getName())) {
       String proxyId = player.getProxyId();
-      String key = "velocity.command.glist.proxy-"
-              + (proxyId == null || proxyId.equals(selfProxyId) ? "self" : "other");
-      Component hover = Component.translatable(key)
-              .arguments(Component.text(proxyId != null ? proxyId : selfProxyId));
+      String key = "velocity.command.glist.proxy-" + (proxyId.equals(selfProxyId) ? "self" : "other");
+      Component hover = Component.translatable(key).arguments(Component.text(proxyId));
       players.add(Component.text(player.getUsername()).hoverEvent(HoverEvent.showText(hover)));
       totalPlayers += 1;
     }
