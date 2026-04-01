@@ -242,8 +242,8 @@ public final class LettuceProvider extends AbstractRedisProvider {
 
     try {
       routeHandler.getConsumer().accept(dataPacket.getPayload(packetSerializer));
-    } catch (Throwable ignored) {
-      LOGGER.warn("Failed to handle one way packet of type '{}', ignoring", dataPacket.getPayloadType());
+    } catch (Throwable t) {
+      LOGGER.warn("Failed to handle one way packet of type '{}'.", dataPacket.getPayloadType(), t);
     }
   }
 
