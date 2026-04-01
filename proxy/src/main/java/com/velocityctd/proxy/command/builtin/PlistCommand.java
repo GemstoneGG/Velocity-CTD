@@ -24,7 +24,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
-import com.velocityctd.proxy.cluster.ClusterPlayer;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
@@ -161,7 +161,7 @@ public class PlistCommand implements BuiltinCommand {
       return Command.SINGLE_SUCCESS;
     }
 
-    Collection<ClusterPlayer> proxyPlayers = server.getClusterPlayerService().getPlayersOnProxy(validatedProxy.get());
+    Collection<VelocityClusterPlayer> proxyPlayers = server.getClusterPlayerService().getPlayersOnProxy(validatedProxy.get());
     sendTotalProxyCount(context.getSource(), validatedProxy.get(), proxyPlayers.size());
     return Command.SINGLE_SUCCESS;
   }
@@ -211,7 +211,7 @@ public class PlistCommand implements BuiltinCommand {
     List<Component> players = new ArrayList<>();
     int totalPlayers = 0;
 
-    for (ClusterPlayer player : this.server.getClusterPlayerService().getPlayersOnServer(server.getServerInfo().getName())) {
+    for (VelocityClusterPlayer player : this.server.getClusterPlayerService().getPlayersOnServer(server.getServerInfo().getName())) {
       if (proxyId == null || (player.getProxyId() != null && player.getProxyId().equalsIgnoreCase(proxyId))) {
         players.add(Component.text(player.getUsername()));
         totalPlayers++;

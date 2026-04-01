@@ -18,7 +18,7 @@
 package com.velocityctd.proxy.cluster.redis;
 
 import com.velocityctd.api.queue.QueueEntryData;
-import com.velocityctd.proxy.cluster.ClusterPlayer;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.data.VelocityGetPlayerPing;
 import com.velocityctd.proxy.redis.data.VelocityKick;
@@ -36,9 +36,9 @@ import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Redis-backed implementation of {@link ClusterPlayer}.
+ * Redis-backed implementation of {@link VelocityClusterPlayer}.
  */
-public final class RedisClusterPlayer implements ClusterPlayer {
+public final class RedisClusterPlayer implements VelocityClusterPlayer {
 
   private final VelocityServer server;
   private final VelocityRedis redis;

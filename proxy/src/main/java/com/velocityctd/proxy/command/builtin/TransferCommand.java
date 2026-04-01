@@ -21,7 +21,7 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
-import com.velocityctd.proxy.cluster.ClusterPlayer;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
 import com.velocityctd.proxy.util.CompletableUtils;
 import com.velocitypowered.api.command.BrigadierCommand;
@@ -198,14 +198,14 @@ public class TransferCommand implements BuiltinCommand {
         }
       }).delay(1, TimeUnit.SECONDS).schedule();
     } else {
-      Optional<ClusterPlayer> maybeClusterPlayer = this.server.getClusterPlayerService().getPlayer(player);
+      Optional<VelocityClusterPlayer> maybeClusterPlayer = this.server.getClusterPlayerService().getPlayer(player);
       if (maybeClusterPlayer.isEmpty()) {
         context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
                 .arguments(Argument.string("player", player)));
         return -1;
       }
 
-      ClusterPlayer clusterPlayer = maybeClusterPlayer.get();
+      VelocityClusterPlayer clusterPlayer = maybeClusterPlayer.get();
 
       clusterPlayer.transfer(address.ip(), address.port()).thenAccept(success -> {
         if (success) {

@@ -21,7 +21,7 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import com.velocityctd.proxy.cluster.ClusterPlayer;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
 import com.velocityctd.proxy.util.CompletableUtils;
 import com.velocitypowered.api.command.BrigadierCommand;
@@ -106,7 +106,7 @@ public class PingCommand implements BuiltinCommand {
               .arguments(Argument.numeric("ping", ping))
       );
     } else {
-      Optional<ClusterPlayer> maybeClusterPlayer = this.server.getClusterPlayerService().getPlayer(username);
+      Optional<VelocityClusterPlayer> maybeClusterPlayer = this.server.getClusterPlayerService().getPlayer(username);
       if (maybeClusterPlayer.isEmpty()) {
         context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
             .arguments(Argument.string("player", username)));

@@ -23,7 +23,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import com.velocityctd.proxy.cluster.ClusterPlayer;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
@@ -245,9 +245,9 @@ public class SendCommand implements BuiltinCommand {
 
   private int sendAll(CommandContext<CommandSource> ctx, VelocityRegisteredServer target) {
     String toName = target.getServerInfo().getName();
-    Collection<ClusterPlayer> players = server.getClusterPlayerService().getAllPlayers();
+    Collection<VelocityClusterPlayer> players = server.getClusterPlayerService().getAllPlayers();
 
-    for (ClusterPlayer player : players) {
+    for (VelocityClusterPlayer player : players) {
       player.move(toName);
     }
 
@@ -279,7 +279,7 @@ public class SendCommand implements BuiltinCommand {
         continue;
       }
 
-      Collection<ClusterPlayer> players = server.getClusterPlayerService().getPlayersOnServer(fromName);
+      Collection<VelocityClusterPlayer> players = server.getClusterPlayerService().getPlayersOnServer(fromName);
       if (players.isEmpty()) {
         ctx.getSource().sendMessage(Component.translatable("velocity.command.send-server-none")
             .arguments(
@@ -290,7 +290,7 @@ public class SendCommand implements BuiltinCommand {
         continue;
       }
 
-      for (ClusterPlayer player : players) {
+      for (VelocityClusterPlayer player : players) {
         player.move(toName);
       }
 
@@ -317,7 +317,7 @@ public class SendCommand implements BuiltinCommand {
   private int sendSinglePlayer(CommandContext<CommandSource> ctx, String playerInput, VelocityRegisteredServer target) {
     String toName = target.getServerInfo().getName();
 
-    Optional<ClusterPlayer> maybePlayer = server.getClusterPlayerService().getPlayer(playerInput);
+    Optional<VelocityClusterPlayer> maybePlayer = server.getClusterPlayerService().getPlayer(playerInput);
     if (maybePlayer.isEmpty()) {
       ctx.getSource().sendMessage(CommandMessages.PLAYER_NOT_FOUND
           .arguments(
@@ -327,7 +327,7 @@ public class SendCommand implements BuiltinCommand {
       return 0;
     }
 
-    ClusterPlayer player = maybePlayer.get();
+    VelocityClusterPlayer player = maybePlayer.get();
     if (equalsIgnoreCase(player.getServerName(), toName)) {
       ctx.getSource().sendMessage(Component.translatable("velocity.command.send-player-none")
           .arguments(

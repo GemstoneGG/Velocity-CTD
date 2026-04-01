@@ -17,16 +17,18 @@
 
 package com.velocityctd.proxy.cluster.local;
 
-import com.velocityctd.proxy.cluster.ClusterProxyService;
+import static java.util.concurrent.CompletableFuture.completedFuture;
+
+import com.velocityctd.proxy.cluster.VelocityClusterProxyService;
 import com.velocitypowered.proxy.VelocityServer;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Local (single-proxy) implementation of {@link ClusterProxyService}.
+ * Local (single-proxy) implementation of {@link VelocityClusterProxyService}.
  */
-public final class LocalClusterProxyService implements ClusterProxyService {
+public final class LocalClusterProxyService implements VelocityClusterProxyService {
 
   private final VelocityServer server;
 
@@ -52,14 +54,14 @@ public final class LocalClusterProxyService implements ClusterProxyService {
   @Override
   public CompletableFuture<Boolean> reloadProxy(final String proxyId) {
     try {
-      return CompletableFuture.completedFuture(this.server.reloadConfiguration());
+      return completedFuture(this.server.reloadConfiguration());
     } catch (Exception e) {
-      return CompletableFuture.completedFuture(false);
+      return completedFuture(false);
     }
   }
 
   @Override
   public CompletableFuture<Long> queryProxyUptime(final String proxyId) {
-    return CompletableFuture.completedFuture((System.currentTimeMillis() - server.getStartTime()) / 1000);
+    return completedFuture((System.currentTimeMillis() - server.getStartTime()) / 1000);
   }
 }

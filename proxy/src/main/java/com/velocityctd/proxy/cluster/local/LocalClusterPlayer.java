@@ -17,8 +17,10 @@
 
 package com.velocityctd.proxy.cluster.local;
 
+import static java.util.concurrent.CompletableFuture.completedFuture;
+
 import com.velocityctd.api.queue.QueueEntryData;
-import com.velocityctd.proxy.cluster.ClusterPlayer;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -32,9 +34,9 @@ import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Local (single-proxy) implementation of {@link ClusterPlayer}.
+ * Local (single-proxy) implementation of {@link VelocityClusterPlayer}.
  */
-public final class LocalClusterPlayer implements ClusterPlayer {
+public final class LocalClusterPlayer implements VelocityClusterPlayer {
 
   private final VelocityServer server;
   private final ConnectedPlayer player;
@@ -98,7 +100,7 @@ public final class LocalClusterPlayer implements ClusterPlayer {
   @Override
   public CompletableFuture<Boolean> transfer(final String ip, final int port) {
     if (player.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
-      return CompletableFuture.completedFuture(false);
+      return completedFuture(false);
     }
 
     CompletableFuture<Boolean> fut = new CompletableFuture<>();
@@ -117,7 +119,7 @@ public final class LocalClusterPlayer implements ClusterPlayer {
 
   @Override
   public CompletableFuture<Long> queryPing() {
-    return CompletableFuture.completedFuture(player.getPing());
+    return completedFuture(player.getPing());
   }
 
   @Override

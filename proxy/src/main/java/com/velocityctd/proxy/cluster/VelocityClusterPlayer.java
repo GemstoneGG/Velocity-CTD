@@ -17,21 +17,20 @@
 
 package com.velocityctd.proxy.cluster;
 
-import java.util.Collection;
-import java.util.concurrent.CompletableFuture;
+import com.velocityctd.api.cluster.ClusterPlayer;
+import com.velocityctd.api.queue.QueueEntryData;
+import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
+import java.util.Optional;
 
 /**
- * Provides proxy discovery and cross-proxy operations across the cluster.
+ * Represents a player in the cluster with both identity and action capabilities.
+ *
+ * <p>Exposes more methods for the internal implementation module.
  */
-public interface ClusterProxyService {
+public interface VelocityClusterPlayer extends ClusterPlayer {
 
-  Collection<String> getAllProxyIds();
+  @Override
+  Optional<ConnectedPlayer> toLocalPlayer();
 
-  String getSelfProxyId();
-
-  boolean isMultiProxy();
-
-  CompletableFuture<Boolean> reloadProxy(String proxyId);
-
-  CompletableFuture<Long> queryProxyUptime(String proxyId);
+  QueueEntryData toQueueEntryData(String serverName);
 }

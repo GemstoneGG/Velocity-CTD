@@ -17,8 +17,8 @@
 
 package com.velocityctd.proxy.cluster.redis;
 
-import com.velocityctd.proxy.cluster.ClusterPlayer;
-import com.velocityctd.proxy.cluster.ClusterPlayerService;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayerService;
 import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.data.VelocityAlert;
 import com.velocityctd.proxy.redis.depot.PlayerDepotService;
@@ -32,9 +32,9 @@ import java.util.UUID;
 import net.kyori.adventure.text.Component;
 
 /**
- * Redis-backed implementation of {@link ClusterPlayerService}.
+ * Redis-backed implementation of {@link VelocityClusterPlayerService}.
  */
-public final class RedisClusterPlayerService implements ClusterPlayerService {
+public final class RedisClusterPlayerService implements VelocityClusterPlayerService {
 
   private final VelocityServer server;
   private final VelocityRedis redis;
@@ -59,34 +59,34 @@ public final class RedisClusterPlayerService implements ClusterPlayerService {
   }
 
   @Override
-  public Collection<ClusterPlayer> getAllPlayers() {
+  public Collection<VelocityClusterPlayer> getAllPlayers() {
     return playerService().getAll().stream()
-        .<ClusterPlayer>map(this::toRedisPlayer)
+        .<VelocityClusterPlayer>map(this::toRedisPlayer)
         .toList();
   }
 
   @Override
-  public Collection<ClusterPlayer> getPlayersOnServer(final String serverName) {
+  public Collection<VelocityClusterPlayer> getPlayersOnServer(final String serverName) {
     return playerService().getPlayerEntriesInServer(serverName).stream()
-        .<ClusterPlayer>map(this::toRedisPlayer)
+        .<VelocityClusterPlayer>map(this::toRedisPlayer)
         .toList();
   }
 
   @Override
-  public Collection<ClusterPlayer> getPlayersOnProxy(final String proxyId) {
+  public Collection<VelocityClusterPlayer> getPlayersOnProxy(final String proxyId) {
     return playerService().getPlayerEntriesOnProxy(proxyId).stream()
-        .<ClusterPlayer>map(this::toRedisPlayer)
+        .<VelocityClusterPlayer>map(this::toRedisPlayer)
         .toList();
   }
 
   @Override
-  public Optional<ClusterPlayer> getPlayer(final String username) {
+  public Optional<VelocityClusterPlayer> getPlayer(final String username) {
     final PlayerEntry entry = playerService().getPlayerEntry(username);
     return Optional.ofNullable(entry).map(this::toRedisPlayer);
   }
 
   @Override
-  public Optional<ClusterPlayer> getPlayer(final UUID uniqueId) {
+  public Optional<VelocityClusterPlayer> getPlayer(final UUID uniqueId) {
     final PlayerEntry entry = playerService().getPlayerEntry(uniqueId);
     return Optional.ofNullable(entry).map(this::toRedisPlayer);
   }

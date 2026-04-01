@@ -22,7 +22,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import com.velocityctd.proxy.cluster.ClusterPlayer;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
@@ -68,7 +68,7 @@ public class GipCommand implements BuiltinCommand {
 
   private int executeIp(final CommandContext<CommandSource> context) {
     final String playerName = context.getArgument("player", String.class);
-    Optional<ClusterPlayer> maybePlayer = server.getClusterPlayerService().getPlayer(playerName);
+    Optional<VelocityClusterPlayer> maybePlayer = server.getClusterPlayerService().getPlayer(playerName);
 
     if (maybePlayer.isEmpty()) {
       context.getSource().sendMessage(
@@ -77,7 +77,7 @@ public class GipCommand implements BuiltinCommand {
       return 0;
     }
 
-    ClusterPlayer player = maybePlayer.get();
+    VelocityClusterPlayer player = maybePlayer.get();
     if (player.getIpAddress() == null) {
       context.getSource().sendMessage(
           CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", playerName))

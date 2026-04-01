@@ -30,7 +30,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
-import com.velocityctd.proxy.cluster.ClusterPlayer;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
 import com.velocityctd.proxy.util.CompletableUtils;
 import com.velocitypowered.api.command.BrigadierCommand;
@@ -316,11 +316,11 @@ public class VelocityCommand implements BuiltinCommand {
       String messageOrCommand = context.getArgument("message/command", String.class);
 
       if (sudoTarget.equalsIgnoreCase("all")) {
-        Collection<ClusterPlayer> allPlayers = this.server.getClusterPlayerService().getAllPlayers();
+        Collection<VelocityClusterPlayer> allPlayers = this.server.getClusterPlayerService().getAllPlayers();
         if (allPlayers.isEmpty()) {
           source.sendMessage(Component.translatable("velocity.command.sudo.no-players"));
         } else {
-          for (ClusterPlayer player : allPlayers) {
+          for (VelocityClusterPlayer player : allPlayers) {
             player.sudo(messageOrCommand);
           }
           source.sendMessage(Component.translatable("velocity.command.sudo.success")
@@ -340,11 +340,11 @@ public class VelocityCommand implements BuiltinCommand {
           return Command.SINGLE_SUCCESS;
         }
 
-        Collection<ClusterPlayer> proxyPlayers = this.server.getClusterPlayerService().getPlayersOnProxy(realId);
+        Collection<VelocityClusterPlayer> proxyPlayers = this.server.getClusterPlayerService().getPlayersOnProxy(realId);
         if (proxyPlayers.isEmpty()) {
           source.sendMessage(Component.translatable("velocity.command.sudo.no-players"));
         } else {
-          for (ClusterPlayer player : proxyPlayers) {
+          for (VelocityClusterPlayer player : proxyPlayers) {
             player.sudo(messageOrCommand);
           }
           source.sendMessage(Component.translatable("velocity.command.sudo.success")
@@ -366,11 +366,11 @@ public class VelocityCommand implements BuiltinCommand {
           return Command.SINGLE_SUCCESS;
         }
 
-        Collection<ClusterPlayer> serverPlayers = this.server.getClusterPlayerService().getPlayersOnServer(serverName);
+        Collection<VelocityClusterPlayer> serverPlayers = this.server.getClusterPlayerService().getPlayersOnServer(serverName);
         if (serverPlayers.isEmpty()) {
           source.sendMessage(Component.translatable("velocity.command.sudo.no-players"));
         } else {
-          for (ClusterPlayer player : serverPlayers) {
+          for (VelocityClusterPlayer player : serverPlayers) {
             player.sudo(messageOrCommand);
           }
           source.sendMessage(Component.translatable("velocity.command.sudo.success")
@@ -384,14 +384,14 @@ public class VelocityCommand implements BuiltinCommand {
           return Command.SINGLE_SUCCESS;
         }
 
-        Optional<ClusterPlayer> maybePlayer = this.server.getClusterPlayerService().getPlayer(sudoTarget);
+        Optional<VelocityClusterPlayer> maybePlayer = this.server.getClusterPlayerService().getPlayer(sudoTarget);
         if (maybePlayer.isEmpty()) {
           source.sendMessage(Component.translatable("velocity.command.sudo.invalid-player")
                   .arguments(Argument.string("player", sudoTarget)));
           return Command.SINGLE_SUCCESS;
         }
 
-        ClusterPlayer player = maybePlayer.get();
+        VelocityClusterPlayer player = maybePlayer.get();
         player.sudo(messageOrCommand);
         source.sendMessage(Component.translatable("velocity.command.sudo.success")
                 .arguments(Argument.string("target", player.getUsername()),

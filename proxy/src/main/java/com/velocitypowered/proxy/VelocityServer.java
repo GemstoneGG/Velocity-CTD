@@ -22,8 +22,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.velocityctd.proxy.cluster.ClusterPlayerService;
-import com.velocityctd.proxy.cluster.ClusterProxyService;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayerService;
+import com.velocityctd.proxy.cluster.VelocityClusterProxyService;
 import com.velocityctd.proxy.cluster.local.LocalClusterPlayerService;
 import com.velocityctd.proxy.cluster.local.LocalClusterProxyService;
 import com.velocityctd.proxy.cluster.redis.RedisClusterPlayerService;
@@ -341,12 +341,12 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   /**
    * The cluster player service for tracking and querying players across the cluster.
    */
-  private @MonotonicNonNull ClusterPlayerService clusterPlayerService;
+  private @MonotonicNonNull VelocityClusterPlayerService clusterPlayerService;
 
   /**
    * The cluster proxy service for proxy discovery.
    */
-  private @MonotonicNonNull ClusterProxyService clusterProxyService;
+  private @MonotonicNonNull VelocityClusterProxyService clusterProxyService;
 
   VelocityServer(final ProxyOptions options) {
     pluginManager = new VelocityPluginManager(this);
@@ -1609,7 +1609,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    *
    * @return the cluster player service
    */
-  public ClusterPlayerService getClusterPlayerService() {
+  @Override
+  public VelocityClusterPlayerService getClusterPlayerService() {
     return clusterPlayerService;
   }
 
@@ -1618,7 +1619,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    *
    * @return the cluster proxy service
    */
-  public ClusterProxyService getClusterProxyService() {
+  @Override
+  public VelocityClusterProxyService getClusterProxyService() {
     return clusterProxyService;
   }
 

@@ -17,7 +17,7 @@
 
 package com.velocityctd.proxy.cluster.redis;
 
-import com.velocityctd.proxy.cluster.ClusterProxyService;
+import com.velocityctd.proxy.cluster.VelocityClusterProxyService;
 import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.data.VelocityReload;
 import com.velocityctd.proxy.redis.data.VelocityUptime;
@@ -25,9 +25,9 @@ import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Redis-backed implementation of {@link ClusterProxyService}.
+ * Redis-backed implementation of {@link VelocityClusterProxyService}.
  */
-public final class RedisClusterProxyService implements ClusterProxyService {
+public final class RedisClusterProxyService implements VelocityClusterProxyService {
 
   private final VelocityRedis redis;
 

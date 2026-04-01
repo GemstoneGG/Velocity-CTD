@@ -22,7 +22,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import com.velocityctd.proxy.cluster.ClusterPlayer;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
@@ -68,7 +68,7 @@ public class FindCommand implements BuiltinCommand {
 
   private int find(CommandContext<CommandSource> context) {
     String player = context.getArgument("player", String.class);
-    Optional<ClusterPlayer> maybePlayer = server.getClusterPlayerService().getPlayer(player);
+    Optional<VelocityClusterPlayer> maybePlayer = server.getClusterPlayerService().getPlayer(player);
     if (maybePlayer.isEmpty()) {
       context.getSource().sendMessage(
           CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", player))
@@ -76,7 +76,7 @@ public class FindCommand implements BuiltinCommand {
       return 0;
     }
 
-    ClusterPlayer clusterPlayer = maybePlayer.get();
+    VelocityClusterPlayer clusterPlayer = maybePlayer.get();
     if (clusterPlayer.getServerName() == null) {
       context.getSource().sendMessage(
           CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", player))

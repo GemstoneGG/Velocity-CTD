@@ -26,7 +26,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocityctd.api.queue.QueueState;
-import com.velocityctd.proxy.cluster.ClusterPlayer;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
 import com.velocityctd.proxy.queue.VelocityQueue;
 import com.velocityctd.proxy.queue.VelocityQueueEntry;
@@ -396,14 +396,14 @@ public class QueueAdminCommand implements BuiltinCommand {
       return SINGLE_SUCCESS;
     }
 
-    Optional<ClusterPlayer> maybePlayer = this.server.getClusterPlayerService().getPlayer(playerName);
+    Optional<VelocityClusterPlayer> maybePlayer = this.server.getClusterPlayerService().getPlayer(playerName);
     if (maybePlayer.isEmpty()) {
       ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
               .arguments(Argument.string("player", playerName)));
       return SINGLE_SUCCESS;
     }
 
-    ClusterPlayer player = maybePlayer.get();
+    VelocityClusterPlayer player = maybePlayer.get();
 
     if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
       for (VelocityQueue queue : this.server.getQueueManager().getQueues()) {
@@ -461,8 +461,8 @@ public class QueueAdminCommand implements BuiltinCommand {
     String fromName = from.getServerInfo().getName();
     String toName = to.getServerInfo().getName();
 
-    List<ClusterPlayer> eligible = new ArrayList<>();
-    for (ClusterPlayer player : this.server.getClusterPlayerService().getAllPlayers()) {
+    List<VelocityClusterPlayer> eligible = new ArrayList<>();
+    for (VelocityClusterPlayer player : this.server.getClusterPlayerService().getAllPlayers()) {
       String conn = player.getServerName();
       if (conn != null && conn.equalsIgnoreCase(fromName)) {
         if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
@@ -485,7 +485,7 @@ public class QueueAdminCommand implements BuiltinCommand {
                       Argument.string("to", toName)));
       return SINGLE_SUCCESS;
     }
-    for (ClusterPlayer player : eligible) {
+    for (VelocityClusterPlayer player : eligible) {
       to.getQueue().enqueue(player.toQueueEntryData(toName));
     }
 
@@ -500,14 +500,14 @@ public class QueueAdminCommand implements BuiltinCommand {
   private int remove(CommandContext<CommandSource> ctx) {
     String playerName = ctx.getArgument("player", String.class);
 
-    Optional<ClusterPlayer> maybePlayer = this.server.getClusterPlayerService().getPlayer(playerName);
+    Optional<VelocityClusterPlayer> maybePlayer = this.server.getClusterPlayerService().getPlayer(playerName);
     if (maybePlayer.isEmpty()) {
       ctx.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
               .arguments(Argument.string("player", playerName)));
       return SINGLE_SUCCESS;
     }
 
-    ClusterPlayer player = maybePlayer.get();
+    VelocityClusterPlayer player = maybePlayer.get();
 
     List<VelocityRegisteredServer> servers;
     if (ctx.getArguments().containsKey("server")) {
@@ -564,7 +564,7 @@ public class QueueAdminCommand implements BuiltinCommand {
 
     int amount = 0;
 
-    for (ClusterPlayer player : this.server.getClusterPlayerService().getAllPlayers()) {
+    for (VelocityClusterPlayer player : this.server.getClusterPlayerService().getAllPlayers()) {
       if (server.getQueue().contains(player.getUniqueId())) {
         amount++;
         server.getQueue().dequeue(player.getUniqueId());

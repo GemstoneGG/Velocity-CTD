@@ -24,7 +24,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
-import com.velocityctd.proxy.cluster.ClusterPlayer;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
@@ -135,7 +135,7 @@ public class GlistCommand implements BuiltinCommand {
     List<Component> players = new ArrayList<>();
     String selfProxyId = this.server.getClusterProxyService().getSelfProxyId();
 
-    for (ClusterPlayer player : this.server.getClusterPlayerService().getPlayersOnServer(server.getServerInfo().getName())) {
+    for (VelocityClusterPlayer player : this.server.getClusterPlayerService().getPlayersOnServer(server.getServerInfo().getName())) {
       String proxyId = player.getProxyId();
       String key = "velocity.command.glist.proxy-"
               + (proxyId == null || proxyId.equals(selfProxyId) ? "self" : "other");

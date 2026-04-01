@@ -22,7 +22,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import com.velocityctd.proxy.cluster.ClusterPlayer;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
@@ -80,7 +80,7 @@ public class GkickCommand implements BuiltinCommand {
 
   private int executeKick(final CommandContext<CommandSource> context) {
     final String playerName = context.getArgument("player", String.class);
-    Optional<ClusterPlayer> maybePlayer = server.getClusterPlayerService().getPlayer(playerName);
+    Optional<VelocityClusterPlayer> maybePlayer = server.getClusterPlayerService().getPlayer(playerName);
 
     if (maybePlayer.isEmpty()) {
       context.getSource().sendMessage(
@@ -89,7 +89,7 @@ public class GkickCommand implements BuiltinCommand {
       return 0;
     }
 
-    ClusterPlayer player = maybePlayer.get();
+    VelocityClusterPlayer player = maybePlayer.get();
     player.kick(parseReason(context));
 
     context.getSource().sendMessage(

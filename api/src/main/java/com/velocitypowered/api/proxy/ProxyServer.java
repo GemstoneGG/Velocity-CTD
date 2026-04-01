@@ -7,6 +7,8 @@
 
 package com.velocitypowered.api.proxy;
 
+import com.velocityctd.api.cluster.ClusterPlayerService;
+import com.velocityctd.api.cluster.ClusterProxyService;
 import com.velocityctd.api.queue.QueueManager;
 import com.velocitypowered.api.command.CommandManager;
 import com.velocitypowered.api.command.CommandSource;
@@ -224,6 +226,20 @@ public interface ProxyServer extends Audience {
    * @return the proxy version
    */
   ProxyVersion getVersion();
+
+  /**
+   * Gets the {@link ClusterPlayerService}, used for multi-proxy setups.
+   *
+   * @return the cluster player service
+   */
+  ClusterPlayerService getClusterPlayerService();
+
+  /**
+   * Gets the {@link ClusterProxyService}, used for multi-proxy setups.
+   *
+   * @return the multi proxy service
+   */
+  ClusterProxyService getClusterProxyService();
 
   /**
    * Creates a builder to build a {@link ResourcePackInfo} instance for use with

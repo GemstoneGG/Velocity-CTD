@@ -17,33 +17,34 @@
 
 package com.velocityctd.proxy.cluster;
 
+import com.velocityctd.api.cluster.ClusterPlayerService;
 import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
-import net.kyori.adventure.text.Component;
 
 /**
  * Provides player tracking and query operations across the cluster.
+ *
+ * <p>Exposes more methods for the internal implementation module.
  */
-public interface ClusterPlayerService {
+public interface VelocityClusterPlayerService extends ClusterPlayerService {
 
-  int getTotalPlayerCount();
+  @Override
+  Collection<VelocityClusterPlayer> getAllPlayers();
 
-  int getPlayersOnServerCount(String serverName);
+  @Override
+  Collection<VelocityClusterPlayer> getPlayersOnServer(String serverName);
 
-  Collection<ClusterPlayer> getAllPlayers();
+  @Override
+  Collection<VelocityClusterPlayer> getPlayersOnProxy(String proxyId);
 
-  Collection<ClusterPlayer> getPlayersOnServer(String serverName);
+  @Override
+  Optional<VelocityClusterPlayer> getPlayer(String username);
 
-  Collection<ClusterPlayer> getPlayersOnProxy(String proxyId);
-
-  Optional<ClusterPlayer> getPlayer(String username);
-
-  Optional<ClusterPlayer> getPlayer(UUID uniqueId);
-
-  boolean isPlayerOnline(String username);
+  @Override
+  Optional<VelocityClusterPlayer> getPlayer(UUID uniqueId);
 
   boolean onPlayerConnect(ConnectedPlayer player);
 
@@ -52,8 +53,4 @@ public interface ClusterPlayerService {
   void onPlayerSwitchServer(ConnectedPlayer player, String serverName);
 
   void onPlayerSettingsChange(ConnectedPlayer player, PlayerSettings settings);
-
-  Collection<String> getPlayerNames();
-
-  void broadcastAlert(Component message);
 }

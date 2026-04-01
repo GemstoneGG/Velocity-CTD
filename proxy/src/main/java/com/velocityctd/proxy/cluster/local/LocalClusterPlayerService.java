@@ -17,8 +17,8 @@
 
 package com.velocityctd.proxy.cluster.local;
 
-import com.velocityctd.proxy.cluster.ClusterPlayer;
-import com.velocityctd.proxy.cluster.ClusterPlayerService;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayerService;
 import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -29,9 +29,9 @@ import java.util.UUID;
 import net.kyori.adventure.text.Component;
 
 /**
- * Local (single-proxy) implementation of {@link ClusterPlayerService}.
+ * Local (single-proxy) implementation of {@link VelocityClusterPlayerService}.
  */
-public final class LocalClusterPlayerService implements ClusterPlayerService {
+public final class LocalClusterPlayerService implements VelocityClusterPlayerService {
 
   private final VelocityServer server;
 
@@ -52,33 +52,33 @@ public final class LocalClusterPlayerService implements ClusterPlayerService {
   }
 
   @Override
-  public Collection<ClusterPlayer> getAllPlayers() {
+  public Collection<VelocityClusterPlayer> getAllPlayers() {
     return this.server.getAllPlayers().stream()
-        .<ClusterPlayer>map(this::toLocalPlayer)
+        .<VelocityClusterPlayer>map(this::toLocalPlayer)
         .toList();
   }
 
   @Override
-  public Collection<ClusterPlayer> getPlayersOnServer(final String serverName) {
+  public Collection<VelocityClusterPlayer> getPlayersOnServer(final String serverName) {
     return this.server.getServer(serverName)
         .map(rs -> rs.getPlayersConnected().stream()
-            .<ClusterPlayer>map(this::toLocalPlayer)
+            .<VelocityClusterPlayer>map(this::toLocalPlayer)
             .toList())
         .orElse(List.of());
   }
 
   @Override
-  public Collection<ClusterPlayer> getPlayersOnProxy(final String proxyId) {
+  public Collection<VelocityClusterPlayer> getPlayersOnProxy(final String proxyId) {
     return getAllPlayers();
   }
 
   @Override
-  public Optional<ClusterPlayer> getPlayer(final String username) {
+  public Optional<VelocityClusterPlayer> getPlayer(final String username) {
     return this.server.getPlayer(username).map(this::toLocalPlayer);
   }
 
   @Override
-  public Optional<ClusterPlayer> getPlayer(final UUID uniqueId) {
+  public Optional<VelocityClusterPlayer> getPlayer(final UUID uniqueId) {
     return this.server.getPlayer(uniqueId).map(this::toLocalPlayer);
   }
 
