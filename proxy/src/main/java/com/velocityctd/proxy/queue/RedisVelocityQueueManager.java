@@ -25,7 +25,6 @@ import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotService;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueSync;
 import com.velocityctd.proxy.queue.util.QueueComponents;
 import com.velocityctd.proxy.redis.data.VelocityActionBar;
-import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
@@ -102,7 +101,7 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
   protected void sendActionBar(final VelocityQueueEntry entry) {
     final Component component = QueueComponents.createActionbarComponent(entry);
     if (component != null) {
-      DataPacket.of(new VelocityActionBar(entry.getUniqueId(), component)).publish();
+      server.getRedis().publish(new VelocityActionBar(entry.getUniqueId(), component));
     }
   }
 
@@ -164,8 +163,8 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
 
     if (isMasterProxy()) {
       for (VelocityQueue queue : queues.values()) {
-        DataPacket.of(VelocityQueueSync.statusChange(queue.getName(), queue.getServerStatus())).publish();
-        DataPacket.of(VelocityQueueSync.stateChange(queue.getName(), queue.getState())).publish();
+        server.getRedis().publish(VelocityQueueSync.statusChange(queue.getName(), queue.getServerStatus()));
+        server.getRedis().publish(VelocityQueueSync.stateChange(queue.getName(), queue.getState()));
       }
     }
   }

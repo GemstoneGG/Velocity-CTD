@@ -20,7 +20,6 @@ package com.velocityctd.proxy.queue;
 import com.velocityctd.api.queue.QueueEntryData;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueSync;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueTransfer;
-import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import java.util.concurrent.TimeUnit;
@@ -57,7 +56,7 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
     this.waitingForConnection = true;
     publishWaitingChange();
 
-    DataPacket.of(new VelocityQueueTransfer(getUniqueId(), getQueue().getName())).publish();
+    server.getRedis().publish(new VelocityQueueTransfer(getUniqueId(), getQueue().getName()));
 
     this.server.getScheduler()
         .buildTask(VelocityVirtualPlugin.INSTANCE, this::abortTransfer)
@@ -91,10 +90,10 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
    */
   @Override
   protected void publishWaitingChange() {
-    DataPacket.of(VelocityQueueSync.waitingChange(
+    server.getRedis().publish(VelocityQueueSync.waitingChange(
         getQueue().getName(), getUniqueId(), this.waitingForConnection,
         this.connectionAttempts, this.priority, this.fullBypass, this.queueBypass
-    )).publish();
+    ));
   }
 
   /**

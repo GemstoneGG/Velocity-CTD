@@ -17,8 +17,8 @@
 
 package com.velocityctd.proxy.redis.transaction;
 
-import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocitypowered.api.scheduler.ScheduledTask;
+import com.velocitypowered.api.scheduler.Scheduler;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import java.util.HashMap;
 import java.util.UUID;
@@ -38,6 +38,11 @@ public final class TransactionCache extends HashMap<UUID, Transaction<?, ?>> {
   private final @MonotonicNonNull HashMap<UUID, ScheduledTask> refreshTasks;
 
   /**
+   * The scheduler used to schedule timeout tasks.
+   */
+  private final Scheduler scheduler;
+
+  /**
    * Default delay used for scheduling transaction timeout tasks.
    */
   private final double delay;
@@ -54,30 +59,16 @@ public final class TransactionCache extends HashMap<UUID, Transaction<?, ?>> {
 
   /**
    * Constructs a new {@link TransactionCache}.
-   */
-  public TransactionCache() {
-    this(Transaction.DEFAULT_TIMEOUT, Transaction.DEFAULT_TIME_UNIT);
-  }
-
-  /**
-   * Constructs a new {@link TransactionCache}.
    *
-   * @param delay the delay of the refresh tasks
-   * @param timeUnit the time unit of the delay argument
-   */
-  public TransactionCache(final double delay, final TimeUnit timeUnit) {
-    this.refreshTasks = new HashMap<>();
-    this.delay = delay;
-    this.timeUnit = timeUnit;
-  }
-
-  /**
-   * Constructs a new {@link TransactionCache}.
-   *
+   * @param scheduler the scheduler to use for timeout tasks
    * @param purgeConsumer the purge consumer to call when a transaction is purged
    */
-  public TransactionCache(final BiConsumer<UUID, Transaction<?, ?>> purgeConsumer) {
-    this();
+  public TransactionCache(final @NotNull Scheduler scheduler,
+                           final BiConsumer<UUID, Transaction<?, ?>> purgeConsumer) {
+    this.refreshTasks = new HashMap<>();
+    this.scheduler = scheduler;
+    this.delay = Transaction.DEFAULT_TIMEOUT;
+    this.timeUnit = Transaction.DEFAULT_TIME_UNIT;
     this.purgeConsumer = purgeConsumer;
   }
 
@@ -130,7 +121,7 @@ public final class TransactionCache extends HashMap<UUID, Transaction<?, ?>> {
       this.refreshTasks.remove(key);
     }
 
-    final ScheduledTask scheduledTask = VelocityRedis.INSTANCE.getServer().getScheduler()
+    final ScheduledTask scheduledTask = this.scheduler
             .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
               this.remove(key);
               this.purgeConsumer.accept(key, transaction);

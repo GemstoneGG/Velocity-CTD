@@ -17,18 +17,20 @@
 
 package com.velocityctd.proxy.redis;
 
-import com.google.common.base.Preconditions;
 import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotService;
 import com.velocityctd.proxy.redis.depot.PlayerDepotService;
 import com.velocityctd.proxy.redis.depot.ProxyDepotService;
 import com.velocityctd.proxy.redis.handler.RouteHandlerRegistry;
 import com.velocityctd.proxy.redis.handler.TransactionHandlerRegistry;
+import com.velocityctd.proxy.redis.packet.PacketSerializer;
 import com.velocityctd.proxy.redis.provider.AbstractRedisProvider;
 import com.velocityctd.proxy.redis.provider.LettuceProvider;
 import com.velocityctd.proxy.redis.provider.RedisProvider;
+import com.velocityctd.proxy.redis.transaction.Transaction;
+import com.velocityctd.proxy.redis.transaction.TransactionData;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -41,11 +43,6 @@ import org.jetbrains.annotations.NotNull;
 public final class VelocityRedis {
 
   /**
-   * Singleton instance of {@link VelocityRedis}, populated when the Redis module is initialized.
-   */
-  public static @MonotonicNonNull VelocityRedis INSTANCE;
-
-  /**
    * The {@link VelocityServer} instance that owns this Redis module.
    */
   private final VelocityServer server;
@@ -54,6 +51,11 @@ public final class VelocityRedis {
    * The {@link RedisProvider} responsible for Redis communication and pub/sub.
    */
   private final RedisProvider provider;
+
+  /**
+   * The {@link PacketSerializer} used for packet (de)serialization.
+   */
+  private final PacketSerializer packetSerializer;
 
   /**
    * The service responsible for tracking player-related Redis entries.
@@ -86,14 +88,12 @@ public final class VelocityRedis {
    * @param server the {@link VelocityServer} instance
    */
   public VelocityRedis(final @NotNull VelocityServer server) {
-    Preconditions.checkState(INSTANCE == null, "VelocityRedis is already initialized");
-    INSTANCE = this;
-
     final VelocityConfiguration.Redis config = server.getConfiguration().getRedis();
     this.proxyId = config.getProxyId();
 
     this.server = server;
-    this.provider = new LettuceProvider(config);
+    this.packetSerializer = new PacketSerializer();
+    this.provider = new LettuceProvider(config, server.getScheduler(), this.packetSerializer);
     this.provider.restart();
 
     this.playerService = new PlayerDepotService(this);
@@ -131,7 +131,7 @@ public final class VelocityRedis {
    */
   private void registerRoutes() {
     for (RouteHandlerRegistry registry : RouteHandlerRegistry.values()) {
-      this.provider.registerRoute(registry.getRouteHandler());
+      this.provider.registerRoute(registry.createRouteHandler(this.server));
     }
   }
 
@@ -143,7 +143,7 @@ public final class VelocityRedis {
    */
   private void registerTransactionHandlers() {
     for (TransactionHandlerRegistry registry : TransactionHandlerRegistry.values()) {
-      this.provider.registerTransaction(registry.getTransactionHandler());
+      this.provider.registerTransaction(registry.createTransactionHandler(this.server));
     }
   }
 
@@ -195,6 +195,39 @@ public final class VelocityRedis {
    */
   public VelocityQueueDepotService getQueueService() {
     return queueService;
+  }
+
+  /**
+   * Publishes a one-way payload to all subscribers on the Redis channel.
+   *
+   * @param payload the payload to publish
+   */
+  public <T> void publish(final @NotNull T payload) {
+    provider.publish(payload);
+  }
+
+  /**
+   * Publishes a transaction to all subscribers on the Redis channel and returns
+   * a future that completes with the response data.
+   *
+   * @param data the transaction data to send
+   * @param <T> the type of the data
+   * @param <R> the type of the expected response
+   * @return a future that completes with the response data or exceptionally on timeout
+   */
+  public <T extends TransactionData<R>, R> CompletableFuture<R> publishTransaction(final @NotNull T data) {
+    Transaction<T, R> transaction = Transaction.of(data);
+    provider.publish(transaction);
+    return transaction.getFuture();
+  }
+
+  /**
+   * Gets the {@link PacketSerializer} instance used by this Redis module.
+   *
+   * @return the packet serializer
+   */
+  public PacketSerializer getPacketSerializer() {
+    return packetSerializer;
   }
 
   /**

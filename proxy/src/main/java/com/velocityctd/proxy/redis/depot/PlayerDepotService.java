@@ -19,7 +19,6 @@ package com.velocityctd.proxy.redis.depot;
 
 import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.data.VelocityKick;
-import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.VelocityServer;
@@ -121,7 +120,7 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
         // Only send a VelocityKick if the existing player is on a DIFFERENT proxy.
         // If they are on this proxy, registerConnection() already kicked them locally.
         if (existingEntry != null && !existingEntry.getProxyId().equalsIgnoreCase(this.redis.getProxyId())) {
-          DataPacket.of(new VelocityKick(player.getUniqueId(), component, existingEntry.getProxyId())).publish();
+          this.redis.publish(new VelocityKick(player.getUniqueId(), component, existingEntry.getProxyId()));
         }
       } else {
         final Component component = Component.translatable("velocity.error.already-connected-proxy.remote");

@@ -17,7 +17,6 @@
 
 package com.velocityctd.proxy.redis.packet;
 
-import com.velocityctd.proxy.redis.VelocityRedis;
 import java.util.Objects;
 import java.util.UUID;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -73,18 +72,27 @@ public final class DataPacket {
   /**
    * Constructs a new {@link DataPacket} by serializing the given payload.
    *
-   * @param payload the payload to serialize
+   * @param serializedPayload the serialized payload
+   * @param rawPayload the raw payload
    * @param <T> the type of the payload
    */
-  private <T> DataPacket(final @NotNull T payload) {
+  private <T> DataPacket(final @NotNull String serializedPayload, final @NotNull T rawPayload) {
     this.packetId = UUID.randomUUID();
-    this.payload = PacketSerializer.GSON.toJson(payload);
-    this.payloadType = payload.getClass().getName();
-    this.rawPayload = payload;
+    this.payload = serializedPayload;
+    this.payloadType = rawPayload.getClass().getName();
+    this.rawPayload = rawPayload;
   }
 
-  public static <T> DataPacket of(final @NotNull T payload) {
-    return new DataPacket(payload);
+  /**
+   * Creates a new {@link DataPacket} by serializing the given payload.
+   *
+   * @param payload the payload to serialize
+   * @param serializer the serializer to use for JSON conversion
+   * @param <T> the type of the payload
+   * @return a new data packet
+   */
+  public static <T> DataPacket of(final @NotNull T payload, final @NotNull PacketSerializer serializer) {
+    return new DataPacket(serializer.serializePayload(payload), payload);
   }
 
   /**
@@ -151,13 +159,14 @@ public final class DataPacket {
   }
 
   /**
-   * Deserializes and returns the payload.
+   * Deserializes and returns the payload using the given serializer.
    *
+   * @param serializer the serializer to use for deserialization
    * @param <T> the target type
    * @return the deserialized payload
    */
   @SuppressWarnings("unchecked")
-  public <T> T getPayload() {
+  public <T> T getPayload(final @NotNull PacketSerializer serializer) {
     if (rawPayload == null) {
       Class<?> clazz;
       try {
@@ -166,24 +175,10 @@ public final class DataPacket {
         throw new RuntimeException(e);
       }
 
-      rawPayload = PacketSerializer.GSON.fromJson(payload, clazz);
+      rawPayload = serializer.deserializePayload(payload, clazz);
     }
 
     return (T) rawPayload;
-  }
-
-  /**
-   * Publishes this packet using the active {@link VelocityRedis} provider.
-   *
-   * @throws IllegalStateException if Redis has not been initialized
-   */
-  public void publish() {
-    final VelocityRedis redis = VelocityRedis.INSTANCE;
-    if (redis == null) {
-      throw new IllegalStateException("Tried to publish packet without Redis being initialized.");
-    }
-
-    redis.getProvider().publish(this);
   }
 
   @Override

@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableList;
 import com.velocityctd.proxy.redis.depot.Depot;
 import com.velocityctd.proxy.redis.depot.DepotEntry;
 import com.velocityctd.proxy.redis.handler.RouteHandler;
-import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocityctd.proxy.redis.transaction.Transaction;
 import com.velocityctd.proxy.redis.transaction.TransactionData;
 import com.velocityctd.proxy.redis.transaction.TransactionHandler;
@@ -50,11 +49,11 @@ public sealed interface RedisProvider permits AbstractRedisProvider {
   void disconnect();
 
   /**
-   * Publish a {@link DataPacket} to the channel on the Redis.
+   * Publish a payload to the channel on the Redis, wrapping it in a {@link DataPacket}.
    *
-   * @param packet the packet to publish
+   * @param payload the payload to publish
    */
-  void publish(@NotNull DataPacket packet);
+  void publish(@NotNull Object payload);
 
   /**
    * Publish a {@link Transaction} to all subscribers on the Redis.

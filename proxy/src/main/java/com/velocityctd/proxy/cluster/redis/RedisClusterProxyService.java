@@ -21,7 +21,6 @@ import com.velocityctd.proxy.cluster.ClusterProxyService;
 import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.data.VelocityReload;
 import com.velocityctd.proxy.redis.data.VelocityUptime;
-import com.velocityctd.proxy.redis.transaction.Transaction;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
@@ -53,11 +52,11 @@ public final class RedisClusterProxyService implements ClusterProxyService {
 
   @Override
   public CompletableFuture<Boolean> reloadProxy(final String proxyId) {
-    return Transaction.of(new VelocityReload(proxyId)).publish();
+    return redis.publishTransaction(new VelocityReload(proxyId));
   }
 
   @Override
   public CompletableFuture<Long> queryProxyUptime(final String proxyId) {
-    return Transaction.of(new VelocityUptime(proxyId)).publish();
+    return redis.publishTransaction(new VelocityUptime(proxyId));
   }
 }

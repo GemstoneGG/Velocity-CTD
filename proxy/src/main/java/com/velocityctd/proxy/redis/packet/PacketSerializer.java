@@ -26,24 +26,39 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Utility class for serializing and deserializing {@link DataPacket} objects
- * to and from JSON strings using {@link Gson}.
+ * Serializer for {@link DataPacket} objects to and from JSON strings using {@link Gson}.
  */
 public final class PacketSerializer {
 
   /**
-   * Shared {@link Gson} instance configured for Redis packet (de)serialization, excluding
+   * {@link Gson} instance configured for Redis packet (de)serialization, excluding
    * {@code transient} and {@code static} fields and preserving {@code null} values.
    *
    * <p>Includes a custom type adapter for Adventure {@link Component} objects,
    * allowing them to be used directly as fields in data records.</p>
    */
-  public static final Gson GSON = new GsonBuilder()
-          .excludeFieldsWithModifiers(Modifier.TRANSIENT, Modifier.STATIC)
-          .disableHtmlEscaping()
-          .serializeNulls()
-          .registerTypeHierarchyAdapter(Component.class, new ComponentTypeAdapter())
-          .create();
+  private final Gson gson;
+
+  /**
+   * Constructs a new {@link PacketSerializer} with default GSON configuration.
+   */
+  public PacketSerializer() {
+    this.gson = new GsonBuilder()
+            .excludeFieldsWithModifiers(Modifier.TRANSIENT, Modifier.STATIC)
+            .disableHtmlEscaping()
+            .serializeNulls()
+            .registerTypeHierarchyAdapter(Component.class, new ComponentTypeAdapter())
+            .create();
+  }
+
+  /**
+   * Gets the {@link Gson} instance used by this serializer.
+   *
+   * @return the configured Gson instance
+   */
+  public Gson gson() {
+    return gson;
+  }
 
   /**
    * Serializes a {@link DataPacket} to a JSON string.
@@ -52,8 +67,8 @@ public final class PacketSerializer {
    * @return the JSON string representation of the packet
    */
   @NotNull
-  public static String serialize(final @NotNull DataPacket packet) {
-    return GSON.toJson(packet);
+  public String serialize(final @NotNull DataPacket packet) {
+    return gson.toJson(packet);
   }
 
   /**
@@ -63,7 +78,17 @@ public final class PacketSerializer {
    * @return the deserialized {@link DataPacket}, or {@code null} if deserialization fails
    */
   @Nullable
-  public static DataPacket deserialize(final @NotNull String json) {
-    return GSON.fromJson(json, DataPacket.class);
+  public DataPacket deserialize(final @NotNull String json) {
+    return gson.fromJson(json, DataPacket.class);
+  }
+
+  @NotNull
+  <T> String serializePayload(T payload) {
+    return gson.toJson(payload);
+  }
+
+  @Nullable
+  <T> T deserializePayload(final @NotNull String json, Class<T> payloadClass) {
+    return gson.fromJson(json, payloadClass);
   }
 }

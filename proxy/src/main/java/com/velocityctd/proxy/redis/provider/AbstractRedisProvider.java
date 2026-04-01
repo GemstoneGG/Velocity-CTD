@@ -22,10 +22,12 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.velocityctd.proxy.redis.handler.RouteHandler;
 import com.velocityctd.proxy.redis.packet.DataPacket;
+import com.velocityctd.proxy.redis.packet.PacketSerializer;
 import com.velocityctd.proxy.redis.transaction.Transaction;
 import com.velocityctd.proxy.redis.transaction.TransactionCache;
 import com.velocityctd.proxy.redis.transaction.TransactionData;
 import com.velocityctd.proxy.redis.transaction.TransactionHandler;
+import com.velocitypowered.api.scheduler.Scheduler;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,15 +54,19 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
    * Cache of packets that have already been handled recently, used to prevent duplicate
    * processing of the same {@link DataPacket}. Uses a dummy {@link Byte} value as the cache value.
    */
-  protected static final Cache<@NotNull DataPacket, @NotNull Byte> HANDLED_PACKETS = CacheBuilder.newBuilder()
+  protected final Cache<@NotNull DataPacket, @NotNull Byte> handledPackets = CacheBuilder.newBuilder()
           .expireAfterWrite(10, TimeUnit.SECONDS).build();
 
   /**
    * Cache of pending {@link Transaction} instances, which are automatically timed out
    * via the associated {@link TransactionCache} callback.
    */
-  protected static final TransactionCache PENDING_TRANSACTIONS = new TransactionCache(
-          (uuid, transaction) -> transaction.timeout());
+  protected final TransactionCache pendingTransactions;
+
+  /**
+   * The {@link PacketSerializer} instance used for packet (de)serialization.
+   */
+  protected final PacketSerializer packetSerializer;
 
   /**
    * Listeners notified whenever the Redis pub/sub connection is re-established after a drop.
@@ -81,10 +87,28 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
 
   /**
    * Constructs a new {@link AbstractRedisProvider}.
+   *
+   * @param scheduler the scheduler used for transaction timeout tasks
+   * @param packetSerializer the serializer for packet (de)serialization
    */
-  public AbstractRedisProvider() {
+  public AbstractRedisProvider(final @NotNull Scheduler scheduler,
+                               final @NotNull PacketSerializer packetSerializer) {
+    this.pendingTransactions = new TransactionCache(scheduler,
+            (uuid, transaction) -> transaction.timeout());
+    this.packetSerializer = packetSerializer;
     this.routeHandlers = new HashMap<>();
     this.transactionHandlers = new HashMap<>();
+  }
+
+  /**
+   * Publishes a payload by wrapping it in a {@link DataPacket} and sending it
+   * to the Redis channel.
+   *
+   * @param payload the payload to publish
+   */
+  @Override
+  public void publish(final @NotNull Object payload) {
+    this.publishRaw(DataPacket.of(payload, packetSerializer));
   }
 
   /**
@@ -97,14 +121,21 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
    */
   @Override
   public void publish(final @NotNull Transaction<?, ?> transaction, final int timeout, final TimeUnit timeUnit) {
-    final DataPacket sentPacket = DataPacket.of(transaction.getSentData());
+    final DataPacket sentPacket = DataPacket.of(transaction.getSentData(), packetSerializer);
     sentPacket.setTransactionId(transaction.getTransactionId());
 
-    HANDLED_PACKETS.put(sentPacket, (byte) 0);
-    PENDING_TRANSACTIONS.put(transaction, timeout, timeUnit);
+    handledPackets.put(sentPacket, (byte) 0);
+    pendingTransactions.put(transaction, timeout, timeUnit);
 
-    this.publish(sentPacket);
+    this.publishRaw(sentPacket);
   }
+
+  /**
+   * Publishes a raw {@link DataPacket} to the Redis channel. Implemented by concrete providers.
+   *
+   * @param packet the packet to publish
+   */
+  protected abstract void publishRaw(@NotNull DataPacket packet);
 
   /**
    * Registers a route for a specific data type.

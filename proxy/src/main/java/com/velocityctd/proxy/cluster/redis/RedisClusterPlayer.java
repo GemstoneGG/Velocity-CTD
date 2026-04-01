@@ -19,6 +19,7 @@ package com.velocityctd.proxy.cluster.redis;
 
 import com.velocityctd.api.queue.QueueEntryData;
 import com.velocityctd.proxy.cluster.ClusterPlayer;
+import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.data.VelocityGetPlayerPing;
 import com.velocityctd.proxy.redis.data.VelocityKick;
 import com.velocityctd.proxy.redis.data.VelocityMessage;
@@ -26,8 +27,6 @@ import com.velocityctd.proxy.redis.data.VelocitySudo;
 import com.velocityctd.proxy.redis.data.VelocitySwitchServer;
 import com.velocityctd.proxy.redis.data.VelocityTransferRemote;
 import com.velocityctd.proxy.redis.depot.PlayerEntry;
-import com.velocityctd.proxy.redis.packet.DataPacket;
-import com.velocityctd.proxy.redis.transaction.Transaction;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.Optional;
@@ -42,10 +41,12 @@ import org.jetbrains.annotations.Nullable;
 public final class RedisClusterPlayer implements ClusterPlayer {
 
   private final VelocityServer server;
+  private final VelocityRedis redis;
   private final PlayerEntry redisEntry;
 
   RedisClusterPlayer(final VelocityServer server, final PlayerEntry redisEntry) {
     this.server = server;
+    this.redis = server.getRedis();
     this.redisEntry = redisEntry;
   }
 
@@ -81,32 +82,32 @@ public final class RedisClusterPlayer implements ClusterPlayer {
 
   @Override
   public void kick(final Component reason) {
-    DataPacket.of(new VelocityKick(redisEntry.getUniqueId(), reason)).publish();
+    redis.publish(new VelocityKick(redisEntry.getUniqueId(), reason));
   }
 
   @Override
   public void sudo(final String command) {
-    DataPacket.of(new VelocitySudo(redisEntry.getUniqueId(), command)).publish();
+    redis.publish(new VelocitySudo(redisEntry.getUniqueId(), command));
   }
 
   @Override
   public void move(final String targetServer) {
-    DataPacket.of(new VelocitySwitchServer(redisEntry.getUsername(), targetServer)).publish();
+    redis.publish(new VelocitySwitchServer(redisEntry.getUsername(), targetServer));
   }
 
   @Override
   public CompletableFuture<Boolean> transfer(final String ip, final int port) {
-    return Transaction.of(new VelocityTransferRemote(redisEntry.getUniqueId(), ip, port)).publish();
+    return redis.publishTransaction(new VelocityTransferRemote(redisEntry.getUniqueId(), ip, port));
   }
 
   @Override
   public void sendMessage(final Component message) {
-    DataPacket.of(new VelocityMessage(redisEntry.getUniqueId(), message)).publish();
+    redis.publish(new VelocityMessage(redisEntry.getUniqueId(), message));
   }
 
   @Override
   public CompletableFuture<Long> queryPing() {
-    return Transaction.of(new VelocityGetPlayerPing(redisEntry.getUsername())).publish();
+    return redis.publishTransaction(new VelocityGetPlayerPing(redisEntry.getUsername()));
   }
 
   @Override

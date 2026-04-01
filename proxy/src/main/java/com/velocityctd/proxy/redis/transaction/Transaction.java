@@ -17,7 +17,6 @@
 
 package com.velocityctd.proxy.redis.transaction;
 
-import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.provider.RedisProvider;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -111,21 +110,12 @@ public final class Transaction<T extends TransactionData<R>, R> {
   }
 
   /**
-   * Publish the {@link Transaction} to all subscribers on the redis using the global
-   * {@link VelocityRedis} provider instance.
+   * Gets the future that this Transaction will complete upon receiving a reply.
    *
-   * @return a future that completes with the response data or exceptionally on timeout
-   *
-   * @throws IllegalStateException if no Redis provider is available
-   * @see RedisProvider#publish(Transaction, int, TimeUnit)
+   * @return the transaction's reply future
    */
-  public CompletableFuture<R> publish() {
-    final RedisProvider provider = VelocityRedis.INSTANCE.getProvider();
-    if (provider == null) {
-      throw new IllegalStateException("No redis instance has been provided");
-    }
-
-    return publish(provider);
+  public CompletableFuture<R> getFuture() {
+    return future;
   }
 
   /**

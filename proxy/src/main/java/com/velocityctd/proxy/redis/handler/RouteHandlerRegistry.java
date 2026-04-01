@@ -22,7 +22,6 @@ import com.velocityctd.proxy.queue.VelocityQueue;
 import com.velocityctd.proxy.queue.VelocityQueueEntry;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueSync;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueTransfer;
-import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.data.VelocityActionBar;
 import com.velocityctd.proxy.redis.data.VelocityAlert;
 import com.velocityctd.proxy.redis.data.VelocityKick;
@@ -169,21 +168,29 @@ public enum RouteHandlerRegistry {
   });
 
   /**
-   * The {@link RouteHandler} that defines how this data type
-   * is routed and handled within the proxy.
+   * The data class handled by this route.
    */
-  private final RouteHandler<?> routeHandler;
+  private final Class<?> dataClass;
+
+  /**
+   * The route handler logic accepting the server and data.
+   */
+  private final BiConsumer<VelocityServer, ?> route;
 
   <T> RouteHandlerRegistry(final Class<T> dataClass, final @NotNull BiConsumer<VelocityServer, T> route) {
-    this.routeHandler = RouteHandler.consumer(dataClass, data -> route.accept(VelocityRedis.INSTANCE.getServer(), data));
+    this.dataClass = dataClass;
+    this.route = route;
   }
 
   /**
-   * Gets the {@link RouteHandler} associated with this route entry.
+   * Creates a {@link RouteHandler} bound to the given server instance.
    *
-   * @return the route registration for this data type
+   * @param server the server to pass to the handler
+   * @return a new route handler
    */
-  public RouteHandler<?> getRouteHandler() {
-    return routeHandler;
+  @SuppressWarnings("unchecked")
+  public <T> RouteHandler<T> createRouteHandler(final @NotNull VelocityServer server) {
+    final BiConsumer<VelocityServer, T> typedRoute = (BiConsumer<VelocityServer, T>) this.route;
+    return RouteHandler.consumer((Class<T>) dataClass, data -> typedRoute.accept(server, data));
   }
 }

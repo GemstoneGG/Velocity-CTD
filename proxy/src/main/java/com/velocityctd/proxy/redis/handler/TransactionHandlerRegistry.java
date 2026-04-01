@@ -19,7 +19,6 @@ package com.velocityctd.proxy.redis.handler;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
-import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.data.VelocityGetPlayerPing;
 import com.velocityctd.proxy.redis.data.VelocityReload;
 import com.velocityctd.proxy.redis.data.VelocityTransferRemote;
@@ -34,6 +33,7 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Registry that holds all {@link TransactionHandler} entries for the VelocityRedis module.
@@ -113,28 +113,37 @@ public enum TransactionHandlerRegistry {
   ;
 
   /**
-   * The {@link TransactionHandler} associated with this transaction type.
+   * The data class handled by this transaction.
    */
-  private final TransactionHandler<?, ?> transactionHandler;
+  private final Class<?> dataClass;
+
+  /**
+   * The delegate logic for handling the transaction.
+   */
+  private final Delegate<?, ?> delegate;
 
   <T extends TransactionData<R>, R> TransactionHandlerRegistry(final Class<T> dataClass,
                                                                 final Delegate<T, R> delegate) {
-    this.transactionHandler = new TransactionHandler<>(dataClass) {
-
-      @Override
-      public @Nullable CompletableFuture<R> handleData(final T data) {
-        return delegate.handleData(VelocityRedis.INSTANCE.getServer(), data);
-      }
-    };
+    this.dataClass = dataClass;
+    this.delegate = delegate;
   }
 
   /**
-   * Get the {@link TransactionHandler} for this transaction.
+   * Creates a {@link TransactionHandler} bound to the given server instance.
    *
-   * @return the transaction handler
+   * @param server the server to pass to the handler
+   * @return a new transaction handler
    */
-  public TransactionHandler<?, ?> getTransactionHandler() {
-    return transactionHandler;
+  @SuppressWarnings("unchecked")
+  public <T extends TransactionData<R>, R> TransactionHandler<T, R> createTransactionHandler(
+          final @NotNull VelocityServer server) {
+    final Delegate<T, R> typedDelegate = (Delegate<T, R>) this.delegate;
+    return new TransactionHandler<>((Class<T>) dataClass) {
+      @Override
+      public @Nullable CompletableFuture<R> handleData(final T data) {
+        return typedDelegate.handleData(server, data);
+      }
+    };
   }
 
   /**
