@@ -72,13 +72,18 @@ public final class PermissionResolverAdapterFactory {
    * Otherwise, it returns a {@link PermissionResolverFunctionAdapter} wrapping {@code delegate}.
    *
    * @param permissionSubject the subject the resolver will evaluate permissions for
-   * @param delegate the base permission function to delegate to when the permission resolver is not available
+   * @param delegate the base permission function to delegate to when the permission resolver is not available.
+   *                 this must not be a {@link PermissionResolver}, the caller should confirm this beforehand.
    * @return a permission resolver when an integration is available; otherwise a simple adapter that adapts a permission function
    */
   public static PermissionResolver createPermissionResolverAdapter(
       PermissionSubject permissionSubject,
       PermissionFunction delegate
   ) {
+    if (delegate instanceof PermissionResolver) {
+      throw new IllegalArgumentException("delegate should not be a PermissionResolver.");
+    }
+
     return getLoadedProvider()
         .map(provider -> provider.createResolver(permissionSubject, delegate))
         .orElseGet(() -> new PermissionResolverFunctionAdapter(delegate));

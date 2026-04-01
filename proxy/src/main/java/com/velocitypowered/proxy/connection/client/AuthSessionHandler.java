@@ -17,11 +17,9 @@
 
 package com.velocitypowered.proxy.connection.client;
 
-import static com.velocityctd.proxy.permission.PermissionResolverAdapterFactory.createPermissionResolverAdapter;
 import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_8;
 
 import com.google.common.base.Preconditions;
-import com.velocityctd.api.permission.PermissionResolver;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.connection.LoginEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
@@ -31,7 +29,6 @@ import com.velocitypowered.api.event.player.GameProfileRequestEvent;
 import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.permission.PermissionFunction;
-import com.velocitypowered.api.permission.PermissionProvider;
 import com.velocitypowered.api.proxy.crypto.IdentifiedKey;
 import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.api.util.UuidUtils;
@@ -195,29 +192,21 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
       }
 
       return server.getEventManager()
-          .fire(new PermissionsSetupEvent(player, s -> ConnectedPlayer.DEFAULT_PERMISSION_RESOLVER))
+          .fire(new PermissionsSetupEvent(player, ConnectedPlayer.DEFAULT_PERMISSIONS))
           .thenAcceptAsync(event -> {
-            if (mcConnection.isClosed()) {
-              return;
+            if (!mcConnection.isClosed()) {
+              // wait for permissions to load, then set the players permission function
+              final PermissionFunction function = event.createFunction(player);
+              if (function == null) {
+                LOGGER.error("A plugin permission provider {} provided an invalid permission "
+                        + "function for player {}. This is a bug in the plugin, not in "
+                        + "Velocity. Falling back to the default permission function.",
+                    event.getProvider().getClass().getName(), player.getUsername());
+              } else {
+                player.setPermissionFunction(function);
+              }
+              startLoginCompletion(player);
             }
-
-            PermissionProvider permissionProvider = event.getProvider();
-
-            PermissionFunction permissionFunction = permissionProvider.createFunction(player);
-            if (permissionFunction == null) {
-              LOGGER.error("A plugin permission provider {} provided an invalid permission "
-                      + "function for player {}. This is a bug in the plugin, not in "
-                      + "Velocity. Falling back to the default permission function.",
-                  permissionProvider.getClass().getName(),
-                  player.getUsername());
-              player.setPermissionResolver(ConnectedPlayer.DEFAULT_PERMISSION_RESOLVER);
-            } else if (permissionFunction instanceof PermissionResolver) {
-              player.setPermissionResolver((PermissionResolver) permissionFunction);
-            } else {
-              player.setPermissionResolver(createPermissionResolverAdapter(player, permissionFunction));
-            }
-
-            startLoginCompletion(player);
           }, mcConnection.eventLoop());
     }, mcConnection.eventLoop()).exceptionally((ex) -> {
       LOGGER.error("Exception during connection of {}", finalProfile, ex);

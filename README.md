@@ -162,3 +162,11 @@ where our latest updates will be compiled and ready for use.
 Once you've built Velocity, you can copy and run the `-all` JAR from
 `proxy/build/libs`. Velocity will generate a default configuration file,
 and you can configure it from there.
+
+# Localisation
+
+Upstream Velocity's Translations are handled using [Crowdin](https://papermc-io.crowdin.com/velocity).
+If you want to translate a language not available on Crowdin,
+you might want to ask in the upstream's [Discord](https://discord.gg/papermc) about it.
+
+Velocity-CTD removes the translations to preserve maintainability. See `Additional Features/Removals`.

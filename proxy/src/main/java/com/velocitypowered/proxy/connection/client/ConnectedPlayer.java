@@ -48,6 +48,7 @@ import com.velocitypowered.api.network.HandshakeIntent;
 import com.velocitypowered.api.network.ProtocolState;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.permission.PermissionFunction;
+import com.velocitypowered.api.permission.PermissionProvider;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.ConnectionRequestBuilder;
 import com.velocitypowered.api.proxy.Player;
@@ -187,16 +188,14 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       PlainTextComponentSerializer.builder().flattener(TranslatableMapper.FLATTENER).build();
 
   /**
-   * The default permission resolver used if none is explicitly assigned to the player.
-   *
-   * <p>Always returns {@link Tristate#UNDEFINED} for any permission query.</p>
-   */
-  protected static final PermissionResolver DEFAULT_PERMISSION_RESOLVER = PermissionResolver.ALWAYS_UNDEFINED;
-
-  /**
    * A structured Adventure component logger instance for logging player-related messages.
    */
   private static final ComponentLogger LOGGER = ComponentLogger.logger(ConnectedPlayer.class);
+
+  /**
+   * The default {@link PermissionProvider} to use to provide a player's permission function/resolver.
+   */
+  static final PermissionProvider DEFAULT_PERMISSIONS = s -> PermissionResolver.ALWAYS_UNDEFINED;
 
   /**
    * Provides structured pointers for {@link ConnectedPlayer} to resolve
@@ -403,7 +402,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     this.virtualHost = virtualHost;
     this.rawVirtualHost = rawVirtualHost;
     this.handshakeIntent = handshakeIntent;
-    this.permissionResolver = DEFAULT_PERMISSION_RESOLVER;
+    this.setPermissionFunction(DEFAULT_PERMISSIONS.createFunction(this));
     this.connectionPhase = connection.getType().getInitialClientPhase();
     this.onlineMode = onlineMode;
     this.clientsideChannels = CappedSet.create(MAX_CLIENTSIDE_PLUGIN_CHANNELS);
@@ -747,24 +746,16 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   /**
    * Sets the permission function to evaluate permissions for this player.
-   * Internally, this will set {@link #permissionResolver} by calling
-   * {@code createPermissionResolverAdapter(this, permissionFunction)}.
-   * This method is not used in this codebase, however some external plugins
-   * rely on calling this method through reflection so we must keep it.
+   * This may be a {@link PermissionResolver} instead.
    *
    * @param permissionFunction the new permission function
    */
-  protected void setPermissionFunction(final PermissionFunction permissionFunction) {
-    this.permissionResolver = createPermissionResolverAdapter(this, permissionFunction);
-  }
-
-  /**
-   * Sets the permission resolver to evaluate permissions for this player.
-   *
-   * @param permissionResolver the new permission resolver
-   */
-  protected void setPermissionResolver(final PermissionResolver permissionResolver) {
-    this.permissionResolver = permissionResolver;
+  void setPermissionFunction(final PermissionFunction permissionFunction) {
+    if (permissionFunction instanceof PermissionResolver resolver) {
+      this.permissionResolver = resolver;
+    } else {
+      this.permissionResolver = createPermissionResolverAdapter(this, permissionFunction);
+    }
   }
 
   /**
