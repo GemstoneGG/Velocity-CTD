@@ -17,8 +17,6 @@
 
 package com.velocityctd.proxy.redis.provider;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.velocityctd.proxy.redis.handler.RouteHandler;
 import com.velocityctd.proxy.redis.packet.DataPacket;
@@ -49,13 +47,6 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
    * Shared logger for all Redis provider implementations.
    */
   protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractRedisProvider.class);
-
-  /**
-   * Cache of packets that have already been handled recently, used to prevent duplicate
-   * processing of the same {@link DataPacket}. Uses a dummy {@link Byte} value as the cache value.
-   */
-  protected final Cache<@NotNull DataPacket, @NotNull Byte> handledPackets = CacheBuilder.newBuilder()
-          .expireAfterWrite(10, TimeUnit.SECONDS).build();
 
   /**
    * Cache of pending {@link Transaction} instances, which are automatically timed out
@@ -123,7 +114,6 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
     final DataPacket sentPacket = DataPacket.of(transaction.getSentData(), packetSerializer);
     sentPacket.setTransactionId(transaction.getTransactionId());
 
-    handledPackets.put(sentPacket, (byte) 0);
     pendingTransactions.put(transaction, timeout, timeUnit);
 
     this.publishRaw(sentPacket);
