@@ -23,7 +23,6 @@ import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.jetbrains.annotations.NotNull;
 
@@ -53,23 +52,15 @@ public final class TransactionCache extends HashMap<UUID, Transaction<?, ?>> {
   private final TimeUnit timeUnit;
 
   /**
-   * Consumer invoked when a transaction is purged from the cache due to timeout.
-   */
-  private BiConsumer<UUID, Transaction<?, ?>> purgeConsumer;
-
-  /**
    * Constructs a new {@link TransactionCache}.
    *
    * @param scheduler the scheduler to use for timeout tasks
-   * @param purgeConsumer the purge consumer to call when a transaction is purged
    */
-  public TransactionCache(final @NotNull Scheduler scheduler,
-                           final BiConsumer<UUID, Transaction<?, ?>> purgeConsumer) {
+  public TransactionCache(final @NotNull Scheduler scheduler) {
     this.refreshTasks = new HashMap<>();
     this.scheduler = scheduler;
     this.delay = Transaction.DEFAULT_TIMEOUT;
     this.timeUnit = Transaction.DEFAULT_TIME_UNIT;
-    this.purgeConsumer = purgeConsumer;
   }
 
   @Override
@@ -124,7 +115,7 @@ public final class TransactionCache extends HashMap<UUID, Transaction<?, ?>> {
     final ScheduledTask scheduledTask = this.scheduler
             .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
               this.remove(key);
-              this.purgeConsumer.accept(key, transaction);
+              transaction.timeout();
             })
             .delay((long) delay, timeUnit)
             .schedule();

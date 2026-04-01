@@ -93,8 +93,7 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
    */
   public AbstractRedisProvider(final @NotNull Scheduler scheduler,
                                final @NotNull PacketSerializer packetSerializer) {
-    this.pendingTransactions = new TransactionCache(scheduler,
-            (uuid, transaction) -> transaction.timeout());
+    this.pendingTransactions = new TransactionCache(scheduler);
     this.packetSerializer = packetSerializer;
     this.routeHandlers = new HashMap<>();
     this.transactionHandlers = new HashMap<>();
