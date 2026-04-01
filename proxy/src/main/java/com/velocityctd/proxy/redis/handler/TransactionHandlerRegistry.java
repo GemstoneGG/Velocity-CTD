@@ -93,18 +93,18 @@ public enum TransactionHandlerRegistry {
    * Handles the {@link VelocityTransferRemote} transaction by transferring a player to another remote/proxy.
    */
   VELOCITY_TRANSFER_REMOTE(VelocityTransferRemote.class, (server, data) -> {
-    final ConnectedPlayer connectedPlayer = server.getPlayer(data.uniqueId()).orElse(null);
-    if (connectedPlayer == null) {
+    final ConnectedPlayer player = server.getPlayer(data.uniqueId()).orElse(null);
+    if (player == null) {
       return null;
     }
 
-    if (connectedPlayer.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
+    if (player.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
       return completedFuture(false);
     }
 
     CompletableFuture<Boolean> fut = new CompletableFuture<>();
     server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
-      connectedPlayer.transferToHost(new InetSocketAddress(data.ip(), data.port()));
+      player.transferToHost(new InetSocketAddress(data.ip(), data.port()));
       fut.complete(true);
     }).delay(100, TimeUnit.MILLISECONDS).schedule();
 
