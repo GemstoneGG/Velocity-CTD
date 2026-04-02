@@ -110,6 +110,7 @@ import com.velocitypowered.proxy.tablist.KeyedVelocityTabList;
 import com.velocitypowered.proxy.tablist.VelocityTabList;
 import com.velocitypowered.proxy.tablist.VelocityTabListLegacy;
 import com.velocitypowered.proxy.util.ClosestLocaleMatcher;
+import com.velocitypowered.proxy.util.ComponentUtils;
 import com.velocitypowered.proxy.util.DurationUtils;
 import com.velocitypowered.proxy.util.TranslatableMapper;
 import com.velocitypowered.proxy.util.collect.CappedSet;
@@ -149,7 +150,6 @@ import net.kyori.adventure.resource.ResourcePackRequestLike;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.sound.SoundStop;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
@@ -1322,9 +1322,9 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                   Argument.component("reason", disconnectReason)), safe);
     }
 
-    if (this.server.isQueueEnabled() && disconnectReason instanceof TextComponent text) {
+    if (this.server.isQueueEnabled()) {
       for (String reason : this.server.getConfiguration().getQueue().getBannedReason()) {
-        if (containsString(text, reason)) {
+        if (ComponentUtils.containsString(disconnectReason, reason)) {
           this.server.getQueueManager().removePlayerEntirely(this);
           break;
         }
@@ -1437,14 +1437,14 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                     String targetServerName = originalEvent.getServer().getServerInfo().getName();
 
                     if (!this.server.getConfiguration().getQueue().getNoQueueServers().contains(targetServerName)) {
-                      TextComponent kickMsg = (TextComponent) originalEvent.getServerKickReason().orElse(Component.empty());
+                      Component kickMsg = originalEvent.getServerKickReason().orElse(Component.empty());
                       final VelocityQueue queue = this.server.getQueueManager().getQueue(targetServerName);
 
                       // Checks if the kick reason is valid for a re-queue
                       // This is done to make sure players don't get constantly sent over and over again in a kick loop
                       boolean isValidReason = this.server.getConfiguration().getQueue().getBannedReason()
                           .stream()
-                          .noneMatch(text -> containsString(kickMsg, text));
+                          .noneMatch(text -> ComponentUtils.containsString(kickMsg, text));
 
                       if (isValidReason && (queue.getState() != QueueState.PAUSED
                           || this.server.getConfiguration().getQueue().isAllowPausedQueueJoining())) {
@@ -2472,9 +2472,9 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                     .orElse(ConnectionMessages.INTERNAL_SERVER_CONNECTION_ERROR);
             handleConnectionException(toConnect, DisconnectPacket.create(reason, getProtocolVersion(), connection.getState()), status.isSafe());
 
-            if (server.isQueueEnabled() && reason instanceof TextComponent textComponent) {
+            if (server.isQueueEnabled()) {
               for (String r : server.getConfiguration().getQueue().getBannedReason()) {
-                if (containsString(textComponent, r)) {
+                if (ComponentUtils.containsString(reason, r)) {
                   server.getQueueManager().removePlayerEntirely(ConnectedPlayer.this);
                 }
               }
@@ -2603,23 +2603,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     private boolean hasSameName(final VelocityRegisteredServer server, final String name) {
       return server.getServerInfo().getName().equalsIgnoreCase(name);
     }
-  }
-
-  private static boolean containsString(final TextComponent component, final String searchString) {
-    if (component.content().contains(searchString)) {
-      return true;
-    }
-
-    // Recursively check children components
-    for (Component child : component.children()) {
-      if (child instanceof TextComponent textChild) {
-        if (containsString(textChild, searchString)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
   }
 
   /**

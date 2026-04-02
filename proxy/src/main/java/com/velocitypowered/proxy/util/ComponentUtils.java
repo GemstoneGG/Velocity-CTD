@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.jetbrains.annotations.NotNull;
 
@@ -202,6 +203,29 @@ public final class ComponentUtils {
     }
 
     return input;
+  }
+
+  /**
+   * Returns whether the component tree contains the provided string in any text node.
+   *
+   * @param component the component to inspect
+   * @param searchString the text to find
+   * @return {@code true} if found, {@code false} otherwise
+   */
+  public static boolean containsString(final @NotNull Component component,
+                                       final @NotNull String searchString) {
+    if (component instanceof TextComponent textComponent
+        && textComponent.content().contains(searchString)) {
+      return true;
+    }
+
+    for (Component child : component.children()) {
+      if (containsString(child, searchString)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private static @NotNull String colorMatcher(@NotNull String literal, final @NotNull Pattern pattern, final boolean unboxed) {
