@@ -25,17 +25,13 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
+import com.velocityctd.proxy.command.PlayerIdentifier;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
-import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.text.Component;
@@ -49,10 +45,6 @@ public class SendCommand implements BuiltinCommand {
 
   private static final String SELECTOR_ARG = "selector";
   private static final String TARGET_ARG = "target";
-
-  private static final String ALL = "all";
-  private static final String CURRENT = "current";
-  private static final char SERVER_PREFIX = '+';
 
   private final VelocityServer server;
 
@@ -74,7 +66,7 @@ public class SendCommand implements BuiltinCommand {
         .then(
             BrigadierCommand
                 .requiredArgumentBuilder(SELECTOR_ARG, StringArgumentType.word())
-                .suggests(this::suggestPlayers)
+                .suggests(PlayerIdentifier.suggest(server, SELECTOR_ARG))
                 .executes(ctx -> CommandUtils.emitUsage(ctx, label()))
                 .then(
                     BrigadierCommand
@@ -85,36 +77,6 @@ public class SendCommand implements BuiltinCommand {
         );
 
     return new BrigadierCommand(command);
-  }
-
-  private CompletableFuture<Suggestions> suggestPlayers(CommandContext<CommandSource> ctx, SuggestionsBuilder builder) {
-    String input = builder.getRemaining();
-
-    for (String name : server.getClusterPlayerService().getPlayerNames()) {
-      if (startsWithIgnoreCase(name, input)) {
-        builder.suggest(name);
-      }
-    }
-
-    if (startsWithIgnoreCase(ALL, input)) {
-      builder.suggest(ALL);
-    }
-
-    if (ctx.getSource() instanceof ConnectedPlayer && startsWithIgnoreCase(CURRENT, input)) {
-      builder.suggest(CURRENT);
-    }
-
-    if (input.isEmpty() || input.charAt(0) == SERVER_PREFIX) {
-      String serverPart = input.isEmpty() ? "" : input.substring(1);
-      for (VelocityRegisteredServer rs : server.getAllServers()) {
-        String name = rs.getServerInfo().getName();
-        if (startsWithIgnoreCase(name, serverPart)) {
-          builder.suggest(SERVER_PREFIX + name);
-        }
-      }
-    }
-
-    return builder.buildFuture();
   }
 
   private CompletableFuture<Suggestions> suggestServers(CommandContext<CommandSource> ctx, SuggestionsBuilder builder) {
@@ -138,214 +100,125 @@ public class SendCommand implements BuiltinCommand {
       ctx.getSource().sendMessage(
           CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Component.text(targetName))
       );
-
       return 0;
     }
 
     VelocityRegisteredServer target = maybeTarget.get();
-
-    // all
-    if (equalsIgnoreCase(selector, ALL)) {
-      return sendAll(ctx, target);
-    }
-
-    // current
-    if (equalsIgnoreCase(selector, CURRENT)) {
-      if (!(ctx.getSource() instanceof ConnectedPlayer source)) {
-        ctx.getSource().sendMessage(CommandMessages.PLAYERS_ONLY);
-        return 0;
-      }
-
-      Collection<VelocityRegisteredServer> fromServers = lookupServers(selector, source);
-      if (fromServers.isEmpty()) {
-        return 0; // caller has no current server
-      }
-
-      String fromName = fromServers.iterator().next().getServerInfo().getName();
-      String toName = target.getServerInfo().getName();
-      if (equalsIgnoreCase(fromName, toName)) {
-        ctx.getSource().sendMessage(Component.translatable("velocity.command.send-same-server"));
-        return 0;
-      }
-
-      return sendFromServers(ctx, fromServers, target);
-    }
-
-    // +pattern
-    if (!selector.isEmpty() && selector.charAt(0) == SERVER_PREFIX) {
-      String pattern = selector.substring(1);
-      Collection<VelocityRegisteredServer> fromServers = lookupServers(selector, null);
-      if (fromServers.isEmpty()) {
-        ctx.getSource().sendMessage(
-            CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Component.text(pattern))
-        );
-        return 0;
-      }
-
-      return sendFromServers(ctx, fromServers, target);
-    }
-
-    // single player
-    return sendSinglePlayer(ctx, selector, target);
-  }
-
-  private Collection<VelocityRegisteredServer> lookupServers(String selector, @Nullable ConnectedPlayer sourcePlayer) {
-    if (equalsIgnoreCase(selector, CURRENT)) {
-      if (sourcePlayer == null) {
-        return Collections.emptySet();
-      }
-
-      return sourcePlayer.getCurrentServer()
-          .map(VelocityServerConnection::getServer)
-          .map(Collections::singleton)
-          .orElseGet(Collections::emptySet);
-    }
-
-    if (!selector.isEmpty() && selector.charAt(0) == SERVER_PREFIX) {
-      return lookupServersByName(selector.substring(1));
-    }
-
-    return Collections.emptySet();
-  }
-
-  private Collection<VelocityRegisteredServer> lookupServersByName(String input) {
-    String needle = input.toLowerCase();
-    if (needle.isEmpty()) {
-      return Collections.emptySet();
-    }
-
-    VelocityRegisteredServer exact = null;
-    List<VelocityRegisteredServer> prefix = new ArrayList<>();
-    List<VelocityRegisteredServer> contains = new ArrayList<>();
-
-    for (VelocityRegisteredServer rs : server.getAllServers()) {
-      String name = rs.getServerInfo().getName();
-      String lower = name.toLowerCase();
-
-      if (lower.equals(needle)) {
-        exact = rs;
-        break;
-      }
-
-      if (lower.startsWith(needle)) {
-        prefix.add(rs);
-      } else if (lower.contains(needle)) {
-        contains.add(rs);
-      }
-    }
-
-    if (exact != null) {
-      return Collections.singleton(exact);
-    } else if (!prefix.isEmpty()) {
-      return prefix;
-    } else {
-      return contains; // may be empty
-    }
-  }
-
-  private int sendAll(CommandContext<CommandSource> ctx, VelocityRegisteredServer target) {
     String toName = target.getServerInfo().getName();
-    Collection<VelocityClusterPlayer> players = server.getClusterPlayerService().getAllPlayers();
+
+    PlayerIdentifier.Result result = PlayerIdentifier.resolve(server, selector, ctx.getSource());
+    if (!result.success()) {
+      sendResolveError(ctx.getSource(), result);
+      return 0;
+    }
+
+    return switch (result.type()) {
+      case PLAYER -> sendPlayers(ctx, result, toName);
+      case SERVER, CURRENT_SERVER -> sendFromServer(ctx, result, toName);
+      default -> sendBulk(ctx, result, toName);
+    };
+  }
+
+  private int sendPlayers(CommandContext<CommandSource> ctx, PlayerIdentifier.Result result, String toName) {
+    Collection<VelocityClusterPlayer> players = result.players();
+
+    if (players.size() == 1) {
+      VelocityClusterPlayer player = players.iterator().next();
+      if (equalsIgnoreCase(player.getServerName(), toName)) {
+        ctx.getSource().sendMessage(Component.translatable("velocity.command.send-player-none")
+            .arguments(
+                Argument.string("player", player.getUsername()),
+                Argument.string("server", toName)
+            ));
+        return Command.SINGLE_SUCCESS;
+      }
+
+      player.move(toName);
+      ctx.getSource().sendMessage(Component.translatable("velocity.command.send-player")
+          .arguments(
+              Argument.string("player", player.getUsername()),
+              Argument.string("server", toName)
+          ));
+      return Command.SINGLE_SUCCESS;
+    }
+
+    // Multiple comma-separated players
+    return sendBulk(ctx, result, toName);
+  }
+
+  private int sendFromServer(CommandContext<CommandSource> ctx, PlayerIdentifier.Result result, String toName) {
+    String fromName = result.name();
+
+    if (equalsIgnoreCase(fromName, toName)) {
+      ctx.getSource().sendMessage(Component.translatable("velocity.command.send-same-server"));
+      return 0;
+    }
+
+    Collection<VelocityClusterPlayer> players = result.players();
+    if (players.isEmpty()) {
+      ctx.getSource().sendMessage(Component.translatable("velocity.command.send-server-none")
+          .arguments(
+              Argument.string("server", fromName),
+              Argument.string("to", toName)
+          ));
+      return Command.SINGLE_SUCCESS;
+    }
 
     for (VelocityClusterPlayer player : players) {
       player.move(toName);
     }
 
-    int count = players.size();
+    int moved = players.size();
     ctx.getSource().sendMessage(
-        Component.translatable(count == 1 ? "velocity.command.send-all-singular" : "velocity.command.send-all-plural")
+        Component.translatable(moved == 1 ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
             .arguments(
-                Argument.numeric("count", count),
-                Argument.string("server", toName)
+                Argument.numeric("count", moved),
+                Argument.string("from", fromName),
+                Argument.string("to", toName)
             )
     );
-
     return Command.SINGLE_SUCCESS;
   }
 
-  private int sendFromServers(CommandContext<CommandSource> ctx,
-                              Collection<VelocityRegisteredServer> fromServers,
-                              VelocityRegisteredServer target) {
-    String toName = target.getServerInfo().getName();
-    boolean anyMessage = false;
-    int skippedSameTarget = 0;
+  private int sendBulk(CommandContext<CommandSource> ctx, PlayerIdentifier.Result result, String toName) {
+    Collection<VelocityClusterPlayer> players = result.players();
+    int moved = 0;
+    int skippedSame = 0;
 
-    for (VelocityRegisteredServer from : fromServers) {
-      String fromName = from.getServerInfo().getName();
-
-      // If +pattern matches the target server too, just skip that one (unless it's the only match)
-      if (equalsIgnoreCase(fromName, toName)) {
-        skippedSameTarget++;
+    for (VelocityClusterPlayer player : players) {
+      if (equalsIgnoreCase(player.getServerName(), toName)) {
+        skippedSame++;
         continue;
       }
-
-      Collection<VelocityClusterPlayer> players = server.getClusterPlayerService().getPlayersOnServer(fromName);
-      if (players.isEmpty()) {
-        ctx.getSource().sendMessage(Component.translatable("velocity.command.send-server-none")
-            .arguments(
-                Argument.string("server", fromName),
-                Argument.string("to", toName)
-            ));
-        anyMessage = true;
-        continue;
-      }
-
-      for (VelocityClusterPlayer player : players) {
-        player.move(toName);
-      }
-
-      int moved = players.size();
-      ctx.getSource().sendMessage(
-          Component.translatable(moved == 1 ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
-              .arguments(
-                  Argument.numeric("count", moved),
-                  Argument.string("from", fromName),
-                  Argument.string("to", toName)
-              )
-      );
-      anyMessage = true;
+      player.move(toName);
+      moved++;
     }
 
-    if (!anyMessage && skippedSameTarget > 0) {
+    if (moved == 0 && skippedSame > 0) {
       ctx.getSource().sendMessage(Component.translatable("velocity.command.send-same-server"));
       return 0;
     }
 
+    ctx.getSource().sendMessage(
+        Component.translatable(moved == 1 ? "velocity.command.send-all-singular" : "velocity.command.send-all-plural")
+            .arguments(
+                Argument.numeric("count", moved),
+                Argument.string("server", toName)
+            )
+    );
     return Command.SINGLE_SUCCESS;
   }
 
-  private int sendSinglePlayer(CommandContext<CommandSource> ctx, String playerInput, VelocityRegisteredServer target) {
-    String toName = target.getServerInfo().getName();
-
-    Optional<VelocityClusterPlayer> maybePlayer = server.getClusterPlayerService().getPlayer(playerInput);
-    if (maybePlayer.isEmpty()) {
-      ctx.getSource().sendMessage(CommandMessages.PLAYER_NOT_FOUND
-          .arguments(
-              Argument.string("player", playerInput)
-          ));
-
-      return 0;
+  private void sendResolveError(CommandSource source, PlayerIdentifier.Result result) {
+    switch (result.type()) {
+      case PLAYER -> source.sendMessage(CommandMessages.PLAYER_NOT_FOUND
+          .arguments(Argument.string("player", result.name())));
+      case SERVER -> source.sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
+          .arguments(Component.text(result.name())));
+      case PLAYER_EXECUTOR_REQUIRED -> source.sendMessage(CommandMessages.PLAYERS_ONLY);
+      default -> {
+      }
     }
-
-    VelocityClusterPlayer player = maybePlayer.get();
-    if (equalsIgnoreCase(player.getServerName(), toName)) {
-      ctx.getSource().sendMessage(Component.translatable("velocity.command.send-player-none")
-          .arguments(
-              Argument.string("player", player.getUsername()),
-              Argument.string("server", toName)
-          ));
-
-      return Command.SINGLE_SUCCESS;
-    }
-
-    player.move(toName);
-    ctx.getSource().sendMessage(Component.translatable("velocity.command.send-player")
-        .arguments(
-            Argument.string("player", player.getUsername()),
-            Argument.string("server", toName)
-        ));
-
-    return Command.SINGLE_SUCCESS;
   }
 
   private static boolean equalsIgnoreCase(@Nullable String a, @Nullable String b) {

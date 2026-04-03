@@ -32,6 +32,7 @@ import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.command.CommandUtils;
+import com.velocityctd.proxy.command.PlayerIdentifier;
 import com.velocityctd.proxy.util.CompletableUtils;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
@@ -63,7 +64,6 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -147,41 +147,7 @@ public class VelocityCommand implements BuiltinCommand {
               return Command.SINGLE_SUCCESS;
             })
             .then(BrigadierCommand.requiredArgumentBuilder("target", StringArgumentType.word())
-                    .suggests((ctx, builder) -> {
-                      String argument = ctx.getArguments().containsKey("target")
-                              ? ctx.getArgument("target", String.class)
-                              : "";
-
-                      if ("all".regionMatches(true, 0, argument, 0, argument.length())) {
-                        builder.suggest("all");
-                      }
-
-                      if (argument.isEmpty() || argument.startsWith("+")) {
-                        for (VelocityRegisteredServer registeredServer : server.getAllServers()) {
-                          String serverName = registeredServer.getServerInfo().getName();
-
-                          if (serverName.regionMatches(true, 0, argument, 1, argument.length() - 1)) {
-                            builder.suggest("+" + serverName);
-                          }
-                        }
-                      }
-
-                      if ((argument.isEmpty() || argument.startsWith("-")) && server.getClusterProxyService().isMultiProxy()) {
-                        for (String id : server.getClusterProxyService().getAllProxyIds()) {
-                          if (id.regionMatches(true, 0, argument, 1, argument.length() - 1)) {
-                            builder.suggest("-" + id);
-                          }
-                        }
-                      }
-
-                      for (String playerName : server.getClusterPlayerService().getPlayerNames()) {
-                        if (playerName.regionMatches(true, 0, argument, 0, argument.length())) {
-                          builder.suggest(playerName);
-                        }
-                      }
-
-                      return builder.buildFuture();
-                    })
+                    .suggests(PlayerIdentifier.suggest(server, "target"))
                     .executes(ctx -> {
                       ctx.getSource().sendMessage(
                               Component.translatable("velocity.command.sudo.usage", NamedTextColor.YELLOW)
@@ -315,88 +281,42 @@ public class VelocityCommand implements BuiltinCommand {
       String sudoTarget = context.getArgument("target", String.class);
       String messageOrCommand = context.getArgument("message/command", String.class);
 
-      if (sudoTarget.equalsIgnoreCase("all")) {
-        Collection<VelocityClusterPlayer> allPlayers = this.server.getClusterPlayerService().getAllPlayers();
-        if (allPlayers.isEmpty()) {
-          source.sendMessage(Component.translatable("velocity.command.sudo.no-players"));
-        } else {
-          for (VelocityClusterPlayer player : allPlayers) {
-            player.sudo(messageOrCommand);
+      PlayerIdentifier.Result result = PlayerIdentifier.resolve(server, sudoTarget, source);
+      if (!result.success()) {
+        switch (result.type()) {
+          case PLAYER -> source.sendMessage(Component.translatable("velocity.command.sudo.invalid-player")
+              .arguments(Argument.string("player", result.name())));
+          case SERVER -> source.sendMessage(Component.translatable("velocity.command.sudo.invalid-server")
+              .arguments(Component.text(result.name())));
+          case PROXY -> source.sendMessage(Component.translatable("velocity.command.sudo.invalid-proxy")
+              .arguments(Component.text(result.name())));
+          case PLAYER_EXECUTOR_REQUIRED -> source.sendMessage(CommandMessages.PLAYERS_ONLY);
+          default -> {
           }
-          source.sendMessage(Component.translatable("velocity.command.sudo.success")
-                  .arguments(Argument.string("target", "everyone"),
-                          Argument.string("message", messageOrCommand)));
-        }
-      } else if (sudoTarget.length() > 1 && sudoTarget.startsWith("-")
-              && this.server.getClusterProxyService().isMultiProxy()) {
-        String proxyPrefix = sudoTarget.substring(1);
-        String realId = this.server.getClusterProxyService().getAllProxyIds().stream()
-            .filter(id -> id.equalsIgnoreCase(proxyPrefix))
-            .findFirst().orElse(null);
-
-        if (realId == null) {
-          source.sendMessage(Component.translatable("velocity.command.sudo.invalid-proxy")
-                  .arguments(Component.text(proxyPrefix)));
-          return Command.SINGLE_SUCCESS;
-        }
-
-        Collection<VelocityClusterPlayer> proxyPlayers = this.server.getClusterPlayerService().getPlayersOnProxy(realId);
-        if (proxyPlayers.isEmpty()) {
-          source.sendMessage(Component.translatable("velocity.command.sudo.no-players"));
-        } else {
-          for (VelocityClusterPlayer player : proxyPlayers) {
-            player.sudo(messageOrCommand);
-          }
-          source.sendMessage(Component.translatable("velocity.command.sudo.success")
-                  .arguments(Argument.string("target", realId),
-                          Argument.string("message", messageOrCommand)));
         }
         return Command.SINGLE_SUCCESS;
-      } else if (sudoTarget.startsWith("+")) {
-        if (sudoTarget.length() == 1) {
-          source.sendMessage(Component.translatable("velocity.command.sudo.invalid-server")
-                  .arguments(Component.text(sudoTarget)));
-          return Command.SINGLE_SUCCESS;
-        }
-        String serverName = sudoTarget.substring(1);
-        VelocityRegisteredServer registeredServer = this.server.getServer(serverName).orElse(null);
-        if (registeredServer == null) {
-          source.sendMessage(Component.translatable("velocity.command.sudo.invalid-server")
-                  .arguments(Component.text(serverName)));
-          return Command.SINGLE_SUCCESS;
-        }
-
-        Collection<VelocityClusterPlayer> serverPlayers = this.server.getClusterPlayerService().getPlayersOnServer(serverName);
-        if (serverPlayers.isEmpty()) {
-          source.sendMessage(Component.translatable("velocity.command.sudo.no-players"));
-        } else {
-          for (VelocityClusterPlayer player : serverPlayers) {
-            player.sudo(messageOrCommand);
-          }
-          source.sendMessage(Component.translatable("velocity.command.sudo.success")
-                  .arguments(Argument.string("target", registeredServer.getServerInfo().getName()),
-                          Argument.string("message", messageOrCommand)));
-        }
-      } else {
-        if (sudoTarget.startsWith("-") && sudoTarget.length() > 1) {
-          source.sendMessage(Component.translatable("velocity.command.sudo.invalid-proxy")
-                  .arguments(Component.text(sudoTarget.substring(1))));
-          return Command.SINGLE_SUCCESS;
-        }
-
-        Optional<VelocityClusterPlayer> maybePlayer = this.server.getClusterPlayerService().getPlayer(sudoTarget);
-        if (maybePlayer.isEmpty()) {
-          source.sendMessage(Component.translatable("velocity.command.sudo.invalid-player")
-                  .arguments(Argument.string("player", sudoTarget)));
-          return Command.SINGLE_SUCCESS;
-        }
-
-        VelocityClusterPlayer player = maybePlayer.get();
-        player.sudo(messageOrCommand);
-        source.sendMessage(Component.translatable("velocity.command.sudo.success")
-                .arguments(Argument.string("target", player.getUsername()),
-                        Argument.string("message", messageOrCommand)));
       }
+
+      if (result.players().isEmpty()) {
+        source.sendMessage(Component.translatable("velocity.command.sudo.no-players"));
+        return Command.SINGLE_SUCCESS;
+      }
+
+      for (VelocityClusterPlayer player : result.players()) {
+        player.sudo(messageOrCommand);
+      }
+
+      String targetDisplay = switch (result.type()) {
+        case ALL -> "everyone";
+        case PLAYER -> result.players().size() == 1
+            ? result.players().iterator().next().getUsername()
+            : sudoTarget;
+        default -> result.name() != null ? result.name() : sudoTarget;
+      };
+      source.sendMessage(Component.translatable("velocity.command.sudo.success")
+              .arguments(Argument.string("target", targetDisplay),
+                      Argument.string("message", messageOrCommand)));
+
       return Command.SINGLE_SUCCESS;
     }
   }
