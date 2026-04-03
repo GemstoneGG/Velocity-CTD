@@ -84,7 +84,7 @@ public class FindCommand implements BuiltinCommand {
       return 0;
     }
 
-    String serverDisplay = clusterPlayer.getProxyId() != null
+    String serverDisplay = server.getClusterProxyService().isMultiProxy()
         ? clusterPlayer.getServerName() + " (" + clusterPlayer.getProxyId() + ")"
         : clusterPlayer.getServerName();
 
