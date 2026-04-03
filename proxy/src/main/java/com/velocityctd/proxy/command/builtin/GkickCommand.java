@@ -54,7 +54,7 @@ public class GkickCommand implements BuiltinCommand {
   public BrigadierCommand build() {
     RequiredArgumentBuilder<CommandSource, String> playerNode = BrigadierCommand
         .requiredArgumentBuilder("player", StringArgumentType.word())
-        .suggests((ctx, builder) -> CommandUtils.suggestPlayer(server, ctx, builder, true))
+        .suggests((ctx, builder) -> CommandUtils.suggestPlayer(server, ctx, builder))
         .executes(this::executeKick)
         .then(BrigadierCommand
             .requiredArgumentBuilder("reason", StringArgumentType.greedyString())

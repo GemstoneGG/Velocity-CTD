@@ -197,22 +197,22 @@ public class CommandUtils {
   }
 
   /**
-   * Suggests the name of an online player.
+   * Suggests the name of online cluster player(s).
+   * Will suggest {@link com.velocityctd.api.cluster.ClusterPlayer} names through
+   * {@link com.velocityctd.proxy.cluster.VelocityClusterPlayerService#getPlayerNames()},
+   * so the player names suggested by this method may be online on other proxies instead.
    *
    * @param server the proxy server instance
    * @param ctx the context passed to the {@code suggests} callback
    * @param builder the builder passed to the {@code builder} callback
-   * @param includeRemote whether to include remote (cross-proxy) players from Redis
    * @return a future that resolves to the suggestions
    */
   public static CompletableFuture<Suggestions> suggestPlayer(final VelocityServer server, final CommandContext<CommandSource> ctx,
-                                                             final SuggestionsBuilder builder, final boolean includeRemote) {
+                                                             final SuggestionsBuilder builder) {
     final String argument = ctx.getArguments().containsKey("player")
         ? ctx.getArgument("player", String.class)
         : "";
-    final Collection<String> playerNames = includeRemote
-        ? server.getClusterPlayerService().getPlayerNames()
-        : server.getAllPlayers().stream().map(ConnectedPlayer::getUsername).toList();
+    final Collection<String> playerNames = server.getClusterPlayerService().getPlayerNames();
 
     for (final String playerName : playerNames) {
       if (playerName.regionMatches(true, 0, argument, 0, argument.length())) {

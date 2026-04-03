@@ -59,7 +59,7 @@ public class FindCommand implements BuiltinCommand {
         .executes(ctx -> CommandUtils.emitUsage(ctx, label()));
     RequiredArgumentBuilder<CommandSource, String> playerNode = BrigadierCommand
         .requiredArgumentBuilder("player", StringArgumentType.word())
-        .suggests((ctx, builder) -> CommandUtils.suggestPlayer(server, ctx, builder, true))
+        .suggests((ctx, builder) -> CommandUtils.suggestPlayer(server, ctx, builder))
         .executes(this::find);
 
     rootNode.then(playerNode);

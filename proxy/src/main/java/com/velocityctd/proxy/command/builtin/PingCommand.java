@@ -63,7 +63,7 @@ public class PingCommand implements BuiltinCommand {
         .then(
             BrigadierCommand.requiredArgumentBuilder("player", StringArgumentType.word())
                 .requires(source -> source.getPermissionValue("velocity.command.ping.others") == Tristate.TRUE)
-                .suggests((ctx, builder) -> CommandUtils.suggestPlayer(server, ctx, builder, true))
+                .suggests((ctx, builder) -> CommandUtils.suggestPlayer(server, ctx, builder))
                 .executes(context -> {
                   String player = context.getArgument("player", String.class);
                   return this.getPing(context, player);
