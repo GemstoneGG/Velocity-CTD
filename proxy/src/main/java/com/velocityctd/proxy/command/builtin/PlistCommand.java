@@ -205,14 +205,14 @@ public class PlistCommand implements BuiltinCommand {
 
   // Returns total player count
   private int sendServerPlayers(CommandSource target,
-                                 @Nullable String proxyId,
+                                @Nullable String proxyId,
                                 VelocityRegisteredServer server,
-                                 boolean ignoreEmpty) {
+                                boolean ignoreEmpty) {
     List<Component> players = new ArrayList<>();
     int totalPlayers = 0;
 
     for (VelocityClusterPlayer player : this.server.getClusterPlayerService().getPlayersOnServer(server.getServerInfo().getName())) {
-      if (proxyId == null || (player.getProxyId() != null && player.getProxyId().equalsIgnoreCase(proxyId))) {
+      if (proxyId == null || player.getProxyId().equalsIgnoreCase(proxyId)) {
         players.add(Component.text(player.getUsername()));
         totalPlayers++;
       }
