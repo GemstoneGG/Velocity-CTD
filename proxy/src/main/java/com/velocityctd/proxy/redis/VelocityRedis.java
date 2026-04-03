@@ -18,8 +18,8 @@
 package com.velocityctd.proxy.redis;
 
 import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotService;
-import com.velocityctd.proxy.redis.depot.PlayerDepotService;
-import com.velocityctd.proxy.redis.depot.ProxyDepotService;
+import com.velocityctd.proxy.redis.depot.player.PlayerDepotService;
+import com.velocityctd.proxy.redis.depot.proxy.ProxyDepotService;
 import com.velocityctd.proxy.redis.handler.RouteHandlerRegistry;
 import com.velocityctd.proxy.redis.handler.TransactionHandlerRegistry;
 import com.velocityctd.proxy.redis.packet.PacketSerializer;

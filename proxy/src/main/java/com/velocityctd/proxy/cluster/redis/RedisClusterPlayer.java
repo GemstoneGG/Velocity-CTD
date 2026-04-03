@@ -26,7 +26,7 @@ import com.velocityctd.proxy.redis.data.VelocityMessage;
 import com.velocityctd.proxy.redis.data.VelocitySudo;
 import com.velocityctd.proxy.redis.data.VelocitySwitchServer;
 import com.velocityctd.proxy.redis.data.VelocityTransferRemote;
-import com.velocityctd.proxy.redis.depot.PlayerEntry;
+import com.velocityctd.proxy.redis.depot.player.PlayerEntry;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.Optional;

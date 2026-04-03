@@ -15,8 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.depot;
+package com.velocityctd.proxy.redis.depot.proxy;
 
+import com.velocityctd.proxy.redis.depot.DepotEntry;
 import com.velocitypowered.proxy.VelocityServer;
 import org.jetbrains.annotations.NotNull;
 

@@ -15,9 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.depot;
+package com.velocityctd.proxy.redis.depot.proxy;
 
 import com.velocityctd.proxy.redis.VelocityRedis;
+import com.velocityctd.proxy.redis.depot.AbstractDepotService;
+import com.velocityctd.proxy.redis.depot.player.PlayerEntry;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import java.time.Duration;
