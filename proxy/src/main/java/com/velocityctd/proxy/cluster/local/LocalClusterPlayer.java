@@ -83,12 +83,17 @@ public final class LocalClusterPlayer implements VelocityClusterPlayer {
   }
 
   @Override
-  public void sudo(final String command) {
-    if (this.server.getCommandManager().hasCommand(command)) {
-      this.server.getCommandManager().executeAsync(player, command);
-    } else {
-      player.spoofChatInput(command);
+  public void sudo(final String message) {
+    if (message.startsWith("/")) {
+      String fullCommand = message.substring(1);
+      String commandLabel = fullCommand.split(" ")[0];
+      if (server.getCommandManager().hasCommand(commandLabel)) {
+        server.getCommandManager().executeAsync(player, fullCommand);
+        return;
+      }
     }
+
+    player.spoofChatInput(message);
   }
 
   @Override
