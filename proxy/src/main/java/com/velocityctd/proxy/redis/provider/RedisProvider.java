@@ -49,7 +49,8 @@ public sealed interface RedisProvider permits AbstractRedisProvider {
   void disconnect();
 
   /**
-   * Publish a payload to the channel on the Redis, wrapping it in a {@link DataPacket}.
+   * Publish a payload to the channel on the Redis, wrapping it in a
+   * {@link com.velocityctd.proxy.redis.packet.DataPacket}.
    *
    * @param payload the payload to publish
    */
