@@ -7,7 +7,7 @@ netty = "4.2.12.Final"
 lettuce = "7.5.1.RELEASE"
 
 [plugins]
-fill = "io.papermc.fill.gradle:1.0.10"
+fill = "io.papermc.fill.gradle:1.0.11"
 shadow = "com.gradleup.shadow:9.4.1"
 spotless = "com.diffplug.spotless:8.4.0"
 
