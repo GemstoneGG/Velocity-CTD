@@ -3,5 +3,12 @@
   "extends": [
     "config:recommended"
   ],
-  "dependencyDashboard": false
+  "dependencyDashboard": false,
+  "packageRules": [
+    {
+      "matchPackagePrefixes": ["org.jline"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    }
+  ]
 }

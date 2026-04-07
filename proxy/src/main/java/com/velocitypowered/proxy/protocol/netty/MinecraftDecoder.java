@@ -22,6 +22,7 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
+import com.velocitypowered.proxy.util.VelocityProperties;
 import com.velocitypowered.proxy.util.except.QuietRuntimeException;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -45,6 +46,19 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
   private static final QuietRuntimeException DECODE_FAILED =
       new QuietRuntimeException("A packet did not decode successfully (invalid data). For more "
           + "information, launch Velocity with -Dvelocity.packet-decode-logging=true to see more.");
+
+  /**
+   * Whether to validate packet direction during decoding.
+   *
+   * <p>When enabled, serverbound packets received outside the {@code PLAY} state
+   * with an unrecognized packet ID will cause the connection to be closed with
+   * an error, rather than being passed through the pipeline as a raw buffer.</p>
+   *
+   * <p>This can be disabled with {@code -Dvelocity.packet-direction-validation=false}.</p>
+   */
+  private static final boolean DIRECTION_VALIDATION = VelocityProperties.readBoolean(
+        "velocity.packet-direction-validation", true
+  );
 
   /**
    * The direction of the packet flow this decoder is handling.
@@ -115,7 +129,7 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
     MinecraftPacket packet = this.registry.createPacket(packetId);
     if (packet == null) {
       buf.readerIndex(originalReaderIndex);
-      if (this.direction == ProtocolUtils.Direction.SERVERBOUND && this.state != StateRegistry.PLAY) {
+      if (DIRECTION_VALIDATION && this.direction == ProtocolUtils.Direction.SERVERBOUND && this.state != StateRegistry.PLAY) {
         buf.release();
         throw this.handleInvalidPacketId(packetId);
       }
