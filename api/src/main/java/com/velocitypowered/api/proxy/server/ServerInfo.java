@@ -33,7 +33,7 @@ public final class ServerInfo implements Comparable<ServerInfo> {
    * to this server.
    */
   @Nullable
-  private final ServerInfoForwardingMode forwardingMode;
+  private final PlayerInfoForwarding forwardingMode;
 
   /**
    * Creates a new ServerInfo object.
@@ -43,7 +43,7 @@ public final class ServerInfo implements Comparable<ServerInfo> {
    * @param forwardingMode the server info forwarding mode, or {@code null} if the mode from the config should be used
    * @since 3.4.0
    */
-  public ServerInfo(final String name, final InetSocketAddress address, final @Nullable ServerInfoForwardingMode forwardingMode) {
+  public ServerInfo(final String name, final InetSocketAddress address, final @Nullable PlayerInfoForwarding forwardingMode) {
     this.name = Preconditions.checkNotNull(name, "name");
     this.address = Preconditions.checkNotNull(address, "address");
     this.forwardingMode = forwardingMode;
@@ -77,7 +77,7 @@ public final class ServerInfo implements Comparable<ServerInfo> {
    *     if the mode is inherited from the "player-info-forwarding-mode" set in the config
    */
   @Nullable
-  public ServerInfoForwardingMode getServerInfoForwardingMode() {
+  public PlayerInfoForwarding getPlayerInfoForwardingMode() {
     return forwardingMode;
   }
 

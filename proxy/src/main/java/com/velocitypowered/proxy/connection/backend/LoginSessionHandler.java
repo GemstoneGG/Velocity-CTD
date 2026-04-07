@@ -22,8 +22,8 @@ import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
 import com.velocitypowered.api.event.player.configuration.PlayerEnteredConfigurationEvent;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
+import com.velocitypowered.api.proxy.server.PlayerInfoForwarding;
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.config.PlayerInfoForwarding;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
@@ -123,7 +123,7 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
     MinecraftConnection mc = serverConn.ensureConnected();
     VelocityConfiguration configuration = server.getConfiguration();
 
-    PlayerInfoForwarding forwardingMode = serverConn.getServer().getConfiguredPlayerInfoForwarding();
+    PlayerInfoForwarding forwardingMode = serverConn.getServer().getPlayerInfoForwardingMode();
 
     if (forwardingMode == PlayerInfoForwarding.MODERN
         && packet.getChannel().equals(PlayerDataForwarding.CHANNEL)) {
@@ -213,7 +213,7 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
    */
   @Override
   public boolean handle(final ServerLoginSuccessPacket packet) {
-    PlayerInfoForwarding forwardingMode = serverConn.getServer().getConfiguredPlayerInfoForwarding();
+    PlayerInfoForwarding forwardingMode = serverConn.getServer().getPlayerInfoForwardingMode();
 
     if (forwardingMode == PlayerInfoForwarding.MODERN && !informationForwarded) {
       resultFuture.complete(ConnectionRequestResults.forDisconnect(MODERN_IP_FORWARDING_FAILURE, serverConn.getServer()));
@@ -306,7 +306,7 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
    */
   @Override
   public void disconnected() {
-    PlayerInfoForwarding forwardingMode = serverConn.getServer().getConfiguredPlayerInfoForwarding();
+    PlayerInfoForwarding forwardingMode = serverConn.getServer().getPlayerInfoForwardingMode();
 
     if (forwardingMode == PlayerInfoForwarding.LEGACY) {
       resultFuture.completeExceptionally(new QuietRuntimeException(

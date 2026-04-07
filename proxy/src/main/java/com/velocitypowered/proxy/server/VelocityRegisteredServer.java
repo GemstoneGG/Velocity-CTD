@@ -32,11 +32,11 @@ import com.velocityctd.proxy.queue.VelocityQueueManager;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.PluginMessageEncoder;
 import com.velocitypowered.api.proxy.server.PingOptions;
+import com.velocitypowered.api.proxy.server.PlayerInfoForwarding;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.config.PlayerInfoForwarding;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -117,17 +117,17 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
    *
    * @return player info forwarding
    */
-  public PlayerInfoForwarding getConfiguredPlayerInfoForwarding() {
-    if (serverInfo.getServerInfoForwardingMode() == null) {
-      return server.getConfiguration().getPlayerInfoForwardingMode();
+  public PlayerInfoForwarding getPlayerInfoForwardingMode() {
+    PlayerInfoForwarding mode = serverInfo.getPlayerInfoForwardingMode();
+    if (mode == null) {
+      if (server != null) {
+        return server.getConfiguration().getPlayerInfoForwardingMode();
+      } else {
+        return PlayerInfoForwarding.NONE;
+      }
     }
 
-    return switch (serverInfo.getServerInfoForwardingMode()) {
-      case LEGACY -> PlayerInfoForwarding.LEGACY;
-      case MODERN -> PlayerInfoForwarding.MODERN;
-      case BUNGEEGUARD -> PlayerInfoForwarding.BUNGEEGUARD;
-      case NONE -> PlayerInfoForwarding.NONE;
-    };
+    return mode;
   }
 
   /**

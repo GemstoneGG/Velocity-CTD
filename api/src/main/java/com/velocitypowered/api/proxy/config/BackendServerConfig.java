@@ -9,7 +9,7 @@ package com.velocitypowered.api.proxy.config;
 
 import static java.util.Objects.requireNonNull;
 
-import com.velocitypowered.api.proxy.server.ServerInfoForwardingMode;
+import com.velocitypowered.api.proxy.server.PlayerInfoForwarding;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -20,7 +20,7 @@ import org.jspecify.annotations.Nullable;
  * The server can use a different mode to obtain and forward player info. For instance,
  * if you are running a 1.12 (or lower version) server on a Velocity proxy with MODERN
  * player info forwarding, the server does not support MODERN forwarding. In this case,
- * you must set the forwarding mode for that server to {@link ServerInfoForwardingMode#LEGACY},
+ * you must set the forwarding mode for that server to {@link PlayerInfoForwarding#LEGACY},
  * and Velocity will use the legacy mode <em>only</em> for that backend server.
  * Additionally, if the forwarding mode is null it means that the server is using the
  * "player-info-forwarding-mode", set in the configuration.</p>
@@ -29,12 +29,12 @@ import org.jspecify.annotations.Nullable;
  * @param forwardingMode the forwarding mode to use when forwarding player information
  *                       to this backend server
  * @since 3.4.0
- * @see ServerInfoForwardingMode
+ * @see PlayerInfoForwarding
  * @see com.velocitypowered.api.proxy.server.ServerInfo#ServerInfo(String, java.net.InetSocketAddress,
- *     ServerInfoForwardingMode)
+ *     PlayerInfoForwarding)
  */
 @NullMarked
-public record BackendServerConfig(String address, @Nullable ServerInfoForwardingMode forwardingMode) {
+public record BackendServerConfig(String address, @Nullable PlayerInfoForwarding forwardingMode) {
 
   /**
    * Creates a new {@link BackendServerConfig}.

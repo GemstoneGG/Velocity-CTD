@@ -5,7 +5,7 @@
  * reference the LICENSE file in the api top-level directory.
  */
 
-package com.velocitypowered.api.event.connection;
+package com.velocityctd.api.event.connection;
 
 import com.google.common.base.Preconditions;
 import com.velocitypowered.api.event.ResultedEvent;

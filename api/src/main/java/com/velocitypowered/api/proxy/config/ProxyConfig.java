@@ -112,7 +112,7 @@ public interface ProxyConfig {
    * @return registered servers map with, instead of the only address, the Backend Server Object for each
    *     of them which contains the address of the server and its info forwarding mode.
    * @since 3.4.0
-   * @see com.velocitypowered.api.proxy.server.ServerInfoForwardingMode
+   * @see com.velocitypowered.api.proxy.server.PlayerInfoForwarding
    */
   Map<String, BackendServerConfig> getBackendServers();
 

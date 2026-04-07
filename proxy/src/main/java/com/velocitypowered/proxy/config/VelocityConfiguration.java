@@ -27,7 +27,7 @@ import com.google.gson.annotations.Expose;
 import com.velocityctd.proxy.config.migration.CtdConfigMigrations;
 import com.velocitypowered.api.proxy.config.BackendServerConfig;
 import com.velocitypowered.api.proxy.config.ProxyConfig;
-import com.velocitypowered.api.proxy.server.ServerInfoForwardingMode;
+import com.velocitypowered.api.proxy.server.PlayerInfoForwarding;
 import com.velocitypowered.api.util.Favicon;
 import com.velocitypowered.api.util.ServerLink;
 import com.velocitypowered.proxy.config.migration.ConfigurationMigration;
@@ -446,8 +446,8 @@ public final class VelocityConfiguration implements ProxyConfig {
         valid = false;
       }
 
-      ServerInfoForwardingMode mode = entry.getValue().forwardingMode();
-      if (mode == ServerInfoForwardingMode.MODERN || mode == ServerInfoForwardingMode.BUNGEEGUARD) {
+      PlayerInfoForwarding mode = entry.getValue().forwardingMode();
+      if (mode == PlayerInfoForwarding.MODERN || mode == PlayerInfoForwarding.BUNGEEGUARD) {
         if (forwardingSecret == null || forwardingSecret.length == 0) {
           LOGGER.error("You don't have a forwarding secret set. This is required if "
                   + "you are using MODERN or BUNGEEGUARD forwarding modes.");
@@ -1658,7 +1658,7 @@ public final class VelocityConfiguration implements ProxyConfig {
      *
      * <p>The key is the unique server name used within the proxy (for example,
      * {@code "lobby"}), and the value is a {@link BackendServerConfig} describing
-     * the backend server's address and its {@link ServerInfoForwardingMode}.</p>
+     * the backend server's address and its {@link PlayerInfoForwarding}.</p>
      *
      * <p>This map determines the set of servers players can connect to and
      * specifies whether each server should inherit the global forwarding mode
@@ -1666,8 +1666,8 @@ public final class VelocityConfiguration implements ProxyConfig {
      */
     private Map<String, BackendServerConfig> servers = ImmutableMap.of(
         "lobby", new BackendServerConfig("127.0.0.1:30066"),
-        "factions", new BackendServerConfig("127.0.0.1:30067", ServerInfoForwardingMode.MODERN),
-        "minigames", new BackendServerConfig("127.0.0.1:30068", ServerInfoForwardingMode.LEGACY)
+        "factions", new BackendServerConfig("127.0.0.1:30067", PlayerInfoForwarding.MODERN),
+        "minigames", new BackendServerConfig("127.0.0.1:30068", PlayerInfoForwarding.LEGACY)
     );
 
     /**
@@ -1730,7 +1730,7 @@ public final class VelocityConfiguration implements ProxyConfig {
 
           if (entry.getValue() instanceof CommentedConfig c) {
             String address = null;
-            ServerInfoForwardingMode forwardingMode = null;
+            PlayerInfoForwarding forwardingMode = null;
             for (UnmodifiableConfig.Entry entry2 : c.entrySet()) {
               if (entry2.getKey().equalsIgnoreCase("address")) {
                 address = entry2.getValue();
@@ -1738,7 +1738,7 @@ public final class VelocityConfiguration implements ProxyConfig {
 
               if (entry2.getKey().equalsIgnoreCase("forwarding-mode")) {
                 String forwardingModeName = entry2.getValue();
-                forwardingMode = ServerInfoForwardingMode.valueOf(
+                forwardingMode = PlayerInfoForwarding.valueOf(
                     forwardingModeName.toUpperCase(Locale.ROOT));
               }
 

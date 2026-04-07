@@ -17,8 +17,8 @@
 
 package com.velocitypowered.proxy;
 
+import com.velocitypowered.api.proxy.server.PlayerInfoForwarding;
 import com.velocitypowered.api.proxy.server.ServerInfo;
-import com.velocitypowered.api.proxy.server.ServerInfoForwardingMode;
 import com.velocitypowered.proxy.util.AddressUtil;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -175,7 +175,7 @@ public final class ProxyOptions {
       }
 
       InetSocketAddress address;
-      ServerInfoForwardingMode mode = null;
+      PlayerInfoForwarding mode = null;
       try {
         if (split.length >= 3) {
           address = AddressUtil.parseAddress(split[1] + ":" + split[2]);
@@ -188,7 +188,7 @@ public final class ProxyOptions {
 
       if (split.length == 4) {
         try {
-          mode = ServerInfoForwardingMode.valueOf(split[3].toUpperCase(Locale.ROOT));
+          mode = PlayerInfoForwarding.valueOf(split[3].toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
           throw new ValueConversionException("Invalid forwarding mode for server flag with name: " + split[0]);
         }

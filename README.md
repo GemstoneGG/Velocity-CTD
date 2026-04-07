@@ -124,6 +124,7 @@ dependencies, useful performance improvements, and more.
 ## Velocity-CTD Queue Permissions
 * `velocity.queue.bypass` or `velocity.queue.bypass.{SERVER}` (Allows you to bypass the queue for all
   servers or a specific server).
+* `velocity.queue.full.bypass` (Allows you to connect to a server even when it is at capacity).
 * `velocity.queue.leave` (Allows you to leave the queue you are in or all queues you are in).
 * `velocity.queue.priority.{ALL/SERVER}.{WEIGHT}` (Sets the position you are in for the/a queue).
 * `velocity.queue.timeout.{SECONDS}` (Specifies the amount of time a user has before they

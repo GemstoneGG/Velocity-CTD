@@ -5,7 +5,7 @@
  * reference the LICENSE file in the api top-level directory.
  */
 
-package com.velocitypowered.api.event.player;
+package com.velocityctd.api.event.player;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

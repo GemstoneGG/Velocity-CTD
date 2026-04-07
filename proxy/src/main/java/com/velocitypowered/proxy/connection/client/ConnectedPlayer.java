@@ -58,6 +58,7 @@ import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.PluginMessageEncoder;
 import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.api.proxy.player.ResourcePackInfo;
+import com.velocitypowered.api.proxy.server.PlayerInfoForwarding;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.api.util.GameProfile;
@@ -66,7 +67,6 @@ import com.velocitypowered.api.util.ServerLink;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.adventure.VelocityBossBarImplementation;
 import com.velocitypowered.proxy.config.DynamicFallbackFilter;
-import com.velocitypowered.proxy.config.PlayerInfoForwarding;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftConnectionAssociation;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
@@ -1561,7 +1561,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     LOGGER.debug("Scheduling auto-queue for player {}.", getUsername());
 
     tryAutoQueueTask = server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
-      // Safe-guard if this player is offline. Should never be reached because the task
+      // Safeguard if this player is offline. Should never be reached because the task
       // should be cancelled by ConnectedPlayer#disconnected.
       if (!server.getAllPlayers().contains(this)) {
         LOGGER.debug("Aborting auto-queueing player {} (now offline).", getUsername());
@@ -1587,6 +1587,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
         VelocityRegisteredServer target = queueServers.getFirst();
         server.getQueueManager().queue(this, target);
       }
+
+      tryAutoQueueTask = null;
     })
         .delay(Duration.ofSeconds(2))
         .schedule();
@@ -2634,7 +2636,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     }
 
     // Check if the server uses modern forwarding and the client is too old
-    PlayerInfoForwarding serverForwardingMode = server.getConfiguredPlayerInfoForwarding();
+    PlayerInfoForwarding serverForwardingMode = server.getPlayerInfoForwardingMode();
     if (serverForwardingMode == PlayerInfoForwarding.MODERN && clientProtocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_13)) {
       // Disconnect the player with an appropriate message
       disconnect(Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
