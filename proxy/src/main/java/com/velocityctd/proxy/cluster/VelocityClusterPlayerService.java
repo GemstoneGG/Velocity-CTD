@@ -19,6 +19,7 @@ package com.velocityctd.proxy.cluster;
 
 import com.velocityctd.api.cluster.ClusterPlayerService;
 import com.velocitypowered.api.proxy.player.PlayerSettings;
+import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.Collection;
 import java.util.Optional;
@@ -36,6 +37,11 @@ public interface VelocityClusterPlayerService extends ClusterPlayerService {
 
   @Override
   Collection<VelocityClusterPlayer> getPlayersOnServer(String serverName);
+
+  @Override
+  default Collection<VelocityClusterPlayer> getPlayersOnServer(RegisteredServer server) {
+    return getPlayersOnServer(server.getServerInfo().getName());
+  }
 
   @Override
   Collection<VelocityClusterPlayer> getPlayersOnProxy(String proxyId);

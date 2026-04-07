@@ -7,6 +7,7 @@
 
 package com.velocityctd.api.cluster;
 
+import com.velocitypowered.api.proxy.server.RegisteredServer;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,6 +37,16 @@ public interface ClusterPlayerService {
   int getPlayersOnServerCount(String serverName);
 
   /**
+   * Gets the number of players currently on the specified backend server.
+   *
+   * @param server the backend server
+   * @return the player count for that server
+   */
+  default int getPlayersOnServerCount(RegisteredServer server) {
+    return getPlayersOnServerCount(server.getServerInfo().getName());
+  }
+
+  /**
    * Gets all players connected anywhere in the cluster.
    *
    * @return an unmodifiable collection of all cluster players
@@ -49,6 +60,16 @@ public interface ClusterPlayerService {
    * @return an unmodifiable collection of players on that server
    */
   Collection<? extends ClusterPlayer> getPlayersOnServer(String serverName);
+
+  /**
+   * Gets all players currently on the specified backend server.
+   *
+   * @param server the backend server
+   * @return an unmodifiable collection of players on that server
+   */
+  default Collection<? extends ClusterPlayer> getPlayersOnServer(RegisteredServer server) {
+    return getPlayersOnServer(server.getServerInfo().getName());
+  }
 
   /**
    * Gets all players connected to the specified proxy.

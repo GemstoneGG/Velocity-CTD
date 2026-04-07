@@ -31,7 +31,6 @@ import com.velocityctd.proxy.queue.VelocityQueue;
 import com.velocityctd.proxy.queue.VelocityQueueManager;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.PluginMessageEncoder;
-import com.velocitypowered.api.proxy.player.PlayerInfo;
 import com.velocitypowered.api.proxy.server.PingOptions;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
@@ -55,9 +54,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoop;
 import io.netty.handler.timeout.ReadTimeoutHandler;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -163,28 +160,6 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
       return getPlayersConnected().size();
     }
     return this.server.getClusterPlayerService().getPlayersOnServerCount(getServerInfo().getName());
-  }
-
-  /**
-   * Returns a list of {@link PlayerInfo} entries representing all players
-   * connected to this server.
-   *
-   * <p>If Redis is enabled, this list includes remote players across all proxies.
-   * Otherwise, it only contains players connected to this proxy instance.</p>
-   *
-   * @return a list of {@link PlayerInfo} for the players on this server
-   */
-  @Override
-  public List<PlayerInfo> getPlayerInfo() {
-    if (this.server == null) {
-      List<PlayerInfo> info = new ArrayList<>();
-      players.forEach((uuid, player) -> info.add(new PlayerInfo(player.getUsername(), player.getUniqueId())));
-      return info;
-    }
-
-    return this.server.getClusterPlayerService().getPlayersOnServer(getServerInfo().getName()).stream()
-            .map(entry -> new PlayerInfo(entry.getUsername(), entry.getUniqueId()))
-            .toList();
   }
 
   /**
