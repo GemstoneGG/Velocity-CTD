@@ -491,6 +491,13 @@ remove-player-on-server-switch = true
 # This is mutually exclusive with auto-queue-servers. Leave empty to disable.
 queue-server = ""
 
+# The server queue(s) a player is automatically entered into on their first proxy join.
+# Can be configured as a single string or a list of strings.
+# Examples:
+#   queue-on-join = "factions"
+#   queue-on-join = ["factions1", "factions2"]
+queue-on-join = []
+
 # Whether the kick message or indicator should be shown when you have failed to queue and join a specific server.
 forward-kick-reason = true
 

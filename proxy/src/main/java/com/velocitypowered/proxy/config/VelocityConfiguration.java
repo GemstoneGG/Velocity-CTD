@@ -2960,6 +2960,11 @@ public final class VelocityConfiguration implements ProxyConfig {
      */
     private String queueServer;
 
+    /**
+     * A list of server queues a player is automatically entered into on their first proxy join.
+     */
+    private List<String> queueOnJoinServers;
+
     private Queue(final CommentedConfig config) {
       if (config == null) {
         return;
@@ -2983,6 +2988,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.masterProxyIds = config.getOrElse("master-proxy-ids", new ArrayList<>());
       this.bannedReason = config.getOrElse("banned-reason", new ArrayList<>());
       this.queueServer = config.getOrElse("queue-server", "");
+      this.queueOnJoinServers = parseQueueOnJoinServers(config.get("queue-on-join"));
       this.autoQueueServers = parseAutoQueueServers(config.get("auto-queue-servers"));
 
       if (!this.queueServer.isEmpty() && !this.autoQueueServers.isEmpty()) {
@@ -3011,6 +3017,19 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
 
       return ImmutableMap.copyOf(autoQueueServers);
+    }
+
+    private List<String> parseQueueOnJoinServers(Object raw) {
+      if (raw instanceof String s) {
+        return s.isEmpty() ? ImmutableList.of() : ImmutableList.of(s);
+      } else if (raw instanceof List<?> list) {
+        return list.stream()
+            .filter(e -> e instanceof String)
+            .map(e -> (String) e)
+            .filter(s -> !s.isEmpty())
+            .collect(ImmutableList.toImmutableList());
+      }
+      return ImmutableList.of();
     }
 
     /**
@@ -3186,6 +3205,15 @@ public final class VelocityConfiguration implements ProxyConfig {
       return queueServer == null ? "" : queueServer;
     }
 
+    /**
+     * Gets the list of server queues a player is automatically entered into on their first proxy join.
+     *
+     * @return list of server names, or an empty list if not configured
+     */
+    public List<String> getQueueOnJoinServers() {
+      return queueOnJoinServers == null ? ImmutableList.of() : queueOnJoinServers;
+    }
+
     @Override
     public String toString() {
       return "Queue{"
@@ -3204,6 +3232,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", leaveQueueAliases=" + leaveQueueAliases
           + ", autoQueueServers=" + autoQueueServers
           + ", queueServer=" + queueServer
+          + ", queueOnJoinServers=" + queueOnJoinServers
           + ", queueAdminAliases=" + queueAdminAliases
           + ", masterProxyIds=" + masterProxyIds
           + ", bannedReason=" + bannedReason

@@ -388,10 +388,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private @Nullable ServerRetrySession serverRetrySession;
 
   /**
-   * The task that delays the auto-queue operation. This is kept track of to cancel this
-   * task on disconnect.
+   * Tasks that delay the queueing operations. These are kept track of to cancel these
+   * tasks on disconnect.
    */
   private @Nullable ScheduledTask tryAutoQueueTask;
+  private @Nullable ScheduledTask tryQueueOnJoinTask;
 
   ConnectedPlayer(final VelocityServer server, final GameProfile profile, final MinecraftConnection connection,
                   final @Nullable InetSocketAddress virtualHost, final @Nullable String rawVirtualHost, final boolean onlineMode,
@@ -433,6 +434,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     if (tryAutoQueueTask != null) {
       tryAutoQueueTask.cancel();
       tryAutoQueueTask = null;
+    }
+
+    if (tryQueueOnJoinTask != null) {
+      tryQueueOnJoinTask.cancel();
+      tryQueueOnJoinTask = null;
     }
 
     if (this.fullyConnected) {
@@ -1539,6 +1545,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
         if (queueServerName.isEmpty()) {
           tryAutoQueue(serverConnection);
         }
+
+        if (!firstServerConnected) {
+          tryQueueOnJoin(serverConnection);
+        }
       }
 
       if (!firstServerConnected) {
@@ -1641,6 +1651,42 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
         VelocityRegisteredServer target = queueServers.getFirst();
         server.getQueueManager().queue(this, target);
       }
+    })
+        .delay(Duration.ofSeconds(2))
+        .schedule();
+  }
+
+  private void tryQueueOnJoin(final @NonNull VelocityServerConnection firstServer) {
+    final List<String> queueOnJoinServers = server.getConfiguration().getQueue().getQueueOnJoinServers();
+    if (queueOnJoinServers.isEmpty()) {
+      return;
+    }
+
+    LOGGER.debug("Scheduling queue-on-join for player {}.", getUsername());
+
+    tryQueueOnJoinTask = server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+      // Safeguard if this player is offline. Should never be reached because the task
+      // should be cancelled by ConnectedPlayer#disconnected.
+      if (!server.getAllPlayers().contains(this)) {
+        LOGGER.debug("Aborting queue-on-join for player {} (now offline).", getUsername());
+        return;
+      }
+
+      if (connectedServer != firstServer || connectionInFlight != null) {
+        LOGGER.debug("Aborting queue-on-join for player {} (server mismatch).", getUsername());
+        return;
+      }
+
+      LOGGER.debug("Applying queue-on-join for player {}.", getUsername());
+
+      for (final String targetName : queueOnJoinServers) {
+        server.getServer(targetName).ifPresentOrElse(
+            target -> server.getQueueManager().queue(this, target),
+            () -> LOGGER.warn("queue-on-join server '{}' is not registered!", targetName)
+        );
+      }
+
+      tryQueueOnJoinTask = null;
     })
         .delay(Duration.ofSeconds(2))
         .schedule();

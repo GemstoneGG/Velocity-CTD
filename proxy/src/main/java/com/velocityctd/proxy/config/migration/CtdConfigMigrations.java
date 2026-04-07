@@ -304,6 +304,12 @@ public class CtdConfigMigrations {
             ""
         ),
         migration(
+            "The server queue(s) a player is automatically entered into on their first proxy join.\n"
+                + " Can be configured as a single string or a list of strings.",
+            "queue.queue-on-join",
+            List.of()
+        ),
+        migration(
             "Whether the kick message or indicator should be shown when you have failed to queue and join a specific server.",
             "queue.forward-kick-reason",
             true
