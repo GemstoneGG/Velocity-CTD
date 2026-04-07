@@ -295,6 +295,15 @@ public class CtdConfigMigrations {
             true
         ),
         migration(
+            "The server that players will be moved to when they enter ANY queue.\n"
+                + " When a player queues for any server, they will be automatically sent to this server.\n"
+                + " While in a queue and on this server, any server switch attempts will be blocked unless\n"
+                + " the player has the velocity.queue.server-switch.bypass permission.\n"
+                + " This is mutually exclusive with auto-queue-servers. Leave empty to disable.",
+            "queue.queue-server",
+            ""
+        ),
+        migration(
             "Whether the kick message or indicator should be shown when you have failed to queue and join a specific server.",
             "queue.forward-kick-reason",
             true

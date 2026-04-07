@@ -2954,6 +2954,12 @@ public final class VelocityConfiguration implements ProxyConfig {
      */
     private Map<String, List<String>> autoQueueServers;
 
+    /**
+     * The name of the server players are moved to when they enter any queue.
+     * Mutually exclusive with auto-queue-servers.
+     */
+    private String queueServer;
+
     private Queue(final CommentedConfig config) {
       if (config == null) {
         return;
@@ -2976,10 +2982,19 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.queueAdminAliases = config.getOrElse("queue-admin-aliases", new ArrayList<>());
       this.masterProxyIds = config.getOrElse("master-proxy-ids", new ArrayList<>());
       this.bannedReason = config.getOrElse("banned-reason", new ArrayList<>());
+      this.queueServer = config.getOrElse("queue-server", "");
       this.autoQueueServers = parseAutoQueueServers(config.get("auto-queue-servers"));
+
+      if (!this.queueServer.isEmpty() && !this.autoQueueServers.isEmpty()) {
+        LOGGER.warn("Both 'queue-server' and 'auto-queue-servers' are configured in [queue]. "
+            + "These features are mutually exclusive; 'auto-queue-servers' will be ignored.");
+      }
     }
 
     private Map<String, List<String>> parseAutoQueueServers(CommentedConfig config) {
+      if (config == null) {
+        return ImmutableMap.of();
+      }
       Map<String, List<String>> autoQueueServers = new HashMap<>();
       for (UnmodifiableConfig.Entry entry : config.entrySet()) {
         String key = entry.getKey();
@@ -3161,6 +3176,16 @@ public final class VelocityConfiguration implements ProxyConfig {
       return autoQueueServers;
     }
 
+    /**
+     * Gets the name of the server players are moved to when they enter any queue.
+     * Empty string means disabled.
+     *
+     * @return the queue server name, or an empty string if not configured
+     */
+    public String getQueueServer() {
+      return queueServer == null ? "" : queueServer;
+    }
+
     @Override
     public String toString() {
       return "Queue{"
@@ -3178,6 +3203,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", overrideBungeeMessaging=" + overrideBungeeMessaging
           + ", leaveQueueAliases=" + leaveQueueAliases
           + ", autoQueueServers=" + autoQueueServers
+          + ", queueServer=" + queueServer
           + ", queueAdminAliases=" + queueAdminAliases
           + ", masterProxyIds=" + masterProxyIds
           + ", bannedReason=" + bannedReason
