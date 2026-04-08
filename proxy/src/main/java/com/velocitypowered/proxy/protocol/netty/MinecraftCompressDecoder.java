@@ -27,11 +27,15 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import java.util.List;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Decompresses a Minecraft packet.
  */
 public class MinecraftCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
+
+  private static final Logger LOGGER = LogManager.getLogger(MinecraftCompressDecoder.class);
 
   /**
    * Default maximum allowed uncompressed packet size (8 MiB).
@@ -60,6 +64,21 @@ public class MinecraftCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
   private static final boolean SKIP_COMPRESSION_VALIDATION = Boolean.getBoolean("velocity.skip-uncompressed-packet-size-validation");
 
   /**
+   * Maximum allowed uncompressed size for serverbound compressed packets (2 MiB).
+   * Tighter than {@link #UNCOMPRESSED_CAP} since clients have no legitimate reason
+   * to send packets larger than this to the proxy.
+   */
+  private static final int SERVERBOUND_UNCOMPRESSED_CAP =
+      Integer.getInteger("velocity.serverbound-uncompressed-cap", 2097152);
+
+  /**
+   * Maximum allowed ratio of claimed uncompressed size to actual compressed payload size.
+   * Prevents compression-bomb attacks where a tiny payload claims a huge uncompressed size.
+   */
+  private static final int SERVERBOUND_MAX_COMPRESSION_RATIO =
+      Integer.getInteger("velocity.serverbound-max-compression-ratio", 1024);
+
+  /**
    * Compression threshold. Packets smaller than this are not compressed.
    */
   private int threshold;
@@ -70,14 +89,22 @@ public class MinecraftCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
   private final VelocityCompressor compressor;
 
   /**
+   * The direction of the packet flow this compression decoder is handling.
+   */
+  private final ProtocolUtils.Direction direction;
+
+  /**
    * Constructs a new {@code MinecraftCompressDecoder}.
    *
    * @param threshold  the compression threshold (packets below this are not compressed)
    * @param compressor the compressor to use for decompression
+   * @param direction  the direction of packet flow
    */
-  public MinecraftCompressDecoder(final int threshold, final VelocityCompressor compressor) {
+  public MinecraftCompressDecoder(final int threshold, final VelocityCompressor compressor,
+      final ProtocolUtils.Direction direction) {
     this.threshold = threshold;
     this.compressor = compressor;
+    this.direction = direction;
   }
 
   /**
@@ -116,6 +143,14 @@ public class MinecraftCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
         "Uncompressed size %s exceeds hard threshold of %s", claimedUncompressedSize,
         UNCOMPRESSED_CAP);
 
+    if (direction == ProtocolUtils.Direction.SERVERBOUND
+        && isServerboundCompressionAbuse(claimedUncompressedSize, in.readableBytes())) {
+      LOGGER.warn("Disconnecting {} for compression abuse (claimed {} bytes, compressed {} bytes)",
+          ctx.channel().remoteAddress(), claimedUncompressedSize, in.readableBytes());
+      ctx.close();
+      return;
+    }
+
     ByteBuf compatibleIn = ensureCompatible(ctx.alloc(), compressor, in);
     ByteBuf uncompressed = preferredBuffer(ctx.alloc(), compressor, claimedUncompressedSize);
     try {
@@ -148,5 +183,15 @@ public class MinecraftCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
    */
   public void setThreshold(final int threshold) {
     this.threshold = threshold;
+  }
+
+  private static boolean isServerboundCompressionAbuse(final int claimedUncompressedSize, final int compressedPayloadSize) {
+    return compressedPayloadSize <= 0
+        || claimedUncompressedSize > SERVERBOUND_UNCOMPRESSED_CAP
+        || ceilDiv(claimedUncompressedSize, compressedPayloadSize) > SERVERBOUND_MAX_COMPRESSION_RATIO;
+  }
+
+  private static long ceilDiv(final long numerator, final long denominator) {
+    return (numerator + denominator - 1L) / denominator;
   }
 }
