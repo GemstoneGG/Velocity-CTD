@@ -256,6 +256,18 @@ public class VelocityQueueManager implements QueueManager {
     queue.enqueue(player);
     player.sendMessage(Component.translatable("velocity.queue.command.queued")
         .arguments(Component.text(targetName)));
+
+    // If a queue-server is configured, move the player there if they aren't already on it
+    final String queueServerName = config.getQueueServer();
+    if (!queueServerName.isEmpty()) {
+      server.getServer(queueServerName).ifPresentOrElse(queueServer -> {
+        player.getCurrentServer().ifPresent(currentServer -> {
+          if (!currentServer.getServerInfo().getName().equals(queueServerName)) {
+            player.createConnectionRequest(queueServer).connectWithIndication();
+          }
+        });
+      }, () -> LOGGER.warn("Queue server '{}' is configured but not registered!", queueServerName));
+    }
   }
 
   @Override

@@ -279,10 +279,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private @Nullable ServerRetrySession serverRetrySession;
 
   /**
-   * The task that delays the auto-queue operation. This is kept track of to cancel this
-   * task on disconnect.
+   * Tasks that delay the queueing operations. These are kept track of to cancel these
+   * tasks on disconnect.
    */
   private @Nullable ScheduledTask tryAutoQueueTask;
+  private @Nullable ScheduledTask tryQueueOnJoinTask;
 
   ConnectedPlayer(final VelocityServer server, final GameProfile profile, final MinecraftConnection connection,
                   final @Nullable InetSocketAddress virtualHost, final @Nullable String rawVirtualHost, final boolean onlineMode,
@@ -324,6 +325,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     if (tryAutoQueueTask != null) {
       tryAutoQueueTask.cancel();
       tryAutoQueueTask = null;
+    }
+
+    if (tryQueueOnJoinTask != null) {
+      tryQueueOnJoinTask.cancel();
+      tryQueueOnJoinTask = null;
     }
 
     if (this.fullyConnected) {
@@ -1109,19 +1115,73 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
     if (serverConnection != null) {
       if (server.isQueueEnabled()) {
-        if (server.getConfiguration().getQueue().isRemovePlayerOnServerSwitch() && firstServerConnected) {
+        final String queueServerName = server.getConfiguration().getQueue().getQueueServer();
+        final boolean destinationIsQueueServer = !queueServerName.isEmpty()
+            && serverConnection.getServerInfo().getName().equals(queueServerName);
+
+        if (!destinationIsQueueServer
+            && server.getConfiguration().getQueue().isRemovePlayerOnServerSwitch()
+            && firstServerConnected) {
           // Only remove player from all queues entirely if this is NOT the first server we connect to (firstServerConnected flag)
-          // to ensure timeouts work correctly when a player re-joins the network/
+          // to ensure timeouts work correctly when a player re-joins the network.
+          // Also skip removal when moving to the queue-server so the player stays in their queue.
           server.getQueueManager().removePlayerEntirely(this);
         }
 
-        tryAutoQueue(serverConnection);
+        // Auto-queue is mutually exclusive with queue-server
+        if (queueServerName.isEmpty()) {
+          tryAutoQueue(serverConnection);
+        }
+
+        if (!firstServerConnected) {
+          tryQueueOnJoin(serverConnection);
+        }
       }
 
       if (!firstServerConnected) {
         firstServerConnected = true;
       }
     }
+  }
+
+  /**
+   * Returns {@code true} if the given server switch should be blocked because the player is
+   * in a queue while on the configured queue-server, and does not have the bypass permission.
+   *
+   * <p>The switch is allowed (returns {@code false}) if the destination is one of the servers
+   * the player is currently queued for — this ensures the queue manager can still transfer the
+   * player to their destination without being blocked.</p>
+   */
+  private boolean shouldBlockQueueServerSwitch(final VelocityRegisteredServer destination) {
+    if (!server.isQueueEnabled()) {
+      return false;
+    }
+
+    final String queueServerName = server.getConfiguration().getQueue().getQueueServer();
+    if (queueServerName.isEmpty()) {
+      return false;
+    }
+
+    // Only block if the player is currently on the queue-server
+    if (connectedServer == null || !connectedServer.getServerInfo().getName().equals(queueServerName)) {
+      return false;
+    }
+
+    // Don't block if the player is not in any queue
+    if (!server.getQueueManager().isQueued(this)) {
+      return false;
+    }
+
+    // Allow the switch if the destination is a server the player is queued for
+    // (i.e. the queue manager is sending them to their destination)
+    for (final var queue : server.getQueueManager().getQueues()) {
+      if (queue.contains(this) && queue.getName().equals(destination.getServerInfo().getName())) {
+        return false;
+      }
+    }
+
+    // Allow if the player has the bypass permission
+    return !hasPermission("velocity.queue.server-switch.bypass");
   }
 
   private void tryAutoQueue(final @NonNull VelocityServerConnection joinedServer) {
@@ -1180,6 +1240,42 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       }
 
       tryAutoQueueTask = null;
+    })
+        .delay(Duration.ofSeconds(2))
+        .schedule();
+  }
+
+  private void tryQueueOnJoin(final @NonNull VelocityServerConnection firstServer) {
+    final List<String> queueOnJoinServers = server.getConfiguration().getQueue().getQueueOnJoinServers();
+    if (queueOnJoinServers.isEmpty()) {
+      return;
+    }
+
+    LOGGER.debug("Scheduling queue-on-join for player {}.", getUsername());
+
+    tryQueueOnJoinTask = server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+      // Safeguard if this player is offline. Should never be reached because the task
+      // should be cancelled by ConnectedPlayer#disconnected.
+      if (!server.getAllPlayers().contains(this)) {
+        LOGGER.debug("Aborting queue-on-join for player {} (now offline).", getUsername());
+        return;
+      }
+
+      if (connectedServer != firstServer || connectionInFlight != null) {
+        LOGGER.debug("Aborting queue-on-join for player {} (server mismatch).", getUsername());
+        return;
+      }
+
+      LOGGER.debug("Applying queue-on-join for player {}.", getUsername());
+
+      for (final String targetName : queueOnJoinServers) {
+        server.getServer(targetName).ifPresentOrElse(
+            target -> server.getQueueManager().queue(this, target),
+            () -> LOGGER.warn("queue-on-join server '{}' is not registered!", targetName)
+        );
+      }
+
+      tryQueueOnJoinTask = null;
     })
         .delay(Duration.ofSeconds(2))
         .schedule();
@@ -1788,6 +1884,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       return this.getInitialStatus().thenCompose(initialCheck -> {
         if (initialCheck.isPresent()) {
           return completedFuture(plainResult(initialCheck.get(), toConnect));
+        }
+
+        if (shouldBlockQueueServerSwitch(toConnect)) {
+          sendMessage(Component.translatable("velocity.queue.error.server-switch-blocked"));
+          return completedFuture(plainResult(ConnectionRequestBuilder.Status.CONNECTION_CANCELLED, toConnect));
         }
 
         ServerPreConnectEvent event = new ServerPreConnectEvent(ConnectedPlayer.this, toConnect, previousServer);

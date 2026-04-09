@@ -2651,6 +2651,17 @@ public final class VelocityConfiguration implements ProxyConfig {
      */
     private Map<String, List<String>> autoQueueServers;
 
+    /**
+     * The name of the server players are moved to when they enter any queue.
+     * Mutually exclusive with auto-queue-servers.
+     */
+    private String queueServer;
+
+    /**
+     * A list of server queues a player is automatically entered into on their first proxy join.
+     */
+    private List<String> queueOnJoinServers;
+
     private Queue(final CommentedConfig config) {
       if (config == null) {
         return;
@@ -2673,10 +2684,20 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.queueAdminAliases = config.getOrElse("queue-admin-aliases", new ArrayList<>());
       this.masterProxyIds = config.getOrElse("master-proxy-ids", new ArrayList<>());
       this.bannedReason = config.getOrElse("banned-reason", new ArrayList<>());
+      this.queueServer = config.getOrElse("queue-server", "");
+      this.queueOnJoinServers = parseQueueOnJoinServers(config.get("queue-on-join"));
       this.autoQueueServers = parseAutoQueueServers(config.get("auto-queue-servers"));
+
+      if (!this.queueServer.isEmpty() && !this.autoQueueServers.isEmpty()) {
+        LOGGER.warn("Both 'queue-server' and 'auto-queue-servers' are configured in [queue]. "
+            + "These features are mutually exclusive; 'auto-queue-servers' will be ignored.");
+      }
     }
 
     private Map<String, List<String>> parseAutoQueueServers(CommentedConfig config) {
+      if (config == null) {
+        return ImmutableMap.of();
+      }
       Map<String, List<String>> autoQueueServers = new HashMap<>();
       for (UnmodifiableConfig.Entry entry : config.entrySet()) {
         String key = entry.getKey();
@@ -2695,6 +2716,24 @@ public final class VelocityConfiguration implements ProxyConfig {
       return ImmutableMap.copyOf(autoQueueServers);
     }
 
+    private List<String> parseQueueOnJoinServers(Object raw) {
+      if (raw instanceof String s) {
+        return s.isEmpty() ? ImmutableList.of() : ImmutableList.of(s);
+      } else if (raw instanceof List<?> list) {
+        return list.stream()
+            .filter(e -> e instanceof String)
+            .map(e -> (String) e)
+            .filter(s -> !s.isEmpty())
+            .collect(ImmutableList.toImmutableList());
+      }
+      return ImmutableList.of();
+    }
+
+    /**
+     * Returns whether the queue system is enabled.
+     *
+     * @return {@code true} if the queue system is enabled, {@code false} otherwise
+     */
     public boolean isEnabled() {
       return enabled;
     }
@@ -2853,6 +2892,25 @@ public final class VelocityConfiguration implements ProxyConfig {
       return autoQueueServers;
     }
 
+    /**
+     * Gets the name of the server players are moved to when they enter any queue.
+     * Empty string means disabled.
+     *
+     * @return the queue server name, or an empty string if not configured
+     */
+    public String getQueueServer() {
+      return queueServer == null ? "" : queueServer;
+    }
+
+    /**
+     * Gets the list of server queues a player is automatically entered into on their first proxy join.
+     *
+     * @return list of server names, or an empty list if not configured
+     */
+    public List<String> getQueueOnJoinServers() {
+      return queueOnJoinServers == null ? ImmutableList.of() : queueOnJoinServers;
+    }
+
     @Override
     public String toString() {
       return "Queue{"
@@ -2870,6 +2928,8 @@ public final class VelocityConfiguration implements ProxyConfig {
           + ", overrideBungeeMessaging=" + overrideBungeeMessaging
           + ", leaveQueueAliases=" + leaveQueueAliases
           + ", autoQueueServers=" + autoQueueServers
+          + ", queueServer=" + queueServer
+          + ", queueOnJoinServers=" + queueOnJoinServers
           + ", queueAdminAliases=" + queueAdminAliases
           + ", masterProxyIds=" + masterProxyIds
           + ", bannedReason=" + bannedReason

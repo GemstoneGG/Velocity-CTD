@@ -127,6 +127,9 @@ dependencies, useful performance improvements, and more.
 * `velocity.queue.full.bypass` (Allows you to connect to a server even when it is at capacity).
 * `velocity.queue.leave` (Allows you to leave the queue you are in or all queues you are in).
 * `velocity.queue.priority.{ALL/SERVER}.{WEIGHT}` (Sets the position you are in for the/a queue).
+* `velocity.queue.server-switch.bypass` (Allows you to switch servers freely while in a queue,
+  even when `queue-server` is configured. Without this permission, players on the `queue-server`
+  are blocked from switching to any server other than their queued destination).
 * `velocity.queue.timeout.{SECONDS}` (Specifies the amount of time a user has before they
   are unqueued from a server when disconnecting; if you reach the position where
   you can be sent and are offline, your queue position will reset, regardless of

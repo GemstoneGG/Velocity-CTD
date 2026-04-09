@@ -489,6 +489,20 @@ max-send-retries = 10
 # Whether the player should be removed from their previous queue when switching servers.
 remove-player-on-server-switch = true
 
+# The server that players will be moved to when they enter ANY queue.
+# When a player queues for any server, they will be automatically sent to this server.
+# While in a queue and on this server, any server switch attempts will be blocked unless
+# the player has the velocity.queue.server-switch.bypass permission.
+# This is mutually exclusive with auto-queue-servers. Leave empty to disable.
+queue-server = ""
+
+# The server queue(s) a player is automatically entered into on their first proxy join.
+# Can be configured as a single string or a list of strings.
+# Examples:
+#   queue-on-join = "factions"
+#   queue-on-join = ["factions1", "factions2"]
+queue-on-join = []
+
 # Whether the kick message or indicator should be shown when you have failed to queue and join a specific server.
 forward-kick-reason = true
 
