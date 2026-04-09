@@ -28,9 +28,6 @@ import java.net.URI;
  */
 public final class AddressUtil {
 
-  /**
-   * The default Minecraft server port, used when none is explicitly specified.
-   */
   private static final int DEFAULT_MINECRAFT_PORT = 25565;
 
   private AddressUtil() {

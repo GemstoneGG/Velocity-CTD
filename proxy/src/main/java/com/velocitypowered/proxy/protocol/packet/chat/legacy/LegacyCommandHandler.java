@@ -24,63 +24,23 @@ import com.velocitypowered.proxy.protocol.packet.chat.RateLimitedCommandHandler;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * A handler for processing legacy commands, implementing {@link RateLimitedCommandHandler}.
- *
- * <p>The {@code LegacyCommandHandler} processes and handles command packets that are sent
- * using {@link LegacyChatPacket}. It provides the necessary logic to support legacy
- * command formats and ensure compatibility with older Minecraft versions.</p>
- */
 public class LegacyCommandHandler extends RateLimitedCommandHandler<LegacyChatPacket> {
 
-  /**
-   * The player who sent the command.
-   */
   private final ConnectedPlayer player;
 
-  /**
-   * The Velocity server instance used for plugin execution and backend forwarding.
-   */
   private final VelocityServer server;
 
-  /**
-   * Constructs a new {@code LegacyCommandHandler} for handling legacy command packets.
-   *
-   * @param player the connected player issuing the command
-   * @param server the Velocity server instance
-   */
   public LegacyCommandHandler(final ConnectedPlayer player, final VelocityServer server) {
     super(player, server);
     this.player = player;
     this.server = server;
   }
 
-  /**
-   * Returns the class of command packets this handler is responsible for.
-   *
-   * <p>This identifies the handler as responsible for {@link LegacyChatPacket},
-   * which represents command messages in legacy chat format.</p>
-   *
-   * @return the {@code LegacyChatPacket} class
-   */
   @Override
   public Class<LegacyChatPacket> packetClass() {
     return LegacyChatPacket.class;
   }
 
-  /**
-   * Handles the execution of a legacy-format command sent by the player.
-   *
-   * <p>This method performs the following steps:</p>
-   * <ul>
-   *   <li>Extracts the command string from the {@link LegacyChatPacket} (stripping leading {@code /}).</li>
-   *   <li>Fires a {@link CommandExecuteEvent} to allow plugin handling.</li>
-   *   <li>Handles denied, rewritten, or forwarded commands based on the event result.</li>
-   *   <li>Runs the command locally or sends it to the backend server as appropriate.</li>
-   * </ul>
-   *
-   * @param packet the legacy chat packet containing a command
-   */
   @Override
   public void handlePlayerCommandInternal(final LegacyChatPacket packet) {
     String command = packet.getMessage().substring(1);

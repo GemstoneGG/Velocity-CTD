@@ -32,38 +32,15 @@ import java.util.zip.DataFormatException;
  */
 public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<ByteBuf> {
 
-  /**
-   * The compression threshold. Packets smaller than this will not be compressed.
-   */
   private int threshold;
 
-  /**
-   * The {@link VelocityCompressor} used to compress packets.
-   */
   private final VelocityCompressor compressor;
 
-  /**
-   * Constructs a new {@code MinecraftCompressorAndLengthEncoder}.
-   *
-   * @param threshold  the compression threshold
-   * @param compressor the compressor to use
-   */
   public MinecraftCompressorAndLengthEncoder(final int threshold, final VelocityCompressor compressor) {
     this.threshold = threshold;
     this.compressor = compressor;
   }
 
-  /**
-   * Compresses the given {@link ByteBuf} if it exceeds the configured compression threshold.
-   *
-   * <p>If the input is smaller than the threshold, the packet is written uncompressed with a 0 marker.
-   * Otherwise, it is compressed and prefixed with its uncompressed size and compressed length.</p>
-   *
-   * @param ctx the Netty channel context
-   * @param msg the uncompressed Minecraft packet
-   * @param out the output buffer to write the encoded packet to
-   * @throws Exception if compression fails
-   */
   @Override
   protected void encode(final ChannelHandlerContext ctx, final ByteBuf msg, final ByteBuf out) throws Exception {
     int uncompressed = msg.readableBytes();
@@ -100,18 +77,6 @@ public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<By
     out.setMedium(0, ProtocolUtils.encode21BitVarInt(packetLength)); // Rewrite packet length
   }
 
-  /**
-   * Allocates a new output {@link ByteBuf} for compression, sized based on the estimated result.
-   *
-   * <p>If the packet is smaller than the threshold, a small heap or direct buffer is allocated.
-   * If compression is expected, a larger pre-sized buffer is used based on the expected
-   * compression ratio and uncompressed length.</p>
-   *
-   * @param ctx the Netty channel context
-   * @param msg the input packet
-   * @param preferDirect whether to prefer direct buffer allocation
-   * @return a newly allocated output buffer
-   */
   @Override
   protected ByteBuf allocateBuffer(final ChannelHandlerContext ctx, final ByteBuf msg, final boolean preferDirect) {
     int uncompressed = msg.readableBytes();
@@ -128,23 +93,11 @@ public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<By
     return MoreByteBufUtils.preferredBuffer(ctx.alloc(), compressor, initialBufferSize);
   }
 
-  /**
-   * Invoked when the encoder is removed from the Netty pipeline.
-   *
-   * <p>Closes the associated {@link VelocityCompressor} to release native resources.</p>
-   *
-   * @param ctx the Netty channel context
-   */
   @Override
   public void handlerRemoved(final ChannelHandlerContext ctx) {
     compressor.close();
   }
 
-  /**
-   * Updates the compression threshold.
-   *
-   * @param threshold the new threshold value
-   */
   public void setThreshold(final int threshold) {
     this.threshold = threshold;
   }

@@ -20,7 +20,6 @@ package com.velocitypowered.proxy.connection.client;
 import com.velocitypowered.api.network.HandshakeIntent;
 import com.velocitypowered.api.network.ProtocolState;
 import com.velocitypowered.api.network.ProtocolVersion;
-import com.velocitypowered.api.proxy.InboundConnection;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftConnectionAssociation;
 import com.velocitypowered.proxy.connection.util.VelocityInboundConnection;
@@ -34,9 +33,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import net.kyori.adventure.translation.GlobalTranslator;
 
-/**
- * Implements {@link InboundConnection} for a newly established connection.
- */
 public final class InitialInboundConnection implements VelocityInboundConnection, MinecraftConnectionAssociation {
 
   private static final ComponentLogger LOGGER = ComponentLogger.logger(InitialInboundConnection.class);

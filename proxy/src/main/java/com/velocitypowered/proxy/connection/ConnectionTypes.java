@@ -41,13 +41,6 @@ public final class ConnectionTypes {
   public static final ConnectionType VANILLA =
       new ConnectionTypeImpl(ClientConnectionPhases.VANILLA, BackendConnectionPhases.VANILLA);
 
-  /**
-   * Represents an undecided 1.7.x Forge handshake connection.
-   *
-   * <p>1.7 Forge clients do not provide sufficient information in the handshake, requiring
-   * additional logic to determine modded status post-handshake. This type is used
-   * to trigger extra Forge compatibility tracking logic.</p>
-   */
   public static final ConnectionType UNDETERMINED_17 = new ConnectionTypeImpl(
       LegacyForgeHandshakeClientPhase.NOT_STARTED, BackendConnectionPhases.UNKNOWN);
 

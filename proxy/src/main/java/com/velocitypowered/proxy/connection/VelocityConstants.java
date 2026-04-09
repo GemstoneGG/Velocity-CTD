@@ -26,10 +26,5 @@ public final class VelocityConstants {
     throw new AssertionError();
   }
 
-  /**
-   * A shared, immutable empty byte array instance.
-   *
-   * <p>Used to avoid unnecessary allocations for empty byte arrays.</p>
-   */
   public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 }

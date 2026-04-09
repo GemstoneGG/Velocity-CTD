@@ -26,62 +26,26 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.UUID;
 
-/**
- * Represents a packet sent to remove player information from the player list.
- * The packet contains a collection of {@link UUID}s representing the profiles to be removed.
- */
 public class RemovePlayerInfoPacket implements MinecraftPacket {
 
-  /**
-   * The collection of player profile UUIDs to remove from the player list.
-   */
   private Collection<UUID> profilesToRemove;
 
-  /**
-   * Constructs an empty {@code RemovePlayerInfoPacket}.
-   * This constructor initializes the internal collection to an empty list.
-   */
   public RemovePlayerInfoPacket() {
     this.profilesToRemove = new ArrayList<>();
   }
 
-  /**
-   * Constructs a {@code RemovePlayerInfoPacket} with the specified profiles to remove.
-   *
-   * @param profilesToRemove the collection of player UUIDs to remove from the player list
-   */
   public RemovePlayerInfoPacket(final Collection<UUID> profilesToRemove) {
     this.profilesToRemove = profilesToRemove;
   }
 
-  /**
-   * Gets the collection of player profile UUIDs to remove from the player list.
-   *
-   * @return the collection of UUIDs
-   */
   public Collection<UUID> getProfilesToRemove() {
     return profilesToRemove;
   }
 
-  /**
-   * Sets the collection of player profile UUIDs to remove from the player list.
-   *
-   * @param profilesToRemove the collection of UUIDs
-   */
   public void setProfilesToRemove(final Collection<UUID> profilesToRemove) {
     this.profilesToRemove = profilesToRemove;
   }
 
-  /**
-   * Decodes the {@code RemovePlayerInfoPacket} from the provided {@link ByteBuf}.
-   *
-   * <p>This method reads a list of UUIDs representing player profiles that should
-   * be removed from the tab list, based on the expected count prefix.</p>
-   *
-   * @param buf the byte buffer to read from
-   * @param direction the direction of the packet (clientbound or serverbound)
-   * @param protocolVersion the protocol version in use
-   */
   @Override
   public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
                      final ProtocolVersion protocolVersion) {
@@ -94,16 +58,6 @@ public class RemovePlayerInfoPacket implements MinecraftPacket {
     this.profilesToRemove = profilesToRemove;
   }
 
-  /**
-   * Encodes this {@code RemovePlayerInfoPacket} into the provided {@link ByteBuf}.
-   *
-   * <p>This writes the number of UUIDs followed by each player profile UUID
-   * that should be removed from the tab list.</p>
-   *
-   * @param buf the byte buffer to write to
-   * @param direction the direction of the packet (clientbound or serverbound)
-   * @param protocolVersion the protocol version in use
-   */
   @Override
   public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
                      final ProtocolVersion protocolVersion) {
@@ -113,15 +67,6 @@ public class RemovePlayerInfoPacket implements MinecraftPacket {
     }
   }
 
-  /**
-   * Handles this packet using the provided {@link MinecraftSessionHandler}.
-   *
-   * <p>Delegates the handling of this packet to the session handler's
-   * {@code handle(RemovePlayerInfoPacket)} method.</p>
-   *
-   * @param handler the session handler responsible for processing this packet
-   * @return {@code true} if the packet was handled successfully; {@code false} otherwise
-   */
   @Override
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);

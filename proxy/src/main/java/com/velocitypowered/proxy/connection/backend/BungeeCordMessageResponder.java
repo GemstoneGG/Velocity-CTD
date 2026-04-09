@@ -56,25 +56,13 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 )
 public class BungeeCordMessageResponder {
 
-  /**
-   * Modern plugin channel identifier for BungeeCord messaging, used on Minecraft 1.13+.
-   */
   private static final MinecraftChannelIdentifier MODERN_CHANNEL = MinecraftChannelIdentifier
       .create("bungeecord", "main");
 
-  /**
-   * Legacy plugin channel identifier for BungeeCord messaging, used on Minecraft versions before 1.13.
-   */
   private static final LegacyChannelIdentifier LEGACY_CHANNEL = new LegacyChannelIdentifier("BungeeCord");
 
-  /**
-   * The Velocity proxy server instance used to query players, servers, and configuration.
-   */
   private final VelocityServer proxy;
 
-  /**
-   * The player associated with this BungeeCord message responder.
-   */
   private final ConnectedPlayer player;
 
   BungeeCordMessageResponder(final VelocityServer proxy, final ConnectedPlayer player) {
@@ -82,12 +70,6 @@ public class BungeeCordMessageResponder {
     this.player = player;
   }
 
-  /**
-   * Determines whether the given plugin message is sent on the BungeeCord channel.
-   *
-   * @param message the plugin message
-   * @return {@code true} if the message is on the BungeeCord plugin channel
-   */
   public static boolean isBungeeCordMessage(final PluginMessagePacket message) {
     return MODERN_CHANNEL.getId().equals(message.getChannel()) || LEGACY_CHANNEL.getId().equals(message.getChannel());
   }

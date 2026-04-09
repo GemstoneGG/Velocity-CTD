@@ -37,15 +37,8 @@ import org.apache.logging.log4j.core.pattern.PatternParser;
 @ConverterKeys("stripAnsi")
 public class StripAnsiConverter extends LogEventPatternConverter {
 
-  /**
-   * Pattern to match ANSI escape codes used for coloring or formatting.
-   */
   private static final Pattern ANSI_PATTERN = Pattern.compile("\u001B\\[[;\\d]*m");
 
-  /**
-   * List of {@link PatternFormatter}s used to format the log event before
-   * stripping ANSI escape codes.
-   */
   private final List<PatternFormatter> formatters;
 
   /**
@@ -58,13 +51,6 @@ public class StripAnsiConverter extends LogEventPatternConverter {
     this.formatters = formatters;
   }
 
-  /**
-   * Formats the given {@link LogEvent}, strips ANSI escape codes,
-   * and appends the sanitized message to the provided {@link StringBuilder}.
-   *
-   * @param event the log event to format
-   * @param toAppendTo the buffer to append the formatted message to
-   */
   @Override
   public void format(final LogEvent event, final StringBuilder toAppendTo) {
     int start = toAppendTo.length();

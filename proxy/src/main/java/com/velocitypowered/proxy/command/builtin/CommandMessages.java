@@ -26,27 +26,12 @@ import net.kyori.adventure.text.format.NamedTextColor;
  */
 public class CommandMessages {
 
-  /**
-   * Indicates that the command is only available to players and not console or other sources.
-   *
-   * <p>Translation key: {@code velocity.command.players-only}</p>
-   */
   public static final TranslatableComponent PLAYERS_ONLY = Component.translatable(
           "velocity.command.players-only", NamedTextColor.RED);
 
-  /**
-   * Indicates that the specified server could not be found.
-   *
-   * <p>Translation key: {@code velocity.command.server-does-not-exist}</p>
-   */
   public static final TranslatableComponent SERVER_DOES_NOT_EXIST = Component.translatable(
           "velocity.command.server-does-not-exist", NamedTextColor.RED);
 
-  /**
-   * Indicates that the specified player could not be found online.
-   *
-   * <p>Translation key: {@code velocity.command.player-not-found}</p>
-   */
   public static final TranslatableComponent PLAYER_NOT_FOUND = Component.translatable(
           "velocity.command.player-not-found", NamedTextColor.RED);
 }

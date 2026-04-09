@@ -30,68 +30,24 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-/**
- * A handler for processing session-based chat packets, implementing {@link ChatHandler}.
- *
- * <p>The {@code SessionChatHandler} processes and handles chat messages sent during a player's
- * session using {@link SessionPlayerChatPacket}. It provides the logic for handling session-specific
- * chat messages, ensuring the correct context and formatting within the session.</p>
- */
 public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> {
 
-  /**
-   * Logger used for chat processing diagnostics and error reporting.
-   */
   private static final Logger LOGGER = LogManager.getLogger(SessionChatHandler.class);
 
-  /**
-   * The player associated with this chat session.
-   */
   private final ConnectedPlayer player;
 
-  /**
-   * The proxy server instance for accessing events and configuration.
-   */
   private final VelocityServer server;
 
-  /**
-   * Constructs a new {@code SessionChatHandler} for the given player and server.
-   *
-   * @param player the player sending chat messages
-   * @param server the proxy server instance
-   */
   public SessionChatHandler(final ConnectedPlayer player, final VelocityServer server) {
     this.player = player;
     this.server = server;
   }
 
-  /**
-   * Returns the class of chat packets this handler processes.
-   *
-   * <p>This identifies the handler as responsible for {@link SessionPlayerChatPacket}
-   * within the session-based chat framework.</p>
-   *
-   * @return the class object for {@code SessionPlayerChatPacket}
-   */
   @Override
   public Class<SessionPlayerChatPacket> packetClass() {
     return SessionPlayerChatPacket.class;
   }
 
-  /**
-   * Handles a player-sent session chat packet internally.
-   *
-   * <p>This method performs the following logic:</p>
-   * <ul>
-   *   <li>Fires a {@link PlayerChatEvent} to allow plugins to observe, cancel, or modify the message.</li>
-   *   <li>Uses {@link ChatQueue} to queue the final packet, preserving timestamp and seen messages.</li>
-   *   <li>If the message is signed and plugins attempt to cancel or change it,
-   *       the player is disconnected to maintain protocol integrity (1.19.1+).</li>
-   *   <li>If unchanged and allowed, the original packet is resent with updated last-seen messages.</li>
-   * </ul>
-   *
-   * @param packet the incoming {@link SessionPlayerChatPacket} from the player
-   */
   @Override
   public void handlePlayerChatInternal(final SessionPlayerChatPacket packet) {
     ChatQueue chatQueue = this.player.getChatQueue();

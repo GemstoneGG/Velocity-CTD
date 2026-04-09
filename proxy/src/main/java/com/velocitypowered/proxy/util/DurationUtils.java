@@ -24,9 +24,6 @@ import java.time.Duration;
  */
 public final class DurationUtils {
 
-  /**
-   * One Minecraft tick in milliseconds (1/20th of a second).
-   */
   private static final long ONE_TICK_IN_MILLISECONDS = 50;
 
   private DurationUtils() {

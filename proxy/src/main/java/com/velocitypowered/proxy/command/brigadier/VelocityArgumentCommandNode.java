@@ -49,9 +49,6 @@ import java.util.function.Predicate;
  */
 public class VelocityArgumentCommandNode<S, T> extends ArgumentCommandNode<S, String> {
 
-  /**
-   * The actual {@link ArgumentType} used for parsing, distinct from what is exposed to the client.
-   */
   private final ArgumentType<T> type;
 
   VelocityArgumentCommandNode(final String name, final ArgumentType<T> type, final Command<S> command,
@@ -63,13 +60,6 @@ public class VelocityArgumentCommandNode<S, T> extends ArgumentCommandNode<S, St
     this.type = Preconditions.checkNotNull(type, "type");
   }
 
-  /**
-   * Parses the input using the internal {@link ArgumentType}, instead of the client-facing one.
-   *
-   * @param reader the string reader to consume
-   * @param contextBuilder the command context being built
-   * @throws CommandSyntaxException if parsing fails
-   */
   @Override
   public void parse(final StringReader reader, final CommandContextBuilder<S> contextBuilder) throws CommandSyntaxException {
     // Same as "super", except we use the rich ArgumentType
@@ -85,14 +75,6 @@ public class VelocityArgumentCommandNode<S, T> extends ArgumentCommandNode<S, St
     contextBuilder.withNode(this, parsed.getRange());
   }
 
-  /**
-   * Provides command suggestions if a custom suggestion provider is available.
-   *
-   * @param context the command context
-   * @param builder the suggestions builder
-   * @return a future containing suggestions or an empty result
-   * @throws CommandSyntaxException if suggestion generation fails
-   */
   @Override
   public CompletableFuture<Suggestions> listSuggestions(
       final CommandContext<S> context, final SuggestionsBuilder builder)
@@ -104,68 +86,31 @@ public class VelocityArgumentCommandNode<S, T> extends ArgumentCommandNode<S, St
     return getCustomSuggestions().getSuggestions(context, builder);
   }
 
-  /**
-   * Not supported for this node type. Always throws.
-   *
-   * @return nothing, always throws
-   * @throws UnsupportedOperationException always
-   */
   @Override
   public RequiredArgumentBuilder<S, String> createBuilder() {
     throw new UnsupportedOperationException();
   }
 
-  /**
-   * Creates a copy of this node with a new {@link Command} instance.
-   *
-   * @param command the new command to associate with the node
-   * @return a new {@link VelocityArgumentCommandNode} with the updated command
-   */
   public VelocityArgumentCommandNode<S, T> withCommand(final Command<S> command) {
     return new VelocityArgumentCommandNode<>(getName(), type, command, getRequirement(),
         getContextRequirement(), getRedirect(), getRedirectModifier(), isFork(), getCustomSuggestions());
   }
 
-  /**
-   * Creates a copy of this node with a new redirection target.
-   *
-   * @param target the new node to redirect to
-   * @return a new {@link VelocityArgumentCommandNode} with the updated redirect target
-   */
   public VelocityArgumentCommandNode<S, T> withRedirect(final CommandNode<S> target) {
     return new VelocityArgumentCommandNode<>(getName(), type, getCommand(), getRequirement(),
         getContextRequirement(), target, getRedirectModifier(), isFork(), getCustomSuggestions());
   }
 
-  /**
-   * Returns {@code true} for all inputs.
-   * Since the argument type is greedy, all input is assumed valid.
-   *
-   * @param input the input to validate
-   * @return always {@code true}
-   */
   @Override
   public boolean isValidInput(final String input) {
     return true;
   }
 
-  /**
-   * Disallows adding child nodes to this node. Always throws.
-   *
-   * @param node the child node (ignored)
-   * @throws UnsupportedOperationException always
-   */
   @Override
   public void addChild(final CommandNode<S> node) {
     throw new UnsupportedOperationException("Cannot add children to a greedy node");
   }
 
-  /**
-   * Compares this node to another for structural equality.
-   *
-   * @param o the object to compare
-   * @return true if both nodes are equal
-   */
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -183,11 +128,6 @@ public class VelocityArgumentCommandNode<S, T> extends ArgumentCommandNode<S, St
     return this.type.equals(that.type);
   }
 
-  /**
-   * Returns the hash code of this node.
-   *
-   * @return the computed hash code
-   */
   @Override
   public int hashCode() {
     int result = super.hashCode();
@@ -195,21 +135,11 @@ public class VelocityArgumentCommandNode<S, T> extends ArgumentCommandNode<S, St
     return result;
   }
 
-  /**
-   * Returns examples of valid inputs as defined by the wrapped {@link ArgumentType}.
-   *
-   * @return example values for the argument
-   */
   @Override
   public Collection<String> getExamples() {
     return this.type.getExamples();
   }
 
-  /**
-   * Returns a human-readable representation of this argument node.
-   *
-   * @return a string representation of the node
-   */
   @Override
   public String toString() {
     return "<argument " + this.getName() + ":" + this.type + ">";

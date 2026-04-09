@@ -39,34 +39,16 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class ProxyOptions {
 
-  /**
-   * Logger for reporting command-line parsing or help display issues.
-   */
   private static final Logger LOGGER = LogManager.getLogger(ProxyOptions.class);
 
-  /**
-   * Whether the user requested help using {@code -h} or {@code --help}.
-   */
   private final boolean help;
 
-  /**
-   * The optional port override specified with {@code -p} or {@code --port}.
-   */
   private final @Nullable Integer port;
 
-  /**
-   * Whether the HAProxy protocol override is enabled via {@code --haproxy}.
-   */
   private final @Nullable Boolean haproxy;
 
-  /**
-   * Whether to ignore all servers listed in the Velocity configuration file.
-   */
   private final boolean ignoreConfigServers;
 
-  /**
-   * List of servers provided via the {@code --add-server} command-line flag.
-   */
   private final List<ServerInfo> servers;
 
   /**
@@ -120,38 +102,18 @@ public final class ProxyOptions {
     return this.help;
   }
 
-  /**
-   * Gets the optional port override provided by the {@code --port} flag.
-   *
-   * @return the custom bind port, or {@code null} if not set
-   */
   public @Nullable Integer getPort() {
     return this.port;
   }
 
-  /**
-   * Returns whether the HAProxy protocol is enabled via {@code --haproxy}.
-   *
-   * @return {@code true} if HAProxy is enabled, {@code false} if disabled, or {@code null} if unset
-   */
   public @Nullable Boolean isHaproxy() {
     return this.haproxy;
   }
 
-  /**
-   * Returns whether to skip server definitions from the configuration file.
-   *
-   * @return {@code true} if configuration servers should be ignored
-   */
   public boolean isIgnoreConfigServers() {
     return this.ignoreConfigServers;
   }
 
-  /**
-   * Returns the list of {@link ServerInfo} instances registered via {@code --add-server}.
-   *
-   * @return a list of server entries
-   */
   public List<ServerInfo> getServers() {
     return this.servers;
   }

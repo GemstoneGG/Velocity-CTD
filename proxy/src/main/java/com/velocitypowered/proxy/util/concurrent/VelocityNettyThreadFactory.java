@@ -29,37 +29,14 @@ import org.jetbrains.annotations.NotNull;
  */
 public class VelocityNettyThreadFactory implements ThreadFactory {
 
-  /**
-   * Counter used to assign unique thread numbers.
-   */
   private final AtomicInteger threadNumber = new AtomicInteger();
 
-  /**
-   * The name format used to name threads, passed to {@link String#format}.
-   * Should include a single {@code %d} for the thread number.
-   */
   private final String nameFormat;
 
-  /**
-   * Constructs a new {@code VelocityNettyThreadFactory} with the given thread name format.
-   *
-   * @param nameFormat the thread name format, must not be {@code null}
-   */
   public VelocityNettyThreadFactory(final String nameFormat) {
     this.nameFormat = checkNotNull(nameFormat, "nameFormat");
   }
 
-  /**
-   * Creates a new {@link Thread} that wraps the provided {@link Runnable}.
-   *
-   * <p>The thread is named using the {@code nameFormat} provided to this factory,
-   * using an incrementing thread number. The thread class used is
-   * {@link FastThreadLocalThread}, which is optimized for Netty's internal
-   * thread-local storage model.</p>
-   *
-   * @param r the {@link Runnable} to execute in the new thread
-   * @return a newly created {@link Thread}
-   */
   @Override
   public Thread newThread(final @NotNull Runnable r) {
     String name = String.format(nameFormat, threadNumber.getAndIncrement());

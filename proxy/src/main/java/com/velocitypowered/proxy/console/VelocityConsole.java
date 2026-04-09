@@ -67,19 +67,10 @@ public final class VelocityConsole extends SimpleTerminalConsole implements Cons
    */
   private static final PermissionResolver DEFAULT_PERMISSION_RESOLVER = PermissionResolver.ALWAYS_TRUE;
 
-  /**
-   * The logger used for standard logging output.
-   */
   private static final Logger LOGGER = LogManager.getLogger(VelocityConsole.class, new ParameterizedMessageFactory());
 
-  /**
-   * The Adventure component logger for rich console output.
-   */
   private static final ComponentLogger COMPONENT_LOGGER = ComponentLogger.logger(VelocityConsole.class);
 
-  /**
-   * The Velocity server instance backing this console.
-   */
   private final VelocityServer server;
 
   /**
@@ -87,20 +78,12 @@ public final class VelocityConsole extends SimpleTerminalConsole implements Cons
    */
   private PermissionResolver permissionResolver = DEFAULT_PERMISSION_RESOLVER;
 
-  /**
-   * The pointer registry for this console instance.
-   */
   private static final @NotNull PointersSupplier<VelocityConsole> POINTERS = PointersSupplier.<VelocityConsole>builder()
       .resolving(PermissionChecker.POINTER, VelocityConsole::getPermissionChecker)
       .resolving(Identity.LOCALE, (console) -> ClosestLocaleMatcher.INSTANCE.lookupClosest(Locale.getDefault()))
       .resolving(FacetPointers.TYPE, (console) -> Type.CONSOLE)
       .build();
 
-  /**
-   * Constructs a new {@link VelocityConsole} instance.
-   *
-   * @param server the Velocity server
-   */
   public VelocityConsole(final VelocityServer server) {
     this.server = server;
   }

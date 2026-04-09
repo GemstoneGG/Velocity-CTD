@@ -21,24 +21,8 @@ package com.velocitypowered.proxy.protocol;
  * Describes various events fired during a connection.
  */
 public enum VelocityConnectionEvent {
-
-  /**
-   * Fired when packet compression is enabled on the connection.
-   */
   COMPRESSION_ENABLED,
-
-  /**
-   * Fired when packet compression is disabled on the connection.
-   */
   COMPRESSION_DISABLED,
-
-  /**
-   * Fired when encryption (e.g., using a shared secret) is enabled on the connection.
-   */
   ENCRYPTION_ENABLED,
-
-  /**
-   * Fired when the protocol version of the connection changes (e.g., during handshake).
-   */
   PROTOCOL_VERSION_CHANGED
 }

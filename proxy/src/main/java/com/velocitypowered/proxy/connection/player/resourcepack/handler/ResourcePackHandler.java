@@ -45,22 +45,10 @@ import org.jetbrains.annotations.Nullable;
  */
 public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandler, ModernResourcePackHandler {
 
-  /**
-   * The player associated with this resource pack handler.
-   */
   protected final ConnectedPlayer player;
 
-  /**
-   * The Velocity server instance.
-   */
   protected final VelocityServer server;
 
-  /**
-   * Constructs a new ResourcePackHandler.
-   *
-   * @param player the connected player
-   * @param server the Velocity server
-   */
   protected ResourcePackHandler(final ConnectedPlayer player, final VelocityServer server) {
     this.player = player;
     this.server = server;
@@ -87,32 +75,12 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
     return new ModernResourcePackHandler(player, server);
   }
 
-  /**
-   * Gets the first successfully applied resource pack, or {@code null} if none.
-   *
-   * @return the first applied resource pack, or {@code null}
-   */
   public abstract @Nullable ResourcePackInfo getFirstAppliedPack();
 
-  /**
-   * Gets the first resource pack that is currently pending application.
-   *
-   * @return the first pending resource pack, or {@code null}
-   */
   public abstract @Nullable ResourcePackInfo getFirstPendingPack();
 
-  /**
-   * Gets all successfully applied resource packs.
-   *
-   * @return the list of applied resource packs
-   */
   public abstract @NotNull Collection<ResourcePackInfo> getAppliedResourcePacks();
 
-  /**
-   * Gets all resource packs currently pending application.
-   *
-   * @return the list of pending resource packs
-   */
   public abstract @NotNull Collection<ResourcePackInfo> getPendingResourcePacks();
 
   /**
@@ -120,12 +88,6 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
    */
   public abstract void clearAppliedResourcePacks();
 
-  /**
-   * Removes a resource pack by its unique ID.
-   *
-   * @param id the ID of the resource pack
-   * @return {@code true} if the resource pack was removed
-   */
   public abstract boolean remove(UUID id);
 
   /**
@@ -150,11 +112,6 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
     }
   }
 
-  /**
-   * Sends the underlying Minecraft packet for the resource pack request.
-   *
-   * @param queued the resource pack to send
-   */
   protected void sendResourcePackRequestPacket(final @NotNull ResourcePackInfo queued) {
     final ResourcePackRequestPacket request = new ResourcePackRequestPacket();
     request.setId(queued.getId());
@@ -206,13 +163,6 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
    */
   public abstract boolean onResourcePackResponse(@NotNull ResourcePackResponseBundle bundle);
 
-  /**
-   * Forwards the client's resource pack response to the backend server, unless it was handled by a plugin.
-   *
-   * @param queued the original pack that was sent
-   * @param bundle the client response
-   * @return {@code true} if the response was handled by the proxy (e.g., plugin), {@code false} otherwise
-   */
   protected boolean handleResponseResult(final @Nullable ResourcePackInfo queued,
                                          final @NotNull ResourcePackResponseBundle bundle) {
     // If Velocity, through a plugin, has sent a resource pack to the client,
@@ -236,11 +186,6 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
    */
   public abstract boolean hasPackAppliedByHash(byte[] hash);
 
-  /**
-   * Check if a pack has already been applied.
-   *
-   * @param hash the resource pack hash
-   */
   public void checkAlreadyAppliedPack(final byte[] hash) {
     if (this.hasPackAppliedByHash(hash)) {
       throw new IllegalStateException("Cannot apply a resource pack already applied");

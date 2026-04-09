@@ -33,26 +33,12 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class ClickCallbackManager {
 
-  /**
-   * Global singleton instance of the click callback manager.
-   */
   public static final ClickCallbackManager INSTANCE = new ClickCallbackManager();
 
   public static final String COMMAND_LABEL = "velocity:callback";
 
-  /**
-   * The base command string used to route click callbacks.
-   *
-   * <p>This prefix is prepended to callback IDs when embedding them in client-bound
-   * clickable components.</p>
-   */
   static final String COMMAND = "/" + COMMAND_LABEL + " ";
 
-  /**
-   * Cache of registered callbacks, keyed by their unique UUIDs.
-   *
-   * <p>Callbacks expire based on configured duration or remaining usage count.</p>
-   */
   private final Cache<UUID, RegisteredCallback> registrations = Caffeine.newBuilder()
       .expireAfter(new Expiry<UUID, RegisteredCallback>() {
         @Override

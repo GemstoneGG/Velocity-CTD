@@ -28,9 +28,6 @@ import com.velocitypowered.proxy.connection.util.ConnectionTypeImpl;
  */
 public class ModernForgeConnectionType extends ConnectionTypeImpl {
 
-  /**
-   * The full hostname string received from the client, including Forge tokens and forwarding data.
-   */
   private final String hostName;
 
   /**

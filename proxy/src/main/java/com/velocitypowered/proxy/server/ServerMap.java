@@ -35,22 +35,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class ServerMap {
 
-  /**
-   * The {@link VelocityServer} instance backing this server map,
-   * or {@code null} if not initialized in a running proxy context (e.g., testing).
-   */
   private final @Nullable VelocityServer server;
 
-  /**
-   * A thread-safe map of lowercase server names to their {@link VelocityRegisteredServer} instances.
-   */
   private final Map<String, VelocityRegisteredServer> servers = new ConcurrentHashMap<>();
 
-  /**
-   * Creates a new {@code ServerMap} for managing registered servers.
-   *
-   * @param server the Velocity server instance, may be {@code null}
-   */
   public ServerMap(final @Nullable VelocityServer server) {
     this.server = server;
   }
@@ -67,11 +55,6 @@ public class ServerMap {
     return Optional.ofNullable(servers.get(lowerName));
   }
 
-  /**
-   * Returns an immutable snapshot of all registered servers currently known to the proxy.
-   *
-   * @return a collection of all {@link VelocityRegisteredServer} instances
-   */
   public Collection<VelocityRegisteredServer> getAllServers() {
     return ImmutableList.copyOf(servers.values());
   }

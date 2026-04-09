@@ -21,28 +21,8 @@ package com.velocitypowered.proxy.config;
  * Supported passthrough modes for ping passthrough.
  */
 public enum PingPassthroughMode {
-
-  /**
-   * No passthrough is applied. The proxy's configured MOTD, player count,
-   * and other values are always used.
-   */
   DISABLED,
-
-  /**
-   * Only mod-related metadata (e.g., Forge/Fabric mod list) is forwarded
-   * from the backend server to the client, if available.
-   */
   MODS,
-
-  /**
-   * Only the server description (MOTD) from the backend server is forwarded.
-   * All other ping components (player count, favicon, etc.) are provided by the proxy.
-   */
   DESCRIPTION,
-
-  /**
-   * All components of the backend server's ping response are forwarded to the client.
-   * This includes MOTD, player count, version, favicon, and mod metadata.
-   */
   ALL
 }

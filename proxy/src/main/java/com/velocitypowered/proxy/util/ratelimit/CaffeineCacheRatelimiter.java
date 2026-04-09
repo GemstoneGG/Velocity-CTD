@@ -32,14 +32,8 @@ import org.jetbrains.annotations.NotNull;
  */
 public class CaffeineCacheRatelimiter<T> implements Ratelimiter<T> {
 
-  /**
-   * The backing Caffeine cache used to store rate-limited keys.
-   */
   private final Cache<T, Long> expiringCache;
 
-  /**
-   * The time in nanoseconds before a key is allowed again.
-   */
   private final long timeoutNanos;
 
   CaffeineCacheRatelimiter(final long time, final TimeUnit unit) {

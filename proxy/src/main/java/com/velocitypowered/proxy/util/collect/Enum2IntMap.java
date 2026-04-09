@@ -26,21 +26,12 @@ import java.util.EnumSet;
  */
 public final class Enum2IntMap<E extends Enum<E>> {
 
-  /**
-   * The backing array storing integer values by enum ordinal.
-   */
   private final int[] mappings;
 
   private Enum2IntMap(final int[] mappings) {
     this.mappings = mappings;
   }
 
-  /**
-   * Retrieves the value associated with the given enum key.
-   *
-   * @param key the enum constant
-   * @return the integer value assigned to the enum
-   */
   public int get(final E key) {
     return mappings[key.ordinal()];
   }
@@ -52,26 +43,12 @@ public final class Enum2IntMap<E extends Enum<E>> {
    */
   public static class Builder<E extends Enum<E>> {
 
-    /**
-     * The working array of mappings from ordinal index to int value.
-     */
     private final int[] mappings;
 
-    /**
-     * The set of enum constants that have explicitly assigned values.
-     */
     private final EnumSet<E> populated;
 
-    /**
-     * The default value for unassigned enum keys.
-     */
     private int defaultValue = -1;
 
-    /**
-     * Constructs a new builder for the given enum type.
-     *
-     * @param klazz the enum class
-     */
     public Builder(final Class<E> klazz) {
       this.mappings = new int[klazz.getEnumConstants().length];
       this.populated = EnumSet.noneOf(klazz);
@@ -90,34 +67,16 @@ public final class Enum2IntMap<E extends Enum<E>> {
       return this;
     }
 
-    /**
-     * Removes a previously set mapping for the given enum constant.
-     *
-     * @param key the enum key to remove
-     * @return this builder for chaining
-     */
     public Builder<E> remove(final E key) {
       this.populated.remove(key);
       return this;
     }
 
-    /**
-     * Sets the default value to return for unmapped enum constants.
-     *
-     * @param defaultValue the fallback value
-     * @return this builder for chaining
-     */
     public Builder<E> defaultValue(final int defaultValue) {
       this.defaultValue = defaultValue;
       return this;
     }
 
-    /**
-     * Fetches a mapping from the map.
-     *
-     * @param key the key to use
-     * @return the value in the map
-     */
     public int get(final E key) {
       if (this.populated.contains(key)) {
         return this.mappings[key.ordinal()];

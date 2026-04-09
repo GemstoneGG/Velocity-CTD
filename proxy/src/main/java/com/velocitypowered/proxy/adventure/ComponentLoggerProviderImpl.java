@@ -32,12 +32,6 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings("UnstableApiUsage")
 public final class ComponentLoggerProviderImpl implements ComponentLoggerProvider {
 
-  /**
-   * An ANSI component serializer configured with Velocity’s {@link TranslatableMapper} flattener.
-   *
-   * <p>Used to convert Adventure {@link net.kyori.adventure.text.Component}s to ANSI-encoded
-   * strings for output to the console or logging systems.</p>
-   */
   private static final ANSIComponentSerializer SERIALIZER = ANSIComponentSerializer.builder()
           .flattener(TranslatableMapper.FLATTENER)
           .build();

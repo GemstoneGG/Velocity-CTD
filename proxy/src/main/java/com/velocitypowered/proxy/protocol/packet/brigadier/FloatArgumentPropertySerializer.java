@@ -25,22 +25,8 @@ import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.velocitypowered.api.network.ProtocolVersion;
 import io.netty.buffer.ByteBuf;
 
-/**
- * The {@code FloatArgumentPropertySerializer} is responsible for serializing and
- * deserializing {@link FloatArgumentType} instances, including optional minimum
- * and maximum bounds.
- *
- * <p>This serializer is used for command arguments that require constrained
- * floating-point values, such as angles, velocities, or custom range-based input.</p>
- *
- * <p>The format uses a flags byte to indicate the presence of minimum and/or maximum values,
- * followed by the respective floats when those flags are set.</p>
- */
 final class FloatArgumentPropertySerializer implements ArgumentPropertySerializer<FloatArgumentType> {
 
-  /**
-   * A shared singleton instance of the {@code FloatArgumentPropertySerializer}.
-   */
   static final FloatArgumentPropertySerializer FLOAT = new FloatArgumentPropertySerializer();
 
   private FloatArgumentPropertySerializer() {

@@ -71,42 +71,17 @@ import org.jetbrains.annotations.NotNull;
  */
 public class VelocityRegisteredServer implements RegisteredServer, ForwardingAudience {
 
-  /**
-   * The Velocity server instance associated with this registered server,
-   * or {@code null} if constructed without full proxy context (e.g., testing).
-   */
   private final @Nullable VelocityServer server;
 
-  /**
-   * The information identifying this backend server, including name and address.
-   */
   private final ServerInfo serverInfo;
 
-  /**
-   * The players currently connected to this server from this proxy instance,
-   * indexed by their UUIDs.
-   */
   private final Map<UUID, ConnectedPlayer> players = new ConcurrentHashMap<>();
 
-  /**
-   * Constructs a {@link VelocityRegisteredServer} instance.
-   *
-   * @param server the proxy server
-   * @param serverInfo info on this server
-   */
   public VelocityRegisteredServer(final @Nullable VelocityServer server, final ServerInfo serverInfo) {
     this.server = server;
     this.serverInfo = Preconditions.checkNotNull(serverInfo, "serverInfo");
   }
 
-  /**
-   * Returns the {@link ServerInfo} representing this registered backend server.
-   *
-   * <p>This includes metadata such as the server's name and network address
-   * used for connecting players.</p>
-   *
-   * @return the {@link ServerInfo} object describing this server
-   */
   @Override
   public ServerInfo getServerInfo() {
     return serverInfo;
@@ -130,15 +105,6 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
     return mode;
   }
 
-  /**
-   * Returns an immutable collection of players currently connected to this server
-   * from this proxy instance.
-   *
-   * <p>This does not include players connected via other proxy instances in a
-   * Redis multi-proxy setup.</p>
-   *
-   * @return the connected players on this server from this proxy instance
-   */
   @Override
   public Collection<ConnectedPlayer> getPlayersConnected() {
     return ImmutableList.copyOf(players.values());
@@ -183,25 +149,11 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
     return players.get(uuid);
   }
 
-  /**
-   * Pings the server using the specified {@link PingOptions}.
-   *
-   * <p>This method initiates a server list ping to the backend server to retrieve
-   * information such as MOTD, player count, and version, using the given options.</p>
-   *
-   * @param pingOptions the ping options to apply
-   * @return a {@link CompletableFuture} that completes with the {@link ServerPing} result
-   */
   @Override
   public CompletableFuture<ServerPing> ping(final PingOptions pingOptions) {
     return ping(null, pingOptions);
   }
 
-  /**
-   * Pings the server using the default {@link PingOptions}.
-   *
-   * @return a {@link CompletableFuture} that completes with the {@link ServerPing} result
-   */
   @Override
   public CompletableFuture<ServerPing> ping() {
     return ping(null, PingOptions.DEFAULT);
@@ -249,34 +201,14 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
     return pingFuture;
   }
 
-  /**
-   * Adds the specified player to this server's local player list.
-   *
-   * @param player the player to add
-   */
   public void addPlayer(final ConnectedPlayer player) {
     players.put(player.getUniqueId(), player);
   }
 
-  /**
-   * Removes the specified player from this server's local player list.
-   *
-   * @param player the player to remove
-   */
   public void removePlayer(final ConnectedPlayer player) {
     players.remove(player.getUniqueId(), player);
   }
 
-  /**
-   * Sends a plugin message to this server using the given channel identifier and raw byte data.
-   *
-   * <p>If a player is currently connected to the server, the plugin message is sent using that
-   * connection. If no players are connected, the message is discarded and the buffer is released.</p>
-   *
-   * @param identifier the plugin message channel identifier
-   * @param data the plugin message payload
-   * @return {@code true} if the message was sent, {@code false} otherwise
-   */
   @Override
   public boolean sendPluginMessage(final @NotNull ChannelIdentifier identifier, final byte @NotNull [] data) {
     requireNonNull(identifier);
@@ -332,25 +264,11 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
     return false;
   }
 
-  /**
-   * Returns a string representation of this registered server, including its {@link ServerInfo}.
-   *
-   * @return a string representing this server
-   */
   @Override
   public String toString() {
     return "registered server: " + serverInfo;
   }
 
-  /**
-   * Returns an iterable collection of {@link Audience} instances representing
-   * all players currently connected to this server from this proxy.
-   *
-   * <p>This is used for forwarding chat and other Adventure-based interactions
-   * to all players on the server.</p>
-   *
-   * @return the connected player audiences on this server
-   */
   @Override
   public @NonNull Iterable<? extends Audience> audiences() {
     return this.getPlayersConnected();

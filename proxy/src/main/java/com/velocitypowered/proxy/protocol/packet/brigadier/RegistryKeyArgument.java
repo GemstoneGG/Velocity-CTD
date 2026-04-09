@@ -28,81 +28,31 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Represents a Brigadier {@link ArgumentType} for registry keys, which are typically
- * namespaced resource locations (e.g., {@code minecraft:diamond_sword}).
- *
- * <p>This argument type reads an unquoted string from input and treats it as a raw registry
- * key. It does not validate the format or resolve the key against a known registry.</p>
- *
- * <p>Examples include simple strings, namespaced keys, or numeric-like identifiers.</p>
- */
 public class RegistryKeyArgument implements ArgumentType<String> {
 
-  /**
-   * A set of example inputs commonly used for registry key arguments.
-   */
   private static final List<String> EXAMPLES = Arrays.asList("foo", "foo:bar", "012");
 
-  /**
-   * The internal identifier used to associate this argument with a specific registry context.
-   */
   private final String identifier;
 
-  /**
-   * Constructs a new {@link RegistryKeyArgument} with the given identifier string.
-   *
-   * @param identifier a registry category or type name (e.g., {@code "minecraft:item"})
-   */
   public RegistryKeyArgument(final String identifier) {
     this.identifier = identifier;
   }
 
-  /**
-   * Returns the internal identifier associated with this registry argument.
-   *
-   * @return the registry type identifier string
-   */
   public String getIdentifier() {
     return identifier;
   }
 
-  /**
-   * Parses the input string as a registry key.
-   *
-   * <p>This method reads an unquoted string token from the input stream and returns it
-   * as-is. No validation is performed on the string format.</p>
-   *
-   * @param stringReader the input reader positioned at the start of the key
-   * @return the parsed registry key string
-   * @throws CommandSyntaxException if the input is invalid or cannot be read
-   */
   @Override
   public String parse(final StringReader stringReader) throws CommandSyntaxException {
     return stringReader.readString();
   }
 
-  /**
-   * Returns an empty {@link Suggestions} result, as this argument type does not support suggestions.
-   *
-   * @param context the command context
-   * @param builder the suggestions builder
-   * @return a {@link CompletableFuture} containing an empty suggestions list
-   */
   @Override
   public <S> CompletableFuture<Suggestions> listSuggestions(final CommandContext<S> context,
                                                             final SuggestionsBuilder builder) {
     return Suggestions.empty();
   }
 
-  /**
-   * Returns a fixed set of example registry keys.
-   *
-   * <p>These examples are used for syntax help and client-side tab completion,
-   * and demonstrate typical formats accepted by this argument type.</p>
-   *
-   * @return a collection of example input strings
-   */
   @Override
   public Collection<String> getExamples() {
     return EXAMPLES;

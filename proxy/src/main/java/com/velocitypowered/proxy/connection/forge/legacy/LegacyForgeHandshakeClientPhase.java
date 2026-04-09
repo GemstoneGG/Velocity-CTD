@@ -175,16 +175,6 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
     }
   };
 
-  /**
-   * The discriminator value of a {@link PluginMessagePacket} used to determine whether the Forge
-   * handshake should advance to the next {@link LegacyForgeHandshakeClientPhase}.
-   *
-   * <p>Legacy Forge packets are sent using plugin messages with a unique integer discriminator as the
-   * first value. This field represents the expected discriminator for a given handshake phase.
-   * When such a packet is received, the phase transitions to the result of {@link #nextPhase()}.</p>
-   *
-   * <p>If this field is {@code null}, the phase is terminal and does not transition.</p>
-   */
   @Nullable
   private final Integer packetToAdvanceOn;
 
@@ -223,14 +213,6 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
     return false;
   }
 
-  /**
-   * Handles the phase tasks.
-   *
-   * @param player      The player
-   * @param message     The message to handle
-   * @param backendConn The backend connection to write to, if required.
-   * @return true if handled, false otherwise.
-   */
   boolean onHandle(final ConnectedPlayer player,
                    final PluginMessagePacket message,
                    final MinecraftConnection backendConn) {
@@ -246,11 +228,6 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
     return false;
   }
 
-  /**
-   * Gets the next phase if any (returns self if we are at the end of the handshake).
-   *
-   * @return The next phase
-   */
   LegacyForgeHandshakeClientPhase nextPhase() {
     return this;
   }

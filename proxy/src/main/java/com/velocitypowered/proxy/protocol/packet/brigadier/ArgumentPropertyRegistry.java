@@ -49,14 +49,6 @@ import java.util.HashMap;
 import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * The {@code ArgumentPropertyRegistry} is responsible for managing the registration and
- * retrieval of argument properties used in command parsing and execution.
- *
- * <p>This class functions as a registry, allowing different argument properties to be registered
- * and later retrieved or used when processing commands within the system. The properties
- * might be tied to argument types, validation rules, or transformations.</p>
- */
 @SuppressWarnings("unchecked")
 public final class ArgumentPropertyRegistry {
 
@@ -64,23 +56,10 @@ public final class ArgumentPropertyRegistry {
     throw new AssertionError();
   }
 
-  /**
-   * A map from {@link ArgumentIdentifier} to their corresponding
-   * {@link ArgumentPropertySerializer}. Used to look up how to (de)serialize
-   * an argument property by its identifier.
-   */
   private static final Map<ArgumentIdentifier, ArgumentPropertySerializer<?>> byIdentifier = new HashMap<>();
 
-  /**
-   * A map from Brigadier argument type classes to their associated
-   * {@link ArgumentPropertySerializer}. Enables serialization by runtime type.
-   */
   private static final Map<Class<? extends ArgumentType>, ArgumentPropertySerializer<?>> byClass = new HashMap<>();
 
-  /**
-   * A map from Brigadier argument type classes to their associated
-   * {@link ArgumentIdentifier}. Allows resolving identifier from argument instance.
-   */
   private static final Map<Class<? extends ArgumentType>, ArgumentIdentifier> classToId = new HashMap<>();
 
   private static <T extends ArgumentType<?>> void register(final ArgumentIdentifier identifier,

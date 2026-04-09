@@ -23,14 +23,5 @@ package com.velocitypowered.proxy.connection.forge.modern;
 @SuppressWarnings("checkstyle:HideUtilityClassConstructor")
 public final class ModernForgeConstants {
 
-  /**
-   * The token used to identify modern Forge connections in the server address.
-   *
-   * <p>Modern Forge clients append this token (e.g., {@code \0FORGE} or {@code \0FORGE14}) to the
-   * hostname field in the login handshake to indicate their presence and optionally specify a
-   * handshake version.</p>
-   *
-   * <p>This token allows the proxy to properly interpret and forward modern Forge login attempts.</p>
-   */
   public static final String MODERN_FORGE_TOKEN = "FORGE";
 }

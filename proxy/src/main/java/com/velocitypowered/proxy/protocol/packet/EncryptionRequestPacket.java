@@ -26,66 +26,28 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
 import java.util.Arrays;
 
-/**
- * Represents the encryption request packet in Minecraft, which is sent by the server
- * during the encryption handshake process. This packet is used to initiate secure
- * communication by providing the client with the server's public key and a verified token.
- * The client must respond with the encrypted shared secret and verify token.
- */
 public class EncryptionRequestPacket implements MinecraftPacket {
 
-  /**
-   * The server ID used for legacy authentication. Typically an empty string in modern clients.
-   */
   private String serverId = "";
 
-  /**
-   * The server's public key used to establish encrypted communication.
-   */
   private byte[] publicKey = EMPTY_BYTE_ARRAY;
 
-  /**
-   * A token used to verify the legitimacy of the client's encryption response.
-   */
   private byte[] verifyToken = EMPTY_BYTE_ARRAY;
 
-  /**
-   * Whether the client should authenticate with Mojang session servers.
-   */
   private boolean shouldAuthenticate = true;
 
-  /**
-   * Retrieves a defensive copy of the server's public key.
-   *
-   * @return the public key as a byte array
-   */
   public byte[] getPublicKey() {
     return publicKey.clone();
   }
 
-  /**
-   * Sets the server's public key.
-   *
-   * @param publicKey the public key to use
-   */
   public void setPublicKey(final byte[] publicKey) {
     this.publicKey = publicKey.clone();
   }
 
-  /**
-   * Retrieves a defensive copy of the verification token.
-   *
-   * @return the verification token as a byte array
-   */
   public byte[] getVerifyToken() {
     return verifyToken.clone();
   }
 
-  /**
-   * Sets the verification token.
-   *
-   * @param verifyToken the token used to verify client authenticity
-   */
   public void setVerifyToken(final byte[] verifyToken) {
     this.verifyToken = verifyToken.clone();
   }
@@ -98,17 +60,6 @@ public class EncryptionRequestPacket implements MinecraftPacket {
         + '}';
   }
 
-  /**
-   * Decodes this encryption request packet from the provided {@link ByteBuf}.
-   *
-   * <p>This reads the server ID, public key, and verification token using
-   * protocol-specific formats. For Minecraft 1.20.5+, it also reads the
-   * {@code shouldAuthenticate} flag.</p>
-   *
-   * @param buf the buffer to read from
-   * @param direction the direction of the packet
-   * @param version the Minecraft protocol version
-   */
   @Override
   public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     this.serverId = ProtocolUtils.readString(buf, 20);
@@ -125,17 +76,6 @@ public class EncryptionRequestPacket implements MinecraftPacket {
     }
   }
 
-  /**
-   * Encodes this encryption request packet into the given {@link ByteBuf}.
-   *
-   * <p>This writes the server ID, public key, and verification token using
-   * protocol-specific formats. For Minecraft 1.20.5+, it also writes the
-   * {@code shouldAuthenticate} flag.</p>
-   *
-   * @param buf the buffer to write to
-   * @param direction the direction of the packet
-   * @param version the Minecraft protocol version
-   */
   @Override
   public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     ProtocolUtils.writeString(buf, this.serverId);
@@ -152,15 +92,6 @@ public class EncryptionRequestPacket implements MinecraftPacket {
     }
   }
 
-  /**
-   * Handles this encryption request packet using the specified {@link MinecraftSessionHandler}.
-   *
-   * <p>This delegates processing to {@code handler.handle(this)} to begin the
-   * encryption handshake with the client.</p>
-   *
-   * @param handler the session handler responsible for processing this packet
-   * @return {@code true} if the packet was handled successfully
-   */
   @Override
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);

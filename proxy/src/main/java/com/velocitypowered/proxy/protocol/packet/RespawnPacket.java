@@ -28,96 +28,35 @@ import net.kyori.adventure.nbt.BinaryTagIO;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/**
- * Represents a respawn packet sent by the server when the player changes dimensions or respawns.
- * The packet contains information about the new dimension, difficulty, gamemode, and more.
- */
 public class RespawnPacket implements MinecraftPacket {
 
-  /**
-   * The dimension the player is respawning or teleporting to.
-   */
   private int dimension;
 
-  /**
-   * The hashed seed used for terrain generation (introduced in Minecraft 1.15).
-   */
   private long partialHashedSeed;
 
-  /**
-   * The difficulty of the server (used in versions ≤ 1.13.2).
-   */
   private short difficulty;
 
-  /**
-   * The gamemode the player is respawning into.
-   */
   private short gamemode;
 
-  /**
-   * The level type (e.g., "default", "flat") used in versions prior to 1.16.
-   */
   private String levelType = "";
 
-  /**
-   * A byte flag indicating whether to retain player data (introduced in 1.16).
-   */
   private byte dataToKeep;
 
-  /**
-   * Additional information about the dimension (used in 1.16–1.16.1).
-   */
   private DimensionInfo dimensionInfo;
 
-  /**
-   * The previous gamemode of the player (introduced in 1.16).
-   */
   private short previousGamemode;
 
-  /**
-   * NBT tag data about the current dimension (used in 1.16.2+).
-   */
   private CompoundBinaryTag currentDimensionData;
 
-  /**
-   * Optional last death position as a pair of (dimension, location) (1.19+).
-   */
   private @Nullable Pair<String, Long> lastDeathPosition;
 
-  /**
-   * Cooldown time before the player can re-enter a portal (1.20+).
-   */
   private int portalCooldown;
 
-  /**
-   * The sea level in the current dimension (used for respawn logic) (1.21.2+).
-   */
   private int seaLevel;
 
-  /**
-   * Constructs an empty {@code RespawnPacket}.
-   *
-   * <p>Fields must be populated manually before encoding.</p>
-   */
   public RespawnPacket() {
   }
 
-  /**
-   * Constructs a new {@code RespawnPacket} with the specified parameters.
-   *
-   * @param dimension the dimension the player is respawning or teleporting to
-   * @param partialHashedSeed the partial hashed seed
-   * @param difficulty the difficulty of the server
-   * @param gamemode the player's current gamemode
-   * @param levelType the type of level (e.g., "default", "flat")
-   * @param dataToKeep a byte flag indicating whether certain data should be kept
-   * @param dimensionInfo additional information about the dimension (for 1.16-1.16.1)
-   * @param previousGamemode the player's previous gamemode
-   * @param currentDimensionData data about the current dimension (for 1.16.2+)
-   * @param lastDeathPosition optional last death position (for 1.19+)
-   * @param portalCooldown the cooldown for portal usage (for 1.20+)
-   * @param seaLevel a determinable spawn point for a user (for 1.21.2+)
-   */
   public RespawnPacket(final int dimension, final long partialHashedSeed, final short difficulty, final short gamemode,
                        final String levelType, final byte dataToKeep, final DimensionInfo dimensionInfo,
                        final short previousGamemode, final CompoundBinaryTag currentDimensionData,
@@ -137,12 +76,6 @@ public class RespawnPacket implements MinecraftPacket {
     this.seaLevel = seaLevel;
   }
 
-  /**
-   * Creates a new {@code RespawnPacket} from a {@link JoinGamePacket}.
-   *
-   * @param joinGame the {@code JoinGamePacket} to use
-   * @return a new {@code RespawnPacket} based on the provided {@code JoinGamePacket}
-   */
   public static RespawnPacket fromJoinGame(final JoinGamePacket joinGame) {
     return new RespawnPacket(
         joinGame.getDimension(),
@@ -159,194 +92,86 @@ public class RespawnPacket implements MinecraftPacket {
         joinGame.getSeaLevel());
   }
 
-  /**
-   * Gets the dimension ID the player is respawning into.
-   *
-   * @return the dimension ID
-   */
   public int getDimension() {
     return dimension;
   }
 
-  /**
-   * Sets the dimension ID the player is respawning into.
-   *
-   * @param dimension the dimension ID
-   */
   public void setDimension(final int dimension) {
     this.dimension = dimension;
   }
 
-  /**
-   * Gets the hashed seed used for terrain generation.
-   *
-   * @return the partial hashed seed
-   */
   public long getPartialHashedSeed() {
     return partialHashedSeed;
   }
 
-  /**
-   * Sets the hashed seed used for terrain generation.
-   *
-   * @param partialHashedSeed the hashed seed
-   */
   public void setPartialHashedSeed(final long partialHashedSeed) {
     this.partialHashedSeed = partialHashedSeed;
   }
 
-  /**
-   * Gets the server difficulty.
-   *
-   * @return the difficulty
-   */
   public short getDifficulty() {
     return difficulty;
   }
 
-  /**
-   * Sets the server difficulty.
-   *
-   * @param difficulty the difficulty
-   */
   public void setDifficulty(final short difficulty) {
     this.difficulty = difficulty;
   }
 
-  /**
-   * Gets the player's current gamemode.
-   *
-   * @return the gamemode
-   */
   public short getGamemode() {
     return gamemode;
   }
 
-  /**
-   * Sets the player's current gamemode.
-   *
-   * @param gamemode the gamemode
-   */
   public void setGamemode(final short gamemode) {
     this.gamemode = gamemode;
   }
 
-  /**
-   * Gets the legacy level type string (used in versions < 1.16).
-   *
-   * @return the level type
-   */
   public String getLevelType() {
     return levelType;
   }
 
-  /**
-   * Sets the legacy level type string.
-   *
-   * @param levelType the level type
-   */
   public void setLevelType(final String levelType) {
     this.levelType = levelType;
   }
 
-  /**
-   * Gets the data retention flag for the respawn.
-   *
-   * @return the data-to-keep byte
-   */
   public byte getDataToKeep() {
     return dataToKeep;
   }
 
-  /**
-   * Sets the data retention flag for the respawn.
-   *
-   * @param dataToKeep the data-to-keep byte
-   */
   public void setDataToKeep(final byte dataToKeep) {
     this.dataToKeep = dataToKeep;
   }
 
-  /**
-   * Gets the player's previous gamemode.
-   *
-   * @return the previous gamemode
-   */
   public short getPreviousGamemode() {
     return previousGamemode;
   }
 
-  /**
-   * Sets the player's previous gamemode.
-   *
-   * @param previousGamemode the previous gamemode
-   */
   public void setPreviousGamemode(final short previousGamemode) {
     this.previousGamemode = previousGamemode;
   }
 
-  /**
-   * Gets the last known death position of the player (1.19+).
-   *
-   * @return the last death position or {@code null}
-   */
   public @Nullable Pair<String, Long> getLastDeathPosition() {
     return lastDeathPosition;
   }
 
-  /**
-   * Sets the last known death position of the player (1.19+).
-   *
-   * @param lastDeathPosition the last death position
-   */
   public void setLastDeathPosition(final @Nullable Pair<String, Long> lastDeathPosition) {
     this.lastDeathPosition = lastDeathPosition;
   }
 
-  /**
-   * Gets the cooldown time before portal reuse is allowed (1.20+).
-   *
-   * @return the portal cooldown
-   */
   public int getPortalCooldown() {
     return portalCooldown;
   }
 
-  /**
-   * Sets the cooldown time before portal reuse is allowed (1.20+).
-   *
-   * @param portalCooldown the portal cooldown
-   */
   public void setPortalCooldown(final int portalCooldown) {
     this.portalCooldown = portalCooldown;
   }
 
-  /**
-   * Gets the sea level in the dimension (1.21.2+).
-   *
-   * @return the sea level
-   */
   public int getSeaLevel() {
     return seaLevel;
   }
 
-  /**
-   * Sets the sea level in the dimension (1.21.2+).
-   *
-   * @param seaLevel the sea level
-   */
   public void setSeaLevel(final int seaLevel) {
     this.seaLevel = seaLevel;
   }
 
-  /**
-   * Returns a string representation of this respawn packet.
-   *
-   * <p>This includes dimension, gamemode, seed, difficulty, flags, and
-   * optional NBT and location data relevant to respawn behavior.</p>
-   *
-   * @return a string describing this packet
-   */
   @Override
   public String toString() {
     return "Respawn{"
@@ -365,16 +190,6 @@ public class RespawnPacket implements MinecraftPacket {
         + '}';
   }
 
-  /**
-   * Decodes this respawn packet from the provided {@link ByteBuf}.
-   *
-   * <p>This method reads dimension information, gamemode, terrain seed, optional
-   * death location, portal cooldown, and sea level, depending on the protocol version.</p>
-   *
-   * @param buf the buffer to read from
-   * @param direction the direction of the packet
-   * @param version the Minecraft protocol version
-   */
   @Override
   public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     String dimensionKey = "";
@@ -437,16 +252,6 @@ public class RespawnPacket implements MinecraftPacket {
     }
   }
 
-  /**
-   * Encodes this respawn packet into the provided {@link ByteBuf}.
-   *
-   * <p>This method writes dimension metadata, gamemode, terrain seed, flags, and optional
-   * death location and environmental data based on the protocol version.</p>
-   *
-   * @param buf the buffer to write to
-   * @param direction the direction of the packet
-   * @param version the Minecraft protocol version
-   */
   @Override
   public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_16)) {
@@ -512,15 +317,6 @@ public class RespawnPacket implements MinecraftPacket {
     }
   }
 
-  /**
-   * Handles this respawn packet using the specified {@link MinecraftSessionHandler}.
-   *
-   * <p>This delegates handling to {@code handler.handle(this)} to trigger
-   * client-side state resets after respawn or dimension change.</p>
-   *
-   * @param handler the session handler responsible for processing this packet
-   * @return {@code true} if the packet was handled successfully
-   */
   @Override
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);

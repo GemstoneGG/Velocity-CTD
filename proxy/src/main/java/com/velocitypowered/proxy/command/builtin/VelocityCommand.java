@@ -323,9 +323,6 @@ public class VelocityCommand implements BuiltinCommand {
 
   private record Reload(VelocityServer server) implements Command<CommandSource> {
 
-    /**
-     * Logger instance used for reporting reload-related errors.
-     */
     private static final Logger LOGGER = LogManager.getLogger(Reload.class);
 
     @Override
@@ -387,9 +384,6 @@ public class VelocityCommand implements BuiltinCommand {
 
   private static class Info implements Command<CommandSource> {
 
-    /**
-     * Primary color used for Velocity branding in info output.
-     */
     private static final TextColor VELOCITY_COLOR = TextColor.color(0xff3a4c);
 
     /**
@@ -579,9 +573,6 @@ public class VelocityCommand implements BuiltinCommand {
 
   private record Dump(VelocityServer server) implements Command<CommandSource> {
 
-    /**
-     * Logger instance for logging errors and output related to the dump command.
-     */
     private static final Logger LOGGER = LogManager.getLogger(Dump.class);
 
     @Override
@@ -640,24 +631,12 @@ public class VelocityCommand implements BuiltinCommand {
    */
   public static class Heap implements Command<CommandSource> {
 
-    /**
-     * Logger instance for logging errors during heap dump generation.
-     */
     private static final Logger LOGGER = LogManager.getLogger(Heap.class);
 
-    /**
-     * Method handle to the platform-specific heap dump method.
-     */
     private MethodHandle heapGenerator;
 
-    /**
-     * Consumer that triggers heap dump generation and sends output to the command source.
-     */
     private Consumer<CommandSource> heapConsumer;
 
-    /**
-     * Directory path where heap dumps will be saved.
-     */
     private final Path dir = Path.of("./dumps");
 
     @Override
@@ -727,9 +706,6 @@ public class VelocityCommand implements BuiltinCommand {
 
   private record ConfigCheck(VelocityServer server) implements Command<CommandSource> {
 
-    /**
-     * Logger instance for logging configuration analysis errors.
-     */
     private static final Logger LOGGER = LogManager.getLogger(ConfigCheck.class);
 
     @Override

@@ -69,113 +69,54 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("unchecked")
 public final class VelocityConfiguration implements ProxyConfig {
 
-  /**
-   * The logger used to print configuration-related warnings and errors.
-   */
   private static final Logger LOGGER = LogManager.getLogger(VelocityConfiguration.class);
 
   private static final String UNBOUNDED = "UNBOUNDED";
 
-  /**
-   * The IP address and port the proxy binds to.
-   * Format: {@code ip:port}, e.g., {@code 0.0.0.0:25565}.
-   */
   @Expose
   private String bind = "0.0.0.0:25565";
 
-  /**
-   * The Message of the Day (MOTD) shown to clients in the server list.
-   */
   @Expose
   private String motd = "<aqua>A Velocity Server";
 
-  /**
-   * Parsed MiniMessage component version of the MOTD, lazily initialized.
-   */
   private @MonotonicNonNull Component motdAsComponent;
 
-  /**
-   * The hover text shown when a user hovers over the MOTD in the server list.
-   */
   @Expose
   private List<String> motdHover = List.of("");
 
-  /**
-   * Parsed hover components from {@link #motdHover}, lazily initialized.
-   */
   private List<@MonotonicNonNull Component> motdHoverComponents;
 
-  /**
-   * The maximum number of players shown to the client in the server list ping.
-   */
   @Expose
   private int showMaxPlayers = 500;
 
-  /**
-   * Whether the proxy should attempt to verify Mojang authentication.
-   */
   @Expose
   private boolean onlineMode = true;
 
-  /**
-   * Whether to prevent clients from connecting directly to backend servers.
-   */
   @Expose
   private boolean preventClientProxyConnections = false;
 
-  /**
-   * Global player info forwarding strategy used by the proxy.
-   */
   @Expose
   private PlayerInfoForwarding playerInfoForwardingMode = PlayerInfoForwarding.NONE;
 
-  /**
-   * Shared secret used to validate forwarded player info (Modern/BungeeGuard).
-   */
   private byte[] forwardingSecret = generateRandomString(12).getBytes(StandardCharsets.UTF_8);
 
-  /**
-   * Whether to announce Forge support to clients in the handshake.
-   */
   @Expose
   private boolean announceForge = false;
 
-  /**
-   * If {@code true}, when a new connection arrives with the same UUID as an already-online player,
-   * the existing session is kicked and the new connection is allowed in. Works in both online and
-   * offline mode.
-   */
   @Expose
   private boolean kickExistingPlayers = false;
 
-  /**
-   * If {@code true}, kick-existing-players will only kick the existing session when the new
-   * connection originates from the same IP address. Connections from a different IP with a
-   * duplicate UUID are denied instead of displacing the existing player.
-   */
   @Expose
   private boolean kickExistingPlayersCheckIp = false;
 
-  /**
-   * Defines how ping data (e.g. MOTD, players, mods) is forwarded to clients.
-   */
   @Expose
   private PingPassthroughMode pingPassthrough = PingPassthroughMode.DISABLED;
 
-  /**
-   * Whether to include actual player samples in ping response (e.g. tab previews).
-   */
   @Expose
   private boolean samplePlayersInPing = false;
 
-  /**
-   * The configured backend servers and their forwarding behavior.
-   */
   private final Servers servers;
 
-  /**
-   * Virtual host mappings that reroute players to specific server lists.
-   */
   private final ForcedHosts forcedHosts;
 
   /**
@@ -197,21 +138,12 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Expose
   private final ProxyCommandAliases proxyCommandAliases;
 
-  /**
-   * Advanced configuration options for performance and features.
-   */
   @Expose
   private final Advanced advanced;
 
-  /**
-   * Query protocol support configuration.
-   */
   @Expose
   private final Query query;
 
-  /**
-   * Metrics configuration for enabling or disabling bStats.
-   */
   private final Metrics metrics;
 
   /**
@@ -226,30 +158,17 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Expose
   private final Queue queue;
 
-  /**
-   * Whether to log each player's IP address during connection.
-   */
   @Expose
   private boolean enablePlayerAddressLogging = true;
 
-  /**
-   * Optional favicon shown in ping response. May be null.
-   */
   private @Nullable Favicon favicon;
 
-  /**
-   * Whether key authentication is enforced when online-mode is enabled.
-   * Was added in Minecraft 1.19.
-   */
   @Expose
   private boolean forceKeyAuthentication = true;
 
   @Expose
   private PacketLimiterConfig packetLimiterConfig = PacketLimiterConfig.DEFAULT;
 
-  /**
-   * Whether to log all player connection attempts.
-   */
   @Expose
   private boolean logPlayerConnections = true;
 
@@ -308,15 +227,9 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Expose
   private String maximumVersion = UNBOUNDED;
 
-  /**
-   * Slash-command shortcuts for routing players to specific servers.
-   */
   @Expose
   private Map<String, List<String>> slashServers = new HashMap<>();
 
-  /**
-   * A list of configured links available to players via server menus.
-   */
   @Expose
   private Map<String, List<ServerLink>> serverLinks = new HashMap<>();
 
@@ -555,11 +468,6 @@ public final class VelocityConfiguration implements ProxyConfig {
     }
   }
 
-  /**
-   * The current IP and port the proxy is bound to.
-   *
-   * @return the resolved bind address
-   */
   public InetSocketAddress getBind() {
     return AddressUtil.parseAndResolveAddress(bind);
   }
@@ -628,33 +536,10 @@ public final class VelocityConfiguration implements ProxyConfig {
     return preventClientProxyConnections;
   }
 
-  /**
-   * Gets the global player info forwarding mode used by the proxy.
-   *
-   * <p>This setting determines how Velocity forwards player information
-   * such as UUIDs, IPs, and profile data to backend servers. It can be one of:
-   * <ul>
-   *   <li>{@link PlayerInfoForwarding#NONE} - no forwarding</li>
-   *   <li>{@link PlayerInfoForwarding#LEGACY} - BungeeCord-style forwarding</li>
-   *   <li>{@link PlayerInfoForwarding#BUNGEEGUARD} - BungeeGuard-compatible</li>
-   *   <li>{@link PlayerInfoForwarding#MODERN} - Velocity modern forwarding (recommended)</li>
-   * </ul>
-   *
-   * @return the global {@link PlayerInfoForwarding} mode
-   */
   public PlayerInfoForwarding getPlayerInfoForwardingMode() {
     return playerInfoForwardingMode;
   }
 
-  /**
-   * Gets the secret used for verifying forwarded player info.
-   *
-   * <p>This secret is required for {@link PlayerInfoForwarding#MODERN} and
-   * {@link PlayerInfoForwarding#BUNGEEGUARD} modes. It must be shared securely
-   * between the proxy and backend servers.
-   *
-   * @return a copy of the forwarding secret as a byte array
-   */
   public byte[] getForwardingSecret() {
     return forwardingSecret.clone();
   }
@@ -897,119 +782,54 @@ public final class VelocityConfiguration implements ProxyConfig {
     return advanced.getKickAfterRateLimitedCommands();
   }
 
-  /**
-   * Returns whether the PROXY protocol is enabled for incoming connections.
-   *
-   * @return {@code true} if PROXY protocol is enabled, {@code false} otherwise
-   */
   public boolean isProxyProtocol() {
     return advanced.isProxyProtocol();
   }
 
-  /**
-   * Sets whether the PROXY protocol is enabled for incoming connections.
-   *
-   * @param proxyProtocol {@code true} to enable the protocol, {@code false} to disable it
-   */
   public void setProxyProtocol(final boolean proxyProtocol) {
     advanced.setProxyProtocol(proxyProtocol);
   }
 
-  /**
-   * Returns whether TCP Fast Open is enabled for the proxy.
-   *
-   * @return {@code true} if TCP Fast Open is enabled
-   */
   public boolean useTcpFastOpen() {
     return advanced.isTcpFastOpen();
   }
 
-  /**
-   * Gets the metrics configuration.
-   *
-   * @return the {@link Metrics} configuration object
-   */
   public Metrics getMetrics() {
     return metrics;
   }
 
-  /**
-   * Gets the configured ping passthrough mode.
-   *
-   * @return the {@link PingPassthroughMode} being used
-   */
   public PingPassthroughMode getPingPassthrough() {
     return pingPassthrough;
   }
 
-  /**
-   * Returns whether to include actual player samples in server ping responses.
-   *
-   * @return {@code true} if real samples are shown, {@code false} otherwise
-   */
   public boolean getSamplePlayersInPing() {
     return samplePlayersInPing;
   }
 
-  /**
-   * Returns whether player address logging is enabled.
-   *
-   * @return {@code true} if IP address logging is enabled
-   */
   public boolean isPlayerAddressLoggingEnabled() {
     return enablePlayerAddressLogging;
   }
 
-  /**
-   * Returns whether the BungeeCord plugin message channel is enabled.
-   *
-   * @return {@code true} if enabled
-   */
   public boolean isBungeePluginChannelEnabled() {
     return advanced.isBungeePluginMessageChannel();
   }
 
-  /**
-   * Returns whether ping requests are logged in the console.
-   *
-   * @return {@code true} if ping logging is enabled
-   */
   public boolean isShowPingRequests() {
     return advanced.isShowPingRequests();
   }
 
-  /**
-   * Returns whether the proxy attempts to fail over when a server disconnects unexpectedly.
-   *
-   * @return {@code true} if failover is enabled
-   */
   public boolean isFailoverOnUnexpectedServerDisconnect() {
     return advanced.isFailoverOnUnexpectedServerDisconnect();
   }
 
-  /**
-   * Returns whether proxy commands should be announced to players.
-   *
-   * @return {@code true} if proxy commands are announced
-   */
   public boolean isAnnounceProxyCommands() {
     return advanced.isAnnounceProxyCommands();
   }
 
-  /**
-   * Returns whether command executions are logged.
-   *
-   * @return {@code true} if logging is enabled
-   */
   public boolean isLogCommandExecutions() {
     return advanced.isLogCommandExecutions();
   }
 
-  /**
-   * Returns whether player transfers between proxies are accepted.
-   *
-   * @return {@code true} if transfers are accepted
-   */
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   public boolean isAcceptTransfers() {
     return this.advanced.isAcceptTransfers();
@@ -1078,20 +898,10 @@ public final class VelocityConfiguration implements ProxyConfig {
     return servers.getDynamicFallbackFilter();
   }
 
-  /**
-   * Returns whether key authentication is enforced when online mode is enabled.
-   *
-   * @return {@code true} if key authentication is required
-   */
   public boolean isForceKeyAuthentication() {
     return forceKeyAuthentication;
   }
 
-  /**
-   * Returns whether the proxy uses SO_REUSEPORT when binding network sockets.
-   *
-   * @return {@code true} if reuse port is enabled
-   */
   public boolean isEnableReusePort() {
     return advanced.isEnableReusePort();
   }
@@ -1218,13 +1028,6 @@ public final class VelocityConfiguration implements ProxyConfig {
         .toString();
   }
 
-  /**
-   * Reads the Velocity configuration from {@code path}.
-   *
-   * @param path the path to read from
-   * @return the deserialized Velocity configuration
-   * @throws IOException if we could not read from the {@code path}.
-   */
   public static VelocityConfiguration read(final Path path) throws IOException {
     URL defaultConfigLocation = VelocityConfiguration.class.getClassLoader()
         .getResource("default-velocity.toml");
@@ -1524,11 +1327,6 @@ public final class VelocityConfiguration implements ProxyConfig {
     return kickExistingPlayersCheckIp;
   }
 
-  /**
-   * Returns whether Velocity should log all player connection attempts.
-   *
-   * @return true if player connections should be logged
-   */
   public boolean isLogPlayerConnections() {
     return logPlayerConnections;
   }
@@ -1665,45 +1463,16 @@ public final class VelocityConfiguration implements ProxyConfig {
 
   private static final class Servers {
 
-    /**
-     * The configured mapping of backend servers available for player connections.
-     *
-     * <p>The key is the unique server name used within the proxy (for example,
-     * {@code "lobby"}), and the value is a {@link BackendServerConfig} describing
-     * the backend server's address and its {@link PlayerInfoForwarding}.</p>
-     *
-     * <p>This map determines the set of servers players can connect to and
-     * specifies whether each server should inherit the global forwarding mode
-     * or use its own explicit mode.</p>
-     */
     private Map<String, BackendServerConfig> servers = ImmutableMap.of(
         "lobby", new BackendServerConfig("127.0.0.1:30066"),
         "factions", new BackendServerConfig("127.0.0.1:30067", PlayerInfoForwarding.MODERN),
         "minigames", new BackendServerConfig("127.0.0.1:30068", PlayerInfoForwarding.LEGACY)
     );
 
-    /**
-     * The ordered list of fallback servers to try when connecting a player.
-     *
-     * <p>This list defines the default connection priority. If a connection to the
-     * first server fails, the proxy tries the next one in order, and so on.
-     */
     private List<String> attemptConnectionOrder = ImmutableList.of("lobby");
 
-    /**
-     * Per-server overrides for minimum version requirements.
-     *
-     * <p>If a server is listed here, it uses the specified minimum version
-     * instead of the global configuration.
-     */
     private Map<String, String> serverMinimumVersions = ImmutableMap.of();
 
-    /**
-     * Per-server overrides for maximum version requirements.
-     *
-     * <p>If a server is listed here, it uses the specified maximum version
-     * instead of the global configuration.
-     */
     private Map<String, String> serverMaximumVersions = ImmutableMap.of();
 
     /**
@@ -1938,15 +1707,6 @@ public final class VelocityConfiguration implements ProxyConfig {
 
   private static final class ForcedHosts {
 
-    /**
-     * A mapping of virtual hostnames to server connection targets.
-     *
-     * <p>Each key represents a hostname (e.g., {@code play.example.com}) and its
-     * corresponding value is a list of backend server names that should be attempted
-     * in order when a player connects using that hostname.</p>
-     *
-     * <p>Used to route players based on the hostname they use to connect.</p>
-     */
     private Map<String, List<String>> forcedHosts = ImmutableMap.of();
 
     private boolean forcedHostAsFallback = true;
@@ -2202,121 +1962,60 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private int profileCacheExpiryMinutes = 1440;
 
-    /**
-     * The size threshold (in bytes) at which packets are compressed.
-     * -1 disables compression, 0 compresses all packets.
-     */
     @Expose
     private int compressionThreshold = 256;
 
-    /**
-     * The compression level (0–9) used for packet compression.
-     * -1 uses the system default.
-     */
     @Expose
     private int compressionLevel = -1;
 
-    /**
-     * The time (in milliseconds) that must pass before a player can log in again.
-     */
     @Expose
     private int loginRatelimit = 3000;
 
-    /**
-     * The timeout (in milliseconds) for establishing a connection to a backend server.
-     */
     @Expose
     private int connectionTimeout = 5000;
 
-    /**
-     * The timeout (in milliseconds) for reading packets from a backend server.
-     */
     @Expose
     private int readTimeout = 30000;
 
-    /**
-     * Whether to enable support for the HAProxy PROXY protocol.
-     */
     @Expose
     private boolean proxyProtocol = false;
 
-    /**
-     * Whether to enable TCP Fast Open (may require OS-level support).
-     */
     @Expose
     private boolean tcpFastOpen = false;
 
-    /**
-     * Whether to enable support for the BungeeCord plugin messaging channel.
-     */
     @Expose
     private boolean bungeePluginMessageChannel = true;
 
-    /**
-     * Whether to log incoming ping requests in the console.
-     */
     @Expose
     private boolean showPingRequests = false;
 
-    /**
-     * Whether to failover players to other servers if they are unexpectedly disconnected.
-     */
     @Expose
     private boolean failoverOnUnexpectedServerDisconnect = true;
 
-    /**
-     * Whether to include proxy command aliases (e.g. `/server`) in tab-completions.
-     */
     @Expose
     private boolean announceProxyCommands = true;
 
-    /**
-     * Whether to log every command executed by players.
-     */
     @Expose
     private boolean logCommandExecutions = false;
 
-    /**
-     * Whether to accept `/transfer` messages from other proxies in a multi-proxy network.
-     */
     @Expose
     private boolean acceptTransfers = false;
 
-    /**
-     * Whether to enable SO_REUSEPORT if supported by the OS.
-     */
     @Expose
     private boolean enableReusePort = false;
 
-    /**
-     * Maximum number of commands per second before a player is rate-limited.
-     */
     @Expose
     private int commandRateLimit = 50;
 
-    /**
-     * Whether to allow rate-limited commands to be forwarded anyway (best-effort).
-     */
     @Expose
     private boolean forwardCommandsIfRateLimited = true;
 
-    /**
-     * Number of rate-limited commands before a player is kicked.
-     * 0 disables kicking.
-     */
     @Expose
     private int kickAfterRateLimitedCommands = 0;
 
-    /**
-     * Maximum number of tab-complete requests per second before rate-limiting is applied.
-     */
     @Expose
     private int tabCompleteRateLimit = 10;
 
-    /**
-     * Number of rate-limited tab-complete requests before a player is kicked.
-     * 0 disables kicking.
-     */
     @Expose
     private int kickAfterRateLimitedTabCompletes = 0;
 
@@ -2557,36 +2256,15 @@ public final class VelocityConfiguration implements ProxyConfig {
 
   private static final class Query {
 
-    /**
-     * Whether the legacy GameSpy query protocol is enabled.
-     *
-     * <p>This allows tools like server lists or query clients to gather basic server
-     * metadata (name, player count, etc.) through UDP.</p>
-     */
     @Expose
     private boolean queryEnabled = false;
 
-    /**
-     * The port on which the proxy will listen for query protocol requests.
-     *
-     * <p>This can be the same as or different from the main proxy port.</p>
-     */
     @Expose
     private int queryPort = 25565;
 
-    /**
-     * The string returned as the "map name" in the query response.
-     *
-     * <p>Purely cosmetic, often shown as the server name in query-compatible tools.</p>
-     */
     @Expose
     private String queryMap = "Velocity";
 
-    /**
-     * Whether the proxy should include plugin names in query responses.
-     *
-     * <p>This is often disabled to avoid leaking plugin information to the public.</p>
-     */
     @Expose
     private boolean showPlugins = false;
 
@@ -2641,11 +2319,6 @@ public final class VelocityConfiguration implements ProxyConfig {
    */
   public static final class Metrics {
 
-    /**
-     * Whether metrics collection via bStats is enabled.
-     * When enabled, Velocity will anonymously report usage statistics
-     * such as player counts, Java version, and operating system to bStats.org.
-     */
     private boolean enabled = true;
 
     private Metrics(final CommentedConfig toml) {
@@ -2654,11 +2327,6 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
     }
 
-    /**
-     * Returns whether metrics reporting to bStats is enabled.
-     *
-     * @return true if metrics are enabled, false otherwise
-     */
     public boolean isEnabled() {
       return enabled;
     }
@@ -2722,10 +2390,6 @@ public final class VelocityConfiguration implements ProxyConfig {
    */
   public static final class Redis {
 
-    /**
-     * Whether Redis support is enabled.
-     * If true, Velocity will attempt to connect to a Redis server for multi-proxy coordination.
-     */
     @Expose
     private boolean enabled;
 
@@ -2797,11 +2461,6 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
     }
 
-    /**
-     * Returns whether Redis integration is enabled.
-     *
-     * @return {@code true} if Redis is enabled, {@code false} otherwise
-     */
     public boolean isEnabled() {
       return enabled;
     }
@@ -2890,9 +2549,6 @@ public final class VelocityConfiguration implements ProxyConfig {
    */
   public static final class Queue {
 
-    /**
-     * Whether the queue system is enabled.
-     */
     @Expose
     private boolean enabled;
 
@@ -3039,11 +2695,6 @@ public final class VelocityConfiguration implements ProxyConfig {
       return ImmutableMap.copyOf(autoQueueServers);
     }
 
-    /**
-     * Returns whether the queue system is enabled.
-     *
-     * @return {@code true} if the queue system is enabled, {@code false} otherwise
-     */
     public boolean isEnabled() {
       return enabled;
     }

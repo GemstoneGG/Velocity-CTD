@@ -28,14 +28,8 @@ import com.velocitypowered.api.command.CommandSource;
  */
 abstract class AbstractCommandInvocation<T> implements CommandInvocation<T> {
 
-  /**
-   * The source that invoked the command.
-   */
   private final CommandSource source;
 
-  /**
-   * The parsed arguments for the command.
-   */
   private final T arguments;
 
   protected AbstractCommandInvocation(final CommandSource source, final T arguments) {

@@ -23,22 +23,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * A special {@link ArgumentPropertySerializer} implementation for mod-defined argument types
- * represented by {@link ModArgumentProperty}.
- *
- * <p>This serializer handles deserialization of mod-specific arguments that include a
- * {@link ArgumentIdentifier} and an arbitrary binary payload. These arguments are typically
- * used by modding platforms or extensions to define custom Brigadier-compatible types.</p>
- *
- * <p>Serialization is explicitly unsupported, as mod arguments are meant to be deserialized
- * only. The {@link ArgumentPropertyRegistry} handles raw passthrough of these types at runtime.</p>
- */
 final class ModArgumentPropertySerializer implements ArgumentPropertySerializer<ModArgumentProperty> {
 
-  /**
-   * A shared singleton instance of the {@code ModArgumentPropertySerializer}.
-   */
   static final ModArgumentPropertySerializer MOD = new ModArgumentPropertySerializer();
 
   private ModArgumentPropertySerializer() {

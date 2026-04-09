@@ -64,37 +64,19 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
  */
 public class InitialLoginSessionHandler implements MinecraftSessionHandler {
 
-  /**
-   * Logger instance for logging authentication-related events during the initial login session.
-   */
   private static final Logger LOGGER = LogManager.getLogger(InitialLoginSessionHandler.class);
 
-  /**
-   * Shared {@link ThreadLocalRandom} instance for generating secure values like verify tokens.
-   */
   private static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
 
-  /**
-   * The URL used to verify that a player has joined using Mojang's session server.
-   */
   private static final String MOJANG_HASJOINED_URL =
       System.getProperty("mojang.sessionserver",
               "https://sessionserver.mojang.com/session/minecraft/hasJoined")
           .concat("?username=%s&serverId=%s");
 
-  /**
-   * The Velocity server instance.
-   */
   private final VelocityServer server;
 
-  /**
-   * The connection associated with the player.
-   */
   private final MinecraftConnection mcConnection;
 
-  /**
-   * The login connection interface that wraps initial inbound connection details.
-   */
   private final LoginInboundConnection inbound;
 
   /**
@@ -103,24 +85,12 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
    */
   private final HttpClient httpClient;
 
-  /**
-   * The login packet sent by the client. May be {@code null} if not yet received.
-   */
   private @MonotonicNonNull ServerLoginPacket login;
 
-  /**
-   * The verify token generated and sent to the client, used to validate encryption.
-   */
   private byte[] verify = EMPTY_BYTE_ARRAY;
 
-  /**
-   * The current state of the login process.
-   */
   private LoginState currentState = LoginState.LOGIN_PACKET_EXPECTED;
 
-  /**
-   * Whether to force secure profile authentication using public key verification.
-   */
   private final boolean forceKeyAuthentication;
 
   InitialLoginSessionHandler(final VelocityServer server, final MinecraftConnection mcConnection,
@@ -133,17 +103,6 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
         "auth.forceSecureProfiles", server.getConfiguration().isForceKeyAuthentication());
   }
 
-  /**
-   * Handles a {@link ServerLoginPacket} sent by the client to initiate login.
-   *
-   * <p>This validates the client’s public key (if present), fires a {@link PreLoginEvent},
-   * and initiates encryption or offline-mode authentication depending on the event result and
-   * proxy configuration. If the public key is missing when required, or validation fails,
-   * the player is disconnected with an appropriate message.</p>
-   *
-   * @param packet the server login packet
-   * @return {@code true} if the login packet was processed
-   */
   @Override
   public boolean handle(final ServerLoginPacket packet) {
     assertState(LoginState.LOGIN_PACKET_EXPECTED);
@@ -222,32 +181,12 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  /**
-   * Handles a {@link LoginPluginResponsePacket} received during login plugin message exchange.
-   *
-   * <p>This delegates handling to {@link LoginInboundConnection#handleLoginPluginResponse}.</p>
-   *
-   * @param packet the plugin response
-   * @return {@code true} always
-   */
   @Override
   public boolean handle(final LoginPluginResponsePacket packet) {
     this.inbound.handleLoginPluginResponse(packet);
     return true;
   }
 
-  /**
-   * Handles an {@link EncryptionResponsePacket} from the client.
-   *
-   * <p>This decrypts the shared secret and verification token, performs optional public key signature
-   * verification, and contacts Mojang’s session servers (if online-mode) to authenticate the user.
-   * If authentication succeeds, encryption is enabled and the session proceeds. If authentication fails,
-   * the connection is closed with a detailed error message.</p>
-   *
-   * @param packet the encryption response packet
-   * @return {@code true} if the encryption response was processed
-   * @throws IllegalStateException if required preconditions are not met (e.g., missing verify token or login packet)
-   */
   @Override
   public boolean handle(final EncryptionResponsePacket packet) {
     assertState(LoginState.ENCRYPTION_REQUEST_SENT);
@@ -353,24 +292,11 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
     return request;
   }
 
-  /**
-   * Handles any unknown or unexpected packet received during login.
-   *
-   * <p>Since no additional packets are expected, the connection is immediately closed.</p>
-   *
-   * @param buf the unrecognized packet buffer
-   */
   @Override
   public void handleUnknown(final ByteBuf buf) {
     mcConnection.close(true);
   }
 
-  /**
-   * Called when the connection is closed during the login phase.
-   *
-   * <p>This triggers cleanup logic in the {@link LoginInboundConnection}, such as releasing held
-   * references or updating connection tracking.</p>
-   */
   @Override
   public void disconnected() {
     this.inbound.cleanup();
@@ -389,25 +315,9 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
   }
 
   private enum LoginState {
-
-    /**
-     * Indicates that the server is expecting the initial {@link ServerLoginPacket} from the client.
-     */
     LOGIN_PACKET_EXPECTED,
-
-    /**
-     * The server has received the {@link ServerLoginPacket} from the client.
-     */
     LOGIN_PACKET_RECEIVED,
-
-    /**
-     * The server has sent an {@link EncryptionRequestPacket} to the client and is now waiting for a response.
-     */
     ENCRYPTION_REQUEST_SENT,
-
-    /**
-     * The server has received the {@link EncryptionResponsePacket} from the client and is processing it.
-     */
     ENCRYPTION_RESPONSE_RECEIVED
   }
 }

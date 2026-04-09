@@ -24,17 +24,8 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
 import io.netty.buffer.ByteBuf;
 
-/**
- * Represents a status request packet sent by the client to the server to request the server's status.
- */
 public final class StatusRequestPacket implements MinecraftPacket {
 
-  /**
-   * Singleton instance of the {@link StatusRequestPacket}, as this packet contains no payload.
-   *
-   * <p>This instance can be reused wherever a {@code StatusRequestPacket} is needed
-   * since it holds no state.</p>
-   */
   public static final StatusRequestPacket INSTANCE = new StatusRequestPacket();
 
   private StatusRequestPacket() {

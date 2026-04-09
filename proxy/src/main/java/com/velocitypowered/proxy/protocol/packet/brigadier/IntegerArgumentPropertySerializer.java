@@ -21,31 +21,12 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.velocitypowered.api.network.ProtocolVersion;
 import io.netty.buffer.ByteBuf;
 
-/**
- * The {@code IntegerArgumentPropertySerializer} handles serialization and deserialization
- * of {@link IntegerArgumentType}, including optional minimum and maximum constraints.
- *
- * <p>This serializer is used when command arguments require bounded integer values, such
- * as numeric inputs for scores, levels, or configuration parameters.</p>
- *
- * <p>Minimum and maximum bounds are encoded using a flag byte, followed by their values
- * only if the respective flags are set.</p>
- */
 final class IntegerArgumentPropertySerializer implements ArgumentPropertySerializer<IntegerArgumentType> {
 
-  /**
-   * A shared singleton instance of {@code IntegerArgumentPropertySerializer}.
-   */
   static final IntegerArgumentPropertySerializer INTEGER = new IntegerArgumentPropertySerializer();
 
-  /**
-   * Flag bit indicating that a minimum value is present in the serialized data.
-   */
   static final byte HAS_MINIMUM = 0x01;
 
-  /**
-   * Flag bit indicating that a maximum value is present in the serialized data.
-   */
   static final byte HAS_MAXIMUM = 0x02;
 
   private IntegerArgumentPropertySerializer() {

@@ -38,24 +38,10 @@ import java.util.Iterator;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Predicate;
 
-/**
- * Base class for {@link CommandRegistrar}s capable of registering a subinterface of
- * {@link InvocableCommand} in a root node.
- *
- * @param <T> the type of command being registered
- * @param <I> the type of command invocation
- * @param <A> the argument type accepted by the command
- */
 abstract class InvocableCommandRegistrar<T extends InvocableCommand<I>, I extends CommandInvocation<A>, A> extends AbstractCommandRegistrar<T> {
 
-  /**
-   * The factory used to create {@link CommandInvocation} instances.
-   */
   private final CommandInvocationFactory<I> invocationFactory;
 
-  /**
-   * The {@link ArgumentType} used for parsing the argument's node.
-   */
   private final ArgumentType<A> argumentsType;
 
   protected InvocableCommandRegistrar(final RootCommandNode<CommandSource> root, final Lock lock,

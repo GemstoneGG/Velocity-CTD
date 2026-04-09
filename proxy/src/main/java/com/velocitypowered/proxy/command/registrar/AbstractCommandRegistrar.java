@@ -33,16 +33,8 @@ import org.checkerframework.checker.lock.qual.GuardedBy;
  */
 abstract class AbstractCommandRegistrar<T extends Command> implements CommandRegistrar<T> {
 
-  /**
-   * The root command node used to register commands.
-   *
-   * <p>This field is guarded by {@link #lock}.</p>
-   */
   private final @GuardedBy("lock") RootCommandNode<CommandSource> root;
 
-  /**
-   * The lock used to guard modifications to the root command tree.
-   */
   private final Lock lock;
 
   protected AbstractCommandRegistrar(final RootCommandNode<CommandSource> root, final Lock lock) {

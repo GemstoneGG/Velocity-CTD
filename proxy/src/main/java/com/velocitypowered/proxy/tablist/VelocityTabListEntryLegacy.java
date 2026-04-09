@@ -32,13 +32,6 @@ public class VelocityTabListEntryLegacy extends KeyedVelocityTabListEntry {
     super(tabList, profile, displayName, latency, gameMode, null);
   }
 
-  /**
-   * Sets the display name for this tab list entry. Since 1.7 clients do not support in-place
-   * display name changes, the entry is removed and re-added to reflect the update.
-   *
-   * @param displayName the new display name, or {@code null} to clear it
-   * @return this entry for chaining
-   */
   @Override
   public TabListEntry setDisplayName(final @Nullable Component displayName) {
     getTabList().removeEntry(getProfile().getId()); // We have to remove first if updating

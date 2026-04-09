@@ -30,12 +30,6 @@ import java.util.concurrent.locks.Lock;
 public final class RawCommandRegistrar
     extends InvocableCommandRegistrar<RawCommand, RawCommand.Invocation, String> {
 
-  /**
-   * Constructs a new {@code RawCommandRegistrar}.
-   *
-   * @param root the root command node of the dispatcher
-   * @param lock the lock guarding access to the command tree
-   */
   public RawCommandRegistrar(final RootCommandNode<CommandSource> root, final Lock lock) {
     super(root, lock, RawCommandInvocation.FACTORY, StringArgumentType.greedyString());
   }

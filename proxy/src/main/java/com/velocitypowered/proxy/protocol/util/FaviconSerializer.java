@@ -31,9 +31,6 @@ import java.lang.reflect.Type;
  */
 public final class FaviconSerializer implements JsonSerializer<Favicon>, JsonDeserializer<Favicon> {
 
-  /**
-   * A shared singleton instance of {@code FaviconSerializer}.
-   */
   public static final FaviconSerializer INSTANCE = new FaviconSerializer();
 
   private FaviconSerializer() {

@@ -52,65 +52,38 @@ import java.util.function.Supplier;
  */
 public enum TransportType {
 
-  /**
-   * Java NIO-based transport.
-   */
   NIO("NIO",
       NioServerSocketChannel::new,
       NioSocketChannel::new,
       NioDatagramChannel::new,
       NioIoHandler::newFactory),
 
-  /**
-   * Linux epoll-based native transport.
-   */
   EPOLL("epoll",
       EpollServerSocketChannel::new,
       EpollSocketChannel::new,
       EpollDatagramChannel::new,
       EpollIoHandler::newFactory),
 
-  /**
-   * macOS KQueue-based native transport.
-   */
   KQUEUE("kqueue",
       KQueueServerSocketChannel::new,
       KQueueSocketChannel::new,
       KQueueDatagramChannel::new,
       KQueueIoHandler::newFactory),
 
-  /**
-   * Linux io_uring-based native transport (experimental).
-   */
   IO_URING("io_uring",
       IoUringServerSocketChannel::new,
       IoUringSocketChannel::new,
       IoUringDatagramChannel::new,
       IoUringIoHandler::newFactory);
 
-  /**
-   * Human-readable name of the transport.
-   */
   final String name;
 
-  /**
-   * Factory for creating {@link ServerSocketChannel} instances.
-   */
   final ChannelFactory<? extends ServerSocketChannel> serverSocketChannelFactory;
 
-  /**
-   * Factory for creating {@link SocketChannel} instances.
-   */
   final ChannelFactory<? extends SocketChannel> socketChannelFactory;
 
-  /**
-   * Factory for creating {@link DatagramChannel} instances.
-   */
   final ChannelFactory<? extends DatagramChannel> datagramChannelFactory;
 
-  /**
-   * Supplier for the transport's {@link IoHandlerFactory}.
-   */
   final Supplier<IoHandlerFactory> ioHandlerFactorySupplier;
 
   TransportType(final String name,
@@ -184,9 +157,6 @@ public enum TransportType {
      */
     WORKER("Worker");
 
-    /**
-     * The human-readable name of the event loop group type.
-     */
     private final String name;
 
     Type(final String name) {

@@ -106,16 +106,6 @@ public enum LegacyForgeHandshakeBackendPhase implements BackendConnectionPhase {
     }
   };
 
-  /**
-   * The discriminator value of a {@link PluginMessagePacket} used to identify whether
-   * the handshake should advance to the next phase.
-   *
-   * <p>Each Forge handshake packet sent over the legacy channel contains a discriminator integer
-   * as the first field in the payload. This field allows Velocity to track and advance the
-   * {@link LegacyForgeHandshakeBackendPhase} when the expected packet is received.</p>
-   *
-   * <p>If {@code null}, this phase does not automatically advance to another phase.</p>
-   */
   @Nullable
   private final Integer packetToAdvanceOn;
 
@@ -163,19 +153,9 @@ public enum LegacyForgeHandshakeBackendPhase implements BackendConnectionPhase {
     player.getPhase().resetConnectionPhase(player);
   }
 
-  /**
-   * Performs any specific tasks when moving to a new phase.
-   *
-   * @param connection The server connection
-   */
   void onTransitionToNewPhase(final VelocityServerConnection connection) {
   }
 
-  /**
-   * Gets the next phase if any (returns self if we are at the end of the handshake).
-   *
-   * @return The next phase
-   */
   LegacyForgeHandshakeBackendPhase nextPhase() {
     return this;
   }

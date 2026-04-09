@@ -27,30 +27,12 @@ import com.velocitypowered.proxy.connection.util.ConnectionTypeImpl;
  */
 public class LegacyForgeConnectionType extends ConnectionTypeImpl {
 
-  /**
-   * A static {@link GameProfile.Property} used to indicate that a player is using a Forge client.
-   * This is used in legacy forwarding scenarios where the FML token cannot be sent directly
-   * via the handshake hostname field.
-   */
   private static final GameProfile.Property IS_FORGE_CLIENT_PROPERTY = new GameProfile.Property("forgeClient", "true", "");
 
-  /**
-   * Constructs a new {@code LegacyForgeConnectionType} instance.
-   *
-   * <p>Initializes the connection phase tracking with default handshake states for legacy Forge.</p>
-   */
   public LegacyForgeConnectionType() {
     super(LegacyForgeHandshakeClientPhase.NOT_STARTED, LegacyForgeHandshakeBackendPhase.NOT_STARTED);
   }
 
-  /**
-   * Contains extra logic for {@link ConnectionTypes#LEGACY_FORGE}, supporting
-   * legacy Forge modded client compatibility during connection negotiation.
-   *
-   * <p>This implementation adds a special {@code forgeClient} property to the {@link GameProfile}
-   * when using legacy player info forwarding, allowing modded servers (e.g., SpongeForge) to
-   * recognize Forge clients without requiring a custom hostname.</p>
-   */
   @Override
   public GameProfile addGameProfileTokensIfRequired(final GameProfile original,
                                                     final PlayerInfoForwarding forwardingType) {

@@ -132,12 +132,6 @@ public final class VelocityCommands {
     return nodes.getFirst().getNode().getName();
   }
 
-  /**
-   * The fixed name assigned to the arguments node of an {@link InvocableCommand}.
-   *
-   * <p>This name is used internally to distinguish the argument-handling node
-   * from hinting nodes and other literals in the command graph.</p>
-   */
   public static final String ARGS_NODE_NAME = "arguments";
 
   /**
