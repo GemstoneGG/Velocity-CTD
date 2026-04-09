@@ -63,23 +63,26 @@ public class TransferCommand implements BuiltinCommand {
 
   @Override
   public BrigadierCommand build() {
-    if (!this.server.getConfiguration().isAcceptTransfers()) {
-      return null;
+    var subcommand = BrigadierCommand.requiredArgumentBuilder("player", StringArgumentType.word())
+        .suggests(PlayerIdentifier.suggest(server, "player"))
+        .executes(ctx -> CommandUtils.emitUsage(ctx, label()));
+
+    if (server.getClusterProxyService().isMultiProxy()) {
+      subcommand = subcommand
+          .then(BrigadierCommand.requiredArgumentBuilder("proxy-id", StringArgumentType.word())
+              .suggests(CommandUtils.suggestProxy(server, "proxy-id"))
+              .executes(this::transferProxyId));
     }
+
+    subcommand = subcommand
+        .then(BrigadierCommand.requiredArgumentBuilder("hostname", StringArgumentType.word())
+            .then(BrigadierCommand.requiredArgumentBuilder("port", IntegerArgumentType.integer(0, 65535))
+                .executes(this::transferHostnameAndPort)));
 
     LiteralCommandNode<CommandSource> transfer = BrigadierCommand.literalArgumentBuilder(label())
         .requires(source -> source.getPermissionValue("velocity.command.transfer") == Tristate.TRUE)
         .executes(ctx -> CommandUtils.emitUsage(ctx, label()))
-        .then(BrigadierCommand.requiredArgumentBuilder("player", StringArgumentType.word())
-            .suggests(PlayerIdentifier.suggest(server, "player"))
-            .executes(ctx -> CommandUtils.emitUsage(ctx, label()))
-            .then(BrigadierCommand.requiredArgumentBuilder("hostname", StringArgumentType.word())
-                .then(BrigadierCommand.requiredArgumentBuilder("port", IntegerArgumentType.integer(0, 65535))
-                    .executes(this::transferHostnameAndPort)))
-            .then(BrigadierCommand.requiredArgumentBuilder("proxy-id", StringArgumentType.word())
-                .suggests(CommandUtils.suggestProxy(server, "proxy-id"))
-                .executes(this::transferProxyId))
-        )
+        .then(subcommand)
         .build();
 
     return new BrigadierCommand(transfer);
