@@ -30,50 +30,18 @@ import java.time.Instant;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/**
- * Represents a packet that handles player commands in a Minecraft session.
- *
- * <p>This packet contains information about the player's command, timestamp,
- * salt, argument signatures, and last seen messages for verification and
- * processing.</p>
- */
 public class SessionPlayerCommandPacket implements MinecraftPacket {
 
-  /**
-   * The full command string (e.g., "say Hello").
-   */
   protected String command;
 
-  /**
-   * The timestamp when the command was issued.
-   */
   protected Instant timeStamp;
 
-  /**
-   * The salt used for command signing (random per command).
-   */
   protected long salt;
 
-  /**
-   * The list of argument-specific signatures attached to this command.
-   */
   protected ArgumentSignatures argumentSignatures;
 
-  /**
-   * The last-seen messages context used for chat signing validation.
-   */
   protected LastSeenMessages lastSeenMessages;
 
-  /**
-   * Decodes the contents of this {@code SessionPlayerCommandPacket} from the provided {@link ByteBuf}.
-   *
-   * <p>This reads the command string, timestamp, salt, argument signatures, and last-seen messages
-   * used for validating signed chat history context.</p>
-   *
-   * @param buf the byte buffer to read from
-   * @param direction the direction of the packet (clientbound or serverbound)
-   * @param protocolVersion the current protocol version
-   */
   @Override
   public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     int cap = protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_20_5) ? 256 : ProtocolUtils.DEFAULT_MAX_STRING_SIZE;
@@ -84,16 +52,6 @@ public class SessionPlayerCommandPacket implements MinecraftPacket {
     this.lastSeenMessages = new LastSeenMessages(buf, protocolVersion);
   }
 
-  /**
-   * Encodes the contents of this {@code SessionPlayerCommandPacket} into the provided {@link ByteBuf}.
-   *
-   * <p>This writes the command string, timestamp, salt, argument signatures, and last-seen messages
-   * for secure backend verification.</p>
-   *
-   * @param buf the byte buffer to write to
-   * @param direction the direction of the packet (clientbound or serverbound)
-   * @param protocolVersion the current protocol version
-   */
   @Override
   public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeString(buf, this.command);
@@ -103,66 +61,29 @@ public class SessionPlayerCommandPacket implements MinecraftPacket {
     this.lastSeenMessages.encode(buf, protocolVersion);
   }
 
-  /**
-   * Returns the raw command string.
-   *
-   * @return the command name or full input
-   */
   public String getCommand() {
     return command;
   }
 
-  /**
-   * Returns the timestamp of the command.
-   *
-   * @return the time the command was issued
-   */
   public Instant getTimeStamp() {
     return timeStamp;
   }
 
-  /**
-   * Returns whether the command is signed.
-   *
-   * @return true if any argument signatures exist
-   */
   public boolean isSigned() {
     return !argumentSignatures.isEmpty();
   }
 
-  /**
-   * Determines the signed state for use in {@link CommandExecuteEvent}.
-   *
-   * @return {@link CommandExecuteEvent.SignedState#SIGNED_WITH_ARGS} or {@link CommandExecuteEvent.SignedState#SIGNED_WITHOUT_ARGS}
-   */
   public CommandExecuteEvent.SignedState getEventSignedState() {
     return !this.argumentSignatures.isEmpty()
         ? CommandExecuteEvent.SignedState.SIGNED_WITH_ARGS
         : CommandExecuteEvent.SignedState.SIGNED_WITHOUT_ARGS;
   }
 
-  /**
-   * Dispatches this packet to the given {@link MinecraftSessionHandler}.
-   *
-   * <p>This method enables the session handler to process this {@code SessionPlayerCommandPacket}
-   * using its own implementation of {@code handle(SessionPlayerCommandPacket)}.</p>
-   *
-   * @param handler the session handler responsible for processing this packet
-   * @return {@code true} if the handler successfully processed the packet
-   */
   @Override
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
-  /**
-   * Returns a string representation of this {@code SessionPlayerCommandPacket}.
-   *
-   * <p>The output includes the command string, timestamp, salt value,
-   * argument signatures, and last-seen messages for debugging purposes.</p>
-   *
-   * @return a human-readable string describing this packet
-   */
   @Override
   public String toString() {
     return "SessionPlayerCommand{"
@@ -174,17 +95,6 @@ public class SessionPlayerCommandPacket implements MinecraftPacket {
         + '}';
   }
 
-  /**
-   * Returns a new instance of {@code SessionPlayerCommandPacket} with the specified
-   * {@code LastSeenMessages}.
-   *
-   * <p>If {@code lastSeenMessages} is null, it creates an {@code UnsignedPlayerCommandPacket}
-   * instead. Otherwise, it creates a new {@code SessionPlayerCommandPacket} with the
-   * provided {@code lastSeenMessages}.</p>
-   *
-   * @param lastSeenMessages the last seen messages to include in the packet, may be {@code null}
-   * @return a new instance of {@code SessionPlayerCommandPacket} or {@code UnsignedPlayerCommandPacket}
-   */
   public SessionPlayerCommandPacket withLastSeenMessages(final @Nullable LastSeenMessages lastSeenMessages) {
     if (lastSeenMessages == null) {
       UnsignedPlayerCommandPacket packet = new UnsignedPlayerCommandPacket();
@@ -201,36 +111,14 @@ public class SessionPlayerCommandPacket implements MinecraftPacket {
     return packet;
   }
 
-  /**
-   * Represents a collection of argument signatures for commands.
-   *
-   * <p>This class is responsible for handling the encoding and decoding of
-   * argument signatures associated with a player command in a Minecraft session.</p>
-   */
   public static class ArgumentSignatures {
 
-    /**
-     * The list of all argument signatures in this packet.
-     */
     private final List<ArgumentSignature> entries;
 
-    /**
-     * Constructs an empty {@code ArgumentSignatures} list.
-     */
     public ArgumentSignatures() {
       this.entries = List.of();
     }
 
-    /**
-     * Constructs an {@code ArgumentSignatures} instance by decoding the signatures
-     * from the provided {@code ByteBuf}.
-     *
-     * <p>This constructor reads the argument signatures from the buffer and ensures
-     * that the number of signatures does not exceed the allowed limit.</p>
-     *
-     * @param buf the {@code ByteBuf} to decode the argument signatures from
-     * @throws QuietDecoderException if the number of argument signatures exceeds the allowed limit
-     */
     public ArgumentSignatures(final ByteBuf buf) {
       int size = ProtocolUtils.readVarInt(buf);
       if (size > 8) {
@@ -244,23 +132,10 @@ public class SessionPlayerCommandPacket implements MinecraftPacket {
       }
     }
 
-    /**
-     * Returns true if no argument signatures are present.
-     *
-     * @return true if empty
-     */
     public boolean isEmpty() {
       return this.entries.isEmpty();
     }
 
-    /**
-     * Encodes the argument signatures into the provided {@code ByteBuf}.
-     *
-     * <p>This method writes the number of argument signatures and each signature's
-     * details into the buffer for transmission.</p>
-     *
-     * @param buf the {@code ByteBuf} to encode the argument signatures into
-     */
     public void encode(final ByteBuf buf) {
       ProtocolUtils.writeVarInt(buf, entries.size());
       for (ArgumentSignature entry : entries) {
@@ -268,14 +143,6 @@ public class SessionPlayerCommandPacket implements MinecraftPacket {
       }
     }
 
-    /**
-     * Returns a string representation of this {@code ArgumentSignatures} instance.
-     *
-     * <p>The output includes a list of individual {@link ArgumentSignature} entries
-     * attached to this command packet.</p>
-     *
-     * @return a human-readable string describing the argument signatures
-     */
     @Override
     public String toString() {
       return "ArgumentSignatures{"
@@ -284,53 +151,22 @@ public class SessionPlayerCommandPacket implements MinecraftPacket {
     }
   }
 
-  /**
-   * Represents a single argument signature associated with a command.
-   *
-   * <p>This class is responsible for handling the encoding and decoding of
-   * individual argument signatures, which consist of a name and a signature
-   * (byte array).</p>
-   */
   public static class ArgumentSignature {
 
-    /**
-     * The argument name this signature belongs to.
-     */
     private final String name;
 
-    /**
-     * The 256-byte cryptographic signature for the argument.
-     */
     private final byte[] signature;
 
-    /**
-     * Constructs an {@code ArgumentSignature} by decoding from the buffer.
-     *
-     * @param buf the buffer to read from
-     */
     public ArgumentSignature(final ByteBuf buf) {
       name = ProtocolUtils.readString(buf, 16);
       signature = SessionPlayerChatPacket.readMessageSignature(buf);
     }
 
-    /**
-     * Encodes this argument signature into the buffer.
-     *
-     * @param buf the buffer to write to
-     */
     public void encode(final ByteBuf buf) {
       ProtocolUtils.writeString(buf, name);
       buf.writeBytes(signature);
     }
 
-    /**
-     * Returns a string representation of this {@code ArgumentSignature}.
-     *
-     * <p>The output includes the argument name associated with this signature.
-     * The signature bytes are omitted for brevity.</p>
-     *
-     * @return a human-readable string describing this argument signature
-     */
     @Override
     public String toString() {
       return "ArgumentSignature{"

@@ -32,35 +32,16 @@ import java.util.concurrent.CompletableFuture;
  */
 public final class BundleDelimiterHandler {
 
-  /**
-   * The player whose connection this handler is managing.
-   */
   private final ConnectedPlayer player;
 
-  /**
-   * Whether the player is currently in a bundle session.
-   */
   private boolean inBundleSession = false;
 
-  /**
-   * A future that completes once the current bundle session ends.
-   */
   private CompletableFuture<Void> finishedBundleSessionFuture;
 
-  /**
-   * Constructs a new bundle delimiter handler.
-   *
-   * @param player the player connection to use
-   */
   public BundleDelimiterHandler(final ConnectedPlayer player) {
     this.player = player;
   }
 
-  /**
-   * Returns whether the player is currently in a bundle session.
-   *
-   * @return {@code true} if in a bundle session, {@code false} otherwise
-   */
   public boolean isInBundleSession() {
     return this.inBundleSession;
   }

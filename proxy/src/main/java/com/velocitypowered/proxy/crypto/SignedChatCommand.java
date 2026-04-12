@@ -36,49 +36,22 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class SignedChatCommand implements KeySigned {
 
-  /**
-   * The full raw command string executed by the player.
-   */
   private final String command;
 
-  /**
-   * The public key that was used to sign the command.
-   */
   private final PublicKey signer;
 
-  /**
-   * The expiry time after which the command signature is considered invalid.
-   */
   private final Instant expiry;
 
-  /**
-   * The cryptographic salt associated with this signed command.
-   */
   private final byte[] salt;
 
-  /**
-   * The UUID of the sender who issued the command.
-   */
   public final UUID sender;
 
-  /**
-   * Whether the command preview was signed by the client.
-   */
   private final boolean isPreviewSigned;
 
-  /**
-   * A map of argument keys to their respective cryptographic signatures.
-   */
   private final Map<String, byte[]> signatures;
 
-  /**
-   * An array of previous signature pairs from the command signing history.
-   */
   private final SignaturePair[] previousSignatures;
 
-  /**
-   * The final signature pair in the command signing chain, if any.
-   */
   private final @Nullable SignaturePair lastSignature;
 
   /**
@@ -109,89 +82,42 @@ public class SignedChatCommand implements KeySigned {
     this.lastSignature = lastSignature;
   }
 
-  /**
-   * Gets the public key that signed this command.
-   *
-   * @return the signer's public key
-   */
   @Override
   public PublicKey getSigner() {
     return signer;
   }
 
-  /**
-   * Gets the expiration time of this command signature.
-   *
-   * @return the expiration timestamp
-   */
   @Override
   public Instant getExpiryTemporal() {
     return expiry;
   }
 
-  /**
-   * Gets the signature of this command.
-   *
-   * <p>This is not implemented and always returns {@code null}, since the signature is split across arguments.</p>
-   *
-   * @return {@code null}
-   */
   @Override
   public byte @Nullable [] getSignature() {
     return null;
   }
 
-  /**
-   * Gets the salt used to sign this command.
-   *
-   * @return the cryptographic salt
-   */
   @Override
   public byte[] getSalt() {
     return salt;
   }
 
-  /**
-   * Gets the full base command string issued by the sender.
-   *
-   * @return the command text
-   */
   public String getBaseCommand() {
     return command;
   }
 
-  /**
-   * Gets the map of argument names to their cryptographic signatures.
-   *
-   * @return the signature map
-   */
   public Map<String, byte[]> getSignatures() {
     return signatures;
   }
 
-  /**
-   * Returns whether the client signed the preview of this command.
-   *
-   * @return {@code true} if the preview was signed, {@code false} otherwise
-   */
   public boolean isPreviewSigned() {
     return isPreviewSigned;
   }
 
-  /**
-   * Gets the final signature pair, if provided by the client.
-   *
-   * @return the last {@link SignaturePair}, or {@code null} if not present
-   */
   public @Nullable SignaturePair getLastSignature() {
     return lastSignature;
   }
 
-  /**
-   * Gets all previously chained signature pairs sent by the client.
-   *
-   * @return the previous signature array
-   */
   public SignaturePair[] getPreviousSignatures() {
     return previousSignatures;
   }

@@ -25,24 +25,10 @@ import io.netty.handler.codec.DecoderException;
  */
 public class QuietDecoderException extends DecoderException {
 
-  /**
-   * Constructs a new {@code QuietDecoderException} with the specified message.
-   *
-   * @param message the detail message describing the decoder error
-   */
   public QuietDecoderException(final String message) {
     super(message);
   }
 
-  /**
-   * Overrides the default behavior of {@link Throwable#fillInStackTrace()} to prevent
-   * generating a full stack trace.
-   *
-   * <p>This is used to suppress noisy exception logs in cases where the decoding failure
-   * is expected or non-critical, improving performance and log clarity.</p>
-   *
-   * @return this exception instance without a stack trace
-   */
   @Override
   public synchronized Throwable fillInStackTrace() {
     return this;

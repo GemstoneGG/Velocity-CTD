@@ -46,34 +46,16 @@ import java.util.regex.Pattern;
  */
 public final class PluginMessageUtil {
 
-  /**
-   * Legacy plugin message channel name for client brand identification used before Minecraft 1.13.
-   */
   private static final String BRAND_CHANNEL_LEGACY = "MC|Brand";
 
-  /**
-   * Modern plugin message channel name for client brand identification used in Minecraft 1.13+.
-   */
   private static final String BRAND_CHANNEL = "minecraft:brand";
 
-  /**
-   * Legacy plugin channel used for registering plugin message channels.
-   */
   private static final String REGISTER_CHANNEL_LEGACY = "REGISTER";
 
-  /**
-   * Modern plugin channel used for registering plugin message channels.
-   */
   private static final String REGISTER_CHANNEL = "minecraft:register";
 
-  /**
-   * Legacy plugin channel used for unregistering plugin message channels.
-   */
   private static final String UNREGISTER_CHANNEL_LEGACY = "UNREGISTER";
 
-  /**
-   * Modern plugin channel used for unregistering plugin message channels.
-   */
   private static final String UNREGISTER_CHANNEL = "minecraft:unregister";
 
   private PluginMessageUtil() {
@@ -116,12 +98,6 @@ public final class PluginMessageUtil {
         .equals(UNREGISTER_CHANNEL);
   }
 
-  /**
-   * Exception instance used when a plugin message channel name is invalid.
-   *
-   * <p>This is thrown during plugin message decoding when a channel identifier fails validation,
-   * unless debug mode is enabled, in which case the raw {@link IllegalArgumentException} is thrown.</p>
-   */
   private static final QuietDecoderException ILLEGAL_CHANNEL = new QuietDecoderException("Illegal channel");
 
   /**
@@ -275,10 +251,6 @@ public final class PluginMessageUtil {
     }
   }
 
-  /**
-   * Pattern used to remove characters not allowed in Minecraft plugin channel identifiers.
-   * This is applied when transforming legacy channel names to modern identifiers.
-   */
   private static final Pattern INVALID_IDENTIFIER_REGEX = Pattern.compile("[^a-z0-9\\-_]*");
 
   /**

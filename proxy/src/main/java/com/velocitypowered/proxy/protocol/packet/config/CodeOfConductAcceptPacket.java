@@ -23,35 +23,17 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
 import io.netty.buffer.ByteBuf;
 
-/**
- * A client-to-server packet indicating the player has accepted the server's
- * code of conduct during the configuration stage.
- *
- * <p>This packet has no payload and is represented as a singleton.</p>
- */
 public final class CodeOfConductAcceptPacket implements MinecraftPacket {
 
-  /**
-   * Singleton instance, as the packet carries no data.
-   */
   public static final CodeOfConductAcceptPacket INSTANCE = new CodeOfConductAcceptPacket();
 
-  /**
-   * Creates a new instance. Use {@link #INSTANCE}.
-   */
   private CodeOfConductAcceptPacket() {
   }
 
-  /**
-   * Decodes this packet from the given buffer.
-   */
   @Override
   public void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
   }
 
-  /**
-   * Encodes this packet into the given buffer.
-   */
   @Override
   public void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
   }
@@ -61,12 +43,6 @@ public final class CodeOfConductAcceptPacket implements MinecraftPacket {
     return 0;
   }
 
-  /**
-   * Dispatches this packet to the provided session handler.
-   *
-   * @param handler the session handler
-   * @return {@code true} if the packet was handled
-   */
   @Override
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);

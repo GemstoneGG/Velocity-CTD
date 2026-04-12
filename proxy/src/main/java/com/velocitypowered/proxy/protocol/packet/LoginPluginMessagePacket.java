@@ -27,61 +27,26 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/**
- * Represents a login plugin message packet sent during the login phase. This packet allows custom
- * plugin messages to be sent from the server to the client before login is complete.
- */
 public class LoginPluginMessagePacket extends DeferredByteBufHolder implements MinecraftPacket {
 
-  /**
-   * The plugin message ID, used to track the response from the client.
-   */
   private int id;
 
-  /**
-   * The channel this plugin message is being sent on.
-   * This may be {@code null} during deserialization until explicitly set.
-   */
   private @Nullable String channel;
 
-  /**
-   * Constructs an empty {@code LoginPluginMessagePacket} with no pre-initialized buffer.
-   *
-   * <p>This constructor is primarily used during decoding. The buffer content will be set later
-   * via {@link #decode(ByteBuf, ProtocolUtils.Direction, ProtocolVersion)}.</p>
-   */
   public LoginPluginMessagePacket() {
     super(null);
   }
 
-  /**
-   * Constructs a new {@code LoginPluginMessagePacket} with the specified ID, channel, and data buffer.
-   *
-   * @param id the plugin message ID
-   * @param channel the channel name, or {@code null} if not specified
-   * @param data the data buffer
-   */
   public LoginPluginMessagePacket(final int id, final @Nullable String channel, final ByteBuf data) {
     super(data);
     this.id = id;
     this.channel = channel;
   }
 
-  /**
-   * Returns the plugin message ID.
-   *
-   * @return the plugin message ID
-   */
   public int getId() {
     return id;
   }
 
-  /**
-   * Gets the plugin message channel.
-   *
-   * @return the channel name
-   * @throws IllegalStateException if the channel is not specified
-   */
   public String getChannel() {
     if (channel == null) {
       throw new IllegalStateException("Channel is not specified!");
@@ -90,13 +55,6 @@ public class LoginPluginMessagePacket extends DeferredByteBufHolder implements M
     return channel;
   }
 
-  /**
-   * Returns a string representation of this login plugin message packet.
-   *
-   * <p>This includes the plugin message ID, channel name, and content buffer state.</p>
-   *
-   * @return a string describing the login plugin message packet
-   */
   @Override
   public String toString() {
     return "LoginPluginMessage{"
@@ -106,16 +64,6 @@ public class LoginPluginMessagePacket extends DeferredByteBufHolder implements M
         + '}';
   }
 
-  /**
-   * Decodes this login plugin message packet from the given {@link ByteBuf}.
-   *
-   * <p>This reads the plugin message ID, channel name, and any remaining payload bytes.
-   * The content buffer is retained for later use.</p>
-   *
-   * @param buf the buffer to read from
-   * @param direction the direction of the packet (clientbound or serverbound)
-   * @param version the Minecraft protocol version
-   */
   @Override
   public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     this.id = ProtocolUtils.readVarInt(buf);
@@ -127,17 +75,6 @@ public class LoginPluginMessagePacket extends DeferredByteBufHolder implements M
     }
   }
 
-  /**
-   * Encodes this login plugin message packet into the given {@link ByteBuf}.
-   *
-   * <p>This writes the plugin message ID, channel name, and the associated payload
-   * to the buffer for transmission to the client.</p>
-   *
-   * @param buf the buffer to write to
-   * @param direction the direction of the packet (clientbound or serverbound)
-   * @param version the Minecraft protocol version
-   * @throws IllegalStateException if the channel is not set
-   */
   @Override
   public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     ProtocolUtils.writeVarInt(buf, id);
@@ -149,34 +86,11 @@ public class LoginPluginMessagePacket extends DeferredByteBufHolder implements M
     buf.writeBytes(content());
   }
 
-  /**
-   * Handles this login plugin message packet using the specified {@link MinecraftSessionHandler}.
-   *
-   * <p>This delegates packet processing to {@code handler.handle(this)}.</p>
-   *
-   * @param handler the session handler responsible for processing this packet
-   * @return {@code true} if the packet was handled successfully
-   */
   @Override
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
-  /**
-   * Provides an estimated number of bytes required to encode this login plugin message.
-   *
-   * <p>This implementation returns the number of readable bytes in the underlying payload
-   * buffer, representing the size of the actual message content. The overall encoded size
-   * will include this payload plus the VarInt-encoded ID and UTF-8-encoded channel name
-   * written by {@link #encode(ByteBuf, Direction, ProtocolVersion)}.</p>
-   *
-   * <p>This estimate allows the encoder to preallocate an appropriately sized buffer,
-   * minimizing reallocation and improving I/O efficiency during encoding.</p>
-   *
-   * @param direction the packet direction (clientbound or serverbound)
-   * @param version the Minecraft protocol version
-   * @return the estimated size of this packet’s encoded payload in bytes
-   */
   @Override
   public int encodeSizeHint(final Direction direction, final ProtocolVersion version) {
     return content().readableBytes();

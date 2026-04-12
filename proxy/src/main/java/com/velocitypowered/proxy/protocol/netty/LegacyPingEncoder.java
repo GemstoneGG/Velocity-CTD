@@ -31,9 +31,6 @@ import java.nio.charset.StandardCharsets;
 @Sharable
 public final class LegacyPingEncoder extends MessageToByteEncoder<LegacyDisconnect> {
 
-  /**
-   * The singleton instance of this encoder.
-   */
   public static final LegacyPingEncoder INSTANCE = new LegacyPingEncoder();
 
   private LegacyPingEncoder() {

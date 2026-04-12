@@ -25,46 +25,14 @@ import com.velocitypowered.proxy.util.except.QuietDecoderException;
 import io.netty.buffer.ByteBuf;
 import java.util.List;
 
-/**
- * The {@code KnownPacksPacket} class represents a packet that handles the synchronization
- * of known resource packs between the client and server in the Minecraft protocol.
- *
- * <p>This packet contains a list of {@link KnownPack} instances, each representing a resource
- * pack with a namespace, identifier, and version. It allows the server to inform the client
- * about available resource packs.</p>
- */
 public class KnownPacksPacket implements MinecraftPacket {
 
-  /**
-   * The maximum number of known packs allowed in a serverbound packet.
-   *
-   * <p>This limit is controlled by the {@code velocity.max-known-packs} system property
-   * (defaults to 64) to prevent abuse or protocol overflows.</p>
-   */
   private static final int MAX_LENGTH_PACKS = Integer.getInteger("velocity.max-known-packs", 64);
 
-  /**
-   * Thrown when too many packs are received in a serverbound packet.
-   */
   private static final QuietDecoderException TOO_MANY_PACKS = new QuietDecoderException("too many known packs");
 
-  /**
-   * The list of known resource packs being synchronized.
-   */
   private List<KnownPack> packs;
 
-  /**
-   * Decodes this known packs packet from the provided {@link ByteBuf}.
-   *
-   * <p>This reads a list of known resource packs, each with a namespace, ID, and version.
-   * If the packet is serverbound and exceeds the configured maximum limit, it throws
-   * a {@link QuietDecoderException}.</p>
-   *
-   * @param buf the buffer to read from
-   * @param direction the direction of the packet
-   * @param protocolVersion the Minecraft protocol version
-   * @throws QuietDecoderException if too many packs are received in a serverbound context
-   */
   @Override
   public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     final int packCount = ProtocolUtils.readVarInt(buf);
@@ -81,16 +49,6 @@ public class KnownPacksPacket implements MinecraftPacket {
     this.packs = packs;
   }
 
-  /**
-   * Encodes this known packs packet into the given {@link ByteBuf}.
-   *
-   * <p>This writes all known packs (namespace, ID, version) into the buffer
-   * using the current protocol version format.</p>
-   *
-   * @param buf the buffer to write to
-   * @param direction the direction of the packet
-   * @param protocolVersion the Minecraft protocol version
-   */
   @Override
   public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeVarInt(buf, packs.size());
@@ -100,31 +58,11 @@ public class KnownPacksPacket implements MinecraftPacket {
     }
   }
 
-  /**
-   * Handles this known packs packet using the specified {@link MinecraftSessionHandler}.
-   *
-   * <p>This delegates handling to {@code handler.handle(this)} to sync known resource
-   * packs with the server session.</p>
-   *
-   * @param handler the session handler responsible for processing this packet
-   * @return {@code true} if the packet was handled successfully
-   */
   @Override
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
-  /**
-   * The {@code KnownPack} record represents a known resource pack with a namespace,
-   * identifier, and version in the Minecraft protocol.
-   *
-   * <p>It encapsulates the information needed to identify a resource pack, typically used
-   * for managing or synchronizing resource packs between the client and server.</p>
-   *
-   * @param namespace the namespace of the resource pack (e.g., "minecraft" or a mod name)
-   * @param id the unique identifier of the resource pack within the namespace
-   * @param version the version of the resource pack
-   */
   public record KnownPack(String namespace, String id, String version) {
     private static KnownPack read(final ByteBuf buf) {
       return new KnownPack(ProtocolUtils.readString(buf), ProtocolUtils.readString(buf), ProtocolUtils.readString(buf));

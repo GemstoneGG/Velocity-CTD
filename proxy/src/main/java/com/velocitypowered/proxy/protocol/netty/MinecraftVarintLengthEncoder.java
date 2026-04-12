@@ -33,15 +33,8 @@ import java.util.List;
 @Sharable
 public final class MinecraftVarintLengthEncoder extends MessageToMessageEncoder<ByteBuf> {
 
-  /**
-   * A shared singleton instance of this encoder.
-   */
   public static final MinecraftVarintLengthEncoder INSTANCE = new MinecraftVarintLengthEncoder();
 
-  /**
-   * Whether the current cipher implementation is {@link JavaVelocityCipher}, implying use of
-   * heap buffers for best compatibility.
-   */
   static final boolean IS_JAVA_CIPHER = Natives.cipher.get() == JavaVelocityCipher.FACTORY;
 
   private MinecraftVarintLengthEncoder() {

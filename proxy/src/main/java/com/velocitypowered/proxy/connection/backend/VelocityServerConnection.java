@@ -61,57 +61,24 @@ import org.jetbrains.annotations.NotNull;
  */
 public class VelocityServerConnection implements MinecraftConnectionAssociation, ServerConnection {
 
-  /**
-   * The server this connection is targeting.
-   */
   private final VelocityRegisteredServer registeredServer;
 
-  /**
-   * The server the player was previously connected to, if any.
-   */
   private final @Nullable VelocityRegisteredServer previousServer;
 
-  /**
-   * The player using this server connection.
-   */
   private final ConnectedPlayer proxyPlayer;
 
-  /**
-   * The main Velocity server instance.
-   */
   private final VelocityServer server;
 
-  /**
-   * The underlying Minecraft connection to the backend server.
-   */
   private @Nullable MinecraftConnection connection;
 
-  /**
-   * Whether the server connection has fully completed the JoinGame phase.
-   */
   private boolean hasCompletedJoin = false;
 
-  /**
-   * Whether the connection was disconnected gracefully (as opposed to a crash or forced close).
-   */
   private boolean gracefulDisconnect = false;
 
-  /**
-   * The current backend connection phase for this server connection.
-   */
   private BackendConnectionPhase connectionPhase = BackendConnectionPhases.UNKNOWN;
 
-  /**
-   * Pending ping IDs and the time they were sent (used for latency measurement).
-   */
   private final Map<Long, Long> pendingPings = new HashMap<>();
 
-  /**
-   * The entity ID assigned to the player by the backend server.
-   *
-   * <p>Monotonically non-null: unset until known (typically after {@link JoinGamePacket}),
-   * then set once and not reverted to {@code null}.</p>
-   */
   private @MonotonicNonNull Integer entityId;
 
   /**
@@ -173,11 +140,6 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     return result;
   }
 
-  /**
-   * Gets the remote IP address of the player in string format, stripping any IPv6 scope suffix.
-   *
-   * @return the player's IP address as a string
-   */
   String getPlayerRemoteAddressAsString() {
     final String addr = proxyPlayer.getRemoteAddress().getAddress().getHostAddress();
     int ipv6ScopeIdx = addr.indexOf('%');
@@ -250,11 +212,6 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     mc.flush();
   }
 
-  /**
-   * Gets the current Minecraft connection to the backend server.
-   *
-   * @return the Minecraft connection, or {@code null} if not yet connected
-   */
   public @Nullable MinecraftConnection getConnection() {
     return connection;
   }
@@ -273,41 +230,21 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     return connection;
   }
 
-  /**
-   * Gets the {@link VelocityRegisteredServer} this connection is targeting.
-   *
-   * @return the registered server this connection points to
-   */
   @Override
   public VelocityRegisteredServer getServer() {
     return registeredServer;
   }
 
-  /**
-   * Gets the previously connected server for the player, if any.
-   *
-   * @return an {@link Optional} containing the previous server or empty if not applicable
-   */
   @Override
   public Optional<VelocityRegisteredServer> getPreviousServer() {
     return Optional.ofNullable(this.previousServer);
   }
 
-  /**
-   * Gets the {@link ServerInfo} associated with the target server.
-   *
-   * @return the {@link ServerInfo} of the destination server
-   */
   @Override
   public ServerInfo getServerInfo() {
     return registeredServer.getServerInfo();
   }
 
-  /**
-   * Gets the {@link ConnectedPlayer} associated with this connection.
-   *
-   * @return the player associated with this server connection
-   */
   @Override
   public ConnectedPlayer getPlayer() {
     return proxyPlayer;
@@ -324,11 +261,6 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     }
   }
 
-  /**
-   * Returns a debug-friendly string representation of this server connection.
-   *
-   * @return a string describing the connection (e.g. "[server connection] Player -> Server")
-   */
   @Override
   public String toString() {
     return "[server connection] " + proxyPlayer.getGameProfile().getName() + " -> "
@@ -405,40 +337,18 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     }
   }
 
-  /**
-   * Returns whether the connection to the backend server was closed gracefully.
-   *
-   * @return {@code true} if the disconnect was cleanly handled, {@code false} otherwise
-   */
   boolean isGracefulDisconnect() {
     return gracefulDisconnect;
   }
 
-  /**
-   * Gets the map of pending keep-alive pings sent to the backend server.
-   * The map keys represent the ping ID and the values are the timestamps
-   * (in nanoseconds) of when the ping was sent.
-   *
-   * @return the map of pending ping IDs and their send times
-   */
   public Map<Long, Long> getPendingPings() {
     return pendingPings;
   }
 
-  /**
-   * Gets the entity ID assigned to the player by the backend server, if known.
-   *
-   * @return the entity ID, or {@code null} if not yet set
-   */
   public Integer getEntityId() {
     return entityId;
   }
 
-  /**
-   * Sets the entity ID assigned to the player by the backend server.
-   *
-   * @param entityId the entity ID to set
-   */
   public void setEntityId(final Integer entityId) {
     this.entityId = entityId;
   }

@@ -28,42 +28,16 @@ import com.velocitypowered.proxy.protocol.packet.UpsertPlayerInfoPacket;
  */
 public interface InternalTabList extends TabList {
 
-  /**
-   * Returns the {@link ConnectedPlayer} associated with this tab list.
-   *
-   * @return the player whose tab list is being modified
-   */
   ConnectedPlayer getPlayer();
 
-  /**
-   * Processes a legacy player list update packet.
-   *
-   * <p>This method is typically called when a server sends a {@link LegacyPlayerListItemPacket},
-   * usually from versions before 1.8.</p>
-   *
-   * @param packet the legacy player list packet
-   */
   default void processLegacy(LegacyPlayerListItemPacket packet) {
   }
 
-  /**
-   * Processes a modern upsert (add/update) player info packet and reflects it in the tab list.
-   *
-   * @param infoPacket the {@link UpsertPlayerInfoPacket} to apply
-   */
   default void processUpdate(UpsertPlayerInfoPacket infoPacket) {
   }
 
-  /**
-   * Processes a removal packet for one or more players from the tab list.
-   *
-   * @param infoPacket the {@link RemovePlayerInfoPacket} to apply
-   */
   default void processRemove(RemovePlayerInfoPacket infoPacket) {
   }
 
-  /**
-   * Clears all entries from the tab list without triggering any events or additional network updates.
-   */
   void clearAllSilent();
 }

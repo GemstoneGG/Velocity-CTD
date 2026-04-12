@@ -29,12 +29,6 @@ import java.util.concurrent.locks.Lock;
  */
 public final class SimpleCommandRegistrar extends InvocableCommandRegistrar<SimpleCommand, SimpleCommand.Invocation, String[]> {
 
-  /**
-   * Constructs a new {@code SimpleCommandRegistrar}.
-   *
-   * @param root the root command node of the dispatcher
-   * @param lock the lock guarding access to the command tree
-   */
   public SimpleCommandRegistrar(final RootCommandNode<CommandSource> root, final Lock lock) {
     super(root, lock, SimpleCommandInvocation.FACTORY, StringArrayArgumentType.INSTANCE);
   }

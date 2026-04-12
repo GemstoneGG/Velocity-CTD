@@ -23,29 +23,12 @@ import com.velocitypowered.proxy.protocol.packet.chat.legacy.LegacyChatBuilder;
 import com.velocitypowered.proxy.protocol.packet.chat.session.SessionChatBuilder;
 import java.util.function.Function;
 
-/**
- * Factory class for creating instances of chat builders.
- *
- * <p>The {@code ChatBuilderFactory} is responsible for providing various builder instances
- * used to construct chat-related components, such as messages, chat formats, or text components.</p>
- */
 public class ChatBuilderFactory {
 
-  /**
-   * The protocol version used to determine the appropriate chat builder implementation.
-   */
   private final ProtocolVersion version;
 
-  /**
-   * A function that produces a {@link ChatBuilderV2} instance from a protocol version.
-   */
   private final Function<ProtocolVersion, ChatBuilderV2> builderFunction;
 
-  /**
-   * Creates a new {@code ChatBuilderFactory} for the specified protocol version.
-   *
-   * @param version the protocol version to be used by the chat builder factory
-   */
   public ChatBuilderFactory(final ProtocolVersion version) {
     this.version = version;
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19_3)) {
@@ -57,12 +40,6 @@ public class ChatBuilderFactory {
     }
   }
 
-  /**
-   * Returns a version-appropriate {@link ChatBuilderV2} instance for constructing
-   * chat components or message payloads.
-   *
-   * @return a builder implementation based on the protocol version
-   */
   public ChatBuilderV2 builder() {
     return this.builderFunction.apply(this.version);
   }

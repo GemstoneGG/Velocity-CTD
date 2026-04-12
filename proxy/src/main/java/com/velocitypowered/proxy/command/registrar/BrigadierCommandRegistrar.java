@@ -30,12 +30,6 @@ import java.util.concurrent.locks.Lock;
  */
 public final class BrigadierCommandRegistrar extends AbstractCommandRegistrar<BrigadierCommand> {
 
-  /**
-   * Constructs a new {@code BrigadierCommandRegistrar}.
-   *
-   * @param root the root command node of the dispatcher
-   * @param lock the lock protecting access to the root command tree
-   */
   public BrigadierCommandRegistrar(final RootCommandNode<CommandSource> root, final Lock lock) {
     super(root, lock);
   }

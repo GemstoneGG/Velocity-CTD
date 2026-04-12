@@ -37,9 +37,6 @@ import io.netty.buffer.ByteBuf;
  */
 final class StringArgumentPropertySerializer implements ArgumentPropertySerializer<StringArgumentType> {
 
-  /**
-   * A shared singleton instance of {@code StringArgumentPropertySerializer}.
-   */
   public static final ArgumentPropertySerializer<StringArgumentType> STRING = new StringArgumentPropertySerializer();
 
   private StringArgumentPropertySerializer() {

@@ -40,24 +40,8 @@ import net.kyori.adventure.text.Component;
  */
 public class ServerListPingHandler {
 
-  /**
-   * The {@link VelocityServer} instance associated with this ping handler.
-   *
-   * <p>Used to retrieve configuration options, player counts, proxy version info,
-   * and server data during ping construction or passthrough processing.</p>
-   */
   private final VelocityServer server;
 
-  /**
-   * Constructs a new {@link ServerListPingHandler} for managing initial server list ping responses.
-   *
-   * <p>This utility class determines how the proxy responds to Minecraft server list pings
-   * based on configuration and protocol version. It supports both static (local) and passthrough
-   * ping responses.</p>
-   *
-   * @param server the {@link VelocityServer} instance to use for configuration and server access
-   * @throws NullPointerException if {@code server} is null
-   */
   public ServerListPingHandler(final VelocityServer server) {
     this.server = server;
   }

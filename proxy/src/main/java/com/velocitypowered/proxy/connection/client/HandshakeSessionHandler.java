@@ -59,20 +59,10 @@ import org.jetbrains.annotations.NotNull;
  */
 public class HandshakeSessionHandler implements MinecraftSessionHandler {
 
-  /**
-   * The logger instance for logging events and diagnostics within the
-   * {@link HandshakeSessionHandler}.
-   */
   private static final Logger LOGGER = LogManager.getLogger(HandshakeSessionHandler.class);
 
-  /**
-   * The active Minecraft connection for this session handler.
-   */
   private final MinecraftConnection connection;
 
-  /**
-   * The Velocity server instance managing global state and configuration.
-   */
   private final VelocityServer server;
 
   /**
@@ -91,16 +81,6 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
    */
   private final String maximumVersion;
 
-  /**
-   * Constructs a new {@link HandshakeSessionHandler} for managing the initial phase of a client
-   * connection to the proxy. It validates the client connection and performs actions based on
-   * protocol requirements.
-   *
-   * @param connection the {@link MinecraftConnection} instance representing the client connection.
-   * @param server the {@link VelocityServer} instance managing the proxy server configuration
-   *               and event handling.
-   * @throws NullPointerException if either {@code connection} or {@code server} is {@code null}.
-   */
   public HandshakeSessionHandler(final MinecraftConnection connection,
                                  final VelocityServer server,
                                  final HttpClient httpClient) {
@@ -112,15 +92,6 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
         .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
   }
 
-  /**
-   * Handles a {@link LegacyPingPacket} sent by clients using the legacy ping protocol.
-   *
-   * <p>This method initializes a {@link StatusSessionHandler} for legacy connections and
-   * processes the ping accordingly.</p>
-   *
-   * @param packet the legacy ping packet
-   * @return {@code true} always, since the packet is fully handled
-   */
   @Override
   public boolean handle(final LegacyPingPacket packet) {
     connection.setProtocolVersion(ProtocolVersion.LEGACY);
@@ -130,14 +101,6 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  /**
-   * Handles a {@link LegacyHandshakePacket} sent by clients using ancient protocol versions.
-   *
-   * <p>This method immediately disconnects the client with an appropriate message.</p>
-   *
-   * @param packet the legacy handshake packet
-   * @return {@code true} always, since the packet is handled by closing the connection
-   */
   @Override
   public boolean handle(final LegacyHandshakePacket packet) {
     connection.closeWith(LegacyDisconnect.from(Component.text(
@@ -148,15 +111,6 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  /**
-   * Handles a {@link HandshakePacket} sent by a connecting client.
-   *
-   * <p>This method determines the connection intent and transitions to the appropriate
-   * session handler (status or login).</p>
-   *
-   * @param handshake the handshake packet from the client
-   * @return {@code true} always, since the handshake intent is always processed
-   */
   @Override
   public boolean handle(final HandshakePacket handshake) {
     final StateRegistry nextState = getStateForProtocol(handshake.getNextStatus());
@@ -291,39 +245,18 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
     return cleaned;
   }
 
-  /**
-   * Handles an unrecognized or invalid packet.
-   *
-   * <p>This method closes the connection as a safety measure.</p>
-   *
-   * @param packet the unknown Minecraft packet
-   */
   @Override
   public void handleGeneric(final MinecraftPacket packet) {
     // Unknown packet received. Better to close the connection.
     connection.close(true);
   }
 
-  /**
-   * Handles an unrecognized raw byte buffer during packet decoding.
-   *
-   * <p>This method closes the connection to prevent further processing.</p>
-   *
-   * @param buf the unknown buffer contents
-   */
   @Override
   public void handleUnknown(final ByteBuf buf) {
     // Unknown packet received. Better to close the connection.
     connection.close(true);
   }
 
-  /**
-   * Returns a string representation of this session handler for logging purposes.
-   *
-   * <p>This includes the remote IP address if player address logging is enabled.</p>
-   *
-   * @return a formatted string representing the connection
-   */
   @Override
   public String toString() {
     final boolean isPlayerAddressLoggingEnabled = connection.server.getConfiguration().isPlayerAddressLoggingEnabled();

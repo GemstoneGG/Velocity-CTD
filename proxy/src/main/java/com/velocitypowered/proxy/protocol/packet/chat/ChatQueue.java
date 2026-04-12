@@ -39,29 +39,14 @@ public class ChatQueue implements AutoCloseable {
 
   private static final Logger LOGGER = LogManager.getLogger(ChatQueue.class);
 
-  /**
-   * Internal lock for coordinating serialized access to the queue.
-   */
   private final Object internalLock = new Object();
 
-  /**
-   * The player associated with this chat queue.
-   */
   private final ConnectedPlayer player;
 
-  /**
-   * The current mutable chat state for this session.
-   */
   private final ChatState chatState = new ChatState();
 
-  /**
-   * The current head of the async packet queue chain.
-   */
   private CompletableFuture<Void> head = CompletableFuture.completedFuture(null);
 
-  /**
-   * Whether the queue is closed and no further tasks may be submitted.
-   */
   private volatile boolean closed;
 
   /**
@@ -133,12 +118,6 @@ public class ChatQueue implements AutoCloseable {
     });
   }
 
-  /**
-   * Handles the acknowledgement of a chat message or event by processing the given offset.
-   * This method is typically called when a chat message or command is acknowledged by the client or server.
-   *
-   * @param offset the offset representing the specific message or event being acknowledged
-   */
   public void handleAcknowledgement(final int offset) {
     queueTask((chatState, smc) -> {
       int ackCountToForward = chatState.accumulateAckCount(offset);
@@ -161,13 +140,6 @@ public class ChatQueue implements AutoCloseable {
     }, smc.eventLoop());
   }
 
-  /**
-   * Closes this {@code ChatQueue}, preventing any further packet submissions.
-   *
-   * <p>This method sets an internal flag indicating that the queue is no longer active.
-   * Any future attempts to queue packets or tasks will result in an {@link IllegalStateException}.
-   * Pending tasks will continue to execute, but new ones will be rejected.</p>
-   */
   @Override
   public void close() {
     closed = true;
@@ -198,53 +170,19 @@ public class ChatQueue implements AutoCloseable {
    */
   public static final class ChatState {
 
-    /**
-     * The minimum number of acknowledgements that must be accumulated before the proxy
-     * considers forwarding a {@link ChatAcknowledgementPacket}.
-     *
-     * <p>This threshold ensures that message acknowledgements are not flushed too early,
-     * preserving a consistent and efficient stream of acknowledgement updates.</p>
-     */
     private static final int MINIMUM_DELAYED_ACK_COUNT = LastSeenMessages.WINDOW_SIZE;
 
-    /**
-     * A placeholder {@link BitSet} used when acknowledgements are forwarded in bulk,
-     * and the actual client last-seen message state is no longer reliable.
-     *
-     * <p>This is used to "reset" the last-seen tracking safely when acknowledgment count
-     * exceeds the window size and cannot be inferred from client behavior.</p>
-     */
     private static final BitSet DUMMY_LAST_SEEN_MESSAGES = new BitSet();
 
-    /**
-     * The timestamp of the last message received from the client.
-     */
     public volatile Instant lastTimestamp = Instant.EPOCH;
 
-    /**
-     * The last known acknowledged messages bitset.
-     */
     private volatile BitSet lastSeenMessages = new BitSet();
 
-    /**
-     * The number of acknowledgments pending until flush.
-     */
     private final AtomicInteger delayedAckCount = new AtomicInteger();
 
     private ChatState() {
     }
 
-    /**
-     * Updates the state of the {@link LastSeenMessages} and the timestamp based on a new message or event.
-     * This method processes the given timestamp and last seen messages to ensure the internal state is up to date.
-     * - If the provided {@link Instant} is not null, it updates the last known timestamp.
-     * - If the provided {@link LastSeenMessages} is not null, it flushes any delayed acknowledgements and updates the
-     *   internal acknowledged messages, returning an adjusted {@link LastSeenMessages} with the offset applied.
-     *
-     * @param timestamp the optional {@link Instant} representing the new timestamp for the message or event
-     * @param lastSeenMessages the optional {@link LastSeenMessages} representing the last seen messages by the player
-     * @return the updated {@link LastSeenMessages} with the applied offset, or {@code null} if no updates were made
-     */
     @Nullable
     public LastSeenMessages updateFromMessage(final @Nullable Instant timestamp, final @Nullable LastSeenMessages lastSeenMessages) {
       if (timestamp != null) {
@@ -261,16 +199,6 @@ public class ChatQueue implements AutoCloseable {
       return null;
     }
 
-    /**
-     * Accumulates the given acknowledgement count and determines if enough acknowledgements have been gathered to forward.
-     * - Adds the provided `ackCount` to the current delayed acknowledgement count.
-     * - If the accumulated acknowledgements exceed the {@link LastSeenMessages#WINDOW_SIZE}, the method resets the delayed
-     *   acknowledgement count and returns the number of acknowledgements that should be forwarded.
-     * - If the threshold is not met, the method returns 0, indicating that no acknowledgements need to be forwarded yet.
-     *
-     * @param ackCount the number of acknowledgements to add to the accumulated count
-     * @return the number of acknowledgements that should be forwarded, or 0 if the threshold has not been reached
-     */
     public int accumulateAckCount(final int ackCount) {
       int delayedAckCount = this.delayedAckCount.addAndGet(ackCount);
       int ackCountToForward = delayedAckCount - MINIMUM_DELAYED_ACK_COUNT;
@@ -284,11 +212,6 @@ public class ChatQueue implements AutoCloseable {
       return 0;
     }
 
-    /**
-     * Creates a snapshot of the current {@link LastSeenMessages} state.
-     *
-     * @return a new {@link LastSeenMessages} representing the current view
-     */
     public LastSeenMessages createLastSeen() {
       return new LastSeenMessages(0, lastSeenMessages, (byte) 0);
     }

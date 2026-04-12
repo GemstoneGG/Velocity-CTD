@@ -52,9 +52,6 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
  */
 public class ServerChannelInitializer extends ChannelInitializer<Channel> {
 
-  /**
-   * The Velocity server instance used to configure this channel.
-   */
   private final VelocityServer server;
 
   /**
@@ -62,35 +59,10 @@ public class ServerChannelInitializer extends ChannelInitializer<Channel> {
    */
   private volatile @MonotonicNonNull HttpClient httpClient;
 
-  /**
-   * Constructs a new {@link ServerChannelInitializer}.
-   *
-   * @param server the Velocity server instance
-   */
   public ServerChannelInitializer(final VelocityServer server) {
     this.server = server;
   }
 
-  /**
-   * Initializes the Netty pipeline for a new client channel.
-   *
-   * <p>This configures the following handlers in order:</p>
-   * <ul>
-   *   <li>{@code LEGACY_PING_DECODER} – handles legacy 1.6 ping requests</li>
-   *   <li>{@code FRAME_DECODER} – decodes VarInt length-prefixed packets from the client</li>
-   *   <li>{@code READ_TIMEOUT} – disconnects idle clients after the configured timeout</li>
-   *   <li>{@code LEGACY_PING_ENCODER} – encodes legacy ping responses</li>
-   *   <li>{@code FRAME_ENCODER} – encodes outgoing packets with VarInt length prefix</li>
-   *   <li>{@code MINECRAFT_DECODER} – decodes Minecraft protocol packets (serverbound)</li>
-   *   <li>{@code MINECRAFT_ENCODER} – encodes Minecraft protocol packets (clientbound)</li>
-   *   <li>{@code HANDLER} – wraps the connection in a {@link MinecraftConnection}</li>
-   * </ul>
-   *
-   * <p>If PROXY protocol is enabled in configuration, a {@link HAProxyMessageDecoder} is added
-   * at the beginning of the pipeline to extract the real client IP address.</p>
-   *
-   * @param ch the Netty channel to initialize
-   */
   @Override
   @EnsuresNonNull("httpClient")
   protected void initChannel(final Channel ch) {

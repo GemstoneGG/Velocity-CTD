@@ -58,37 +58,14 @@ import org.apache.logging.log4j.Logger;
  */
 public class VelocityPluginManager implements PluginManager {
 
-  /**
-   * The logger for this class.
-   */
   private static final Logger LOGGER = LogManager.getLogger(VelocityPluginManager.class);
 
-  /**
-   * A map of all loaded plugins indexed by their plugin ID.
-   *
-   * <p>This is the authoritative source for determining if a plugin is registered,
-   * and is used for lookup by ID.</p>
-   */
   private final Map<String, PluginContainer> pluginsById = new LinkedHashMap<>();
 
-  /**
-   * A map of plugin instances to their corresponding {@link PluginContainer}.
-   *
-   * <p>This is used to resolve plugin containers from loaded plugin instances,
-   * typically used by {@link #fromInstance(Object)}.</p>
-   */
   private final Map<Object, PluginContainer> pluginInstances = new IdentityHashMap<>();
 
-  /**
-   * The reference to the running {@link VelocityServer} instance.
-   */
   private final VelocityServer server;
 
-  /**
-   * Constructs a new {@code VelocityPluginManager} instance.
-   *
-   * @param server the Velocity server instance
-   */
   public VelocityPluginManager(final VelocityServer server) {
     this.server = checkNotNull(server, "server");
   }
@@ -223,12 +200,6 @@ public class VelocityPluginManager implements PluginManager {
     }
   }
 
-  /**
-   * Resolves the {@link PluginContainer} associated with the given plugin instance.
-   *
-   * @param instance the plugin instance or container
-   * @return an {@link Optional} containing the plugin container, if registered
-   */
   @Override
   public Optional<PluginContainer> fromInstance(final Object instance) {
     checkNotNull(instance, "instance");
@@ -240,49 +211,22 @@ public class VelocityPluginManager implements PluginManager {
     return Optional.ofNullable(pluginInstances.get(instance));
   }
 
-  /**
-   * Looks up a registered plugin by its ID.
-   *
-   * @param id the plugin ID
-   * @return an {@link Optional} containing the plugin container, if found
-   */
   @Override
   public Optional<PluginContainer> getPlugin(final String id) {
     checkNotNull(id, "id");
     return Optional.ofNullable(pluginsById.get(id));
   }
 
-  /**
-   * Returns an unmodifiable collection of all registered plugins.
-   *
-   * @return a collection of plugin containers
-   */
   @Override
   public Collection<PluginContainer> getPlugins() {
     return Collections.unmodifiableCollection(pluginsById.values());
   }
 
-  /**
-   * Returns whether a plugin with the given ID is currently loaded.
-   *
-   * @param id the plugin ID to check
-   * @return {@code true} if the plugin is loaded
-   */
   @Override
   public boolean isLoaded(final String id) {
     return pluginsById.containsKey(id);
   }
 
-  /**
-   * Dynamically adds a new file to the classpath of the specified plugin.
-   *
-   * <p>This operation is only supported for Java-based Velocity plugins using {@link PluginClassLoader}.</p>
-   *
-   * @param plugin the plugin instance
-   * @param path the path to add to the plugin's classpath
-   * @throws UnsupportedOperationException if the plugin is not Java-based
-   * @throws IllegalArgumentException if the plugin is not loaded or has no instance
-   */
   @Override
   public void addToClasspath(final Object plugin, final Path path) {
     checkNotNull(plugin, "instance");

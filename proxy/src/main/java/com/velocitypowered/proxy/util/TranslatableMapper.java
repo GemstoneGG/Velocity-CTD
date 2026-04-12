@@ -41,14 +41,6 @@ public enum TranslatableMapper implements BiConsumer<TranslatableComponent, Cons
    */
   INSTANCE;
 
-  /**
-   * A {@link ComponentFlattener} instance
-   * customized to handle {@link TranslatableComponent}s
-   * using Velocity’s {@link TranslatableMapper}.
-   *
-   * <p>This flattener is used to convert complex Adventure components into plain text
-   * for display in legacy contexts (e.g. console logs, plugin messages).</p>
-   */
   public static final ComponentFlattener FLATTENER = ComponentFlattener.basic().toBuilder()
       .complexMapper(TranslatableComponent.class, TranslatableMapper.INSTANCE)
       .build();

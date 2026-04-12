@@ -28,36 +28,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Implements {@link SimpleCommand.Invocation}.
- */
 public final class SimpleCommandInvocation extends AbstractCommandInvocation<String[]> implements SimpleCommand.Invocation {
 
-  /**
-   * A factory for creating {@link SimpleCommandInvocation} instances.
-   */
   public static final Factory FACTORY = new Factory();
 
-  /**
-   * Factory class for creating instances of {@link SimpleCommand.Invocation}.
-   *
-   * <p>This class implements the {@link CommandInvocationFactory} interface and provides
-   * a method to create new {@link SimpleCommand.Invocation} instances. It is responsible
-   * for reading the command alias and arguments from the parsed command nodes and arguments.</p>
-   */
   public static class Factory implements CommandInvocationFactory<SimpleCommand.Invocation> {
 
-    /**
-     * Creates a {@link SimpleCommand.Invocation} from the parsed command context.
-     *
-     * <p>This method extracts the command alias and arguments from the provided parse results
-     * and returns a new {@link SimpleCommandInvocation} instance representing the invocation.</p>
-     *
-     * @param source the command source (e.g., player or console)
-     * @param nodes the parsed command nodes from Brigadier
-     * @param arguments the parsed arguments mapped by name
-     * @return a new {@link SimpleCommandInvocation} instance
-     */
     @Override
     public SimpleCommand.Invocation create(final CommandSource source, final List<? extends ParsedCommandNode<?>> nodes,
                                            final Map<String, ? extends ParsedArgument<?, ?>> arguments) {
@@ -67,9 +43,6 @@ public final class SimpleCommandInvocation extends AbstractCommandInvocation<Str
     }
   }
 
-  /**
-   * The alias used to invoke the command.
-   */
   private final String alias;
 
   SimpleCommandInvocation(final CommandSource source, final String alias, final String[] arguments) {

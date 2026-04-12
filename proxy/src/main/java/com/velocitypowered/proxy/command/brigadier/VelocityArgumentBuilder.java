@@ -50,19 +50,10 @@ public final class VelocityArgumentBuilder<S, T>
     return new VelocityArgumentBuilder<>(name, type);
   }
 
-  /**
-   * The name of the argument node.
-   */
   private final String name;
 
-  /**
-   * The Brigadier {@link ArgumentType} used to parse the argument.
-   */
   private final ArgumentType<T> type;
 
-  /**
-   * The suggestion provider used for tab completion, or {@code null} if not set.
-   */
   private SuggestionProvider<S> suggestionsProvider = null;
 
   private VelocityArgumentBuilder(final String name, final ArgumentType<T> type) {
@@ -70,12 +61,6 @@ public final class VelocityArgumentBuilder<S, T>
     this.type = type;
   }
 
-  /**
-   * Sets the {@link SuggestionProvider} used for this argument node.
-   *
-   * @param provider the suggestion provider, or {@code null} to disable suggestions
-   * @return this builder, for chaining
-   */
   public VelocityArgumentBuilder<S, T> suggests(final @Nullable SuggestionProvider<S> provider) {
     this.suggestionsProvider = provider;
     return this;

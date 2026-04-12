@@ -26,33 +26,12 @@ import com.velocitypowered.proxy.command.VelocityCommands;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Implements {@link RawCommand.Invocation}.
- */
 public final class RawCommandInvocation extends AbstractCommandInvocation<String> implements RawCommand.Invocation {
 
-  /**
-   * A factory for creating {@link RawCommandInvocation} instances.
-   */
   public static final Factory FACTORY = new Factory();
 
-  /**
-   * Factory class for creating instances of {@link RawCommand.Invocation}.
-   *
-   * <p>This class implements the {@link CommandInvocationFactory} interface and provides
-   * a method to create new {@link RawCommand.Invocation} instances. It is responsible
-   * for reading the command alias and arguments from the parsed command nodes and arguments.</p>
-   */
   public static class Factory implements CommandInvocationFactory<RawCommand.Invocation> {
 
-    /**
-     * Creates a {@link RawCommandInvocation} instance from the parsed command input.
-     *
-     * @param source the command source
-     * @param nodes the parsed command nodes from the Brigadier parser
-     * @param arguments the parsed argument map from Brigadier
-     * @return a new {@link RawCommandInvocation} instance
-     */
     @Override
     public RawCommand.Invocation create(final CommandSource source, final List<? extends ParsedCommandNode<?>> nodes,
                                         final Map<String, ? extends ParsedArgument<?, ?>> arguments) {
@@ -62,9 +41,6 @@ public final class RawCommandInvocation extends AbstractCommandInvocation<String
     }
   }
 
-  /**
-   * The alias used to invoke the command.
-   */
   private final String alias;
 
   private RawCommandInvocation(final CommandSource source, final String alias, final String arguments) {

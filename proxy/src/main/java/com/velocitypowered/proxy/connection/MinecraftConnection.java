@@ -91,9 +91,6 @@ import org.jetbrains.annotations.NotNull;
  */
 public class MinecraftConnection extends ChannelInboundHandlerAdapter {
 
-  /**
-   * The logger instance used to report events and exceptions on this connection.
-   */
   private static final Logger LOGGER = LogManager.getLogger(MinecraftConnection.class);
 
   /**
@@ -104,61 +101,26 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
    */
   public static final int MAX_CLIENT_PACKET_SIZE = Integer.getInteger("velocity.max-client-packet-size", 2097152);
 
-  /**
-   * The underlying Netty channel backing this Minecraft connection.
-   */
   private final Channel channel;
 
-  /**
-   * Whether the client is currently undergoing a configuration state switch,
-   * triggered by the server sending a {@code StartUpdatePacket}.
-   */
   public boolean pendingConfigurationSwitch = false;
 
-  /**
-   * The remote address of the client, possibly overridden by HAProxy data.
-   */
   private SocketAddress remoteAddress;
 
-  /**
-   * The current protocol state of this connection (e.g., HANDSHAKE, PLAY).
-   */
   private StateRegistry state;
 
-  /**
-   * The session handlers associated with each state in the connection lifecycle.
-   */
   private Map<StateRegistry, MinecraftSessionHandler> sessionHandlers;
 
-  /**
-   * The currently active session handler responsible for processing packets in the current state.
-   */
   private @Nullable MinecraftSessionHandler activeSessionHandler;
 
-  /**
-   * The negotiated or forced Minecraft protocol version for this connection.
-   */
   private ProtocolVersion protocolVersion;
 
-  /**
-   * The logical association of this connection, such as a player or server.
-   */
   private @Nullable MinecraftConnectionAssociation association;
 
-  /**
-   * The Velocity server instance that owns and manages this connection.
-   */
   public final VelocityServer server;
 
-  /**
-   * The connection type detected for this connection, such as vanilla or Forge.
-   */
   private ConnectionType connectionType = ConnectionTypes.UNDETERMINED;
 
-  /**
-   * Whether the connection was closed due to a known (intentional) disconnect,
-   * such as a normal logout or a server-initiated kick.
-   */
   private boolean knownDisconnect = false;
 
   /**
@@ -176,14 +138,6 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     this.sessionHandlers = new HashMap<>();
   }
 
-  /**
-   * Called when the channel becomes active.
-   *
-   * <p>Subclasses overriding this method should ensure they invoke
-   * {@code super.channelActive(ctx)} to preserve connection initialization behavior.</p>
-   *
-   * @param ctx the {@link ChannelHandlerContext} associated with this handler
-   */
   @Override
   public void channelActive(final @NotNull ChannelHandlerContext ctx) {
     if (activeSessionHandler != null) {
@@ -195,14 +149,6 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     }
   }
 
-  /**
-   * Called when the channel becomes inactive.
-   *
-   * <p>Subclasses overriding this method should invoke
-   * {@code super.channelInactive(ctx)} to ensure cleanup and disconnect logging occur properly.</p>
-   *
-   * @param ctx the {@link ChannelHandlerContext} associated with this handler
-   */
   @Override
   public void channelInactive(final @NotNull ChannelHandlerContext ctx) {
     if (activeSessionHandler != null) {
@@ -220,16 +166,6 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     }
   }
 
-  /**
-   * Called for each message read from the channel.
-   *
-   * <p>Subclasses may override this method to intercept inbound traffic. If doing so,
-   * they must call {@code super.channelRead(ctx, msg)} unless they fully replace
-   * all handling logic.</p>
-   *
-   * @param ctx the {@link ChannelHandlerContext} associated with this handler
-   * @param msg the inbound message to process
-   */
   @Override
   public void channelRead(final @NotNull ChannelHandlerContext ctx, final @NotNull Object msg) {
     try {
@@ -276,14 +212,6 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     }
   }
 
-  /**
-   * Called when the last read operation on the channel is completed.
-   *
-   * <p>Subclasses overriding this method should invoke
-   * {@code super.channelReadComplete(ctx)} to preserve internal read-completion logic.</p>
-   *
-   * @param ctx the {@link ChannelHandlerContext} for this handler
-   */
   @Override
   public void channelReadComplete(final ChannelHandlerContext ctx) {
     if (activeSessionHandler != null) {
@@ -291,16 +219,6 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     }
   }
 
-  /**
-   * Called when an exception is raised during channel operations.
-   *
-   * <p>Subclasses may override to implement custom error handling, but should
-   * invoke {@code super.exceptionCaught(ctx, cause)} unless the default behavior
-   * is to be completely suppressed.</p>
-   *
-   * @param ctx the {@link ChannelHandlerContext}
-   * @param cause the {@link Throwable} that was caught
-   */
   @Override
   public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) {
     if (ctx.channel().isActive()) {
@@ -338,14 +256,6 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     }
   }
 
-  /**
-   * Called when the writability of the channel changes.
-   *
-   * <p>Subclasses should invoke {@code super.channelWritabilityChanged(ctx)} if they override
-   * this method to preserve session handler integration.</p>
-   *
-   * @param ctx the {@link ChannelHandlerContext} for this handler
-   */
   @Override
   public void channelWritabilityChanged(final ChannelHandlerContext ctx) {
     if (activeSessionHandler != null) {
@@ -357,14 +267,6 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     Preconditions.checkState(this.channel.eventLoop().inEventLoop(), "Not in event loop");
   }
 
-  /**
-   * Retrieves the Netty {@link EventLoop} assigned to this connection's channel.
-   *
-   * <p>This event loop is used for scheduling tasks and ensuring execution on the same thread
-   * as the connection's pipeline.</p>
-   *
-   * @return the Netty {@link EventLoop} associated with this connection
-   */
   public EventLoop eventLoop() {
     return channel.eventLoop();
   }
@@ -433,12 +335,6 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     }
   }
 
-  /**
-   * Closes the connection and marks the disconnect as known.
-   *
-   * <p>This is equivalent to calling {@link #close(boolean)} with {@code true}, indicating that
-   * the disconnect was expected (e.g., player quit or server-initiated).</p>
-   */
   public void close() {
     close(true);
   }
@@ -467,59 +363,26 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     }
   }
 
-  /**
-   * Retrieves the Netty {@link Channel} backing this Minecraft connection.
-   *
-   * @return the underlying {@link Channel}
-   */
   public Channel getChannel() {
     return channel;
   }
 
-  /**
-   * Determines whether the connection has been closed.
-   *
-   * @return {@code true} if the connection is closed, otherwise {@code false}
-   */
   public boolean isClosed() {
     return !channel.isActive();
   }
 
-  /**
-   * Gets the remote {@link SocketAddress} of the client. This may be overridden by a
-   * {@link io.netty.handler.codec.haproxy.HAProxyMessage}.
-   *
-   * @return the client's remote address
-   */
   public SocketAddress getRemoteAddress() {
     return remoteAddress;
   }
 
-  /**
-   * Gets the current {@link StateRegistry} associated with this connection.
-   *
-   * @return the connection's current protocol state
-   */
   public StateRegistry getState() {
     return state;
   }
 
-  /**
-   * Returns whether Netty's {@code autoRead} is enabled for this channel.
-   * This indicates whether inbound data will be read automatically.
-   *
-   * @return {@code true} if auto-reading is enabled, otherwise {@code false}
-   */
   public boolean isAutoReading() {
     return channel.config().isAutoRead();
   }
 
-  /**
-   * Returns whether the disconnection was expected and initiated
-   * by the proxy or server intentionally (i.e. not due to a crash or timeout).
-   *
-   * @return {@code true} if the disconnection was known and intentional
-   */
   public boolean isKnownDisconnect() {
     return knownDisconnect;
   }
@@ -616,11 +479,6 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     }
   }
 
-  /**
-   * Returns the protocol version negotiated or assigned to this connection.
-   *
-   * @return the {@link ProtocolVersion} associated with this connection
-   */
   public ProtocolVersion getProtocolVersion() {
     return protocolVersion;
   }
@@ -649,22 +507,10 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     }
   }
 
-  /**
-   * Retrieves the currently active {@link MinecraftSessionHandler} responsible for handling
-   * packets for this connection.
-   *
-   * @return the active session handler, or {@code null} if none is set
-   */
   public @Nullable MinecraftSessionHandler getActiveSessionHandler() {
     return activeSessionHandler;
   }
 
-  /**
-   * Retrieves a registered {@link MinecraftSessionHandler} associated with the given protocol state.
-   *
-   * @param registry the protocol state for which the handler is queried
-   * @return the session handler for the specified state, or {@code null} if not registered
-   */
   public @Nullable MinecraftSessionHandler getSessionHandlerForRegistry(final StateRegistry registry) {
     return this.sessionHandlers.getOrDefault(registry, null);
   }
@@ -803,25 +649,10 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     channel.pipeline().fireUserEventTriggered(VelocityConnectionEvent.ENCRYPTION_ENABLED);
   }
 
-  /**
-   * Returns the current {@link MinecraftConnectionAssociation} associated with this connection.
-   *
-   * <p>This association typically represents a player or other connection-bound identity.
-   *
-   * @return the current connection association, or {@code null} if not yet associated
-   */
   public @Nullable MinecraftConnectionAssociation getAssociation() {
     return association;
   }
 
-  /**
-   * Sets the {@link MinecraftConnectionAssociation} for this connection.
-   *
-   * <p>This method must be called from within the Netty event loop for this connection.
-   *
-   * @param association the association to set
-   * @throws IllegalStateException if called outside the Netty event loop
-   */
   public void setAssociation(final MinecraftConnectionAssociation association) {
     ensureInEventLoop();
     this.association = association;

@@ -48,14 +48,8 @@ public class PlayPacketQueueInboundHandler extends ChannelDuplexHandler {
   private static final QuietDecoderException QUEUE_LIMIT_FAILED = new QuietDecoderException(
       "Queue too big (greater than " + MAXIMUM_SIZE + " bytes)");
 
-  /**
-   * The packet registry for the CONFIG state, used to detect which packets must bypass queuing.
-   */
   private final StateRegistry.PacketRegistry.ProtocolRegistry registry;
 
-  /**
-   * Internal queue of messages waiting to be forwarded once the PLAY state is reached.
-   */
   private final Queue<Object> queue = new ArrayDeque<>();
   private int queueSize = 0;
 
@@ -69,15 +63,6 @@ public class PlayPacketQueueInboundHandler extends ChannelDuplexHandler {
     this.registry = StateRegistry.CONFIG.getProtocolRegistry(direction, version);
   }
 
-  /**
-   * Intercepts incoming packets and conditionally queues them based on the current protocol state.
-   *
-   * <p>If the packet is part of the {@code CONFIG} state, it is immediately passed through.
-   * Otherwise, it is queued and deferred until the channel transitions to the {@code PLAY} state.</p>
-   *
-   * @param ctx the Netty channel context
-   * @param msg the incoming message (typically a {@link MinecraftPacket})
-   */
   @Override
   public void channelRead(final @NotNull ChannelHandlerContext ctx, final @NotNull Object msg) {
     if (msg instanceof final MinecraftPacket packet) {
@@ -107,15 +92,6 @@ public class PlayPacketQueueInboundHandler extends ChannelDuplexHandler {
     this.queue.offer(msg);
   }
 
-  /**
-   * Invoked when the channel becomes inactive.
-   *
-   * <p>This method clears and releases all queued packets, as the connection
-   * will no longer reach the {@code PLAY} state.</p>
-   *
-   * @param ctx the Netty channel context
-   * @throws Exception if an error occurs during release
-   */
   @Override
   public void channelInactive(final @NotNull ChannelHandlerContext ctx) throws Exception {
     this.releaseQueue(ctx, false);
@@ -123,14 +99,6 @@ public class PlayPacketQueueInboundHandler extends ChannelDuplexHandler {
     super.channelInactive(ctx);
   }
 
-  /**
-   * Called when this handler is removed from the pipeline.
-   *
-   * <p>Flushes all queued packets. If the channel is still active,
-   * they are forwarded downstream. Otherwise, their buffers are released.</p>
-   *
-   * @param ctx the Netty channel context
-   */
   @Override
   public void handlerRemoved(final ChannelHandlerContext ctx) {
     this.releaseQueue(ctx, ctx.channel().isActive());

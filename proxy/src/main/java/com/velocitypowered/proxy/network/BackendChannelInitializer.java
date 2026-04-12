@@ -42,35 +42,12 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings("WeakerAccess")
 public class BackendChannelInitializer extends ChannelInitializer<Channel> {
 
-  /**
-   * The Velocity server instance used to access configuration and shared components.
-   */
   private final VelocityServer server;
 
-  /**
-   * Constructs a new {@link BackendChannelInitializer}.
-   *
-   * @param server the {@link VelocityServer} instance
-   */
   public BackendChannelInitializer(final VelocityServer server) {
     this.server = server;
   }
 
-  /**
-   * Initializes the Netty pipeline for a backend server channel.
-   *
-   * <p>This configures the following handlers, in order:</p>
-   * <ul>
-   *   <li>{@code FRAME_DECODER}: handles VarInt-length-based packet framing for clientbound data</li>
-   *   <li>{@code READ_TIMEOUT}: disconnects idle connections after the configured timeout</li>
-   *   <li>{@code FRAME_ENCODER}: encodes outgoing packets with VarInt length prefix</li>
-   *   <li>{@code MINECRAFT_DECODER}: decodes incoming clientbound Minecraft protocol packets</li>
-   *   <li>{@code FLOW_HANDLER}: controls Netty auto-read behavior during configuration phases</li>
-   *   <li>{@code MINECRAFT_ENCODER}: encodes serverbound Minecraft protocol packets</li>
-   * </ul>
-   *
-   * @param ch the Netty {@link Channel} to initialize
-   */
   @Override
   protected void initChannel(final Channel ch) {
     ch.pipeline()

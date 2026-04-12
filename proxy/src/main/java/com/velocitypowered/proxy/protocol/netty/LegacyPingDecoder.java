@@ -34,33 +34,8 @@ import java.util.List;
  */
 public class LegacyPingDecoder extends ByteToMessageDecoder {
 
-  /**
-   * The expected channel name for Minecraft 1.6.x legacy pings.
-   */
   private static final String MC_1_6_CHANNEL = "MC|PingHost";
 
-  /**
-   * Decodes incoming datagrams to detect and parse legacy Minecraft ping and handshake packets
-   * from versions 1.3 to 1.6.4.
-   *
-   * <p>Supports:</p>
-   * <ul>
-   *   <li>1.3: Single 0xFE byte</li>
-   *   <li>1.4–1.5: 0xFE 0x01</li>
-   *   <li>1.6.x: 0xFE 0x01 + extended data tagged with {@code "MC|PingHost"}</li>
-   *   <li>Legacy handshake: 0x02 prefix</li>
-   * </ul>
-   *
-   * <p>If a matching packet format is detected, a corresponding {@link LegacyPingPacket}
-   * or {@link LegacyHandshakePacket} is added to the output list and passed along the pipeline.
-   * If the packet is not a legacy ping or handshake, this decoder removes itself from the pipeline
-   * to avoid interfering with modern protocols.</p>
-   *
-   * @param ctx the Netty channel context
-   * @param in the input buffer containing the received data
-   * @param out the output list to which decoded packets are added
-   * @throws Exception if packet parsing fails
-   */
   @Override
   protected void decode(final ChannelHandlerContext ctx, final ByteBuf in, final List<Object> out) throws Exception {
     if (!in.isReadable()) {

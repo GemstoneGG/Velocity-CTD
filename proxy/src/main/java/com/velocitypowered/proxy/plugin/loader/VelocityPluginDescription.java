@@ -36,44 +36,20 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class VelocityPluginDescription implements PluginDescription {
 
-  /**
-   * The plugin's unique ID.
-   */
   private final String id;
 
-  /**
-   * The human-readable name of the plugin.
-   */
   private final @Nullable String name;
 
-  /**
-   * The plugin's version.
-   */
   private final @Nullable String version;
 
-  /**
-   * A short description of the plugin.
-   */
   private final @Nullable String description;
 
-  /**
-   * The plugin's website or documentation URL.
-   */
   private final @Nullable String url;
 
-  /**
-   * The list of plugin authors.
-   */
   private final List<String> authors;
 
-  /**
-   * The plugin's declared dependencies, indexed by their ID.
-   */
   private final Map<String, PluginDependency> dependencies;
 
-  /**
-   * The path to the source file the plugin was loaded from.
-   */
   private final Path source;
 
   /**
@@ -101,102 +77,51 @@ public class VelocityPluginDescription implements PluginDescription {
     this.source = source;
   }
 
-  /**
-   * Returns the unique identifier of the plugin.
-   *
-   * @return the plugin ID
-   */
   @Override
   public String getId() {
     return id;
   }
 
-  /**
-   * Returns the display name of the plugin, if provided.
-   *
-   * @return an {@link Optional} containing the plugin name
-   */
   @Override
   public Optional<String> getName() {
     return Optional.ofNullable(name);
   }
 
-  /**
-   * Returns the version of the plugin, if declared.
-   *
-   * @return an {@link Optional} containing the plugin version
-   */
   @Override
   public Optional<String> getVersion() {
     return Optional.ofNullable(version);
   }
 
-  /**
-   * Returns the plugin's short description, if present.
-   *
-   * @return an {@link Optional} containing the description
-   */
   @Override
   public Optional<String> getDescription() {
     return Optional.ofNullable(description);
   }
 
-  /**
-   * Returns the URL associated with the plugin, such as documentation or homepage.
-   *
-   * @return an {@link Optional} containing the plugin's URL
-   */
   @Override
   public Optional<String> getUrl() {
     return Optional.ofNullable(url);
   }
 
-  /**
-   * Returns an immutable list of plugin authors.
-   *
-   * @return the list of author names
-   */
   @Override
   public List<String> getAuthors() {
     return authors;
   }
 
-  /**
-   * Returns all declared dependencies of the plugin.
-   *
-   * @return a collection of {@link PluginDependency} objects
-   */
   @Override
   public Collection<PluginDependency> getDependencies() {
     return dependencies.values();
   }
 
-  /**
-   * Retrieves a declared dependency by its plugin ID.
-   *
-   * @param id the plugin ID of the dependency
-   * @return an {@link Optional} containing the dependency, if declared
-   */
   @Override
   public Optional<PluginDependency> getDependency(final String id) {
     return Optional.ofNullable(dependencies.get(id));
   }
 
-  /**
-   * Returns the path to the JAR file the plugin was loaded from.
-   *
-   * @return an {@link Optional} containing the source file path
-   */
   @Override
   public Optional<Path> getSource() {
     return Optional.ofNullable(source);
   }
 
-  /**
-   * Returns a string representation of the plugin description for debugging.
-   *
-   * @return a string containing all plugin metadata fields
-   */
   @Override
   public String toString() {
     return "VelocityPluginDescription{"

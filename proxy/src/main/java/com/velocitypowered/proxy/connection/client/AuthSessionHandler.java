@@ -63,9 +63,6 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
  */
 public class AuthSessionHandler implements MinecraftSessionHandler {
 
-  /**
-   * Logger for textual log messages.
-   */
   private static final Logger LOGGER = LogManager.getLogger(AuthSessionHandler.class, new ParameterizedMessageFactory());
 
   /**
@@ -73,45 +70,20 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
    */
   private static final ComponentLogger COMPONENT_LOGGER = ComponentLogger.logger(AuthSessionHandler.class);
 
-  /**
-   * The proxy server instance.
-   */
   private final VelocityServer server;
 
-  /**
-   * The Minecraft connection associated with this session.
-   */
   private final MinecraftConnection mcConnection;
 
-  /**
-   * The inbound login connection.
-   */
   private final LoginInboundConnection inbound;
 
-  /**
-   * The game profile of the connecting player.
-   */
   private GameProfile profile;
 
-  /**
-   * The connected player, once authentication has completed.
-   */
   private @MonotonicNonNull ConnectedPlayer connectedPlayer;
 
-  /**
-   * Whether the proxy is operating in online mode for this session.
-   */
   private final boolean onlineMode;
 
-  /**
-   * The current login state of this connection.
-   * Was implemented in Minecraft 1.20.2.
-   */
   private State loginState = State.START;
 
-  /**
-   * The server ID hash sent to Mojang for authentication, or {@code null} if offline-mode.
-   */
   private final String serverIdHash;
 
   /**
@@ -137,13 +109,6 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
   }
 
-  /**
-   * Called when this session handler is activated.
-   *
-   * <p>Performs version checks, fires a {@link GameProfileRequestEvent}, and initializes the {@link ConnectedPlayer}.
-   * If allowed, transitions into permission setup and then continues with login protocol completion.
-   * Players using older protocol versions or failing validation will be disconnected.</p>
-   */
   @Override
   public void activated() {
     // Some connection types may need to alter the game profile.
@@ -274,15 +239,6 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
     completeLoginProtocolPhaseAndInitialize(player);
   }
 
-  /**
-   * Handles a {@link LoginAcknowledgedPacket} from the client confirming receipt of the login success.
-   *
-   * <p>If the state is valid, switches the session to {@link ClientConfigSessionHandler} (1.20.2+) or proceeds
-   * to post-login events and connects the player to their initial server (older versions).</p>
-   *
-   * @param packet the login acknowledgment packet
-   * @return {@code true} if handled successfully
-   */
   @Override
   public boolean handle(final LoginAcknowledgedPacket packet) {
     if (loginState != State.SUCCESS_SENT) {
@@ -301,16 +257,6 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  /**
-   * Handles a {@link ServerboundCookieResponsePacket} received from the client during login.
-   *
-   * <p>Proxy plugins are not allowed to process cookie responses in this phase,
-   * so an exception is thrown if any plugin previously initiated a cookie request.</p>
-   *
-   * @param packet the cookie response packet
-   * @return {@code true} to continue handling
-   * @throws IllegalStateException if a response is received in the login phase
-   */
   @Override
   public boolean handle(final ServerboundCookieResponsePacket packet) {
     server.getEventManager()
@@ -401,24 +347,11 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
     }, mcConnection.eventLoop());
   }
 
-  /**
-   * Handles an unknown or unexpected packet during the login phase.
-   *
-   * <p>The connection is immediately closed as unexpected input indicates a protocol violation.</p>
-   *
-   * @param buf the raw packet data
-   */
   @Override
   public void handleUnknown(final ByteBuf buf) {
     mcConnection.close(true);
   }
 
-  /**
-   * Called when the client disconnects during the login process.
-   *
-   * <p>Cleans up the {@link ConnectedPlayer} if present and also invokes login-level cleanup
-   * routines on the inbound connection.</p>
-   */
   @Override
   public void disconnected() {
     if (connectedPlayer != null) {
@@ -429,20 +362,8 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
   }
 
   enum State {
-
-    /**
-     * The initial state before a successful login has been sent.
-     */
     START,
-
-    /**
-     * The server has sent the {@link ServerLoginSuccessPacket}, but the client has not acknowledged it yet.
-     */
     SUCCESS_SENT,
-
-    /**
-     * The client has acknowledged the login, and the session is transitioning to the play or config state.
-     */
     ACKNOWLEDGED
   }
 }

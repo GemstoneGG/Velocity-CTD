@@ -37,36 +37,16 @@ import java.util.concurrent.CompletableFuture;
  */
 public class PingSessionHandler implements MinecraftSessionHandler {
 
-  /**
-   * The future that will be completed with the resulting {@link ServerPing},
-   * or exceptionally if the ping fails.
-   */
   private final CompletableFuture<ServerPing> result;
 
-  /**
-   * The target server being pinged.
-   */
   private final VelocityRegisteredServer server;
 
-  /**
-   * The underlying Minecraft protocol connection to the server.
-   */
   private final MinecraftConnection connection;
 
-  /**
-   * The protocol version used for the ping.
-   */
   private final ProtocolVersion version;
 
-  /**
-   * Indicates whether the ping operation completed successfully.
-   */
   private boolean completed = false;
 
-  /**
-   * The virtual host string to include in the handshake.
-   * If blank, defaults to the target server's IP.
-   */
   private final String virtualHostString;
 
   PingSessionHandler(final CompletableFuture<ServerPing> result, final VelocityRegisteredServer server,
@@ -78,13 +58,6 @@ public class PingSessionHandler implements MinecraftSessionHandler {
     this.virtualHostString = virtualHostString;
   }
 
-  /**
-   * Called when this session handler is activated.
-   *
-   * <p>Sends a {@link HandshakePacket} and a {@link StatusRequestPacket} to the server using the
-   * provided protocol version and virtual host information. The session state is updated to
-   * {@link StateRegistry#STATUS}, and all packets are flushed to initiate the ping sequence.</p>
-   */
   @Override
   public void activated() {
     HandshakePacket handshake = new HandshakePacket();
@@ -102,15 +75,6 @@ public class PingSessionHandler implements MinecraftSessionHandler {
     connection.flush();
   }
 
-  /**
-   * Handles a {@link StatusResponsePacket} containing the server's ping data.
-   *
-   * <p>Parses the response into a {@link ServerPing} using the appropriate GSON instance
-   * for the client's protocol version, completes the result future, and closes the connection.</p>
-   *
-   * @param packet the status response packet from the remote server
-   * @return {@code true} once processed
-   */
   @Override
   public boolean handle(final StatusResponsePacket packet) {
     // All good!
@@ -123,12 +87,6 @@ public class PingSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  /**
-   * Called when the connection is closed before receiving a {@link StatusResponsePacket}.
-   *
-   * <p>If the ping was not completed, the result future is completed exceptionally with
-   * an {@link IOException} indicating unexpected disconnection.</p>
-   */
   @Override
   public void disconnected() {
     if (!completed) {
@@ -136,14 +94,6 @@ public class PingSessionHandler implements MinecraftSessionHandler {
     }
   }
 
-  /**
-   * Called when an exception occurs during the ping process.
-   *
-   * <p>The result future is completed exceptionally with the provided {@code throwable}
-   * and the session is marked as completed to avoid duplicate results.</p>
-   *
-   * @param throwable the exception that occurred during ping
-   */
   @Override
   public void exception(final Throwable throwable) {
     completed = true;

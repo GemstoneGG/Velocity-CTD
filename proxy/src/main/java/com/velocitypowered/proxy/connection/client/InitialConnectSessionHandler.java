@@ -35,19 +35,10 @@ import org.apache.logging.log4j.Logger;
  */
 public class InitialConnectSessionHandler implements MinecraftSessionHandler {
 
-  /**
-   * The logger instance for logging events related to {@link InitialConnectSessionHandler}.
-   */
   private static final Logger LOGGER = LogManager.getLogger(InitialConnectSessionHandler.class);
 
-  /**
-   * The player associated with this session.
-   */
   private final ConnectedPlayer player;
 
-  /**
-   * The Velocity server instance.
-   */
   private final VelocityServer server;
 
   InitialConnectSessionHandler(final ConnectedPlayer player, final VelocityServer server) {
@@ -55,20 +46,6 @@ public class InitialConnectSessionHandler implements MinecraftSessionHandler {
     this.server = server;
   }
 
-  /**
-   * Handles a {@link PluginMessagePacket} sent by the client during the initial connection state.
-   *
-   * <p>If the player has an in-flight backend connection, this method attempts to:
-   * <ul>
-   *   <li>Handle the packet using the current connection phase (e.g., Forge handshake).</li>
-   *   <li>Process BungeeCord-compatible plugin messages.</li>
-   *   <li>Fire a {@link PluginMessageEvent} for known registered channels.</li>
-   * </ul>
-   * If the channel is unknown, the packet is forwarded as-is to the backend server.</p>
-   *
-   * @param packet the plugin message sent by the client
-   * @return {@code true} always
-   */
   @Override
   public boolean handle(final PluginMessagePacket packet) {
     VelocityServerConnection serverConn = player.getConnectionInFlight();
@@ -106,12 +83,6 @@ public class InitialConnectSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  /**
-   * Called when the client disconnects during the initial connection phase.
-   *
-   * <p>This performs teardown of the player session, releasing any in-flight connections
-   * and cleaning up associated state.</p>
-   */
   @Override
   public void disconnected() {
     // the user canceled the login process

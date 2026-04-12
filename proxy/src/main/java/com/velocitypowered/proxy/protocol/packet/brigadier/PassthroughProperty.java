@@ -21,35 +21,12 @@ import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/**
- * A generic {@link ArgumentType} wrapper that allows preserving deserialized argument
- * values that are not natively handled by Brigadier or Velocity.
- *
- * <p>{@code PassthroughProperty} acts as a transparent container for argument types that
- * were deserialized using a known {@link ArgumentPropertySerializer} but do not map to
- * a recognized Brigadier type. This ensures the structure is retained for serialization,
- * even if it's not parseable at runtime.</p>
- *
- * <p>Used internally by {@link ArgumentPropertyRegistry} to maintain argument metadata
- * when forwarding or re-encoding commands.</p>
- *
- * @param <T> the type of the deserialized object being passed through
- */
 class PassthroughProperty<T> implements ArgumentType<T> {
 
-  /**
-   * The identifier for the argument type being preserved.
-   */
   private final ArgumentIdentifier identifier;
 
-  /**
-   * The serializer used to originally deserialize the result.
-   */
   private final ArgumentPropertySerializer<T> serializer;
 
-  /**
-   * The preserved deserialized result (nullable).
-   */
   private final @Nullable T result;
 
   PassthroughProperty(final ArgumentIdentifier identifier, final ArgumentPropertySerializer<T> serializer,

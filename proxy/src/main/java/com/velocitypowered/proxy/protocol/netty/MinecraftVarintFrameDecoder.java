@@ -40,61 +40,28 @@ import org.jspecify.annotations.Nullable;
  */
 public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
 
-  /**
-   * Logger for reporting decoder exceptions, particularly when debug mode is enabled.
-   */
   private static final Logger LOGGER = LogManager.getLogger(MinecraftVarintFrameDecoder.class);
 
-  /**
-   * A reusable runtime exception thrown when decoding a frame fails in production mode.
-   *
-   * <p>Use {@code -Dvelocity.packet-decode-logging=true} to enable full decode stack traces.</p>
-   */
   private static final QuietRuntimeException FRAME_DECODER_FAILED =
       new QuietRuntimeException("A packet frame decoder failed. For more information, launch "
           + "Velocity with -Dvelocity.packet-decode-logging=true to see more.");
 
-  /**
-   * Indicates that a decoded packet declared an invalid (negative) length.
-   */
   private static final QuietDecoderException BAD_PACKET_LENGTH =
       new QuietDecoderException("Bad packet length");
 
-  /**
-   * Indicates that the packet preamble was invalid.
-   */
   private static final QuietDecoderException INVALID_PREAMBLE =
       new QuietDecoderException("Invalid packet preamble");
 
-  /**
-   * Indicates that a VarInt read during decoding was too large to be valid.
-   */
   private static final QuietDecoderException VARINT_TOO_BIG =
       new QuietDecoderException("VarInt too big");
 
-  /**
-   * Indicates that a packet ID was received for which no handler was registered.
-   */
   private static final QuietDecoderException UNKNOWN_PACKET =
       new QuietDecoderException("Unknown packet");
 
-  /**
-   * The protocol direction (serverbound or clientbound) this decoder is operating under.
-   */
   private final ProtocolUtils.Direction direction;
 
-  /**
-   * The protocol registry used to look up packets during the initial handshake phase.
-   *
-   * <p>This registry remains fixed and is primarily used for pre-handshake validation.</p>
-   */
   private final StateRegistry.PacketRegistry.ProtocolRegistry registry;
 
-  /**
-   * The current protocol state (e.g. handshake, login, play).
-   *
-   * <p>This is updated externally when a state transition occurs.</p>
-   */
   private StateRegistry state;
 
   @Nullable
@@ -111,22 +78,6 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
     this.state = StateRegistry.HANDSHAKE;
   }
 
-  /**
-   * Attempts to decode a single Minecraft packet from the input buffer.
-   *
-   * <p>This method reads a 21-bit VarInt-prefixed frame, performs basic validation checks,
-   * and emits the complete framed packet to the output list. If the packet length is zero
-   * or insufficient data is available, the buffer is reset for the next read cycle.</p>
-   *
-   * <p>For serverbound packets in the {@code HANDSHAKE} state, this method also validates
-   * the declared packet ID and its expected length bounds to catch malformed or oversized
-   * frames early.</p>
-   *
-   * @param ctx the Netty channel context
-   * @param in the input buffer containing raw packet data
-   * @param out the list to which decoded frames are added
-   * @throws Exception if frame validation fails or a protocol violation is detected
-   */
   @Override
   protected void decode(final ChannelHandlerContext ctx, final ByteBuf in, final List<Object> out) throws Exception {
     if (!ctx.channel().isActive()) {
@@ -235,17 +186,6 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
     }
   }
 
-  /**
-   * Handles exceptions that occur during packet framing.
-   *
-   * <p>If packet decode debugging is enabled via the system property
-   * {@code velocity.packet-decode-logging}, the full exception and remote address
-   * are logged to aid diagnostics.</p>
-   *
-   * @param ctx the Netty channel context
-   * @param cause the thrown exception during decoding
-   * @throws Exception if the error is not handled internally
-   */
   @Override
   public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) throws Exception {
     if (MinecraftDecoder.DEBUG) {

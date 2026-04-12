@@ -28,9 +28,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 class JavaVelocityPluginDescriptionCandidate extends VelocityPluginDescription {
 
-  /**
-   * The fully-qualified name of the plugin's main class.
-   */
   private final String mainClass;
 
   JavaVelocityPluginDescriptionCandidate(final String id, final @Nullable String name, final @Nullable String version,

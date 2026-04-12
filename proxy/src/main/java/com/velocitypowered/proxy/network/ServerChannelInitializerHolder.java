@@ -31,18 +31,12 @@ public class ServerChannelInitializerHolder implements Supplier<ChannelInitializ
     LogManager.getLogger(ConnectionManager.class);
   }
 
-  /**
-   * The currently configured {@link ChannelInitializer} instance.
-   */
   private ChannelInitializer<Channel> initializer;
 
   ServerChannelInitializerHolder(final ChannelInitializer<Channel> initializer) {
     this.initializer = initializer;
   }
 
-  /**
-   * The currently configured {@link ChannelInitializer} used to initialize incoming client channels.
-   */
   @Override
   public ChannelInitializer<Channel> get() {
     return this.initializer;

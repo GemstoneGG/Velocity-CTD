@@ -23,24 +23,10 @@ package com.velocitypowered.proxy.util.except;
  */
 public class QuietRuntimeException extends RuntimeException {
 
-  /**
-   * Constructs a new {@code QuietRuntimeException} with the specified message.
-   *
-   * @param message the detail message describing the error
-   */
   public QuietRuntimeException(final String message) {
     super(message);
   }
 
-  /**
-   * Overrides the default behavior of {@link Throwable#fillInStackTrace()} to suppress
-   * stack trace generation for this exception.
-   *
-   * <p>This helps reduce log noise and allocation overhead when this exception is
-   * used intentionally for control flow or expected error scenarios.</p>
-   *
-   * @return this exception instance without a stack trace
-   */
   @Override
   public synchronized Throwable fillInStackTrace() {
     return this;

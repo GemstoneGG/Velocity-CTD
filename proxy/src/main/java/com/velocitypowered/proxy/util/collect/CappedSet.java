@@ -31,14 +31,8 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class CappedSet<T> extends ForwardingSet<T> {
 
-  /**
-   * The backing set that holds the actual elements.
-   */
   private final Set<T> delegate;
 
-  /**
-   * The maximum number of elements allowed in this set.
-   */
   private final int upperSize;
 
   private CappedSet(final Set<T> delegate, final int upperSize) {

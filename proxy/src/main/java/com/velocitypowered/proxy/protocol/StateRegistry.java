@@ -139,10 +139,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public enum StateRegistry {
 
-  /**
-   * Represents the handshake phase of the protocol, where the client initiates
-   * a connection and specifies the next intended state.
-   */
   HANDSHAKE {
     {
       serverbound.register(HandshakePacket.class, HandshakePacket::new,
@@ -150,10 +146,6 @@ public enum StateRegistry {
     }
   },
 
-  /**
-   * Represents the status phase of the protocol, used for server list pinging
-   * (e.g., MOTD and player list before connecting).
-   */
   STATUS {
     {
       serverbound.register(
@@ -170,11 +162,6 @@ public enum StateRegistry {
     }
   },
 
-  /**
-   * Represents the configuration phase introduced in newer protocol versions,
-   * where clients synchronize features, resource packs, and other configuration
-   * details before entering the game.
-   */
   CONFIG {
     {
       serverbound.register(
@@ -275,10 +262,6 @@ public enum StateRegistry {
     }
   },
 
-  /**
-   * Represents the main gameplay phase of the protocol, where active in-game
-   * communication occurs after login and world loading.
-   */
   PLAY {
     {
       serverbound.fallback = false;
@@ -858,10 +841,6 @@ public enum StateRegistry {
     }
   },
 
-  /**
-   * Represents the login phase of the protocol, where clients authenticate and
-   * receive their initial game profile before being placed into the game.
-   */
   LOGIN {
     {
       serverbound.register(ServerLoginPacket.class,
@@ -902,43 +881,16 @@ public enum StateRegistry {
     }
   };
 
-  /**
-   * The numeric ID used to represent the STATUS protocol phase.
-   */
   public static final int STATUS_ID = 1;
 
-  /**
-   * The numeric ID used to represent the LOGIN protocol phase.
-   */
   public static final int LOGIN_ID = 2;
 
-  /**
-   * The numeric ID used to represent the TRANSFER protocol phase.
-   */
   public static final int TRANSFER_ID = 3;
 
-  /**
-   * The registry that manages packets sent from the server to the client during this protocol state.
-   */
   protected final PacketRegistry clientbound = new PacketRegistry(CLIENTBOUND, this);
 
-  /**
-   * The registry that manages packets sent from the client to the server during this protocol state.
-   */
   protected final PacketRegistry serverbound = new PacketRegistry(SERVERBOUND, this);
 
-  /**
-   * Retrieves the appropriate registry for the given packet direction and protocol version.
-   *
-   * <p>This method delegates to either the {@code serverbound} or {@code clientbound} registry
-   * depending on the specified {@link Direction}, and resolves the correct registry
-   * based on the provided {@link ProtocolVersion}.</p>
-   *
-   * @param direction the direction of the packet (serverbound or clientbound)
-   * @param version the protocol version to retrieve the registry for
-   * @return the matching instance
-   * @throws IllegalArgumentException if the protocol version is not supported
-   */
   public StateRegistry.PacketRegistry.ProtocolRegistry getProtocolRegistry(final Direction direction,
                                                                            final ProtocolVersion version) {
     return (direction == SERVERBOUND ? serverbound : clientbound).getProtocolRegistry(version);
@@ -964,24 +916,12 @@ public enum StateRegistry {
    */
   public static class PacketRegistry {
 
-    /**
-     * The direction of packets that this registry manages (clientbound or serverbound).
-     */
     private final Direction direction;
 
-    /**
-     * The {@link StateRegistry} instance that owns this packet registry.
-     */
     private final StateRegistry registry;
 
-    /**
-     * A map of protocol versions to their respective {@link ProtocolRegistry} implementations.
-     */
     private final Map<ProtocolVersion, ProtocolRegistry> versions;
 
-    /**
-     * Whether to fall back to the minimum protocol version if a version is not found.
-     */
     private boolean fallback = true;
 
     PacketRegistry(final Direction direction, final StateRegistry registry) {
@@ -1011,21 +951,6 @@ public enum StateRegistry {
       return registry;
     }
 
-    /**
-     * Registers a packet with the registry using one or more protocol version mappings.
-     *
-     * <p>This method associates a packet class and its factory with the corresponding protocol versions
-     * and packet IDs, enabling both encoding and decoding during runtime.</p>
-     *
-     * <p>If multiple mappings are provided, the packet will be registered across a version range.
-     * The final mapping may optionally define a {@code lastValidProtocolVersion} to limit the range.</p>
-     *
-     * @param <P> the packet type
-     * @param clazz the class of the packet to register
-     * @param packetSupplier a {@link Supplier} used to instantiate the packet during decoding
-     * @param mappings one or more {@link PacketMapping} entries defining protocol version ranges and IDs
-     * @throws IllegalArgumentException if mappings are invalid, duplicate IDs are found, or registration conflicts exist
-     */
     @SuppressWarnings("checkstyle:DesignForExtension")
     <P extends MinecraftPacket> void register(final Class<P> clazz, final Supplier<P> packetSupplier,
                                               final PacketMapping... mappings) {
@@ -1101,20 +1026,11 @@ public enum StateRegistry {
      */
     public class ProtocolRegistry {
 
-      /**
-       * The protocol version associated with this registry.
-       */
       public final ProtocolVersion version;
 
-      /**
-       * A mapping from packet ID to its supplier, used to create packets during decoding.
-       */
       final IntObjectMap<Supplier<? extends MinecraftPacket>> packetIdToSupplier =
           new IntObjectHashMap<>(16, 0.5f);
 
-      /**
-       * A mapping from packet class to its registered ID, used during encoding.
-       */
       final Object2IntMap<Class<? extends MinecraftPacket>> packetClassToId =
           new Object2IntOpenHashMap<>(16, 0.5f);
 
@@ -1175,25 +1091,12 @@ public enum StateRegistry {
    */
   public static final class PacketMapping {
 
-    /**
-     * The unique ID for this packet mapping within the protocol version.
-     */
     private final int id;
 
-    /**
-     * The protocol version at which this packet mapping takes effect.
-     */
     private final ProtocolVersion protocolVersion;
 
-    /**
-     * Whether this mapping is used for encoding only (i.e., no decoding logic is registered).
-     */
     private final boolean encodeOnly;
 
-    /**
-     * The last protocol version for which this packet mapping remains valid,
-     * or {@code null} if it is valid until the highest known version.
-     */
     private final @Nullable ProtocolVersion lastValidProtocolVersion;
 
     PacketMapping(final int id, final ProtocolVersion protocolVersion,

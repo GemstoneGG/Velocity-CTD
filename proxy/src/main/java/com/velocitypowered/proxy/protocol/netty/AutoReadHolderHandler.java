@@ -30,27 +30,12 @@ import org.jetbrains.annotations.NotNull;
  */
 public class AutoReadHolderHandler extends ChannelDuplexHandler {
 
-  /**
-   * Queue of messages that have been received via {@code channelRead} but not yet propagated
-   * because {@code autoRead} is disabled.
-   */
   private final Queue<Object> queuedMessages;
 
-  /**
-   * Constructs a new {@code AutoReadHolderHandler}.
-   */
   public AutoReadHolderHandler() {
     this.queuedMessages = new ArrayDeque<>();
   }
 
-  /**
-   * Processes all queued messages before performing a downstream read operation.
-   *
-   * <p>This ensures that previously held messages are propagated before new reads are issued.</p>
-   *
-   * @param ctx the Netty channel context
-   * @throws Exception if an error occurs during read propagation
-   */
   @Override
   public void read(final ChannelHandlerContext ctx) throws Exception {
     drainQueuedMessages(ctx);
@@ -68,12 +53,6 @@ public class AutoReadHolderHandler extends ChannelDuplexHandler {
     }
   }
 
-  /**
-   * Either immediately forwards or queues the incoming message depending on {@code autoRead} status.
-   *
-   * @param ctx the Netty channel context
-   * @param msg the received message
-   */
   @Override
   public void channelRead(final ChannelHandlerContext ctx, final @NotNull Object msg) {
     if (ctx.channel().config().isAutoRead()) {
@@ -83,12 +62,6 @@ public class AutoReadHolderHandler extends ChannelDuplexHandler {
     }
   }
 
-  /**
-   * Propagates a {@code channelReadComplete} if {@code autoRead} is enabled,
-   * or drains any remaining queued messages first.
-   *
-   * @param ctx the Netty channel context
-   */
   @Override
   public void channelReadComplete(final ChannelHandlerContext ctx) {
     if (ctx.channel().config().isAutoRead()) {
@@ -100,13 +73,6 @@ public class AutoReadHolderHandler extends ChannelDuplexHandler {
     }
   }
 
-  /**
-   * Releases any queued messages when the handler is removed from the pipeline.
-   *
-   * <p>This ensures that no retained objects cause memory leaks.</p>
-   *
-   * @param ctx the Netty channel context
-   */
   @Override
   public void handlerRemoved(final ChannelHandlerContext ctx) {
     for (Object message : this.queuedMessages) {

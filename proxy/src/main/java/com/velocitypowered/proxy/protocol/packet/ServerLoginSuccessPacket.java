@@ -30,41 +30,17 @@ import java.util.List;
 import java.util.UUID;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/**
- * Represents the packet sent from the server to the client to indicate successful login.
- * This packet contains the player's UUID, username, and properties associated with their profile.
- */
 public class ServerLoginSuccessPacket implements MinecraftPacket {
 
-  /**
-   * The UUID of the player, as provided by the login success response.
-   */
   private @Nullable UUID uuid;
 
-  /**
-   * The username of the player.
-   */
   private @Nullable String username;
 
-  /**
-   * The properties attached to the player's {@link GameProfile}, such as skins or other metadata.
-   */
   private @Nullable List<GameProfile.Property> properties;
 
-  /**
-   * Whether strict error handling is enabled for the login success packet.
-   *
-   * <p>This flag controls whether to append the strictness indicator in the packet (1.20.5/1.21+).</p>
-   */
   private static final boolean strictErrorHandling = VelocityProperties
           .readBoolean("velocity.strictErrorHandling", true);
 
-  /**
-   * Gets the player's UUID from the login success packet.
-   *
-   * @return the player's UUID
-   * @throws IllegalStateException if the UUID is not specified
-   */
   public UUID getUuid() {
     if (uuid == null) {
       throw new IllegalStateException("No UUID specified!");
@@ -77,12 +53,6 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
     this.uuid = uuid;
   }
 
-  /**
-   * Gets the player's username from the login success packet.
-   *
-   * @return the player's username
-   * @throws IllegalStateException if the username is not specified
-   */
   public String getUsername() {
     if (username == null) {
       throw new IllegalStateException("No username specified!");
@@ -91,40 +61,18 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
     return username;
   }
 
-  /**
-   * Sets the username of the player.
-   *
-   * @param username the player's username
-   */
   public void setUsername(final @Nullable String username) {
     this.username = username;
   }
 
-  /**
-   * Gets the properties associated with the player's game profile.
-   *
-   * @return the player's {@link GameProfile.Property} list, or {@code null} if none are present
-   */
   public @Nullable List<GameProfile.Property> getProperties() {
     return properties;
   }
 
-  /**
-   * Sets the properties associated with the player's game profile.
-   *
-   * @param properties the {@link GameProfile.Property} list
-   */
   public void setProperties(final @Nullable List<GameProfile.Property> properties) {
     this.properties = properties;
   }
 
-  /**
-   * Returns a string representation of this login success packet.
-   *
-   * <p>This includes the UUID, username, and profile properties if present.</p>
-   *
-   * @return a string describing this packet
-   */
   @Override
   public String toString() {
     return "ServerLoginSuccess{"
@@ -134,16 +82,6 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
         + '}';
   }
 
-  /**
-   * Decodes this server login success packet from the given {@link ByteBuf}.
-   *
-   * <p>This reads the UUID, username, optional properties, and strict error handling flag
-   * depending on the Minecraft protocol version.</p>
-   *
-   * @param buf the buffer to read from
-   * @param direction the direction of the packet (clientbound or serverbound)
-   * @param version the Minecraft protocol version
-   */
   @Override
   public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19)) {
@@ -167,17 +105,6 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
     }
   }
 
-  /**
-   * Encodes this server login success packet into the given {@link ByteBuf}.
-   *
-   * <p>This writes the UUID, username, optional profile properties, and strict error handling flag
-   * depending on the Minecraft protocol version.</p>
-   *
-   * @param buf the buffer to write to
-   * @param direction the direction of the packet (clientbound or serverbound)
-   * @param version the Minecraft protocol version
-   * @throws IllegalStateException if UUID or username is not set
-   */
   @Override
   public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     if (uuid == null) {
@@ -213,34 +140,11 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
     }
   }
 
-  /**
-   * Handles this server login success packet using the specified {@link MinecraftSessionHandler}.
-   *
-   * <p>This delegates packet handling logic to {@code handler.handle(this)}.</p>
-   *
-   * @param handler the session handler responsible for processing this packet
-   * @return {@code true} if the packet was handled successfully
-   */
   @Override
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
-  /**
-   * Provides an estimated number of bytes required to encode this login success packet.
-   *
-   * <p>The encoded size varies depending on protocol version and included data — such as
-   * the UUID format, username, and optional game profile properties. Since these elements
-   * can differ in size (e.g., long usernames, multiple skin properties, or signature data),
-   * this method returns a conservative fixed estimate of {@code 4 KiB} to ensure the encoder
-   * pre-allocates enough buffer space.</p>
-   *
-   * <p>This avoids unnecessary buffer resizing and improves I/O performance during encoding.</p>
-   *
-   * @param direction the packet direction (clientbound or serverbound)
-   * @param version the Minecraft protocol version
-   * @return the estimated encoded size in bytes (always {@code 4096})
-   */
   @Override
   public int encodeSizeHint(final Direction direction, final ProtocolVersion version) {
     // We could compute an exact size, but 4KiB ought to be enough to encode all reasonable

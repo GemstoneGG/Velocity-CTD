@@ -25,10 +25,5 @@ import com.velocitypowered.proxy.connection.MinecraftConnection;
  */
 public interface VelocityInboundConnection extends InboundConnection {
 
-  /**
-   * Gets the {@link MinecraftConnection} backing this inbound connection.
-   *
-   * @return the underlying {@link MinecraftConnection}
-   */
   MinecraftConnection getConnection();
 }

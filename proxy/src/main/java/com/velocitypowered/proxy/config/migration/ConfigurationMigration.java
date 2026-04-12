@@ -26,21 +26,8 @@ import org.apache.logging.log4j.Logger;
  */
 public interface ConfigurationMigration {
 
-  /**
-   * Determines whether this migration should be applied to the given config.
-   *
-   * @param config the config file to evaluate
-   * @return {@code true} if the migration is applicable; {@code false} otherwise
-   */
   boolean shouldMigrate(CommentedFileConfig config);
 
-  /**
-   * Applies this migration to the given config.
-   *
-   * @param config the config file to modify
-   * @param logger the logger for emitting warnings or progress messages
-   * @throws IOException if an error occurs while applying the migration
-   */
   void migrate(CommentedFileConfig config, Logger logger) throws IOException;
 
   /**

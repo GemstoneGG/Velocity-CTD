@@ -25,58 +25,24 @@ import io.netty.buffer.ByteBuf;
 import java.util.UUID;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/**
- * Represents a legacy chat packet used in older versions of Minecraft.
- *
- * <p>The {@code LegacyChatPacket} is responsible for holding and transmitting chat messages
- * in the format used by legacy versions of Minecraft. It implements {@link MinecraftPacket}
- * to ensure compatibility with the packet-handling system.</p>
- */
 public class LegacyChatPacket implements MinecraftPacket {
 
-  /**
-   * Constant representing a normal player chat message.
-   */
   public static final byte CHAT_TYPE = (byte) 0;
 
-  /**
-   * Constant representing a system message (e.g., console output).
-   */
   public static final byte SYSTEM_TYPE = (byte) 1;
 
-  /**
-   * Constant representing a game info message (e.g., action bar).
-   */
   public static final byte GAME_INFO_TYPE = (byte) 2;
 
-  /**
-   * Maximum allowed length for a message sent from client to server (pre-1.19).
-   */
   public static final int MAX_SERVERBOUND_MESSAGE_LENGTH = 256;
 
-  /**
-   * Maximum allowed length for a message sent from client to server (post-1.11).
-   */
   private static final int MAX_SERVERBOUND_MESSAGE_LENGTH_LEGACY = getMaxServerboundMessageLength();
 
-  /**
-   * UUID placeholder used when no sender is provided.
-   */
   public static final UUID EMPTY_SENDER = new UUID(0, 0);
 
-  /**
-   * The message payload in JSON format or raw string, depending on version.
-   */
   private @Nullable String message;
 
-  /**
-   * The type of chat message (chat/system/info). Only sent in 1.8+ clientbound.
-   */
   private byte type;
 
-  /**
-   * The UUID of the original sender (1.16+ clientbound).
-   */
   private @Nullable UUID sender;
 
   private static int getMaxServerboundMessageLength() {
@@ -92,9 +58,6 @@ public class LegacyChatPacket implements MinecraftPacket {
     return 100;
   }
 
-  /**
-   * Constructs an empty {@code LegacyChatPacket} for decoding.
-   */
   public LegacyChatPacket() {
   }
 
@@ -125,58 +88,26 @@ public class LegacyChatPacket implements MinecraftPacket {
     return message;
   }
 
-  /**
-   * Sets the chat message.
-   *
-   * @param message the message content
-   */
   public void setMessage(final @Nullable String message) {
     this.message = message;
   }
 
-  /**
-   * Returns the message type.
-   *
-   * @return the type byte (0 = chat, 1 = system, 2 = game info)
-   */
   public byte getType() {
     return type;
   }
 
-  /**
-   * Sets the message type.
-   *
-   * @param type the type byte to assign
-   */
   public void setType(final byte type) {
     this.type = type;
   }
 
-  /**
-   * Returns the sender UUID (clientbound 1.16+).
-   *
-   * @return the sender UUID, or {@code null} if unset
-   */
   public UUID getSenderUuid() {
     return sender;
   }
 
-  /**
-   * Sets the sender UUID.
-   *
-   * @param sender the sender UUID
-   */
   public void setSenderUuid(final UUID sender) {
     this.sender = sender;
   }
 
-  /**
-   * Returns a string representation of this legacy chat packet.
-   *
-   * <p>This includes the message text, type, and sender UUID.</p>
-   *
-   * @return a string describing the packet
-   */
   @Override
   public String toString() {
     return "Chat{"
@@ -186,16 +117,6 @@ public class LegacyChatPacket implements MinecraftPacket {
         + '}';
   }
 
-  /**
-   * Decodes this legacy chat packet from the given {@link ByteBuf}.
-   *
-   * <p>This method reads the chat message, type, and optionally the sender UUID
-   * depending on the direction and protocol version.</p>
-   *
-   * @param buf the buffer to read from
-   * @param direction the direction of the packet (clientbound or serverbound)
-   * @param version the Minecraft protocol version
-   */
   @Override
   public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     message = ProtocolUtils.readString(buf, direction == ProtocolUtils.Direction.CLIENTBOUND
@@ -209,17 +130,6 @@ public class LegacyChatPacket implements MinecraftPacket {
     }
   }
 
-  /**
-   * Encodes this legacy chat packet into the given {@link ByteBuf}.
-   *
-   * <p>This writes the message string, type, and optionally the sender UUID
-   * depending on the direction and protocol version.</p>
-   *
-   * @param buf the buffer to write to
-   * @param direction the direction of the packet (clientbound or serverbound)
-   * @param version the Minecraft protocol version
-   * @throws IllegalStateException if the message is not set
-   */
   @Override
   public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
     if (message == null) {
@@ -235,14 +145,6 @@ public class LegacyChatPacket implements MinecraftPacket {
     }
   }
 
-  /**
-   * Handles this legacy chat packet using the specified {@link MinecraftSessionHandler}.
-   *
-   * <p>This delegates packet processing to {@code handler.handle(this)}.</p>
-   *
-   * @param handler the session handler responsible for handling this packet
-   * @return {@code true} if the packet was handled successfully
-   */
   @Override
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);

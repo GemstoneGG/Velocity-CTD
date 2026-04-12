@@ -28,90 +28,36 @@ import io.netty.buffer.Unpooled;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Represents a mod-specific argument type with custom binary data attached.
- *
- * <p>This class allows external mods or extensions to define their own command argument
- * types, identified by a namespaced {@link ArgumentIdentifier} and accompanied by
- * serialized {@link ByteBuf} data.</p>
- *
- * <p>Note: This type is not parseable or suggestible through Brigadier and exists primarily
- * to preserve compatibility with extended command metadata during serialization and
- * deserialization.</p>
- */
 public class ModArgumentProperty implements ArgumentType<ByteBuf> {
 
-  /**
-   * The identifier representing the mod-defined argument type.
-   */
   private final ArgumentIdentifier identifier;
 
-  /**
-   * The raw serialized argument data associated with the mod argument.
-   */
   private final ByteBuf data;
 
-  /**
-   * Constructs a new {@code ModArgumentProperty} with the specified identifier and binary data.
-   *
-   * @param identifier the argument identifier (e.g., {@code "modid:custom_type"})
-   * @param data the serialized argument data buffer (copied as read-only)
-   */
   public ModArgumentProperty(final ArgumentIdentifier identifier, final ByteBuf data) {
     this.identifier = identifier;
     this.data = Unpooled.unreleasableBuffer(data.asReadOnly());
   }
 
-  /**
-   * Returns the identifier of this mod argument.
-   *
-   * @return the mod argument identifier
-   */
   public ArgumentIdentifier getIdentifier() {
     return identifier;
   }
 
-  /**
-   * Returns a sliced, read-only copy of the internal argument data buffer.
-   *
-   * @return the mod argument's serialized data
-   */
   public ByteBuf getData() {
     return data.slice();
   }
 
-  /**
-   * This operation is not supported for mod argument types.
-   *
-   * @param reader the string reader
-   * @return never returns normally
-   * @throws UnsupportedOperationException always
-   */
   @Override
   public ByteBuf parse(final StringReader reader) throws CommandSyntaxException {
     throw new UnsupportedOperationException();
   }
 
-  /**
-   * This operation is not supported for mod argument types.
-   *
-   * @param context the command context
-   * @param builder the suggestion builder
-   * @return never returns normally
-   * @throws UnsupportedOperationException always
-   */
   @Override
   public <S> CompletableFuture<Suggestions> listSuggestions(final CommandContext<S> context,
                                                             final SuggestionsBuilder builder) {
     throw new UnsupportedOperationException();
   }
 
-  /**
-   * This operation is not supported for mod argument types.
-   *
-   * @return never returns normally
-   * @throws UnsupportedOperationException always
-   */
   @Override
   public Collection<String> getExamples() {
     throw new UnsupportedOperationException();

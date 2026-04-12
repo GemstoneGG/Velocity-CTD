@@ -69,45 +69,20 @@ import org.jetbrains.annotations.VisibleForTesting;
  */
 public class VelocityCommandManager implements CommandManager {
 
-  /**
-   * The command dispatcher that holds the full Brigadier command graph.
-   * Guarded by the {@linkplain #lock read/write lock}.
-   */
   private final @GuardedBy("lock") CommandDispatcher<CommandSource> dispatcher;
 
-  /**
-   * The lock guarding concurrent access to {@link #dispatcher}.
-   */
   private final ReadWriteLock lock;
 
-  /**
-   * The event manager used to dispatch command-related events.
-   */
   private final VelocityEventManager eventManager;
 
-  /**
-   * A list of all command registrars supported by the proxy.
-   */
   private final List<CommandRegistrar<?>> registrars;
 
-  /**
-   * The suggestion provider responsible for computing command completions.
-   */
   private final SuggestionsProvider<CommandSource> suggestionsProvider;
 
-  /**
-   * The injector used to dynamically inject a player's command graph.
-   */
   private final CommandGraphInjector<CommandSource> injector;
 
-  /**
-   * A mapping of all known aliases to their corresponding {@link CommandMeta}.
-   */
   private final Map<String, CommandMeta> commandMetas;
 
-  /**
-   * The plugin manager used to retrieve plugin containers and executor services.
-   */
   private final PluginManager pluginManager;
 
   /**
@@ -131,59 +106,28 @@ public class VelocityCommandManager implements CommandManager {
     this.commandMetas = new ConcurrentHashMap<>();
   }
 
-  /**
-   * Sets whether the proxy's commands should be suggested to players.
-   *
-   * <p>When {@code false}, suggestions for proxy-level commands will be hidden
-   * from players (e.g., to avoid suggesting `/velocity` to regular users).
-   *
-   * @param announceProxyCommands {@code true} to suggest proxy commands, {@code false} otherwise
-   */
   public final void setAnnounceProxyCommands(final boolean announceProxyCommands) {
     this.suggestionsProvider.setAnnounceProxyCommands(announceProxyCommands);
   }
 
-  /**
-   * Creates a {@link CommandMeta.Builder} for a command alias.
-   *
-   * @param alias the primary alias for the command
-   * @return a new {@link CommandMeta.Builder}
-   */
   @Override
   public CommandMeta.Builder metaBuilder(final String alias) {
     Preconditions.checkNotNull(alias, "alias");
     return new VelocityCommandMeta.Builder(alias);
   }
 
-  /**
-   * Creates a {@link CommandMeta.Builder} for a {@link BrigadierCommand}.
-   *
-   * @param command the Brigadier command instance
-   * @return a new {@link CommandMeta.Builder}
-   */
   @Override
   public CommandMeta.Builder metaBuilder(final BrigadierCommand command) {
     Preconditions.checkNotNull(command, "command");
     return new VelocityCommandMeta.Builder(command.getNode().getName());
   }
 
-  /**
-   * Registers a {@link BrigadierCommand} with the proxy command system.
-   *
-   * @param command the command to register
-   */
   @Override
   public void register(final BrigadierCommand command) {
     Preconditions.checkNotNull(command, "command");
     register(metaBuilder(command).build(), command);
   }
 
-  /**
-   * Registers a {@link Command} with associated {@link CommandMeta}.
-   *
-   * @param meta    the command metadata
-   * @param command the command implementation
-   */
   @Override
   public void register(final CommandMeta meta, final Command command) {
     Preconditions.checkNotNull(meta, "meta");
@@ -238,11 +182,6 @@ public class VelocityCommandManager implements CommandManager {
     return registrarsFound;
   }
 
-  /**
-   * Unregisters a command by its alias.
-   *
-   * @param alias the alias of the command
-   */
   @Override
   public void unregister(final String alias) {
     Preconditions.checkNotNull(alias, "alias");
@@ -257,11 +196,6 @@ public class VelocityCommandManager implements CommandManager {
     }
   }
 
-  /**
-   * Unregisters all aliases associated with the given {@link CommandMeta}.
-   *
-   * @param meta the command metadata
-   */
   @Override
   public void unregister(final CommandMeta meta) {
     Preconditions.checkNotNull(meta, "meta");
@@ -280,12 +214,6 @@ public class VelocityCommandManager implements CommandManager {
     }
   }
 
-  /**
-   * Retrieves the {@link CommandMeta} associated with a given alias.
-   *
-   * @param alias the command alias
-   * @return the associated {@link CommandMeta}, or {@code null} if not found
-   */
   @Override
   public @Nullable CommandMeta getCommandMeta(final String alias) {
     Preconditions.checkNotNull(alias, "alias");
@@ -343,13 +271,6 @@ public class VelocityCommandManager implements CommandManager {
     }
   }
 
-  /**
-   * Executes a command asynchronously via the proxy API.
-   *
-   * @param source  the command source
-   * @param cmdLine the raw command string
-   * @return a future that completes with {@code true} if executed locally
-   */
   @Override
   public CompletableFuture<Boolean> executeAsync(final CommandSource source, final String cmdLine) {
     Preconditions.checkNotNull(source, "source");
@@ -372,13 +293,6 @@ public class VelocityCommandManager implements CommandManager {
     }, figureAsyncExecutorForParsing());
   }
 
-  /**
-   * Immediately executes a command asynchronously, skipping command event dispatch.
-   *
-   * @param source  the command source
-   * @param cmdLine the command input
-   * @return a future that completes with {@code true} if executed locally
-   */
   @Override
   public CompletableFuture<Boolean> executeImmediatelyAsync(
       final CommandSource source, final String cmdLine) {
@@ -393,26 +307,12 @@ public class VelocityCommandManager implements CommandManager {
     );
   }
 
-  /**
-   * Provides legacy-style tab completions (string list).
-   *
-   * @param source  the source requesting suggestions
-   * @param cmdLine the current input string
-   * @return a future of suggestion strings
-   */
   @Override
   public CompletableFuture<List<String>> offerSuggestions(final CommandSource source, final String cmdLine) {
     return offerBrigadierSuggestions(source, cmdLine)
         .thenApply(suggestions -> Lists.transform(suggestions.getList(), Suggestion::getText));
   }
 
-  /**
-   * Provides full Brigadier {@link Suggestions} based on the command graph.
-   *
-   * @param source  the source requesting completions
-   * @param cmdLine the input being completed
-   * @return a future of {@link Suggestions}
-   */
   @Override
   public CompletableFuture<Suggestions> offerBrigadierSuggestions(final CommandSource source, final String cmdLine) {
     Preconditions.checkNotNull(source, "source");
@@ -445,11 +345,6 @@ public class VelocityCommandManager implements CommandManager {
     }
   }
 
-  /**
-   * Returns all registered command aliases.
-   *
-   * @return a collection of command aliases
-   */
   @Override
   public Collection<String> getAliases() {
     lock.readLock().lock();
@@ -463,24 +358,11 @@ public class VelocityCommandManager implements CommandManager {
     }
   }
 
-  /**
-   * Checks if a command is registered with the given alias.
-   *
-   * @param alias the alias to check
-   * @return {@code true} if the command exists
-   */
   @Override
   public boolean hasCommand(final String alias) {
     return getCommand(alias) != null;
   }
 
-  /**
-   * Checks if the command alias exists and the source is permitted to use it.
-   *
-   * @param alias  the command alias
-   * @param source the command source
-   * @return {@code true} if the source can execute the command
-   */
   @Override
   public boolean hasCommand(final String alias, final CommandSource source) {
     Preconditions.checkNotNull(source, "source");
@@ -488,39 +370,16 @@ public class VelocityCommandManager implements CommandManager {
     return command != null && command.canUse(source);
   }
 
-  /**
-   * Gets the command node associated with the given alias.
-   *
-   * @param alias the command alias to look up
-   * @return the command node, or {@code null} if none exists
-   */
   public final CommandNode<CommandSource> getCommand(final String alias) {
     Preconditions.checkNotNull(alias, "alias");
     return dispatcher.getRoot().getChild(alias.toLowerCase(Locale.ENGLISH));
   }
 
-  /**
-   * Returns the root {@link RootCommandNode} of the Brigadier command dispatcher.
-   *
-   * <p>This exposes the underlying command graph for testing or low-level manipulation.
-   * It is intended for internal or test use only.</p>
-   *
-   * <p><strong>Warning:</strong> This method constitutes <em>unsafe publication</em>.
-   * External access to the root node may result in race conditions or inconsistent state
-   * if modifications occur concurrently without proper synchronization. Use with caution.</p>
-   *
-   * @return the root command node of the dispatcher
-   */
   @VisibleForTesting
   RootCommandNode<CommandSource> getRoot() {
     return dispatcher.getRoot();
   }
 
-  /**
-   * Returns the {@link CommandGraphInjector} used to populate per-source command trees.
-   *
-   * @return the command graph injector
-   */
   public CommandGraphInjector<CommandSource> getInjector() {
     return injector;
   }

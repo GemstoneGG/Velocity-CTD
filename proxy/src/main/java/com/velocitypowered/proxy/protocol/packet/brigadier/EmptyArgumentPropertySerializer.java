@@ -31,10 +31,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 final class EmptyArgumentPropertySerializer implements ArgumentPropertySerializer<Void> {
 
-  /**
-   * A shared singleton instance of {@code EmptyArgumentPropertySerializer}, exposed as
-   * {@link ArgumentPropertySerializer} with EMPTY.
-   */
   static final ArgumentPropertySerializer<Void> EMPTY = new EmptyArgumentPropertySerializer();
 
   private EmptyArgumentPropertySerializer() {

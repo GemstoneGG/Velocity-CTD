@@ -275,22 +275,11 @@ public enum InformationUtils {
         withExcludes ? GSON_WITH_EXCLUDES.toJson(toSerialize) : GSON_WITHOUT_EXCLUDES.toJson(toSerialize));
   }
 
-  /**
-   * A {@link Gson} instance configured to pretty-print JSON and exclude fields
-   * not marked with {@link com.google.gson.annotations.Expose}.
-   *
-   * <p>Used when output should be restricted to explicitly exposed fields only.</p>
-   */
   private static final Gson GSON_WITH_EXCLUDES = new GsonBuilder()
       .setPrettyPrinting()
       .excludeFieldsWithoutExposeAnnotation()
       .create();
 
-  /**
-   * A {@link Gson} instance configured to pretty-print JSON without excluding any fields.
-   *
-   * <p>Used when full serialization is desired regardless of {@link com.google.gson.annotations.Expose}.</p>
-   */
   private static final Gson GSON_WITHOUT_EXCLUDES = new GsonBuilder()
       .setPrettyPrinting()
       .create();

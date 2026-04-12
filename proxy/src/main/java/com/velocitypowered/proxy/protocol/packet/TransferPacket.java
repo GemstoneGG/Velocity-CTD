@@ -25,43 +25,20 @@ import io.netty.buffer.ByteBuf;
 import java.net.InetSocketAddress;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Represents a packet used to transfer a player to another server.
- */
 public class TransferPacket implements MinecraftPacket {
 
-  /**
-   * The hostname of the server to transfer the player to.
-   */
   private String host;
 
-  /**
-   * The port of the server to transfer the player to.
-   */
   private int port;
 
-  /**
-   * Constructs an empty {@code TransferPacket}. Used primarily for decoding.
-   */
   public TransferPacket() {
   }
 
-  /**
-   * Constructs a {@code TransferPacket} with the specified host and port.
-   *
-   * @param host the hostname of the destination server
-   * @param port the port of the destination server
-   */
   public TransferPacket(final String host, final int port) {
     this.host = host;
     this.port = port;
   }
 
-  /**
-   * Gets the {@link InetSocketAddress} representing the transfer address.
-   *
-   * @return the {@code InetSocketAddress}, or {@code null} if the host is not set
-   */
   @Nullable
   public InetSocketAddress address() {
     if (host == null) {
@@ -71,46 +48,18 @@ public class TransferPacket implements MinecraftPacket {
     return new InetSocketAddress(host, port);
   }
 
-  /**
-   * Decodes this transfer packet from the provided {@link ByteBuf}.
-   *
-   * <p>This reads the hostname and port number of the destination server
-   * that the player should be transferred to.</p>
-   *
-   * @param buf the buffer to read from
-   * @param direction the direction of the packet
-   * @param protocolVersion the Minecraft protocol version
-   */
   @Override
   public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     this.host = ProtocolUtils.readString(buf);
     this.port = ProtocolUtils.readVarInt(buf);
   }
 
-  /**
-   * Encodes this transfer packet into the provided {@link ByteBuf}.
-   *
-   * <p>This writes the hostname and port of the target server for player transfer.</p>
-   *
-   * @param buf the buffer to write to
-   * @param direction the direction of the packet
-   * @param protocolVersion the Minecraft protocol version
-   */
   @Override
   public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeString(buf, host);
     ProtocolUtils.writeVarInt(buf, port);
   }
 
-  /**
-   * Handles this transfer packet using the specified {@link MinecraftSessionHandler}.
-   *
-   * <p>This delegates processing to {@code handler.handle(this)} to initiate
-   * transfer of the player to another backend server.</p>
-   *
-   * @param handler the session handler responsible for handling this packet
-   * @return {@code true} if the packet was handled successfully
-   */
   @Override
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);

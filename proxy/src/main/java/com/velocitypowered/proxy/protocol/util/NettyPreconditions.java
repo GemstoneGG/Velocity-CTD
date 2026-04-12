@@ -28,14 +28,6 @@ import io.netty.handler.codec.CorruptedFrameException;
  */
 public final class NettyPreconditions {
 
-  /**
-   * A generic {@link QuietDecoderException} used to signal that a packet was invalid or malformed.
-   *
-   * <p>This constant is used in decoding logic to throw a generic error when a packet
-   * fails validation or structure checks. To diagnose the cause of this exception,
-   * you can enable packet decode logging by launching Velocity with the system property
-   * {@code -Dvelocity.packet-decode-logging=true}.</p>
-   */
   private static final QuietDecoderException BAD = new QuietDecoderException(
       "Invalid packet received. Launch Velocity with -Dvelocity.packet-decode-logging=true "
           + "to see more.");

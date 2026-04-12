@@ -43,9 +43,6 @@ import org.bstats.json.JsonObjectBuilder;
  */
 public final class Metrics {
 
-  /**
-   * The bStats metrics core responsible for collecting and submitting data.
-   */
   private MetricsBase metricsBase;
 
   private Metrics(final Logger logger, final int serviceId, final boolean defaultEnabled) {
@@ -107,9 +104,6 @@ public final class Metrics {
 
   static class VelocityMetrics {
 
-    /**
-     * Logger used for bStats-related output during initialization.
-     */
     private static final Logger LOGGER = LogManager.getLogger(Metrics.class);
 
     static void startMetrics(final VelocityServer server, final VelocityConfiguration.Metrics metricsConfig) {

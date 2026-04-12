@@ -28,9 +28,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 class JavaVelocityPluginDescription extends VelocityPluginDescription {
 
-  /**
-   * The main class of the plugin that will be instantiated during plugin creation.
-   */
   private final Class<?> mainClass;
 
   JavaVelocityPluginDescription(final String id, final @Nullable String name, final @Nullable String version,

@@ -41,26 +41,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class CommandGraphInjector<S> {
 
-  /**
-   * A static {@link StringRange} pointing to the start of the command input.
-   * Used when injecting command nodes to simulate parsing from the root.
-   */
   private static final StringRange ALIAS_RANGE = StringRange.at(0);
 
-  /**
-   * A static {@link StringReader} instance representing an empty input string.
-   * Used for evaluating alias requirements without actual user input.
-   */
   private static final StringReader ALIAS_READER = new StringReader("");
 
-  /**
-   * The dispatcher from which command nodes are sourced for injection.
-   */
   private final @GuardedBy("lock") CommandDispatcher<S> dispatcher;
 
-  /**
-   * The lock used to guard concurrent access to the dispatcher and node copying.
-   */
   private final Lock lock;
 
   CommandGraphInjector(final CommandDispatcher<S> dispatcher, final Lock lock) {

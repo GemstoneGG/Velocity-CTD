@@ -23,13 +23,6 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
 
-/**
- * Represents a packet that acknowledges a successful login, implementing {@link MinecraftPacket}.
- *
- * <p>The {@code LoginAcknowledgedPacket} is sent by the server to confirm that the player's login
- * process has been successfully completed. It signals the transition from the login phase to the
- * game or session phase.</p>
- */
 public class LoginAcknowledgedPacket implements MinecraftPacket {
 
   @Override
@@ -42,32 +35,12 @@ public class LoginAcknowledgedPacket implements MinecraftPacket {
                      final ProtocolVersion protocolVersion) {
   }
 
-  /**
-   * Returns the expected maximum length (in bytes) of this packet.
-   *
-   * <p>This implementation always returns {@code 0} because the login acknowledgment
-   * packet has no data fields — it serves purely as a signal. The method exists
-   * to maintain consistency with other packet definitions that may include payloads.</p>
-   *
-   * @param buf the buffer being read (unused)
-   * @param direction the direction of the packet (clientbound or serverbound)
-   * @param version the Minecraft protocol version
-   * @return the maximum expected byte length (always {@code 0})
-   */
   @Override
   public int decodeExpectedMaxLength(final ByteBuf buf, final ProtocolUtils.Direction direction,
                                      final ProtocolVersion version) {
     return 0;
   }
 
-  /**
-   * Handles this packet using the given {@link MinecraftSessionHandler}.
-   *
-   * <p>This delegates processing to the handler’s {@code handle(LoginAcknowledgedPacket)} method.</p>
-   *
-   * @param handler the session handler to process the packet
-   * @return {@code true} if the packet was handled successfully
-   */
   @Override
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);

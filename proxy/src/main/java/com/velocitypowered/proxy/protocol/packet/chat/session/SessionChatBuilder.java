@@ -26,33 +26,12 @@ import com.velocitypowered.proxy.protocol.packet.chat.SystemChatPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.builder.ChatBuilderV2;
 import net.kyori.adventure.text.Component;
 
-/**
- * A concrete implementation of {@link ChatBuilderV2} for handling session-based chat messages.
- *
- * <p>The {@code SessionChatBuilder} is designed to build chat components that are specific to
- * a player's session, allowing customization and context-specific formatting of chat messages
- * within the current session.</p>
- */
 public class SessionChatBuilder extends ChatBuilderV2 {
 
-  /**
-   * Constructs a new {@code SessionChatBuilder} for the specified protocol version.
-   *
-   * @param version the protocol version this builder targets
-   */
   public SessionChatBuilder(final ProtocolVersion version) {
     super(version);
   }
 
-  /**
-   * Builds a {@link SystemChatPacket} for sending a chat message to the client.
-   *
-   * <p>This method constructs the message using the configured {@link Component} or raw
-   * {@link #message} string. If the message type is {@link ChatType#CHAT}, it is converted
-   * to {@link ChatType#SYSTEM} to conform with modern client expectations.</p>
-   *
-   * @return the constructed {@link SystemChatPacket} to send to the client
-   */
   @Override
   public MinecraftPacket toClient() {
     // This is temporary (once again likely not too temporary)
@@ -60,22 +39,6 @@ public class SessionChatBuilder extends ChatBuilderV2 {
     return new SystemChatPacket(new ComponentHolder(version, msg), type == ChatType.CHAT ? ChatType.SYSTEM : type);
   }
 
-  /**
-   * Builds a session-aware {@link MinecraftPacket} to be sent to the backend server.
-   *
-   * <p>The method chooses between command or chat packet formats based on whether the
-   * message begins with a {@code /}. It handles:</p>
-   * <ul>
-   *   <li>{@link UnsignedPlayerCommandPacket} for 1.20.5+ unsigned commands</li>
-   *   <li>{@link SessionPlayerCommandPacket} for pre-1.20.5 signed command formats</li>
-   *   <li>{@link SessionPlayerChatPacket} for chat messages</li>
-   * </ul>
-   *
-   * <p>If {@link #lastSeenMessages} is unset, an empty {@link LastSeenMessages} is used
-   * to satisfy the protocol requirement for newer versions.</p>
-   *
-   * @return the constructed {@link MinecraftPacket} to send to the server
-   */
   @Override
   public MinecraftPacket toServer() {
     LastSeenMessages lastSeenMessages = this.lastSeenMessages != null ? this.lastSeenMessages : new LastSeenMessages();

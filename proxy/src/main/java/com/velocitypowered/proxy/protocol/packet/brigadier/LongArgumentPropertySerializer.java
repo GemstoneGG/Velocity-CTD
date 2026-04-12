@@ -25,21 +25,8 @@ import com.mojang.brigadier.arguments.LongArgumentType;
 import com.velocitypowered.api.network.ProtocolVersion;
 import io.netty.buffer.ByteBuf;
 
-/**
- * The {@code LongArgumentPropertySerializer} handles serialization and deserialization
- * of {@link LongArgumentType}, preserving optional minimum and maximum bounds.
- *
- * <p>This serializer is used for command arguments that accept long integer values,
- * which are useful for time, ticks, or large numeric ranges in Minecraft commands.</p>
- *
- * <p>Like other numeric serializers, it uses a single flag byte to encode the presence
- * of minimum and maximum values, followed by the respective long values when present.</p>
- */
 final class LongArgumentPropertySerializer implements ArgumentPropertySerializer<LongArgumentType> {
 
-  /**
-   * A shared singleton instance of {@code LongArgumentPropertySerializer}.
-   */
   static final LongArgumentPropertySerializer LONG = new LongArgumentPropertySerializer();
 
   private LongArgumentPropertySerializer() {

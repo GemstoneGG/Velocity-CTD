@@ -26,16 +26,8 @@ import io.netty.buffer.ByteBuf;
 import net.kyori.adventure.key.Key;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/**
- * Represents a server-bound packet sent by the client containing a key and an optional payload.
- * This packet is typically used for exchanging metadata or other information between the client
- * and server.
- */
 public class ServerboundCookieResponsePacket implements MinecraftPacket {
 
-  /**
-   * The key representing the type of cookie data.
-   */
   private Key key;
 
   /**
@@ -43,52 +35,22 @@ public class ServerboundCookieResponsePacket implements MinecraftPacket {
    */
   private byte @Nullable [] payload;
 
-  /**
-   * Returns the key associated with this cookie response.
-   *
-   * @return the {@link Key} of the cookie response
-   */
   public Key getKey() {
     return key;
   }
 
-  /**
-   * Returns the optional payload included in this cookie response.
-   *
-   * @return the payload as a byte array, or {@code null} if none is present
-   */
   public byte @Nullable [] getPayload() {
     return payload;
   }
 
-  /**
-   * Constructs an empty {@code ServerboundCookieResponsePacket}.
-   *
-   * <p>Fields must be populated manually before encoding.</p>
-   */
   public ServerboundCookieResponsePacket() {
   }
 
-  /**
-   * Constructs a {@code ServerboundCookieResponsePacket} with the given key and optional payload.
-   *
-   * @param key the key associated with the cookie response
-   * @param payload the optional payload, or {@code null} if not provided
-   */
   public ServerboundCookieResponsePacket(final Key key, final byte @Nullable [] payload) {
     this.key = key;
     this.payload = payload;
   }
 
-  /**
-   * Decodes this cookie response packet from the provided {@link ByteBuf}.
-   *
-   * <p>This method reads the key and optionally the payload, if the payload flag is set.</p>
-   *
-   * @param buf the buffer to read from
-   * @param direction the direction of the packet (clientbound or serverbound)
-   * @param protocolVersion the Minecraft protocol version
-   */
   @Override
   public void decode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     this.key = ProtocolUtils.readKey(buf);
@@ -97,15 +59,6 @@ public class ServerboundCookieResponsePacket implements MinecraftPacket {
     }
   }
 
-  /**
-   * Encodes this cookie response packet into the provided {@link ByteBuf}.
-   *
-   * <p>This method writes the key and optionally the payload, depending on whether it is present.</p>
-   *
-   * @param buf the buffer to write to
-   * @param direction the direction of the packet (clientbound or serverbound)
-   * @param protocolVersion the Minecraft protocol version
-   */
   @Override
   public void encode(final ByteBuf buf, final Direction direction, final ProtocolVersion protocolVersion) {
     ProtocolUtils.writeKey(buf, key);
@@ -126,14 +79,6 @@ public class ServerboundCookieResponsePacket implements MinecraftPacket {
     return 1 + 0 + 0;
   }
 
-  /**
-   * Handles this cookie response packet using the specified {@link MinecraftSessionHandler}.
-   *
-   * <p>This delegates handling to {@code handler.handle(this)} for further processing.</p>
-   *
-   * @param handler the session handler to process this packet
-   * @return {@code true} if the packet was handled successfully
-   */
   @Override
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);

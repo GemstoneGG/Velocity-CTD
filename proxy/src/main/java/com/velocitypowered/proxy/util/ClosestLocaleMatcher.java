@@ -28,19 +28,10 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class ClosestLocaleMatcher {
 
-  /**
-   * Singleton instance of the {@code ClosestLocaleMatcher}.
-   */
   public static final ClosestLocaleMatcher INSTANCE = new ClosestLocaleMatcher();
 
-  /**
-   * A mapping from base language tags (e.g., "en") to known Velocity-supported locales.
-   */
   private final Map<String, Locale> byLanguage;
 
-  /**
-   * A cache that resolves any given {@link Locale} to its closest supported equivalent.
-   */
   private final LoadingCache<Locale, Locale> closest;
 
   private ClosestLocaleMatcher() {
@@ -64,14 +55,6 @@ public final class ClosestLocaleMatcher {
     this.byLanguage.put(locale.getLanguage(), locale);
   }
 
-  /**
-   * Attempts to resolve the closest known locale for the given input locale.
-   *
-   * <p>Falls back to matching just the language if the full locale isn't registered.</p>
-   *
-   * @param locale the input locale
-   * @return the closest supported {@link Locale}, or the original if no match found
-   */
   public Locale lookupClosest(final Locale locale) {
     return closest.get(locale);
   }

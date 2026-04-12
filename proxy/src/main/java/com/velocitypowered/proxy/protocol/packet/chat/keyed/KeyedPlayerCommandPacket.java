@@ -35,107 +35,44 @@ import java.util.List;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/**
- * Represents a player command packet with support for keyed commands.
- *
- * <p>The {@code KeyedPlayerCommandPacket} handles player commands sent to the server,
- * allowing for command execution based on specific keys. This packet can include additional
- * information such as arguments and key-based identifiers for the command.</p>
- */
 public class KeyedPlayerCommandPacket implements MinecraftPacket {
 
-  /**
-   * The maximum number of command arguments allowed in a signed command packet.
-   *
-   * <p>Exceeding this limit will result in a decoding failure to prevent abuse or
-   * invalid packet formats.</p>
-   */
   private static final int MAX_NUM_ARGUMENTS = 8;
 
-  /**
-   * The maximum length (in characters) for each individual command argument name.
-   *
-   * <p>This ensures that keys used in the argument-signature map are reasonably sized.</p>
-   */
   private static final int MAX_LENGTH_ARGUMENTS = 16;
 
-  /**
-   * Thrown when the argument map exceeds protocol limits.
-   */
   private static final QuietDecoderException LIMITS_VIOLATION =
       new QuietDecoderException("Command arguments incorrect size");
 
-  /**
-   * Indicates whether the command is unsigned (no salt, no signatures).
-   */
   private boolean unsigned = false;
 
-  /**
-   * The raw command name or literal string (e.g., "say", "msg", etc.).
-   */
   private String command;
 
-  /**
-   * Timestamp of when the command was issued.
-   */
   private Instant timestamp;
 
-  /**
-   * The cryptographic salt used to sign the command.
-   */
   private long salt;
 
-  /**
-   * Whether a signed preview was enabled (used only for 1.19 compatibility).
-   */
   private boolean signedPreview;
 
-  /**
-   * Signatures of previously seen chat messages (used for replay protection).
-   */
   private SignaturePair[] previousMessages = new SignaturePair[0];
 
-  /**
-   * Signature of the last known message from the client.
-   */
   private @Nullable SignaturePair lastMessage;
 
-  /**
-   * A mapping of argument names to their cryptographic signatures.
-   */
   private Map<String, byte[]> arguments = ImmutableMap.of();
 
-  /**
-   * Returns the timestamp of the command.
-   *
-   * @return the instant when the command was created
-   */
   public Instant getTimestamp() {
     return timestamp;
   }
 
-  /**
-   * Returns whether this packet is unsigned.
-   *
-   * @return true if unsigned, false otherwise
-   */
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   public boolean isUnsigned() {
     return unsigned;
   }
 
-  /**
-   * Returns the command name (without leading slash).
-   *
-   * @return the raw command string
-   */
   public String getCommand() {
     return command;
   }
 
-  /**
-   * Constructs a blank {@link KeyedPlayerCommandPacket} for deserialization.
-   */
   public KeyedPlayerCommandPacket() {
   }
 
@@ -157,17 +94,6 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
     this.salt = 0L;
   }
 
-  /**
-   * Decodes this keyed player command packet from the provided {@link ByteBuf}.
-   *
-   * <p>This reads the command string, timestamp, salt, argument map with signatures,
-   * preview flag, and optionally previous message acknowledgments depending on protocol version.</p>
-   *
-   * @param buf the buffer to read from
-   * @param direction the direction of the packet (clientbound or serverbound)
-   * @param protocolVersion the Minecraft protocol version
-   * @throws QuietDecoderException if the argument list or previous messages exceed protocol limits
-   */
   @Override
   public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
                      final ProtocolVersion protocolVersion) {
@@ -220,17 +146,6 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
     }
   }
 
-  /**
-   * Encodes this keyed player command packet into the given {@link ByteBuf}.
-   *
-   * <p>This writes the command string, timestamp, salt, argument map with signatures,
-   * and optionally previous message acknowledgments depending on protocol version.</p>
-   *
-   * @param buf the buffer to write to
-   * @param direction the direction of the packet (clientbound or serverbound)
-   * @param protocolVersion the Minecraft protocol version
-   * @throws QuietDecoderException if the argument list exceeds protocol limits
-   */
   @Override
   public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
                      final ProtocolVersion protocolVersion) {
@@ -270,13 +185,6 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
     }
   }
 
-  /**
-   * Returns a string representation of this keyed player command packet.
-   *
-   * <p>This includes command name, timestamp, cryptographic flags, and argument signatures.</p>
-   *
-   * @return a string describing this packet
-   */
   @Override
   public String toString() {
     return "PlayerCommand{"
@@ -290,15 +198,6 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
         + '}';
   }
 
-  /**
-   * Handles this keyed player command packet using the specified {@link MinecraftSessionHandler}.
-   *
-   * <p>This delegates handling logic to {@code handler.handle(this)} to execute or verify
-   * the command and its associated cryptographic data.</p>
-   *
-   * @param handler the session handler responsible for processing this packet
-   * @return {@code true} if the packet was handled successfully
-   */
   @Override
   public boolean handle(final MinecraftSessionHandler handler) {
     return handler.handle(this);

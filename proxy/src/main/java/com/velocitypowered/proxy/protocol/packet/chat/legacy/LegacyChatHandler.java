@@ -23,62 +23,22 @@ import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatHandler;
 
-/**
- * A handler for processing legacy chat packets, implementing {@link ChatHandler}.
- *
- * <p>The {@code LegacyChatHandler} is responsible for handling and processing chat messages
- * sent using {@link LegacyChatPacket}. This class provides the necessary logic for
- * processing chat data using legacy Minecraft chat formats.</p>
- */
 public class LegacyChatHandler implements ChatHandler<LegacyChatPacket> {
 
-  /**
-   * The Velocity server instance used to fire events and manage server state.
-   */
   private final VelocityServer server;
 
-  /**
-   * The player sending the legacy chat message.
-   */
   private final ConnectedPlayer player;
 
-  /**
-   * Constructs a new {@code LegacyChatHandler} for the specified server and player.
-   *
-   * @param server the proxy server instance
-   * @param player the player associated with the incoming chat packet
-   */
   public LegacyChatHandler(final VelocityServer server, final ConnectedPlayer player) {
     this.server = server;
     this.player = player;
   }
 
-  /**
-   * Returns the class of chat packets that this handler processes.
-   *
-   * <p>Used by the chat framework to associate this handler with {@link LegacyChatPacket}
-   * instances for legacy-format message processing.</p>
-   *
-   * @return the {@code LegacyChatPacket} class
-   */
   @Override
   public Class<LegacyChatPacket> packetClass() {
     return LegacyChatPacket.class;
   }
 
-  /**
-   * Handles a player-sent legacy chat packet internally.
-   *
-   * <p>This method performs the following steps:</p>
-   * <ul>
-   *   <li>Ensures the player is connected to a backend server.</li>
-   *   <li>Fires a {@link PlayerChatEvent} to allow plugins to observe or modify the message.</li>
-   *   <li>If the message is not cancelled, the message (possibly modified) is sent to the backend server
-   *       using the legacy chat format.</li>
-   * </ul>
-   *
-   * @param packet the incoming legacy-format chat packet from the player
-   */
   @Override
   public void handlePlayerChatInternal(final LegacyChatPacket packet) {
     MinecraftConnection serverConnection = player.ensureAndGetCurrentServer().ensureConnected();

@@ -57,33 +57,14 @@ import org.checkerframework.checker.lock.qual.GuardedBy;
  */
 final class SuggestionsProvider<S> {
 
-  /**
-   * Logger used to report errors during suggestion computation, such as
-   * plugin exceptions in command nodes or hint parsing failures.
-   */
   private static final Logger LOGGER = LogManager.getLogger(SuggestionsProvider.class);
 
-  /**
-   * The range representing the position of the alias in the input.
-   * Used when parsing the alias portion of the input string.
-   */
   private static final StringRange ALIAS_SUGGESTION_RANGE = StringRange.at(0);
 
-  /**
-   * The command dispatcher containing the full command graph.
-   * Access is guarded by {@link #lock}.
-   */
   private final @GuardedBy("lock") CommandDispatcher<S> dispatcher;
 
-  /**
-   * Lock used to guard access to the dispatcher and shared state.
-   */
   private final Lock lock;
 
-  /**
-   * Whether proxy command aliases should be announced to players.
-   * When false, proxy-level suggestions are suppressed for players.
-   */
   private boolean announceProxyCommands;
 
   SuggestionsProvider(final CommandDispatcher<S> dispatcher, final Lock lock) {

@@ -35,28 +35,12 @@ import java.util.Set;
  */
 public final class BossBarManager {
 
-  /**
-   * The player that owns this boss bar manager.
-   */
   private final ConnectedPlayer player;
 
-  /**
-   * The set of boss bars currently associated with this player. These are resent when
-   * a server switch occurs.
-   */
   private final Set<VelocityBossBarImplementation> bossBars = new HashSet<>();
 
-  /**
-   * Whether packets should be dropped instead of sent to the client.
-   * This is used during server login/transition.
-   */
   private boolean dropPackets = false;
 
-  /**
-   * Creates a new {@code BossBarManager} for the given player.
-   *
-   * @param player the player whose boss bars are being managed
-   */
   public BossBarManager(final ConnectedPlayer player) {
     this.player = player;
   }
