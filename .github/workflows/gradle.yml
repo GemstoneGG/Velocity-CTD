@@ -4,9 +4,7 @@
 name: Java CI with Gradle
 on:
   push:
-    branches:
-      - libdeflate
-      - dev
+  pull_request:
 
 jobs:
   build:
@@ -52,9 +50,17 @@ jobs:
         NEW_BUILD=$((LATEST_BUILD + 1))
         
         echo "tag=build-$NEW_BUILD" >> $GITHUB_OUTPUT
+        echo "build_nr=$NEW_BUILD" >> $GITHUB_OUTPUT
         echo "Generated tag: build-$NEW_BUILD"
         echo "Previous highest build: $LATEST_BUILD"
         echo "New build number: $NEW_BUILD"
+
+    - name: Rename Jar
+      if: github.ref == 'refs/heads/libdeflate'
+      run: |
+        JAR=$(ls proxy/build/libs/velocity-proxy-*-all.jar)
+        VERSION=$(echo "$JAR" | sed 's|proxy/build/libs/velocity-proxy-||' | sed 's|-all\.jar||')
+        cp "$JAR" "proxy/build/libs/velocity-ctd-$VERSION-${{ steps.release_tag.outputs.build_nr }}.jar"
 
     - name: Upload Velocity
       if: github.ref == 'refs/heads/libdeflate'
@@ -63,5 +69,5 @@ jobs:
         title: "Velocity-CTD"
         automatic_release_tag: "${{ steps.release_tag.outputs.tag }}"
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        files: "*/build/libs/*.jar"
+        files: "proxy/build/libs/velocity-ctd-*-${{ steps.release_tag.outputs.build_nr }}.jar"
         prerelease: false
