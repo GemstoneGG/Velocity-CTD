@@ -17,7 +17,6 @@
 
 package com.velocitypowered.proxy;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
@@ -147,6 +146,7 @@ import org.jetbrains.annotations.NotNull;
 public class VelocityServer implements ProxyServer, ForwardingAudience {
 
   public static final String VELOCITY_URL = "https://github.com/GemstoneGG/Velocity-CTD";
+  public static final String DISCORD_URL = "https://discord.gg/beer";
 
   private static final Logger LOGGER = LogManager.getLogger(VelocityServer.class);
 
@@ -322,18 +322,15 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   @Override
   public ProxyVersion getVersion() {
     Package pkg = VelocityServer.class.getPackage();
-    String implName;
-    String implVersion;
-    String implVendor;
-    if (pkg != null) {
-      implName = MoreObjects.firstNonNull(pkg.getImplementationTitle(), "Velocity");
-      implVersion = MoreObjects.firstNonNull(pkg.getImplementationVersion(), "<unknown>");
-      implVendor = MoreObjects.firstNonNull(pkg.getImplementationVendor(), "Velocity Contributors");
-    } else {
-      implName = "Velocity";
-      implVersion = "<unknown>";
-      implVendor = "Velocity Contributors";
-    }
+    String implName = Optional.ofNullable(pkg)
+        .map(Package::getImplementationTitle)
+        .orElse("Velocity-CTD");
+    String implVersion = Optional.ofNullable(pkg)
+        .map(Package::getImplementationVersion)
+        .orElse("<unknown>");
+    String implVendor = Optional.ofNullable(pkg)
+        .map(Package::getImplementationVendor)
+        .orElse("Velocity(-CTD) Contributors");
 
     return new ProxyVersion(implName, implVendor, implVersion);
   }
@@ -350,8 +347,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private VelocityPluginContainer createVirtualPlugin() {
     ProxyVersion version = getVersion();
     PluginDescription description = new VelocityPluginDescription(
-        "velocity", version.getName(), version.getVersion(), "The Velocity proxy",
-            version.getName().equals("Velocity") ? VELOCITY_URL : null,
+        "velocityctd", version.getName(), version.getVersion(), "The Velocity-CTD proxy",
+            (version.getName().equals("Velocity") || version.getName().equals("Velocity-CTD")) ? VELOCITY_URL : null,
             ImmutableList.of(version.getVendor()), Collections.emptyList(), null);
     VelocityPluginContainer container = new VelocityPluginContainer(description);
     container.setInstance(VelocityVirtualPlugin.INSTANCE);

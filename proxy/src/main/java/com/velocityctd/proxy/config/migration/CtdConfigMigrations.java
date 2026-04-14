@@ -174,7 +174,7 @@ public class CtdConfigMigrations {
         migration(
             "Replaces what is returned for both the server brand and fallback version pinger.",
             "advanced.custom-brand-proxy",
-            "Velocity"
+            "Velocity-CTD"
         ),
         migration(
             "Replaces what is returned as the server brand for the user's client.",

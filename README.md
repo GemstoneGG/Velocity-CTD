@@ -153,7 +153,7 @@ consider utilizing JProfiler to enhance your experience and report any ongoing i
 
 ## Building
 
-Velocity is built with [Gradle](https://gradle.org). We recommend using the
+Velocity-CTD is built with [Gradle](https://gradle.org). We recommend using the
 wrapper script (`./gradlew`) as our CI builds using it.
 
 It is sufficient to run `./gradlew build` to run the full build cycle.
@@ -164,7 +164,7 @@ where our latest updates will be compiled and ready for use.
 ## Running
 
 Once you've built Velocity, you can copy and run the `-all` JAR from
-`proxy/build/libs`. Velocity will generate a default configuration file,
+`proxy/build/libs`. Velocity-CTD will generate a default configuration file,
 and you can configure it from there.
 
 ## Localisation

@@ -64,7 +64,7 @@ public class FakePluginManager implements PluginManager {
   /**
    * A plugin container representing the built-in {@code velocity} plugin.
    */
-  private final PluginContainer containerVelocity = new FakePluginContainer("velocity",
+  private final PluginContainer containerVelocity = new FakePluginContainer("velocityctd",
       VelocityVirtualPlugin.INSTANCE);
 
   /**
@@ -105,7 +105,7 @@ public class FakePluginManager implements PluginManager {
     return switch (id) {
       case "a" -> Optional.of(containerA);
       case "b" -> Optional.of(containerB);
-      case "velocity" -> Optional.of(containerVelocity);
+      case "velocityctd" -> Optional.of(containerVelocity);
       default -> Optional.empty();
     };
   }

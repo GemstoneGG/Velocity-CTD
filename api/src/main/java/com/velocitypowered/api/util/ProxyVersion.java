@@ -71,6 +71,15 @@ public final class ProxyVersion {
     return version;
   }
 
+  /**
+   * Checks whether this proxy version is a development (snapshot) version.
+   *
+   * @return true if this version is a development version
+   */
+  public boolean isDevelopmentVersion() {
+    return version.equalsIgnoreCase("<unknown>") || version.contains("SNAPSHOT");
+  }
+
   @Override
   public boolean equals(final @Nullable Object o) {
     if (this == o) {

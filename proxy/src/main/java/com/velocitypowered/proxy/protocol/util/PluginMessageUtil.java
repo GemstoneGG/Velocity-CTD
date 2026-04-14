@@ -190,7 +190,7 @@ public final class PluginMessageUtil {
    * @param version the {@link ProxyVersion} instance for the current Velocity proxy
    * @param protocolVersion the client's protocol version
    * @param brand the format string for the new brand message, supporting placeholders
-   * @param proxyBrandCustom the custom name for the proxy brand (e.g. "Velocity", "MyProxy")
+   * @param proxyBrandCustom the custom name for the proxy brand (e.g. "Velocity-CTD", "MyProxy")
    * @param backendBrandCustom the custom name to replace the backend brand placeholder
    * @param connectedServer the name of the server the player is currently connected to
    * @param minimumVersion the minimum supported Minecraft version (for {@code {protocol-min}})

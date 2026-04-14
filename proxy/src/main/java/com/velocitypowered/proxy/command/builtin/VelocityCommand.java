@@ -82,6 +82,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.translation.Argument;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
  * Implements Velocity's {@code /velocity} command.
@@ -110,6 +111,11 @@ public class VelocityCommand implements BuiltinCommand {
   @Override
   public String label() {
     return "velocity";
+  }
+
+  @Override
+  public @NonNull List<String> aliases() {
+    return List.of("velocityctd");
   }
 
   @Override
@@ -426,27 +432,25 @@ public class VelocityCommand implements BuiltinCommand {
         infoBuilder.append(velocity)
                 .appendNewline()
                 .append(copyright);
-        if (version.getName().equals("Velocity")) {
-          TextComponent embellishment = Component.text()
-                  .append(Component.text()
-                          .content("discord.gg/beer")
-                          .color(NamedTextColor.RED)
-                          .clickEvent(ClickEvent.openUrl(VelocityServer.VELOCITY_URL))
-                          .build())
-                  .append(Component.text(" - "))
-                  .append(Component.text()
-                          .content("GitHub")
-                          .color(NamedTextColor.RED)
-                          .decoration(TextDecoration.UNDERLINED, true)
-                          .clickEvent(ClickEvent.openUrl(
-                                  "https://github.com/GemstoneGG/Velocity-CTD"))
-                          .build())
-                  .build();
-          infoBuilder.appendNewline().append(embellishment);
-        }
+
+        TextComponent embellishment = Component.text()
+            .append(Component.text()
+                .content("discord.gg/beer")
+                .color(NamedTextColor.RED)
+                .clickEvent(ClickEvent.openUrl(VelocityServer.DISCORD_URL))
+                .build())
+            .append(Component.text(" - "))
+            .append(Component.text()
+                .content("GitHub")
+                .color(NamedTextColor.RED)
+                .decoration(TextDecoration.UNDERLINED, true)
+                .clickEvent(ClickEvent.openUrl(VelocityServer.VELOCITY_URL))
+                .build())
+            .build();
+        infoBuilder.appendNewline().append(embellishment);
 
         infoBuilder.appendNewline();
-        if (version.getVersion().equalsIgnoreCase("<unknown>") || version.getVersion().contains("SNAPSHOT")) {
+        if (version.isDevelopmentVersion()) {
           infoBuilder.append(Component.text("You are running a development build of Velocity.", NamedTextColor.RED));
         } else {
           int dist = fetchDistanceFromGitHub(version.getVersion().split("-")[1]);

@@ -141,7 +141,7 @@ public final class VelocityConsole extends SimpleTerminalConsole implements Cons
   @Override
   protected LineReader buildReader(final LineReaderBuilder builder) {
     return super.buildReader(builder
-        .appName("Velocity")
+        .appName("Velocity-CTD")
         // Explicitly disable mouse support on the builder
         .option(LineReader.Option.MOUSE, false)
         .completer((reader, parsedLine, list) -> {

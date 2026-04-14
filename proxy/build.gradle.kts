@@ -15,8 +15,8 @@ application {
 tasks {
     jar {
         manifest {
-            attributes["Implementation-Title"] = "Velocity"
-            attributes["Implementation-Vendor"] = "Velocity Contributors"
+            attributes["Implementation-Title"] = "Velocity-CTD"
+            attributes["Implementation-Vendor"] = "Velocity(-CTD) Contributors"
             attributes["Multi-Release"] = "true"
         }
     }
