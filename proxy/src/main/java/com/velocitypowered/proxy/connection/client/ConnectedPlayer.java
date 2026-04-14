@@ -66,7 +66,6 @@ import com.velocitypowered.api.util.ModInfo;
 import com.velocitypowered.api.util.ServerLink;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.adventure.VelocityBossBarImplementation;
-import com.velocitypowered.proxy.config.DynamicFallbackFilter;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftConnectionAssociation;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
@@ -76,7 +75,7 @@ import com.velocitypowered.proxy.connection.player.resourcepack.VelocityResource
 import com.velocitypowered.proxy.connection.player.resourcepack.handler.ResourcePackHandler;
 import com.velocitypowered.proxy.connection.util.ConnectionMessages;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults.Impl;
-import com.velocitypowered.proxy.connection.util.FallbackServerResolver;
+import com.velocitypowered.proxy.connection.util.FallbackServers;
 import com.velocitypowered.proxy.connection.util.VelocityInboundConnection;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.protocol.StateRegistry;
@@ -118,10 +117,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1986,30 +1982,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     private final Deque<String> serversToTry;
 
     private ServerRetrySession() {
-      serversToTry = calculateRetryDeque();
-    }
-
-    private Deque<String> calculateRetryDeque() {
-      List<String> retryList = new ArrayList<>(FallbackServerResolver.resolveServersToTry(server, ConnectedPlayer.this));
-
-      DynamicFallbackFilter strategy = server.getConfiguration().getDynamicFallbackFilter();
-      switch (strategy) {
-        case FIRST_AVAILABLE -> {
-          // nop
-        }
-        case MOST_POPULATED, LEAST_POPULATED -> {
-          Map<String, Integer> playerCounts = calculatePlayerCountMap(retryList);
-          Comparator<String> comparator = Comparator.comparingInt(playerCounts::get);
-          if (strategy == DynamicFallbackFilter.MOST_POPULATED) {
-            comparator = comparator.reversed();
-          }
-
-          retryList.sort(comparator);
-        }
-        default -> throw new IllegalStateException("Unknown dynamic fallback filter " + strategy + ".");
-      }
-
-      return new ArrayDeque<>(retryList);
+      serversToTry = FallbackServers.resolveFallbackServers(server, ConnectedPlayer.this).calculateRetryDeque(server);
     }
 
     /**
@@ -2067,19 +2040,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
       // serversToTry is exhausted
       return Optional.empty();
-    }
-
-    private Map<String, Integer> calculatePlayerCountMap(Collection<String> serverNames) {
-      Map<String, Integer> result = new HashMap<>(serverNames.size());
-      for (String serverName : serverNames) {
-        int playerCount = server.getServer(serverName)
-            .map(s -> (int) s.getTotalPlayerCount())
-            .orElse(0);
-
-        result.put(serverName, playerCount);
-      }
-
-      return result;
     }
 
     private boolean hasSameName(final VelocityRegisteredServer server, final String name) {

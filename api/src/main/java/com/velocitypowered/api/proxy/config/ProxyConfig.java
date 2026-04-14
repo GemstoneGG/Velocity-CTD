@@ -129,15 +129,6 @@ public interface ProxyConfig {
   Map<String, List<String>> getForcedHosts();
 
   /**
-   * Whether to use the forced hosts list as the fallback servers, instead of
-   * servers-to-try ({@code getAttemptConnectionOrder}), if a forced host
-   * is configured for the virtual host a player is connected to.
-   *
-   * @return true if {@code getForcedHosts().get(virtualHost)} should be used instead of {@code getAttemptConnectionOrder}.
-   */
-  boolean isForcedHostAsFallback();
-
-  /**
    * Get the minimum compression threshold for packets.
    *
    * @return the compression threshold

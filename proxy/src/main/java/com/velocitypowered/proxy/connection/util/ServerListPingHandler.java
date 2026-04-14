@@ -223,10 +223,10 @@ public class ServerListPingHandler {
     if (passthroughMode == PingPassthroughMode.DISABLED) {
       return CompletableFuture.completedFuture(constructLocalPing(shownVersion));
     } else {
-      List<String> serversToTry = FallbackServerResolver.resolveServersToTry(server, connection);
-      String virtualHost = FallbackServerResolver.normalizeHostString(connection.getVirtualHost().orElse(null));
+      FallbackServers fallbackServers = FallbackServers.resolveFallbackServers(server, connection);
 
-      return attemptPingPassthrough(connection, passthroughMode, serversToTry, shownVersion, virtualHost);
+      return attemptPingPassthrough(connection, passthroughMode, fallbackServers.serversToTry(),
+          shownVersion, fallbackServers.virtualHost());
     }
   }
 }

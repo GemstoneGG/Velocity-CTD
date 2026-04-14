@@ -322,14 +322,6 @@ public class CtdConfigMigrations {
             "most_empty"
         ),
 
-        // [forced-hosts]
-        migration(
-            "Whether to use the configured forced hosts as fallback (try) servers\n"
-                + "if a player joins through a forced host that's configured.",
-            "forced-hosts.forced-host-as-fallback",
-            true
-        ),
-
         new CtdAutoQueueServersMigration()
     );
   }

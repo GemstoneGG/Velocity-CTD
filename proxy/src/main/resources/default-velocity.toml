@@ -197,19 +197,23 @@ server-aliases = [
 
 [forced-hosts]
 # Configure your forced hosts here.
+# Each entry can be specified in two ways:
+#
+# Simple format (string or list of strings) - inherits the global dynamic-fallbacks-filter,
+# and uses the forced host as fallback by default:
+#   "lobby.example.com" = "lobby"
+#   "lobby.example.com" = ["lobby1", "lobby2"]
+#
+# Table format - allows setting per-host options:
+#   "lobby.example.com" = { servers = ["lobby1", "lobby2"], dynamic-fallbacks-filter = "least_populated", forced-host-as-fallback = true }
+#
 "lobby.example.com" = [
     "lobby"
 ]
 "factions.example.com" = [
     "factions"
 ]
-"minigames.example.com" = [
-    "minigames"
-]
-
-# Whether to use the configured forced hosts as fallback (try) servers,
-# if a player joins through a forced host that's configured.
-forced-host-as-fallback = true
+"minigames.example.com" = { servers = ["minigames-limbo", "minigames-1", "minigames-2"], dynamic-fallbacks-filter = "first_available", forced-host-as-fallback = true }
 
 [command-aliases]
 # What commands should have aliases for simpler execution that

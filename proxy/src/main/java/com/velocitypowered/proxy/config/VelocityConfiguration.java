@@ -383,16 +383,16 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
     }
 
-    Map<String, List<String>> configuredForcedHosts = forcedHosts.getForcedHosts();
+    Map<String, ForcedHostEntry> configuredForcedHosts = forcedHosts.getForcedHostEntries();
     if (!configuredForcedHosts.isEmpty()) {
-      for (Map.Entry<String, List<String>> entry : configuredForcedHosts.entrySet()) {
-        if (entry.getValue().isEmpty()) {
+      for (Map.Entry<String, ForcedHostEntry> entry : configuredForcedHosts.entrySet()) {
+        if (entry.getValue().getServers().isEmpty()) {
           LOGGER.error("Forced host '{}' does not contain any servers", entry.getKey());
           valid = false;
           continue;
         }
 
-        for (String server : entry.getValue()) {
+        for (String server : entry.getValue().getServers()) {
           if (!servers.getBackendServers().containsKey(server)) {
             LOGGER.error("Server '{}' for forced host '{}' does not exist", server, entry.getKey());
             valid = false;
@@ -591,9 +591,13 @@ public final class VelocityConfiguration implements ProxyConfig {
     return forcedHosts.getForcedHosts();
   }
 
-  @Override
-  public boolean isForcedHostAsFallback() {
-    return forcedHosts.isForcedHostAsFallback();
+  /**
+   * Returns the full forced host entries, including any per-host dynamic fallbacks filter.
+   *
+   * @return a map of virtual host names to their {@link ForcedHostEntry}
+   */
+  public Map<String, ForcedHostEntry> getForcedHostEntries() {
+    return forcedHosts.getForcedHostEntries();
   }
 
   @Override
@@ -1658,54 +1662,109 @@ public final class VelocityConfiguration implements ProxyConfig {
     }
   }
 
-  private static final class ForcedHosts {
+  /**
+   * Represents a single forced host entry, containing the list of servers to try
+   * and an optional per-host dynamic fallbacks filter that overrides the global one.
+   */
+  public static final class ForcedHostEntry {
 
-    @Expose
-    private Map<String, List<String>> forcedHosts = ImmutableMap.of();
+    private final List<String> servers;
+    private final DynamicFallbackFilter dynamicFallbackFilter;
+    private final boolean forcedHostAsFallback;
 
-    @Expose
-    private boolean forcedHostAsFallback = true;
-
-    private ForcedHosts() {
+    private ForcedHostEntry(List<String> servers, DynamicFallbackFilter dynamicFallbackFilter, boolean forcedHostAsFallback) {
+      this.servers = servers;
+      this.dynamicFallbackFilter = dynamicFallbackFilter;
+      this.forcedHostAsFallback = forcedHostAsFallback;
     }
 
-    private ForcedHosts(CommentedConfig config) {
-      if (config != null) {
-        forcedHostAsFallback = config.getOrElse("forced-host-as-fallback", true);
-
-        Map<String, List<String>> forcedHosts = new HashMap<>();
-        for (UnmodifiableConfig.Entry entry : config.entrySet()) {
-          String key = entry.getKey().toLowerCase(Locale.ROOT);
-          if (key.equals("forced-host-as-fallback")) {
-            continue;
-          }
-
-          if (entry.getValue() instanceof String) {
-            forcedHosts.put(key, ImmutableList.of(entry.getValue()));
-          } else if (entry.getValue() instanceof List) {
-            forcedHosts.put(key, ImmutableList.copyOf((List<String>) entry.getValue()));
-          } else {
-            LOGGER.warn("Invalid value of type {} in forced hosts!", entry.getValue().getClass());
-          }
-        }
-
-        this.forcedHosts = ImmutableMap.copyOf(forcedHosts);
-      }
+    public List<String> getServers() {
+      return servers;
     }
 
-    private Map<String, List<String>> getForcedHosts() {
-      return forcedHosts;
+    /**
+     * Returns the dynamic fallbacks filter for this forced host, or empty if the global default
+     * should be used.
+     */
+    public @Nullable DynamicFallbackFilter getDynamicFallbackFilter() {
+      return dynamicFallbackFilter;
     }
 
-    private boolean isForcedHostAsFallback() {
+    public boolean isForcedHostAsFallback() {
       return forcedHostAsFallback;
     }
 
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
-          .add("forcedHosts", forcedHosts)
+          .add("servers", servers)
+          .add("dynamicFallbackFilter", dynamicFallbackFilter)
           .add("forcedHostAsFallback", forcedHostAsFallback)
+          .toString();
+    }
+  }
+
+  private static final class ForcedHosts {
+
+    @Expose
+    private Map<String, ForcedHostEntry> entries = ImmutableMap.of();
+
+    private ForcedHosts() {
+    }
+
+    private ForcedHosts(CommentedConfig config) {
+      if (config != null) {
+        Map<String, ForcedHostEntry> entries = new HashMap<>();
+        for (UnmodifiableConfig.Entry entry : config.entrySet()) {
+          String key = entry.getKey().toLowerCase(Locale.ROOT);
+
+          if (entry.getValue() instanceof String) {
+            entries.put(key, new ForcedHostEntry(ImmutableList.of(entry.getValue()), null, true));
+          } else if (entry.getValue() instanceof List) {
+            entries.put(key, new ForcedHostEntry(ImmutableList.copyOf((List<String>) entry.getValue()), null, true));
+          } else if (entry.getValue() instanceof UnmodifiableConfig tableConfig) {
+            Object serversValue = tableConfig.get("servers");
+            List<String> servers;
+            if (serversValue instanceof String) {
+              servers = ImmutableList.of((String) serversValue);
+            } else if (serversValue instanceof List) {
+              servers = ImmutableList.copyOf((List<String>) serversValue);
+            } else {
+              LOGGER.warn("Invalid or missing 'servers' in forced host '{}'!", key);
+              continue;
+            }
+
+            DynamicFallbackFilter filter = tableConfig.getEnum("dynamic-fallbacks-filter", DynamicFallbackFilter.class);
+
+            boolean forcedHostAsFallback = tableConfig.getOrElse("forced-host-as-fallback",
+                config.getOrElse("forced-host-as-fallback", true));
+
+            entries.put(key, new ForcedHostEntry(servers, filter, forcedHostAsFallback));
+          } else {
+            LOGGER.warn("Invalid value of type {} in forced hosts!", entry.getValue().getClass());
+          }
+        }
+
+        this.entries = ImmutableMap.copyOf(entries);
+      }
+    }
+
+    private Map<String, List<String>> getForcedHosts() {
+      Map<String, List<String>> result = new HashMap<>();
+      for (Map.Entry<String, ForcedHostEntry> entry : entries.entrySet()) {
+        result.put(entry.getKey(), entry.getValue().getServers());
+      }
+      return ImmutableMap.copyOf(result);
+    }
+
+    private Map<String, ForcedHostEntry> getForcedHostEntries() {
+      return entries;
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("entries", entries)
           .toString();
     }
   }
