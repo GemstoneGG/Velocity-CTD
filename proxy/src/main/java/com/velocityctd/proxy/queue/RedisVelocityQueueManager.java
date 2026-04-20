@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 
@@ -51,6 +52,8 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
 
   @Override
   protected void postInitialize() {
+    scheduleOfflineRemovals();
+
     server.getRedis().addReconnectListener(() ->
         server.getScheduler()
             .buildTask(VelocityVirtualPlugin.INSTANCE, this::reloadFromRedis)
@@ -125,7 +128,51 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
       case STATE_CHANGE -> queue.applyStateChange(sync.newState());
       case STATUS_CHANGE -> queue.applyStatusChange(sync.newStatus());
       case WAITING_CHANGE -> queue.applyWaitingChange(sync);
+      case OFFLINE_CHANGE -> queue.applyOfflineChange(
+          sync.playerUuid(), sync.offlineSinceMs(), sync.offlineTimeoutSeconds());
       default -> throw new IllegalStateException("Unknown action " + sync.action() + ".");
+    }
+  }
+
+  /**
+   * Schedules removal of offline players that were loaded from the depot at startup.
+   *
+   * <p>For each offline player in the just-loaded queues:
+   * <ul>
+   *   <li>If {@code offlineSinceMs == 0}: the proxy was force-killed and no disconnect was
+   *       recorded - the player is removed immediately since we cannot know how long they have
+   *       been offline.</li>
+   *   <li>If {@code offlineSinceMs > 0}: the remaining timeout is calculated from the stored
+   *       disconnect time and the player is removed once that window expires.</li>
+   * </ul>
+   * Online players are skipped; the normal session lifecycle handles them.</p>
+   */
+  private void scheduleOfflineRemovals() {
+    for (VelocityQueue queue : queues.values()) {
+      for (VelocityQueueEntry entry : queue.getEntries()) {
+        if (isPlayerOnline(entry.getUniqueId())) {
+          continue;
+        }
+
+        long offlineSinceMs = entry.getOfflineSinceMs();
+        int timeoutSeconds = entry.getOfflineTimeoutSeconds();
+        UUID uuid = entry.getUniqueId();
+
+        long delayMs;
+        if (offlineSinceMs == 0) {
+          // Force-kill scenario: disconnect was never recorded, remove immediately.
+          delayMs = 0;
+        } else {
+          long elapsedMs = System.currentTimeMillis() - offlineSinceMs;
+          long remainingMs = (long) timeoutSeconds * 1000 - elapsedMs;
+          delayMs = Math.max(0, remainingMs);
+        }
+
+        server.getScheduler()
+            .buildTask(VelocityVirtualPlugin.INSTANCE, () -> removePlayerEntirely(uuid))
+            .delay(delayMs, TimeUnit.MILLISECONDS)
+            .schedule();
+      }
     }
   }
 

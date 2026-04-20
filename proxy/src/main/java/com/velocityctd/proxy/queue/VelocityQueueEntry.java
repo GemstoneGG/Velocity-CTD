@@ -46,6 +46,18 @@ public class VelocityQueueEntry implements QueueEntry {
   protected volatile boolean queueBypass;
 
   /**
+   * Epoch-millisecond timestamp when this player disconnected while queued, or 0 if the
+   * player is currently online or if the disconnect was not recorded (e.g. force-kill).
+   */
+  protected volatile long offlineSinceMs = 0;
+
+  /**
+   * The timeout in seconds that was active at the time of disconnect, or 0 if unknown.
+   * Only meaningful when {@link #offlineSinceMs} is non-zero.
+   */
+  protected volatile int offlineTimeoutSeconds = 0;
+
+  /**
    * Injected after construction or deserialization.
    */
   protected transient VelocityServer server;
@@ -243,6 +255,42 @@ public class VelocityQueueEntry implements QueueEntry {
           .schedule();
       queue.dequeue(this.uniqueId);
     }
+  }
+
+  public long getOfflineSinceMs() {
+    return offlineSinceMs;
+  }
+
+  public int getOfflineTimeoutSeconds() {
+    return offlineTimeoutSeconds;
+  }
+
+  /**
+   * Records that this player has gone offline with the given timeout. Propagates the
+   * change to other proxies via {@link #publishOfflineChange()}.
+   */
+  public void setOffline(long sinceMs, int timeoutSeconds) {
+    this.offlineSinceMs = sinceMs;
+    this.offlineTimeoutSeconds = timeoutSeconds;
+    publishOfflineChange();
+  }
+
+  /**
+   * Clears offline tracking state when a player reconnects within the timeout window.
+   * Propagates the change to other proxies via {@link #publishOfflineChange()}.
+   */
+  public void clearOffline() {
+    this.offlineSinceMs = 0;
+    this.offlineTimeoutSeconds = 0;
+    publishOfflineChange();
+  }
+
+  /**
+   * Hook for subclasses to broadcast offline-state changes to other proxies.
+   * No-op in local (single-proxy) mode.
+   */
+  protected void publishOfflineChange() {
+    // no-op in local mode
   }
 
   /**

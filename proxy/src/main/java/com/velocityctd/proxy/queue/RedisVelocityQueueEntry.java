@@ -97,6 +97,17 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
   }
 
   /**
+   * Publishes an {@code OFFLINE_CHANGE} sync packet so all proxies update this entry's
+   * offline timestamp and timeout, which drives correct removal scheduling after a restart.
+   */
+  @Override
+  protected void publishOfflineChange() {
+    server.getRedis().publish(VelocityQueueSync.offlineChange(
+        getQueue().getName(), getUniqueId(), this.offlineSinceMs, this.offlineTimeoutSeconds
+    ));
+  }
+
+  /**
    * Updates this entry's mutable fields from a {@code WAITING_CHANGE} sync packet received
    * from another proxy.
    *

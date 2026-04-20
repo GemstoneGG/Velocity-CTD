@@ -203,6 +203,20 @@ public final class RedisVelocityQueue extends VelocityQueue {
   }
 
   /**
+   * Applies an OFFLINE_CHANGE sync received from another proxy, updating the entry's
+   * offline timestamp and timeout so the master's depot snapshot stays accurate.
+   */
+  @ApiStatus.Internal
+  void applyOfflineChange(UUID uuid, long offlineSinceMs, int offlineTimeoutSeconds) {
+    VelocityQueueEntry entry = getEntry(uuid);
+    if (entry != null) {
+      entry.offlineSinceMs = offlineSinceMs;
+      entry.offlineTimeoutSeconds = offlineTimeoutSeconds;
+      persistAsync();
+    }
+  }
+
+  /**
    * Persists this queue's state to the Redis depot asynchronously.
    * Only executed when this proxy is currently the master.
    */

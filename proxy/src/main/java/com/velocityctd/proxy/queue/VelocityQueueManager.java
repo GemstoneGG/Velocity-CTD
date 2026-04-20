@@ -283,6 +283,13 @@ public class VelocityQueueManager implements QueueManager {
     ScheduledTask timeoutTask = pendingTimeoutTasks.remove(player.getUniqueId());
     if (timeoutTask != null) {
       timeoutTask.cancel();
+      // Player reconnected within the timeout window -> Clear the offline state from all entries.
+      queues.values().forEach(q -> {
+        VelocityQueueEntry entry = q.getEntry(player.getUniqueId());
+        if (entry != null) {
+          entry.clearOffline();
+        }
+      });
     }
   }
 
@@ -309,6 +316,17 @@ public class VelocityQueueManager implements QueueManager {
     } else {
       LOGGER.debug("Removing player {} from all queues in {} second(s) (has timeout).", player.getUsername(), timeout);
       UUID playerUniqueId = player.getUniqueId();
+
+      // Record when the player went offline and their timeout so that, if all proxies are
+      // force-killed, the next startup can compute the correct remaining removal delay.
+      long offlineSince = System.currentTimeMillis();
+      queues.values().forEach(q -> {
+        VelocityQueueEntry entry = q.getEntry(playerUniqueId);
+        if (entry != null) {
+          entry.setOffline(offlineSince, timeout);
+        }
+      });
+
       ScheduledTask task = server.getScheduler()
           .buildTask(VelocityVirtualPlugin.INSTANCE, () -> removePlayerEntirely(playerUniqueId))
           .delay(timeout, TimeUnit.SECONDS)
