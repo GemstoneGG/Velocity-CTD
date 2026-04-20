@@ -112,13 +112,10 @@ public class GlistCommand implements BuiltinCommandDefinition {
   private void sendTotalProxyCount(CommandSource target) {
     int online = server.getClusterPlayerService().getTotalPlayerCount();
 
+    boolean multiProxy = server.getClusterProxyService().isMultiProxy();
     String msgKey = (online == 1)
-        ? "velocity.command.glist-player-singular"
-        : "velocity.command.glist-player-plural";
-
-    if (server.getClusterProxyService().isMultiProxy()) {
-      msgKey += "-proxy-plural";
-    }
+        ? (multiProxy ? "velocity.command.glist-player-singular-proxy-plural" : "velocity.command.glist-player-singular")
+        : (multiProxy ? "velocity.command.glist-player-plural-proxy-plural" : "velocity.command.glist-player-plural");
 
     TranslatableComponent.Builder msg = Component.translatable()
         .key(msgKey)
@@ -137,7 +134,9 @@ public class GlistCommand implements BuiltinCommandDefinition {
 
     for (VelocityClusterPlayer player : this.server.getClusterPlayerService().getPlayersOnServer(server.getServerInfo().getName())) {
       String proxyId = player.getProxyId();
-      String key = "velocity.command.glist.proxy-" + (proxyId.equals(selfProxyId) ? "self" : "other");
+      String key = proxyId.equals(selfProxyId)
+          ? "velocity.command.glist.proxy-self"
+          : "velocity.command.glist.proxy-other";
       Component hover = Component.translatable(key).arguments(Component.text(proxyId));
       players.add(Component.text(player.getUsername()).hoverEvent(HoverEvent.showText(hover)));
       totalPlayers += 1;

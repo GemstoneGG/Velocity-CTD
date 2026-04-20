@@ -489,7 +489,10 @@ public class QueueAdminCommand implements BuiltinCommandDefinition {
       to.getQueue().enqueue(player.toQueueEntryData(toName));
     }
 
-    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.addedall-player" + (eligible.size() == 1 ? "" : "s"))
+    String key = eligible.size() == 1
+        ? "velocity.queue.command.addedall-player"
+        : "velocity.queue.command.addedall-players";
+    ctx.getSource().sendMessage(Component.translatable(key)
             .arguments(
                     Argument.numeric("count", eligible.size()),
                     Argument.string("server", toName)));
@@ -577,7 +580,10 @@ public class QueueAdminCommand implements BuiltinCommandDefinition {
       return SINGLE_SUCCESS;
     }
 
-    ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.removedall-player" + (amount == 1 ? "" : "s"))
+    String key = amount == 1
+        ? "velocity.queue.command.removedall-player"
+        : "velocity.queue.command.removedall-players";
+    ctx.getSource().sendMessage(Component.translatable(key)
             .arguments(
                     Argument.numeric("count", amount),
                     Argument.string("server", server.getServerInfo().getName())));
