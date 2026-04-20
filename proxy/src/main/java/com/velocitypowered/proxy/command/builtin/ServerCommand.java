@@ -76,7 +76,7 @@ public class ServerCommand implements BuiltinCommandDefinition {
         .requires(src -> src instanceof ConnectedPlayer && src.getPermissionValue("velocity.command.server") != Tristate.FALSE)
         .executes(ctx -> {
           if (server.getConfiguration().isOverrideServerCommandUsage()) {
-            return CommandUtils.emitUsage(ctx, label());
+            return CommandUtils.emitUsage(ctx, "velocity.command.server.usage");
           }
 
           ConnectedPlayer player = (ConnectedPlayer) ctx.getSource();

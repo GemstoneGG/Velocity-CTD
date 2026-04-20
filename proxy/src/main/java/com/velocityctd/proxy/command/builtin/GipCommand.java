@@ -60,7 +60,7 @@ public class GipCommand implements BuiltinCommandDefinition {
     LiteralArgumentBuilder<CommandSource> rootNode = BrigadierCommand
         .literalArgumentBuilder(label())
         .requires(source -> source.getPermissionValue("velocity.command.gip") == Tristate.TRUE)
-        .executes(ctx -> CommandUtils.emitUsage(ctx, label()))
+        .executes(ctx -> CommandUtils.emitUsage(ctx, "velocity.command.gip.usage"))
         .then(playerNode);
 
     return new BrigadierCommand(rootNode);

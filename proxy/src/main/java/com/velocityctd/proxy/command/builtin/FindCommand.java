@@ -56,7 +56,7 @@ public class FindCommand implements BuiltinCommandDefinition {
     LiteralArgumentBuilder<CommandSource> rootNode = BrigadierCommand
         .literalArgumentBuilder(label())
         .requires(source -> source.getPermissionValue("velocity.command.find") == Tristate.TRUE)
-        .executes(ctx -> CommandUtils.emitUsage(ctx, label()));
+        .executes(ctx -> CommandUtils.emitUsage(ctx, "velocity.command.find.usage"));
     RequiredArgumentBuilder<CommandSource, String> playerNode = BrigadierCommand
         .requiredArgumentBuilder("player", StringArgumentType.word())
         .suggests((ctx, builder) -> CommandUtils.suggestPlayer(server, ctx, builder))

@@ -18,6 +18,7 @@
 package com.velocityctd.proxy.command;
 
 import com.google.gson.JsonSyntaxException;
+import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.context.ParsedCommandNode;
@@ -152,21 +153,17 @@ public class CommandUtils {
    * Emits usage text for the given command name to the source of the given command context.
    *
    * @param ctx the command context to send usage to
-   * @param commandName the command name
-   * @return {@code Command.SINGLE_SUCCESS} to allow using in expression-style {@code .executes} lambdas.
+   * @param key the usage message translatable key
+   * @return {@link Command#SINGLE_SUCCESS} to allow using in expression-style {@code .executes} lambdas.
    */
-  public static int emitUsage(CommandContext<CommandSource> ctx, String commandName) {
-    String usedName = commandName;
+  public static int emitUsage(CommandContext<CommandSource> ctx, String key) {
     ParsedCommandNode<?> node = ctx.getNodes().getFirst();
-
-    if (node != null) {
-      usedName = node.getNode().getName();
-    }
+    String usedName = node.getNode().getName();
 
     ctx.getSource().sendMessage(
-        Component.translatable("velocity.command." + commandName + ".usage", NamedTextColor.YELLOW)
+        Component.translatable(key, NamedTextColor.YELLOW)
             .arguments(Argument.string("command", usedName)));
-    return com.mojang.brigadier.Command.SINGLE_SUCCESS;
+    return Command.SINGLE_SUCCESS;
   }
 
   /**

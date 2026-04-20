@@ -62,12 +62,12 @@ public class SendCommand implements BuiltinCommandDefinition {
     LiteralArgumentBuilder<CommandSource> command = BrigadierCommand
         .literalArgumentBuilder(label())
         .requires(src -> src.getPermissionValue("velocity.command.send") == Tristate.TRUE)
-        .executes(ctx -> CommandUtils.emitUsage(ctx, label()))
+        .executes(ctx -> CommandUtils.emitUsage(ctx, "velocity.command.send.usage"))
         .then(
             BrigadierCommand
                 .requiredArgumentBuilder(SELECTOR_ARG, StringArgumentType.word())
                 .suggests(PlayerIdentifier.suggest(server, SELECTOR_ARG))
-                .executes(ctx -> CommandUtils.emitUsage(ctx, label()))
+                .executes(ctx -> CommandUtils.emitUsage(ctx, "velocity.command.send.usage"))
                 .then(
                     BrigadierCommand
                         .requiredArgumentBuilder(TARGET_ARG, StringArgumentType.word())

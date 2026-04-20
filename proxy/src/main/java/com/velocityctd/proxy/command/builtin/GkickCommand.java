@@ -64,7 +64,7 @@ public class GkickCommand implements BuiltinCommandDefinition {
     LiteralArgumentBuilder<CommandSource> rootNode = BrigadierCommand
         .literalArgumentBuilder(label())
         .requires(source -> source.getPermissionValue("velocity.command.gkick") == Tristate.TRUE)
-        .executes(ctx -> CommandUtils.emitUsage(ctx, label()))
+        .executes(ctx -> CommandUtils.emitUsage(ctx, "velocity.command.gkick.usage"))
         .then(playerNode);
 
     return new BrigadierCommand(rootNode);

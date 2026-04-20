@@ -54,7 +54,7 @@ public class AlertRawCommand implements BuiltinCommandDefinition {
             .literalArgumentBuilder(label())
             .requires(source ->
                     source.getPermissionValue("velocity.command.alertraw") == Tristate.TRUE)
-            .executes(ctx -> CommandUtils.emitUsage(ctx, label()))
+            .executes(ctx -> CommandUtils.emitUsage(ctx, "velocity.command.alertraw.usage"))
             .then(BrigadierCommand
                     .requiredArgumentBuilder("message", StringArgumentType.greedyString())
                     .executes(this::alert));

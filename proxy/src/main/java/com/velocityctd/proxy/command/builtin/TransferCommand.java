@@ -65,7 +65,7 @@ public class TransferCommand implements BuiltinCommandDefinition {
   public BrigadierCommand build() {
     var subcommand = BrigadierCommand.requiredArgumentBuilder("player", StringArgumentType.word())
         .suggests(PlayerIdentifier.suggest(server, "player"))
-        .executes(ctx -> CommandUtils.emitUsage(ctx, label()));
+        .executes(ctx -> CommandUtils.emitUsage(ctx, "velocity.command.transfer.usage"));
 
     if (server.getClusterProxyService().isMultiProxy()) {
       subcommand = subcommand
@@ -81,7 +81,7 @@ public class TransferCommand implements BuiltinCommandDefinition {
 
     LiteralCommandNode<CommandSource> transfer = BrigadierCommand.literalArgumentBuilder(label())
         .requires(source -> source.getPermissionValue("velocity.command.transfer") == Tristate.TRUE)
-        .executes(ctx -> CommandUtils.emitUsage(ctx, label()))
+        .executes(ctx -> CommandUtils.emitUsage(ctx, "velocity.command.transfer.usage"))
         .then(subcommand)
         .build();
 
