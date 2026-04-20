@@ -551,13 +551,14 @@ public class VelocityCommand implements BuiltinCommandDefinition {
       if (!description.getAuthors().isEmpty()) {
         hoverText.append(Component.newline());
         if (description.getAuthors().size() == 1) {
-          hoverText.append(Component.translatable("velocity.command.plugin-tooltip-author")
-                  .arguments(Argument.string("author", description.getAuthors().getFirst())));
+          hoverText.append(
+              Component.translatable("velocity.command.plugin-tooltip-author")
+                  .arguments(Argument.string("author", description.getAuthors().getFirst()))
+          );
         } else {
           hoverText.append(
-                  Component.translatable("velocity.command.plugin-tooltip-author",
-                          Argument.string("authors", String.join(", ", description.getAuthors()))
-                  )
+              Component.translatable("velocity.command.plugin-tooltip-authors")
+                  .arguments(Argument.string("authors", String.join(", ", description.getAuthors())))
           );
         }
       }
