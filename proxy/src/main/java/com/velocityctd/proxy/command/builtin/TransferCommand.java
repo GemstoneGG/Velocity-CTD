@@ -37,6 +37,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.translation.Argument;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -146,6 +147,10 @@ public class TransferCommand implements BuiltinCommandDefinition {
                   .arguments(Argument.string("player", clusterPlayer.getUsername())));
             }
           }).exceptionally(ex -> {
+            if (CompletableUtils.cause(ex) instanceof TimeoutException) {
+              source.sendMessage(Component.translatable("velocity.command.transfer.timeout", NamedTextColor.RED));
+            }
+
             handleTransferError(clusterPlayer, ex);
             return null;
           });
