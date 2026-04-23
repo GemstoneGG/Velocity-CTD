@@ -84,7 +84,7 @@ public class VelocityQueueManager implements QueueManager {
    * Holds all scheduled tasks to remove players from all queues (after a player's timeout).
    * Stored such that they can be cancelled on join.
    */
-  private final Map<UUID, ScheduledTask> pendingTimeoutTasks = new ConcurrentHashMap<>();
+  protected final Map<UUID, ScheduledTask> pendingTimeoutTasks = new ConcurrentHashMap<>();
 
   private @Nullable ScheduledTask transferTask;
   private @Nullable ScheduledTask actionBarTask;

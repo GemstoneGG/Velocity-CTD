@@ -25,6 +25,7 @@ import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotService;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueSync;
 import com.velocityctd.proxy.queue.util.QueueComponents;
 import com.velocityctd.proxy.redis.data.VelocityActionBar;
+import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
@@ -168,10 +169,11 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
           delayMs = Math.max(0, remainingMs);
         }
 
-        server.getScheduler()
+        ScheduledTask task = server.getScheduler()
             .buildTask(VelocityVirtualPlugin.INSTANCE, () -> removePlayerEntirely(uuid))
             .delay(delayMs, TimeUnit.MILLISECONDS)
             .schedule();
+        pendingTimeoutTasks.put(uuid, task);
       }
     }
   }
