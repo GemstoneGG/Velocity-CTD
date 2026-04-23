@@ -34,11 +34,11 @@ public class Velocity {
   /**
    * The main logger used throughout the Velocity bootstrap lifecycle.
    */
-  private static final Logger logger;
+  private static final Logger LOGGER;
 
   static {
     System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
-    logger = LogManager.getLogger(Velocity.class);
+    LOGGER = LogManager.getLogger(Velocity.class);
 
     // We use BufferedImage for favicons, and on macOS this puts the Java application in the dock.
     // How inconvenient. Force AWT to work with its head chopped off.
@@ -59,10 +59,10 @@ public class Velocity {
     // Disable io_uring for lettuce if no option is set.
     if (System.getProperty("io.lettuce.core.iouring") == null
             && System.getProperty("io.lettuce.core.epoll") == null) {
-      logger.debug("Disabling io_uring for lettuce.");
+      LOGGER.debug("Disabling io_uring for lettuce.");
       System.setProperty("io.lettuce.core.iouring", "false");
     } else {
-      logger.debug("Found lettuce io_uring/epoll flag, not disabling io_uring.");
+      LOGGER.debug("Found lettuce io_uring/epoll flag, not disabling io_uring.");
     }
   }
 
@@ -71,8 +71,8 @@ public class Velocity {
    *
    * @param args the arguments to the proxy
    */
-  public static void main(final String... args) {
-    final ProxyOptions options = new ProxyOptions(args);
+  public static void main(String... args) {
+    ProxyOptions options = new ProxyOptions(args);
     if (options.isHelp()) {
       return;
     }
@@ -85,7 +85,7 @@ public class Velocity {
         "Shutdown thread"));
 
     double bootTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime) / 1000d;
-    logger.info("Done ({}s)!", new DecimalFormat("#.##").format(bootTime));
+    LOGGER.info("Done ({}s)!", new DecimalFormat("#.##").format(bootTime));
     server.getConsoleCommandSource().start();
 
     // If we don't have a console available (because SimpleTerminalConsole returned), then we still

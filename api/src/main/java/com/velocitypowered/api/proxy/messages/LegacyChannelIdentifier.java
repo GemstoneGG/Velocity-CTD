@@ -29,7 +29,7 @@ public final class LegacyChannelIdentifier implements ChannelIdentifier {
    *
    * @param name the name for the channel
    */
-  public LegacyChannelIdentifier(final String name) {
+  public LegacyChannelIdentifier(String name) {
     Preconditions.checkArgument(!Strings.isNullOrEmpty(name), "provided name is empty");
     this.name = name;
   }
@@ -49,7 +49,7 @@ public final class LegacyChannelIdentifier implements ChannelIdentifier {
   }
 
   @Override
-  public boolean equals(final @Nullable Object o) {
+  public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

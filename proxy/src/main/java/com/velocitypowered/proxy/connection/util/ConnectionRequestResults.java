@@ -19,8 +19,8 @@ package com.velocitypowered.proxy.connection.util;
 
 import com.velocitypowered.api.proxy.ConnectionRequestBuilder;
 import com.velocitypowered.api.proxy.ConnectionRequestBuilder.Status;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
+import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import net.kyori.adventure.text.Component;
@@ -34,13 +34,7 @@ public final class ConnectionRequestResults {
     throw new AssertionError();
   }
 
-  /**
-   * Creates a successful connection result.
-   *
-   * @param server the server the connection was made to
-   * @return a result indicating the connection succeeded
-   */
-  public static Impl successful(final RegisteredServer server) {
+  public static Impl successful(VelocityRegisteredServer server) {
     return plainResult(Status.SUCCESS, server);
   }
 
@@ -51,8 +45,8 @@ public final class ConnectionRequestResults {
    * @param server the server to use
    * @return the result
    */
-  public static Impl plainResult(final ConnectionRequestBuilder.Status status,
-                                 final RegisteredServer server) {
+  public static Impl plainResult(ConnectionRequestBuilder.Status status,
+                                 VelocityRegisteredServer server) {
     return new Impl(status, null, server, true);
   }
 
@@ -63,7 +57,7 @@ public final class ConnectionRequestResults {
    * @param server    the server to use
    * @return the result
    */
-  public static Impl forDisconnect(final Component component, final RegisteredServer server) {
+  public static Impl forDisconnect(Component component, VelocityRegisteredServer server) {
     return new Impl(Status.SERVER_DISCONNECTED, component, server, true);
   }
 
@@ -74,21 +68,11 @@ public final class ConnectionRequestResults {
    * @param server     the server the player attempted to connect to
    * @return the result
    */
-  public static Impl forDisconnect(final DisconnectPacket disconnect, final RegisteredServer server) {
+  public static Impl forDisconnect(DisconnectPacket disconnect, VelocityRegisteredServer server) {
     return forDisconnect(disconnect.getReason().getComponent(), server);
   }
 
-  /**
-   * Returns a disconnect result that is considered unsafe for retrying.
-   *
-   * <p>This is used in scenarios like Forge handshakes or plugin error conditions where
-   * retrying a connection may result in undefined behavior.</p>
-   *
-   * @param disconnect the disconnect packet containing the reason
-   * @param server     the server the player attempted to connect to
-   * @return the result marked as unsafe
-   */
-  public static Impl forUnsafeDisconnect(final DisconnectPacket disconnect, final RegisteredServer server) {
+  public static Impl forUnsafeDisconnect(DisconnectPacket disconnect, VelocityRegisteredServer server) {
     return new Impl(Status.SERVER_DISCONNECTED, disconnect.getReason().getComponent(), server, false);
   }
 
@@ -97,72 +81,34 @@ public final class ConnectionRequestResults {
    */
   public static class Impl implements ConnectionRequestBuilder.Result {
 
-    /**
-     * The connection attempt status.
-     *
-     * <p>This indicates whether the attempt to connect to the backend server was successful,
-     * already in progress, canceled, or disconnected for another reason.</p>
-     */
     private final Status status;
 
-    /**
-     * The component describing the reason for the connection result, if provided.
-     *
-     * <p>This may contain a translated error message to be shown to the player. If {@code null},
-     * no specific reason was attached to the result.</p>
-     */
     private final @Nullable Component component;
 
-    /**
-     * The server that was attempted during the connection.
-     *
-     * <p>This is the server Velocity tried to connect the player to when the result was generated.</p>
-     */
-    private final RegisteredServer attemptedConnection;
+    private final VelocityRegisteredServer attemptedConnection;
 
-    /**
-     * Indicates whether it is safe to attempt reconnecting to another server after this result.
-     *
-     * <p>If {@code false}, the proxy should not attempt to connect the player to another server
-     * (e.g., due to handshake errors, modded conflicts, or plugin-specific errors).</p>
-     */
     private final boolean safe;
 
-    Impl(final Status status, final @Nullable Component component,
-         final RegisteredServer attemptedConnection, final boolean safe) {
+    Impl(Status status, @Nullable Component component,
+         VelocityRegisteredServer attemptedConnection, boolean safe) {
       this.status = status;
       this.component = component;
       this.attemptedConnection = attemptedConnection;
       this.safe = safe;
     }
 
-    /**
-     * Returns the status of the connection attempt.
-     *
-     * @return the result status
-     */
     @Override
     public Status getStatus() {
       return status;
     }
 
-    /**
-     * Returns the disconnect reason, if provided.
-     *
-     * @return an {@link Optional} containing the reason, or empty if none
-     */
     @Override
     public Optional<Component> getReasonComponent() {
       return Optional.ofNullable(component);
     }
 
-    /**
-     * Gets the server that the proxy attempted to connect the player to.
-     *
-     * @return the target backend server
-     */
     @Override
-    public RegisteredServer getAttemptedConnection() {
+    public VelocityRegisteredServer getAttemptedConnection() {
       return attemptedConnection;
     }
 

@@ -25,24 +25,12 @@ package com.velocitypowered.proxy.util.concurrent;
  */
 public final class Once {
 
-  /**
-   * Represents an uninitialized state.
-   */
   private static final int NOT_STARTED = 0;
 
-  /**
-   * Represents a completed state.
-   */
   private static final int COMPLETED = 1;
 
-  /**
-   * The completion flag. Volatile to ensure visibility across threads.
-   */
   private volatile int completed = NOT_STARTED;
 
-  /**
-   * The lock object used to synchronize execution of the runnable.
-   */
   private final Object lock = new Object();
 
   /**
@@ -53,13 +41,13 @@ public final class Once {
    *
    * @param runnable the runnable to run
    */
-  public void run(final Runnable runnable) {
+  public void run(Runnable runnable) {
     if (completed == NOT_STARTED) {
       slowRun(runnable);
     }
   }
 
-  private void slowRun(final Runnable runnable) {
+  private void slowRun(Runnable runnable) {
     synchronized (lock) {
       if (completed == NOT_STARTED) {
         try {

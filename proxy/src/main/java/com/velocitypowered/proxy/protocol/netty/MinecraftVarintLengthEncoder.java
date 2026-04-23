@@ -33,27 +33,20 @@ import java.util.List;
 @Sharable
 public final class MinecraftVarintLengthEncoder extends MessageToMessageEncoder<ByteBuf> {
 
-  /**
-   * A shared singleton instance of this encoder.
-   */
   public static final MinecraftVarintLengthEncoder INSTANCE = new MinecraftVarintLengthEncoder();
 
-  /**
-   * Whether the current cipher implementation is {@link JavaVelocityCipher}, implying use of
-   * heap buffers for best compatibility.
-   */
   static final boolean IS_JAVA_CIPHER = Natives.cipher.get() == JavaVelocityCipher.FACTORY;
 
   private MinecraftVarintLengthEncoder() {
   }
 
   @Override
-  protected void encode(final ChannelHandlerContext ctx, final ByteBuf buf,
-                        final List<Object> list) throws Exception {
-    final int length = buf.readableBytes();
-    final int varintLength = ProtocolUtils.varIntBytes(length);
+  protected void encode(ChannelHandlerContext ctx, ByteBuf buf,
+                        List<Object> list) throws Exception {
+    int length = buf.readableBytes();
+    int varintLength = ProtocolUtils.varIntBytes(length);
 
-    final ByteBuf lenBuf = IS_JAVA_CIPHER ? ctx.alloc().heapBuffer(varintLength) : ctx.alloc().directBuffer(varintLength);
+    ByteBuf lenBuf = IS_JAVA_CIPHER ? ctx.alloc().heapBuffer(varintLength) : ctx.alloc().directBuffer(varintLength);
 
     ProtocolUtils.writeVarInt(lenBuf, length);
     list.add(lenBuf);

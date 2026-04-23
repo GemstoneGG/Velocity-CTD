@@ -34,7 +34,7 @@ public final class ConnectionHandshakeEvent {
    * @param connection the inbound connection from the client
    * @param intent the intent of the handshake (e.g., login or status)
    */
-  public ConnectionHandshakeEvent(final InboundConnection connection, final HandshakeIntent intent) {
+  public ConnectionHandshakeEvent(InboundConnection connection, HandshakeIntent intent) {
     this.connection = Preconditions.checkNotNull(connection, "connection");
     this.intent = Preconditions.checkNotNull(intent, "intent");
   }
@@ -47,7 +47,7 @@ public final class ConnectionHandshakeEvent {
    * @deprecated use {@link #ConnectionHandshakeEvent(InboundConnection, HandshakeIntent)}
    */
   @Deprecated(forRemoval = true)
-  public ConnectionHandshakeEvent(final InboundConnection connection) {
+  public ConnectionHandshakeEvent(InboundConnection connection) {
     this.connection = Preconditions.checkNotNull(connection, "connection");
     this.intent = HandshakeIntent.LOGIN;
   }

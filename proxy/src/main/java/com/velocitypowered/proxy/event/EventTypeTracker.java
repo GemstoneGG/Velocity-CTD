@@ -36,13 +36,13 @@ class EventTypeTracker {
     this.friends = new ConcurrentHashMap<>();
   }
 
-  public Collection<Class<?>> getFriendsOf(final Class<?> eventType) {
+  public Collection<Class<?>> getFriendsOf(Class<?> eventType) {
     ImmutableSet<Class<?>> existingFriends = friends.get(eventType);
     if (existingFriends != null) {
       return existingFriends;
     }
 
-    final Collection<Class<?>> types = getEventTypes(eventType);
+    Collection<Class<?>> types = getEventTypes(eventType);
     for (Class<?> type : types) {
       if (type == eventType) {
         continue;
@@ -61,7 +61,7 @@ class EventTypeTracker {
     return types;
   }
 
-  private static Collection<Class<?>> getEventTypes(final Class<?> eventType) {
+  private static Collection<Class<?>> getEventTypes(Class<?> eventType) {
     return TypeToken.of(eventType).getTypes().rawTypes().stream()
         .filter(type -> type != Object.class)
         .collect(Collectors.toList());

@@ -25,29 +25,15 @@ import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.velocitypowered.api.network.ProtocolVersion;
 import io.netty.buffer.ByteBuf;
 
-/**
- * The {@code FloatArgumentPropertySerializer} is responsible for serializing and
- * deserializing {@link FloatArgumentType} instances, including optional minimum
- * and maximum bounds.
- *
- * <p>This serializer is used for command arguments that require constrained
- * floating-point values, such as angles, velocities, or custom range-based input.</p>
- *
- * <p>The format uses a flags byte to indicate the presence of minimum and/or maximum values,
- * followed by the respective floats when those flags are set.</p>
- */
 final class FloatArgumentPropertySerializer implements ArgumentPropertySerializer<FloatArgumentType> {
 
-  /**
-   * A shared singleton instance of the {@code FloatArgumentPropertySerializer}.
-   */
   static final FloatArgumentPropertySerializer FLOAT = new FloatArgumentPropertySerializer();
 
   private FloatArgumentPropertySerializer() {
   }
 
   @Override
-  public FloatArgumentType deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
+  public FloatArgumentType deserialize(ByteBuf buf, ProtocolVersion protocolVersion) {
     byte flags = buf.readByte();
     float minimum = (flags & HAS_MINIMUM) != 0 ? buf.readFloat() : Float.MIN_VALUE;
     float maximum = (flags & HAS_MAXIMUM) != 0 ? buf.readFloat() : Float.MAX_VALUE;
@@ -55,7 +41,7 @@ final class FloatArgumentPropertySerializer implements ArgumentPropertySerialize
   }
 
   @Override
-  public void serialize(final FloatArgumentType object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
+  public void serialize(FloatArgumentType object, ByteBuf buf, ProtocolVersion protocolVersion) {
     boolean hasMinimum = Float.compare(object.getMinimum(), Float.MIN_VALUE) != 0;
     boolean hasMaximum = Float.compare(object.getMaximum(), Float.MAX_VALUE) != 0;
     byte flag = getFlags(hasMinimum, hasMaximum);

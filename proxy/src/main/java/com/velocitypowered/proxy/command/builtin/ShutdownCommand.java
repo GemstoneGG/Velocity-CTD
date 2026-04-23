@@ -17,62 +17,54 @@
 
 package com.velocitypowered.proxy.command.builtin;
 
-import com.google.gson.JsonSyntaxException;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.velocityctd.proxy.command.CommandUtils;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.ConsoleCommandSource;
 import com.velocitypowered.proxy.VelocityServer;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
+import java.util.List;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
- * Shuts down the proxy.
+ * Implements Velocity's {@code /shutdown} command.
  */
-public final class ShutdownCommand {
+public class ShutdownCommand implements BuiltinCommandDefinition {
 
-  private ShutdownCommand() {
+  private final VelocityServer server;
+
+  public ShutdownCommand(VelocityServer server) {
+    this.server = server;
   }
 
-  /**
-   * Creates a Velocity Shutdown Command.
-   *
-   * @param server the proxy instance
-   * @return the Shutdown Command
-   */
-  public static BrigadierCommand command(final VelocityServer server) {
-    return new BrigadierCommand(LiteralArgumentBuilder.<CommandSource>literal("shutdown")
-        .requires(source -> source instanceof ConsoleCommandSource)
-        .executes(context -> {
-          server.shutdown(true);
-          return Command.SINGLE_SUCCESS;
-        })
-        .then(RequiredArgumentBuilder.<CommandSource, String>argument("reason",
-                StringArgumentType.greedyString())
+  @Override
+  public String label() {
+    return "shutdown";
+  }
+
+  @Override
+  public @NonNull List<String> aliases() {
+    return List.of("end", "stop");
+  }
+
+  @Override
+  public BrigadierCommand build() {
+    return new BrigadierCommand(LiteralArgumentBuilder.<CommandSource>literal(label())
+            .requires(source -> source instanceof ConsoleCommandSource)
             .executes(context -> {
-              String reason = context.getArgument("reason", String.class);
-              Component reasonComponent = null;
-
-              if (reason.startsWith("{") || reason.startsWith("[") || reason.startsWith("\"")) {
-                try {
-                  reasonComponent = GsonComponentSerializer.gson()
-                      .deserializeOrNull(reason);
-                } catch (JsonSyntaxException ignored) {
-                    // This is always ignored; thus, can be labeled as such.
-                }
-              }
-
-              if (reasonComponent == null) {
-                reasonComponent = MiniMessage.miniMessage().deserialize(reason);
-              }
-
-              server.shutdown(true, reasonComponent);
+              server.shutdown(true);
               return Command.SINGLE_SUCCESS;
             })
-        ).build());
+            .then(RequiredArgumentBuilder.<CommandSource, String>argument("reason",
+                            StringArgumentType.greedyString())
+                    .executes(context -> {
+                      String reason = context.getArgument("reason", String.class);
+                      server.shutdown(true, CommandUtils.deserializeComponent(reason));
+                      return Command.SINGLE_SUCCESS;
+                    })
+            ).build());
   }
 }

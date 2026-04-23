@@ -71,7 +71,7 @@ public class PluginAnnotationProcessor extends AbstractProcessor {
    * @param processingEnv the annotation processing environment
    */
   @Override
-  public synchronized void init(final ProcessingEnvironment processingEnv) {
+  public synchronized void init(ProcessingEnvironment processingEnv) {
     this.environment = processingEnv;
   }
 
@@ -95,8 +95,8 @@ public class PluginAnnotationProcessor extends AbstractProcessor {
    * @return {@code true} if the annotations are claimed by this processor, {@code false} otherwise
    */
   @Override
-  public synchronized boolean process(final Set<? extends TypeElement> annotations,
-                                      final RoundEnvironment roundEnv) {
+  public synchronized boolean process(Set<? extends TypeElement> annotations,
+                                      RoundEnvironment roundEnv) {
     if (roundEnv.processingOver()) {
       return false;
     }

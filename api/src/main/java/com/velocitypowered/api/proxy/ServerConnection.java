@@ -31,7 +31,7 @@ public interface ServerConnection extends ChannelMessageSource, ChannelMessageSi
    *
    * @return the server the player was connected to.
    */
-  Optional<RegisteredServer> getPreviousServer();
+  Optional<? extends RegisteredServer> getPreviousServer();
 
   /**
    * Returns the server info for this connection.

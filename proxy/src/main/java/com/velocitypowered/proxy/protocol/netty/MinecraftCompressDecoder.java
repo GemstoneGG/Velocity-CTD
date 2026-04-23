@@ -33,70 +33,40 @@ import java.util.List;
  */
 public class MinecraftCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
 
-  /**
-   * Default maximum allowed uncompressed packet size (8 MiB).
-   */
-  private static final int VANILLA_MAXIMUM_UNCOMPRESSED_SIZE = 8 * 1024 * 1024;
+  private static final int SERVERBOUND_MAXIMUM_UNCOMPRESSED_SIZE = 2 * 1024 * 1024; // 2MiB
+  private static final int VANILLA_MAXIMUM_UNCOMPRESSED_SIZE = 8 * 1024 * 1024; // 8MiB
+  private static final int HARD_MAXIMUM_UNCOMPRESSED_SIZE = 128 * 1024 * 1024; // 128MiB
 
-  /**
-   * Hard upper limit for uncompressed size (128 MiB), used if override is enabled.
-   */
-  private static final int HARD_MAXIMUM_UNCOMPRESSED_SIZE = 128 * 1024 * 1024;
-
-  /**
-   * Maximum uncompressed size permitted during decompression.
-   *
-   * <p>Can be overridden with {@code -Dvelocity.increased-compression-cap=true} to allow up to 128 MiB.</p>
-   */
-  private static final int UNCOMPRESSED_CAP =
+  private static final int CLIENTBOUND_UNCOMPRESSED_CAP =
       Boolean.getBoolean("velocity.increased-compression-cap")
           ? HARD_MAXIMUM_UNCOMPRESSED_SIZE : VANILLA_MAXIMUM_UNCOMPRESSED_SIZE;
 
-  /**
-   * If {@code true}, disables strict threshold validation of uncompressed sizes.
-   *
-   * <p>Set via {@code -Dvelocity.skip-uncompressed-packet-size-validation=true}.</p>
-   */
+  private static final int SERVERBOUND_UNCOMPRESSED_CAP =
+      Boolean.getBoolean("velocity.increased-compression-cap")
+          ? HARD_MAXIMUM_UNCOMPRESSED_SIZE : SERVERBOUND_MAXIMUM_UNCOMPRESSED_SIZE;
+
   private static final boolean SKIP_COMPRESSION_VALIDATION = Boolean.getBoolean("velocity.skip-uncompressed-packet-size-validation");
+  private static final double MAX_COMPRESSION_RATIO = Double.parseDouble(System.getProperty("velocity.max-compression-ratio", "64"));
 
-  /**
-   * Compression threshold. Packets smaller than this are not compressed.
-   */
+  private final ProtocolUtils.Direction direction;
   private int threshold;
-
-  /**
-   * The {@link VelocityCompressor} responsible for decompressing incoming packets.
-   */
   private final VelocityCompressor compressor;
 
   /**
-   * Constructs a new {@code MinecraftCompressDecoder}.
+   * Creates a new {@code MinecraftCompressDecoder} with the specified compression {@code threshold}.
    *
-   * @param threshold  the compression threshold (packets below this are not compressed)
-   * @param compressor the compressor to use for decompression
+   * @param threshold the threshold for compression. Packets with uncompressed size below this threshold will not be compressed.
+   * @param compressor the compressor instance to use
+   * @param direction the direction of the packets being decoded
    */
-  public MinecraftCompressDecoder(final int threshold, final VelocityCompressor compressor) {
+  public MinecraftCompressDecoder(int threshold, VelocityCompressor compressor, ProtocolUtils.Direction direction) {
     this.threshold = threshold;
     this.compressor = compressor;
+    this.direction = direction;
   }
 
-  /**
-   * Decompresses a compressed Minecraft packet using the configured {@link VelocityCompressor}.
-   *
-   * <p>If the incoming packet's uncompressed size is {@code 0}, it is treated as uncompressed and
-   * forwarded directly (with optional validation). Otherwise, the decoder verifies that the declared
-   * uncompressed size falls within acceptable limits and decompresses the payload.</p>
-   *
-   * <p>The uncompressed buffer is added to the output list. If decompression fails,
-   * any allocated resources are released and the exception is propagated.</p>
-   *
-   * @param ctx the Netty channel context
-   * @param in the compressed input buffer
-   * @param out the list to which the decompressed output will be added
-   * @throws Exception if decompression fails or validation fails
-   */
   @Override
-  protected void decode(final ChannelHandlerContext ctx, final ByteBuf in, final List<Object> out) throws Exception {
+  protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
     int claimedUncompressedSize = ProtocolUtils.readVarInt(in);
     if (claimedUncompressedSize == 0) {
       if (!SKIP_COMPRESSION_VALIDATION) {
@@ -109,17 +79,29 @@ public class MinecraftCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
       out.add(in.retain());
       return;
     }
+    int length = in.readableBytes();
 
     checkFrame(claimedUncompressedSize >= threshold, "Uncompressed size %s is less than"
         + " threshold %s", claimedUncompressedSize, threshold);
-    checkFrame(claimedUncompressedSize <= UNCOMPRESSED_CAP,
-        "Uncompressed size %s exceeds hard threshold of %s", claimedUncompressedSize,
-        UNCOMPRESSED_CAP);
-
+    if (direction == ProtocolUtils.Direction.CLIENTBOUND) {
+      checkFrame(claimedUncompressedSize <= CLIENTBOUND_UNCOMPRESSED_CAP,
+              "Uncompressed size %s exceeds hard threshold of %s", claimedUncompressedSize,
+              CLIENTBOUND_UNCOMPRESSED_CAP);
+    } else {
+      checkFrame(claimedUncompressedSize <= SERVERBOUND_UNCOMPRESSED_CAP,
+              "Uncompressed size %s exceeds hard threshold of %s", claimedUncompressedSize,
+              SERVERBOUND_UNCOMPRESSED_CAP);
+      double maxCompressedAllowed = length * MAX_COMPRESSION_RATIO;
+      checkFrame(claimedUncompressedSize <= maxCompressedAllowed,
+              "Uncompressed size %s exceeds ratio threshold of %s for compressed sized %s", claimedUncompressedSize,
+              maxCompressedAllowed, length);
+    }
     ByteBuf compatibleIn = ensureCompatible(ctx.alloc(), compressor, in);
     ByteBuf uncompressed = preferredBuffer(ctx.alloc(), compressor, claimedUncompressedSize);
     try {
       compressor.inflate(compatibleIn, uncompressed, claimedUncompressedSize);
+      checkFrame(uncompressed.writerIndex() == claimedUncompressedSize,
+              "Decompressed size %s does not match claimed uncompressed size %s", uncompressed.writerIndex(), claimedUncompressedSize);
       out.add(uncompressed);
     } catch (Exception e) {
       uncompressed.release();
@@ -129,24 +111,12 @@ public class MinecraftCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
     }
   }
 
-  /**
-   * Called when this decoder is removed from the Netty pipeline.
-   *
-   * <p>This method closes the associated {@link VelocityCompressor} to release any native resources.</p>
-   *
-   * @param ctx the Netty channel context
-   */
   @Override
-  public void handlerRemoved(final ChannelHandlerContext ctx) {
+  public void handlerRemoved(ChannelHandlerContext ctx) {
     compressor.close();
   }
 
-  /**
-   * Updates the compression threshold.
-   *
-   * @param threshold the new compression threshold
-   */
-  public void setThreshold(final int threshold) {
+  public void setThreshold(int threshold) {
     this.threshold = threshold;
   }
 }

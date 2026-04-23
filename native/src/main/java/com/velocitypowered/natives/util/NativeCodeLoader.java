@@ -31,7 +31,7 @@ public final class NativeCodeLoader<T> implements Supplier<T> {
 
   private final Variant<T> selected;
 
-  NativeCodeLoader(final List<Variant<T>> variants) {
+  NativeCodeLoader(List<Variant<T>> variants) {
     this.selected = getVariant(variants);
   }
 
@@ -40,7 +40,7 @@ public final class NativeCodeLoader<T> implements Supplier<T> {
     return selected.constructed;
   }
 
-  private static <T> Variant<T> getVariant(final List<Variant<T>> variants) {
+  private static <T> Variant<T> getVariant(List<Variant<T>> variants) {
     for (Variant<T> variant : variants) {
       T got = variant.get();
       if (got == null) {
@@ -88,11 +88,11 @@ public final class NativeCodeLoader<T> implements Supplier<T> {
      */
     private T constructed;
 
-    Variant(final BooleanSupplier possiblyAvailable, final Runnable setup, final String name, final T object) {
+    Variant(BooleanSupplier possiblyAvailable, Runnable setup, String name, T object) {
       this(possiblyAvailable, setup, name, () -> object);
     }
 
-    Variant(final BooleanSupplier possiblyAvailable, final Runnable setup, final String name, final Supplier<T> object) {
+    Variant(BooleanSupplier possiblyAvailable, Runnable setup, String name, Supplier<T> object) {
       this.status = possiblyAvailable.getAsBoolean() ? Status.POSSIBLY_AVAILABLE : Status.NOT_AVAILABLE;
       this.setup = setup;
       this.name = name;

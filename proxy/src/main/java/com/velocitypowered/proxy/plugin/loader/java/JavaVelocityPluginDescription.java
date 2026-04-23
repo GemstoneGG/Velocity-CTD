@@ -28,15 +28,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 class JavaVelocityPluginDescription extends VelocityPluginDescription {
 
-  /**
-   * The main class of the plugin that will be instantiated during plugin creation.
-   */
   private final Class<?> mainClass;
 
-  JavaVelocityPluginDescription(final String id, final @Nullable String name, final @Nullable String version,
-                                final @Nullable String description, final @Nullable String url,
-                                final @Nullable List<String> authors, final Collection<PluginDependency> dependencies, final Path source,
-                                final Class<?> mainClass) {
+  JavaVelocityPluginDescription(String id, @Nullable String name, @Nullable String version,
+                                @Nullable String description, @Nullable String url,
+                                @Nullable List<String> authors, Collection<PluginDependency> dependencies, Path source,
+                                Class<?> mainClass) {
     super(id, name, version, description, url, authors, dependencies, source);
     this.mainClass = checkNotNull(mainClass);
   }

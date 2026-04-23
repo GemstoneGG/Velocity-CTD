@@ -56,13 +56,13 @@ public final class JavaVelocityCompressor implements VelocityCompressor {
    */
   private boolean disposed = false;
 
-  private JavaVelocityCompressor(final int level) {
+  private JavaVelocityCompressor(int level) {
     this.deflater = new Deflater(level);
     this.inflater = new Inflater();
   }
 
   @Override
-  public void inflate(final ByteBuf source, final ByteBuf destination, final int uncompressedSize)
+  public void inflate(ByteBuf source, ByteBuf destination, int uncompressedSize)
       throws DataFormatException {
     ensureNotDisposed();
 
@@ -70,11 +70,11 @@ public final class JavaVelocityCompressor implements VelocityCompressor {
     checkArgument(source.nioBufferCount() == 1, "source has multiple backing buffers");
     checkArgument(destination.nioBufferCount() == 1, "destination has multiple backing buffers");
 
-    final int origIdx = source.readerIndex();
+    int origIdx = source.readerIndex();
     inflater.setInput(source.nioBuffer());
 
     try {
-      final int readable = source.readableBytes();
+      int readable = source.readableBytes();
       while (!inflater.finished() && inflater.getBytesRead() < readable) {
         if (!destination.isWritable()) {
           destination.ensureWritable(ZLIB_BUFFER_SIZE);
@@ -97,14 +97,14 @@ public final class JavaVelocityCompressor implements VelocityCompressor {
   }
 
   @Override
-  public void deflate(final ByteBuf source, final ByteBuf destination) {
+  public void deflate(ByteBuf source, ByteBuf destination) {
     ensureNotDisposed();
 
     // We (probably) can't nicely deal with >=1 buffer nicely, so let's scream loudly.
     checkArgument(source.nioBufferCount() == 1, "source has multiple backing buffers");
     checkArgument(destination.nioBufferCount() == 1, "destination has multiple backing buffers");
 
-    final int origIdx = source.readerIndex();
+    int origIdx = source.readerIndex();
     deflater.setInput(source.nioBuffer());
     deflater.finish();
 

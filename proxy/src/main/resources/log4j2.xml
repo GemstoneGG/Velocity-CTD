@@ -26,6 +26,9 @@
           <!-- Velocity doesn't need a prefix -->
           <PatternMatch key="com.velocitypowered."
             pattern="%highlightError{[%d{HH:mm:ss} %level]: %msg%n%xEx}"/>
+          <!-- Velocity-CTD doesn't need a prefix -->
+          <PatternMatch key="com.velocityctd."
+            pattern="%highlightError{[%d{HH:mm:ss} %level]: %msg%n%xEx}"/>
         </LoggerNamePatternSelector>
       </PatternLayout>
     </TerminalConsole>

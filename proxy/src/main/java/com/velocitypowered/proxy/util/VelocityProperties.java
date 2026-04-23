@@ -36,9 +36,9 @@ public final class VelocityProperties {
    *     it will return {@code true}, otherwise, it will return false.
    * @since 3.3.0
    */
-  public static boolean readBoolean(final String property, final boolean defaultValue) {
+  public static boolean readBoolean(String property, boolean defaultValue) {
     requireNonNull(property);
-    final String value = System.getProperty(property);
+    String value = System.getProperty(property);
     if (value == null) {
       return defaultValue;
     }
@@ -53,7 +53,7 @@ public final class VelocityProperties {
    * @return if a value is assigned to this system property
    * @since 3.3.0
    */
-  public static boolean hasProperty(final String property) {
+  public static boolean hasProperty(String property) {
     requireNonNull(property);
 
     return System.getProperty(property) != null;

@@ -41,29 +41,15 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class CommandGraphInjector<S> {
 
-  /**
-   * A static {@link StringRange} pointing to the start of the command input.
-   * Used when injecting command nodes to simulate parsing from the root.
-   */
   private static final StringRange ALIAS_RANGE = StringRange.at(0);
 
-  /**
-   * A static {@link StringReader} instance representing an empty input string.
-   * Used for evaluating alias requirements without actual user input.
-   */
   private static final StringReader ALIAS_READER = new StringReader("");
 
-  /**
-   * The dispatcher from which command nodes are sourced for injection.
-   */
   private final @GuardedBy("lock") CommandDispatcher<S> dispatcher;
 
-  /**
-   * The lock used to guard concurrent access to the dispatcher and node copying.
-   */
   private final Lock lock;
 
-  CommandGraphInjector(final CommandDispatcher<S> dispatcher, final Lock lock) {
+  CommandGraphInjector(CommandDispatcher<S> dispatcher, Lock lock) {
     this.dispatcher = Preconditions.checkNotNull(dispatcher, "dispatcher");
     this.lock = Preconditions.checkNotNull(lock, "lock");
   }
@@ -81,34 +67,34 @@ public final class CommandGraphInjector<S> {
    * @param dest   the root node to add the permissible nodes to
    * @param source the command source to inject the nodes for
    */
-  public void inject(final RootCommandNode<S> dest, final S source) {
+  public void inject(RootCommandNode<S> dest, S source) {
     lock.lock();
     try {
-      final Map<CommandNode<S>, CommandNode<S>> done = new IdentityHashMap<>();
-      final RootCommandNode<S> origin = this.dispatcher.getRoot();
-      final CommandContextBuilder<S> rootContext = new CommandContextBuilder<>(this.dispatcher, source, origin, 0);
+      Map<CommandNode<S>, CommandNode<S>> done = new IdentityHashMap<>();
+      RootCommandNode<S> origin = this.dispatcher.getRoot();
+      CommandContextBuilder<S> rootContext = new CommandContextBuilder<>(this.dispatcher, source, origin, 0);
 
       // Filter alias nodes
-      for (final CommandNode<S> node : origin.getChildren()) {
+      for (CommandNode<S> node : origin.getChildren()) {
         if (!node.canUse(source)) {
           continue;
         }
 
-        final CommandContextBuilder<S> context = rootContext.copy()
+        CommandContextBuilder<S> context = rootContext.copy()
             .withNode(node, ALIAS_RANGE);
         if (!node.canUse(context, ALIAS_READER)) {
           continue;
         }
 
-        final LiteralCommandNode<S> asLiteral = (LiteralCommandNode<S>) node;
-        final LiteralCommandNode<S> copy = asLiteral.createBuilder().build();
-        final VelocityArgumentCommandNode<S, ?> argsNode = VelocityCommands.getArgumentsNode(asLiteral);
+        LiteralCommandNode<S> asLiteral = (LiteralCommandNode<S>) node;
+        LiteralCommandNode<S> copy = asLiteral.createBuilder().build();
+        VelocityArgumentCommandNode<S, ?> argsNode = VelocityCommands.getArgumentsNode(asLiteral);
         if (argsNode == null) {
           // This literal is associated with a BrigadierCommand, filter normally.
           this.copyChildren(node, copy, source, done);
         } else {
           // Copy all children nodes (arguments node and hints)
-          for (final CommandNode<S> child : node.getChildren()) {
+          for (CommandNode<S> child : node.getChildren()) {
             copy.addChild(child);
           }
         }
@@ -120,7 +106,7 @@ public final class CommandGraphInjector<S> {
     }
   }
 
-  private @Nullable CommandNode<S> filterNode(final CommandNode<S> node, final S source, final Map<CommandNode<S>, CommandNode<S>> done) {
+  private @Nullable CommandNode<S> filterNode(CommandNode<S> node, S source, Map<CommandNode<S>, CommandNode<S>> done) {
     if (done.containsKey(node)) {
       return done.get(node);
     }
@@ -135,31 +121,31 @@ public final class CommandGraphInjector<S> {
       return null;
     }
 
-    final ArgumentBuilder<S, ?> builder = node.createBuilder();
+    ArgumentBuilder<S, ?> builder = node.createBuilder();
     if (node.getRedirect() != null) {
       // Redirects to non-Brigadier commands are not supported. Luckily,
       // we don't expose the root node to API users, so they can't access
       // nodes associated with other commands.
-      final CommandNode<S> target = this.filterNode(node.getRedirect(), source, done);
+      CommandNode<S> target = this.filterNode(node.getRedirect(), source, done);
       builder.forward(target, builder.getRedirectModifier(), builder.isFork());
     }
 
-    final CommandNode<S> result = builder.build();
+    CommandNode<S> result = builder.build();
     done.put(node, result);
     this.copyChildren(node, result, source, done);
     return result;
   }
 
-  private void copyChildren(final CommandNode<S> parent, final CommandNode<S> dest, final S source, final Map<CommandNode<S>, CommandNode<S>> done) {
-    for (final CommandNode<S> child : parent.getChildren()) {
-      final CommandNode<S> filtered = this.filterNode(child, source, done);
+  private void copyChildren(CommandNode<S> parent, CommandNode<S> dest, S source, Map<CommandNode<S>, CommandNode<S>> done) {
+    for (CommandNode<S> child : parent.getChildren()) {
+      CommandNode<S> filtered = this.filterNode(child, source, done);
       if (filtered != null) {
         dest.addChild(filtered);
       }
     }
   }
 
-  private void addAlias(final LiteralCommandNode<S> node, final RootCommandNode<S> dest) {
+  private void addAlias(LiteralCommandNode<S> node, RootCommandNode<S> dest) {
     dest.removeChildByName(node.getName());
     dest.addChild(node);
   }

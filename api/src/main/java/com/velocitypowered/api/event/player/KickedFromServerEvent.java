@@ -61,9 +61,9 @@ public final class KickedFromServerEvent implements ResultedEvent<KickedFromServ
    * @param duringServerConnect whether the player was kicked during the connection process
    * @param result the initial result
    */
-  public KickedFromServerEvent(final Player player, final RegisteredServer server,
-                               final @Nullable Component originalReason,
-                               final boolean duringServerConnect, final ServerKickResult result) {
+  public KickedFromServerEvent(Player player, RegisteredServer server,
+                               @Nullable Component originalReason,
+                               boolean duringServerConnect, ServerKickResult result) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.server = Preconditions.checkNotNull(server, "server");
     this.originalReason = originalReason;
@@ -77,7 +77,7 @@ public final class KickedFromServerEvent implements ResultedEvent<KickedFromServ
   }
 
   @Override
-  public void setResult(final @NonNull ServerKickResult result) {
+  public void setResult(@NonNull ServerKickResult result) {
     this.result = Preconditions.checkNotNull(result, "result");
   }
 
@@ -145,7 +145,7 @@ public final class KickedFromServerEvent implements ResultedEvent<KickedFromServ
      */
     private final Component component;
 
-    private DisconnectPlayer(final Component component) {
+    private DisconnectPlayer(Component component) {
       this.component = Preconditions.checkNotNull(component, "component");
     }
 
@@ -169,7 +169,7 @@ public final class KickedFromServerEvent implements ResultedEvent<KickedFromServ
      * @param reason the reason to use when disconnecting the player
      * @return the disconnect result
      */
-    public static DisconnectPlayer create(final Component reason) {
+    public static DisconnectPlayer create(Component reason) {
       return new DisconnectPlayer(reason);
     }
 
@@ -194,7 +194,7 @@ public final class KickedFromServerEvent implements ResultedEvent<KickedFromServ
      */
     private final RegisteredServer server;
 
-    private RedirectPlayer(final RegisteredServer server, final @Nullable Component message) {
+    private RedirectPlayer(RegisteredServer server, @Nullable Component message) {
       this.server = Preconditions.checkNotNull(server, "server");
       this.message = message;
     }
@@ -232,7 +232,7 @@ public final class KickedFromServerEvent implements ResultedEvent<KickedFromServ
      * @param message the message will be sent to the player after redirecting
      * @return the redirect result
      */
-    public static RedirectPlayer create(final @NonNull RegisteredServer server, final Component message) {
+    public static RedirectPlayer create(@NonNull RegisteredServer server, Component message) {
       return new RedirectPlayer(server, message);
     }
 
@@ -243,7 +243,7 @@ public final class KickedFromServerEvent implements ResultedEvent<KickedFromServ
      * @param server the server to send the player to
      * @return the redirect result
      */
-    public static ServerKickResult create(final RegisteredServer server) {
+    public static ServerKickResult create(RegisteredServer server) {
       return new RedirectPlayer(server, null);
     }
 
@@ -265,7 +265,7 @@ public final class KickedFromServerEvent implements ResultedEvent<KickedFromServ
      */
     private final Component message;
 
-    private Notify(final Component message) {
+    private Notify(Component message) {
       this.message = Preconditions.checkNotNull(message, "message");
     }
 
@@ -289,7 +289,7 @@ public final class KickedFromServerEvent implements ResultedEvent<KickedFromServ
      * @param message the server to send the player to
      * @return the redirect result
      */
-    public static Notify create(final @NonNull Component message) {
+    public static Notify create(@NonNull Component message) {
       return new Notify(message);
     }
 

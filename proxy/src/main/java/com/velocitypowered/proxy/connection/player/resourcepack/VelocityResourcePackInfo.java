@@ -33,14 +33,8 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class VelocityResourcePackInfo implements ResourcePackInfo {
 
-  /**
-   * The unique identifier of the resource pack.
-   */
   private final UUID id;
 
-  /**
-   * The URL where the resource pack is hosted.
-   */
   private final String url;
 
   /**
@@ -48,28 +42,16 @@ public final class VelocityResourcePackInfo implements ResourcePackInfo {
    */
   private final byte @Nullable [] hash;
 
-  /**
-   * Whether the pack should be forced to apply on the client.
-   */
   private final boolean shouldForce;
 
-  /**
-   * The optional prompt shown to the user when accepting the pack (1.17+).
-   */
   private final @Nullable Component prompt;
 
-  /**
-   * The effective origin of this pack (plugin/server/etc).
-   */
   private final Origin origin;
 
-  /**
-   * The original origin of this pack (used to detect proxy modifications).
-   */
   private Origin originalOrigin;
 
-  private VelocityResourcePackInfo(final UUID id, final String url, final byte @Nullable [] hash, final boolean shouldForce,
-                                   final @Nullable Component prompt, final Origin origin) {
+  private VelocityResourcePackInfo(UUID id, String url, byte @Nullable [] hash, boolean shouldForce,
+                                   @Nullable Component prompt, Origin origin) {
     this.id = id;
     this.url = url;
     this.hash = hash;
@@ -109,12 +91,7 @@ public final class VelocityResourcePackInfo implements ResourcePackInfo {
     return origin;
   }
 
-  /**
-   * Sets the original origin of this pack.
-   *
-   * @param originalOrigin the original origin to record
-   */
-  public void setOriginalOrigin(final Origin originalOrigin) {
+  public void setOriginalOrigin(Origin originalOrigin) {
     this.originalOrigin = originalOrigin;
   }
 
@@ -133,7 +110,7 @@ public final class VelocityResourcePackInfo implements ResourcePackInfo {
   }
 
   @Override
-  public Builder asBuilder(final String newUrl) {
+  public Builder asBuilder(String newUrl) {
     return new BuilderImpl(newUrl)
         .setId(id)
         .setShouldForce(shouldForce)
@@ -154,16 +131,8 @@ public final class VelocityResourcePackInfo implements ResourcePackInfo {
         .build();
   }
 
-  /**
-   * Converts a {@link net.kyori.adventure.resource.ResourcePackInfo} from an Adventure resource pack request
-   * into a {@link ResourcePackInfo}.
-   *
-   * @param request the {@link ResourcePackRequest} containing details of the resource pack request
-   * @param pack the {@link net.kyori.adventure.resource.ResourcePackInfo} instance to convert from
-   * @return a new {@link ResourcePackInfo} representing the converted Adventure resource pack request
-   */
-  public static ResourcePackInfo fromAdventureRequest(final ResourcePackRequest request,
-                                                      final net.kyori.adventure.resource.ResourcePackInfo pack) {
+  public static ResourcePackInfo fromAdventureRequest(ResourcePackRequest request,
+                                                      net.kyori.adventure.resource.ResourcePackInfo pack) {
     return new BuilderImpl(pack.uri().toString())
         .setHash(pack.hash().isEmpty() ? null : ByteBufUtil.decodeHexDump(pack.hash()))
         .setId(pack.id())
@@ -177,21 +146,10 @@ public final class VelocityResourcePackInfo implements ResourcePackInfo {
    */
   public static final class BuilderImpl implements ResourcePackInfo.Builder {
 
-    /**
-     * The unique identifier of the resource pack.
-     *
-     * <p>By default, this is generated from the resource pack URL using {@link UUID#nameUUIDFromBytes(byte[])}.</p>
-     */
     private UUID id;
 
-    /**
-     * The resource pack download URL.
-     */
     private final String url;
 
-    /**
-     * Whether the resource pack must be applied by the client.
-     */
     private boolean shouldForce;
 
     /**
@@ -199,44 +157,29 @@ public final class VelocityResourcePackInfo implements ResourcePackInfo {
      */
     private byte @Nullable [] hash;
 
-    /**
-     * The optional prompt component displayed to the user (1.17+), or {@code null} if absent.
-     */
     private @Nullable Component prompt;
 
-    /**
-     * The declared origin of the resource pack. Defaults to {@link Origin#PLUGIN_ON_PROXY}.
-     */
     private Origin origin = Origin.PLUGIN_ON_PROXY;
 
-    /**
-     * Constructs a new builder for a resource pack targeting the specified URL.
-     *
-     * <p>By default, the ID is derived from the URL using {@link UUID#nameUUIDFromBytes(byte[])}, but
-     * can be overridden using {@link #setId(UUID)}.</p>
-     *
-     * @param url the resource pack download URL
-     * @throws NullPointerException if {@code url} is {@code null}
-     */
-    public BuilderImpl(final String url) {
+    public BuilderImpl(String url) {
       this.url = Preconditions.checkNotNull(url, "url");
       this.id = UUID.nameUUIDFromBytes(url.getBytes(StandardCharsets.UTF_8));
     }
 
     @Override
-    public BuilderImpl setId(final UUID id) {
+    public BuilderImpl setId(UUID id) {
       this.id = id;
       return this;
     }
 
     @Override
-    public BuilderImpl setShouldForce(final boolean shouldForce) {
+    public BuilderImpl setShouldForce(boolean shouldForce) {
       this.shouldForce = shouldForce;
       return this;
     }
 
     @Override
-    public BuilderImpl setHash(final byte @Nullable [] hash) {
+    public BuilderImpl setHash(byte @Nullable [] hash) {
       if (hash != null) {
         Preconditions.checkArgument(hash.length == 20, "Hash length is not 20");
         this.hash = hash.clone(); // Thanks spotbugs, very helpful.
@@ -248,7 +191,7 @@ public final class VelocityResourcePackInfo implements ResourcePackInfo {
     }
 
     @Override
-    public BuilderImpl setPrompt(final @Nullable Component prompt) {
+    public BuilderImpl setPrompt(@Nullable Component prompt) {
       this.prompt = prompt;
       return this;
     }
@@ -258,15 +201,7 @@ public final class VelocityResourcePackInfo implements ResourcePackInfo {
       return new VelocityResourcePackInfo(id, url, hash, shouldForce, prompt, origin);
     }
 
-    /**
-     * Sets the origin of the resource pack.
-     *
-     * <p>This indicates where the resource pack originated from, such as a plugin or the backend server.</p>
-     *
-     * @param origin the {@link Origin} of the resource pack
-     * @return this builder instance
-     */
-    public BuilderImpl setOrigin(final Origin origin) {
+    public BuilderImpl setOrigin(Origin origin) {
       this.origin = origin;
       return this;
     }

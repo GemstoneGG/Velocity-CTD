@@ -41,23 +41,14 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class ModernResourcePackHandler extends ResourcePackHandler {
 
-  /**
-   * Queue of resource packs to be sent to the player, grouped by unique resource pack ID.
-   */
   private final ListMultimap<UUID, ResourcePackInfo> outstandingResourcePacks =
       Multimaps.newListMultimap(new ConcurrentHashMap<>(), LinkedList::new);
 
-  /**
-   * Map of resource packs that have been accepted but not yet successfully applied.
-   */
   private final Map<UUID, ResourcePackInfo> pendingResourcePacks = new ConcurrentHashMap<>();
 
-  /**
-   * Map of resource packs that have been successfully applied by the client.
-   */
   private final Map<UUID, ResourcePackInfo> appliedResourcePacks = new ConcurrentHashMap<>();
 
-  ModernResourcePackHandler(final ConnectedPlayer player, final VelocityServer server) {
+  ModernResourcePackHandler(ConnectedPlayer player, VelocityServer server) {
     super(player, server);
   }
 
@@ -97,14 +88,14 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
   }
 
   @Override
-  public boolean remove(final @NotNull UUID uuid) {
+  public boolean remove(@NotNull UUID uuid) {
     outstandingResourcePacks.removeAll(uuid);
     return appliedResourcePacks.remove(uuid) != null | pendingResourcePacks.remove(uuid) != null;
   }
 
   @Override
-  public void queueResourcePack(final @NotNull ResourcePackInfo info) {
-    final List<ResourcePackInfo> outstandingResourcePacks = this.outstandingResourcePacks.get(info.getId());
+  public void queueResourcePack(@NotNull ResourcePackInfo info) {
+    List<ResourcePackInfo> outstandingResourcePacks = this.outstandingResourcePacks.get(info.getId());
     outstandingResourcePacks.add(info);
     if (outstandingResourcePacks.size() == 1) {
       tickResourcePackQueue(outstandingResourcePacks.getFirst().getId());
@@ -112,7 +103,7 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
   }
 
   @Override
-  public void queueResourcePack(final @NotNull ResourcePackRequest request) {
+  public void queueResourcePack(@NotNull ResourcePackRequest request) {
     if (request.packs().size() > 1) {
       player.getBundleHandler().bundlePackets(() -> super.queueResourcePack(request));
     } else {
@@ -120,19 +111,19 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
     }
   }
 
-  private void tickResourcePackQueue(final @NotNull UUID uuid) {
-    final List<ResourcePackInfo> outstandingResourcePacks = this.outstandingResourcePacks.get(uuid);
+  private void tickResourcePackQueue(@NotNull UUID uuid) {
+    List<ResourcePackInfo> outstandingResourcePacks = this.outstandingResourcePacks.get(uuid);
     if (!outstandingResourcePacks.isEmpty()) {
       sendResourcePackRequestPacket(outstandingResourcePacks.getFirst());
     }
   }
 
   @Override
-  public boolean onResourcePackResponse(final @NotNull ResourcePackResponseBundle bundle) {
-    final UUID uuid = bundle.uuid();
-    final List<ResourcePackInfo> outstandingResourcePacks = this.outstandingResourcePacks.get(uuid);
-    final boolean peek = bundle.status().isIntermediate();
-    final ResourcePackInfo queued = outstandingResourcePacks.isEmpty() ? null
+  public boolean onResourcePackResponse(@NotNull ResourcePackResponseBundle bundle) {
+    UUID uuid = bundle.uuid();
+    List<ResourcePackInfo> outstandingResourcePacks = this.outstandingResourcePacks.get(uuid);
+    boolean peek = bundle.status().isIntermediate();
+    ResourcePackInfo queued = outstandingResourcePacks.isEmpty() ? null
         : peek ? outstandingResourcePacks.getFirst() : outstandingResourcePacks.removeFirst();
 
     server.getEventManager()
@@ -165,7 +156,7 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
           // the player sends more than 1 SUCCESSFUL response to the backend server,
           // which results in the server receiving more resource pack responses
           // than the server has sent requests to the player
-          final ResourcePackInfo appliedPack = appliedResourcePacks.get(uuid);
+          ResourcePackInfo appliedPack = appliedResourcePacks.get(uuid);
           if (appliedPack != null) {
             return handleResponseResult(appliedPack, bundle);
           }
@@ -190,11 +181,11 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
   }
 
   @Override
-  public boolean hasPackAppliedByHash(final byte[] hash) {
+  public boolean hasPackAppliedByHash(byte[] hash) {
     if (hash == null) {
       return false;
     }
-    for (final Map.Entry<UUID, ResourcePackInfo> appliedPack : appliedResourcePacks.entrySet()) {
+    for (Map.Entry<UUID, ResourcePackInfo> appliedPack : appliedResourcePacks.entrySet()) {
       if (Arrays.equals(appliedPack.getValue().getHash(), hash)) {
         return true;
       }

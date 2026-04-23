@@ -36,7 +36,7 @@ public sealed interface InvocableCommand<I extends CommandInvocation<?>> extends
    * @param invocation the invocation context
    * @return the tab complete suggestions
    */
-  default List<String> suggest(final I invocation) {
+  default List<String> suggest(I invocation) {
     return ImmutableList.of();
   }
 
@@ -47,7 +47,7 @@ public sealed interface InvocableCommand<I extends CommandInvocation<?>> extends
    * @return the tab complete suggestions
    * @implSpec defaults to wrapping the value returned by {@link #suggest(CommandInvocation)}
    */
-  default CompletableFuture<List<String>> suggestAsync(final I invocation) {
+  default CompletableFuture<List<String>> suggestAsync(I invocation) {
     return CompletableFuture.completedFuture(suggest(invocation));
   }
 
@@ -60,7 +60,7 @@ public sealed interface InvocableCommand<I extends CommandInvocation<?>> extends
    * @param invocation the invocation context
    * @return {@code true} if the source has permission
    */
-  default boolean hasPermission(final I invocation) {
+  default boolean hasPermission(I invocation) {
     return true;
   }
 }

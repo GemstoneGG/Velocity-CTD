@@ -97,8 +97,8 @@ public final class SerializedPluginDescription {
    */
   private final String main;
 
-  private SerializedPluginDescription(final String id, final String name, final String version, final String description,
-                                      final String url, final List<String> authors, final List<Dependency> dependencies, final String main) {
+  private SerializedPluginDescription(String id, String name, String version, String description,
+                                      String url, List<String> authors, List<Dependency> dependencies, String main) {
     Preconditions.checkNotNull(id, "id");
     Preconditions.checkArgument(ID_PATTERN.matcher(id).matches(), "id is not valid");
     this.id = id;
@@ -112,7 +112,7 @@ public final class SerializedPluginDescription {
     this.main = Preconditions.checkNotNull(main, "main");
   }
 
-  static SerializedPluginDescription from(final Plugin plugin, final String qualifiedName) {
+  static SerializedPluginDescription from(Plugin plugin, String qualifiedName) {
     List<Dependency> dependencies = new ArrayList<>();
     for (com.velocitypowered.api.plugin.Dependency dependency : plugin.dependencies()) {
       dependencies.add(new Dependency(dependency.id(), dependency.optional()));
@@ -203,7 +203,7 @@ public final class SerializedPluginDescription {
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -269,7 +269,7 @@ public final class SerializedPluginDescription {
      * @param id the ID of the dependent plugin
      * @param optional whether the dependency is optional
      */
-    public Dependency(final String id, final boolean optional) {
+    public Dependency(String id, boolean optional) {
       this.id = id;
       this.optional = optional;
     }
@@ -295,7 +295,7 @@ public final class SerializedPluginDescription {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(Object o) {
       if (this == o) {
         return true;
       }

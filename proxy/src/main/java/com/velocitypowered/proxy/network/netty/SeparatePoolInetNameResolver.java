@@ -45,24 +45,12 @@ import java.util.concurrent.TimeUnit;
  */
 public final class SeparatePoolInetNameResolver extends InetNameResolver {
 
-  /**
-   * Executor used to run DNS resolution off the Netty thread.
-   */
   private final ExecutorService resolveExecutor;
 
-  /**
-   * The Netty delegate resolver for actual DNS resolution.
-   */
   private final InetNameResolver delegate;
 
-  /**
-   * Cache storing previously resolved hostnames.
-   */
   private final Cache<String, List<InetAddress>> cache;
 
-  /**
-   * Lazily initialized {@link AddressResolverGroup} wrapper.
-   */
   private AddressResolverGroup<InetSocketAddress> resolverGroup;
 
   /**
@@ -71,7 +59,7 @@ public final class SeparatePoolInetNameResolver extends InetNameResolver {
    * @param executor the {@link EventExecutor} which is used to notify the listeners of the
    *                 {@link Future} returned by {@link #resolve(String)}
    */
-  public SeparatePoolInetNameResolver(final EventExecutor executor) {
+  public SeparatePoolInetNameResolver(EventExecutor executor) {
     super(executor);
     this.resolveExecutor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
         .setNameFormat("Velocity DNS Resolver")
@@ -84,7 +72,7 @@ public final class SeparatePoolInetNameResolver extends InetNameResolver {
   }
 
   @Override
-  protected void doResolve(final String inetHost, final Promise<InetAddress> promise) {
+  protected void doResolve(String inetHost, Promise<InetAddress> promise) {
     List<InetAddress> addresses = cache.getIfPresent(inetHost);
     if (addresses != null) {
       promise.trySuccess(addresses.getFirst());
@@ -107,7 +95,7 @@ public final class SeparatePoolInetNameResolver extends InetNameResolver {
   }
 
   @Override
-  protected void doResolveAll(final String inetHost, final Promise<List<InetAddress>> promise) {
+  protected void doResolveAll(String inetHost, Promise<List<InetAddress>> promise) {
     List<InetAddress> addresses = cache.getIfPresent(inetHost);
     if (addresses != null) {
       promise.trySuccess(addresses);
@@ -128,11 +116,6 @@ public final class SeparatePoolInetNameResolver extends InetNameResolver {
     }
   }
 
-  /**
-   * Shuts down the internal resolution executor.
-   *
-   * <p>This method should be called during server shutdown to prevent thread leaks.</p>
-   */
   public void shutdown() {
     this.resolveExecutor.shutdown();
   }
@@ -146,7 +129,7 @@ public final class SeparatePoolInetNameResolver extends InetNameResolver {
     if (this.resolverGroup == null) {
       this.resolverGroup = new AddressResolverGroup<>() {
         @Override
-        protected AddressResolver<InetSocketAddress> newResolver(final EventExecutor executor) {
+        protected AddressResolver<InetSocketAddress> newResolver(EventExecutor executor) {
           return asAddressResolver();
         }
       };

@@ -44,7 +44,7 @@ public interface CommandInvocationFactory<I extends CommandInvocation<?>> {
    * @param context the command context
    * @return the built invocation context
    */
-  default I create(final CommandContext<CommandSource> context) {
+  default I create(CommandContext<CommandSource> context) {
     return this.create(context.getSource(), context.getNodes(), context.getArguments());
   }
 
@@ -54,7 +54,7 @@ public interface CommandInvocationFactory<I extends CommandInvocation<?>> {
    * @param context the command context builder
    * @return the built invocation context
    */
-  default I create(final CommandContextBuilder<CommandSource> context) {
+  default I create(CommandContextBuilder<CommandSource> context) {
     return this.create(context.getSource(), context.getNodes(), context.getArguments());
   }
 

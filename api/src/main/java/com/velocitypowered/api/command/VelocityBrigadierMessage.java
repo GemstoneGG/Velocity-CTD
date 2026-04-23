@@ -26,7 +26,7 @@ public final class VelocityBrigadierMessage implements Message, ComponentLike {
    * @param message the component to use as the tooltip message
    * @return a new instance of {@link VelocityBrigadierMessage}
    */
-  public static VelocityBrigadierMessage tooltip(final Component message) {
+  public static VelocityBrigadierMessage tooltip(Component message) {
     return new VelocityBrigadierMessage(message);
   }
 
@@ -38,7 +38,7 @@ public final class VelocityBrigadierMessage implements Message, ComponentLike {
    */
   private final Component message;
 
-  private VelocityBrigadierMessage(final Component message) {
+  private VelocityBrigadierMessage(Component message) {
     this.message = Preconditions.checkNotNull(message, "message");
   }
 

@@ -46,7 +46,7 @@ public final class PingOptions {
    */
   private final String virtualHost;
 
-  private PingOptions(final Builder builder) {
+  private PingOptions(Builder builder) {
     this.protocolVersion = builder.protocolVersion;
     this.timeout = builder.timeout;
     this.virtualHost = builder.virtualHost;
@@ -90,12 +90,12 @@ public final class PingOptions {
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (o == null) {
       return false;
     }
 
-    if (!(o instanceof final PingOptions other)) {
+    if (!(o instanceof PingOptions other)) {
       return false;
     }
 
@@ -147,7 +147,7 @@ public final class PingOptions {
      * @param protocolVersion the specified protocol
      * @return this builder
      */
-    public Builder version(final @NotNull ProtocolVersion protocolVersion) {
+    public Builder version(@NotNull ProtocolVersion protocolVersion) {
       checkNotNull(protocolVersion, "protocolVersion cannot be null");
       this.protocolVersion = protocolVersion;
       return this;
@@ -163,7 +163,7 @@ public final class PingOptions {
      *                be no timeout.
      * @return this builder
      */
-    public Builder timeout(final @NotNull Duration timeout) {
+    public Builder timeout(@NotNull Duration timeout) {
       checkNotNull(timeout, "timeout cannot be null");
       this.timeout = timeout.toMillis();
       return this;
@@ -180,7 +180,7 @@ public final class PingOptions {
      * @param timeunit the unit of time to be used to provide the timeout duration
      * @return this builder
      */
-    public Builder timeout(final long time, final @NotNull TimeUnit timeunit) {
+    public Builder timeout(long time, @NotNull TimeUnit timeunit) {
       checkNotNull(timeunit, "timeunit cannot be null");
       this.timeout = timeunit.toMillis(time);
       return this;
@@ -193,7 +193,7 @@ public final class PingOptions {
      * @return this builder
      * @since 3.4.0
      */
-    public Builder virtualHost(final @Nullable String virtualHost) {
+    public Builder virtualHost(@Nullable String virtualHost) {
       this.virtualHost = virtualHost;
       return this;
     }

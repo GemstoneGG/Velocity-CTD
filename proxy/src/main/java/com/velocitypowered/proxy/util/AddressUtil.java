@@ -28,9 +28,6 @@ import java.net.URI;
  */
 public final class AddressUtil {
 
-  /**
-   * The default Minecraft server port, used when none is explicitly specified.
-   */
   private static final int DEFAULT_MINECRAFT_PORT = 25565;
 
   private AddressUtil() {
@@ -44,7 +41,7 @@ public final class AddressUtil {
    * @param ip the IP to parse
    * @return the parsed address
    */
-  public static InetSocketAddress parseAddress(final String ip) {
+  public static InetSocketAddress parseAddress(String ip) {
     Preconditions.checkNotNull(ip, "ip");
     URI uri = URI.create("tcp://" + ip);
     if (uri.getHost() == null) {
@@ -67,7 +64,7 @@ public final class AddressUtil {
    * @param ip the IP to parse
    * @return the parsed address
    */
-  public static InetSocketAddress parseAndResolveAddress(final String ip) {
+  public static InetSocketAddress parseAndResolveAddress(String ip) {
     Preconditions.checkNotNull(ip, "ip");
     URI uri = URI.create("tcp://" + ip);
     if (uri.getHost() == null) {

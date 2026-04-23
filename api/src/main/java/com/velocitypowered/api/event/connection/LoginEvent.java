@@ -44,7 +44,7 @@ public final class LoginEvent implements ResultedEvent<ResultedEvent.ComponentRe
    * @param serverIdHash the server ID hash sent to Mojang for authentication,
    *                     or {@code null} if the connection is in offline-mode
    */
-  public LoginEvent(final Player player, final @Nullable String serverIdHash) {
+  public LoginEvent(Player player, @Nullable String serverIdHash) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.serverIdHash = serverIdHash;
     this.result = ComponentResult.allowed();
@@ -57,7 +57,7 @@ public final class LoginEvent implements ResultedEvent<ResultedEvent.ComponentRe
    * @deprecated Use {@link #LoginEvent(Player, String)}.
    */
   @Deprecated(forRemoval = true)
-  public LoginEvent(final Player player) {
+  public LoginEvent(Player player) {
     this(player, null);
   }
 
@@ -86,7 +86,7 @@ public final class LoginEvent implements ResultedEvent<ResultedEvent.ComponentRe
   }
 
   @Override
-  public void setResult(final ComponentResult result) {
+  public void setResult(ComponentResult result) {
     this.result = Preconditions.checkNotNull(result, "result");
   }
 

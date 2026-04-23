@@ -36,7 +36,7 @@ public final class SkinParts {
    *
    * @param skinBitmask the bitmask representing which skin parts are enabled
    */
-  public SkinParts(final byte skinBitmask) {
+  public SkinParts(byte skinBitmask) {
     this.bitmask = skinBitmask;
   }
 
@@ -104,7 +104,7 @@ public final class SkinParts {
   }
 
   @Override
-  public boolean equals(final @Nullable Object o) {
+  public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }
@@ -113,7 +113,7 @@ public final class SkinParts {
       return false;
     }
 
-    final SkinParts skinParts = (SkinParts) o;
+    SkinParts skinParts = (SkinParts) o;
     return bitmask == skinParts.bitmask;
   }
 

@@ -27,16 +27,16 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.velocitypowered.api.proxy.Player;
+import com.velocityctd.proxy.queue.VelocityQueue;
+import com.velocityctd.proxy.queue.VelocityQueueManager;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.PluginMessageEncoder;
-import com.velocitypowered.api.proxy.player.PlayerInfo;
 import com.velocitypowered.api.proxy.server.PingOptions;
+import com.velocitypowered.api.proxy.server.PlayerInfoForwarding;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.config.PlayerInfoForwarding;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -47,9 +47,6 @@ import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintFrameDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintLengthEncoder;
 import com.velocitypowered.proxy.protocol.util.ByteBufDataOutput;
-import com.velocitypowered.proxy.queue.QueueManagerRedisImpl;
-import com.velocitypowered.proxy.queue.ServerQueueStatus;
-import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -57,9 +54,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoop;
 import io.netty.handler.timeout.ReadTimeoutHandler;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -76,42 +71,17 @@ import org.jetbrains.annotations.NotNull;
  */
 public class VelocityRegisteredServer implements RegisteredServer, ForwardingAudience {
 
-  /**
-   * The Velocity server instance associated with this registered server,
-   * or {@code null} if constructed without full proxy context (e.g., testing).
-   */
   private final @Nullable VelocityServer server;
 
-  /**
-   * The information identifying this backend server, including name and address.
-   */
   private final ServerInfo serverInfo;
 
-  /**
-   * The players currently connected to this server from this proxy instance,
-   * indexed by their UUIDs.
-   */
   private final Map<UUID, ConnectedPlayer> players = new ConcurrentHashMap<>();
 
-  /**
-   * Constructs a {@link VelocityRegisteredServer} instance.
-   *
-   * @param server the proxy server
-   * @param serverInfo info on this server
-   */
-  public VelocityRegisteredServer(final @Nullable VelocityServer server, final ServerInfo serverInfo) {
+  public VelocityRegisteredServer(@Nullable VelocityServer server, ServerInfo serverInfo) {
     this.server = server;
     this.serverInfo = Preconditions.checkNotNull(serverInfo, "serverInfo");
   }
 
-  /**
-   * Returns the {@link ServerInfo} representing this registered backend server.
-   *
-   * <p>This includes metadata such as the server's name and network address
-   * used for connecting players.</p>
-   *
-   * @return the {@link ServerInfo} object describing this server
-   */
   @Override
   public ServerInfo getServerInfo() {
     return serverInfo;
@@ -122,30 +92,21 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
    *
    * @return player info forwarding
    */
-  public PlayerInfoForwarding getConfiguredPlayerInfoForwarding() {
-    if (serverInfo.getServerInfoForwardingMode() == null) {
-      return server.getConfiguration().getPlayerInfoForwardingMode();
+  public PlayerInfoForwarding getPlayerInfoForwardingMode() {
+    PlayerInfoForwarding mode = serverInfo.getPlayerInfoForwardingMode();
+    if (mode == null) {
+      if (server != null) {
+        return server.getConfiguration().getPlayerInfoForwardingMode();
+      } else {
+        return PlayerInfoForwarding.NONE;
+      }
     }
 
-    return switch (serverInfo.getServerInfoForwardingMode()) {
-      case LEGACY -> PlayerInfoForwarding.LEGACY;
-      case MODERN -> PlayerInfoForwarding.MODERN;
-      case BUNGEEGUARD -> PlayerInfoForwarding.BUNGEEGUARD;
-      case NONE -> PlayerInfoForwarding.NONE;
-    };
+    return mode;
   }
 
-  /**
-   * Returns an immutable collection of players currently connected to this server
-   * from this proxy instance.
-   *
-   * <p>This does not include players connected via other proxy instances in a
-   * Redis multi-proxy setup.</p>
-   *
-   * @return the connected players on this server from this proxy instance
-   */
   @Override
-  public Collection<Player> getPlayersConnected() {
+  public Collection<ConnectedPlayer> getPlayersConnected() {
     return ImmutableList.copyOf(players.values());
   }
 
@@ -161,46 +122,10 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
    */
   @Override
   public long getTotalPlayerCount() {
-    if (this.server.getMultiProxyHandler().isRedisEnabled()) {
-      int amount = 0;
-
-      for (RemotePlayerInfo info : this.server.getMultiProxyHandler().getAllPlayers()) {
-        if (info.getServerName() != null && info.getServerName().equalsIgnoreCase(getServerInfo().getName())) {
-          amount++;
-        }
-      }
-
-      return amount;
-    } else {
+    if (this.server == null) {
       return getPlayersConnected().size();
     }
-  }
-
-  /**
-   * Returns a list of {@link PlayerInfo} entries representing all players
-   * connected to this server.
-   *
-   * <p>If Redis is enabled, this list includes remote players across all proxies.
-   * Otherwise, it only contains players connected to this proxy instance.</p>
-   *
-   * @return a list of {@link PlayerInfo} for the players on this server
-   */
-  @Override
-  public List<PlayerInfo> getPlayerInfo() {
-    if (this.server == null || !this.server.getMultiProxyHandler().isRedisEnabled()) {
-      List<PlayerInfo> info = new ArrayList<>();
-      players.forEach((uuid, player) -> info.add(new PlayerInfo(player.getUsername(), player.getUniqueId())));
-      return info;
-    }
-
-    List<PlayerInfo> info = new ArrayList<>();
-    for (RemotePlayerInfo i : this.server.getMultiProxyHandler().getAllPlayers()) {
-      if (i.getServerName() != null && i.getServerName().equalsIgnoreCase(getServerInfo().getName())) {
-        info.add(new PlayerInfo(i.getName(), i.getUuid()));
-      }
-    }
-
-    return info;
+    return this.server.getClusterPlayerService().getPlayersOnServerCount(getServerInfo().getName());
   }
 
   /**
@@ -220,29 +145,15 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
    * @param uuid the UUID of the player
    * @return the connected player, or {@code null} if not found
    */
-  public ConnectedPlayer getPlayer(final UUID uuid) {
+  public ConnectedPlayer getPlayer(UUID uuid) {
     return players.get(uuid);
   }
 
-  /**
-   * Pings the server using the specified {@link PingOptions}.
-   *
-   * <p>This method initiates a server list ping to the backend server to retrieve
-   * information such as MOTD, player count, and version, using the given options.</p>
-   *
-   * @param pingOptions the ping options to apply
-   * @return a {@link CompletableFuture} that completes with the {@link ServerPing} result
-   */
   @Override
-  public CompletableFuture<ServerPing> ping(final PingOptions pingOptions) {
+  public CompletableFuture<ServerPing> ping(PingOptions pingOptions) {
     return ping(null, pingOptions);
   }
 
-  /**
-   * Pings the server using the default {@link PingOptions}.
-   *
-   * @return a {@link CompletableFuture} that completes with the {@link ServerPing} result
-   */
   @Override
   public CompletableFuture<ServerPing> ping() {
     return ping(null, PingOptions.DEFAULT);
@@ -256,7 +167,7 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
    * @param pingOptions the options to apply to this ping
    * @return the server list's ping response
    */
-  public CompletableFuture<ServerPing> ping(final @Nullable EventLoop loop, final PingOptions pingOptions) {
+  public CompletableFuture<ServerPing> ping(@Nullable EventLoop loop, PingOptions pingOptions) {
     if (server == null) {
       throw new IllegalStateException("No Velocity proxy instance available");
     }
@@ -264,7 +175,7 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
     CompletableFuture<ServerPing> pingFuture = new CompletableFuture<>();
     server.createBootstrap(loop).handler(new ChannelInitializer<>() {
       @Override
-      protected void initChannel(final @NotNull Channel ch) {
+      protected void initChannel(@NotNull Channel ch) {
         ch.pipeline().addLast(FRAME_DECODER, new MinecraftVarintFrameDecoder(ProtocolUtils.Direction.CLIENTBOUND))
             .addLast(READ_TIMEOUT, new ReadTimeoutHandler(
                 pingOptions.getTimeout() == 0
@@ -290,36 +201,16 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
     return pingFuture;
   }
 
-  /**
-   * Adds the specified player to this server's local player list.
-   *
-   * @param player the player to add
-   */
-  public void addPlayer(final ConnectedPlayer player) {
+  public void addPlayer(ConnectedPlayer player) {
     players.put(player.getUniqueId(), player);
   }
 
-  /**
-   * Removes the specified player from this server's local player list.
-   *
-   * @param player the player to remove
-   */
-  public void removePlayer(final ConnectedPlayer player) {
+  public void removePlayer(ConnectedPlayer player) {
     players.remove(player.getUniqueId(), player);
   }
 
-  /**
-   * Sends a plugin message to this server using the given channel identifier and raw byte data.
-   *
-   * <p>If a player is currently connected to the server, the plugin message is sent using that
-   * connection. If no players are connected, the message is discarded and the buffer is released.</p>
-   *
-   * @param identifier the plugin message channel identifier
-   * @param data the plugin message payload
-   * @return {@code true} if the message was sent, {@code false} otherwise
-   */
   @Override
-  public boolean sendPluginMessage(final @NotNull ChannelIdentifier identifier, final byte @NotNull [] data) {
+  public boolean sendPluginMessage(@NotNull ChannelIdentifier identifier, byte @NotNull [] data) {
     requireNonNull(identifier);
     requireNonNull(data);
     return sendPluginMessage(identifier, Unpooled.wrappedBuffer(data));
@@ -338,11 +229,11 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
    * @return {@code true} if the message was successfully sent, {@code false} otherwise
    */
   @Override
-  public boolean sendPluginMessage(final @NotNull ChannelIdentifier identifier, final @NotNull PluginMessageEncoder dataEncoder) {
+  public boolean sendPluginMessage(@NotNull ChannelIdentifier identifier, @NotNull PluginMessageEncoder dataEncoder) {
     requireNonNull(identifier);
     requireNonNull(dataEncoder);
-    final ByteBuf buf = Unpooled.buffer();
-    final ByteBufDataOutput dataInput = new ByteBufDataOutput(buf);
+    ByteBuf buf = Unpooled.buffer();
+    ByteBufDataOutput dataInput = new ByteBufDataOutput(buf);
     dataEncoder.encode(dataInput);
     if (buf.isReadable()) {
       return sendPluginMessage(identifier, buf);
@@ -360,9 +251,9 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
    * @param data       the data
    * @return whether the message was sent
    */
-  public boolean sendPluginMessage(final ChannelIdentifier identifier, final ByteBuf data) {
-    for (final ConnectedPlayer player : players.values()) {
-      final VelocityServerConnection serverConnection = player.getConnectedServer();
+  public boolean sendPluginMessage(ChannelIdentifier identifier, ByteBuf data) {
+    for (ConnectedPlayer player : players.values()) {
+      VelocityServerConnection serverConnection = player.getConnectedServer();
       if (serverConnection != null && serverConnection.getConnection() != null
               && serverConnection.getServer() == this) {
         return serverConnection.sendPluginMessage(identifier, data);
@@ -373,37 +264,28 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
     return false;
   }
 
-  /**
-   * Returns a string representation of this registered server, including its {@link ServerInfo}.
-   *
-   * @return a string representing this server
-   */
   @Override
   public String toString() {
     return "registered server: " + serverInfo;
   }
 
-  /**
-   * Returns an iterable collection of {@link Audience} instances representing
-   * all players currently connected to this server from this proxy.
-   *
-   * <p>This is used for forwarding chat and other Adventure-based interactions
-   * to all players on the server.</p>
-   *
-   * @return the connected player audiences on this server
-   */
   @Override
   public @NonNull Iterable<? extends Audience> audiences() {
     return this.getPlayersConnected();
   }
 
   /**
-   * Gets the queue status from the {@link QueueManagerRedisImpl}
-   * directly, to make it work with the old system automatically.
+   * Gets the queue for this server.
    *
-   * @return The queue status of the server
+   * @return The queue of the server
    */
-  public ServerQueueStatus getQueueStatus() {
-    return this.server.getQueueManager().getQueue(serverInfo.getName());
+  @Override
+  public VelocityQueue getQueue() {
+    VelocityQueueManager queueManager = requireNonNull(server).getQueueManager();
+    if (queueManager == null) {
+      throw new IllegalStateException("No QueueManager available on the server");
+    }
+
+    return queueManager.getQueue(serverInfo.getName());
   }
 }

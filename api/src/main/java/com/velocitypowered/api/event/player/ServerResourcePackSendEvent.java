@@ -49,7 +49,7 @@ public class ServerResourcePackSendEvent implements ResultedEvent<ResultedEvent.
    * @param receivedResourcePack The resource pack the server sent.
    * @param serverConnection The connection this occurred on.
    */
-  public ServerResourcePackSendEvent(final ResourcePackInfo receivedResourcePack, final ServerConnection serverConnection) {
+  public ServerResourcePackSendEvent(ResourcePackInfo receivedResourcePack, ServerConnection serverConnection) {
     this.result = ResultedEvent.GenericResult.allowed();
     this.receivedResourcePack = receivedResourcePack;
     this.serverConnection = serverConnection;
@@ -89,7 +89,7 @@ public class ServerResourcePackSendEvent implements ResultedEvent<ResultedEvent.
    *
    * @param providedResourcePack the resource pack to send to the player
    */
-  public void setProvidedResourcePack(final ResourcePackInfo providedResourcePack) {
+  public void setProvidedResourcePack(ResourcePackInfo providedResourcePack) {
     this.providedResourcePack = providedResourcePack;
   }
 
@@ -117,7 +117,7 @@ public class ServerResourcePackSendEvent implements ResultedEvent<ResultedEvent.
    * @throws NullPointerException if {@code result} is {@code null}
    */
   @Override
-  public void setResult(final GenericResult result) {
+  public void setResult(GenericResult result) {
     this.result = result;
   }
 }

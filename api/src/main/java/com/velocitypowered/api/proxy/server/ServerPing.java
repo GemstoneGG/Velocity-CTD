@@ -66,8 +66,8 @@ public final class ServerPing {
    * @param description the MOTD for the server
    * @param favicon the server's favicon, or {@code null} if not set
    */
-  public ServerPing(final Version version, final @Nullable Players players,
-                    final Component description, final @Nullable Favicon favicon) {
+  public ServerPing(Version version, @Nullable Players players,
+                    Component description, @Nullable Favicon favicon) {
     this(version, players, description, favicon, ModInfo.DEFAULT);
   }
 
@@ -80,9 +80,9 @@ public final class ServerPing {
    * @param favicon the server's favicon, or {@code null} if not set
    * @param modinfo the mod info for the server, or {@code null} if not present
    */
-  public ServerPing(final Version version, final @Nullable Players players,
-                    final Component description, final @Nullable Favicon favicon,
-                    final @Nullable ModInfo modinfo) {
+  public ServerPing(Version version, @Nullable Players players,
+                    Component description, @Nullable Favicon favicon,
+                    @Nullable ModInfo modinfo) {
     this(version, players, description, favicon, modinfo, false);
   }
 
@@ -96,9 +96,9 @@ public final class ServerPing {
    * @param modinfo the mod info for the server, or {@code null} if not present
    * @param preventsChatReports the mark of chat reports for the server
    */
-  public ServerPing(final Version version, final @Nullable Players players,
-                    final Component description, final @Nullable Favicon favicon,
-                    final @Nullable ModInfo modinfo, final boolean preventsChatReports) {
+  public ServerPing(Version version, @Nullable Players players,
+                    Component description, @Nullable Favicon favicon,
+                    @Nullable ModInfo modinfo, boolean preventsChatReports) {
     this.version = Preconditions.checkNotNull(version, "version");
     this.players = players;
     this.description = Preconditions.checkNotNull(description, "description");
@@ -175,7 +175,7 @@ public final class ServerPing {
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -308,7 +308,7 @@ public final class ServerPing {
      * @param version version info to set
      * @return this builder, for chaining
      */
-    public Builder version(final Version version) {
+    public Builder version(Version version) {
       this.version = Preconditions.checkNotNull(version, "version");
       return this;
     }
@@ -319,7 +319,7 @@ public final class ServerPing {
      * @param onlinePlayers number for online players to set
      * @return this builder, for chaining
      */
-    public Builder onlinePlayers(final int onlinePlayers) {
+    public Builder onlinePlayers(int onlinePlayers) {
       this.onlinePlayers = onlinePlayers;
       return this;
     }
@@ -331,7 +331,7 @@ public final class ServerPing {
      * @param maximumPlayers number for maximum players to set
      * @return this builder, for chaining
      */
-    public Builder maximumPlayers(final int maximumPlayers) {
+    public Builder maximumPlayers(int maximumPlayers) {
       this.maximumPlayers = maximumPlayers;
       return this;
     }
@@ -342,7 +342,7 @@ public final class ServerPing {
      * @param players array of SamplePlayers to add
      * @return this builder, for chaining
      */
-    public Builder samplePlayers(final SamplePlayer... players) {
+    public Builder samplePlayers(SamplePlayer... players) {
       this.samplePlayers.addAll(Arrays.asList(players));
       return this;
     }
@@ -353,7 +353,7 @@ public final class ServerPing {
      * @param players collection of SamplePlayers to add
      * @return this builder, for chaining
      */
-    public Builder samplePlayers(final Collection<SamplePlayer> players) {
+    public Builder samplePlayers(Collection<SamplePlayer> players) {
       this.samplePlayers.addAll(players);
       return this;
     }
@@ -364,7 +364,7 @@ public final class ServerPing {
      * @param modType the mod type to set
      * @return this builder, for chaining
      */
-    public Builder modType(final String modType) {
+    public Builder modType(String modType) {
       this.modType = Preconditions.checkNotNull(modType, "modType");
       return this;
     }
@@ -375,7 +375,7 @@ public final class ServerPing {
      * @param mods array of mods to use
      * @return this builder, for chaining
      */
-    public Builder mods(final ModInfo.Mod... mods) {
+    public Builder mods(ModInfo.Mod... mods) {
       this.mods.addAll(Arrays.asList(mods));
       return this;
     }
@@ -386,7 +386,7 @@ public final class ServerPing {
      * @param mods the mod list to use
      * @return this builder, for chaining
      */
-    public Builder mods(final ModInfo mods) {
+    public Builder mods(ModInfo mods) {
       Preconditions.checkNotNull(mods, "mods");
       this.modType = mods.getType();
       this.mods.clear();
@@ -441,7 +441,7 @@ public final class ServerPing {
      * @param description Component to use as the description.
      * @return this builder, for chaining
      */
-    public Builder description(final Component description) {
+    public Builder description(Component description) {
       this.description = Preconditions.checkNotNull(description, "description");
       return this;
     }
@@ -452,7 +452,7 @@ public final class ServerPing {
      * @param favicon Favicon instance to use.
      * @return this builder, for chaining
      */
-    public Builder favicon(final Favicon favicon) {
+    public Builder favicon(Favicon favicon) {
       this.favicon = Preconditions.checkNotNull(favicon, "favicon");
       return this;
     }
@@ -621,7 +621,7 @@ public final class ServerPing {
      * @param protocol the protocol version as an integer
      * @param name a friendly name for the protocol version
      */
-    public Version(final int protocol, final String name) {
+    public Version(int protocol, String name) {
       this.protocol = protocol;
       this.name = Preconditions.checkNotNull(name, "name");
     }
@@ -653,7 +653,7 @@ public final class ServerPing {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(Object o) {
       if (this == o) {
         return true;
       }
@@ -700,7 +700,7 @@ public final class ServerPing {
      * @param max the maximum number of players
      * @param sample a sample of players on the server
      */
-    public Players(final int online, final int max, final List<SamplePlayer> sample) {
+    public Players(int online, int max, List<SamplePlayer> sample) {
       this.online = online;
       this.max = max;
       this.sample = ImmutableList.copyOf(sample);
@@ -743,7 +743,7 @@ public final class ServerPing {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(Object o) {
       if (this == o) {
         return true;
       }
@@ -789,7 +789,7 @@ public final class ServerPing {
      * @param name the name of the player as a {@link Component}
      * @param id the UUID of the player
      */
-    public SamplePlayer(final Component name, final UUID id) {
+    public SamplePlayer(Component name, UUID id) {
       this.name = LegacyComponentSerializer.builder().hexCharacter('#').build().serialize(name);
       this.id = id;
     }
@@ -800,7 +800,7 @@ public final class ServerPing {
      * @param name the name of the player as a string
      * @param id the UUID of the player
      */
-    public SamplePlayer(final String name, final UUID id) {
+    public SamplePlayer(String name, UUID id) {
       this.name = name;
       this.id = id;
     }
@@ -841,7 +841,7 @@ public final class ServerPing {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(Object o) {
       if (this == o) {
         return true;
       }

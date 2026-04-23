@@ -66,19 +66,19 @@ public class EventTest {
   static final class TestEvent {
   }
 
-  static void assertSyncThread(final Thread thread) {
+  static void assertSyncThread(Thread thread) {
     assertEquals(Thread.currentThread(), thread);
   }
 
-  static void assertAsyncThread(final Thread thread) {
+  static void assertAsyncThread(Thread thread) {
     assertTrue(thread.getName().contains("Test Async Thread"));
   }
 
-  static void assertContinuationThread(final Thread thread) {
+  static void assertContinuationThread(Thread thread) {
     assertEquals(CONTINUATION_TEST_THREAD_NAME, thread.getName());
   }
 
-  private void handleMethodListener(final Object listener) throws Exception {
+  private void handleMethodListener(Object listener) throws Exception {
     eventManager.register(FakePluginManager.PLUGIN_A, listener);
     try {
       eventManager.fire(new TestEvent()).get();
@@ -89,9 +89,9 @@ public class EventTest {
 
   @Test
   void listenerOrderPreserved() throws Exception {
-    final AtomicLong listener1Invoked = new AtomicLong();
-    final AtomicLong listener2Invoked = new AtomicLong();
-    final AtomicLong listener3Invoked = new AtomicLong();
+    AtomicLong listener1Invoked = new AtomicLong();
+    AtomicLong listener2Invoked = new AtomicLong();
+    AtomicLong listener3Invoked = new AtomicLong();
 
     eventManager.register(FakePluginManager.PLUGIN_A, TestEvent.class, event -> listener1Invoked.set(System.nanoTime()));
     eventManager.register(FakePluginManager.PLUGIN_B, TestEvent.class, event -> listener2Invoked.set(System.nanoTime()));
@@ -111,9 +111,9 @@ public class EventTest {
 
   @Test
   void listenerOrderPreservedWithContinuation() throws Exception {
-    final AtomicLong listener1Invoked = new AtomicLong();
-    final AtomicLong listener2Invoked = new AtomicLong();
-    final AtomicLong listener3Invoked = new AtomicLong();
+    AtomicLong listener1Invoked = new AtomicLong();
+    AtomicLong listener2Invoked = new AtomicLong();
+    AtomicLong listener3Invoked = new AtomicLong();
 
     eventManager.register(FakePluginManager.PLUGIN_A, TestEvent.class, event ->
         listener1Invoked.set(System.nanoTime()));
@@ -139,7 +139,7 @@ public class EventTest {
 
   @Test
   void testAlwaysSync() throws Exception {
-    final AlwaysSyncListener listener = new AlwaysSyncListener();
+    AlwaysSyncListener listener = new AlwaysSyncListener();
     handleMethodListener(listener);
     assertSyncThread(listener.thread);
     assertEquals(1, listener.result);
@@ -159,7 +159,7 @@ public class EventTest {
     int result;
 
     @Subscribe(async = false)
-    void sync(final TestEvent event) {
+    void sync(TestEvent event) {
       result++;
       thread = Thread.currentThread();
     }
@@ -167,7 +167,7 @@ public class EventTest {
 
   @Test
   void testAlwaysAsync() throws Exception {
-    final AlwaysAsyncListener listener = new AlwaysAsyncListener();
+    AlwaysAsyncListener listener = new AlwaysAsyncListener();
     handleMethodListener(listener);
     assertAsyncThread(listener.threadA);
     assertAsyncThread(listener.threadB);
@@ -198,19 +198,19 @@ public class EventTest {
     int result;
 
     @Subscribe(async = true, order = PostOrder.EARLY)
-    void firstAsync(final TestEvent event) {
+    void firstAsync(TestEvent event) {
       result++;
       threadA = Thread.currentThread();
     }
 
     @Subscribe
-    EventTask secondAsync(final TestEvent event) {
+    EventTask secondAsync(TestEvent event) {
       threadB = Thread.currentThread();
       return EventTask.async(() -> result++);
     }
 
     @Subscribe(order = PostOrder.LATE)
-    void thirdAsync(final TestEvent event) {
+    void thirdAsync(TestEvent event) {
       result++;
       threadC = Thread.currentThread();
     }
@@ -218,7 +218,7 @@ public class EventTest {
 
   @Test
   void testSometimesAsync() throws Exception {
-    final SometimesAsyncListener listener = new SometimesAsyncListener();
+    SometimesAsyncListener listener = new SometimesAsyncListener();
     handleMethodListener(listener);
     assertSyncThread(listener.threadA);
     assertSyncThread(listener.threadB);
@@ -255,13 +255,13 @@ public class EventTest {
     int result;
 
     @Subscribe(order = PostOrder.EARLY, async = false)
-    void notAsync(final TestEvent event) {
+    void notAsync(TestEvent event) {
       result++;
       threadA = Thread.currentThread();
     }
 
     @Subscribe
-    EventTask notAsyncUntilTask(final TestEvent event) {
+    EventTask notAsyncUntilTask(TestEvent event) {
       threadB = Thread.currentThread();
       return EventTask.async(() -> {
         threadC = Thread.currentThread();
@@ -270,7 +270,7 @@ public class EventTest {
     }
 
     @Subscribe(order = PostOrder.LATE, async = false)
-    void stillAsyncAfterTask(final TestEvent event) {
+    void stillAsyncAfterTask(TestEvent event) {
       threadD = Thread.currentThread();
       result++;
     }
@@ -278,7 +278,7 @@ public class EventTest {
 
   @Test
   void testContinuation() throws Exception {
-    final ContinuationListener listener = new ContinuationListener();
+    ContinuationListener listener = new ContinuationListener();
     handleMethodListener(listener);
     assertSyncThread(listener.threadA);
     assertSyncThread(listener.threadB);
@@ -309,7 +309,7 @@ public class EventTest {
     final AtomicInteger value = new AtomicInteger();
 
     @Subscribe(order = PostOrder.EARLY)
-    EventTask continuation(final TestEvent event) {
+    EventTask continuation(TestEvent event) {
       threadA = Thread.currentThread();
       return EventTask.withContinuation(continuation -> {
         value.incrementAndGet();
@@ -327,14 +327,14 @@ public class EventTest {
     }
 
     @Subscribe(order = PostOrder.LATE)
-    void afterContinuation(final TestEvent event) {
+    void afterContinuation(TestEvent event) {
       threadC = Thread.currentThread();
     }
   }
 
   @Test
   void testResumeContinuationImmediately() throws Exception {
-    final ResumeContinuationImmediatelyListener listener =
+    ResumeContinuationImmediatelyListener listener =
         new ResumeContinuationImmediatelyListener();
     handleMethodListener(listener);
     assertSyncThread(listener.threadA);
@@ -366,7 +366,7 @@ public class EventTest {
     int result;
 
     @Subscribe(order = PostOrder.EARLY)
-    EventTask continuation(final TestEvent event) {
+    EventTask continuation(TestEvent event) {
       threadA = Thread.currentThread();
       return EventTask.withContinuation(continuation -> {
         threadB = Thread.currentThread();
@@ -376,7 +376,7 @@ public class EventTest {
     }
 
     @Subscribe(order = PostOrder.LATE)
-    void afterContinuation(final TestEvent event) {
+    void afterContinuation(TestEvent event) {
       threadC = Thread.currentThread();
       result++;
     }
@@ -384,7 +384,7 @@ public class EventTest {
 
   @Test
   void testContinuationParameter() throws Exception {
-    final ContinuationParameterListener listener = new ContinuationParameterListener();
+    ContinuationParameterListener listener = new ContinuationParameterListener();
     handleMethodListener(listener);
     assertSyncThread(listener.threadA);
     assertSyncThread(listener.threadB);
@@ -415,14 +415,14 @@ public class EventTest {
     final AtomicInteger result = new AtomicInteger();
 
     @Subscribe
-    void resume(final TestEvent event, final Continuation continuation) {
+    void resume(TestEvent event, Continuation continuation) {
       threadA = Thread.currentThread();
       result.incrementAndGet();
       continuation.resume();
     }
 
     @Subscribe(order = PostOrder.LATE)
-    void resumeFromCustomThread(final TestEvent event, final Continuation continuation) {
+    void resumeFromCustomThread(TestEvent event, Continuation continuation) {
       threadB = Thread.currentThread();
       new Thread(() -> {
         try {
@@ -436,7 +436,7 @@ public class EventTest {
     }
 
     @Subscribe(order = PostOrder.LAST)
-    void afterCustomThread(final TestEvent event, final Continuation continuation) {
+    void afterCustomThread(TestEvent event, Continuation continuation) {
       threadC = Thread.currentThread();
       result.incrementAndGet();
       continuation.resume();
@@ -457,7 +457,7 @@ public class EventTest {
      */
     private final Continuation continuation;
 
-    private FancyContinuationImpl(final Continuation continuation) {
+    private FancyContinuationImpl(Continuation continuation) {
       this.continuation = continuation;
     }
 
@@ -467,7 +467,7 @@ public class EventTest {
     }
 
     @Override
-    public void resumeWithError(final Exception exception) {
+    public void resumeWithError(Exception exception) {
       continuation.resumeWithException(exception);
     }
   }
@@ -498,7 +498,7 @@ public class EventTest {
             EventTask.withContinuation(continuation ->
                 invokeFunction.accept(instance, event, new FancyContinuationImpl(continuation))
             ));
-    final FancyContinuationListener listener = new FancyContinuationListener();
+    FancyContinuationListener listener = new FancyContinuationListener();
     handleMethodListener(listener);
     assertEquals(1, listener.result);
   }
@@ -511,7 +511,7 @@ public class EventTest {
     int result;
 
     @Subscribe
-    void continuation(final TestEvent event, final FancyContinuation continuation) {
+    void continuation(TestEvent event, FancyContinuation continuation) {
       result++;
       continuation.resume();
     }

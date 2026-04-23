@@ -32,7 +32,7 @@ public final class PostLoginEvent {
    *
    * @param player the player who has logged in
    */
-  public PostLoginEvent(final Player player) {
+  public PostLoginEvent(Player player) {
     this.player = Preconditions.checkNotNull(player, "player");
   }
 

@@ -42,7 +42,7 @@ public final class CookieRequestEvent implements ResultedEvent<CookieRequestEven
    * @param player the player from whom the cookies is requested
    * @param key the identifier of the cookie
    */
-  public CookieRequestEvent(final Player player, final Key key) {
+  public CookieRequestEvent(Player player, Key key) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.originalKey = Preconditions.checkNotNull(key, "key");
     this.result = ForwardResult.forward();
@@ -54,7 +54,7 @@ public final class CookieRequestEvent implements ResultedEvent<CookieRequestEven
   }
 
   @Override
-  public void setResult(final ForwardResult result) {
+  public void setResult(ForwardResult result) {
     this.result = Preconditions.checkNotNull(result, "result");
   }
 
@@ -109,7 +109,7 @@ public final class CookieRequestEvent implements ResultedEvent<CookieRequestEven
      */
     private final Key key;
 
-    private ForwardResult(final boolean status, final Key key) {
+    private ForwardResult(boolean status, Key key) {
       this.status = status;
       this.key = key;
     }
@@ -159,7 +159,7 @@ public final class CookieRequestEvent implements ResultedEvent<CookieRequestEven
      * @param key the identifier to use instead
      * @return a result with a new key
      */
-    public static ForwardResult key(final Key key) {
+    public static ForwardResult key(Key key) {
       Preconditions.checkNotNull(key, "key");
       return new ForwardResult(true, key);
     }

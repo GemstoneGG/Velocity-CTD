@@ -23,35 +23,15 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
 
-/**
- * Represents a KeepAlive packet in Minecraft. This packet is used to ensure that the connection
- * between the client and the server shall still be active by sending a randomly generated ID that
- * the client must respond to.
- */
 public class KeepAlivePacket implements MinecraftPacket {
 
-  /**
-   * The randomly generated ID used in the keep-alive check. This value is sent by the server
-   * and must be returned by the client to confirm that the connection is still active.
-   */
   private long randomId;
 
-  /**
-   * Gets the randomly generated ID associated with this keep-alive packet.
-   * This ID must be echoed back by the client to validate the connection.
-   *
-   * @return the keep-alive ID
-   */
   public long getRandomId() {
     return randomId;
   }
 
-  /**
-   * Sets the randomly generated ID for this keep-alive packet.
-   *
-   * @param randomId the keep-alive ID to set
-   */
-  public void setRandomId(final long randomId) {
+  public void setRandomId(long randomId) {
     this.randomId = randomId;
   }
 
@@ -62,18 +42,8 @@ public class KeepAlivePacket implements MinecraftPacket {
         + '}';
   }
 
-  /**
-   * Decodes this keep-alive packet from the given {@link ByteBuf}.
-   *
-   * <p>This method reads the keep-alive ID according to the protocol version. Depending
-   * on the version, the ID is encoded as a {@code long}, {@code varint}, or {@code int}.</p>
-   *
-   * @param buf the buffer to read from
-   * @param direction the direction of the packet (clientbound or serverbound)
-   * @param version the Minecraft protocol version
-   */
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_12_2)) {
       randomId = buf.readLong();
     } else if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
@@ -83,18 +53,8 @@ public class KeepAlivePacket implements MinecraftPacket {
     }
   }
 
-  /**
-   * Encodes this keep-alive packet into the given {@link ByteBuf}.
-   *
-   * <p>This method writes the keep-alive ID using the appropriate encoding for
-   * the specified protocol version.</p>
-   *
-   * @param buf the buffer to write to
-   * @param direction the direction of the packet (clientbound or serverbound)
-   * @param version the Minecraft protocol version
-   */
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_12_2)) {
       buf.writeLong(randomId);
     } else if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
@@ -104,17 +64,30 @@ public class KeepAlivePacket implements MinecraftPacket {
     }
   }
 
-  /**
-   * Handles this keep-alive packet using the specified {@link MinecraftSessionHandler}.
-   *
-   * <p>This delegates processing to {@code handler.handle(this)} for further
-   * connection validation logic.</p>
-   *
-   * @param handler the session handler to process the packet
-   * @return {@code true} if the packet was handled successfully
-   */
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public int decodeExpectedMaxLength(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+    if (version.noLessThan(ProtocolVersion.MINECRAFT_1_12_2)) {
+      return Long.BYTES;
+    } else if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
+      return 5;
+    } else {
+      return Integer.BYTES;
+    }
+  }
+
+  @Override
+  public int decodeExpectedMinLength(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+    if (version.noLessThan(ProtocolVersion.MINECRAFT_1_12_2)) {
+      return Long.BYTES;
+    } else if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
+      return 1;
+    } else {
+      return Integer.BYTES;
+    }
+  }
+
+  @Override
+  public boolean handle(MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

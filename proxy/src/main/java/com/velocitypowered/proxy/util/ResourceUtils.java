@@ -47,9 +47,9 @@ public class ResourceUtils {
    * @return {@code true} if the resources were successfully visited, {@code false} otherwise
    * @throws IOException if an I/O error occurs while reading resources
    */
-  public static boolean visitResources(final Class<?> target, final Consumer<Path> consumer,
-                                       final String firstPathComponent, final String... remainingPathComponents) throws IOException {
-    final URL knownResource = ResourceUtils.class.getClassLoader().getResource("default-velocity.toml");
+  public static boolean visitResources(Class<?> target, Consumer<Path> consumer,
+                                       String firstPathComponent, String... remainingPathComponents) throws IOException {
+    URL knownResource = ResourceUtils.class.getClassLoader().getResource("default-velocity.toml");
     if (knownResource == null) {
       throw new IllegalStateException(
           "default-velocity.toml does not exist, don't know where we are");

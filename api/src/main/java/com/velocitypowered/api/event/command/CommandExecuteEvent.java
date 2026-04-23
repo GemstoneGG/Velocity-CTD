@@ -54,7 +54,7 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
    * @param commandSource the source executing the command
    * @param command the command being executed without a first slash
    */
-  public CommandExecuteEvent(final CommandSource commandSource, final String command) {
+  public CommandExecuteEvent(CommandSource commandSource, String command) {
     this(commandSource, command, new InvocationInfo(SignedState.UNSUPPORTED, Source.API));
   }
 
@@ -65,7 +65,7 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
    * @param command the command being executed without a first slash
    * @param invocationInfo the invocation info of this command
    */
-  public CommandExecuteEvent(final CommandSource commandSource, final String command, final InvocationInfo invocationInfo) {
+  public CommandExecuteEvent(CommandSource commandSource, String command, InvocationInfo invocationInfo) {
     this.commandSource = Preconditions.checkNotNull(commandSource, "commandSource");
     this.command = Preconditions.checkNotNull(command, "command");
     this.result = CommandResult.allowed();
@@ -110,7 +110,7 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
   }
 
   @Override
-  public void setResult(final @NonNull CommandResult result) {
+  public void setResult(@NonNull CommandResult result) {
     this.result = Preconditions.checkNotNull(result, "result");
   }
 
@@ -235,7 +235,7 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
      */
     private final boolean forward;
 
-    private CommandResult(final boolean status, final boolean forward, final @Nullable String command) {
+    private CommandResult(boolean status, boolean forward, @Nullable String command) {
       this.status = status;
       this.forward = forward;
       this.command = command;
@@ -305,7 +305,7 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
      * @param newCommand the command without first slash to use instead
      * @return a result with a new command being forwarded to server
      */
-    public static CommandResult forwardToServer(final @NonNull String newCommand) {
+    public static CommandResult forwardToServer(@NonNull String newCommand) {
       Preconditions.checkNotNull(newCommand, "newCommand");
       return new CommandResult(false, true, newCommand);
     }
@@ -317,7 +317,7 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
      * @param newCommand the command to use instead without first slash
      * @return a result with a new command
      */
-    public static CommandResult command(final @NonNull String newCommand) {
+    public static CommandResult command(@NonNull String newCommand) {
       Preconditions.checkNotNull(newCommand, "newCommand");
       return new CommandResult(true, false, newCommand);
     }

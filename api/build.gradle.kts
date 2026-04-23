@@ -1,7 +1,6 @@
 plugins {
     `java-library`
-    `maven-publish`
-    id("velocity-publish")
+    id("velocity-ctd-publish")
 }
 
 java {

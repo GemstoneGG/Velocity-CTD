@@ -24,7 +24,7 @@ public class InvalidPluginException extends Exception {
    *
    * @param message the detail message
    */
-  public InvalidPluginException(final String message) {
+  public InvalidPluginException(String message) {
     super(message);
   }
 
@@ -34,7 +34,7 @@ public class InvalidPluginException extends Exception {
    * @param message the detail message
    * @param cause the cause of the exception
    */
-  public InvalidPluginException(final String message, final Throwable cause) {
+  public InvalidPluginException(String message, Throwable cause) {
     super(message, cause);
   }
 
@@ -43,7 +43,7 @@ public class InvalidPluginException extends Exception {
    *
    * @param cause the cause of the exception
    */
-  public InvalidPluginException(final Throwable cause) {
+  public InvalidPluginException(Throwable cause) {
     super(cause);
   }
 }

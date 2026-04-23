@@ -43,7 +43,7 @@ public interface Ordered<T> extends Comparable<T> {
    * @return {@code true} if {@code this} is greater than {@code that}, {@code false} otherwise
    * @since 3.3.0
    */
-  default boolean greaterThan(final T that) {
+  default boolean greaterThan(T that) {
     return this.compareTo(that) > 0;
   }
 
@@ -55,7 +55,7 @@ public interface Ordered<T> extends Comparable<T> {
    *     equal to {@code that}, {@code false} otherwise
    * @since 3.3.0
    */
-  default boolean noLessThan(final T that) {
+  default boolean noLessThan(T that) {
     return this.compareTo(that) >= 0;
   }
 
@@ -66,7 +66,7 @@ public interface Ordered<T> extends Comparable<T> {
    * @return {@code true} if {@code this} is less than {@code that}, {@code false} otherwise
    * @since 3.3.0
    */
-  default boolean lessThan(final T that) {
+  default boolean lessThan(T that) {
     return this.compareTo(that) < 0;
   }
 
@@ -78,7 +78,7 @@ public interface Ordered<T> extends Comparable<T> {
    *     equal to {@code that}, {@code false} otherwise
    * @since 3.3.0
    */
-  default boolean noGreaterThan(final T that) {
+  default boolean noGreaterThan(T that) {
     return this.compareTo(that) <= 0;
   }
 
@@ -89,7 +89,7 @@ public interface Ordered<T> extends Comparable<T> {
    * @return {@code true} if {@code this} is equal to {@code that}, {@code false} otherwise
    * @since 3.3.0
    */
-  default boolean noGreaterOrLessThan(final T that) {
+  default boolean noGreaterOrLessThan(T that) {
     return this.compareTo(that) == 0;
   }
 }

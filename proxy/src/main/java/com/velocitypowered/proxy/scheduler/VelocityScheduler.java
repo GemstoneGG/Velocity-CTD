@@ -59,19 +59,10 @@ import org.jetbrains.annotations.VisibleForTesting;
  */
 public class VelocityScheduler implements Scheduler {
 
-  /**
-   * The plugin manager used to resolve plugin instances.
-   */
   private final PluginManager pluginManager;
 
-  /**
-   * The scheduler backend that's used to manage scheduling delays and repeats.
-   */
   private final SchedulerBackend backend;
 
-  /**
-   * A multimap of plugin instances to their active scheduled tasks.
-   */
   private final Multimap<Object, ScheduledTask> tasksByPlugin = Multimaps.synchronizedMultimap(
       Multimaps.newSetMultimap(new IdentityHashMap<>(), HashSet::new));
 
@@ -80,7 +71,7 @@ public class VelocityScheduler implements Scheduler {
    *
    * @param pluginManager the Velocity plugin manager
    */
-  public VelocityScheduler(final PluginManager pluginManager) {
+  public VelocityScheduler(PluginManager pluginManager) {
     this(pluginManager, new ExecutorSchedulerBackend());
   }
 
@@ -90,57 +81,29 @@ public class VelocityScheduler implements Scheduler {
     this.backend = backend;
   }
 
-  /**
-   * Creates a new {@link TaskBuilder} to construct a scheduled task that runs the given {@link Runnable}.
-   *
-   * @param plugin the plugin creating the task
-   * @param runnable the logic to execute
-   * @return a builder for scheduling the task
-   * @throws NullPointerException if {@code plugin} or {@code runnable} is {@code null}
-   * @throws IllegalArgumentException if {@code plugin} is not registered
-   */
   @Override
-  public TaskBuilder buildTask(final @NotNull Object plugin, final @NotNull Runnable runnable) {
+  public TaskBuilder buildTask(@NotNull Object plugin, @NotNull Runnable runnable) {
     checkNotNull(plugin, "plugin");
     checkNotNull(runnable, "runnable");
-    final Optional<PluginContainer> container = pluginManager.fromInstance(plugin);
+    Optional<PluginContainer> container = pluginManager.fromInstance(plugin);
     checkArgument(container.isPresent(), "plugin is not registered");
     return new TaskBuilderImpl(container.get(), runnable);
   }
 
-  /**
-   * Creates a new {@link TaskBuilder} to construct a scheduled task that executes the given {@link Consumer}.
-   *
-   * <p>The consumer receives the {@link ScheduledTask} instance when the task is run.</p>
-   *
-   * @param plugin the plugin creating the task
-   * @param consumer the task logic receiving the task context
-   * @return a builder for scheduling the task
-   * @throws NullPointerException if {@code plugin} or {@code consumer} is {@code null}
-   * @throws IllegalArgumentException if {@code plugin} is not registered
-   */
   @Override
-  public TaskBuilder buildTask(final @NotNull Object plugin, final @NotNull Consumer<ScheduledTask> consumer) {
+  public TaskBuilder buildTask(@NotNull Object plugin, @NotNull Consumer<ScheduledTask> consumer) {
     checkNotNull(plugin, "plugin");
     checkNotNull(consumer, "consumer");
-    final Optional<PluginContainer> container = pluginManager.fromInstance(plugin);
+    Optional<PluginContainer> container = pluginManager.fromInstance(plugin);
     checkArgument(container.isPresent(), "plugin is not registered");
     return new TaskBuilderImpl(container.get(), consumer);
   }
 
-  /**
-   * Retrieves all active tasks associated with the given plugin.
-   *
-   * @param plugin the plugin to query tasks for
-   * @return an immutable view of tasks owned by the plugin
-   * @throws NullPointerException if {@code plugin} is {@code null}
-   * @throws IllegalArgumentException if {@code plugin} is not registered
-   */
   @Override
-  public @NonNull Collection<ScheduledTask> tasksByPlugin(final @NonNull Object plugin) {
+  public @NonNull Collection<ScheduledTask> tasksByPlugin(@NonNull Object plugin) {
     checkNotNull(plugin, "plugin");
     checkArgument(pluginManager.fromInstance(plugin).isPresent(), "plugin is not registered");
-    final Collection<ScheduledTask> tasks = tasksByPlugin.get(plugin);
+    Collection<ScheduledTask> tasks = tasksByPlugin.get(plugin);
     synchronized (tasksByPlugin) {
       return Set.copyOf(tasks);
     }
@@ -163,10 +126,10 @@ public class VelocityScheduler implements Scheduler {
     }
 
     backend.shutdown();
-    final List<PluginContainer> plugins = new ArrayList<>(this.pluginManager.getPlugins());
-    final Iterator<PluginContainer> pluginIterator = plugins.iterator();
+    List<PluginContainer> plugins = new ArrayList<>(this.pluginManager.getPlugins());
+    Iterator<PluginContainer> pluginIterator = plugins.iterator();
     while (pluginIterator.hasNext()) {
-      final PluginContainer container = pluginIterator.next();
+      PluginContainer container = pluginIterator.next();
       if (container instanceof VelocityPluginContainer pluginContainer) {
         if (pluginContainer.hasExecutorService()) {
           container.getExecutorService().shutdown();
@@ -179,20 +142,20 @@ public class VelocityScheduler implements Scheduler {
     }
 
     boolean allShutdown = true;
-    for (final PluginContainer container : plugins) {
-      final String id = container.getDescription().getId();
-      final ExecutorService service = (container).getExecutorService();
+    for (PluginContainer container : plugins) {
+      String id = container.getDescription().getId();
+      ExecutorService service = (container).getExecutorService();
 
       try {
         if (!service.awaitTermination(10, TimeUnit.SECONDS)) {
           service.shutdownNow();
-          Log.logger.warn("Executor for plugin {} did not shut down within 10 seconds. "
+          Log.LOGGER.warn("Executor for plugin {} did not shut down within 10 seconds. "
               + "Continuing with shutdown...", id);
           allShutdown = false;
         }
 
-      } catch (final InterruptedException e) {
-        Log.logger.warn("Executor for plugin {} did not shut down within 10 seconds. "
+      } catch (InterruptedException e) {
+        Log.LOGGER.warn("Executor for plugin {} did not shut down within 10 seconds. "
             + "Continuing with shutdown...", id);
       }
     }
@@ -202,53 +165,36 @@ public class VelocityScheduler implements Scheduler {
 
   private final class TaskBuilderImpl implements TaskBuilder {
 
-    /**
-     * The plugin that owns the task being built.
-     */
     private final PluginContainer container;
 
-    /**
-     * The runnable logic to execute when the task runs. May be {@code null} if a consumer is used instead.
-     */
     private final Runnable runnable;
 
-    /**
-     * The consumer that receives the {@link ScheduledTask} instance when the task runs.
-     * May be {@code null} if a runnable is used instead.
-     */
     private final Consumer<ScheduledTask> consumer;
 
-    /**
-     * The delay (in milliseconds) before the task is first executed.
-     */
     private long delay;
 
-    /**
-     * The repeat interval (in milliseconds) for executing the task repeatedly.
-     * A value of {@code 0} indicates the task should only run once.
-     */
     private long repeat;
 
-    private TaskBuilderImpl(final PluginContainer container, final Consumer<ScheduledTask> consumer) {
+    private TaskBuilderImpl(PluginContainer container, Consumer<ScheduledTask> consumer) {
       this.container = container;
       this.consumer = consumer;
       this.runnable = null;
     }
 
-    private TaskBuilderImpl(final PluginContainer container, final Runnable runnable) {
+    private TaskBuilderImpl(PluginContainer container, Runnable runnable) {
       this.container = container;
       this.consumer = null;
       this.runnable = runnable;
     }
 
     @Override
-    public TaskBuilder delay(final long time, final @NotNull TimeUnit unit) {
+    public TaskBuilder delay(long time, @NotNull TimeUnit unit) {
       this.delay = unit.toMillis(time);
       return this;
     }
 
     @Override
-    public TaskBuilder repeat(final long time, final @NotNull TimeUnit unit) {
+    public TaskBuilder repeat(long time, @NotNull TimeUnit unit) {
       this.repeat = unit.toMillis(time);
       return this;
     }
@@ -277,46 +223,22 @@ public class VelocityScheduler implements Scheduler {
   @VisibleForTesting
   final class VelocityTask implements Runnable, ScheduledTask {
 
-    /**
-     * The plugin container that owns this scheduled task.
-     */
     private final PluginContainer container;
 
-    /**
-     * The runnable logic to execute for this task.
-     * May be {@code null} if {@code consumer} is used instead.
-     */
     private final Runnable runnable;
 
-    /**
-     * The consumer logic to execute for this task, receiving the {@link ScheduledTask} as input.
-     * May be {@code null} if {@code runnable} is used instead.
-     */
     private final Consumer<ScheduledTask> consumer;
 
-    /**
-     * The initial delay (in milliseconds) before the task is first run.
-     */
     private final long delay;
 
-    /**
-     * The repeat interval (in milliseconds) for this task. A value of {@code 0} means the task runs only once.
-     */
     private final long repeat;
 
-    /**
-     * The scheduled future that tracks the execution state of this task.
-     */
     private @Nullable ScheduledFuture<?> future;
 
-    /**
-     * The thread currently running this task, if any.
-     * Used to allow interruption on cancellation.
-     */
     private volatile @Nullable Thread currentTaskThread;
 
-    private VelocityTask(final PluginContainer container, final Runnable runnable,
-                         final Consumer<ScheduledTask> consumer, final long delay, final long repeat) {
+    private VelocityTask(PluginContainer container, Runnable runnable,
+                         Consumer<ScheduledTask> consumer, long delay, long repeat) {
       this.container = container;
       this.runnable = runnable;
       this.consumer = consumer;
@@ -387,7 +309,7 @@ public class VelocityScheduler implements Scheduler {
             String friendlyPluginName = container.getDescription().getName()
                 .orElse(container.getDescription().getId());
             Object unit = consumer == null ? runnable : consumer;
-            Log.logger.error("Exception in task {} by plugin {}", unit, friendlyPluginName,
+            Log.LOGGER.error("Exception in task {} by plugin {}", unit, friendlyPluginName,
                 e);
           }
         } finally {
@@ -416,9 +338,6 @@ public class VelocityScheduler implements Scheduler {
 
   private static final class Log {
 
-    /**
-     * The Log4j logger instance used for reporting task-related exceptions and shutdown warnings.
-     */
-    private static final Logger logger = LogManager.getLogger(VelocityTask.class);
+    private static final Logger LOGGER = LogManager.getLogger(VelocityTask.class);
   }
 }

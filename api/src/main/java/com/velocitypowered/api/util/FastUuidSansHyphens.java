@@ -102,7 +102,7 @@ final class FastUuidSansHyphens {
    * @throws IllegalArgumentException if the given character sequence does not conform to the string
    *         representation of a Mojang UUID.
    */
-  static UUID parseUuid(final CharSequence uuidSequence) {
+  static UUID parseUuid(CharSequence uuidSequence) {
     if (uuidSequence.length() != MOJANG_BROKEN_UUID_LENGTH) {
       throw new IllegalArgumentException("Illegal UUID string: " + uuidSequence);
     }
@@ -155,11 +155,11 @@ final class FastUuidSansHyphens {
    *
    * @return a string representation of the given UUID
    */
-  public static String toString(final UUID uuid) {
-    final long mostSignificantBits = uuid.getMostSignificantBits();
-    final long leastSignificantBits = uuid.getLeastSignificantBits();
+  public static String toString(UUID uuid) {
+    long mostSignificantBits = uuid.getMostSignificantBits();
+    long leastSignificantBits = uuid.getLeastSignificantBits();
 
-    final char[] uuidChars = new char[MOJANG_BROKEN_UUID_LENGTH];
+    char[] uuidChars = new char[MOJANG_BROKEN_UUID_LENGTH];
 
     uuidChars[0]  = HEX_DIGITS[(int) ((mostSignificantBits & 0xf000000000000000L) >>> 60)];
     uuidChars[1]  = HEX_DIGITS[(int) ((mostSignificantBits & 0x0f00000000000000L) >>> 56)];
@@ -197,12 +197,12 @@ final class FastUuidSansHyphens {
     return new String(uuidChars);
   }
 
-  private static long getHexValueForChar(final char c) {
+  private static long getHexValueForChar(char c) {
     try {
       if (HEX_VALUES[c] < 0) {
         throw new IllegalArgumentException("Illegal hexadecimal digit: " + c);
       }
-    } catch (final ArrayIndexOutOfBoundsException e) {
+    } catch (ArrayIndexOutOfBoundsException e) {
       throw new IllegalArgumentException("Illegal hexadecimal digit: " + c);
     }
 

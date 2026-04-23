@@ -28,7 +28,7 @@ public final class CharacterUtil {
    * @param c character to check
    * @return true if the character is allowed
    */
-  public static boolean isAllowedCharacter(final char c) {
+  public static boolean isAllowedCharacter(char c) {
     // 167 = §, 127 = DEL
     // https://minecraft.wiki/w/Chat
     return c != 167 && c >= ' ' && c != 127;
@@ -41,7 +41,7 @@ public final class CharacterUtil {
    * @param message the message to check
    * @return true if the message contains illegal characters
    */
-  public static boolean containsIllegalCharacters(final String message) {
+  public static boolean containsIllegalCharacters(String message) {
     for (int i = 0; i < message.length(); i++) {
       if (!isAllowedCharacter(message.charAt(i))) {
         return true;

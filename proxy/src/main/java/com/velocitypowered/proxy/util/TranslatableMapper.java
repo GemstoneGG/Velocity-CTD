@@ -41,27 +41,19 @@ public enum TranslatableMapper implements BiConsumer<TranslatableComponent, Cons
    */
   INSTANCE;
 
-  /**
-   * A {@link ComponentFlattener} instance
-   * customized to handle {@link TranslatableComponent}s
-   * using Velocity’s {@link TranslatableMapper}.
-   *
-   * <p>This flattener is used to convert complex Adventure components into plain text
-   * for display in legacy contexts (e.g. console logs, plugin messages).</p>
-   */
   public static final ComponentFlattener FLATTENER = ComponentFlattener.basic().toBuilder()
       .complexMapper(TranslatableComponent.class, TranslatableMapper.INSTANCE)
       .build();
 
   @Override
-  public void accept(final TranslatableComponent translatableComponent,
-                     final Consumer<Component> componentConsumer) {
-    final Locale locale = ClosestLocaleMatcher.INSTANCE.lookupClosest(Locale.getDefault());
+  public void accept(TranslatableComponent translatableComponent,
+                     Consumer<Component> componentConsumer) {
+    Locale locale = ClosestLocaleMatcher.INSTANCE.lookupClosest(Locale.getDefault());
     if (GlobalTranslator.translator().canTranslate(translatableComponent.key(), locale)) {
       componentConsumer.accept(GlobalTranslator.render(translatableComponent, locale));
     } else {
       String fallback = translatableComponent.fallback();
-      if (fallback == null) {
+      if (fallback == null || fallback.isBlank()) {
         fallback = translatableComponent.key();
       }
 

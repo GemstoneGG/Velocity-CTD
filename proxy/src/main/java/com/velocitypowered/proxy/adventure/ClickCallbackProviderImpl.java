@@ -32,8 +32,8 @@ import org.jetbrains.annotations.NotNull;
 public class ClickCallbackProviderImpl implements ClickCallback.Provider {
 
   @Override
-  public final @NotNull ClickEvent create(final @NotNull ClickCallback<Audience> callback, final ClickCallback.@NotNull Options options) {
-    final UUID id = ClickCallbackManager.INSTANCE.register(callback, options);
+  public final @NotNull ClickEvent create(@NotNull ClickCallback<Audience> callback, ClickCallback.@NotNull Options options) {
+    UUID id = ClickCallbackManager.INSTANCE.register(callback, options);
     return ClickEvent.runCommand(ClickCallbackManager.COMMAND + id);
   }
 }

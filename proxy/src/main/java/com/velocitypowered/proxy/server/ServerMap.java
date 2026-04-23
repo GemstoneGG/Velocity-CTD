@@ -21,7 +21,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.velocitypowered.api.event.proxy.server.ServerRegisteredEvent;
 import com.velocitypowered.api.event.proxy.server.ServerUnregisteredEvent;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.proxy.VelocityServer;
 import java.util.Collection;
@@ -36,23 +35,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class ServerMap {
 
-  /**
-   * The {@link VelocityServer} instance backing this server map,
-   * or {@code null} if not initialized in a running proxy context (e.g., testing).
-   */
   private final @Nullable VelocityServer server;
 
-  /**
-   * A thread-safe map of lowercase server names to their {@link RegisteredServer} instances.
-   */
-  private final Map<String, RegisteredServer> servers = new ConcurrentHashMap<>();
+  private final Map<String, VelocityRegisteredServer> servers = new ConcurrentHashMap<>();
 
-  /**
-   * Creates a new {@code ServerMap} for managing registered servers.
-   *
-   * @param server the Velocity server instance, may be {@code null}
-   */
-  public ServerMap(final @Nullable VelocityServer server) {
+  public ServerMap(@Nullable VelocityServer server) {
     this.server = server;
   }
 
@@ -62,29 +49,24 @@ public class ServerMap {
    * @param name the name to look up
    * @return the server, if it exists
    */
-  public Optional<RegisteredServer> getServer(final String name) {
+  public Optional<VelocityRegisteredServer> getServer(String name) {
     Preconditions.checkNotNull(name, "server");
     String lowerName = name.toLowerCase(Locale.US);
     return Optional.ofNullable(servers.get(lowerName));
   }
 
-  /**
-   * Returns an immutable snapshot of all registered servers currently known to the proxy.
-   *
-   * @return a collection of all {@link RegisteredServer} instances
-   */
-  public Collection<RegisteredServer> getAllServers() {
+  public Collection<VelocityRegisteredServer> getAllServers() {
     return ImmutableList.copyOf(servers.values());
   }
 
   /**
-   * Creates a raw implementation of a {@link RegisteredServer} without tying it to the internal
+   * Creates a raw implementation of a {@link VelocityRegisteredServer} without tying it to the internal
    * server map.
    *
    * @param serverInfo the server to create a registered server with
-   * @return the {@link RegisteredServer} built from the {@link ServerInfo}
+   * @return the {@link VelocityRegisteredServer} built from the {@link ServerInfo}
    */
-  public RegisteredServer createRawRegisteredServer(final ServerInfo serverInfo) {
+  public VelocityRegisteredServer createRawRegisteredServer(ServerInfo serverInfo) {
     return new VelocityRegisteredServer(server, serverInfo);
   }
 
@@ -94,12 +76,12 @@ public class ServerMap {
    * @param serverInfo the server to register
    * @return the registered server
    */
-  public RegisteredServer register(final ServerInfo serverInfo) {
+  public VelocityRegisteredServer register(ServerInfo serverInfo) {
     Preconditions.checkNotNull(serverInfo, "serverInfo");
     String lowerName = serverInfo.getName().toLowerCase(Locale.US);
-    RegisteredServer rs = createRawRegisteredServer(serverInfo);
+    VelocityRegisteredServer rs = createRawRegisteredServer(serverInfo);
 
-    RegisteredServer existing = servers.putIfAbsent(lowerName, rs);
+    VelocityRegisteredServer existing = servers.putIfAbsent(lowerName, rs);
     if (existing != null && !existing.getServerInfo().equals(serverInfo)) {
       throw new IllegalArgumentException(
           "Server with name " + serverInfo.getName() + " already registered");
@@ -119,10 +101,10 @@ public class ServerMap {
    *
    * @param serverInfo the server to unregister
    */
-  public void unregister(final ServerInfo serverInfo) {
+  public void unregister(ServerInfo serverInfo) {
     Preconditions.checkNotNull(serverInfo, "serverInfo");
     String lowerName = serverInfo.getName().toLowerCase(Locale.US);
-    RegisteredServer rs = servers.get(lowerName);
+    VelocityRegisteredServer rs = servers.get(lowerName);
     if (rs == null) {
       throw new IllegalArgumentException(
           "Server with name " + serverInfo.getName() + " is not registered!");

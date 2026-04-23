@@ -32,7 +32,7 @@ public final class ListenerCloseEvent {
    * @param address the socket address the listener was bound to
    * @param listenerType the type of listener being closed
    */
-  public ListenerCloseEvent(final InetSocketAddress address, final ListenerType listenerType) {
+  public ListenerCloseEvent(InetSocketAddress address, ListenerType listenerType) {
     this.address = Preconditions.checkNotNull(address, "address");
     this.listenerType = Preconditions.checkNotNull(listenerType, "listenerType");
   }

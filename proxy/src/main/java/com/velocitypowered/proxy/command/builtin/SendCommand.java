@@ -20,560 +20,216 @@ package com.velocitypowered.proxy.command.builtin;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.tree.ArgumentCommandNode;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
+import com.velocityctd.proxy.command.CommandUtils;
+import com.velocityctd.proxy.command.PlayerIdentifier;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
-import com.velocitypowered.api.proxy.Player;
-import com.velocitypowered.api.proxy.ServerConnection;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.command.VelocityCommands;
-import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
-import com.velocitypowered.proxy.redis.multiproxy.RedisSwitchServerRequest;
-import com.velocitypowered.proxy.redis.multiproxy.RemotePlayerInfo;
+import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.translation.Argument;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Implements the Velocity default {@code /send} command.
+ * Implements Velocity's {@code /send} command.
  */
-public class SendCommand {
+public class SendCommand implements BuiltinCommandDefinition {
 
-  /**
-   * The Velocity server instance used to retrieve player and server data.
-   */
+  private static final String SELECTOR_ARG = "selector";
+  private static final String TARGET_ARG = "target";
+
   private final VelocityServer server;
 
-  /**
-   * The argument key for specifying the target server.
-   */
-  private static final String SERVER_ARG = "server";
-
-  /**
-   * The argument key for specifying the player(s) to send.
-   */
-  private static final String PLAYER_ARG = "player";
-
-  /**
-   * Creates a new {@link SendCommand} instance.
-   *
-   * @param server the Velocity server
-   */
-  public SendCommand(final VelocityServer server) {
+  public SendCommand(VelocityServer server) {
     this.server = server;
   }
 
-  /**
-   * Returns the command instance if enabled, or {@code null} if disabled via configuration.
-   *
-   * @param isSendEnabled whether the command is enabled
-   * @return the command instance or {@code null} if disabled
-   */
-  public BrigadierCommand register(final boolean isSendEnabled) {
-    if (!isSendEnabled) {
-      return null;
-    }
-
-    if (server.getMultiProxyHandler().isRedisEnabled()) {
-      registerMultiProxy(true);
-      return null;
-    }
-
-    final LiteralArgumentBuilder<CommandSource> rootNode = BrigadierCommand
-            .literalArgumentBuilder("send")
-            .requires(source ->
-                    source.getPermissionValue("velocity.command.send") == Tristate.TRUE)
-            .executes(ctx -> VelocityCommands.emitUsage(ctx, "send"));
-    final RequiredArgumentBuilder<CommandSource, String> playerNode = BrigadierCommand
-            .requiredArgumentBuilder(PLAYER_ARG, StringArgumentType.word())
-            .suggests((context, builder) -> {
-              final String argument = context.getArguments().containsKey(PLAYER_ARG)
-                      ? context.getArgument(PLAYER_ARG, String.class)
-                      : "";
-
-              for (final Player player : server.getAllPlayers()) {
-                final String playerName = player.getUsername();
-                if (playerName.regionMatches(true, 0, argument, 0, argument.length())) {
-                  builder.suggest(playerName);
-                }
-              }
-
-              if ("all".regionMatches(true, 0, argument, 0, argument.length())) {
-                builder.suggest("all");
-              }
-
-              if ("current".regionMatches(true, 0, argument, 0, argument.length())
-                      && context.getSource() instanceof Player) {
-                builder.suggest("current");
-              }
-
-              if (argument.isEmpty() || argument.startsWith("+")) {
-                for (final RegisteredServer server : server.getAllServers()) {
-                  final String serverName = server.getServerInfo().getName();
-
-                  if (serverName.regionMatches(true, 0, argument, 1, argument.length() - 1)) {
-                    builder.suggest("+" + serverName);
-                  }
-                }
-              }
-
-              return builder.buildFuture();
-            })
-            .executes(ctx -> VelocityCommands.emitUsage(ctx, "send"));
-    final ArgumentCommandNode<CommandSource, String> serverNode = BrigadierCommand
-            .requiredArgumentBuilder(SERVER_ARG, StringArgumentType.word())
-            .suggests((context, builder) -> {
-              final String argument = context.getArguments().containsKey(SERVER_ARG)
-                      ? context.getArgument(SERVER_ARG, String.class)
-                      : "";
-
-              for (final RegisteredServer server : server.getAllServers()) {
-                final String serverName = server.getServerInfo().getName();
-                if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
-                  builder.suggest(server.getServerInfo().getName());
-                }
-              }
-
-              return builder.buildFuture();
-            })
-            .executes(this::send)
-            .build();
-
-    playerNode.then(serverNode);
-    rootNode.then(playerNode.build());
-    return new BrigadierCommand(rootNode);
+  @Override
+  public String label() {
+    return "send";
   }
 
-  /**
-   * Handles registering the command when Redis is enabled.
-   *
-   * @param isSendEnabled Whether the command is enabled or not.
-   */
-  public void registerMultiProxy(final boolean isSendEnabled) {
-    if (!isSendEnabled) {
-      return;
+  @Override
+  public BrigadierCommand build() {
+    LiteralArgumentBuilder<CommandSource> command = BrigadierCommand
+        .literalArgumentBuilder(label())
+        .requires(src -> src.getPermissionValue("velocity.command.send") == Tristate.TRUE)
+        .executes(ctx -> CommandUtils.emitUsage(ctx, label()))
+        .then(
+            BrigadierCommand
+                .requiredArgumentBuilder(SELECTOR_ARG, StringArgumentType.word())
+                .suggests(PlayerIdentifier.suggest(server, SELECTOR_ARG))
+                .executes(ctx -> CommandUtils.emitUsage(ctx, label()))
+                .then(
+                    BrigadierCommand
+                        .requiredArgumentBuilder(TARGET_ARG, StringArgumentType.word())
+                        .suggests(this::suggestServers)
+                        .executes(this::executeSend)
+                )
+        );
+
+    return new BrigadierCommand(command);
+  }
+
+  private CompletableFuture<Suggestions> suggestServers(CommandContext<CommandSource> ctx, SuggestionsBuilder builder) {
+    String input = builder.getRemaining();
+    for (VelocityRegisteredServer rs : server.getAllServers()) {
+      String name = rs.getServerInfo().getName();
+      if (startsWithIgnoreCase(name, input)) {
+        builder.suggest(name);
+      }
     }
 
-    final LiteralArgumentBuilder<CommandSource> rootNode = BrigadierCommand
-        .literalArgumentBuilder("send")
-        .requires(source ->
-            source.getPermissionValue("velocity.command.send") == Tristate.TRUE)
-        .executes(ctx -> VelocityCommands.emitUsage(ctx, "send"));
-    final RequiredArgumentBuilder<CommandSource, String> playerNode = BrigadierCommand
-        .requiredArgumentBuilder(PLAYER_ARG, StringArgumentType.word())
-        .suggests((context, builder) -> {
-          final String argument = context.getArguments().containsKey(PLAYER_ARG)
-              ? context.getArgument(PLAYER_ARG, String.class)
-              : "";
+    return builder.buildFuture();
+  }
 
-          for (RemotePlayerInfo info : server.getMultiProxyHandler().getAllPlayers()) {
-            final String playerName = info.getName();
-            if (playerName.regionMatches(true, 0, argument, 0, argument.length())) {
-              builder.suggest(playerName);
-            }
-          }
+  private int executeSend(CommandContext<CommandSource> ctx) {
+    String selector = ctx.getArgument(SELECTOR_ARG, String.class);
+    String targetName = ctx.getArgument(TARGET_ARG, String.class);
 
-          if ("all".regionMatches(true, 0, argument, 0, argument.length())) {
-            builder.suggest("all");
-          }
+    Optional<VelocityRegisteredServer> maybeTarget = server.getServer(targetName);
+    if (maybeTarget.isEmpty()) {
+      ctx.getSource().sendMessage(
+          CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Component.text(targetName))
+      );
+      return 0;
+    }
 
-          if ("current".regionMatches(true, 0, argument, 0, argument.length())
-              && context.getSource() instanceof Player) {
-            builder.suggest("current");
-          }
+    VelocityRegisteredServer target = maybeTarget.get();
+    String toName = target.getServerInfo().getName();
 
-          if (argument.isEmpty() || argument.startsWith("+")) {
-            for (final RegisteredServer server : server.getAllServers()) {
-              final String serverName = server.getServerInfo().getName();
-              if (serverName.regionMatches(true, 0, argument, 1, argument.length() - 1)) {
-                builder.suggest("+" + serverName);
-              }
-            }
-          }
+    PlayerIdentifier.Result result = PlayerIdentifier.resolve(server, selector, ctx.getSource());
+    if (!result.success()) {
+      sendResolveError(ctx.getSource(), result);
+      return 0;
+    }
 
-          return builder.buildFuture();
-        })
-        .executes(ctx -> VelocityCommands.emitUsage(ctx, "send"));
-    final ArgumentCommandNode<CommandSource, String> serverNode = BrigadierCommand
-        .requiredArgumentBuilder(SERVER_ARG, StringArgumentType.word())
-        .suggests((context, builder) -> {
-          final String argument = context.getArguments().containsKey(SERVER_ARG)
-              ? context.getArgument(SERVER_ARG, String.class)
-              : "";
+    return switch (result.type()) {
+      case PLAYER -> sendPlayers(ctx, result, toName);
+      case SERVER, CURRENT_SERVER -> sendFromServer(ctx, result, toName);
+      default -> sendBulk(ctx, result, toName);
+    };
+  }
 
-          for (final RegisteredServer server : server.getAllServers()) {
-            final String serverName = server.getServerInfo().getName();
-            if (serverName.regionMatches(true, 0, argument, 0, argument.length())) {
-              builder.suggest(server.getServerInfo().getName());
-            }
-          }
+  private int sendPlayers(CommandContext<CommandSource> ctx, PlayerIdentifier.Result result, String toName) {
+    Collection<VelocityClusterPlayer> players = result.players();
 
-          return builder.buildFuture();
-        })
-        .executes(this::send)
-        .build();
+    if (players.size() == 1) {
+      VelocityClusterPlayer player = players.iterator().next();
+      if (equalsIgnoreCase(player.getServerName(), toName)) {
+        ctx.getSource().sendMessage(Component.translatable("velocity.command.send-player-none")
+            .arguments(
+                Argument.string("player", player.getUsername()),
+                Argument.string("server", toName)
+            ));
+        return Command.SINGLE_SUCCESS;
+      }
 
-    playerNode.then(serverNode);
-    rootNode.then(playerNode.build());
-    final BrigadierCommand command = new BrigadierCommand(rootNode);
+      player.move(toName);
+      ctx.getSource().sendMessage(Component.translatable("velocity.command.send-player")
+          .arguments(
+              Argument.string("player", player.getUsername()),
+              Argument.string("server", toName)
+          ));
+      return Command.SINGLE_SUCCESS;
+    }
 
-    server.getCommandManager().register(
-        server.getCommandManager().metaBuilder(command)
-            .plugin(VelocityVirtualPlugin.INSTANCE)
-            .build(),
-        command
+    // Multiple comma-separated players
+    return sendBulk(ctx, result, toName);
+  }
+
+  private int sendFromServer(CommandContext<CommandSource> ctx, PlayerIdentifier.Result result, String toName) {
+    String fromName = result.name();
+
+    if (equalsIgnoreCase(fromName, toName)) {
+      ctx.getSource().sendMessage(Component.translatable("velocity.command.send-same-server"));
+      return 0;
+    }
+
+    Collection<VelocityClusterPlayer> players = result.players();
+    if (players.isEmpty()) {
+      ctx.getSource().sendMessage(Component.translatable("velocity.command.send-server-none")
+          .arguments(
+              Argument.string("server", fromName),
+              Argument.string("to", toName)
+          ));
+      return Command.SINGLE_SUCCESS;
+    }
+
+    for (VelocityClusterPlayer player : players) {
+      player.move(toName);
+    }
+
+    int moved = players.size();
+    ctx.getSource().sendMessage(
+        Component.translatable(moved == 1 ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
+            .arguments(
+                Argument.numeric("count", moved),
+                Argument.string("from", fromName),
+                Argument.string("to", toName)
+            )
     );
-  }
-
-  private int send(final CommandContext<CommandSource> context) {
-    if (server.getMultiProxyHandler().isRedisEnabled()) {
-      return sendMultiProxy(context);
-    }
-
-    final String serverName = context.getArgument(SERVER_ARG, String.class);
-    final String player = context.getArgument(PLAYER_ARG, String.class);
-
-    final Optional<RegisteredServer> maybeServer = server.getServer(serverName);
-
-    if (maybeServer.isEmpty()) {
-      context.getSource().sendMessage(
-          CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Argument.string("server", serverName))
-      );
-
-      return 0;
-    }
-
-    final RegisteredServer targetServer = maybeServer.get();
-
-    final Optional<Player> maybePlayer = server.getPlayer(player);
-    if (maybePlayer.isEmpty()
-        && !Objects.equals(player, "all")
-        && !Objects.equals(player, "current")
-        && !player.startsWith("+")) {
-      context.getSource().sendMessage(
-          CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", player))
-      );
-
-      return 0;
-    }
-
-    if (Objects.equals(player, "all")) {
-      for (final Player p : server.getAllPlayers()) {
-        p.createConnectionRequest(targetServer).fireAndForget();
-      }
-      final int globalCount = server.getAllPlayers().size();
-      context.getSource().sendMessage(Component.translatable(globalCount == 1
-              ? "velocity.command.send-all-singular" : "velocity.command.send-all-plural")
-          .arguments(
-              Argument.numeric("count", globalCount),
-              Argument.string("server", targetServer.getServerInfo().getName())));
-      return Command.SINGLE_SUCCESS;
-    }
-
-    if (Objects.equals(player, "current")) {
-      if (!(context.getSource() instanceof Player source)) {
-        context.getSource().sendMessage(CommandMessages.PLAYERS_ONLY);
-        return 0;
-      }
-
-      final Optional<ServerConnection> connectedServer = source.getCurrentServer();
-      if (connectedServer.isPresent()) {
-        if (maybeServer.get().getServerInfo().getName().equalsIgnoreCase(connectedServer.get().getServerInfo().getName())) {
-          context.getSource().sendMessage(Component.translatable("velocity.command.send-same-server"));
-          return -1;
-        }
-
-        final Collection<Player> players = connectedServer.get().getServer().getPlayersConnected();
-        for (final Player p : players) {
-          p.createConnectionRequest(maybeServer.get()).fireAndForget();
-        }
-        context.getSource().sendMessage(Component.translatable(players.size() == 1
-                ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
-            .arguments(
-                Argument.numeric("count", players.size()),
-                Argument.string("from", connectedServer.get().getServerInfo().getName()),
-                Argument.string("to", targetServer.getServerInfo().getName())));
-        return Command.SINGLE_SUCCESS;
-      }
-
-      return 0;
-    }
-
-    if (player.startsWith("+")) {
-      final ServerResult result = findServer(player.substring(1));
-
-      if (result.bestMatch().isEmpty()) {
-        context.getSource().sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Argument.string("server", player.substring(1))));
-        return 0;
-      }
-
-      if (result.hasMultipleMatches()) {
-        context.getSource().sendMessage(CommandMessages.SERVER_MULTIPLE_MATCH);
-        return 0;
-      }
-
-      final RegisteredServer sourceServer = result.bestMatch().get();
-      sendPlayersFromServer(context, sourceServer, targetServer);
-      return Command.SINGLE_SUCCESS;
-    }
-
-    // The player at this point must be present
-    final Player player0 = maybePlayer.orElseThrow();
-    sendPlayer(context, player0, targetServer);
     return Command.SINGLE_SUCCESS;
   }
 
-  private void sendPlayer(final CommandContext<CommandSource> context, final Player player0,
-                          final RegisteredServer targetServer) {
-    ServerConnection current = player0.getCurrentServer().orElse(null);
-    if (current != null && current.getServerInfo().getName().equalsIgnoreCase(targetServer.getServerInfo().getName())) {
-      context.getSource().sendMessage(Component.translatable("velocity.command.send-same-server"));
-      return;
+  private int sendBulk(CommandContext<CommandSource> ctx, PlayerIdentifier.Result result, String toName) {
+    Collection<VelocityClusterPlayer> players = result.players();
+    int moved = 0;
+    int skippedSame = 0;
+
+    for (VelocityClusterPlayer player : players) {
+      if (equalsIgnoreCase(player.getServerName(), toName)) {
+        skippedSame++;
+        continue;
+      }
+      player.move(toName);
+      moved++;
     }
 
-    if (player0.getCurrentServer().isPresent() && player0.getCurrentServer().get().getServer().equals(targetServer)) {
-      context.getSource().sendMessage(Component.translatable("velocity.command.send-player-none")
-          .arguments(
-              Argument.string("player", player0.getUsername()),
-              Argument.string("server", targetServer.getServerInfo().getName())));
-    } else {
-      player0.createConnectionRequest(targetServer).fireAndForget();
-      context.getSource().sendMessage(Component.translatable("velocity.command.send-player")
-          .arguments(
-              Argument.string("player", player0.getUsername()),
-              Argument.string("server", targetServer.getServerInfo().getName())));
-    }
-  }
-
-  private void sendPlayersFromServer(final CommandContext<CommandSource> context, final RegisteredServer server,
-                                     final RegisteredServer targetServer) {
-
-    if (server.getServerInfo().getName().equalsIgnoreCase(targetServer.getServerInfo().getName())) {
-      context.getSource().sendMessage(Component.translatable("velocity.command.send-same-server"));
-      return;
-    }
-
-    final int playerSize = server.getPlayersConnected().size();
-    final String name = server.getServerInfo().getName();
-
-    if (playerSize == 0) {
-      context.getSource().sendMessage(Component.translatable("velocity.command.send-server-none")
-          .arguments(
-              Argument.string("server", name),
-              Argument.string("to", targetServer.getServerInfo().getName())));
-      return;
-    }
-
-    for (Player targetPlayer : server.getPlayersConnected()) {
-      targetPlayer.createConnectionRequest(targetServer).fireAndForget();
-    }
-
-    context.getSource().sendMessage(Component.translatable(playerSize == 1
-            ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
-        .arguments(
-            Argument.numeric("count", playerSize),
-            Argument.string("from", name),
-            Argument.string("to", targetServer.getServerInfo().getName())));
-  }
-
-  private int sendMultiProxy(final CommandContext<CommandSource> context) {
-    final String serverName = context.getArgument(SERVER_ARG, String.class);
-    final String player = context.getArgument(PLAYER_ARG, String.class);
-
-    final Optional<RegisteredServer> maybeServer = server.getServer(serverName);
-
-    if (maybeServer.isEmpty()) {
-      context.getSource().sendMessage(
-          CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Argument.string("server", serverName))
-      );
-
+    if (moved == 0 && skippedSame > 0) {
+      ctx.getSource().sendMessage(Component.translatable("velocity.command.send-same-server"));
       return 0;
     }
 
-    final RegisteredServer targetServer = maybeServer.get();
-
-    if (this.server.getMultiProxyHandler().isPlayerOnline(player)
-        && !Objects.equals(player, "all")
-        && !Objects.equals(player, "current")
-        && !player.startsWith("+")) {
-      context.getSource().sendMessage(
-          CommandMessages.PLAYER_NOT_FOUND.arguments(Argument.string("player", player))
-      );
-
-      return 0;
-    }
-
-    if (Objects.equals(player, "all")) {
-      List<RemotePlayerInfo> list = this.server.getMultiProxyHandler().getAllPlayers();
-      for (final RemotePlayerInfo p : list) {
-        this.server.getRedisManager().send(new RedisSwitchServerRequest(p.getName(), targetServer.getServerInfo().getName()));
-      }
-
-      final int globalCount = list.size();
-      context.getSource().sendMessage(Component.translatable(globalCount == 1
-              ? "velocity.command.send-all-singular" : "velocity.command.send-all-plural")
-          .arguments(
-              Argument.numeric("count", globalCount),
-              Argument.string("server", targetServer.getServerInfo().getName())));
-      return Command.SINGLE_SUCCESS;
-    }
-
-    if (Objects.equals(player, "current")) {
-      if (!(context.getSource() instanceof Player source)) {
-        context.getSource().sendMessage(CommandMessages.PLAYERS_ONLY);
-        return 0;
-      }
-
-      final Optional<ServerConnection> connectedServer = source.getCurrentServer();
-      if (connectedServer.isPresent()) {
-        if (maybeServer.get().getServerInfo().getName().equalsIgnoreCase(connectedServer.get().getServerInfo().getName())) {
-          context.getSource().sendMessage(Component.translatable("velocity.command.send-same-server"));
-          return -1;
-        }
-        int amountDone = 0;
-        List<RemotePlayerInfo> list = this.server.getMultiProxyHandler().getAllPlayers();
-        for (final RemotePlayerInfo p : list) {
-          if (p.getServerName().equalsIgnoreCase(connectedServer.get().getServerInfo().getName())) {
-            this.server.getRedisManager().send(new RedisSwitchServerRequest(p.getName(), connectedServer.get().getServerInfo().getName()));
-            amountDone++;
-          }
-        }
-
-        context.getSource().sendMessage(Component.translatable(amountDone == 1
-                ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
+    ctx.getSource().sendMessage(
+        Component.translatable(moved == 1 ? "velocity.command.send-all-singular" : "velocity.command.send-all-plural")
             .arguments(
-                Argument.numeric("count", amountDone),
-                Argument.string("from", connectedServer.get().getServerInfo().getName()),
-                Argument.string("to", targetServer.getServerInfo().getName())));
-        return Command.SINGLE_SUCCESS;
-      }
-
-      return 0;
-    }
-
-    if (player.startsWith("+")) {
-
-      final ServerResult result = findServer(player.substring(1));
-
-      if (result.bestMatch().isEmpty()) {
-        context.getSource().sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST.arguments(Argument.string("server", player.substring(1))));
-        return 0;
-      }
-
-      if (result.hasMultipleMatches()) {
-        context.getSource().sendMessage(CommandMessages.SERVER_MULTIPLE_MATCH);
-        return 0;
-      }
-
-      final RegisteredServer sourceServer = result.bestMatch().get();
-      sendPlayersFromServerMultiProxy(context, sourceServer, targetServer);
-      return Command.SINGLE_SUCCESS;
-    }
-
-    // The player at this point must be present
-    sendPlayerMultiProxy(context, player, targetServer);
+                Argument.numeric("count", moved),
+                Argument.string("server", toName)
+            )
+    );
     return Command.SINGLE_SUCCESS;
   }
 
-  private void sendPlayerMultiProxy(final CommandContext<CommandSource> context, final String playerInput,
-                                    final RegisteredServer targetServer) {
-
-    RemotePlayerInfo playerInfo = server.getMultiProxyHandler().getPlayerInfo(playerInput);
-
-    String correctName = playerInfo.getName();
-    boolean alreadyConnected = playerInfo.getServerName().equalsIgnoreCase(targetServer.getServerInfo().getName());
-
-    if (alreadyConnected) {
-      context.getSource().sendMessage(Component.translatable("velocity.command.send-player-none")
-          .arguments(
-              Argument.string("player", correctName),
-              Argument.string("server", targetServer.getServerInfo().getName())));
-    } else {
-      this.server.getRedisManager().send(new RedisSwitchServerRequest(correctName,
-              targetServer.getServerInfo().getName()));
-      context.getSource().sendMessage(Component.translatable("velocity.command.send-player")
-          .arguments(
-              Argument.string("player", correctName),
-              Argument.string("server", targetServer.getServerInfo().getName())));
+  private void sendResolveError(CommandSource source, PlayerIdentifier.Result result) {
+    switch (result.type()) {
+      case PLAYER -> source.sendMessage(CommandMessages.PLAYER_NOT_FOUND
+          .arguments(Argument.string("player", result.name())));
+      case SERVER -> source.sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
+          .arguments(Component.text(result.name())));
+      case PLAYER_EXECUTOR_REQUIRED -> source.sendMessage(CommandMessages.PLAYERS_ONLY);
+      default -> {
+      }
     }
   }
 
-  private void sendPlayersFromServerMultiProxy(final CommandContext<CommandSource> context, final RegisteredServer server,
-                                               final RegisteredServer targetServer) {
-    final String name = server.getServerInfo().getName();
-
-    if (name.equalsIgnoreCase(targetServer.getServerInfo().getName())) {
-      context.getSource().sendMessage(Component.translatable("velocity.command.send-same-server"));
-      return;
-    }
-
-    int amountDone = 0;
-    List<RemotePlayerInfo> list = this.server.getMultiProxyHandler().getAllPlayers();
-    for (final RemotePlayerInfo p : list) {
-      if (p.getServerName().equalsIgnoreCase(name)) {
-        this.server.getRedisManager().send(new RedisSwitchServerRequest(p.getName(), targetServer.getServerInfo().getName()));
-        amountDone++;
-      }
-    }
-
-    if (amountDone == 0) {
-      context.getSource().sendMessage(Component.translatable("velocity.command.send-server-none")
-          .arguments(
-              Argument.string("server", name),
-              Argument.string("to", targetServer.getServerInfo().getName())));
-      return;
-    }
-    for (Player targetPlayer : server.getPlayersConnected()) {
-      targetPlayer.createConnectionRequest(targetServer).fireAndForget();
-    }
-    context.getSource().sendMessage(Component.translatable(amountDone == 1
-            ? "velocity.command.send-server-singular" : "velocity.command.send-server-plural")
-        .arguments(
-            Argument.numeric("count", amountDone),
-            Argument.string("from", name),
-            Argument.string("to", targetServer.getServerInfo().getName())));
+  private static boolean equalsIgnoreCase(@Nullable String a, @Nullable String b) {
+    return a != null && b != null && a.equalsIgnoreCase(b);
   }
 
-  private ServerResult findServer(final String serverName) {
-    final Collection<RegisteredServer> servers = server.getAllServers();
-    final String lowerServerName = serverName.toLowerCase();
-
-    Optional<RegisteredServer> bestMatch = Optional.empty();
-    boolean multipleMatches = false;
-
-    for (RegisteredServer server : servers) {
-
-      final String lowerName = server.getServerInfo().getName().toLowerCase();
-
-      if (lowerName.equals(lowerServerName)) {
-        bestMatch = Optional.of(server);
-        break;
-      }
-
-      if (lowerName.contains(lowerServerName)) {
-        if (bestMatch.isPresent()) {
-          multipleMatches = true;
-          break;
-        }
-
-        bestMatch = Optional.of(server);
-      }
+  private static boolean startsWithIgnoreCase(String candidate, String input) {
+    if (input == null || input.isEmpty()) {
+      return true;
     }
 
-    return new ServerResult(bestMatch, multipleMatches);
-  }
-
-  private record ServerResult(Optional<RegisteredServer> bestMatch, boolean multipleMatches) {
-
-    public boolean hasMultipleMatches() {
-      return multipleMatches;
-    }
+    return candidate.regionMatches(true, 0, input, 0, input.length());
   }
 }

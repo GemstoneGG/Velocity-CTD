@@ -58,38 +58,15 @@ import org.apache.logging.log4j.Logger;
  */
 public class VelocityPluginManager implements PluginManager {
 
-  /**
-   * The logger for this class.
-   */
-  private static final Logger logger = LogManager.getLogger(VelocityPluginManager.class);
+  private static final Logger LOGGER = LogManager.getLogger(VelocityPluginManager.class);
 
-  /**
-   * A map of all loaded plugins indexed by their plugin ID.
-   *
-   * <p>This is the authoritative source for determining if a plugin is registered,
-   * and is used for lookup by ID.</p>
-   */
   private final Map<String, PluginContainer> pluginsById = new LinkedHashMap<>();
 
-  /**
-   * A map of plugin instances to their corresponding {@link PluginContainer}.
-   *
-   * <p>This is used to resolve plugin containers from loaded plugin instances,
-   * typically used by {@link #fromInstance(Object)}.</p>
-   */
   private final Map<Object, PluginContainer> pluginInstances = new IdentityHashMap<>();
 
-  /**
-   * The reference to the running {@link VelocityServer} instance.
-   */
   private final VelocityServer server;
 
-  /**
-   * Constructs a new {@code VelocityPluginManager} instance.
-   *
-   * @param server the Velocity server instance
-   */
-  public VelocityPluginManager(final VelocityServer server) {
+  public VelocityPluginManager(VelocityServer server) {
     this.server = checkNotNull(server, "server");
   }
 
@@ -98,13 +75,13 @@ public class VelocityPluginManager implements PluginManager {
    *
    * @param plugin the plugin to register
    */
-  public void registerPlugin(final PluginContainer plugin) {
+  public void registerPlugin(PluginContainer plugin) {
     pluginsById.put(plugin.getDescription().getId(), plugin);
     Optional<?> instance = plugin.getInstance();
     instance.ifPresent(o -> pluginInstances.put(o, plugin));
   }
 
-  private void loadPluginDescription(final JavaPluginLoader loader, final Map<String, PluginDescription> foundCandidates, final Path path) {
+  private void loadPluginDescription(JavaPluginLoader loader, Map<String, PluginDescription> foundCandidates, Path path) {
     try {
       PluginDescription candidate = loader.loadCandidate(path);
 
@@ -113,18 +90,18 @@ public class VelocityPluginManager implements PluginManager {
               candidate.getId(), candidate);
 
       if (maybeExistingCandidate != null) {
-        logger.error("Refusing to load plugin at path {} since we already "
+        LOGGER.error("Refusing to load plugin at path {} since we already "
                     + "loaded a plugin with the same ID {} from {}",
                 candidate.getSource().map(Objects::toString).orElse("<UNKNOWN>"),
                 candidate.getId(),
                 maybeExistingCandidate.getSource().map(Objects::toString).orElse("<UNKNOWN>"));
       }
     } catch (Throwable e) {
-      logger.error("Unable to load plugin {}", path, e);
+      LOGGER.error("Unable to load plugin {}", path, e);
     }
   }
 
-  private static boolean isJarFile(final Path p) {
+  private static boolean isJarFile(Path p) {
     return p.toFile().isFile() && p.toString().endsWith(".jar");
   }
 
@@ -137,7 +114,7 @@ public class VelocityPluginManager implements PluginManager {
    */
   @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
       justification = "I looked carefully and there's no way SpotBugs is right.")
-  public void loadPlugins(final Path directory, final Collection<Path> extraPluginJars) throws IOException {
+  public void loadPlugins(Path directory, Collection<Path> extraPluginJars) throws IOException {
 
     Map<String, PluginDescription> foundCandidates = new LinkedHashMap<>();
     JavaPluginLoader loader = new JavaPluginLoader(server, directory);
@@ -155,7 +132,7 @@ public class VelocityPluginManager implements PluginManager {
         }
       }
     } else {
-      logger.warn("Plugin location {} is not a directory, continuing without loading plugins", directory);
+      LOGGER.warn("Plugin location {} is not a directory, continuing without loading plugins", directory);
     }
 
     if (foundCandidates.isEmpty()) {
@@ -174,7 +151,7 @@ public class VelocityPluginManager implements PluginManager {
       // Verify dependencies
       for (PluginDependency dependency : candidate.getDependencies()) {
         if (!dependency.isOptional() && !loadedCandidates.containsKey(dependency.getId())) {
-          logger.error("Can't load plugin {} due to missing dependency {}", candidate.getId(),
+          LOGGER.error("Can't load plugin {} due to missing dependency {}", candidate.getId(),
               dependency.getId());
           continue pluginLoad;
         }
@@ -186,7 +163,7 @@ public class VelocityPluginManager implements PluginManager {
         pluginContainers.put(container, loader.createModule(container));
         loadedCandidates.put(realPlugin.getId(), realPlugin);
       } catch (Throwable e) {
-        logger.error("Can't create module for plugin {}", candidate.getId(), e);
+        LOGGER.error("Can't create module for plugin {}", candidate.getId(), e);
       }
     }
 
@@ -213,24 +190,18 @@ public class VelocityPluginManager implements PluginManager {
       try {
         loader.createPlugin(container, plugin.getValue(), commonModule);
       } catch (Throwable e) {
-        logger.error("Can't create plugin {}", description.getId(), e);
+        LOGGER.error("Can't create plugin {}", description.getId(), e);
         continue;
       }
 
-      logger.info("Loaded plugin {} {} by {}", description.getId(), description.getVersion()
+      LOGGER.info("Loaded plugin {} {} by {}", description.getId(), description.getVersion()
           .orElse("<UNKNOWN>"), Joiner.on(", ").join(description.getAuthors()));
       registerPlugin(container);
     }
   }
 
-  /**
-   * Resolves the {@link PluginContainer} associated with the given plugin instance.
-   *
-   * @param instance the plugin instance or container
-   * @return an {@link Optional} containing the plugin container, if registered
-   */
   @Override
-  public Optional<PluginContainer> fromInstance(final Object instance) {
+  public Optional<PluginContainer> fromInstance(Object instance) {
     checkNotNull(instance, "instance");
 
     if (instance instanceof PluginContainer) {
@@ -240,51 +211,24 @@ public class VelocityPluginManager implements PluginManager {
     return Optional.ofNullable(pluginInstances.get(instance));
   }
 
-  /**
-   * Looks up a registered plugin by its ID.
-   *
-   * @param id the plugin ID
-   * @return an {@link Optional} containing the plugin container, if found
-   */
   @Override
-  public Optional<PluginContainer> getPlugin(final String id) {
+  public Optional<PluginContainer> getPlugin(String id) {
     checkNotNull(id, "id");
     return Optional.ofNullable(pluginsById.get(id));
   }
 
-  /**
-   * Returns an unmodifiable collection of all registered plugins.
-   *
-   * @return a collection of plugin containers
-   */
   @Override
   public Collection<PluginContainer> getPlugins() {
     return Collections.unmodifiableCollection(pluginsById.values());
   }
 
-  /**
-   * Returns whether a plugin with the given ID is currently loaded.
-   *
-   * @param id the plugin ID to check
-   * @return {@code true} if the plugin is loaded
-   */
   @Override
-  public boolean isLoaded(final String id) {
+  public boolean isLoaded(String id) {
     return pluginsById.containsKey(id);
   }
 
-  /**
-   * Dynamically adds a new file to the classpath of the specified plugin.
-   *
-   * <p>This operation is only supported for Java-based Velocity plugins using {@link PluginClassLoader}.</p>
-   *
-   * @param plugin the plugin instance
-   * @param path the path to add to the plugin's classpath
-   * @throws UnsupportedOperationException if the plugin is not Java-based
-   * @throws IllegalArgumentException if the plugin is not loaded or has no instance
-   */
   @Override
-  public void addToClasspath(final Object plugin, final Path path) {
+  public void addToClasspath(Object plugin, Path path) {
     checkNotNull(plugin, "instance");
     checkNotNull(path, "path");
     Optional<PluginContainer> optContainer = fromInstance(plugin);

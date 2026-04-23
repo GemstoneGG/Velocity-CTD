@@ -33,7 +33,7 @@ public class NativeSetupException extends RuntimeException {
    *
    * @param message the detail message
    */
-  public NativeSetupException(final String message) {
+  public NativeSetupException(String message) {
     super(message);
   }
 
@@ -43,7 +43,7 @@ public class NativeSetupException extends RuntimeException {
    * @param message the detail message
    * @param cause the cause of the exception
    */
-  public NativeSetupException(final String message, final Throwable cause) {
+  public NativeSetupException(String message, Throwable cause) {
     super(message, cause);
   }
 
@@ -52,7 +52,7 @@ public class NativeSetupException extends RuntimeException {
    *
    * @param cause the cause of the exception
    */
-  public NativeSetupException(final Throwable cause) {
+  public NativeSetupException(Throwable cause) {
     super(cause);
   }
 
@@ -64,8 +64,8 @@ public class NativeSetupException extends RuntimeException {
    * @param enableSuppression whether suppression is enabled
    * @param writableStackTrace whether the stack trace should be writable
    */
-  public NativeSetupException(final String message, final Throwable cause, final boolean enableSuppression,
-                              final boolean writableStackTrace) {
+  public NativeSetupException(String message, Throwable cause, boolean enableSuppression,
+                              boolean writableStackTrace) {
     super(message, cause, enableSuppression, writableStackTrace);
   }
 }

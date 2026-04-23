@@ -58,28 +58,28 @@ public class CommandGraphInjectorTests extends CommandTestSuite {
 
   @Test
   void testInjectInvocableCommand() {
-    final var meta = manager.metaBuilder("hello").build();
+    var meta = manager.metaBuilder("hello").build();
     manager.register(meta, (SimpleCommand) invocation -> fail());
     manager.getInjector().inject(dest, source);
 
     // Preserves alias and arguments node
-    final var expected = manager.getRoot();
+    var expected = manager.getRoot();
     assertEquals(expected, dest);
   }
 
   @Test
   void testFiltersImpermissibleAlias() {
-    final var callCount = new AtomicInteger();
+    var callCount = new AtomicInteger();
 
-    final var meta = manager.metaBuilder("hello").build();
+    var meta = manager.metaBuilder("hello").build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(final Invocation invocation) {
+      public void execute(Invocation invocation) {
         fail();
       }
 
       @Override
-      public boolean hasPermission(final Invocation invocation) {
+      public boolean hasPermission(Invocation invocation) {
         assertEquals(source, invocation.source());
         assertEquals("hello", invocation.alias());
         assertArrayEquals(new String[0], invocation.arguments());
@@ -95,38 +95,38 @@ public class CommandGraphInjectorTests extends CommandTestSuite {
 
   @Test
   void testInjectsHintsOfInvocableCommand() {
-    final var hint = LiteralArgumentBuilder
+    var hint = LiteralArgumentBuilder
         .<CommandSource>literal("hint")
         .build();
-    final var meta = manager.metaBuilder("hello")
+    var meta = manager.metaBuilder("hello")
         .hint(hint)
         .build();
     manager.register(meta, (SimpleCommand) invocation -> fail());
     manager.getInjector().inject(dest, source);
 
     // Preserves hint node
-    final var expected = manager.getRoot();
+    var expected = manager.getRoot();
     assertEquals(expected, dest);
   }
 
   @Test
   void testFiltersHintsOfImpermissibleAlias() {
-    final var callCount = new AtomicInteger();
+    var callCount = new AtomicInteger();
 
-    final var hint = LiteralArgumentBuilder
+    var hint = LiteralArgumentBuilder
         .<CommandSource>literal("hint")
         .build();
-    final var meta = manager.metaBuilder("hello")
+    var meta = manager.metaBuilder("hello")
         .hint(hint)
         .build();
     manager.register(meta, new RawCommand() {
       @Override
-      public void execute(final Invocation invocation) {
+      public void execute(Invocation invocation) {
         fail();
       }
 
       @Override
-      public boolean hasPermission(final Invocation invocation) {
+      public boolean hasPermission(Invocation invocation) {
         callCount.incrementAndGet();
         return false;
       }
@@ -139,7 +139,7 @@ public class CommandGraphInjectorTests extends CommandTestSuite {
 
   @Test
   void testInjectsBrigadierCommand() {
-    final LiteralCommandNode<CommandSource> node = LiteralArgumentBuilder
+    LiteralCommandNode<CommandSource> node = LiteralArgumentBuilder
         .<CommandSource>literal("hello")
         .then(literal("world"))
         .then(argument("count", integer()))
@@ -152,9 +152,9 @@ public class CommandGraphInjectorTests extends CommandTestSuite {
 
   @Test
   void testFiltersImpermissibleBrigadierCommandChildren() {
-    final var callCount = new AtomicInteger();
+    var callCount = new AtomicInteger();
 
-    final var registered = LiteralArgumentBuilder
+    var registered = LiteralArgumentBuilder
         .<CommandSource>literal("greet")
         .then(LiteralArgumentBuilder
             .<CommandSource>literal("somebody")
@@ -166,7 +166,7 @@ public class CommandGraphInjectorTests extends CommandTestSuite {
     manager.register(new BrigadierCommand(registered));
     manager.getInjector().inject(dest, source);
 
-    final var expected = LiteralArgumentBuilder
+    var expected = LiteralArgumentBuilder
         .literal("greet")
         .build();
     assertEquals(expected, dest.getChild("greet"));
@@ -175,7 +175,7 @@ public class CommandGraphInjectorTests extends CommandTestSuite {
 
   @Test
   void testInjectPreservesBrigadierCommandAliasRedirect() {
-    final var registered = LiteralArgumentBuilder
+    var registered = LiteralArgumentBuilder
         .<CommandSource>literal("origin")
         .redirect(LiteralArgumentBuilder
             .<CommandSource>literal("target")
@@ -184,7 +184,7 @@ public class CommandGraphInjectorTests extends CommandTestSuite {
     manager.register(new BrigadierCommand(registered));
     manager.getInjector().inject(dest, source);
 
-    final var expected = LiteralArgumentBuilder
+    var expected = LiteralArgumentBuilder
         .<CommandSource>literal("origin")
         .redirect(LiteralArgumentBuilder
             .<CommandSource>literal("target")
@@ -195,9 +195,9 @@ public class CommandGraphInjectorTests extends CommandTestSuite {
 
   @Test
   void testFiltersImpermissibleBrigadierCommandRedirects() {
-    final var callCount = new AtomicInteger();
+    var callCount = new AtomicInteger();
 
-    final var registered = LiteralArgumentBuilder
+    var registered = LiteralArgumentBuilder
         .<CommandSource>literal("hello")
         .then(LiteralArgumentBuilder
             .<CommandSource>literal("origin")
@@ -214,7 +214,7 @@ public class CommandGraphInjectorTests extends CommandTestSuite {
     manager.register(new BrigadierCommand(registered));
     manager.getInjector().inject(dest, source);
 
-    final var expected = LiteralArgumentBuilder
+    var expected = LiteralArgumentBuilder
         .<CommandSource>literal("hello")
         .then(literal("origin"))
         .build();
@@ -224,13 +224,13 @@ public class CommandGraphInjectorTests extends CommandTestSuite {
 
   @Test
   void testInjectOverridesAliasInDestination() {
-    final var registered = LiteralArgumentBuilder
+    var registered = LiteralArgumentBuilder
         .<CommandSource>literal("foo")
         .then(literal("bar"))
         .build();
     manager.register(new BrigadierCommand(registered));
 
-    final var original = LiteralArgumentBuilder
+    var original = LiteralArgumentBuilder
         .<CommandSource>literal("foo")
         .then(literal("baz"))
         .build();

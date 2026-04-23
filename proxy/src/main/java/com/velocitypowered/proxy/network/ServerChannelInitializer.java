@@ -26,8 +26,10 @@ import static com.velocitypowered.proxy.network.Connections.MINECRAFT_ENCODER;
 import static com.velocitypowered.proxy.network.Connections.READ_TIMEOUT;
 
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.client.HandshakeSessionHandler;
+import com.velocitypowered.proxy.network.limiter.SimpleBytesPerSecondLimiter;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.LegacyPingDecoder;
@@ -47,42 +49,14 @@ import java.util.concurrent.TimeUnit;
  */
 public class ServerChannelInitializer extends ChannelInitializer<Channel> {
 
-  /**
-   * The Velocity server instance used to configure this channel.
-   */
   private final VelocityServer server;
 
-  /**
-   * Constructs a new {@link ServerChannelInitializer}.
-   *
-   * @param server the Velocity server instance
-   */
-  public ServerChannelInitializer(final VelocityServer server) {
+  public ServerChannelInitializer(VelocityServer server) {
     this.server = server;
   }
 
-  /**
-   * Initializes the Netty pipeline for a new client channel.
-   *
-   * <p>This configures the following handlers in order:</p>
-   * <ul>
-   *   <li>{@code LEGACY_PING_DECODER} – handles legacy 1.6 ping requests</li>
-   *   <li>{@code FRAME_DECODER} – decodes VarInt length-prefixed packets from the client</li>
-   *   <li>{@code READ_TIMEOUT} – disconnects idle clients after the configured timeout</li>
-   *   <li>{@code LEGACY_PING_ENCODER} – encodes legacy ping responses</li>
-   *   <li>{@code FRAME_ENCODER} – encodes outgoing packets with VarInt length prefix</li>
-   *   <li>{@code MINECRAFT_DECODER} – decodes Minecraft protocol packets (serverbound)</li>
-   *   <li>{@code MINECRAFT_ENCODER} – encodes Minecraft protocol packets (clientbound)</li>
-   *   <li>{@code HANDLER} – wraps the connection in a {@link MinecraftConnection}</li>
-   * </ul>
-   *
-   * <p>If PROXY protocol is enabled in configuration, a {@link HAProxyMessageDecoder} is added
-   * at the beginning of the pipeline to extract the real client IP address.</p>
-   *
-   * @param ch the Netty channel to initialize
-   */
   @Override
-  protected void initChannel(final Channel ch) {
+  protected void initChannel(Channel ch) {
     ch.pipeline()
         .addLast(LEGACY_PING_DECODER, new LegacyPingDecoder())
         .addLast(FRAME_DECODER, new MinecraftVarintFrameDecoder(ProtocolUtils.Direction.SERVERBOUND))
@@ -92,10 +66,22 @@ public class ServerChannelInitializer extends ChannelInitializer<Channel> {
         .addLast(MINECRAFT_DECODER, new MinecraftDecoder(ProtocolUtils.Direction.SERVERBOUND))
         .addLast(MINECRAFT_ENCODER, new MinecraftEncoder(ProtocolUtils.Direction.CLIENTBOUND));
 
-    final MinecraftConnection connection = new MinecraftConnection(ch, this.server);
-    connection.setActiveSessionHandler(StateRegistry.HANDSHAKE, new HandshakeSessionHandler(connection, this.server));
+    MinecraftConnection connection = new MinecraftConnection(ch, this.server);
+    connection.setActiveSessionHandler(StateRegistry.HANDSHAKE,
+        new HandshakeSessionHandler(connection, this.server));
     ch.pipeline().addLast(Connections.HANDLER, connection);
 
+    VelocityConfiguration.PacketLimiterConfig packetLimiterConfig =
+        server.getConfiguration().getPacketLimiterConfig();
+    int configuredInterval = packetLimiterConfig.interval();
+    int configuredPacketsPerSecond = packetLimiterConfig.pps();
+    int configuredBytes = packetLimiterConfig.bytes();
+
+    if (configuredInterval > 0 && (configuredBytes > 0 ||  configuredPacketsPerSecond > 0)) {
+      ch.pipeline().get(MinecraftVarintFrameDecoder.class).setPacketLimiter(
+          new SimpleBytesPerSecondLimiter(configuredPacketsPerSecond, configuredBytes, configuredInterval)
+      );
+    }
     if (this.server.getConfiguration().isProxyProtocol()) {
       ch.pipeline().addFirst(new HAProxyMessageDecoder());
     }

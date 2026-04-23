@@ -50,7 +50,7 @@ public final class LibdeflateVelocityCompressor implements VelocityCompressor {
    */
   private boolean disposed = false;
 
-  private LibdeflateVelocityCompressor(final int level) {
+  private LibdeflateVelocityCompressor(int level) {
     int correctedLevel = level == -1 ? 6 : level;
     if (correctedLevel > 12 || correctedLevel < 1) {
       throw new IllegalArgumentException("Invalid compression level " + level);
@@ -61,7 +61,7 @@ public final class LibdeflateVelocityCompressor implements VelocityCompressor {
   }
 
   @Override
-  public void inflate(final ByteBuf source, final ByteBuf destination, final int uncompressedSize)
+  public void inflate(ByteBuf source, ByteBuf destination, int uncompressedSize)
       throws DataFormatException {
     ensureNotDisposed();
 
@@ -79,7 +79,7 @@ public final class LibdeflateVelocityCompressor implements VelocityCompressor {
   }
 
   @Override
-  public void deflate(final ByteBuf source, final ByteBuf destination) throws DataFormatException {
+  public void deflate(ByteBuf source, ByteBuf destination) throws DataFormatException {
     ensureNotDisposed();
 
     do {

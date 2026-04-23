@@ -32,35 +32,16 @@ import java.util.concurrent.CompletableFuture;
  */
 public final class BundleDelimiterHandler {
 
-  /**
-   * The player whose connection this handler is managing.
-   */
   private final ConnectedPlayer player;
 
-  /**
-   * Whether the player is currently in a bundle session.
-   */
   private boolean inBundleSession = false;
 
-  /**
-   * A future that completes once the current bundle session ends.
-   */
   private CompletableFuture<Void> finishedBundleSessionFuture;
 
-  /**
-   * Constructs a new bundle delimiter handler.
-   *
-   * @param player the player connection to use
-   */
-  public BundleDelimiterHandler(final ConnectedPlayer player) {
+  public BundleDelimiterHandler(ConnectedPlayer player) {
     this.player = player;
   }
 
-  /**
-   * Returns whether the player is currently in a bundle session.
-   *
-   * @return {@code true} if in a bundle session, {@code false} otherwise
-   */
   public boolean isInBundleSession() {
     return this.inBundleSession;
   }
@@ -86,7 +67,7 @@ public final class BundleDelimiterHandler {
    * @param sendPackets the logic that sends packets to the player
    * @return a future that completes when the packets have been sent
    */
-  public CompletableFuture<Void> bundlePackets(final Runnable sendPackets) {
+  public CompletableFuture<Void> bundlePackets(Runnable sendPackets) {
     VelocityServerConnection connectedServer = player.getConnectedServer();
     MinecraftConnection connection = connectedServer == null ? null : connectedServer.getConnection();
     if (connection == null) {
@@ -115,7 +96,7 @@ public final class BundleDelimiterHandler {
     return future;
   }
 
-  private void sendPackets(final Runnable sendPackets) {
+  private void sendPackets(Runnable sendPackets) {
     player.getConnection().write(BundleDelimiterPacket.INSTANCE);
     try {
       sendPackets.run();

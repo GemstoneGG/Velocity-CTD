@@ -35,21 +35,21 @@ import org.apache.logging.log4j.Logger;
 public final class MiniMessageTranslationsMigration implements ConfigurationMigration {
 
   @Override
-  public boolean shouldMigrate(final CommentedFileConfig config) {
+  public boolean shouldMigrate(CommentedFileConfig config) {
     // Checking whether translations should be migrated would be just as costly as attempting to migrate them directly.
     return true;
   }
 
   @Override
-  public void migrate(final CommentedFileConfig config, final Logger logger) throws IOException {
-    final Path langFolder = Path.of("lang");
+  public void migrate(CommentedFileConfig config, Logger logger) throws IOException {
+    Path langFolder = Path.of("lang");
     if (Files.notExists(langFolder)) {
       return;
     }
 
-    final Pattern oldPlaceholderPattern = Pattern.compile("\\{(\\d+)}");
+    Pattern oldPlaceholderPattern = Pattern.compile("\\{(\\d+)}");
     try (DirectoryStream<Path> stream = Files.newDirectoryStream(langFolder, Files::isRegularFile)) {
-      for (final Path path : stream) {
+      for (Path path : stream) {
         String content = Files.readString(path, StandardCharsets.UTF_8);
         if (content.indexOf('{') == -1) {
           continue;

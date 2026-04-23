@@ -30,12 +30,10 @@ import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.permission.PermissionFunction;
 import com.velocitypowered.api.proxy.crypto.IdentifiedKey;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
+import com.velocitypowered.api.proxy.server.PlayerInfoForwarding;
 import com.velocitypowered.api.util.GameProfile;
-import com.velocitypowered.api.util.ServerLink;
 import com.velocitypowered.api.util.UuidUtils;
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.config.PlayerInfoForwarding;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
@@ -45,9 +43,8 @@ import com.velocitypowered.proxy.protocol.packet.LoginAcknowledgedPacket;
 import com.velocitypowered.proxy.protocol.packet.ServerLoginSuccessPacket;
 import com.velocitypowered.proxy.protocol.packet.ServerboundCookieResponsePacket;
 import com.velocitypowered.proxy.protocol.packet.SetCompressionPacket;
-import com.velocitypowered.proxy.redis.multiproxy.RedisPlayerSetTransferringRequest;
+import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import io.netty.buffer.ByteBuf;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -66,65 +63,41 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
  */
 public class AuthSessionHandler implements MinecraftSessionHandler {
 
-  /**
-   * Logger for textual log messages.
-   */
-  private static final Logger logger = LogManager.getLogger(AuthSessionHandler.class, new ParameterizedMessageFactory());
+  private static final Logger LOGGER = LogManager.getLogger(AuthSessionHandler.class, new ParameterizedMessageFactory());
 
   /**
    * Logger for Adventure components.
    */
-  private static final ComponentLogger componentLogger = ComponentLogger.logger(AuthSessionHandler.class);
+  private static final ComponentLogger COMPONENT_LOGGER = ComponentLogger.logger(AuthSessionHandler.class);
 
-  /**
-   * The proxy server instance.
-   */
   private final VelocityServer server;
 
-  /**
-   * The Minecraft connection associated with this session.
-   */
   private final MinecraftConnection mcConnection;
 
-  /**
-   * The inbound login connection.
-   */
   private final LoginInboundConnection inbound;
 
-  /**
-   * The game profile of the connecting player.
-   */
   private GameProfile profile;
 
-  /**
-   * The connected player, once authentication has completed.
-   */
   private @MonotonicNonNull ConnectedPlayer connectedPlayer;
 
-  /**
-   * Whether the proxy is operating in online mode for this session.
-   */
   private final boolean onlineMode;
 
-  /**
-   * The current login state of this connection.
-   * Was implemented in Minecraft 1.20.2.
-   */
   private State loginState = State.START;
 
-  /**
-   * The server ID hash sent to Mojang for authentication, or {@code null} if offline-mode.
-   */
   private final String serverIdHash;
 
   /**
    * The minimum Minecraft version allowed to connect.
-   * Was implemented in Minecraft 1.20.2.
    */
   private final String minimumVersion;
 
-  AuthSessionHandler(final VelocityServer server, final LoginInboundConnection inbound,
-                     final GameProfile profile, final boolean onlineMode, final String serverIdHash) {
+  /**
+   * The maximum Minecraft version allowed to connect.
+   */
+  private final String maximumVersion;
+
+  AuthSessionHandler(VelocityServer server, LoginInboundConnection inbound,
+                     GameProfile profile, boolean onlineMode, String serverIdHash) {
     this.server = Preconditions.checkNotNull(server, "server");
     this.inbound = Preconditions.checkNotNull(inbound, "inbound");
     this.profile = Preconditions.checkNotNull(profile, "profile");
@@ -132,21 +105,16 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
     this.mcConnection = inbound.delegatedConnection();
     this.serverIdHash = serverIdHash;
     this.minimumVersion = server.getConfiguration().getMinimumVersion();
+    this.maximumVersion = server.getConfiguration().getMaximumVersion()
+        .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
   }
 
-  /**
-   * Called when this session handler is activated.
-   *
-   * <p>Performs version checks, fires a {@link GameProfileRequestEvent}, and initializes the {@link ConnectedPlayer}.
-   * If allowed, transitions into permission setup and then continues with login protocol completion.
-   * Players using older protocol versions or failing validation will be disconnected.</p>
-   */
   @Override
   public void activated() {
     // Some connection types may need to alter the game profile.
     profile = mcConnection.getType().addGameProfileTokensIfRequired(profile, server.getConfiguration().getPlayerInfoForwardingMode());
     GameProfileRequestEvent profileRequestEvent = new GameProfileRequestEvent(inbound, profile, onlineMode);
-    final GameProfile finalProfile = profile;
+    GameProfile finalProfile = profile;
 
     // Make sure the player is on the minimum version set in configuration or higher
     if (!versionCheck(mcConnection)) {
@@ -154,15 +122,15 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         return;
       }
 
-      final String discMessage = String.format("[initial connection] %s (%s) has disconnected: ",
+      String discMessage = String.format("[initial connection] %s (%s) has disconnected: ",
           finalProfile.getName(),
           mcConnection.getRemoteAddress().toString());
 
-      componentLogger.info(Component.text(discMessage).append(
+      COMPONENT_LOGGER.info(Component.text(discMessage).append(
           Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
               .arguments(
                   Argument.string("min", minimumVersion),
-                  Argument.string("max", ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion()))));
+                  Argument.string("max", maximumVersion))));
       return;
     }
 
@@ -185,17 +153,17 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
       }
 
       if (server.getConfiguration().isLogPlayerConnections()) {
-        logger.info("{} has connected", player);
+        LOGGER.info("{} has connected", player);
       }
 
       return server.getEventManager()
           .fire(new PermissionsSetupEvent(player, ConnectedPlayer.DEFAULT_PERMISSIONS))
           .thenAcceptAsync(event -> {
             if (!mcConnection.isClosed()) {
-              // wait for permissions to load, then set the player permission function
-              final PermissionFunction function = event.createFunction(player);
+              // wait for permissions to load, then set the players permission function
+              PermissionFunction function = event.createFunction(player);
               if (function == null) {
-                logger.error("A plugin permission provider {} provided an invalid permission "
+                LOGGER.error("A plugin permission provider {} provided an invalid permission "
                         + "function for player {}. This is a bug in the plugin, not in "
                         + "Velocity. Falling back to the default permission function.",
                     event.getProvider().getClass().getName(), player.getUsername());
@@ -206,31 +174,30 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
             }
           }, mcConnection.eventLoop());
     }, mcConnection.eventLoop()).exceptionally((ex) -> {
-      logger.error("Exception during connection of {}", finalProfile, ex);
+      LOGGER.error("Exception during connection of {}", finalProfile, ex);
       return null;
     });
   }
 
-  private boolean versionCheck(final MinecraftConnection connection) {
-    final ProtocolVersion minimumProtocolVersion = ProtocolVersion.getVersionByName(minimumVersion);
-    final ProtocolVersion maximumProtocolVersion = ProtocolVersion.MAXIMUM_VERSION;
-    final String clientProtocolVersion = connection.getProtocolVersion().getVersionIntroducedIn();
+  private boolean versionCheck(MinecraftConnection connection) {
+    ProtocolVersion minimumProtocolVersion = ProtocolVersion.getVersionByName(minimumVersion);
+    ProtocolVersion maximumProtocolVersion = ProtocolVersion.getVersionByName(maximumVersion);
+    String clientProtocolVersion = connection.getProtocolVersion().getVersionIntroducedIn();
 
-    // Compare the client's protocol version with the minimum required version
+    // Compare the client's protocol version with the minimum and maximum required versions
     if (ProtocolVersion.getVersionByName(clientProtocolVersion).lessThan(minimumProtocolVersion)
         || ProtocolVersion.getVersionByName(clientProtocolVersion).greaterThan(maximumProtocolVersion)) {
-      // Disconnect the player with an error message if their client version is too low
       this.inbound.disconnect(Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
           .arguments(
               Argument.string("min", minimumVersion),
-              Argument.string("max", ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
+              Argument.string("max", maximumVersion)));
       return false;
     }
 
     return true;
   }
 
-  private void startLoginCompletion(final ConnectedPlayer player) {
+  private void startLoginCompletion(ConnectedPlayer player) {
     int threshold = server.getConfiguration().getCompressionThreshold();
     if (threshold >= 0 && mcConnection.getProtocolVersion().noLessThan(MINECRAFT_1_8)) {
       mcConnection.write(new SetCompressionPacket(threshold));
@@ -244,7 +211,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
     }
 
     if (player.getIdentifiedKey() != null) {
-      final IdentifiedKey playerKey = player.getIdentifiedKey();
+      IdentifiedKey playerKey = player.getIdentifiedKey();
       if (playerKey.getSignatureHolder() == null) {
         if (playerKey instanceof IdentifiedKeyImpl unlinkedKey) {
           // Failsafe
@@ -254,15 +221,15 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
                   Component.translatable("multiplayer.disconnect.invalid_public_key"));
               return;
             } else {
-              logger.warn("Key for player {} could not be verified!", player.getUsername());
+              LOGGER.warn("Key for player {} could not be verified!", player.getUsername());
             }
           }
         } else {
-          logger.warn("A custom key type has been set for player {}", player.getUsername());
+          LOGGER.warn("A custom key type has been set for player {}", player.getUsername());
         }
       } else {
         if (!Objects.equals(playerKey.getSignatureHolder(), playerUniqueId)) {
-          logger.warn("UUID for Player {} mismatches! "
+          LOGGER.warn("UUID for Player {} mismatches! "
               + "Chat/Commands signatures will not work correctly for this player!",
                   player.getUsername());
         }
@@ -272,34 +239,17 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
     completeLoginProtocolPhaseAndInitialize(player);
   }
 
-  /**
-   * Handles a {@link LoginAcknowledgedPacket} from the client confirming receipt of the login success.
-   *
-   * <p>If the state is valid, switches the session to {@link ClientConfigSessionHandler} (1.20.2+) or proceeds
-   * to post-login events and connects the player to their initial server (older versions).</p>
-   *
-   * @param packet the login acknowledgment packet
-   * @return {@code true} if handled successfully
-   */
   @Override
-  public boolean handle(final LoginAcknowledgedPacket packet) {
+  public boolean handle(LoginAcknowledgedPacket packet) {
     if (loginState != State.SUCCESS_SENT) {
       inbound.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_data"));
     } else {
       loginState = State.ACKNOWLEDGED;
       mcConnection.setActiveSessionHandler(StateRegistry.CONFIG, new ClientConfigSessionHandler(server, connectedPlayer));
 
-      if (!this.server.getConfiguration().getServerLinks().isEmpty()) {
-        if (connectedPlayer.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_21)) {
-          String serverName = connectedPlayer.getNextServerToTry().map(s -> s.getServerInfo().getName()).orElse("");
-          List<ServerLink> scopedLinks = server.getConfiguration().getServerLinksFor(serverName);
-          connectedPlayer.setServerLinks(scopedLinks);
-        }
-      }
-
       server.getEventManager().fire(new PostLoginEvent(connectedPlayer)).thenCompose(ignored -> connectToInitialServer(connectedPlayer))
           .exceptionally((ex) -> {
-            logger.error("Exception while connecting {} to initial server", connectedPlayer, ex);
+            LOGGER.error("Exception while connecting {} to initial server", connectedPlayer, ex);
             return null;
           });
     }
@@ -307,18 +257,8 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  /**
-   * Handles a {@link ServerboundCookieResponsePacket} received from the client during login.
-   *
-   * <p>Proxy plugins are not allowed to process cookie responses in this phase,
-   * so an exception is thrown if any plugin previously initiated a cookie request.</p>
-   *
-   * @param packet the cookie response packet
-   * @return {@code true} to continue handling
-   * @throws IllegalStateException if a response is received in the login phase
-   */
   @Override
-  public boolean handle(final ServerboundCookieResponsePacket packet) {
+  public boolean handle(ServerboundCookieResponsePacket packet) {
     server.getEventManager()
         .fire(new CookieReceiveEvent(connectedPlayer, packet.getKey(), packet.getPayload()))
         .thenAcceptAsync(event -> {
@@ -336,7 +276,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  private void completeLoginProtocolPhaseAndInitialize(final ConnectedPlayer player) {
+  private void completeLoginProtocolPhaseAndInitialize(ConnectedPlayer player) {
     mcConnection.setAssociation(player);
 
     server.getEventManager().fire(new LoginEvent(player, serverIdHash)).thenAcceptAsync(event -> {
@@ -356,12 +296,11 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
           return;
         }
 
-        if (this.server.getMultiProxyHandler().isRedisEnabled()) {
-          boolean success = this.server.getMultiProxyHandler().onPlayerJoin(player);
-          if (!success) {
-            return;
-          }
+        if (!this.server.getClusterPlayerService().onPlayerConnect(player)) {
+          return;
         }
+
+        player.fullyConnected();
 
         ServerLoginSuccessPacket success = new ServerLoginSuccessPacket();
         success.setUsername(player.getUsername());
@@ -375,25 +314,26 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
           mcConnection.setActiveSessionHandler(StateRegistry.PLAY, new InitialConnectSessionHandler(player, server));
           server.getEventManager().fire(new PostLoginEvent(player)).thenCompose((ignored) ->
               connectToInitialServer(player)).exceptionally((ex) -> {
-                logger.error("Exception while connecting {} to initial server", player, ex);
+                LOGGER.error("Exception while connecting {} to initial server", player, ex);
                 return null;
               });
         }
       }
     }, mcConnection.eventLoop()).exceptionally((ex) -> {
-      logger.error("Exception while completing login initialisation phase for {}", player, ex);
+      LOGGER.error("Exception while completing login initialisation phase for {}", player, ex);
       return null;
     });
   }
 
-  private CompletableFuture<Void> connectToInitialServer(final ConnectedPlayer player) {
-    Optional<RegisteredServer> initialFromConfig = player.getNextServerToTry();
+  private CompletableFuture<Void> connectToInitialServer(ConnectedPlayer player) {
+    Optional<VelocityRegisteredServer> initialFromConfig = player.currentServerRetrySession().getNextServerToTry();
     PlayerChooseInitialServerEvent event =
         new PlayerChooseInitialServerEvent(player, initialFromConfig.orElse(null));
 
     return server.getEventManager().fire(event).thenRunAsync(() -> {
-      Optional<RegisteredServer> toTry = event.getInitialServer();
-      if (toTry.isEmpty()) {
+      // cast required (api event class)
+      VelocityRegisteredServer toTry = (VelocityRegisteredServer) event.getInitialServer().orElse(null);
+      if (toTry == null) {
         if (event.getReason().isPresent()) {
           player.disconnect0(event.getReason().get(), true);
         } else {
@@ -403,29 +343,15 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
 
         return;
       }
-      player.createConnectionRequest(toTry.get()).fireAndForget();
-      this.server.getRedisManager().send(new RedisPlayerSetTransferringRequest(player.getUniqueId(), false, null));
+      player.createConnectionRequest(toTry).fireAndForget();
     }, mcConnection.eventLoop());
   }
 
-  /**
-   * Handles an unknown or unexpected packet during the login phase.
-   *
-   * <p>The connection is immediately closed as unexpected input indicates a protocol violation.</p>
-   *
-   * @param buf the raw packet data
-   */
   @Override
-  public void handleUnknown(final ByteBuf buf) {
+  public void handleUnknown(ByteBuf buf) {
     mcConnection.close(true);
   }
 
-  /**
-   * Called when the client disconnects during the login process.
-   *
-   * <p>Cleans up the {@link ConnectedPlayer} if present and also invokes login-level cleanup
-   * routines on the inbound connection.</p>
-   */
   @Override
   public void disconnected() {
     if (connectedPlayer != null) {
@@ -436,20 +362,8 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
   }
 
   enum State {
-
-    /**
-     * The initial state before a successful login has been sent.
-     */
     START,
-
-    /**
-     * The server has sent the {@link ServerLoginSuccessPacket}, but the client has not acknowledged it yet.
-     */
     SUCCESS_SENT,
-
-    /**
-     * The client has acknowledged the login, and the session is transitioning to the play or config state.
-     */
     ACKNOWLEDGED
   }
 }

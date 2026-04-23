@@ -45,7 +45,7 @@ public final class ProxyPingEvent implements ResultedEvent<ResultedEvent.Generic
    * @param connection the incoming connection requesting server info
    * @param ping the server ping response to send
    */
-  public ProxyPingEvent(final InboundConnection connection, final ServerPing ping) {
+  public ProxyPingEvent(InboundConnection connection, ServerPing ping) {
     this.connection = Preconditions.checkNotNull(connection, "connection");
     this.ping = Preconditions.checkNotNull(ping, "ping");
   }
@@ -73,7 +73,7 @@ public final class ProxyPingEvent implements ResultedEvent<ResultedEvent.Generic
    *
    * @param ping sets the ServerPing to send
    */
-  public void setPing(final @NotNull ServerPing ping) {
+  public void setPing(@NotNull ServerPing ping) {
     this.ping = Preconditions.checkNotNull(ping, "ping");
   }
 
@@ -100,7 +100,7 @@ public final class ProxyPingEvent implements ResultedEvent<ResultedEvent.Generic
    *     the cancellation of this event will have no effect.
    */
   @Override
-  public void setResult(final @NotNull GenericResult result) {
+  public void setResult(@NotNull GenericResult result) {
     this.result = Preconditions.checkNotNull(result, "result");
   }
 

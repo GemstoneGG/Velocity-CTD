@@ -23,42 +23,37 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.adventure.ClickCallbackManager;
 import java.util.UUID;
 
-/**
- * Callback Command.
- */
-public final class CallbackCommand implements Command<CommandSource> {
+public class CallbackCommand implements BuiltinCommandDefinition {
 
-  /**
-   * Creates a new {@link BrigadierCommand} instance with a predefined command structure.
-   *
-   * <p>This method constructs a {@link LiteralCommandNode} with the command name
-   * {@code "velocity:callback"} and a required argument {@code "id"} of type {@link StringArgumentType#word()}.
-   * The command is executed by the {@link CallbackCommand} when invoked.</p>
-   *
-   * <p>The method returns a new {@link BrigadierCommand} that wraps the constructed command node.</p>
-   *
-   * @return a new {@link BrigadierCommand} instance with the defined command structure
-   */
-  public static BrigadierCommand create() {
-    final LiteralCommandNode<CommandSource> node = BrigadierCommand
-        .literalArgumentBuilder("velocity:callback")
-        .then(BrigadierCommand.requiredArgumentBuilder("id", StringArgumentType.word())
-                .executes(new CallbackCommand()))
-        .build();
+  public CallbackCommand(VelocityServer server) {
+  }
+
+  @Override
+  public String label() {
+    return ClickCallbackManager.COMMAND_LABEL;
+  }
+
+  @Override
+  public BrigadierCommand build() {
+    LiteralCommandNode<CommandSource> node = BrigadierCommand
+            .literalArgumentBuilder(label())
+            .then(BrigadierCommand.requiredArgumentBuilder("id", StringArgumentType.word())
+                    .executes(this::execute))
+            .build();
 
     return new BrigadierCommand(node);
   }
 
-  @Override
-  public int run(final CommandContext<CommandSource> context) {
-    final String providedId = StringArgumentType.getString(context, "id");
-    final UUID id;
+  private int execute(CommandContext<CommandSource> context) {
+    String providedId = StringArgumentType.getString(context, "id");
+    UUID id;
     try {
       id = UUID.fromString(providedId);
-    } catch (final IllegalArgumentException ignored) {
+    } catch (IllegalArgumentException ignored) {
       return Command.SINGLE_SUCCESS;
     }
 

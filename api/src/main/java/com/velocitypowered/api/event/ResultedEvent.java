@@ -68,7 +68,7 @@ public interface ResultedEvent<R extends ResultedEvent.Result> {
      */
     private final boolean status;
 
-    private GenericResult(final boolean b) {
+    private GenericResult(boolean b) {
       this.status = b;
     }
 
@@ -121,7 +121,7 @@ public interface ResultedEvent<R extends ResultedEvent.Result> {
      */
     private final @Nullable Component reason;
 
-    private ComponentResult(final boolean status, final @Nullable Component reason) {
+    private ComponentResult(boolean status, @Nullable Component reason) {
       this.status = status;
       this.reason = reason;
     }
@@ -169,7 +169,7 @@ public interface ResultedEvent<R extends ResultedEvent.Result> {
      * @return a denied {@link ComponentResult}
      * @throws NullPointerException if the reason is null
      */
-    public static ComponentResult denied(final Component reason) {
+    public static ComponentResult denied(Component reason) {
       Preconditions.checkNotNull(reason, "reason");
       return new ComponentResult(false, reason);
     }

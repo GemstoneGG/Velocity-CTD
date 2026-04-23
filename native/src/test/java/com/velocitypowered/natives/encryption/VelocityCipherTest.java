@@ -73,7 +73,7 @@ class VelocityCipherTest {
     check(JavaVelocityCipher.FACTORY, Unpooled::buffer);
   }
 
-  private void check(final VelocityCipherFactory factory, final Supplier<ByteBuf> bufSupplier)
+  private void check(VelocityCipherFactory factory, Supplier<ByteBuf> bufSupplier)
       throws GeneralSecurityException {
     // Generate a random 16-byte key.
     VelocityCipher decrypt = factory.forDecryption(new SecretKeySpec(AES_KEY, "AES"));

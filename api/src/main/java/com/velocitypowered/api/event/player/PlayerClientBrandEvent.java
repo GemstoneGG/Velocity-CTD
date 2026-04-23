@@ -32,7 +32,7 @@ public final class PlayerClientBrandEvent {
    * @param player the {@link Player} of the "sent" client brand
    * @param brand the "sent" client brand
    */
-  public PlayerClientBrandEvent(final Player player, final String brand) {
+  public PlayerClientBrandEvent(Player player, String brand) {
     this.player = Preconditions.checkNotNull(player);
     this.brand = Preconditions.checkNotNull(brand);
   }

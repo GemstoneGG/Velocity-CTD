@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.jetbrains.annotations.NotNull;
 
@@ -139,7 +140,7 @@ public final class ComponentUtils {
    * @param component the component to serialize
    * @return the serialized component
    */
-  public static @NotNull String serializeComponent(final Component component) {
+  public static @NotNull String serializeComponent(Component component) {
     return MINI.serialize(component);
   }
 
@@ -149,7 +150,7 @@ public final class ComponentUtils {
    * @param input the string to parse
    * @return the parsed component
    */
-  public static @NotNull Component parseComponent(final String input) {
+  public static @NotNull Component parseComponent(String input) {
     return MINI.deserialize(colorifyLegacy(input));
   }
 
@@ -159,7 +160,7 @@ public final class ComponentUtils {
    * @param input the string to colorify into a component
    * @return the colorized component
    */
-  public static @NotNull Component colorify(final String input) {
+  public static @NotNull Component colorify(String input) {
     if (input == null) {
       return Component.empty();
     }
@@ -167,7 +168,7 @@ public final class ComponentUtils {
     String parsedStr = input;
 
     // Parse the hex patterns
-    for (final Pattern pattern : ODD_HEX_PATTERNS) {
+    for (Pattern pattern : ODD_HEX_PATTERNS) {
       parsedStr = colorMatcher(parsedStr, pattern, UNBOXED_PATTERNS.contains(pattern));
     }
 
@@ -180,7 +181,7 @@ public final class ComponentUtils {
    * @param input the string to colorify into a component
    * @return the colorized component
    */
-  public static String colorifyLegacy(final String input) {
+  public static String colorifyLegacy(String input) {
     String parsedStr = input;
 
     for (Map.Entry<String, String> entry : COLOR_MAP.entrySet()) {
@@ -204,19 +205,42 @@ public final class ComponentUtils {
     return input;
   }
 
-  private static @NotNull String colorMatcher(@NotNull String literal, final @NotNull Pattern pattern, final boolean unboxed) {
-    final Matcher matcher = pattern.matcher(literal);
+  /**
+   * Returns whether the component tree contains the provided string in any text node.
+   *
+   * @param component the component to inspect
+   * @param searchString the text to find
+   * @return {@code true} if found, {@code false} otherwise
+   */
+  public static boolean containsString(@NotNull Component component,
+                                       @NotNull String searchString) {
+    if (component instanceof TextComponent textComponent
+        && textComponent.content().contains(searchString)) {
+      return true;
+    }
+
+    for (Component child : component.children()) {
+      if (containsString(child, searchString)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private static @NotNull String colorMatcher(@NotNull String literal, @NotNull Pattern pattern, boolean unboxed) {
+    Matcher matcher = pattern.matcher(literal);
 
     while (matcher.find()) {
-      final String matched = matcher.group();
+      String matched = matcher.group();
       boolean requiresBoxing = false;
 
       if (unboxed) {
-        final int literalIndex = literal.indexOf(matched);
-        final int afterLiteralIndex = literalIndex + matched.length();
+        int literalIndex = literal.indexOf(matched);
+        int afterLiteralIndex = literalIndex + matched.length();
 
         if (literal.length() >= afterLiteralIndex) {
-          final char charAt = literal.charAt(afterLiteralIndex);
+          char charAt = literal.charAt(afterLiteralIndex);
 
           if (charAt != ':' && charAt != '>') {
             requiresBoxing = true;
@@ -224,12 +248,12 @@ public final class ComponentUtils {
         }
       }
 
-      final int index = matched.indexOf("#");
-      final String hexCode = matched.substring(index + 1, index + 7);
+      int index = matched.indexOf("#");
+      String hexCode = matched.substring(index + 1, index + 7);
 
       if (!requiresBoxing) {
-        final String start;
-        final String end = matched.substring(index + 7);
+        String start;
+        String end = matched.substring(index + 7);
         if (MOJANG_PATTERNS.contains(pattern)) {
           start = matched.substring(0, index).replace("&", "");
         } else {
@@ -250,7 +274,7 @@ public final class ComponentUtils {
    * @param hex the hex pattern to normalize
    * @return the normalized hex pattern
    */
-  private static @NotNull String normalizeHex(final @NotNull String hex) {
+  private static @NotNull String normalizeHex(@NotNull String hex) {
     if (hex.startsWith("<") || hex.startsWith("{")) {
       return hex.substring(1, hex.length() - 1);
     } else if (hex.startsWith("&")) {

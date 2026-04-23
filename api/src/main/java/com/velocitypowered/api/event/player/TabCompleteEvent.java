@@ -46,7 +46,7 @@ public class TabCompleteEvent {
    * @param partialMessage the partial message
    * @param suggestions the initial list of suggestions
    */
-  public TabCompleteEvent(final Player player, final String partialMessage, final List<String> suggestions) {
+  public TabCompleteEvent(Player player, String partialMessage, List<String> suggestions) {
     this.player = checkNotNull(player, "player");
     this.partialMessage = checkNotNull(partialMessage, "partialMessage");
     this.suggestions = new ArrayList<>(checkNotNull(suggestions, "suggestions"));

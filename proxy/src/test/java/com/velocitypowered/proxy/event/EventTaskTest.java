@@ -164,7 +164,7 @@ public class EventTaskTest {
     }
 
     @Override
-    public void resumeWithException(final Throwable exception) {
+    public void resumeWithException(Throwable exception) {
       if (!STATUS_UPDATER.compareAndSet(this, UNCOMPLETED, COMPLETED_WITH_EXCEPTION)) {
         throw new IllegalStateException("Continuation is already completed");
       }

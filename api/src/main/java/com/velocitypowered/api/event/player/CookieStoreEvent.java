@@ -50,7 +50,7 @@ public final class CookieStoreEvent implements ResultedEvent<CookieStoreEvent.Fo
    * @param key the identifier of the cookie
    * @param data the data of the cookie
    */
-  public CookieStoreEvent(final Player player, final Key key, final byte[] data) {
+  public CookieStoreEvent(Player player, Key key, byte[] data) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.originalKey = Preconditions.checkNotNull(key, "key");
     this.originalData = Preconditions.checkNotNull(data, "data");
@@ -63,7 +63,7 @@ public final class CookieStoreEvent implements ResultedEvent<CookieStoreEvent.Fo
   }
 
   @Override
-  public void setResult(final ForwardResult result) {
+  public void setResult(ForwardResult result) {
     this.result = Preconditions.checkNotNull(result, "result");
   }
 
@@ -133,7 +133,7 @@ public final class CookieStoreEvent implements ResultedEvent<CookieStoreEvent.Fo
      */
     private final byte[] data;
 
-    private ForwardResult(final boolean status, final Key key, final byte[] data) {
+    private ForwardResult(boolean status, Key key, byte[] data) {
       this.status = status;
       this.key = key;
       this.data = data;
@@ -194,7 +194,7 @@ public final class CookieStoreEvent implements ResultedEvent<CookieStoreEvent.Fo
      * @param key the identifier to use instead
      * @return a result with a new key
      */
-    public static ForwardResult key(final Key key) {
+    public static ForwardResult key(Key key) {
       Preconditions.checkNotNull(key, "key");
       return new ForwardResult(true, key, null);
     }
@@ -206,7 +206,7 @@ public final class CookieStoreEvent implements ResultedEvent<CookieStoreEvent.Fo
      * @param data the data of the cookie to use instead
      * @return a result with new data
      */
-    public static ForwardResult data(final byte[] data) {
+    public static ForwardResult data(byte[] data) {
       Preconditions.checkNotNull(data, "data");
       return new ForwardResult(true, null, data);
     }

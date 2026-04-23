@@ -22,12 +22,6 @@ package com.velocitypowered.proxy.plugin.virtual;
  */
 public final class VelocityVirtualPlugin {
 
-  /**
-   * The singleton instance of the Velocity virtual plugin.
-   *
-   * <p>This instance is used to represent the core Velocity proxy in contexts where a plugin
-   * object is required.</p>
-   */
   @SuppressWarnings("InstantiationOfUtilityClass")
   public static final VelocityVirtualPlugin INSTANCE = new VelocityVirtualPlugin();
 

@@ -49,14 +49,6 @@ import java.util.HashMap;
 import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * The {@code ArgumentPropertyRegistry} is responsible for managing the registration and
- * retrieval of argument properties used in command parsing and execution.
- *
- * <p>This class functions as a registry, allowing different argument properties to be registered
- * and later retrieved or used when processing commands within the system. The properties
- * might be tied to argument types, validation rules, or transformations.</p>
- */
 @SuppressWarnings("unchecked")
 public final class ArgumentPropertyRegistry {
 
@@ -64,38 +56,25 @@ public final class ArgumentPropertyRegistry {
     throw new AssertionError();
   }
 
-  /**
-   * A map from {@link ArgumentIdentifier} to their corresponding
-   * {@link ArgumentPropertySerializer}. Used to look up how to (de)serialize
-   * an argument property by its identifier.
-   */
   private static final Map<ArgumentIdentifier, ArgumentPropertySerializer<?>> byIdentifier = new HashMap<>();
 
-  /**
-   * A map from Brigadier argument type classes to their associated
-   * {@link ArgumentPropertySerializer}. Enables serialization by runtime type.
-   */
   private static final Map<Class<? extends ArgumentType>, ArgumentPropertySerializer<?>> byClass = new HashMap<>();
 
-  /**
-   * A map from Brigadier argument type classes to their associated
-   * {@link ArgumentIdentifier}. Allows resolving identifier from argument instance.
-   */
   private static final Map<Class<? extends ArgumentType>, ArgumentIdentifier> classToId = new HashMap<>();
 
-  private static <T extends ArgumentType<?>> void register(final ArgumentIdentifier identifier,
-                                                           final Class<T> klazz, final ArgumentPropertySerializer<T> serializer) {
+  private static <T extends ArgumentType<?>> void register(ArgumentIdentifier identifier,
+                                                           Class<T> klazz, ArgumentPropertySerializer<T> serializer) {
     byIdentifier.put(identifier, serializer);
     byClass.put(klazz, serializer);
     classToId.put(klazz, identifier);
   }
 
-  private static void empty(final ArgumentIdentifier identifier) {
+  private static void empty(ArgumentIdentifier identifier) {
     empty(identifier, EMPTY);
   }
 
-  private static <T> void empty(final ArgumentIdentifier identifier,
-                                final ArgumentPropertySerializer<T> serializer) {
+  private static <T> void empty(ArgumentIdentifier identifier,
+                                ArgumentPropertySerializer<T> serializer) {
     byIdentifier.put(identifier, serializer);
   }
 
@@ -106,7 +85,7 @@ public final class ArgumentPropertyRegistry {
    * @param protocolVersion the protocol version used to resolve serializer compatibility
    * @return the deserialized {@link ArgumentType}
    */
-  public static ArgumentType<?> deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
+  public static ArgumentType<?> deserialize(ByteBuf buf, ProtocolVersion protocolVersion) {
     ArgumentIdentifier identifier = readIdentifier(buf, protocolVersion);
 
     ArgumentPropertySerializer<?> serializer = byIdentifier.get(identifier);
@@ -127,8 +106,8 @@ public final class ArgumentPropertyRegistry {
    * @param protocolVersion the protocol version used for compatibility
    * @param type the type to serialize
    */
-  public static void serialize(final ByteBuf buf, final ArgumentType<?> type,
-                               final ProtocolVersion protocolVersion) {
+  public static void serialize(ByteBuf buf, ArgumentType<?> type,
+                               ProtocolVersion protocolVersion) {
     if (type instanceof PassthroughProperty) {
       PassthroughProperty property = (PassthroughProperty) type;
       writeIdentifier(buf, property.getIdentifier(), protocolVersion);
@@ -157,8 +136,8 @@ public final class ArgumentPropertyRegistry {
    * @param identifier      the identifier to write
    * @param protocolVersion the protocol version to use
    */
-  public static void writeIdentifier(final ByteBuf buf, final ArgumentIdentifier identifier,
-                                     final ProtocolVersion protocolVersion) {
+  public static void writeIdentifier(ByteBuf buf, ArgumentIdentifier identifier,
+                                     ProtocolVersion protocolVersion) {
     if (protocolVersion.noLessThan(MINECRAFT_1_19)) {
       Integer id = identifier.getIdByProtocolVersion(protocolVersion);
       Preconditions.checkNotNull(id, "Don't know how to serialize type " + identifier);
@@ -176,7 +155,7 @@ public final class ArgumentPropertyRegistry {
    * @param protocolVersion the protocol version to use
    * @return the identifier read from the buffer
    */
-  public static @NotNull ArgumentIdentifier readIdentifier(final ByteBuf buf, final ProtocolVersion protocolVersion) {
+  public static @NotNull ArgumentIdentifier readIdentifier(ByteBuf buf, ProtocolVersion protocolVersion) {
     if (protocolVersion.noLessThan(MINECRAFT_1_19)) {
       int id = ProtocolUtils.readVarInt(buf);
       for (ArgumentIdentifier i : byIdentifier.keySet()) {
@@ -204,13 +183,13 @@ public final class ArgumentPropertyRegistry {
     register(id("brigadier:bool", mapSet(MINECRAFT_1_19, 0)), BoolArgumentType.class,
         new ArgumentPropertySerializer<>() {
           @Override
-          public BoolArgumentType deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
+          public BoolArgumentType deserialize(ByteBuf buf, ProtocolVersion protocolVersion) {
             return BoolArgumentType.bool();
           }
 
           @Override
-          public void serialize(final BoolArgumentType object, final ByteBuf buf,
-                                final ProtocolVersion protocolVersion) {
+          public void serialize(BoolArgumentType object, ByteBuf buf,
+                                ProtocolVersion protocolVersion) {
           }
         });
     register(id("brigadier:float", mapSet(MINECRAFT_1_19, 1)), FloatArgumentType.class, FLOAT);

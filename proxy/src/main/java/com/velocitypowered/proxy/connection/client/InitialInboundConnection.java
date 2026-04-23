@@ -20,7 +20,6 @@ package com.velocitypowered.proxy.connection.client;
 import com.velocitypowered.api.network.HandshakeIntent;
 import com.velocitypowered.api.network.ProtocolState;
 import com.velocitypowered.api.network.ProtocolVersion;
-import com.velocitypowered.api.proxy.InboundConnection;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftConnectionAssociation;
 import com.velocitypowered.proxy.connection.util.VelocityInboundConnection;
@@ -34,19 +33,16 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import net.kyori.adventure.translation.GlobalTranslator;
 
-/**
- * Implements {@link InboundConnection} for a newly established connection.
- */
 public final class InitialInboundConnection implements VelocityInboundConnection, MinecraftConnectionAssociation {
 
-  private static final ComponentLogger logger = ComponentLogger.logger(InitialInboundConnection.class);
+  private static final ComponentLogger LOGGER = ComponentLogger.logger(InitialInboundConnection.class);
 
   private final MinecraftConnection connection;
   private final String cleanedAddress;
   private final HandshakePacket handshake;
 
-  InitialInboundConnection(final MinecraftConnection connection, final String cleanedAddress,
-                           final HandshakePacket handshake) {
+  InitialInboundConnection(MinecraftConnection connection, String cleanedAddress,
+                           HandshakePacket handshake) {
     this.connection = connection;
     this.cleanedAddress = cleanedAddress;
     this.handshake = handshake;
@@ -79,8 +75,8 @@ public final class InitialInboundConnection implements VelocityInboundConnection
 
   @Override
   public String toString() {
-    final boolean isPlayerAddressLoggingEnabled = connection.server.getConfiguration().isPlayerAddressLoggingEnabled();
-    final String playerIp = isPlayerAddressLoggingEnabled ? connection.getRemoteAddress().toString() : "<ip address withheld>";
+    boolean isPlayerAddressLoggingEnabled = connection.server.getConfiguration().isPlayerAddressLoggingEnabled();
+    String playerIp = isPlayerAddressLoggingEnabled ? connection.getRemoteAddress().toString() : "<ip address withheld>";
     return "[initial connection] " + playerIp;
   }
 
@@ -104,14 +100,14 @@ public final class InitialInboundConnection implements VelocityInboundConnection
    *
    * @param reason the reason for disconnecting
    */
-  public void disconnect(final Component reason) {
+  public void disconnect(Component reason) {
     Component translated = GlobalTranslator.render(reason, ClosestLocaleMatcher.INSTANCE
         .lookupClosest(Locale.getDefault()));
     if (connection.server.getConfiguration().isLogOfflineConnections()
         && connection.server.getConfiguration().isLogMinimumVersion()) {
 
       if (connection.server.getConfiguration().isLogPlayerDisconnections()) {
-        logger.info(Component.text(this + " has disconnected: ").append(translated));
+        LOGGER.info(Component.text(this + " has disconnected: ").append(translated));
       }
     }
 
@@ -123,7 +119,7 @@ public final class InitialInboundConnection implements VelocityInboundConnection
    *
    * @param reason the reason for disconnecting
    */
-  public void disconnectQuietly(final Component reason) {
+  public void disconnectQuietly(Component reason) {
     Component translated = GlobalTranslator.render(reason, ClosestLocaleMatcher.INSTANCE
         .lookupClosest(Locale.getDefault()));
     connection.closeWith(DisconnectPacket.create(translated, getProtocolVersion(), connection.getState()));

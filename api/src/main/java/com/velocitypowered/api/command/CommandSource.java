@@ -26,7 +26,7 @@ public interface CommandSource extends Audience, PermissionSubject {
    * @see <a href="https://docs.papermc.io/adventure/minimessage/format/">MiniMessage docs</a>
    *      for more information on the format.
    */
-  default void sendRichMessage(final @NotNull String message) {
+  default void sendRichMessage(@NotNull String message) {
     this.sendMessage(MiniMessage.miniMessage().deserialize(message, this));
   }
 
@@ -39,8 +39,8 @@ public interface CommandSource extends Audience, PermissionSubject {
    *     and <a href="https://docs.papermc.io/adventure/minimessage/dynamic-replacements">MiniMessage Placeholders docs</a>
    *     for more information on the format.
    */
-  default void sendRichMessage(final @NotNull String message,
-                               final @NotNull TagResolver @NotNull... resolvers) {
+  default void sendRichMessage(@NotNull String message,
+                               @NotNull TagResolver @NotNull... resolvers) {
     this.sendMessage(MiniMessage.miniMessage().deserialize(message, this, resolvers));
   }
 
@@ -52,7 +52,7 @@ public interface CommandSource extends Audience, PermissionSubject {
    *      however, it is recommended not to use legacy color codes as this is a deprecated format
    *      and not recommended.
    */
-  default void sendPlainMessage(final @NotNull String message) {
+  default void sendPlainMessage(@NotNull String message) {
     this.sendMessage(Component.text(message));
   }
 }

@@ -32,7 +32,7 @@ public final class ListenerBoundEvent {
    * @param address the socket address the listener is bound to
    * @param listenerType the type of listener that was bound
    */
-  public ListenerBoundEvent(final InetSocketAddress address, final ListenerType listenerType) {
+  public ListenerBoundEvent(InetSocketAddress address, ListenerType listenerType) {
     this.address = Preconditions.checkNotNull(address, "address");
     this.listenerType = Preconditions.checkNotNull(listenerType, "listenerType");
   }

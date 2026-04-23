@@ -26,12 +26,12 @@ import org.apache.logging.log4j.Logger;
 public final class TransferIntegrationMigration implements ConfigurationMigration {
 
   @Override
-  public boolean shouldMigrate(final CommentedFileConfig config) {
+  public boolean shouldMigrate(CommentedFileConfig config) {
     return configVersion(config) < 2.7;
   }
 
   @Override
-  public void migrate(final CommentedFileConfig config, final Logger logger) {
+  public void migrate(CommentedFileConfig config, Logger logger) {
     config.set("advanced.accepts-transfers", false);
     config.setComment("advanced.accepts-transfers", """
             Allows players transferred from other hosts via the

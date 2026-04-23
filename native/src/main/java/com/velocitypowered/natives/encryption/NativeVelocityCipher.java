@@ -36,12 +36,12 @@ public final class NativeVelocityCipher implements VelocityCipher {
   public static final VelocityCipherFactory FACTORY = new VelocityCipherFactory() {
 
     @Override
-    public VelocityCipher forEncryption(final SecretKey key) throws GeneralSecurityException {
+    public VelocityCipher forEncryption(SecretKey key) throws GeneralSecurityException {
       return new NativeVelocityCipher(true, key);
     }
 
     @Override
-    public VelocityCipher forDecryption(final SecretKey key) throws GeneralSecurityException {
+    public VelocityCipher forDecryption(SecretKey key) throws GeneralSecurityException {
       return new NativeVelocityCipher(false, key);
     }
   };
@@ -56,12 +56,12 @@ public final class NativeVelocityCipher implements VelocityCipher {
    */
   private boolean disposed = false;
 
-  private NativeVelocityCipher(final boolean encrypt, final SecretKey key) throws GeneralSecurityException {
+  private NativeVelocityCipher(boolean encrypt, SecretKey key) throws GeneralSecurityException {
     this.ctx = OpenSslCipherImpl.init(key.getEncoded(), encrypt);
   }
 
   @Override
-  public void process(final ByteBuf source) {
+  public void process(ByteBuf source) {
     ensureNotDisposed();
 
     long base = source.memoryAddress() + source.readerIndex();

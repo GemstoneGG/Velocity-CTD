@@ -37,7 +37,7 @@ public final class Favicon {
    *
    * @param base64Url the url for use with this favicon
    */
-  public Favicon(final String base64Url) {
+  public Favicon(String base64Url) {
     this.base64Url = Preconditions.checkNotNull(base64Url, "base64Url");
   }
 
@@ -51,7 +51,7 @@ public final class Favicon {
   }
 
   @Override
-  public boolean equals(final @Nullable Object o) {
+  public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }
@@ -82,7 +82,7 @@ public final class Favicon {
    * @param image the image to use for the favicon
    * @return the created {@link Favicon} instance
    */
-  public static Favicon create(final BufferedImage image) {
+  public static Favicon create(BufferedImage image) {
     Preconditions.checkNotNull(image, "image");
     Preconditions.checkArgument(image.getWidth() == 64 && image.getHeight() == 64,
         "Image is not 64x64 (found %sx%s)", image.getWidth(), image.getHeight());
@@ -103,7 +103,7 @@ public final class Favicon {
    * @return the created {@link Favicon} instance
    * @throws IOException if the file could not be read from the path
    */
-  public static Favicon create(final Path path) throws IOException {
+  public static Favicon create(Path path) throws IOException {
     try (InputStream stream = Files.newInputStream(path)) {
       BufferedImage image = ImageIO.read(stream);
       if (image == null) {

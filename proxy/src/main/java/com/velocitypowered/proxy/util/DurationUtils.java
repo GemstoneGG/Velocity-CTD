@@ -24,9 +24,6 @@ import java.time.Duration;
  */
 public final class DurationUtils {
 
-  /**
-   * One Minecraft tick in milliseconds (1/20th of a second).
-   */
   private static final long ONE_TICK_IN_MILLISECONDS = 50;
 
   private DurationUtils() {
@@ -39,7 +36,7 @@ public final class DurationUtils {
    * @param duration the duration to convert into Minecraft ticks
    * @return the duration represented as the number of Minecraft ticks
    */
-  public static long toTicks(final Duration duration) {
+  public static long toTicks(Duration duration) {
     return duration.toMillis() / ONE_TICK_IN_MILLISECONDS;
   }
 }

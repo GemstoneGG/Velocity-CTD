@@ -34,34 +34,16 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class IdentifiedKeyImpl implements IdentifiedKey {
 
-  /**
-   * The revision format of the key.
-   */
   private final Revision revision;
 
-  /**
-   * The actual signed public key.
-   */
   private final PublicKey publicKey;
 
-  /**
-   * The signature validating the key and holder.
-   */
   private final byte[] signature;
 
-  /**
-   * The time at which the key expires.
-   */
   private final Instant expiryTemporal;
 
-  /**
-   * Cached result of signature verification.
-   */
   private @MonotonicNonNull Boolean isSignatureValid;
 
-  /**
-   * The UUID of the expected signature holder.
-   */
   private @MonotonicNonNull UUID holder;
 
   /**
@@ -72,7 +54,7 @@ public class IdentifiedKeyImpl implements IdentifiedKey {
    * @param expiry the epoch milliseconds at which the key expires
    * @param signature the signature over the key
    */
-  public IdentifiedKeyImpl(final Revision revision, final byte[] keyBits, final long expiry, final byte[] signature) {
+  public IdentifiedKeyImpl(Revision revision, byte[] keyBits, long expiry, byte[] signature) {
     this(revision, EncryptionUtils.parseRsaPublicKey(keyBits), Instant.ofEpochMilli(expiry), signature);
   }
 
@@ -84,69 +66,39 @@ public class IdentifiedKeyImpl implements IdentifiedKey {
    * @param expiryTemporal the expiry time
    * @param signature the signature for the key
    */
-  public IdentifiedKeyImpl(final Revision revision, final PublicKey publicKey,
-                           final Instant expiryTemporal, final byte[] signature) {
+  public IdentifiedKeyImpl(Revision revision, PublicKey publicKey,
+                           Instant expiryTemporal, byte[] signature) {
     this.revision = revision;
     this.publicKey = publicKey;
     this.expiryTemporal = expiryTemporal;
     this.signature = signature;
   }
 
-  /**
-   * Returns the signed public key contained in this identified key.
-   *
-   * @return the public key
-   */
   @Override
   public PublicKey getSignedPublicKey() {
     return publicKey;
   }
 
-  /**
-   * Returns the key used to sign the public key, typically the Yggdrasil session public key.
-   *
-   * @return the signer public key
-   */
   @Override
   public PublicKey getSigner() {
     return EncryptionUtils.getYggdrasilSessionKey();
   }
 
-  /**
-   * Returns the expiration time of the key.
-   *
-   * @return the expiry time
-   */
   @Override
   public Instant getExpiryTemporal() {
     return expiryTemporal;
   }
 
-  /**
-   * Returns a copy of the signature associated with the key.
-   *
-   * @return the signature byte array
-   */
   @Override
   public byte[] getSignature() {
     return signature.clone();
   }
 
-  /**
-   * Returns the UUID of the player who owns this key, if known.
-   *
-   * @return the signature holder UUID or {@code null} if not set
-   */
   @Override
   public @Nullable UUID getSignatureHolder() {
     return holder;
   }
 
-  /**
-   * Returns the revision of the key format.
-   *
-   * @return the key revision
-   */
   @Override
   public Revision getKeyRevision() {
     return revision;
@@ -158,7 +110,7 @@ public class IdentifiedKeyImpl implements IdentifiedKey {
    * @param holder the UUID of the supposed key-holder
    * @return {@code true} if the assignment and validation succeeded, {@code false} otherwise
    */
-  public boolean internalAddHolder(final UUID holder) {
+  public boolean internalAddHolder(UUID holder) {
     if (holder == null) {
       return false;
     }
@@ -177,13 +129,6 @@ public class IdentifiedKeyImpl implements IdentifiedKey {
     return this.holder.equals(holder) && isSignatureValid();
   }
 
-  /**
-   * Returns whether the signature on this key is valid.
-   *
-   * <p>The result is cached after the first evaluation.</p>
-   *
-   * @return {@code true} if the signature is valid, otherwise {@code false}
-   */
   @Override
   public boolean isSignatureValid() {
     if (isSignatureValid == null) {
@@ -193,7 +138,7 @@ public class IdentifiedKeyImpl implements IdentifiedKey {
     return isSignatureValid != null && isSignatureValid;
   }
 
-  private Boolean validateData(final @Nullable UUID verify) {
+  private Boolean validateData(@Nullable UUID verify) {
     if (revision == Revision.GENERIC_V1) {
       String pemKey = EncryptionUtils.pemEncodeRsaKey(publicKey);
       long expires = expiryTemporal.toEpochMilli();
@@ -217,15 +162,8 @@ public class IdentifiedKeyImpl implements IdentifiedKey {
     }
   }
 
-  /**
-   * Verifies an arbitrary data signature using the key's public key.
-   *
-   * @param signature the signature to verify
-   * @param toVerify the data segments used to verify the signature
-   * @return {@code true} if the signature is valid, otherwise {@code false}
-   */
   @Override
-  public boolean verifyDataSignature(final byte[] signature, final byte[]... toVerify) {
+  public boolean verifyDataSignature(byte[] signature, byte[]... toVerify) {
     try {
       return EncryptionUtils.verifySignature(EncryptionUtils.SHA256_WITH_RSA, publicKey, signature, toVerify);
     } catch (IllegalArgumentException e) {
@@ -233,11 +171,6 @@ public class IdentifiedKeyImpl implements IdentifiedKey {
     }
   }
 
-  /**
-   * Returns a debug-friendly string representation of this identified key.
-   *
-   * @return string describing the key fields
-   */
   @Override
   public String toString() {
     return "IdentifiedKeyImpl{"
@@ -250,21 +183,13 @@ public class IdentifiedKeyImpl implements IdentifiedKey {
         + '}';
   }
 
-  /**
-   * Compares this identified key to another for equality.
-   *
-   * <p>Equality is based on public key, expiration time, signature, and signer.</p>
-   *
-   * @param o the object to compare
-   * @return {@code true} if the keys are logically equal
-   */
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
 
-    if (!(o instanceof final IdentifiedKey that)) {
+    if (!(o instanceof IdentifiedKey that)) {
       return false;
     }
 

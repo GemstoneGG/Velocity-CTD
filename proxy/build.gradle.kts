@@ -1,13 +1,10 @@
 import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer
-import io.papermc.fill.model.BuildChannel
 
 plugins {
     application
-    `maven-publish`
-    id("velocity-publish")
+    id("velocity-ctd-publish")
     id("velocity-init-manifest")
     alias(libs.plugins.shadow)
-    alias(libs.plugins.fill)
 }
 
 application {
@@ -18,8 +15,8 @@ application {
 tasks {
     jar {
         manifest {
-            attributes["Implementation-Title"] = "Velocity"
-            attributes["Implementation-Vendor"] = "Velocity Contributors"
+            attributes["Implementation-Title"] = "Velocity-CTD"
+            attributes["Implementation-Vendor"] = "Velocity(-CTD) Contributors"
             attributes["Multi-Release"] = "true"
         }
     }
@@ -93,15 +90,22 @@ tasks {
         // Exclude Checker Framework annotations
         exclude("org/checkerframework/checker/**")
 
-        // Exclude original Guice HiddenClassDefiner to use patched version without sun.misc.Unsafe
-        exclude("com/google/inject/internal/aop/HiddenClassDefiner.class")
-
         relocate("org.bstats", "com.velocitypowered.proxy.bstats")
 
         // Include Configurate 3
         val configurateBuildTask = project(":deprecated-configurate3").tasks.named("shadowJar")
         dependsOn(configurateBuildTask)
         from(zipTree(configurateBuildTask.map { it.outputs.files.singleFile }))
+
+        // Embed :velocity-luckperms-integration as META-INF/velocityctd/integrations/velocity-luckperms-integration.jar
+        val lpJar = project(":velocity-luckperms-integration")
+            .tasks
+            .named<Jar>("jar")
+        dependsOn(lpJar)
+        from(lpJar.flatMap { it.archiveFile }) {
+            into("META-INF/velocityctd/integrations")
+            rename { "velocity-luckperms-integration.jar" }
+        }
     }
 
     runShadow {
@@ -121,24 +125,6 @@ tasks {
                 "-Alog4j.graalvm.artifactId=${project.name}"
             )
         )
-    }
-}
-
-val projectVersion = version as String
-fill {
-    project("velocity")
-
-    build {
-        channel = BuildChannel.STABLE
-        versionFamily("3.0.0")
-        version(projectVersion)
-
-        downloads {
-            register("server:default") {
-                file = tasks.shadowJar.flatMap { it.archiveFile }
-                nameResolver.set { project, _, version, build -> "$project-$version-$build.jar" }
-            }
-        }
     }
 }
 
@@ -165,7 +151,10 @@ dependencies {
     implementation(libs.lettuce.core)
     implementation(libs.jopt)
     implementation(libs.terminalconsoleappender)
-    runtimeOnly(libs.jline)
+    implementation(libs.jline.terminal)
+    implementation(libs.jline.reader)
+    runtimeOnly(libs.jline.terminal.jni)
+    runtimeOnly(libs.jline.terminal.ffm)
     runtimeOnly(libs.disruptor)
     implementation(libs.fastutil)
     implementation(platform(libs.adventure.bom))

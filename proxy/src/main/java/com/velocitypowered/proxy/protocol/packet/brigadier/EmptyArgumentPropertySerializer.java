@@ -31,21 +31,17 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 final class EmptyArgumentPropertySerializer implements ArgumentPropertySerializer<Void> {
 
-  /**
-   * A shared singleton instance of {@code EmptyArgumentPropertySerializer}, exposed as
-   * {@link ArgumentPropertySerializer} with EMPTY.
-   */
   static final ArgumentPropertySerializer<Void> EMPTY = new EmptyArgumentPropertySerializer();
 
   private EmptyArgumentPropertySerializer() {
   }
 
   @Override
-  public @Nullable Void deserialize(final ByteBuf buf, final ProtocolVersion protocolVersion) {
+  public @Nullable Void deserialize(ByteBuf buf, ProtocolVersion protocolVersion) {
     return null;
   }
 
   @Override
-  public void serialize(final Void object, final ByteBuf buf, final ProtocolVersion protocolVersion) {
+  public void serialize(Void object, ByteBuf buf, ProtocolVersion protocolVersion) {
   }
 }

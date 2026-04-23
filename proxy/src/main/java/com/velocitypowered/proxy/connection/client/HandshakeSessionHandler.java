@@ -19,7 +19,7 @@ package com.velocitypowered.proxy.connection.client;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.velocitypowered.api.event.connection.ConnectionEstablishEvent;
+import com.velocityctd.api.event.connection.ConnectionEstablishEvent;
 import com.velocitypowered.api.event.connection.ConnectionHandshakeEvent;
 import com.velocitypowered.api.network.HandshakeIntent;
 import com.velocitypowered.api.network.ProtocolState;
@@ -58,20 +58,10 @@ import org.jetbrains.annotations.NotNull;
  */
 public class HandshakeSessionHandler implements MinecraftSessionHandler {
 
-  /**
-   * The logger instance for logging events and diagnostics within the
-   * {@link HandshakeSessionHandler}.
-   */
   private static final Logger LOGGER = LogManager.getLogger(HandshakeSessionHandler.class);
 
-  /**
-   * The active Minecraft connection for this session handler.
-   */
   private final MinecraftConnection connection;
 
-  /**
-   * The Velocity server instance managing global state and configuration.
-   */
   private final VelocityServer server;
 
   /**
@@ -80,49 +70,29 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
   private final String minimumVersion;
 
   /**
-   * Constructs a new {@link HandshakeSessionHandler} for managing the initial phase of a client
-   * connection to the proxy. It validates the client connection and performs actions based on
-   * protocol requirements.
-   *
-   * @param connection the {@link MinecraftConnection} instance representing the client connection.
-   * @param server the {@link VelocityServer} instance managing the proxy server configuration
-   *               and event handling.
-   * @throws NullPointerException if either {@code connection} or {@code server} is {@code null}.
+   * The configured maximum version string used to validate connecting clients.
    */
-  public HandshakeSessionHandler(final MinecraftConnection connection, final VelocityServer server) {
+  private final String maximumVersion;
+
+  public HandshakeSessionHandler(MinecraftConnection connection, VelocityServer server) {
     this.connection = Preconditions.checkNotNull(connection, "connection");
     this.server = Preconditions.checkNotNull(server, "server");
     this.minimumVersion = server.getConfiguration().getMinimumVersion();
+    this.maximumVersion = server.getConfiguration().getMaximumVersion()
+        .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
   }
 
-  /**
-   * Handles a {@link LegacyPingPacket} sent by clients using the legacy ping protocol.
-   *
-   * <p>This method initializes a {@link StatusSessionHandler} for legacy connections and
-   * processes the ping accordingly.</p>
-   *
-   * @param packet the legacy ping packet
-   * @return {@code true} always, since the packet is fully handled
-   */
   @Override
-  public boolean handle(final LegacyPingPacket packet) {
+  public boolean handle(LegacyPingPacket packet) {
     connection.setProtocolVersion(ProtocolVersion.LEGACY);
-    final StatusSessionHandler handler = new StatusSessionHandler(server, new LegacyInboundConnection(connection, packet));
+    StatusSessionHandler handler = new StatusSessionHandler(server, new LegacyInboundConnection(connection, packet));
     connection.setActiveSessionHandler(StateRegistry.STATUS, handler);
     handler.handle(packet);
     return true;
   }
 
-  /**
-   * Handles a {@link LegacyHandshakePacket} sent by clients using ancient protocol versions.
-   *
-   * <p>This method immediately disconnects the client with an appropriate message.</p>
-   *
-   * @param packet the legacy handshake packet
-   * @return {@code true} always, since the packet is handled by closing the connection
-   */
   @Override
-  public boolean handle(final LegacyHandshakePacket packet) {
+  public boolean handle(LegacyHandshakePacket packet) {
     connection.closeWith(LegacyDisconnect.from(Component.text(
         "Your client is extremely old. Please update to a newer version of Minecraft.",
         NamedTextColor.RED)
@@ -131,23 +101,14 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  /**
-   * Handles a {@link HandshakePacket} sent by a connecting client.
-   *
-   * <p>This method determines the connection intent and transitions to the appropriate
-   * session handler (status or login).</p>
-   *
-   * @param handshake the handshake packet from the client
-   * @return {@code true} always, since the handshake intent is always processed
-   */
   @Override
-  public boolean handle(final HandshakePacket handshake) {
-    final StateRegistry nextState = getStateForProtocol(handshake.getNextStatus());
+  public boolean handle(HandshakePacket handshake) {
+    StateRegistry nextState = getStateForProtocol(handshake.getNextStatus());
     if (nextState == null) {
       LOGGER.error("{} provided invalid protocol {}", this, handshake.getNextStatus());
       connection.close(true);
     } else {
-      final InitialInboundConnection ic = new InitialInboundConnection(connection, cleanVhost(handshake.getServerAddress()), handshake);
+      InitialInboundConnection ic = new InitialInboundConnection(connection, cleanVhost(handshake.getServerAddress()), handshake);
       // Handle connection establish event.
       connection.setAutoReading(false);
       server.getEventManager()
@@ -181,7 +142,7 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  private static @Nullable StateRegistry getStateForProtocol(final int status) {
+  private static @Nullable StateRegistry getStateForProtocol(int status) {
     return switch (status) {
       case StateRegistry.STATUS_ID -> StateRegistry.STATUS;
       case StateRegistry.LOGIN_ID, StateRegistry.TRANSFER_ID -> StateRegistry.LOGIN;
@@ -189,7 +150,7 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
     };
   }
 
-  private void handleLogin(final HandshakePacket handshake, final InitialInboundConnection ic) {
+  private void handleLogin(HandshakePacket handshake, InitialInboundConnection ic) {
     if (!handshake.getProtocolVersion().isSupported()) {
       // Bump connection into the correct protocol state so that we can send the disconnect packet.
       // By choice, instead of returning the standard disconnection message, we return the modern
@@ -199,11 +160,11 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
       ic.disconnectQuietly(Component.translatable("velocity.error.modern-forwarding-needs-new-client")
           .arguments(
               Argument.string("min", minimumVersion),
-              Argument.string("max", ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())));
+              Argument.string("max", maximumVersion)));
       return;
     }
 
-    final InetAddress address = ((InetSocketAddress) connection.getRemoteAddress()).getAddress();
+    InetAddress address = ((InetSocketAddress) connection.getRemoteAddress()).getAddress();
     if (!server.getIpAttemptLimiter().attempt(address)) {
       // Bump connection into the correct protocol state so that we can send the disconnect packet.
       connection.setState(StateRegistry.LOGIN);
@@ -217,12 +178,13 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
     // the player is connecting to. This allows 1.7 clients to connect to servers using legacy forwarding
     // even when the global default is modern forwarding.
 
-    final LoginInboundConnection lic = new LoginInboundConnection(ic);
+    LoginInboundConnection lic = new LoginInboundConnection(ic);
     server.getEventManager().fireAndForget(new ConnectionHandshakeEvent(lic, handshake.getIntent()));
-    connection.setActiveSessionHandler(StateRegistry.LOGIN, new InitialLoginSessionHandler(server, connection, lic));
+    connection.setActiveSessionHandler(StateRegistry.LOGIN,
+        new InitialLoginSessionHandler(server, connection, lic));
   }
 
-  private ConnectionType getHandshakeConnectionType(final HandshakePacket handshake) {
+  private ConnectionType getHandshakeConnectionType(HandshakePacket handshake) {
 
     if (server.getConfiguration().isDisableForge()) {
       return ConnectionTypes.VANILLA;
@@ -255,7 +217,7 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
    * @return the cleaned hostname
    */
   @VisibleForTesting
-  static String cleanVhost(final String hostname) {
+  static String cleanVhost(String hostname) {
     // Clean out any anything after any zero bytes (this includes BungeeCord forwarding and the
     // legacy Forge handshake indicator).
     String cleaned = hostname;
@@ -273,43 +235,22 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
     return cleaned;
   }
 
-  /**
-   * Handles an unrecognized or invalid packet.
-   *
-   * <p>This method closes the connection as a safety measure.</p>
-   *
-   * @param packet the unknown Minecraft packet
-   */
   @Override
-  public void handleGeneric(final MinecraftPacket packet) {
+  public void handleGeneric(MinecraftPacket packet) {
     // Unknown packet received. Better to close the connection.
     connection.close(true);
   }
 
-  /**
-   * Handles an unrecognized raw byte buffer during packet decoding.
-   *
-   * <p>This method closes the connection to prevent further processing.</p>
-   *
-   * @param buf the unknown buffer contents
-   */
   @Override
-  public void handleUnknown(final ByteBuf buf) {
+  public void handleUnknown(ByteBuf buf) {
     // Unknown packet received. Better to close the connection.
     connection.close(true);
   }
 
-  /**
-   * Returns a string representation of this session handler for logging purposes.
-   *
-   * <p>This includes the remote IP address if player address logging is enabled.</p>
-   *
-   * @return a formatted string representing the connection
-   */
   @Override
   public String toString() {
-    final boolean isPlayerAddressLoggingEnabled = connection.server.getConfiguration().isPlayerAddressLoggingEnabled();
-    final String playerIp = isPlayerAddressLoggingEnabled ? this.connection.getRemoteAddress().toString() : "<ip address withheld>";
+    boolean isPlayerAddressLoggingEnabled = connection.server.getConfiguration().isPlayerAddressLoggingEnabled();
+    String playerIp = isPlayerAddressLoggingEnabled ? this.connection.getRemoteAddress().toString() : "<ip address withheld>";
     return "[initial connection] " + playerIp;
   }
 
@@ -343,8 +284,8 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
 
     @Override
     public @NotNull String toString() {
-      final boolean isPlayerAddressLoggingEnabled = connection.server.getConfiguration().isPlayerAddressLoggingEnabled();
-      final String playerIp = isPlayerAddressLoggingEnabled ? this.getRemoteAddress().toString() : "<ip address withheld>";
+      boolean isPlayerAddressLoggingEnabled = connection.server.getConfiguration().isPlayerAddressLoggingEnabled();
+      String playerIp = isPlayerAddressLoggingEnabled ? this.getRemoteAddress().toString() : "<ip address withheld>";
       return "[legacy connection] " + playerIp;
     }
 

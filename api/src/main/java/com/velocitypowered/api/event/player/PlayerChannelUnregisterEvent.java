@@ -53,7 +53,7 @@ public final class PlayerChannelUnregisterEvent {
    * @param channels the list of {@link ChannelIdentifier}s being unregistered
    * @throws NullPointerException if {@code player} or {@code channels} is {@code null}
    */
-  public PlayerChannelUnregisterEvent(final Player player, final List<ChannelIdentifier> channels) {
+  public PlayerChannelUnregisterEvent(Player player, List<ChannelIdentifier> channels) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.channels = Preconditions.checkNotNull(channels, "channels");
   }

@@ -7,11 +7,10 @@
 
 package com.velocitypowered.api.proxy.server;
 
+import com.velocityctd.api.queue.Queue;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.messages.ChannelMessageSink;
-import com.velocitypowered.api.proxy.player.PlayerInfo;
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.audience.Audience;
 
@@ -34,7 +33,7 @@ public interface RegisteredServer extends ChannelMessageSink, Audience {
    *
    * @return the players on this proxy
    */
-  Collection<Player> getPlayersConnected();
+  Collection<? extends Player> getPlayersConnected();
 
   /**
    * Get the total player count of the server (redis support).
@@ -42,14 +41,6 @@ public interface RegisteredServer extends ChannelMessageSink, Audience {
    * @return The total player count.
    */
   long getTotalPlayerCount();
-
-  /**
-   * Returns a list of all the players currently connected to this server on all proxies
-   * or the current proxy, in case Redis is disabled.
-   *
-   * @return A list of all player's information.
-   */
-  List<PlayerInfo> getPlayerInfo();
 
   /**
    * Attempts to ping the remote server and return the server list ping result.
@@ -67,4 +58,11 @@ public interface RegisteredServer extends ChannelMessageSink, Audience {
    * @since 3.2.0
    */
   CompletableFuture<ServerPing> ping(PingOptions pingOptions);
+
+  /**
+   * Gets the queue for this server.
+   *
+   * @return The queue of the server
+   */
+  Queue getQueue();
 }

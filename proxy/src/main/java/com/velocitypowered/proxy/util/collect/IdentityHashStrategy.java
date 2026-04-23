@@ -26,30 +26,21 @@ import it.unimi.dsi.fastutil.Hash.Strategy;
  */
 public final class IdentityHashStrategy<T> implements Strategy<T> {
 
-  /**
-   * A reusable singleton instance of {@code IdentityHashStrategy}.
-   */
   @SuppressWarnings("rawtypes")
   private static final IdentityHashStrategy INSTANCE = new IdentityHashStrategy();
 
-  /**
-   * Returns a singleton instance of {@link IdentityHashStrategy}.
-   *
-   * @param <T> the type for which the strategy applies
-   * @return a shared identity hash strategy instance
-   */
   @SuppressWarnings("unchecked")
   public static <T> Strategy<T> instance() {
     return INSTANCE;
   }
 
   @Override
-  public int hashCode(final T o) {
+  public int hashCode(T o) {
     return System.identityHashCode(o);
   }
 
   @Override
-  public boolean equals(final T a, final T b) {
+  public boolean equals(T a, T b) {
     return a == b;
   }
 }

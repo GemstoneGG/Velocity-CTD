@@ -23,29 +23,15 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * A special {@link ArgumentPropertySerializer} implementation for mod-defined argument types
- * represented by {@link ModArgumentProperty}.
- *
- * <p>This serializer handles deserialization of mod-specific arguments that include a
- * {@link ArgumentIdentifier} and an arbitrary binary payload. These arguments are typically
- * used by modding platforms or extensions to define custom Brigadier-compatible types.</p>
- *
- * <p>Serialization is explicitly unsupported, as mod arguments are meant to be deserialized
- * only. The {@link ArgumentPropertyRegistry} handles raw passthrough of these types at runtime.</p>
- */
 final class ModArgumentPropertySerializer implements ArgumentPropertySerializer<ModArgumentProperty> {
 
-  /**
-   * A shared singleton instance of the {@code ModArgumentPropertySerializer}.
-   */
   static final ModArgumentPropertySerializer MOD = new ModArgumentPropertySerializer();
 
   private ModArgumentPropertySerializer() {
   }
 
   @Override
-  public @NotNull ModArgumentProperty deserialize(final ByteBuf buf, final ProtocolVersion version) {
+  public @NotNull ModArgumentProperty deserialize(ByteBuf buf, ProtocolVersion version) {
     ArgumentIdentifier identifier;
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19)) {
       int idx = ProtocolUtils.readVarInt(buf);
@@ -60,7 +46,7 @@ final class ModArgumentPropertySerializer implements ArgumentPropertySerializer<
   }
 
   @Override
-  public void serialize(final ModArgumentProperty object, final ByteBuf buf, final ProtocolVersion version) {
+  public void serialize(ModArgumentProperty object, ByteBuf buf, ProtocolVersion version) {
     // This is special-cased by ArgumentPropertyRegistry
     throw new UnsupportedOperationException();
   }

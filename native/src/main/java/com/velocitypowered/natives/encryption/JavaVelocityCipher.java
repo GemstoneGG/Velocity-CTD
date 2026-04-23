@@ -40,12 +40,12 @@ public final class JavaVelocityCipher implements VelocityCipher {
   public static final VelocityCipherFactory FACTORY = new VelocityCipherFactory() {
 
     @Override
-    public VelocityCipher forEncryption(final SecretKey key) throws GeneralSecurityException {
+    public VelocityCipher forEncryption(SecretKey key) throws GeneralSecurityException {
       return new JavaVelocityCipher(true, key);
     }
 
     @Override
-    public VelocityCipher forDecryption(final SecretKey key) throws GeneralSecurityException {
+    public VelocityCipher forDecryption(SecretKey key) throws GeneralSecurityException {
       return new JavaVelocityCipher(false, key);
     }
   };
@@ -60,7 +60,7 @@ public final class JavaVelocityCipher implements VelocityCipher {
    */
   private boolean disposed = false;
 
-  private JavaVelocityCipher(final boolean encrypt, final SecretKey key) throws GeneralSecurityException {
+  private JavaVelocityCipher(boolean encrypt, SecretKey key) throws GeneralSecurityException {
     this.cipher = Cipher.getInstance("AES/CFB8/NoPadding");
     // But you're saying, *why* are we using the key as the IV?
     // After all, reusing the key as
@@ -79,7 +79,7 @@ public final class JavaVelocityCipher implements VelocityCipher {
   }
 
   @Override
-  public void process(final ByteBuf source) {
+  public void process(ByteBuf source) {
     ensureNotDisposed();
     Preconditions.checkArgument(source.hasArray(), "No source array");
 

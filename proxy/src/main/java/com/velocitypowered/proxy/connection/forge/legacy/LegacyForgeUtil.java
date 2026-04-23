@@ -42,7 +42,7 @@ final class LegacyForgeUtil {
    * @param message The message to analyze
    * @return The discriminator
    */
-  static byte getHandshakePacketDiscriminator(final PluginMessagePacket message) {
+  static byte getHandshakePacketDiscriminator(PluginMessagePacket message) {
     Preconditions.checkArgument(message.getChannel().equals(FORGE_LEGACY_HANDSHAKE_CHANNEL));
     Preconditions.checkArgument(message.content().isReadable());
     return message.content().getByte(0);
@@ -54,7 +54,7 @@ final class LegacyForgeUtil {
    * @param message The message
    * @return The list of mods. Maybe empty.
    */
-  static List<ModInfo.Mod> readModList(final PluginMessagePacket message) {
+  static List<ModInfo.Mod> readModList(PluginMessagePacket message) {
     Preconditions.checkNotNull(message, "message");
     Preconditions.checkArgument(message.getChannel().equals(FORGE_LEGACY_HANDSHAKE_CHANNEL),
         "message is not a FML HS plugin message");

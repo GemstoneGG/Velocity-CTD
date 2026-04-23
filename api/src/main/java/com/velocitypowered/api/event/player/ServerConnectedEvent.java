@@ -47,8 +47,8 @@ public final class ServerConnectedEvent {
    * @param server the server the player was connected to
    * @param previousServer the server the player was previously connected to, null if none
    */
-  public ServerConnectedEvent(final Player player, final RegisteredServer server,
-                              final @Nullable RegisteredServer previousServer) {
+  public ServerConnectedEvent(Player player, RegisteredServer server,
+                              @Nullable RegisteredServer previousServer) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.server = Preconditions.checkNotNull(server, "server");
     this.previousServer = previousServer;

@@ -44,7 +44,7 @@ public class ServerResourcePackRemoveEvent implements ResultedEvent<ResultedEven
    * @param packId the UUID of the resource pack to remove, or {@code null} to clear all
    * @param serverConnection the server attempting to remove the resource pack
    */
-  public ServerResourcePackRemoveEvent(final UUID packId, final ServerConnection serverConnection) {
+  public ServerResourcePackRemoveEvent(UUID packId, ServerConnection serverConnection) {
     this.result = ResultedEvent.GenericResult.allowed();
     this.packId = packId;
     this.serverConnection = serverConnection;
@@ -94,7 +94,7 @@ public class ServerResourcePackRemoveEvent implements ResultedEvent<ResultedEven
    * @throws NullPointerException if {@code result} is null
    */
   @Override
-  public void setResult(final GenericResult result) {
+  public void setResult(GenericResult result) {
     this.result = Preconditions.checkNotNull(result, "result");
   }
 }

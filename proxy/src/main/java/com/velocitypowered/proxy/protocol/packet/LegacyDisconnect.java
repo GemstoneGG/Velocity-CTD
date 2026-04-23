@@ -25,23 +25,10 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
-/**
- * Represents a legacy disconnect packet that contains a reason for disconnection.
- * This class is used to convert modern server ping responses into the legacy format,
- * which is compatible with older Minecraft versions.
- *
- * @param reason the string reason for disconnection
- */
 public record LegacyDisconnect(String reason) {
 
-  /**
-   * Fake player list used when player data is not present in the ping response.
-   */
   private static final ServerPing.Players FAKE_PLAYERS = new ServerPing.Players(0, 0, ImmutableList.of());
 
-  /**
-   * The legacy color code prefix (§) used for formatting text in older versions.
-   */
   private static final String LEGACY_COLOR_CODE = Character.toString(LegacyComponentSerializer.SECTION_CHAR);
 
   /**
@@ -51,9 +38,9 @@ public record LegacyDisconnect(String reason) {
    * @param version  the requesting clients' version
    * @return the disconnect packet
    */
-  public static LegacyDisconnect fromServerPing(final ServerPing response,
-                                                final LegacyMinecraftPingVersion version) {
-    final Players players = response.getPlayers().orElse(FAKE_PLAYERS);
+  public static LegacyDisconnect fromServerPing(ServerPing response,
+                                                LegacyMinecraftPingVersion version) {
+    Players players = response.getPlayers().orElse(FAKE_PLAYERS);
 
     return switch (version) {
       case MINECRAFT_1_3 ->
@@ -79,12 +66,12 @@ public record LegacyDisconnect(String reason) {
     };
   }
 
-  private static String cleanSectionSymbol(final String string) {
+  private static String cleanSectionSymbol(String string) {
     return string.replaceAll(LEGACY_COLOR_CODE, "");
   }
 
-  private static String getFirstLine(final String legacyMotd) {
-    final int newline = legacyMotd.indexOf('\n');
+  private static String getFirstLine(String legacyMotd) {
+    int newline = legacyMotd.indexOf('\n');
     return newline == -1 ? legacyMotd : legacyMotd.substring(0, newline);
   }
 
@@ -94,9 +81,9 @@ public record LegacyDisconnect(String reason) {
    * @param component the component to convert
    * @return the disconnect packet
    */
-  public static LegacyDisconnect from(final TextComponent component) {
+  public static LegacyDisconnect from(TextComponent component) {
     // We intentionally use the legacy serializers, because the old clients can't understand JSON.
-    final String serialized = LegacyComponentSerializer.legacySection().serialize(component);
+    String serialized = LegacyComponentSerializer.legacySection().serialize(component);
     return new LegacyDisconnect(serialized);
   }
 }

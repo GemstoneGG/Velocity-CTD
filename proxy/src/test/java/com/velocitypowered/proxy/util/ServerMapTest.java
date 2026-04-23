@@ -20,9 +20,9 @@ package com.velocitypowered.proxy.util;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.proxy.server.ServerMap;
+import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Optional;
@@ -40,7 +40,7 @@ class ServerMapTest {
   void respectsCaseInsensitivity() {
     ServerMap map = new ServerMap(null);
     ServerInfo info = new ServerInfo("TestServer", TEST_ADDRESS);
-    RegisteredServer connection = map.register(info);
+    VelocityRegisteredServer connection = map.register(info);
 
     assertEquals(Optional.of(connection), map.getServer("TestServer"));
     assertEquals(Optional.of(connection), map.getServer("testserver"));
@@ -61,7 +61,7 @@ class ServerMapTest {
   void allowsSameServerLaxRegistrationCheck() {
     ServerMap map = new ServerMap(null);
     ServerInfo info = new ServerInfo("TestServer", TEST_ADDRESS);
-    RegisteredServer connection = map.register(info);
+    VelocityRegisteredServer connection = map.register(info);
     assertEquals(connection, map.register(info));
   }
 }

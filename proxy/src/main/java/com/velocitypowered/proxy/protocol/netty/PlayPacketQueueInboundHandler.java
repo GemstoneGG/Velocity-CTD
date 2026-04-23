@@ -21,6 +21,9 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
+import com.velocitypowered.proxy.util.except.QuietDecoderException;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufHolder;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.ReferenceCountUtil;
@@ -41,15 +44,14 @@ import org.jetbrains.annotations.NotNull;
  */
 public class PlayPacketQueueInboundHandler extends ChannelDuplexHandler {
 
-  /**
-   * The packet registry for the CONFIG state, used to detect which packets must bypass queuing.
-   */
+  private static final int MAXIMUM_SIZE = Integer.getInteger("velocity.maximum-play-queue-size", 128 * 1024 * 1024); // 128MiB by default
+  private static final QuietDecoderException QUEUE_LIMIT_FAILED = new QuietDecoderException(
+      "Queue too big (greater than " + MAXIMUM_SIZE + " bytes)");
+
   private final StateRegistry.PacketRegistry.ProtocolRegistry registry;
 
-  /**
-   * Internal queue of messages waiting to be forwarded once the PLAY state is reached.
-   */
   private final Queue<Object> queue = new ArrayDeque<>();
+  private int queueSize = 0;
 
   /**
    * Provides registries for "client" &amp; server bound packets.
@@ -57,22 +59,13 @@ public class PlayPacketQueueInboundHandler extends ChannelDuplexHandler {
    * @param version the protocol version
    * @param direction the direction of the packet flow (typically {@code SERVERBOUND})
    */
-  public PlayPacketQueueInboundHandler(final ProtocolVersion version, final ProtocolUtils.Direction direction) {
+  public PlayPacketQueueInboundHandler(ProtocolVersion version, ProtocolUtils.Direction direction) {
     this.registry = StateRegistry.CONFIG.getProtocolRegistry(direction, version);
   }
 
-  /**
-   * Intercepts incoming packets and conditionally queues them based on the current protocol state.
-   *
-   * <p>If the packet is part of the {@code CONFIG} state, it is immediately passed through.
-   * Otherwise, it is queued and deferred until the channel transitions to the {@code PLAY} state.</p>
-   *
-   * @param ctx the Netty channel context
-   * @param msg the incoming message (typically a {@link MinecraftPacket})
-   */
   @Override
-  public void channelRead(final @NotNull ChannelHandlerContext ctx, final @NotNull Object msg) {
-    if (msg instanceof final MinecraftPacket packet) {
+  public void channelRead(@NotNull ChannelHandlerContext ctx, @NotNull Object msg) {
+    if (msg instanceof MinecraftPacket packet) {
       // If the packet exists in the CONFIG state, we want to always
       // ensure that it gets handled by the current handler
       if (this.registry.containsPacket(packet)) {
@@ -81,40 +74,37 @@ public class PlayPacketQueueInboundHandler extends ChannelDuplexHandler {
       }
     }
 
+    int length = 0;
+    if (msg instanceof ByteBuf) {
+      // keep track of raw packets
+      length = ((ByteBuf) msg).readableBytes();
+    } else if (msg instanceof ByteBufHolder) {
+      // keep track of bytebufs wrapped inside packets
+      length = ((ByteBufHolder) msg).content().readableBytes();
+    }
+    if (this.queueSize + length > MAXIMUM_SIZE) {
+      ReferenceCountUtil.release(msg);
+      throw QUEUE_LIMIT_FAILED;
+    }
+    this.queueSize += length;
+
     // Otherwise, queue the packet
     this.queue.offer(msg);
   }
 
-  /**
-   * Invoked when the channel becomes inactive.
-   *
-   * <p>This method clears and releases all queued packets, as the connection
-   * will no longer reach the {@code PLAY} state.</p>
-   *
-   * @param ctx the Netty channel context
-   * @throws Exception if an error occurs during release
-   */
   @Override
-  public void channelInactive(final @NotNull ChannelHandlerContext ctx) throws Exception {
+  public void channelInactive(@NotNull ChannelHandlerContext ctx) throws Exception {
     this.releaseQueue(ctx, false);
 
     super.channelInactive(ctx);
   }
 
-  /**
-   * Called when this handler is removed from the pipeline.
-   *
-   * <p>Flushes all queued packets. If the channel is still active,
-   * they are forwarded downstream. Otherwise, their buffers are released.</p>
-   *
-   * @param ctx the Netty channel context
-   */
   @Override
-  public void handlerRemoved(final ChannelHandlerContext ctx) {
+  public void handlerRemoved(ChannelHandlerContext ctx) {
     this.releaseQueue(ctx, ctx.channel().isActive());
   }
 
-  private void releaseQueue(final ChannelHandlerContext ctx, final boolean active) {
+  private void releaseQueue(ChannelHandlerContext ctx, boolean active) {
     // Handle all the queued packets
     Object msg;
     while ((msg = this.queue.poll()) != null) {
@@ -124,5 +114,6 @@ public class PlayPacketQueueInboundHandler extends ChannelDuplexHandler {
         ReferenceCountUtil.release(msg);
       }
     }
+    this.queueSize = 0;
   }
 }

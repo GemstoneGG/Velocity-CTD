@@ -24,29 +24,20 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
 import io.netty.buffer.ByteBuf;
 
-/**
- * Represents a status request packet sent by the client to the server to request the server's status.
- */
 public final class StatusRequestPacket implements MinecraftPacket {
 
-  /**
-   * Singleton instance of the {@link StatusRequestPacket}, as this packet contains no payload.
-   *
-   * <p>This instance can be reused wherever a {@code StatusRequestPacket} is needed
-   * since it holds no state.</p>
-   */
   public static final StatusRequestPacket INSTANCE = new StatusRequestPacket();
 
   private StatusRequestPacket() {
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
     // There is no additional data to decode.
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction, final ProtocolVersion version) {
+  public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
     // There is no data to decode.
   }
 
@@ -56,12 +47,12 @@ public final class StatusRequestPacket implements MinecraftPacket {
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public boolean handle(MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 
   @Override
-  public int decodeExpectedMaxLength(final ByteBuf buf, final Direction direction, final ProtocolVersion version) {
+  public int decodeExpectedMaxLength(ByteBuf buf, Direction direction, ProtocolVersion version) {
     return 0;
   }
 }

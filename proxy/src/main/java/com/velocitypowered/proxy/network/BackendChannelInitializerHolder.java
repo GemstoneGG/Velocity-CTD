@@ -31,20 +31,12 @@ public class BackendChannelInitializerHolder implements Supplier<ChannelInitiali
     LogManager.getLogger(ConnectionManager.class);
   }
 
-  /**
-   * The current backend {@link ChannelInitializer} used to initialize backend server channels.
-   */
   private ChannelInitializer<Channel> initializer;
 
-  BackendChannelInitializerHolder(final ChannelInitializer<Channel> initializer) {
+  BackendChannelInitializerHolder(ChannelInitializer<Channel> initializer) {
     this.initializer = initializer;
   }
 
-  /**
-   * Returns the currently assigned {@link ChannelInitializer} for backend connections.
-   *
-   * @return the channel initializer
-   */
   @Override
   public ChannelInitializer<Channel> get() {
     return this.initializer;
@@ -57,7 +49,7 @@ public class BackendChannelInitializerHolder implements Supplier<ChannelInitiali
    * @deprecated Internal implementation detail
    */
   @Deprecated
-  public void set(final ChannelInitializer<Channel> initializer) {
+  public void set(ChannelInitializer<Channel> initializer) {
     this.initializer = initializer;
   }
 }

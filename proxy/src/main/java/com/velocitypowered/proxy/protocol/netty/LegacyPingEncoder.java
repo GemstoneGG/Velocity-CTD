@@ -31,21 +31,18 @@ import java.nio.charset.StandardCharsets;
 @Sharable
 public final class LegacyPingEncoder extends MessageToByteEncoder<LegacyDisconnect> {
 
-  /**
-   * The singleton instance of this encoder.
-   */
   public static final LegacyPingEncoder INSTANCE = new LegacyPingEncoder();
 
   private LegacyPingEncoder() {
   }
 
   @Override
-  protected void encode(final ChannelHandlerContext ctx, final LegacyDisconnect msg, final ByteBuf out) throws Exception {
+  protected void encode(ChannelHandlerContext ctx, LegacyDisconnect msg, ByteBuf out) throws Exception {
     out.writeByte(0xff);
     writeLegacyString(out, msg.reason());
   }
 
-  private static void writeLegacyString(final ByteBuf out, final String string) {
+  private static void writeLegacyString(ByteBuf out, String string) {
     out.writeShort(string.length());
     out.writeCharSequence(string, StandardCharsets.UTF_16BE);
   }

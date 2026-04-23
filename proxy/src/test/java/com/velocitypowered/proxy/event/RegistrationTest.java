@@ -64,7 +64,7 @@ public class RegistrationTest {
    * @param pluginManager the plugin manager to bind to
    * @return a fresh {@link EventManager}
    */
-  protected EventManager createEventManager(final PluginManager pluginManager) {
+  protected EventManager createEventManager(PluginManager pluginManager) {
     return new VelocityEventManager(pluginManager);
   }
 
@@ -84,7 +84,7 @@ public class RegistrationTest {
   private static final class HandlerListener implements EventHandler<SimpleEvent> {
 
     @Override
-    public void execute(final SimpleEvent event) {
+    public void execute(SimpleEvent event) {
       event.value++;
     }
   }
@@ -92,7 +92,7 @@ public class RegistrationTest {
   private static final class AnnotatedListener {
 
     @Subscribe
-    public void increment(final SimpleEvent event) {
+    public void increment(SimpleEvent event) {
       event.value++;
     }
   }
@@ -105,7 +105,7 @@ public class RegistrationTest {
     void runTest(boolean annotated, EventGenerator generator);
   }
 
-  private Stream<DynamicNode> composeTests(final String name, final TestFunction testFunction) {
+  private Stream<DynamicNode> composeTests(String name, TestFunction testFunction) {
     Set<DynamicNode> tests = new HashSet<>();
     boolean[] trueAndFalse = new boolean[]{true, false};
     for (boolean annotated : trueAndFalse) {

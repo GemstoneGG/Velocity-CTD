@@ -45,9 +45,9 @@ public class BrigadierCommandTests extends CommandTestSuite {
 
   @Test
   void testExecutesAlias() {
-    final var callCount = new AtomicInteger();
+    var callCount = new AtomicInteger();
 
-    final var node = LiteralArgumentBuilder
+    var node = LiteralArgumentBuilder
         .<CommandSource>literal("hello")
         .executes(context -> {
           assertEquals(source, context.getSource());
@@ -65,9 +65,9 @@ public class BrigadierCommandTests extends CommandTestSuite {
 
   @Test
   void testExecuteIgnoresAliasCase() {
-    final var callCount = new AtomicInteger();
+    var callCount = new AtomicInteger();
 
-    final var node = LiteralArgumentBuilder
+    var node = LiteralArgumentBuilder
         .<CommandSource>literal("hello")
         .executes(context -> {
           assertEquals("hello", context.getInput());
@@ -83,9 +83,9 @@ public class BrigadierCommandTests extends CommandTestSuite {
 
   @Test
   void testExecuteInputIsTrimmed() {
-    final var callCount = new AtomicInteger();
+    var callCount = new AtomicInteger();
 
-    final var node = LiteralArgumentBuilder
+    var node = LiteralArgumentBuilder
         .<CommandSource>literal("hello")
         .executes(context -> {
           assertEquals("hello", context.getInput());
@@ -104,7 +104,7 @@ public class BrigadierCommandTests extends CommandTestSuite {
 
   @Test
   void testExecuteAfterUnregisterForwards() {
-    final var node = LiteralArgumentBuilder
+    var node = LiteralArgumentBuilder
         .<CommandSource>literal("hello")
         .executes(context -> fail())
         .build();
@@ -116,9 +116,9 @@ public class BrigadierCommandTests extends CommandTestSuite {
 
   @Test
   void testForwardsAndDoesNotExecuteImpermissibleAlias() {
-    final var callCount = new AtomicInteger();
+    var callCount = new AtomicInteger();
 
-    final var node = LiteralArgumentBuilder
+    var node = LiteralArgumentBuilder
         .<CommandSource>literal("hello")
         .executes(context -> fail())
         .requires(actualSource -> {
@@ -135,9 +135,9 @@ public class BrigadierCommandTests extends CommandTestSuite {
 
   @Test
   void testForwardsAndDoesNotExecuteContextImpermissibleAlias() {
-    final var callCount = new AtomicInteger();
+    var callCount = new AtomicInteger();
 
-    final var node = LiteralArgumentBuilder
+    var node = LiteralArgumentBuilder
         .<CommandSource>literal("hello")
         .executes(context -> fail())
         .requiresWithContext((context, reader) -> {
@@ -156,9 +156,9 @@ public class BrigadierCommandTests extends CommandTestSuite {
 
   @Test
   void testExecutesNonAliasLevelNode() {
-    final var callCount = new AtomicInteger();
+    var callCount = new AtomicInteger();
 
-    final var node = LiteralArgumentBuilder
+    var node = LiteralArgumentBuilder
         .<CommandSource>literal("buy")
         .executes(context -> fail())
         .then(RequiredArgumentBuilder
@@ -179,9 +179,9 @@ public class BrigadierCommandTests extends CommandTestSuite {
 
   @Test
   void testHandlesAndDoesNotExecuteWithImpermissibleNonAliasLevelNode() {
-    final var callCount = new AtomicInteger();
+    var callCount = new AtomicInteger();
 
-    final var node = LiteralArgumentBuilder
+    var node = LiteralArgumentBuilder
         .<CommandSource>literal("hello")
         .executes(context -> fail())
         .then(LiteralArgumentBuilder
@@ -200,8 +200,8 @@ public class BrigadierCommandTests extends CommandTestSuite {
 
   @Test
   void testExecuteAsyncCompletesExceptionallyOnCallbackException() {
-    final var expected = new RuntimeException();
-    final var node = LiteralArgumentBuilder
+    var expected = new RuntimeException();
+    var node = LiteralArgumentBuilder
         .<CommandSource>literal("hello")
         .executes(context -> {
           throw expected;
@@ -209,7 +209,7 @@ public class BrigadierCommandTests extends CommandTestSuite {
         .build();
     manager.register(new BrigadierCommand(node));
 
-    final Exception wrapper = assertThrows(CompletionException.class, () ->
+    Exception wrapper = assertThrows(CompletionException.class, () ->
         manager.executeAsync(source, "hello").join());
 
     assertSame(expected, wrapper.getCause().getCause());
@@ -217,8 +217,8 @@ public class BrigadierCommandTests extends CommandTestSuite {
 
   @Test
   void testExecuteAsyncCompletesExceptionallyOnRequirementException() {
-    final var expected = new RuntimeException();
-    final var node = LiteralArgumentBuilder
+    var expected = new RuntimeException();
+    var node = LiteralArgumentBuilder
         .<CommandSource>literal("hello")
         .requires(source1 -> {
           throw expected;
@@ -227,7 +227,7 @@ public class BrigadierCommandTests extends CommandTestSuite {
         .build();
     manager.register(new BrigadierCommand(node));
 
-    final Exception wrapper = assertThrows(CompletionException.class, () ->
+    Exception wrapper = assertThrows(CompletionException.class, () ->
         manager.executeAsync(source, "hello").join());
 
     assertSame(expected, wrapper.getCause());
@@ -237,7 +237,7 @@ public class BrigadierCommandTests extends CommandTestSuite {
 
   @Test
   void testDoesNotSuggestAliasAfterUnregister() {
-    final var node = LiteralArgumentBuilder
+    var node = LiteralArgumentBuilder
         .<CommandSource>literal("hello")
         .build();
     manager.register(new BrigadierCommand(node));
@@ -248,7 +248,7 @@ public class BrigadierCommandTests extends CommandTestSuite {
 
   @Test
   void testArgumentSuggestions() {
-    final var node = LiteralArgumentBuilder
+    var node = LiteralArgumentBuilder
         .<CommandSource>literal("hello")
         .then(RequiredArgumentBuilder
             .<CommandSource, String>argument("argument", word())
@@ -270,7 +270,7 @@ public class BrigadierCommandTests extends CommandTestSuite {
 
   @Test
   void testSuggestsEvenIfImpermissible() {
-    final var node = LiteralArgumentBuilder
+    var node = LiteralArgumentBuilder
         .<CommandSource>literal("parent")
         .then(LiteralArgumentBuilder
             .<CommandSource>literal("child")
@@ -284,9 +284,9 @@ public class BrigadierCommandTests extends CommandTestSuite {
 
   @Test
   void testDoesNotSuggestIfImpermissibleDuringParse() {
-    final var callCount = new AtomicInteger();
+    var callCount = new AtomicInteger();
 
-    final var node = LiteralArgumentBuilder
+    var node = LiteralArgumentBuilder
         .<CommandSource>literal("parent")
         .then(LiteralArgumentBuilder
             .<CommandSource>literal("child")
@@ -308,7 +308,7 @@ public class BrigadierCommandTests extends CommandTestSuite {
 
   @Test
   void testDoesNotSuggestIfCustomSuggestionProviderFutureCompletesExceptionally() {
-    final var node = LiteralArgumentBuilder
+    var node = LiteralArgumentBuilder
         .<CommandSource>literal("parent")
         .then(RequiredArgumentBuilder
             .<CommandSource, String>argument("child", word())
@@ -322,7 +322,7 @@ public class BrigadierCommandTests extends CommandTestSuite {
 
   @Test
   void testDoesNotSuggestIfCustomSuggestionProviderThrows() {
-    final var node = LiteralArgumentBuilder
+    var node = LiteralArgumentBuilder
         .<CommandSource>literal("parent")
         .then(RequiredArgumentBuilder
             .<CommandSource, String>argument("child", word())
@@ -337,7 +337,7 @@ public class BrigadierCommandTests extends CommandTestSuite {
 
   @Test
   void testSuggestCompletesExceptionallyIfRequirementPredicateThrows() {
-    final var node = LiteralArgumentBuilder
+    var node = LiteralArgumentBuilder
         .<CommandSource>literal("parent")
         .requires(source1 -> {
           throw new RuntimeException();

@@ -58,19 +58,19 @@ public class VelocityArgumentCommandNodeTests {
    */
   @BeforeEach
   void setUp() {
-    final CommandDispatcher<Object> dispatcher = new CommandDispatcher<>();
+    CommandDispatcher<Object> dispatcher = new CommandDispatcher<>();
     this.contextBuilder = new CommandContextBuilder<>(dispatcher, new Object(),
         dispatcher.getRoot(), 0);
   }
 
   @Test
   void testParse() throws CommandSyntaxException {
-    final VelocityArgumentCommandNode<Object, String[]> node =
+    VelocityArgumentCommandNode<Object, String[]> node =
         velocityArgument("foo", STRING_ARRAY).build();
-    final StringReader reader = new StringReader("hello world");
+    StringReader reader = new StringReader("hello world");
     node.parse(reader, this.contextBuilder);
 
-    final StringRange expectedRange = StringRange.between(0, reader.getTotalLength());
+    StringRange expectedRange = StringRange.between(0, reader.getTotalLength());
 
     assertFalse(reader.canRead());
 
@@ -79,7 +79,7 @@ public class VelocityArgumentCommandNodeTests {
     assertEquals(expectedRange, this.contextBuilder.getNodes().getFirst().getRange());
 
     assertTrue(this.contextBuilder.getArguments().containsKey("foo"));
-    final ParsedArgument<Object, String[]> parsed =
+    ParsedArgument<Object, String[]> parsed =
         (ParsedArgument<Object, String[]>) this.contextBuilder.getArguments().get("foo");
     assertArrayEquals(new String[]{"hello", "world"}, parsed.getResult());
     assertEquals(expectedRange, parsed.getRange());
@@ -87,9 +87,9 @@ public class VelocityArgumentCommandNodeTests {
 
   @Test
   void testDefaultSuggestions() throws CommandSyntaxException {
-    final VelocityArgumentCommandNode<Object, String[]> node =
+    VelocityArgumentCommandNode<Object, String[]> node =
         velocityArgument("foo", STRING_ARRAY).build();
-    final Suggestions result = node.listSuggestions(
+    Suggestions result = node.listSuggestions(
         this.contextBuilder.build(""), new SuggestionsBuilder("", 0)).join();
 
     assertTrue(result.isEmpty());
@@ -99,7 +99,7 @@ public class VelocityArgumentCommandNodeTests {
   // and filtering is already tested in Brigadier.
   @Test
   void testCustomSuggestions() throws CommandSyntaxException {
-    final VelocityArgumentCommandNode<Object, String[]> node =
+    VelocityArgumentCommandNode<Object, String[]> node =
         velocityArgument("foo", STRING_ARRAY)
             .suggests((context, builder) -> {
               builder.suggest("bar");
@@ -107,7 +107,7 @@ public class VelocityArgumentCommandNodeTests {
               return builder.buildFuture();
             })
             .build();
-    final Suggestions result = node.listSuggestions(
+    Suggestions result = node.listSuggestions(
         this.contextBuilder.build(""), new SuggestionsBuilder("", 0)).join();
 
     assertEquals("bar", result.getList().get(0).getText());

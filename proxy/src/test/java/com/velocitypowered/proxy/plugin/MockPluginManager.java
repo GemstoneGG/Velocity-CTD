@@ -41,7 +41,7 @@ public class MockPluginManager implements PluginManager {
    * @return an empty optional
    */
   @Override
-  public Optional<PluginContainer> fromInstance(final Object instance) {
+  public Optional<PluginContainer> fromInstance(Object instance) {
     return Optional.empty();
   }
 
@@ -52,7 +52,7 @@ public class MockPluginManager implements PluginManager {
    * @return an empty optional
    */
   @Override
-  public Optional<PluginContainer> getPlugin(final String id) {
+  public Optional<PluginContainer> getPlugin(String id) {
     return Optional.empty();
   }
 
@@ -73,11 +73,11 @@ public class MockPluginManager implements PluginManager {
    * @return {@code false}
    */
   @Override
-  public boolean isLoaded(final String id) {
+  public boolean isLoaded(String id) {
     return false;
   }
 
   @Override
-  public void addToClasspath(final Object plugin, final Path path) {
+  public void addToClasspath(Object plugin, Path path) {
   }
 }

@@ -20,6 +20,7 @@ package com.velocitypowered.proxy.protocol.netty;
 import static io.netty.util.ByteProcessor.FIND_NON_NUL;
 
 import com.velocitypowered.api.network.ProtocolVersion;
+import com.velocitypowered.proxy.network.limiter.PacketLimiter;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
@@ -32,98 +33,53 @@ import io.netty.handler.codec.CorruptedFrameException;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Frames Minecraft server packets which are prefixed by a 21-bit VarInt encoding.
  */
 public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
 
-  /**
-   * Logger for reporting decoder exceptions, particularly when debug mode is enabled.
-   */
   private static final Logger LOGGER = LogManager.getLogger(MinecraftVarintFrameDecoder.class);
 
-  /**
-   * A reusable runtime exception thrown when decoding a frame fails in production mode.
-   *
-   * <p>Use {@code -Dvelocity.packet-decode-logging=true} to enable full decode stack traces.</p>
-   */
   private static final QuietRuntimeException FRAME_DECODER_FAILED =
       new QuietRuntimeException("A packet frame decoder failed. For more information, launch "
           + "Velocity with -Dvelocity.packet-decode-logging=true to see more.");
 
-  /**
-   * Indicates that a decoded packet declared an invalid (negative) length.
-   */
   private static final QuietDecoderException BAD_PACKET_LENGTH =
       new QuietDecoderException("Bad packet length");
 
-  /**
-   * Indicates that the packet preamble was invalid.
-   */
   private static final QuietDecoderException INVALID_PREAMBLE =
       new QuietDecoderException("Invalid packet preamble");
 
-  /**
-   * Indicates that a VarInt read during decoding was too large to be valid.
-   */
   private static final QuietDecoderException VARINT_TOO_BIG =
       new QuietDecoderException("VarInt too big");
 
-  /**
-   * Indicates that a packet ID was received for which no handler was registered.
-   */
   private static final QuietDecoderException UNKNOWN_PACKET =
       new QuietDecoderException("Unknown packet");
 
-  /**
-   * The protocol direction (serverbound or clientbound) this decoder is operating under.
-   */
   private final ProtocolUtils.Direction direction;
 
-  /**
-   * The protocol registry used to look up packets during the initial handshake phase.
-   *
-   * <p>This registry remains fixed and is primarily used for pre-handshake validation.</p>
-   */
   private final StateRegistry.PacketRegistry.ProtocolRegistry registry;
 
-  /**
-   * The current protocol state (e.g. handshake, login, play).
-   *
-   * <p>This is updated externally when a state transition occurs.</p>
-   */
   private StateRegistry state;
+
+  @Nullable
+  private PacketLimiter packetLimiter;
 
   /**
    * Creates a new {@code MinecraftVarintFrameDecoder} decoding packets from the specified {@code Direction}.
    *
    * @param direction the direction from which we decode from
    */
-  public MinecraftVarintFrameDecoder(final ProtocolUtils.Direction direction) {
+  public MinecraftVarintFrameDecoder(ProtocolUtils.Direction direction) {
     this.direction = direction;
     this.registry = StateRegistry.HANDSHAKE.getProtocolRegistry(direction, ProtocolVersion.MINIMUM_VERSION);
     this.state = StateRegistry.HANDSHAKE;
   }
 
-  /**
-   * Attempts to decode a single Minecraft packet from the input buffer.
-   *
-   * <p>This method reads a 21-bit VarInt-prefixed frame, performs basic validation checks,
-   * and emits the complete framed packet to the output list. If the packet length is zero
-   * or insufficient data is available, the buffer is reset for the next read cycle.</p>
-   *
-   * <p>For serverbound packets in the {@code HANDSHAKE} state, this method also validates
-   * the declared packet ID and its expected length bounds to catch malformed or oversized
-   * frames early.</p>
-   *
-   * @param ctx the Netty channel context
-   * @param in the input buffer containing raw packet data
-   * @param out the list to which decoded frames are added
-   * @throws Exception if frame validation fails or a protocol violation is detected
-   */
   @Override
-  protected void decode(final ChannelHandlerContext ctx, final ByteBuf in, final List<Object> out) throws Exception {
+  protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
     if (!ctx.channel().isActive()) {
       in.clear();
       return;
@@ -146,7 +102,6 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
     in.readerIndex(packetStart);
 
     // try to read the length of the packet
-    in.markReaderIndex();
     try {
       int length = readRawVarInt21(in);
       if (packetStart == in.readerIndex()) {
@@ -159,6 +114,7 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
       if (length > 0) {
         if (state == StateRegistry.HANDSHAKE && direction == ProtocolUtils.Direction.SERVERBOUND) {
           if (validateServerboundHandshakePacket(in, length)) {
+            in.readerIndex(packetStart);
             return;
           }
         }
@@ -167,74 +123,65 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
       // note that zero-length packets are ignored
       if (length > 0) {
         if (in.readableBytes() < length) {
-          in.resetReaderIndex();
+          in.readerIndex(packetStart);
         } else {
+          // If enabled, rate-limit serverbound payload bytes based on frame length
+          if (packetLimiter != null) {
+            if (!packetLimiter.account(length)) {
+              throw new QuietDecoderException(
+                      "Rate limit exceeded while processing packets for %s".formatted(
+                              ctx.channel().remoteAddress()));
+            }
+          }
           out.add(in.readRetainedSlice(length));
         }
       }
     } catch (Exception e) {
       // Reset buffer to consistent state before propagating exception to prevent memory leaks
-      in.resetReaderIndex();
+      in.readerIndex(packetStart);
       throw e;
     }
   }
 
-  private boolean validateServerboundHandshakePacket(final ByteBuf in, final int length) throws Exception {
+  private boolean validateServerboundHandshakePacket(ByteBuf in, int length) throws Exception {
     StateRegistry.PacketRegistry.ProtocolRegistry registry =
         state.getProtocolRegistry(direction, ProtocolVersion.MINIMUM_VERSION);
 
-    final int index = in.readerIndex();
+    int index = in.readerIndex();
     // Index hasn't changed, we've read nothing
-    try {
-      final int packetId = readRawVarInt21(in);
-      if (index == in.readerIndex()) {
-        in.resetReaderIndex();
-        return true;
-      }
-
-      final int payloadLength = length - ProtocolUtils.varIntBytes(packetId);
-
-      MinecraftPacket packet = registry.createPacket(packetId);
-
-      // We handle every packet in this phase, if you said something we don't know, something is really wrong
-      if (packet == null) {
-        throw UNKNOWN_PACKET;
-      }
-
-      // We 'technically' have the incoming bytes of a payload here, and so, these can actually parse
-      // the packet if needed, so, we'll take advantage of the existing methods
-      int expectedMinLen = packet.decodeExpectedMinLength(in, direction, registry.version);
-      int expectedMaxLen = packet.decodeExpectedMaxLength(in, direction, registry.version);
-      if (expectedMaxLen != -1 && payloadLength > expectedMaxLen) {
-        throw handleOverflow(packet, expectedMaxLen, in.readableBytes());
-      }
-
-      if (payloadLength < expectedMinLen) {
-        throw handleUnderflow(packet, expectedMaxLen, in.readableBytes());
-      }
-
-      in.readerIndex(index);
-      return false;
-    } catch (Exception e) {
-      // Reset buffer to consistent state before propagating exception to prevent memory leaks
-      in.readerIndex(index);
-      throw e;
+    int packetId = readRawVarInt21(in);
+    // Index hasn't changed, we've read nothing
+    if (index == in.readerIndex()) {
+      return true;
     }
+
+    int payloadLength = length - ProtocolUtils.varIntBytes(packetId);
+
+    MinecraftPacket packet = registry.createPacket(packetId);
+
+    // We handle every packet in this phase, if you said something we don't know, something is really wrong
+    if (packet == null) {
+      throw UNKNOWN_PACKET;
+    }
+
+    // We 'technically' have the incoming bytes of a payload here, and so, these can actually parse
+    // the packet if needed, so, we'll take advantage of the existing methods
+    int expectedMinLen = packet.decodeExpectedMinLength(in, direction, registry.version);
+    int expectedMaxLen = packet.decodeExpectedMaxLength(in, direction, registry.version);
+    if (expectedMaxLen != -1 && payloadLength > expectedMaxLen) {
+      throw handleOverflow(packet, expectedMaxLen, in.readableBytes());
+    }
+
+    if (payloadLength < expectedMinLen) {
+      throw handleUnderflow(packet, expectedMaxLen, in.readableBytes());
+    }
+
+    in.readerIndex(index);
+    return false;
   }
 
-  /**
-   * Handles exceptions that occur during packet framing.
-   *
-   * <p>If packet decode debugging is enabled via the system property
-   * {@code velocity.packet-decode-logging}, the full exception and remote address
-   * are logged to aid diagnostics.</p>
-   *
-   * @param ctx the Netty channel context
-   * @param cause the thrown exception during decoding
-   * @throws Exception if the error is not handled internally
-   */
   @Override
-  public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) throws Exception {
+  public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
     if (MinecraftDecoder.DEBUG) {
       LOGGER.atWarn()
           .withThrowable(cause)
@@ -251,7 +198,7 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
    * @return the VarInt decoded, {@code 0} if no varint could be read
    * @throws QuietDecoderException if the VarInt is too big to be decoded
    */
-  private static int readRawVarInt21(final ByteBuf buffer) {
+  private static int readRawVarInt21(ByteBuf buffer) {
     if (buffer.readableBytes() < 4) {
       // we don't have enough that we can read a potentially full varint, so fall back to
       // the slow path.
@@ -286,7 +233,7 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
     return preservedBytes;
   }
 
-  private static int readRawVarintSmallBuf(final ByteBuf buffer) {
+  private static int readRawVarintSmallBuf(ByteBuf buffer) {
     if (!buffer.isReadable()) {
       return 0;
     }
@@ -321,7 +268,7 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
     return result | (tmp & 0x7F) << 14;
   }
 
-  private Exception handleOverflow(final MinecraftPacket packet, final int expected, final int actual) {
+  private Exception handleOverflow(MinecraftPacket packet, int expected, int actual) {
     if (MinecraftDecoder.DEBUG) {
       return new CorruptedFrameException("Packet sent for " + packet.getClass() + " was too "
           + "big (expected " + expected + " bytes, got " + actual + " bytes)");
@@ -330,7 +277,7 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
     }
   }
 
-  private Exception handleUnderflow(final MinecraftPacket packet, final int expected, final int actual) {
+  private Exception handleUnderflow(MinecraftPacket packet, int expected, int actual) {
     if (MinecraftDecoder.DEBUG) {
       return new CorruptedFrameException("Packet sent for " + packet.getClass() + " was too "
           + "small (expected " + expected + " bytes, got " + actual + " bytes)");
@@ -339,27 +286,11 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
     }
   }
 
-  /**
-   * Updates the current protocol {@link StateRegistry} used by this decoder.
-   *
-   * <p>This method is typically invoked when a protocol state transition occurs (e.g. from
-   * handshake to login), allowing the decoder to enforce correct packet validation.</p>
-   *
-   * @param stateRegistry the new protocol state to apply
-   */
-  public void setState(final StateRegistry stateRegistry) {
+  public void setState(StateRegistry stateRegistry) {
     this.state = stateRegistry;
   }
 
-  /**
-   * Gets the current {@link StateRegistry.PacketRegistry.ProtocolRegistry} associated with this decoder.
-   *
-   * <p>This registry is used to validate and instantiate packets for the initial handshake state
-   * and should not be assumed to reflect the latest state unless updated manually.</p>
-   *
-   * @return the protocol registry used during decoding
-   */
-  public StateRegistry.PacketRegistry.ProtocolRegistry getRegistry() {
-    return registry;
+  public void setPacketLimiter(@Nullable PacketLimiter packetLimiter) {
+    this.packetLimiter = packetLimiter;
   }
 }

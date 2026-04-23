@@ -45,6 +45,8 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessageFactory;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -52,66 +54,37 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class ConnectionManager {
 
-  /**
-   * The default write buffer watermark used for all Minecraft server channels.
-   */
   private static final WriteBufferWaterMark SERVER_WRITE_MARK = new WriteBufferWaterMark(1 << 20, 1 << 21);
 
-  /**
-   * The logger instance for this class.
-   */
   private static final Logger LOGGER = LogManager.getLogger(ConnectionManager.class, new ParameterizedMessageFactory());
 
-  /**
-   * Tracks all active bound endpoints, keyed by their socket address.
-   */
   private final Multimap<InetSocketAddress, Endpoint> endpoints = HashMultimap.create();
 
-  /**
-   * The {@link TransportType} used for Netty channels (e.g., Epoll, NIO, etc.).
-   */
   private final TransportType transportType;
 
-  /**
-   * The Netty boss group used to accept new connections.
-   */
   private final EventLoopGroup bossGroup;
 
-  /**
-   * The Netty worker group used to handle established connections.
-   */
   private final EventLoopGroup workerGroup;
 
-  /**
-   * A reference to the owning {@link VelocityServer} instance.
-   */
   private final VelocityServer server;
 
-  /**
-   * Holds the active {@link ServerChannelInitializer}, used for incoming Minecraft connections.
-   *
-   * <p>This field is public for compatibility with protocol injection systems like ViaVersion.</p>
-   */
   public final ServerChannelInitializerHolder serverChannelInitializer;
 
-  /**
-   * Holds the active {@link BackendChannelInitializer}, used for backend server connections.
-   *
-   * <p>This field is public for compatibility with protocol injection systems like ViaVersion.</p>
-   */
   public final BackendChannelInitializerHolder backendChannelInitializer;
 
-  /**
-   * The name resolver used to resolve DNS names without blocking the Netty threads.
-   */
   private final SeparatePoolInetNameResolver resolver;
+
+  /**
+   * Shared {@link HttpClient} for pooled http connections.
+   */
+  private volatile @MonotonicNonNull HttpClient sharedHttpClient;
 
   /**
    * Initializes the {@code ConnectionManager}.
    *
    * @param server a reference to the Velocity server
    */
-  public ConnectionManager(final VelocityServer server) {
+  public ConnectionManager(VelocityServer server) {
     this.server = server;
     this.transportType = TransportType.bestType();
     this.bossGroup = this.transportType.createEventLoopGroup(TransportType.Type.BOSS);
@@ -121,10 +94,6 @@ public final class ConnectionManager {
     this.resolver = new SeparatePoolInetNameResolver(GlobalEventExecutor.INSTANCE);
   }
 
-  /**
-   * Logs the current Netty channel configuration, including transport type,
-   * compression backend, and cipher implementation in use.
-   */
   public void logChannelInformation() {
     LOGGER.info("Connections will use {} channels, {} compression, {} ciphers", this.transportType,
         Natives.compress.getLoadedVariant(), Natives.cipher.getLoadedVariant());
@@ -135,8 +104,8 @@ public final class ConnectionManager {
    *
    * @param address the address to bind to
    */
-  public void bind(final InetSocketAddress address) {
-    final ServerBootstrap bootstrap = new ServerBootstrap()
+  public void bind(InetSocketAddress address) {
+    ServerBootstrap bootstrap = new ServerBootstrap()
         .channelFactory(this.transportType.serverSocketChannelFactory)
         .childOption(ChannelOption.WRITE_BUFFER_WATER_MARK, SERVER_WRITE_MARK)
         .childHandler(this.serverChannelInitializer.get())
@@ -155,7 +124,7 @@ public final class ConnectionManager {
       bootstrap.group(this.bossGroup, this.workerGroup);
     }
 
-    final int binds = server.getConfiguration().isEnableReusePort()
+    int binds = server.getConfiguration().isEnableReusePort()
         ? ((MultithreadEventExecutorGroup) this.workerGroup).executorCount() : 1;
 
     for (int bind = 0; bind < binds; bind++) {
@@ -163,7 +132,7 @@ public final class ConnectionManager {
       int finalBind = bind;
       ChannelFuture f = bootstrap.bind()
           .addListener((ChannelFutureListener) future -> {
-            final Channel channel = future.channel();
+            Channel channel = future.channel();
             if (future.isSuccess()) {
               this.endpoints.put(address, new Endpoint(channel, ListenerType.MINECRAFT));
 
@@ -199,16 +168,16 @@ public final class ConnectionManager {
    * @param hostname the hostname to bind to
    * @param port     the port to bind to
    */
-  public void queryBind(final String hostname, final int port) {
+  public void queryBind(String hostname, int port) {
     InetSocketAddress address = new InetSocketAddress(hostname, port);
-    final Bootstrap bootstrap = new Bootstrap()
+    Bootstrap bootstrap = new Bootstrap()
         .channelFactory(this.transportType.datagramChannelFactory)
         .group(this.workerGroup)
         .handler(new GameSpyQueryHandler(this.server))
         .localAddress(address);
     bootstrap.bind()
         .addListener((ChannelFutureListener) future -> {
-          final Channel channel = future.channel();
+          Channel channel = future.channel();
           if (future.isSuccess()) {
             this.endpoints.put(address, new Endpoint(channel, ListenerType.QUERY));
             LOGGER.info("Listening for GS4 query on {}", channel.localAddress());
@@ -228,7 +197,7 @@ public final class ConnectionManager {
    * @param group the event loop group to use. Use {@code null} for the default worker group.
    * @return a new {@link Bootstrap}
    */
-  public Bootstrap createWorker(final @Nullable EventLoopGroup group) {
+  public Bootstrap createWorker(@Nullable EventLoopGroup group) {
     Bootstrap bootstrap = new Bootstrap()
         .channelFactory(this.transportType.socketChannelFactory)
         .option(ChannelOption.TCP_NODELAY, true)
@@ -248,7 +217,7 @@ public final class ConnectionManager {
    *
    * @param oldBind the endpoint to close
    */
-  public void close(final InetSocketAddress oldBind) {
+  public void close(InetSocketAddress oldBind) {
     Collection<Endpoint> endpoints = this.endpoints.removeAll(oldBind);
     Preconditions.checkState(!endpoints.isEmpty(), "Endpoint was not registered");
 
@@ -270,10 +239,10 @@ public final class ConnectionManager {
    *
    * @param interrupt should closing forward interruptions
    */
-  public void closeEndpoints(final boolean interrupt) {
-    for (final Map.Entry<InetSocketAddress, Collection<Endpoint>> entry : this.endpoints.asMap().entrySet()) {
-      final InetSocketAddress address = entry.getKey();
-      final Collection<Endpoint> endpoints = entry.getValue();
+  public void closeEndpoints(boolean interrupt) {
+    for (Map.Entry<InetSocketAddress, Collection<Endpoint>> entry : this.endpoints.asMap().entrySet()) {
+      InetSocketAddress address = entry.getKey();
+      Collection<Endpoint> endpoints = entry.getValue();
       ListenerType type = endpoints.iterator().next().getType();
 
       // Fire proxy close event to notify plugins of socket close. We block since plugins
@@ -285,7 +254,7 @@ public final class ConnectionManager {
         if (interrupt) {
           try {
             endpoint.getChannel().close().sync();
-          } catch (final InterruptedException e) {
+          } catch (InterruptedException e) {
             LOGGER.info("Interrupted whilst closing endpoint", e);
             Thread.currentThread().interrupt();
           }
@@ -307,42 +276,32 @@ public final class ConnectionManager {
     this.resolver.shutdown();
   }
 
-  /**
-   * Returns the Netty boss event loop group used for accepting incoming connections.
-   *
-   * @return the boss {@link EventLoopGroup}
-   */
   public EventLoopGroup getBossGroup() {
     return bossGroup;
   }
 
-  /**
-   * Returns the {@link ServerChannelInitializerHolder} currently used to initialize
-   * inbound Minecraft server connections.
-   *
-   * @return the server channel initializer holder
-   */
   public ServerChannelInitializerHolder getServerChannelInitializer() {
     return this.serverChannelInitializer;
   }
 
-  /**
-   * Returns an HTTP client instance.
-   *
-   * @return an HTTP client instance.
-   */
   public HttpClient createHttpClient() {
     return HttpClient.newBuilder()
         .executor(this.workerGroup)
         .build();
   }
 
-  /**
-   * Returns the {@link BackendChannelInitializerHolder} currently used to initialize
-   * outbound backend server connections.
-   *
-   * @return the backend channel initializer holder
-   */
+  @EnsuresNonNull("sharedHttpClient")
+  public HttpClient getSharedHttpClient() {
+    if (sharedHttpClient == null) {
+      synchronized (this) {
+        if (sharedHttpClient == null) { // check again in lock
+          sharedHttpClient = createHttpClient();
+        }
+      }
+    }
+    return sharedHttpClient;
+  }
+
   public BackendChannelInitializerHolder getBackendChannelInitializer() {
     return this.backendChannelInitializer;
   }

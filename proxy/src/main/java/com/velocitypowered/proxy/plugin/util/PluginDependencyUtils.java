@@ -50,7 +50,7 @@ public final class PluginDependencyUtils {
    * @return the sorted list of plugins
    * @throws IllegalStateException if there is a circular loop in the dependency graph
    */
-  public static List<PluginDescription> sortCandidates(final List<PluginDescription> candidates) {
+  public static List<PluginDescription> sortCandidates(List<PluginDescription> candidates) {
     List<PluginDescription> sortedCandidates = new ArrayList<>(candidates);
     sortedCandidates.sort(Comparator.comparing(PluginDescription::getId));
 
@@ -89,9 +89,9 @@ public final class PluginDependencyUtils {
     return sorted;
   }
 
-  private static void visitNode(final Graph<PluginDescription> dependencyGraph, final PluginDescription current,
-                                final Map<PluginDescription, Mark> visited, final List<PluginDescription> sorted,
-                                final Deque<PluginDescription> currentDependencyScanStack) {
+  private static void visitNode(Graph<PluginDescription> dependencyGraph, PluginDescription current,
+                                Map<PluginDescription, Mark> visited, List<PluginDescription> sorted,
+                                Deque<PluginDescription> currentDependencyScanStack) {
     Mark mark = visited.getOrDefault(current, Mark.NOT_VISITED);
     if (mark == Mark.VISITED) {
       // Visited this node already, nothing to do.
@@ -102,7 +102,7 @@ public final class PluginDependencyUtils {
       // circular dependency, thus we do not have a directed acyclic graph and therefore no
       // topological sort is possible.)
       currentDependencyScanStack.addLast(current);
-      final String loop = currentDependencyScanStack.stream().map(PluginDescription::getId)
+      String loop = currentDependencyScanStack.stream().map(PluginDescription::getId)
           .collect(Collectors.joining(" -> "));
       throw new IllegalStateException("Circular dependency detected: " + loop);
     }

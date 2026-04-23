@@ -63,8 +63,8 @@ public class ServerLoginPluginMessageEvent implements ResultedEvent<ResponseResu
    * @param contents the contents of the message
    * @param sequenceId the ID of the message
    */
-  public ServerLoginPluginMessageEvent(final ServerConnection connection, final ChannelIdentifier identifier,
-                                       final byte[] contents, final int sequenceId) {
+  public ServerLoginPluginMessageEvent(ServerConnection connection, ChannelIdentifier identifier,
+                                       byte[] contents, int sequenceId) {
     this.connection = checkNotNull(connection, "connection");
     this.identifier = checkNotNull(identifier, "identifier");
     this.contents = checkNotNull(contents, "contents");
@@ -95,7 +95,7 @@ public class ServerLoginPluginMessageEvent implements ResultedEvent<ResponseResu
    * @throws NullPointerException if {@code result} is null
    */
   @Override
-  public void setResult(final ResponseResult result) {
+  public void setResult(ResponseResult result) {
     this.result = checkNotNull(result, "result");
   }
 
@@ -189,7 +189,7 @@ public class ServerLoginPluginMessageEvent implements ResultedEvent<ResponseResu
      */
     private final byte @Nullable [] response;
 
-    private ResponseResult(final byte @Nullable [] response) {
+    private ResponseResult(byte @Nullable [] response) {
       this.response = response;
     }
 
@@ -227,13 +227,13 @@ public class ServerLoginPluginMessageEvent implements ResultedEvent<ResponseResu
      * @param response the response bytes to send
      * @return a response result containing the response data
      */
-    public static ResponseResult reply(final byte[] response) {
+    public static ResponseResult reply(byte[] response) {
       checkNotNull(response, "response");
       return new ResponseResult(response);
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(Object o) {
       if (this == o) {
         return true;
       }

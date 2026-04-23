@@ -27,7 +27,7 @@ public enum ListenerType {
    */
   final String name;
 
-  ListenerType(final String name) {
+  ListenerType(String name) {
     this.name = name;
   }
 

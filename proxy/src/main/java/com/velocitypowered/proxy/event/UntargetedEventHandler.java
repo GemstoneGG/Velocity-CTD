@@ -28,13 +28,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public interface UntargetedEventHandler {
 
-  /**
-   * Binds this untargeted event handler to a specific instance of the target class and
-   * returns an {@link EventHandler} that can be executed with events.
-   *
-   * @param targetInstance the target plugin instance or listener class
-   * @return a concrete {@link EventHandler} for the given target
-   */
   EventHandler<Object> buildHandler(Object targetInstance);
 
   /**
@@ -42,17 +35,10 @@ public interface UntargetedEventHandler {
    */
   interface EventTaskHandler extends UntargetedEventHandler {
 
-    /**
-     * Executes the handler logic on the given target instance and event, returning an {@link EventTask}.
-     *
-     * @param targetInstance the listener instance
-     * @param event the event object being dispatched
-     * @return an {@link EventTask} or {@code null} if no task is required
-     */
     @Nullable EventTask execute(Object targetInstance, Object event);
 
     @Override
-    default EventHandler<Object> buildHandler(final Object targetInstance) {
+    default EventHandler<Object> buildHandler(Object targetInstance) {
       return (AwaitingEventExecutor<Object>) event -> execute(targetInstance, event);
     }
   }
@@ -62,16 +48,10 @@ public interface UntargetedEventHandler {
    */
   interface VoidHandler extends UntargetedEventHandler {
 
-    /**
-     * Executes the handler logic on the given target instance and event.
-     *
-     * @param targetInstance the listener instance
-     * @param event the event object being dispatched
-     */
     void execute(Object targetInstance, Object event);
 
     @Override
-    default EventHandler<Object> buildHandler(final Object targetInstance) {
+    default EventHandler<Object> buildHandler(Object targetInstance) {
       return (AwaitingEventExecutor<Object>) event -> {
         execute(targetInstance, event);
         return null;
@@ -84,17 +64,10 @@ public interface UntargetedEventHandler {
    */
   interface WithContinuationHandler extends UntargetedEventHandler {
 
-    /**
-     * Executes the handler logic with access to a continuation that must be resumed.
-     *
-     * @param targetInstance the listener instance
-     * @param event the event object being dispatched
-     * @param continuation the continuation callback to resume event execution
-     */
     void execute(Object targetInstance, Object event, Continuation continuation);
 
     @Override
-    default EventHandler<Object> buildHandler(final Object targetInstance) {
+    default EventHandler<Object> buildHandler(Object targetInstance) {
       return (AwaitingEventExecutor<Object>) event -> EventTask.withContinuation(continuation ->
           execute(targetInstance, event, continuation));
     }

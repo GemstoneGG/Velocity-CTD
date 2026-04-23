@@ -31,21 +31,21 @@ import org.apache.logging.log4j.Logger;
 public final class ForwardingMigration implements ConfigurationMigration {
 
   @Override
-  public boolean shouldMigrate(final CommentedFileConfig config) {
+  public boolean shouldMigrate(CommentedFileConfig config) {
     return configVersion(config) < 2.0;
   }
 
   @Override
-  public void migrate(final CommentedFileConfig config, final Logger logger) throws IOException {
+  public void migrate(CommentedFileConfig config, Logger logger) throws IOException {
     logger.warn("""
             You are currently using a deprecated configuration version.
             The "forwarding-secret"  parameter is a security hazard and was removed in \
             config version 2.0.
             We will migrate your secret to the "forwarding.secret" file.""");
-    final String actualSecret = config.get("forwarding-secret");
-    final Path path = Path.of(config.getOrElse("forwarding-secret-file", "forwarding.secret"));
+    String actualSecret = config.get("forwarding-secret");
+    Path path = Path.of(config.getOrElse("forwarding-secret-file", "forwarding.secret"));
     if (Files.exists(path)) {
-      final String fileContents = Files.readString(path);
+      String fileContents = Files.readString(path);
       if (fileContents.isBlank()) {
         Files.writeString(path, actualSecret == null ? generateRandomString(12) : actualSecret);
       }

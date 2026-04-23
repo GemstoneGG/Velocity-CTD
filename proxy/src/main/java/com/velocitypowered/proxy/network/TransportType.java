@@ -52,72 +52,45 @@ import java.util.function.Supplier;
  */
 public enum TransportType {
 
-  /**
-   * Java NIO-based transport.
-   */
   NIO("NIO",
       NioServerSocketChannel::new,
       NioSocketChannel::new,
       NioDatagramChannel::new,
       NioIoHandler::newFactory),
 
-  /**
-   * Linux epoll-based native transport.
-   */
   EPOLL("epoll",
       EpollServerSocketChannel::new,
       EpollSocketChannel::new,
       EpollDatagramChannel::new,
       EpollIoHandler::newFactory),
 
-  /**
-   * macOS KQueue-based native transport.
-   */
   KQUEUE("kqueue",
       KQueueServerSocketChannel::new,
       KQueueSocketChannel::new,
       KQueueDatagramChannel::new,
       KQueueIoHandler::newFactory),
 
-  /**
-   * Linux io_uring-based native transport (experimental).
-   */
   IO_URING("io_uring",
       IoUringServerSocketChannel::new,
       IoUringSocketChannel::new,
       IoUringDatagramChannel::new,
       IoUringIoHandler::newFactory);
 
-  /**
-   * Human-readable name of the transport.
-   */
   final String name;
 
-  /**
-   * Factory for creating {@link ServerSocketChannel} instances.
-   */
   final ChannelFactory<? extends ServerSocketChannel> serverSocketChannelFactory;
 
-  /**
-   * Factory for creating {@link SocketChannel} instances.
-   */
   final ChannelFactory<? extends SocketChannel> socketChannelFactory;
 
-  /**
-   * Factory for creating {@link DatagramChannel} instances.
-   */
   final ChannelFactory<? extends DatagramChannel> datagramChannelFactory;
 
-  /**
-   * Supplier for the transport's {@link IoHandlerFactory}.
-   */
   final Supplier<IoHandlerFactory> ioHandlerFactorySupplier;
 
-  TransportType(final String name,
-                final ChannelFactory<? extends ServerSocketChannel> serverSocketChannelFactory,
-                final ChannelFactory<? extends SocketChannel> socketChannelFactory,
-                final ChannelFactory<? extends DatagramChannel> datagramChannelFactory,
-                final Supplier<IoHandlerFactory> ioHandlerFactorySupplier) {
+  TransportType(String name,
+                ChannelFactory<? extends ServerSocketChannel> serverSocketChannelFactory,
+                ChannelFactory<? extends SocketChannel> socketChannelFactory,
+                ChannelFactory<? extends DatagramChannel> datagramChannelFactory,
+                Supplier<IoHandlerFactory> ioHandlerFactorySupplier) {
     this.name = name;
     this.serverSocketChannelFactory = serverSocketChannelFactory;
     this.socketChannelFactory = socketChannelFactory;
@@ -136,11 +109,11 @@ public enum TransportType {
    * @param type the type of event loop group to create
    * @return the event loop group
    */
-  public EventLoopGroup createEventLoopGroup(final Type type) {
+  public EventLoopGroup createEventLoopGroup(Type type) {
     return new MultiThreadIoEventLoopGroup(0, createThreadFactory(this.name, type), this.ioHandlerFactorySupplier.get());
   }
 
-  private static ThreadFactory createThreadFactory(final String name, final Type type) {
+  private static ThreadFactory createThreadFactory(String name, Type type) {
     return new VelocityNettyThreadFactory("Netty " + name + ' ' + type.toString() + " #%d");
   }
 
@@ -184,12 +157,9 @@ public enum TransportType {
      */
     WORKER("Worker");
 
-    /**
-     * The human-readable name of the event loop group type.
-     */
     private final String name;
 
-    Type(final String name) {
+    Type(String name) {
       this.name = name;
     }
 

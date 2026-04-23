@@ -33,7 +33,7 @@ public final class ServerInfo implements Comparable<ServerInfo> {
    * to this server.
    */
   @Nullable
-  private final ServerInfoForwardingMode forwardingMode;
+  private final PlayerInfoForwarding forwardingMode;
 
   /**
    * Creates a new ServerInfo object.
@@ -43,7 +43,7 @@ public final class ServerInfo implements Comparable<ServerInfo> {
    * @param forwardingMode the server info forwarding mode, or {@code null} if the mode from the config should be used
    * @since 3.4.0
    */
-  public ServerInfo(final String name, final InetSocketAddress address, final @Nullable ServerInfoForwardingMode forwardingMode) {
+  public ServerInfo(String name, InetSocketAddress address, @Nullable PlayerInfoForwarding forwardingMode) {
     this.name = Preconditions.checkNotNull(name, "name");
     this.address = Preconditions.checkNotNull(address, "address");
     this.forwardingMode = forwardingMode;
@@ -55,7 +55,7 @@ public final class ServerInfo implements Comparable<ServerInfo> {
    * @param name the name for the server
    * @param address the address of the server to connect to
    */
-  public ServerInfo(final String name, final InetSocketAddress address) {
+  public ServerInfo(String name, InetSocketAddress address) {
     this.name = Preconditions.checkNotNull(name, "name");
     this.address = Preconditions.checkNotNull(address, "address");
     this.forwardingMode = null;
@@ -77,7 +77,7 @@ public final class ServerInfo implements Comparable<ServerInfo> {
    *     if the mode is inherited from the "player-info-forwarding-mode" set in the config
    */
   @Nullable
-  public ServerInfoForwardingMode getServerInfoForwardingMode() {
+  public PlayerInfoForwarding getPlayerInfoForwardingMode() {
     return forwardingMode;
   }
 
@@ -100,12 +100,12 @@ public final class ServerInfo implements Comparable<ServerInfo> {
   }
 
   @Override
-  public boolean equals(final @Nullable Object o) {
+  public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }
 
-    if (!(o instanceof final ServerInfo that)) {
+    if (!(o instanceof ServerInfo that)) {
       return false;
     }
 
@@ -119,7 +119,7 @@ public final class ServerInfo implements Comparable<ServerInfo> {
   }
 
   @Override
-  public int compareTo(final ServerInfo o) {
+  public int compareTo(ServerInfo o) {
     return this.name.compareTo(o.getName());
   }
 }

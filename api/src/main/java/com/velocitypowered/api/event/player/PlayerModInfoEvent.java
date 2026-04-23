@@ -34,7 +34,7 @@ public final class PlayerModInfoEvent {
    * @param player the player sending their mod list
    * @param modInfo the mod list information
    */
-  public PlayerModInfoEvent(final Player player, final ModInfo modInfo) {
+  public PlayerModInfoEvent(Player player, ModInfo modInfo) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.modInfo = Preconditions.checkNotNull(modInfo, "modInfo");
   }

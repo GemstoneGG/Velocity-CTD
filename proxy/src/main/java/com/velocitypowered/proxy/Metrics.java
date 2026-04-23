@@ -43,12 +43,9 @@ import org.bstats.json.JsonObjectBuilder;
  */
 public final class Metrics {
 
-  /**
-   * The bStats metrics core responsible for collecting and submitting data.
-   */
   private MetricsBase metricsBase;
 
-  private Metrics(final Logger logger, final int serviceId, final boolean defaultEnabled) {
+  private Metrics(Logger logger, int serviceId, boolean defaultEnabled) {
     File configFile = Path.of("plugins", "bStats", "config.txt").toFile();
     MetricsConfig config;
     try {
@@ -94,11 +91,11 @@ public final class Metrics {
    *
    * @param chart The chart to add.
    */
-  public void addCustomChart(final CustomChart chart) {
+  public void addCustomChart(CustomChart chart) {
     metricsBase.addCustomChart(chart);
   }
 
-  private void appendPlatformData(final JsonObjectBuilder builder) {
+  private void appendPlatformData(JsonObjectBuilder builder) {
     builder.appendField("osName", System.getProperty("os.name"));
     builder.appendField("osArch", System.getProperty("os.arch"));
     builder.appendField("osVersion", System.getProperty("os.version"));
@@ -107,13 +104,10 @@ public final class Metrics {
 
   static class VelocityMetrics {
 
-    /**
-     * Logger used for bStats-related output during initialization.
-     */
-    private static final Logger logger = LogManager.getLogger(Metrics.class);
+    private static final Logger LOGGER = LogManager.getLogger(Metrics.class);
 
-    static void startMetrics(final VelocityServer server, final VelocityConfiguration.Metrics metricsConfig) {
-      Metrics metrics = new Metrics(logger, 4752, metricsConfig.isEnabled());
+    static void startMetrics(VelocityServer server, VelocityConfiguration.Metrics metricsConfig) {
+      Metrics metrics = new Metrics(LOGGER, 4752, metricsConfig.isEnabled());
 
       metrics.addCustomChart(
           new SingleLineChart("players", server::getPlayerCount)

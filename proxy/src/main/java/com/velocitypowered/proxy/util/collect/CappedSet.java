@@ -31,17 +31,11 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class CappedSet<T> extends ForwardingSet<T> {
 
-  /**
-   * The backing set that holds the actual elements.
-   */
   private final Set<T> delegate;
 
-  /**
-   * The maximum number of elements allowed in this set.
-   */
   private final int upperSize;
 
-  private CappedSet(final Set<T> delegate, final int upperSize) {
+  private CappedSet(Set<T> delegate, int upperSize) {
     this.delegate = delegate;
     this.upperSize = upperSize;
   }
@@ -53,7 +47,7 @@ public final class CappedSet<T> extends ForwardingSet<T> {
    * @param <T>     the type of elements in the collection
    * @return the new collection
    */
-  public static <T> Set<T> create(final int maxSize) {
+  public static <T> Set<T> create(int maxSize) {
     return new CappedSet<>(new HashSet<>(), maxSize);
   }
 
@@ -63,7 +57,7 @@ public final class CappedSet<T> extends ForwardingSet<T> {
   }
 
   @Override
-  public boolean add(final T element) {
+  public boolean add(T element) {
     if (this.delegate.size() >= upperSize) {
       Preconditions.checkState(this.delegate.contains(element),
           "collection is too large (%s >= %s)",
@@ -75,7 +69,7 @@ public final class CappedSet<T> extends ForwardingSet<T> {
   }
 
   @Override
-  public boolean addAll(final @NotNull Collection<? extends T> collection) {
+  public boolean addAll(@NotNull Collection<? extends T> collection) {
     return this.standardAddAll(collection);
   }
 }

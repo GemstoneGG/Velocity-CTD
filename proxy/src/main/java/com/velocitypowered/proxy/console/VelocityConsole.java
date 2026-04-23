@@ -17,16 +17,19 @@
 
 package com.velocitypowered.proxy.console;
 
-import static com.velocitypowered.api.permission.PermissionFunction.ALWAYS_TRUE;
+import static com.velocityctd.proxy.permission.PermissionResolverAdapterFactory.createPermissionResolverAdapter;
 
+import com.velocityctd.api.permission.PermissionResolver;
 import com.velocitypowered.api.event.permission.PermissionsSetupEvent;
 import com.velocitypowered.api.permission.PermissionFunction;
+import com.velocitypowered.api.permission.PermissionProvider;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.ConsoleCommandSource;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.util.ClosestLocaleMatcher;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import net.kyori.adventure.audience.MessageType;
 import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.permission.PermissionChecker;
@@ -44,7 +47,9 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.io.IoBuilder;
 import org.apache.logging.log4j.message.ParameterizedMessageFactory;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Unmodifiable;
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -57,84 +62,86 @@ import org.jline.reader.LineReaderBuilder;
 public final class VelocityConsole extends SimpleTerminalConsole implements ConsoleCommandSource {
 
   /**
-   * The logger used for standard logging output.
+   * The default {@link PermissionResolver} to use when no other resolver is provided
+   * by plugins through the {@link PermissionsSetupEvent}.
    */
-  private static final Logger logger = LogManager.getLogger(VelocityConsole.class, new ParameterizedMessageFactory());
+  private static final PermissionResolver DEFAULT_PERMISSION_RESOLVER = PermissionResolver.ALWAYS_TRUE;
 
-  /**
-   * The Adventure component logger for rich console output.
-   */
-  private static final ComponentLogger componentLogger = ComponentLogger.logger(VelocityConsole.class);
+  private static final Logger LOGGER = LogManager.getLogger(VelocityConsole.class, new ParameterizedMessageFactory());
 
-  /**
-   * The Velocity server instance backing this console.
-   */
+  private static final ComponentLogger COMPONENT_LOGGER = ComponentLogger.logger(VelocityConsole.class);
+
   private final VelocityServer server;
 
   /**
-   * The permission function applied to the console. Defaults to {@link PermissionFunction#ALWAYS_TRUE}.
+   * The permission resolver applied to the console. Defaults to {@link PermissionResolver#ALWAYS_TRUE}.
    */
-  private PermissionFunction permissionFunction = ALWAYS_TRUE;
+  private PermissionResolver permissionResolver = DEFAULT_PERMISSION_RESOLVER;
 
-  /**
-   * The pointer registry for this console instance.
-   */
   private static final @NotNull PointersSupplier<VelocityConsole> POINTERS = PointersSupplier.<VelocityConsole>builder()
       .resolving(PermissionChecker.POINTER, VelocityConsole::getPermissionChecker)
       .resolving(Identity.LOCALE, (console) -> ClosestLocaleMatcher.INSTANCE.lookupClosest(Locale.getDefault()))
       .resolving(FacetPointers.TYPE, (console) -> Type.CONSOLE)
       .build();
 
-  /**
-   * Constructs a new {@link VelocityConsole} instance.
-   *
-   * @param server the Velocity server
-   */
-  public VelocityConsole(final VelocityServer server) {
+  public VelocityConsole(VelocityServer server) {
     this.server = server;
   }
 
   @SuppressWarnings("deprecation")
   @Override
-  public void sendMessage(final @NonNull Identity identity, final @NonNull Component message,
-                          final @NonNull MessageType messageType) {
-    componentLogger.info(message);
+  public void sendMessage(@NonNull Identity identity, @NonNull Component message,
+                          @NonNull MessageType messageType) {
+    COMPONENT_LOGGER.info(message);
   }
 
   @Override
-  public @NonNull Tristate getPermissionValue(final @NonNull String permission) {
-    return this.permissionFunction.getPermissionValue(permission);
+  public @NonNull Tristate getPermissionValue(@NonNull String permission) {
+    return permissionResolver.getPermissionValue(permission);
+  }
+
+  @Override
+  @Nullable
+  @Unmodifiable
+  public Map<String, Boolean> getPermissionMap() {
+    return permissionResolver.getPermissionMap();
   }
 
   /**
    * Sets up {@code System.out} and {@code System.err} to redirect to log4j.
    */
   public void setupStreams() {
-    System.setOut(IoBuilder.forLogger(logger).setLevel(Level.INFO).buildPrintStream());
-    System.setErr(IoBuilder.forLogger(logger).setLevel(Level.ERROR).buildPrintStream());
+    System.setOut(IoBuilder.forLogger(LOGGER).setLevel(Level.INFO).buildPrintStream());
+    System.setErr(IoBuilder.forLogger(LOGGER).setLevel(Level.ERROR).buildPrintStream());
   }
 
   /**
    * Sets up permissions for the console.
    */
   public void setupPermissions() {
-    PermissionsSetupEvent event = new PermissionsSetupEvent(this, s -> ALWAYS_TRUE);
+    PermissionsSetupEvent event = new PermissionsSetupEvent(this, s -> DEFAULT_PERMISSION_RESOLVER);
     // we can safely block here, this is before any listeners fire
-    this.permissionFunction = this.server.getEventManager().fire(event).join().createFunction(this);
-    if (this.permissionFunction == null) {
-      logger.error(
+    PermissionProvider permissionProvider = this.server.getEventManager().fire(event).join().getProvider();
+
+    PermissionFunction permissionFunction = permissionProvider.createFunction(this);
+    if (permissionFunction == null) {
+      LOGGER.error(
           "A plugin permission provider {} provided an invalid permission function"
               + " for the console. This is a bug in the plugin, not in Velocity. Falling"
               + " back to the default permission function.",
-          event.getProvider().getClass().getName());
-      this.permissionFunction = ALWAYS_TRUE;
+          permissionProvider.getClass().getName());
+      this.permissionResolver = DEFAULT_PERMISSION_RESOLVER;
+    } else if (permissionFunction instanceof PermissionResolver) {
+      this.permissionResolver = (PermissionResolver) permissionFunction;
+    } else {
+      this.permissionResolver = createPermissionResolverAdapter(this, permissionFunction);
     }
   }
 
   @Override
-  protected LineReader buildReader(final LineReaderBuilder builder) {
+  protected LineReader buildReader(LineReaderBuilder builder) {
     return super.buildReader(builder
-        .appName("Velocity")
+        .appName("Velocity-CTD")
         // Explicitly disable mouse support on the builder
         .option(LineReader.Option.MOUSE, false)
         .completer((reader, parsedLine, list) -> {
@@ -146,7 +153,7 @@ public final class VelocityConsole extends SimpleTerminalConsole implements Cons
               list.add(new Candidate(offer));
             }
           } catch (Exception e) {
-            logger.error("An error occurred while trying to perform tab completion.", e);
+            LOGGER.error("An error occurred while trying to perform tab completion.", e);
           }
         })
     );
@@ -158,7 +165,7 @@ public final class VelocityConsole extends SimpleTerminalConsole implements Cons
   }
 
   @Override
-  protected void runCommand(final String command) {
+  protected void runCommand(String command) {
     try {
       if (!this.server.getCommandManager().executeAsync(this, command).join()) {
         sendMessage(Component.translatable("velocity.command.command-does-not-exist",
@@ -166,10 +173,10 @@ public final class VelocityConsole extends SimpleTerminalConsole implements Cons
         return;
       }
       if (this.server.getConfiguration().isLogCommandExecutions()) {
-        logger.info("CONSOLE -> executed command /{}", command);
+        LOGGER.info("CONSOLE -> executed command /{}", command);
       }
     } catch (Exception e) {
-      logger.error("An error occurred while running this command.", e);
+      LOGGER.error("An error occurred while running this command.", e);
     }
   }
 

@@ -26,13 +26,13 @@ import org.apache.logging.log4j.Logger;
 public final class KeyAuthenticationMigration implements ConfigurationMigration {
 
   @Override
-  public boolean shouldMigrate(final CommentedFileConfig config) {
-    final double version = configVersion(config);
+  public boolean shouldMigrate(CommentedFileConfig config) {
+    double version = configVersion(config);
     return version == 1.0 || version == 2.0;
   }
 
   @Override
-  public void migrate(final CommentedFileConfig config, final Logger logger) {
+  public void migrate(CommentedFileConfig config, Logger logger) {
     config.set("force-key-authentication", config.getOrElse("force-key-authentication", true));
     config.setComment("force-key-authentication",
             "Should the proxy enforce the new public key security standard? By default,"

@@ -34,12 +34,12 @@ public final class ServerLink {
    */
   private final URI url;
 
-  private ServerLink(final Component label, final String url) {
+  private ServerLink(Component label, String url) {
     this.label = Preconditions.checkNotNull(label, "label");
     this.url = URI.create(url);
   }
 
-  private ServerLink(final Type type, final String url) {
+  private ServerLink(Type type, String url) {
     this.type = Preconditions.checkNotNull(type, "type");
     this.url = URI.create(url);
   }
@@ -51,7 +51,7 @@ public final class ServerLink {
    * @param link the URL to open when clicked
    * @return a {@link ServerLink} instance with the given label and URL
    */
-  public static ServerLink serverLink(final Component label, final String link) {
+  public static ServerLink serverLink(Component label, String link) {
     return new ServerLink(label, link);
   }
 
@@ -62,7 +62,7 @@ public final class ServerLink {
    * @param link the URL to open when clicked
    * @return a {@link ServerLink} instance with the given type and URL
    */
-  public static ServerLink serverLink(final Type type, final String link) {
+  public static ServerLink serverLink(Type type, String link) {
     return new ServerLink(type, link);
   }
 

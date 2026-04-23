@@ -40,7 +40,7 @@ public final class ModInfo {
    * @param type the Forge server list version to use
    * @param modList the mods to present to the client
    */
-  public ModInfo(final String type, final List<Mod> modList) {
+  public ModInfo(String type, List<Mod> modList) {
     this.type = Preconditions.checkNotNull(type, "type");
     this.modList = ImmutableList.copyOf(modList);
   }
@@ -72,7 +72,7 @@ public final class ModInfo {
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -110,7 +110,7 @@ public final class ModInfo {
      * @param id the mod identifier
      * @param version the mod version
      */
-    public Mod(final String id, final String version) {
+    public Mod(String id, String version) {
       this.id = Preconditions.checkNotNull(id, "id");
       this.version = Preconditions.checkNotNull(version, "version");
       Preconditions.checkArgument(id.length() < 128, "mod id is too long");
@@ -144,7 +144,7 @@ public final class ModInfo {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(Object o) {
       if (this == o) {
         return true;
       }

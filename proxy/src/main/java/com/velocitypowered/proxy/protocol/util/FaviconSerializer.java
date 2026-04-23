@@ -31,21 +31,18 @@ import java.lang.reflect.Type;
  */
 public final class FaviconSerializer implements JsonSerializer<Favicon>, JsonDeserializer<Favicon> {
 
-  /**
-   * A shared singleton instance of {@code FaviconSerializer}.
-   */
   public static final FaviconSerializer INSTANCE = new FaviconSerializer();
 
   private FaviconSerializer() {
   }
 
   @Override
-  public Favicon deserialize(final JsonElement json, final Type typeOfT, final JsonDeserializationContext context) {
+  public Favicon deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) {
     return new Favicon(json.getAsString());
   }
 
   @Override
-  public JsonElement serialize(final Favicon src, final Type typeOfSrc, final JsonSerializationContext context) {
+  public JsonElement serialize(Favicon src, Type typeOfSrc, JsonSerializationContext context) {
     return new JsonPrimitive(src.getBase64Url());
   }
 }

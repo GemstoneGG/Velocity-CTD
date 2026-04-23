@@ -19,6 +19,8 @@ package com.velocitypowered.proxy.command;
 
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * A fake {@link CommandSource}.
@@ -37,7 +39,17 @@ public class MockCommandSource implements CommandSource {
    * @return {@link Tristate#UNDEFINED}
    */
   @Override
-  public Tristate getPermissionValue(final String permission) {
+  public Tristate getPermissionValue(String permission) {
     return Tristate.UNDEFINED;
+  }
+
+  /**
+   * Always returns an empty map.
+   *
+   * @return {@link Collections#emptyMap()}
+   */
+  @Override
+  public Map<String, Boolean> getPermissionMap() {
+    return Collections.emptyMap();
   }
 }

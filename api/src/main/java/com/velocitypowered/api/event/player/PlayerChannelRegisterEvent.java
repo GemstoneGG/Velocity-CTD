@@ -34,7 +34,7 @@ public final class PlayerChannelRegisterEvent {
    * @param player the player who sent the plugin message
    * @param channels the list of channels the player is registering
    */
-  public PlayerChannelRegisterEvent(final Player player, final List<ChannelIdentifier> channels) {
+  public PlayerChannelRegisterEvent(Player player, List<ChannelIdentifier> channels) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.channels = Preconditions.checkNotNull(channels, "channels");
   }

@@ -40,22 +40,13 @@ public final class VelocityCommandMeta implements CommandMeta {
 
   static final class Builder implements CommandMeta.Builder {
 
-    /**
-     * Builder for the command aliases, in lowercase.
-     */
     private final ImmutableSet.Builder<String> aliases;
 
-    /**
-     * Builder for the hint nodes to attach to this command.
-     */
     private final ImmutableList.Builder<CommandNode<CommandSource>> hints;
 
-    /**
-     * The plugin associated with the command, or {@code null} if not set.
-     */
     private @MonotonicNonNull Object plugin;
 
-    Builder(final String alias) {
+    Builder(String alias) {
       Preconditions.checkNotNull(alias, "alias");
       this.aliases = ImmutableSet.<String>builder().add(alias.toLowerCase(Locale.ENGLISH));
       this.hints = ImmutableList.builder();
@@ -63,10 +54,10 @@ public final class VelocityCommandMeta implements CommandMeta {
     }
 
     @Override
-    public CommandMeta.Builder aliases(final String... aliases) {
+    public CommandMeta.Builder aliases(String... aliases) {
       Preconditions.checkNotNull(aliases, "aliases");
       for (int i = 0, length = aliases.length; i < length; i++) {
-        final String alias = aliases[i];
+        String alias = aliases[i];
         Preconditions.checkNotNull(alias, "alias at index %s", i);
         this.aliases.add(alias.toLowerCase(Locale.ENGLISH));
       }
@@ -75,7 +66,7 @@ public final class VelocityCommandMeta implements CommandMeta {
     }
 
     @Override
-    public CommandMeta.Builder hint(final CommandNode<CommandSource> node) {
+    public CommandMeta.Builder hint(CommandNode<CommandSource> node) {
       Preconditions.checkNotNull(node, "node");
       if (node.getCommand() != null) {
         throw new IllegalArgumentException("Cannot use executable node for hinting");
@@ -90,7 +81,7 @@ public final class VelocityCommandMeta implements CommandMeta {
     }
 
     @Override
-    public CommandMeta.Builder plugin(final Object plugin) {
+    public CommandMeta.Builder plugin(Object plugin) {
       Preconditions.checkNotNull(plugin, "plugin");
       this.plugin = plugin;
       return this;
@@ -113,13 +104,13 @@ public final class VelocityCommandMeta implements CommandMeta {
    * @param hint the node containing hinting metadata
    * @return the hinting command node
    */
-  private static CommandNode<CommandSource> copyForHinting(final CommandNode<CommandSource> hint) {
+  private static CommandNode<CommandSource> copyForHinting(CommandNode<CommandSource> hint) {
     // We need to perform a deep copy of the hint to prevent the user
     // from modifying the nodes and adding a Command or a redirect.
-    final ArgumentBuilder<CommandSource, ?> builder = hint.createBuilder()
+    ArgumentBuilder<CommandSource, ?> builder = hint.createBuilder()
         // Requirement checking is performed by SuggestionProvider
         .requires(source -> false);
-    for (final CommandNode<CommandSource> child : hint.getChildren()) {
+    for (CommandNode<CommandSource> child : hint.getChildren()) {
       builder.then(copyForHinting(child));
     }
 
@@ -133,28 +124,19 @@ public final class VelocityCommandMeta implements CommandMeta {
    * @return a stream of hinting nodes
    */
   // This is a static method because most methods take a CommandMeta.
-  public static Stream<CommandNode<CommandSource>> copyHints(final CommandMeta meta) {
+  public static Stream<CommandNode<CommandSource>> copyHints(CommandMeta meta) {
     return meta.getHints().stream().map(VelocityCommandMeta::copyForHinting);
   }
 
-  /**
-   * The set of all command aliases associated with this command, stored in lowercase.
-   */
   private final Set<String> aliases;
 
-  /**
-   * A list of Brigadier nodes used for providing suggestions (hints) to clients.
-   */
   private final List<CommandNode<CommandSource>> hints;
 
-  /**
-   * The plugin that registered the command, or {@code null} if unknown.
-   */
   private final Object plugin;
 
-  private VelocityCommandMeta(final Set<String> aliases,
-                              final List<CommandNode<CommandSource>> hints,
-                              final @Nullable Object plugin) {
+  private VelocityCommandMeta(Set<String> aliases,
+                              List<CommandNode<CommandSource>> hints,
+                              @Nullable Object plugin) {
     this.aliases = aliases;
     this.hints = hints;
     this.plugin = plugin;
@@ -176,7 +158,7 @@ public final class VelocityCommandMeta implements CommandMeta {
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -185,7 +167,7 @@ public final class VelocityCommandMeta implements CommandMeta {
       return false;
     }
 
-    final VelocityCommandMeta that = (VelocityCommandMeta) o;
+    VelocityCommandMeta that = (VelocityCommandMeta) o;
 
     if (!this.aliases.equals(that.aliases)) {
       return false;

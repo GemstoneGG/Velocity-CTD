@@ -41,7 +41,7 @@ public final class ProxyQueryEvent {
    * @param querierAddress the remote address for the query
    * @param response the current query response
    */
-  public ProxyQueryEvent(final QueryType queryType, final InetAddress querierAddress, final QueryResponse response) {
+  public ProxyQueryEvent(QueryType queryType, InetAddress querierAddress, QueryResponse response) {
     this.queryType = Preconditions.checkNotNull(queryType, "queryType");
     this.querierAddress = Preconditions.checkNotNull(querierAddress, "querierAddress");
     this.response = Preconditions.checkNotNull(response, "response");
@@ -79,7 +79,7 @@ public final class ProxyQueryEvent {
    *
    * @param response the new non-null query response
    */
-  public void setResponse(final QueryResponse response) {
+  public void setResponse(QueryResponse response) {
     this.response = Preconditions.checkNotNull(response, "response");
   }
 

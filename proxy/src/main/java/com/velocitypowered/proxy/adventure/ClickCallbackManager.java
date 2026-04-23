@@ -33,41 +33,29 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class ClickCallbackManager {
 
-  /**
-   * Global singleton instance of the click callback manager.
-   */
   public static final ClickCallbackManager INSTANCE = new ClickCallbackManager();
 
-  /**
-   * The base command string used to route click callbacks.
-   *
-   * <p>This prefix is prepended to callback IDs when embedding them in client-bound
-   * clickable components.</p>
-   */
-  static final String COMMAND = "/velocity:callback ";
+  public static final String COMMAND_LABEL = "velocity:callback";
 
-  /**
-   * Cache of registered callbacks, keyed by their unique UUIDs.
-   *
-   * <p>Callbacks expire based on configured duration or remaining usage count.</p>
-   */
+  static final String COMMAND = "/" + COMMAND_LABEL + " ";
+
   private final Cache<UUID, RegisteredCallback> registrations = Caffeine.newBuilder()
       .expireAfter(new Expiry<UUID, RegisteredCallback>() {
         @Override
-        public long expireAfterCreate(final @NotNull UUID key, final @NotNull RegisteredCallback value, final long currentTime) {
+        public long expireAfterCreate(@NotNull UUID key, @NotNull RegisteredCallback value, long currentTime) {
           return value.duration().toNanos();
         }
 
         @Override
-        public long expireAfterUpdate(final @NotNull UUID key, final @NotNull RegisteredCallback value, final long currentTime,
-                                      @NonNegative final long currentDuration) {
+        public long expireAfterUpdate(@NotNull UUID key, @NotNull RegisteredCallback value, long currentTime,
+                                      @NonNegative long currentDuration) {
           return currentDuration;
         }
 
         @Override
-        public long expireAfterRead(final @NotNull UUID key, final @NotNull RegisteredCallback value, final long currentTime,
-                                    @NonNegative final long currentDuration) {
-          final AtomicInteger remainingUses = value.remainingUses();
+        public long expireAfterRead(@NotNull UUID key, @NotNull RegisteredCallback value, long currentTime,
+                                    @NonNegative long currentDuration) {
+          AtomicInteger remainingUses = value.remainingUses();
           if (remainingUses != null && remainingUses.get() <= 0) {
             return 0;
           }
@@ -87,8 +75,8 @@ public final class ClickCallbackManager {
    * @param id       the callback's ID
    * @return {@code true} if the callback was run, {@code false} if not
    */
-  public boolean runCallback(final Audience audience, final UUID id) {
-    final RegisteredCallback callback = this.registrations.getIfPresent(id);
+  public boolean runCallback(Audience audience, UUID id) {
+    RegisteredCallback callback = this.registrations.getIfPresent(id);
     if (callback != null && callback.tryUse()) {
       callback.callback().accept(audience);
       return true;
@@ -104,10 +92,10 @@ public final class ClickCallbackManager {
    * @param options  associated options
    * @return the callback ID
    */
-  public UUID register(final ClickCallback<Audience> callback,
-                       final ClickCallback.Options options) {
-    final UUID id = UUID.randomUUID();
-    final RegisteredCallback registration = new RegisteredCallback(options.lifetime(), options.uses(), callback);
+  public UUID register(ClickCallback<Audience> callback,
+                       ClickCallback.Options options) {
+    UUID id = UUID.randomUUID();
+    RegisteredCallback registration = new RegisteredCallback(options.lifetime(), options.uses(), callback);
     this.registrations.put(id, registration);
     return id;
   }

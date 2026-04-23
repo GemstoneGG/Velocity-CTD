@@ -28,9 +28,9 @@ import org.jspecify.annotations.Nullable;
 record RegisteredCallback(Duration duration,
                           @Nullable AtomicInteger remainingUses,
                           ClickCallback<Audience> callback) {
-  RegisteredCallback(final Duration duration,
-                     final int maxUses,
-                     final ClickCallback<Audience> callback) {
+  RegisteredCallback(Duration duration,
+                     int maxUses,
+                     ClickCallback<Audience> callback) {
     this(duration, maxUses == ClickCallback.UNLIMITED_USES ? null : new AtomicInteger(maxUses), callback);
   }
 

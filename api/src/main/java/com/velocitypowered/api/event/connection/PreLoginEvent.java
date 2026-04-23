@@ -59,7 +59,7 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
    * @deprecated use {@link #PreLoginEvent(InboundConnection, String, UUID)}
    */
   @Deprecated
-  public PreLoginEvent(final InboundConnection connection, final String username) {
+  public PreLoginEvent(InboundConnection connection, String username) {
     this(connection, username, null);
   }
 
@@ -70,7 +70,7 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
    * @param username the player's username
    * @param uuid the player's uuid, if known
    */
-  public PreLoginEvent(final InboundConnection connection, final String username, final @Nullable UUID uuid) {
+  public PreLoginEvent(InboundConnection connection, String username, @Nullable UUID uuid) {
     this.connection = Preconditions.checkNotNull(connection, "connection");
     this.username = Preconditions.checkNotNull(username, "username");
     this.uuid = uuid;
@@ -114,7 +114,7 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
   }
 
   @Override
-  public void setResult(final @NonNull PreLoginComponentResult result) {
+  public void setResult(@NonNull PreLoginComponentResult result) {
     this.result = Preconditions.checkNotNull(result, "result");
   }
 
@@ -161,8 +161,8 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
      */
     private final Component reason;
 
-    private PreLoginComponentResult(final Result result,
-                                    final @Nullable Component reason) {
+    private PreLoginComponentResult(Result result,
+                                    @Nullable Component reason) {
       this.result = result;
       this.reason = reason;
     }
@@ -245,7 +245,7 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
      * @param reason the reason for disallowing the connection
      * @return a new result
      */
-    public static PreLoginComponentResult denied(final Component reason) {
+    public static PreLoginComponentResult denied(Component reason) {
       Preconditions.checkNotNull(reason, "reason");
       return new PreLoginComponentResult(Result.DISALLOWED, reason);
     }

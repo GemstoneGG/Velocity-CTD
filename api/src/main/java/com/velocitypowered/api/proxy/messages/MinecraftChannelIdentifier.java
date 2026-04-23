@@ -30,7 +30,7 @@ public final class MinecraftChannelIdentifier implements ChannelIdentifier {
    */
   private final String name;
 
-  private MinecraftChannelIdentifier(final String namespace, final String name) {
+  private MinecraftChannelIdentifier(String namespace, String name) {
     this.namespace = namespace;
     this.name = name;
   }
@@ -42,7 +42,7 @@ public final class MinecraftChannelIdentifier implements ChannelIdentifier {
    * @param name the name in the default namespace to use
    * @return a new channel identifier
    */
-  public static MinecraftChannelIdentifier forDefaultNamespace(final String name) {
+  public static MinecraftChannelIdentifier forDefaultNamespace(String name) {
     return new MinecraftChannelIdentifier(Key.MINECRAFT_NAMESPACE, name);
   }
 
@@ -53,7 +53,7 @@ public final class MinecraftChannelIdentifier implements ChannelIdentifier {
    * @param name the channel name inside the specified namespace
    * @return a new channel identifier
    */
-  public static MinecraftChannelIdentifier create(final String namespace, final String name) {
+  public static MinecraftChannelIdentifier create(String namespace, String name) {
     checkArgument(!Strings.isNullOrEmpty(namespace), "namespace is null or empty");
     checkArgument(name != null, "namespace is null or empty");
     checkArgument(Key.parseableNamespace(namespace),
@@ -69,7 +69,7 @@ public final class MinecraftChannelIdentifier implements ChannelIdentifier {
    * @param identifier the Minecraft identifier
    * @return a new channel identifier
    */
-  public static MinecraftChannelIdentifier from(final String identifier) {
+  public static MinecraftChannelIdentifier from(String identifier) {
     int colonPos = identifier.indexOf(':');
     if (colonPos == -1) {
       return create(Key.MINECRAFT_NAMESPACE, identifier);
@@ -88,7 +88,7 @@ public final class MinecraftChannelIdentifier implements ChannelIdentifier {
    * @param key the Minecraft key to use
    * @return a new channel identifier
    */
-  public static MinecraftChannelIdentifier from(final Key key) {
+  public static MinecraftChannelIdentifier from(Key key) {
     return create(key.namespace(), key.value());
   }
 
@@ -125,7 +125,7 @@ public final class MinecraftChannelIdentifier implements ChannelIdentifier {
   }
 
   @Override
-  public boolean equals(final @Nullable Object o) {
+  public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

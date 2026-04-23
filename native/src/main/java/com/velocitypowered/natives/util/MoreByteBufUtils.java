@@ -39,7 +39,7 @@ public final class MoreByteBufUtils {
    * @param buf the buffer we are working with
    * @return a buffer compatible with the native
    */
-  public static ByteBuf ensureCompatible(final ByteBufAllocator alloc, final Native nativeStuff, final ByteBuf buf) {
+  public static ByteBuf ensureCompatible(ByteBufAllocator alloc, Native nativeStuff, ByteBuf buf) {
     if (isCompatible(nativeStuff, buf)) {
       return buf.retain();
     }
@@ -50,7 +50,7 @@ public final class MoreByteBufUtils {
     return newBuf;
   }
 
-  private static boolean isCompatible(final Native nativeStuff, final ByteBuf buf) {
+  private static boolean isCompatible(Native nativeStuff, ByteBuf buf) {
     BufferPreference preferred = nativeStuff.preferredBufferType();
     return switch (preferred) {
       case DIRECT_PREFERRED, HEAP_PREFERRED ->
@@ -70,7 +70,7 @@ public final class MoreByteBufUtils {
    * @param initialCapacity the initial capacity to allocate
    * @return a buffer compatible with the native
    */
-  public static ByteBuf preferredBuffer(final ByteBufAllocator alloc, final Native nativeStuff, final int initialCapacity) {
+  public static ByteBuf preferredBuffer(ByteBufAllocator alloc, Native nativeStuff, int initialCapacity) {
     return switch (nativeStuff.preferredBufferType()) {
       case HEAP_REQUIRED, HEAP_PREFERRED -> alloc.heapBuffer(initialCapacity);
       case DIRECT_PREFERRED, DIRECT_REQUIRED -> alloc.directBuffer(initialCapacity);

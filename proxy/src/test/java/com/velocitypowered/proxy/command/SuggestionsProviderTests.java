@@ -61,7 +61,7 @@ public class SuggestionsProviderTests extends CommandTestSuite {
 
   @Test
   void testDoesNotSuggestForLeadingWhitespace() {
-    final var meta = manager.metaBuilder("hello").build();
+    var meta = manager.metaBuilder("hello").build();
     manager.register(meta, NoSuggestionsCommand.INSTANCE);
 
     assertSuggestions(" ");
@@ -78,7 +78,7 @@ public class SuggestionsProviderTests extends CommandTestSuite {
 
   @Test
   void testDoesNotSuggestForFullAlias() {
-    final var meta = manager.metaBuilder("hello").build();
+    var meta = manager.metaBuilder("hello").build();
     manager.register(meta, NoSuggestionsCommand.INSTANCE);
 
     assertSuggestions("hello");
@@ -87,7 +87,7 @@ public class SuggestionsProviderTests extends CommandTestSuite {
 
   @Test
   void testDoesNotSuggestForPartialIncorrectAlias() {
-    final var meta = manager.metaBuilder("hello").build();
+    var meta = manager.metaBuilder("hello").build();
     manager.register(meta, NoSuggestionsCommand.INSTANCE);
 
     assertSuggestions("yo");
@@ -96,15 +96,15 @@ public class SuggestionsProviderTests extends CommandTestSuite {
 
   @Test
   void testDoesNotSuggestArgumentsForIncorrectAlias() {
-    final var meta = manager.metaBuilder("hello").build();
+    var meta = manager.metaBuilder("hello").build();
     manager.register(meta, new RawCommand() {
       @Override
-      public void execute(final Invocation invocation) {
+      public void execute(Invocation invocation) {
         fail();
       }
 
       @Override
-      public List<String> suggest(final Invocation invocation) {
+      public List<String> suggest(Invocation invocation) {
         return fail();
       }
     });
@@ -118,7 +118,7 @@ public class SuggestionsProviderTests extends CommandTestSuite {
 
   @Test
   void testSuggestsAllAliases() {
-    final var meta = manager.metaBuilder("foo")
+    var meta = manager.metaBuilder("foo")
         .aliases("bar", "baz")
         .build();
     manager.register(meta, NoSuggestionsCommand.INSTANCE);
@@ -128,17 +128,17 @@ public class SuggestionsProviderTests extends CommandTestSuite {
 
   @Test
   void testSuggestsArgumentsViaAlias() {
-    final var meta = manager.metaBuilder("hello")
+    var meta = manager.metaBuilder("hello")
         .aliases("hi")
         .build();
     manager.register(meta, new RawCommand() {
       @Override
-      public void execute(final Invocation invocation) {
+      public void execute(Invocation invocation) {
         fail();
       }
 
       @Override
-      public List<String> suggest(final Invocation invocation) {
+      public List<String> suggest(Invocation invocation) {
         return ImmutableList.of("world");
       }
     });
@@ -150,10 +150,10 @@ public class SuggestionsProviderTests extends CommandTestSuite {
 
   @Test
   void testSuggestsHintLiteral() {
-    final var hint = LiteralArgumentBuilder
+    var hint = LiteralArgumentBuilder
         .<CommandSource>literal("hint")
         .build();
-    final var meta = manager.metaBuilder("hello")
+    var meta = manager.metaBuilder("hello")
         .hint(hint)
         .build();
     manager.register(meta, NoSuggestionsCommand.INSTANCE);
@@ -165,7 +165,7 @@ public class SuggestionsProviderTests extends CommandTestSuite {
 
   @Test
   void testSuggestsHintCustomSuggestions() {
-    final var hint = RequiredArgumentBuilder
+    var hint = RequiredArgumentBuilder
         .<CommandSource, String>argument("hint", word())
         .suggests((context, builder) -> builder
             .suggest("one")
@@ -173,7 +173,7 @@ public class SuggestionsProviderTests extends CommandTestSuite {
             .suggest("three")
             .buildFuture())
         .build();
-    final var meta = manager.metaBuilder("hello")
+    var meta = manager.metaBuilder("hello")
         .hint(hint)
         .build();
     manager.register(meta, NoSuggestionsCommand.INSTANCE);
@@ -184,20 +184,20 @@ public class SuggestionsProviderTests extends CommandTestSuite {
 
   @Test
   void testSuggestsMergesArgumentsSuggestionsWithHintSuggestions() {
-    final var hint = LiteralArgumentBuilder
+    var hint = LiteralArgumentBuilder
         .<CommandSource>literal("bar")
         .build();
-    final var meta = manager.metaBuilder("foo")
+    var meta = manager.metaBuilder("foo")
         .hint(hint)
         .build();
     manager.register(meta, new RawCommand() {
       @Override
-      public void execute(final Invocation invocation) {
+      public void execute(Invocation invocation) {
         fail();
       }
 
       @Override
-      public List<String> suggest(final Invocation invocation) {
+      public List<String> suggest(Invocation invocation) {
         return ImmutableList.of("baz", "qux");
       }
     });
@@ -211,12 +211,12 @@ public class SuggestionsProviderTests extends CommandTestSuite {
   // VelocityCommandMeta#copyHints.
   @Test
   void testSuggestIgnoresHintRequirementPredicateResults() {
-    final var hint = RequiredArgumentBuilder
+    var hint = RequiredArgumentBuilder
         .<CommandSource, String>argument("hint", word())
         .requires(source1 -> fail())
         .suggests((context, builder) -> builder.suggest("suggestion").buildFuture())
         .build();
-    final var meta = manager.metaBuilder("hello")
+    var meta = manager.metaBuilder("hello")
         .hint(hint)
         .build();
     manager.register(meta, NoSuggestionsCommand.INSTANCE);
@@ -227,11 +227,11 @@ public class SuggestionsProviderTests extends CommandTestSuite {
   // Hints and argument suggestions should still be sent even when aliases are not being suggested.
   @Test
   void testSuggestWillSuggestArgumentsEvenWhenAliasesAreNot() {
-    final var hint = RequiredArgumentBuilder
+    var hint = RequiredArgumentBuilder
         .<CommandSource, String>argument("hint", word())
         .suggests((context, builder) -> builder.suggest("suggestion").buildFuture())
         .build();
-    final var meta = manager.metaBuilder("hello")
+    var meta = manager.metaBuilder("hello")
         .hint(hint)
         .build();
     manager.setAnnounceProxyCommands(false);
@@ -243,11 +243,11 @@ public class SuggestionsProviderTests extends CommandTestSuite {
 
   @Test
   void testDoesNotSuggestHintIfHintSuggestionProviderFutureCompletesExceptionally() {
-    final var hint = RequiredArgumentBuilder
+    var hint = RequiredArgumentBuilder
         .<CommandSource, String>argument("hint", word())
         .suggests((context, builder) -> CompletableFuture.failedFuture(new RuntimeException()))
         .build();
-    final var meta = manager.metaBuilder("hello")
+    var meta = manager.metaBuilder("hello")
         .hint(hint)
         .build();
     manager.register(meta, NoSuggestionsCommand.INSTANCE);
@@ -257,13 +257,13 @@ public class SuggestionsProviderTests extends CommandTestSuite {
 
   @Test
   void testDoesNotSuggestHintIfCustomSuggestionProviderThrows() {
-    final var hint = RequiredArgumentBuilder
+    var hint = RequiredArgumentBuilder
         .<CommandSource, String>argument("hint", word())
         .suggests((context, builder) -> {
           throw new RuntimeException();
         })
         .build();
-    final var meta = manager.metaBuilder("hello")
+    var meta = manager.metaBuilder("hello")
         .hint(hint)
         .build();
     manager.register(meta, NoSuggestionsCommand.INSTANCE);
@@ -283,34 +283,34 @@ public class SuggestionsProviderTests extends CommandTestSuite {
     }
 
     @Override
-    public void execute(final Invocation invocation) {
+    public void execute(Invocation invocation) {
       fail();
     }
 
     @Override
-    public List<String> suggest(final Invocation invocation) {
+    public List<String> suggest(Invocation invocation) {
       return RawCommand.super.suggest(invocation);
     }
   }
 
   @Test
   void testSuggestionOffset() {
-    final var meta = manager.metaBuilder("offset").build();
+    var meta = manager.metaBuilder("offset").build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(final Invocation invocation) {
+      public void execute(Invocation invocation) {
         fail();
       }
 
       @Override
-      public List<String> suggest(final Invocation invocation) {
+      public List<String> suggest(Invocation invocation) {
         return List.of("bump");
       }
     });
 
     assertSuggestions("offset bu", "bump");
     for (int i = 10; i < 20; i++) {
-      final Suggestions suggestions = manager.offerBrigadierSuggestions(source, "offset " + "bump ".repeat(i)).join();
+      Suggestions suggestions = manager.offerBrigadierSuggestions(source, "offset " + "bump ".repeat(i)).join();
       assertEquals(7 + 5 * i, suggestions.getList().getFirst().getRange().getStart());
     }
   }

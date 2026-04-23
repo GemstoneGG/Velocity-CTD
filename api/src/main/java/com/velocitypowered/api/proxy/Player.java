@@ -26,6 +26,7 @@ import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
@@ -89,7 +90,7 @@ public interface Player extends
    *
    * @return an {@link Optional} the server that the player is connected to, which may be empty
    */
-  Optional<ServerConnection> getCurrentServer();
+  Optional<? extends ServerConnection> getCurrentServer();
 
   /**
    * Returns the player's client settings.
@@ -335,13 +336,13 @@ public interface Player extends
   }
 
   @Override
-  default @NotNull HoverEvent<HoverEvent.ShowEntity> asHoverEvent(final @NotNull UnaryOperator<HoverEvent.ShowEntity> op) {
+  default @NotNull HoverEvent<HoverEvent.ShowEntity> asHoverEvent(@NotNull UnaryOperator<HoverEvent.ShowEntity> op) {
     return HoverEvent.showEntity(op.apply(HoverEvent.ShowEntity.showEntity(this, getUniqueId(), Component.text(getUsername()))));
   }
 
   @SuppressWarnings("UnstableApiUsage") // Permitted unstable implementation
   @Override
-  default void applySkinToPlayerHeadContents(final PlayerHeadObjectContents.@NotNull Builder builder) {
+  default void applySkinToPlayerHeadContents(PlayerHeadObjectContents.@NotNull Builder builder) {
     builder.skin(this.getGameProfile());
     if (this.hasSentPlayerSettings()) {
       builder.hat(this.getPlayerSettings().getSkinParts().hasHat());
@@ -398,7 +399,7 @@ public interface Player extends
    *     Unsupported Adventure Operations</a>
    */
   @Override
-  default void playSound(final @NotNull Sound sound) {
+  default void playSound(@NotNull Sound sound) {
   }
 
   /**
@@ -411,7 +412,7 @@ public interface Player extends
    *     Unsupported Adventure Operations</a>
    */
   @Override
-  default void playSound(final @NotNull Sound sound, final double x, final double y, final double z) {
+  default void playSound(@NotNull Sound sound, double x, double y, double z) {
   }
 
   /**
@@ -429,7 +430,7 @@ public interface Player extends
    *     requires a present {@link #getCurrentServer} for the emitting player as well as this player.
    */
   @Override
-  default void playSound(final @NotNull Sound sound, final @NotNull Sound.Emitter emitter) {
+  default void playSound(@NotNull Sound sound, @NotNull Sound.Emitter emitter) {
   }
 
   /**
@@ -441,7 +442,7 @@ public interface Player extends
    * @apiNote This method is currently only implemented for players on 1.19.3+.
    */
   @Override
-  default void stopSound(final @NotNull SoundStop stop) {
+  default void stopSound(@NotNull SoundStop stop) {
   }
 
   /**
@@ -454,7 +455,7 @@ public interface Player extends
    *     Unsupported Adventure Operations</a>
    */
   @Override
-  default void openBook(final @NotNull Book book) {
+  default void openBook(@NotNull Book book) {
   }
 
   /**
@@ -467,7 +468,7 @@ public interface Player extends
    *     Unsupported Adventure Operations</a>
    */
   @Override
-  default void showDialog(final @NotNull DialogLike dialog) {
+  default void showDialog(@NotNull DialogLike dialog) {
   }
 
   /**
@@ -539,4 +540,11 @@ public interface Player extends
    * @return Custom queue priority of player, or 0.
    */
   int getQueuePriority(String server);
+
+  /**
+   * Gets all queue priorities for this player.
+   *
+   * @return A map of server names to their respective queue priorities for this player.
+   */
+  Map<String, Integer> getQueuePriorities();
 }

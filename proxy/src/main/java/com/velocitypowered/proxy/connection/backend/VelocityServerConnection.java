@@ -27,10 +27,9 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.PluginMessageEncoder;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
+import com.velocitypowered.api.proxy.server.PlayerInfoForwarding;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.config.PlayerInfoForwarding;
 import com.velocitypowered.proxy.connection.ConnectionTypes;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftConnectionAssociation;
@@ -62,57 +61,24 @@ import org.jetbrains.annotations.NotNull;
  */
 public class VelocityServerConnection implements MinecraftConnectionAssociation, ServerConnection {
 
-  /**
-   * The server this connection is targeting.
-   */
   private final VelocityRegisteredServer registeredServer;
 
-  /**
-   * The server the player was previously connected to, if any.
-   */
   private final @Nullable VelocityRegisteredServer previousServer;
 
-  /**
-   * The player using this server connection.
-   */
   private final ConnectedPlayer proxyPlayer;
 
-  /**
-   * The main Velocity server instance.
-   */
   private final VelocityServer server;
 
-  /**
-   * The underlying Minecraft connection to the backend server.
-   */
   private @Nullable MinecraftConnection connection;
 
-  /**
-   * Whether the server connection has fully completed the JoinGame phase.
-   */
   private boolean hasCompletedJoin = false;
 
-  /**
-   * Whether the connection was disconnected gracefully (as opposed to a crash or forced close).
-   */
   private boolean gracefulDisconnect = false;
 
-  /**
-   * The current backend connection phase for this server connection.
-   */
   private BackendConnectionPhase connectionPhase = BackendConnectionPhases.UNKNOWN;
 
-  /**
-   * Pending ping IDs and the time they were sent (used for latency measurement).
-   */
   private final Map<Long, Long> pendingPings = new HashMap<>();
 
-  /**
-   * The entity ID assigned to the player by the backend server.
-   *
-   * <p>Monotonically non-null: unset until known (typically after {@link JoinGamePacket}),
-   * then set once and not reverted to {@code null}.</p>
-   */
   private @MonotonicNonNull Integer entityId;
 
   /**
@@ -123,9 +89,9 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
    * @param proxyPlayer      the player connecting to the server
    * @param server           the Velocity proxy instance
    */
-  public VelocityServerConnection(final VelocityRegisteredServer registeredServer,
-                                  final @Nullable VelocityRegisteredServer previousServer,
-                                  final ConnectedPlayer proxyPlayer, final VelocityServer server) {
+  public VelocityServerConnection(VelocityRegisteredServer registeredServer,
+                                  @Nullable VelocityRegisteredServer previousServer,
+                                  ConnectedPlayer proxyPlayer, VelocityServer server) {
     this.registeredServer = registeredServer;
     this.previousServer = previousServer;
     this.proxyPlayer = proxyPlayer;
@@ -174,13 +140,8 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     return result;
   }
 
-  /**
-   * Gets the remote IP address of the player in string format, stripping any IPv6 scope suffix.
-   *
-   * @return the player's IP address as a string
-   */
   String getPlayerRemoteAddressAsString() {
-    final String addr = proxyPlayer.getRemoteAddress().getAddress().getHostAddress();
+    String addr = proxyPlayer.getRemoteAddress().getAddress().getHostAddress();
     int ipv6ScopeIdx = addr.indexOf('%');
     if (ipv6ScopeIdx == -1) {
       return addr;
@@ -198,7 +159,7 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     );
   }
 
-  private String createBungeeGuardForwardingAddress(final byte[] forwardingSecret) {
+  private String createBungeeGuardForwardingAddress(byte[] forwardingSecret) {
     return PlayerDataForwarding.createBungeeGuardForwardingAddress(
       proxyPlayer.getVirtualHost().orElseGet(() ->
         registeredServer.getServerInfo().getAddress()).getHostString(),
@@ -209,9 +170,9 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
   }
 
   private void startHandshake() {
-    final MinecraftConnection mc = ensureConnected();
+    MinecraftConnection mc = ensureConnected();
 
-    PlayerInfoForwarding forwardingMode = registeredServer.getConfiguredPlayerInfoForwarding();
+    PlayerInfoForwarding forwardingMode = registeredServer.getPlayerInfoForwardingMode();
 
     // Initiate the handshake.
     ProtocolVersion protocolVersion = proxyPlayer.getConnection().getProtocolVersion();
@@ -251,11 +212,6 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     mc.flush();
   }
 
-  /**
-   * Gets the current Minecraft connection to the backend server.
-   *
-   * @return the Minecraft connection, or {@code null} if not yet connected
-   */
   public @Nullable MinecraftConnection getConnection() {
     return connection;
   }
@@ -274,41 +230,21 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     return connection;
   }
 
-  /**
-   * Gets the {@link RegisteredServer} this connection is targeting.
-   *
-   * @return the registered server this connection points to
-   */
   @Override
   public VelocityRegisteredServer getServer() {
     return registeredServer;
   }
 
-  /**
-   * Gets the previously connected server for the player, if any.
-   *
-   * @return an {@link Optional} containing the previous server or empty if not applicable
-   */
   @Override
-  public Optional<RegisteredServer> getPreviousServer() {
+  public Optional<VelocityRegisteredServer> getPreviousServer() {
     return Optional.ofNullable(this.previousServer);
   }
 
-  /**
-   * Gets the {@link ServerInfo} associated with the target server.
-   *
-   * @return the {@link ServerInfo} of the destination server
-   */
   @Override
   public ServerInfo getServerInfo() {
     return registeredServer.getServerInfo();
   }
 
-  /**
-   * Gets the {@link ConnectedPlayer} associated with this connection.
-   *
-   * @return the player associated with this server connection
-   */
   @Override
   public ConnectedPlayer getPlayer() {
     return proxyPlayer;
@@ -325,11 +261,6 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     }
   }
 
-  /**
-   * Returns a debug-friendly string representation of this server connection.
-   *
-   * @return a string describing the connection (e.g. "[server connection] Player -> Server")
-   */
   @Override
   public String toString() {
     return "[server connection] " + proxyPlayer.getGameProfile().getName() + " -> "
@@ -344,7 +275,7 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
    * @return {@code true} if the message was sent, {@code false} if the buffer was empty
    */
   @Override
-  public boolean sendPluginMessage(final @NotNull ChannelIdentifier identifier, final byte @NotNull [] data) {
+  public boolean sendPluginMessage(@NotNull ChannelIdentifier identifier, byte @NotNull [] data) {
     return sendPluginMessage(identifier, Unpooled.wrappedBuffer(data));
   }
 
@@ -358,11 +289,11 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
    * @return {@code true} if the message was sent, {@code false} if the encoded payload was empty
    */
   @Override
-  public boolean sendPluginMessage(final @NotNull ChannelIdentifier identifier, final @NotNull PluginMessageEncoder dataEncoder) {
+  public boolean sendPluginMessage(@NotNull ChannelIdentifier identifier, @NotNull PluginMessageEncoder dataEncoder) {
     requireNonNull(identifier);
     requireNonNull(dataEncoder);
-    final ByteBuf buf = Unpooled.buffer();
-    final ByteBufDataOutput dataOutput = new ByteBufDataOutput(buf);
+    ByteBuf buf = Unpooled.buffer();
+    ByteBufDataOutput dataOutput = new ByteBufDataOutput(buf);
     dataEncoder.encode(dataOutput);
     if (buf.isReadable()) {
       return sendPluginMessage(identifier, buf);
@@ -379,13 +310,13 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
    * @param data       the data
    * @return whether the message was sent
    */
-  public boolean sendPluginMessage(final ChannelIdentifier identifier, final ByteBuf data) {
+  public boolean sendPluginMessage(ChannelIdentifier identifier, ByteBuf data) {
     Preconditions.checkNotNull(identifier, "identifier");
     Preconditions.checkNotNull(data, "data");
 
-    final MinecraftConnection mc = ensureConnected();
+    MinecraftConnection mc = ensureConnected();
 
-    final PluginMessagePacket message = new PluginMessagePacket(identifier.getId(), data);
+    PluginMessagePacket message = new PluginMessagePacket(identifier.getId(), data);
     mc.write(message);
     return true;
   }
@@ -406,41 +337,19 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     }
   }
 
-  /**
-   * Returns whether the connection to the backend server was closed gracefully.
-   *
-   * @return {@code true} if the disconnect was cleanly handled, {@code false} otherwise
-   */
   boolean isGracefulDisconnect() {
     return gracefulDisconnect;
   }
 
-  /**
-   * Gets the map of pending keep-alive pings sent to the backend server.
-   * The map keys represent the ping ID and the values are the timestamps
-   * (in nanoseconds) of when the ping was sent.
-   *
-   * @return the map of pending ping IDs and their send times
-   */
   public Map<Long, Long> getPendingPings() {
     return pendingPings;
   }
 
-  /**
-   * Gets the entity ID assigned to the player by the backend server, if known.
-   *
-   * @return the entity ID, or {@code null} if not yet set
-   */
   public Integer getEntityId() {
     return entityId;
   }
 
-  /**
-   * Sets the entity ID assigned to the player by the backend server.
-   *
-   * @param entityId the entity ID to set
-   */
-  public void setEntityId(final Integer entityId) {
+  public void setEntityId(Integer entityId) {
     this.entityId = entityId;
   }
 
@@ -469,7 +378,7 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
    *
    * @param connectionPhase The {@link BackendConnectionPhase}
    */
-  public void setConnectionPhase(final BackendConnectionPhase connectionPhase) {
+  public void setConnectionPhase(BackendConnectionPhase connectionPhase) {
     this.connectionPhase = connectionPhase;
   }
 

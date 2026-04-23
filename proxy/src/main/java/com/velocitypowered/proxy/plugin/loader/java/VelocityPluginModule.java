@@ -31,30 +31,21 @@ import org.slf4j.LoggerFactory;
 
 class VelocityPluginModule implements Module {
 
-  /**
-   * The parsed plugin description containing metadata and the main class reference.
-   */
   private final JavaVelocityPluginDescription description;
 
-  /**
-   * The plugin container associated with the plugin instance.
-   */
   private final PluginContainer pluginContainer;
 
-  /**
-   * The base directory where all plugin data directories reside.
-   */
   private final Path basePluginPath;
 
-  VelocityPluginModule(final JavaVelocityPluginDescription description, final PluginContainer pluginContainer,
-                       final Path basePluginPath) {
+  VelocityPluginModule(JavaVelocityPluginDescription description, PluginContainer pluginContainer,
+                       Path basePluginPath) {
     this.description = description;
     this.pluginContainer = pluginContainer;
     this.basePluginPath = basePluginPath;
   }
 
   @Override
-  public void configure(final Binder binder) {
+  public void configure(Binder binder) {
     binder.bind(description.getMainClass()).in(Scopes.SINGLETON);
 
     binder.bind(Logger.class).toInstance(LoggerFactory.getLogger(description.getId()));

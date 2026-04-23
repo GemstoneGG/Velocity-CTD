@@ -45,23 +45,11 @@ import org.jetbrains.annotations.Nullable;
  */
 public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandler, ModernResourcePackHandler {
 
-  /**
-   * The player associated with this resource pack handler.
-   */
   protected final ConnectedPlayer player;
 
-  /**
-   * The Velocity server instance.
-   */
   protected final VelocityServer server;
 
-  /**
-   * Constructs a new ResourcePackHandler.
-   *
-   * @param player the connected player
-   * @param server the Velocity server
-   */
-  protected ResourcePackHandler(final ConnectedPlayer player, final VelocityServer server) {
+  protected ResourcePackHandler(ConnectedPlayer player, VelocityServer server) {
     this.player = player;
     this.server = server;
   }
@@ -74,8 +62,8 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
    *
    * @return a new ResourcePackHandler
    */
-  public static @NotNull ResourcePackHandler create(final ConnectedPlayer player, final VelocityServer server) {
-    final ProtocolVersion protocolVersion = player.getProtocolVersion();
+  public static @NotNull ResourcePackHandler create(ConnectedPlayer player, VelocityServer server) {
+    ProtocolVersion protocolVersion = player.getProtocolVersion();
     if (protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_17)) {
       return new LegacyResourcePackHandler(player, server);
     }
@@ -87,32 +75,12 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
     return new ModernResourcePackHandler(player, server);
   }
 
-  /**
-   * Gets the first successfully applied resource pack, or {@code null} if none.
-   *
-   * @return the first applied resource pack, or {@code null}
-   */
   public abstract @Nullable ResourcePackInfo getFirstAppliedPack();
 
-  /**
-   * Gets the first resource pack that is currently pending application.
-   *
-   * @return the first pending resource pack, or {@code null}
-   */
   public abstract @Nullable ResourcePackInfo getFirstPendingPack();
 
-  /**
-   * Gets all successfully applied resource packs.
-   *
-   * @return the list of applied resource packs
-   */
   public abstract @NotNull Collection<ResourcePackInfo> getAppliedResourcePacks();
 
-  /**
-   * Gets all resource packs currently pending application.
-   *
-   * @return the list of pending resource packs
-   */
   public abstract @NotNull Collection<ResourcePackInfo> getPendingResourcePacks();
 
   /**
@@ -120,12 +88,6 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
    */
   public abstract void clearAppliedResourcePacks();
 
-  /**
-   * Removes a resource pack by its unique ID.
-   *
-   * @param id the ID of the resource pack
-   * @return {@code true} if the resource pack was removed
-   */
   public abstract boolean remove(UUID id);
 
   /**
@@ -142,21 +104,16 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
    *
    * @param request the resource pack request
    */
-  public void queueResourcePack(final @NotNull ResourcePackRequest request) {
-    for (final net.kyori.adventure.resource.ResourcePackInfo pack : request.packs()) {
-      final ResourcePackInfo resourcePackInfo = VelocityResourcePackInfo.fromAdventureRequest(request, pack);
+  public void queueResourcePack(@NotNull ResourcePackRequest request) {
+    for (net.kyori.adventure.resource.ResourcePackInfo pack : request.packs()) {
+      ResourcePackInfo resourcePackInfo = VelocityResourcePackInfo.fromAdventureRequest(request, pack);
       this.checkAlreadyAppliedPack(resourcePackInfo.getHash());
       queueResourcePack(resourcePackInfo);
     }
   }
 
-  /**
-   * Sends the underlying Minecraft packet for the resource pack request.
-   *
-   * @param queued the resource pack to send
-   */
-  protected void sendResourcePackRequestPacket(final @NotNull ResourcePackInfo queued) {
-    final ResourcePackRequestPacket request = new ResourcePackRequestPacket();
+  protected void sendResourcePackRequestPacket(@NotNull ResourcePackInfo queued) {
+    ResourcePackRequestPacket request = new ResourcePackRequestPacket();
     request.setId(queued.getId());
     request.setUrl(queued.getUrl());
     if (queued.getHash() != null) {
@@ -206,21 +163,14 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
    */
   public abstract boolean onResourcePackResponse(@NotNull ResourcePackResponseBundle bundle);
 
-  /**
-   * Forwards the client's resource pack response to the backend server, unless it was handled by a plugin.
-   *
-   * @param queued the original pack that was sent
-   * @param bundle the client response
-   * @return {@code true} if the response was handled by the proxy (e.g., plugin), {@code false} otherwise
-   */
-  protected boolean handleResponseResult(final @Nullable ResourcePackInfo queued,
-                                         final @NotNull ResourcePackResponseBundle bundle) {
+  protected boolean handleResponseResult(@Nullable ResourcePackInfo queued,
+                                         @NotNull ResourcePackResponseBundle bundle) {
     // If Velocity, through a plugin, has sent a resource pack to the client,
     // there is no need to report the status of the response to the server
     // since it has no information that a resource pack has been sent
-    final boolean handled = queued != null && queued.getOriginalOrigin() == ResourcePackInfo.Origin.PLUGIN_ON_PROXY;
+    boolean handled = queued != null && queued.getOriginalOrigin() == ResourcePackInfo.Origin.PLUGIN_ON_PROXY;
     if (!handled) {
-      final VelocityServerConnection connectionInFlight = player.getConnectionInFlight();
+      VelocityServerConnection connectionInFlight = player.getConnectionInFlight();
       if (connectionInFlight != null && connectionInFlight.getConnection() != null) {
         connectionInFlight.getConnection().write(new ResourcePackResponsePacket(bundle.uuid(), bundle.hash(), bundle.status()));
       }
@@ -236,12 +186,7 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
    */
   public abstract boolean hasPackAppliedByHash(byte[] hash);
 
-  /**
-   * Check if a pack has already been applied.
-   *
-   * @param hash the resource pack hash
-   */
-  public void checkAlreadyAppliedPack(final byte[] hash) {
+  public void checkAlreadyAppliedPack(byte[] hash) {
     if (this.hasPackAppliedByHash(hash)) {
       throw new IllegalStateException("Cannot apply a resource pack already applied");
     }

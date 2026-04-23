@@ -57,8 +57,8 @@ public final class GameProfileRequestEvent {
    * @param originalProfile the original {@link GameProfile} for the user
    * @param onlineMode whether the user connected in online or offline mode
    */
-  public GameProfileRequestEvent(final InboundConnection connection, final GameProfile originalProfile,
-                                 final boolean onlineMode) {
+  public GameProfileRequestEvent(InboundConnection connection, GameProfile originalProfile,
+                                 boolean onlineMode) {
     this.connection = Preconditions.checkNotNull(connection, "connection");
     this.originalProfile = Preconditions.checkNotNull(originalProfile, "originalProfile");
     this.username = originalProfile.getName();
@@ -117,7 +117,7 @@ public final class GameProfileRequestEvent {
    *
    * @param gameProfile the profile for this connection, {@code null} uses the original profile
    */
-  public void setGameProfile(final @Nullable GameProfile gameProfile) {
+  public void setGameProfile(@Nullable GameProfile gameProfile) {
     this.gameProfile = gameProfile;
   }
 

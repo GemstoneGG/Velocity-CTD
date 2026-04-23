@@ -33,24 +33,16 @@ import org.checkerframework.checker.lock.qual.GuardedBy;
  */
 abstract class AbstractCommandRegistrar<T extends Command> implements CommandRegistrar<T> {
 
-  /**
-   * The root command node used to register commands.
-   *
-   * <p>This field is guarded by {@link #lock}.</p>
-   */
   private final @GuardedBy("lock") RootCommandNode<CommandSource> root;
 
-  /**
-   * The lock used to guard modifications to the root command tree.
-   */
   private final Lock lock;
 
-  protected AbstractCommandRegistrar(final RootCommandNode<CommandSource> root, final Lock lock) {
+  protected AbstractCommandRegistrar(RootCommandNode<CommandSource> root, Lock lock) {
     this.root = Preconditions.checkNotNull(root, "root");
     this.lock = Preconditions.checkNotNull(lock, "lock");
   }
 
-  protected void register(final LiteralCommandNode<CommandSource> node) {
+  protected void register(LiteralCommandNode<CommandSource> node) {
     lock.lock();
     try {
       // Registration overrides previous aliased command
@@ -61,8 +53,8 @@ abstract class AbstractCommandRegistrar<T extends Command> implements CommandReg
     }
   }
 
-  protected void register(final LiteralCommandNode<CommandSource> node, final String secondaryAlias) {
-    final LiteralCommandNode<CommandSource> copy = VelocityCommands.shallowCopy(node, secondaryAlias);
+  protected void register(LiteralCommandNode<CommandSource> node, String secondaryAlias) {
+    LiteralCommandNode<CommandSource> copy = VelocityCommands.shallowCopy(node, secondaryAlias);
     this.register(copy);
   }
 }

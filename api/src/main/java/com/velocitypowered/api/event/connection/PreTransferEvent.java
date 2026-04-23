@@ -47,7 +47,7 @@ public final class PreTransferEvent implements ResultedEvent<PreTransferEvent.Tr
    * @param player the player being transferred
    * @param address the destination address
    */
-  public PreTransferEvent(final Player player, final InetSocketAddress address) {
+  public PreTransferEvent(Player player, InetSocketAddress address) {
     this.player = requireNonNull(player);
     this.originalAddress = requireNonNull(address);
   }
@@ -76,7 +76,7 @@ public final class PreTransferEvent implements ResultedEvent<PreTransferEvent.Tr
   }
 
   @Override
-  public void setResult(final TransferResult result) {
+  public void setResult(TransferResult result) {
     requireNonNull(result);
     this.result = result;
   }
@@ -106,7 +106,7 @@ public final class PreTransferEvent implements ResultedEvent<PreTransferEvent.Tr
      */
     private final boolean allowed;
 
-    private TransferResult(final boolean allowed, final InetSocketAddress address) {
+    private TransferResult(boolean allowed, InetSocketAddress address) {
       this.address = address;
       this.allowed = allowed;
     }
@@ -135,7 +135,7 @@ public final class PreTransferEvent implements ResultedEvent<PreTransferEvent.Tr
      * @param address the address specified
      * @return a new TransferResult
      */
-    public static TransferResult transferTo(final InetSocketAddress address) {
+    public static TransferResult transferTo(InetSocketAddress address) {
       requireNonNull(address);
 
       return new TransferResult(true, address);

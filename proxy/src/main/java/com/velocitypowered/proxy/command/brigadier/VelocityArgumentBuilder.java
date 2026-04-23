@@ -43,51 +43,36 @@ public final class VelocityArgumentBuilder<S, T>
    * @param <T>  the type of the argument to parse
    * @return a builder
    */
-  public static <S, T> VelocityArgumentBuilder<S, T> velocityArgument(final String name,
-                                                                      final ArgumentType<T> type) {
+  public static <S, T> VelocityArgumentBuilder<S, T> velocityArgument(String name,
+                                                                      ArgumentType<T> type) {
     Preconditions.checkNotNull(name, "name");
     Preconditions.checkNotNull(type, "type");
     return new VelocityArgumentBuilder<>(name, type);
   }
 
-  /**
-   * The name of the argument node.
-   */
   private final String name;
 
-  /**
-   * The Brigadier {@link ArgumentType} used to parse the argument.
-   */
   private final ArgumentType<T> type;
 
-  /**
-   * The suggestion provider used for tab completion, or {@code null} if not set.
-   */
   private SuggestionProvider<S> suggestionsProvider = null;
 
-  private VelocityArgumentBuilder(final String name, final ArgumentType<T> type) {
+  private VelocityArgumentBuilder(String name, ArgumentType<T> type) {
     this.name = name;
     this.type = type;
   }
 
-  /**
-   * Sets the {@link SuggestionProvider} used for this argument node.
-   *
-   * @param provider the suggestion provider, or {@code null} to disable suggestions
-   * @return this builder, for chaining
-   */
-  public VelocityArgumentBuilder<S, T> suggests(final @Nullable SuggestionProvider<S> provider) {
+  public VelocityArgumentBuilder<S, T> suggests(@Nullable SuggestionProvider<S> provider) {
     this.suggestionsProvider = provider;
     return this;
   }
 
   @Override
-  public VelocityArgumentBuilder<S, T> then(final ArgumentBuilder<S, ?> argument) {
+  public VelocityArgumentBuilder<S, T> then(ArgumentBuilder<S, ?> argument) {
     throw new UnsupportedOperationException("Cannot add children to a greedy node");
   }
 
   @Override
-  public VelocityArgumentBuilder<S, T> then(final CommandNode<S> argument) {
+  public VelocityArgumentBuilder<S, T> then(CommandNode<S> argument) {
     throw new UnsupportedOperationException("Cannot add children to a greedy node");
   }
 

@@ -30,30 +30,24 @@ import java.util.concurrent.locks.Lock;
  */
 public final class BrigadierCommandRegistrar extends AbstractCommandRegistrar<BrigadierCommand> {
 
-  /**
-   * Constructs a new {@code BrigadierCommandRegistrar}.
-   *
-   * @param root the root command node of the dispatcher
-   * @param lock the lock protecting access to the root command tree
-   */
-  public BrigadierCommandRegistrar(final RootCommandNode<CommandSource> root, final Lock lock) {
+  public BrigadierCommandRegistrar(RootCommandNode<CommandSource> root, Lock lock) {
     super(root, lock);
   }
 
   @Override
-  public void register(final CommandMeta meta, final BrigadierCommand command) {
+  public void register(CommandMeta meta, BrigadierCommand command) {
     // The literal name might not match any aliases on the given meta.
     // Register it (if valid); since it's probably what the user expects.
     // If invalid, the metadata contains the same alias but in lowercase.
-    final LiteralCommandNode<CommandSource> literal = command.getNode();
-    final LiteralCommandNode<CommandSource> wrapped = (LiteralCommandNode<CommandSource>) VelocityCommands.wrap(literal, meta.getPlugin());
-    final String primaryAlias = literal.getName();
+    LiteralCommandNode<CommandSource> literal = command.getNode();
+    LiteralCommandNode<CommandSource> wrapped = (LiteralCommandNode<CommandSource>) VelocityCommands.wrap(literal, meta.getPlugin());
+    String primaryAlias = literal.getName();
     if (VelocityCommands.isValidAlias(primaryAlias)) {
       // Register directly without copying
       this.register(wrapped);
     }
 
-    for (final String alias : meta.getAliases()) {
+    for (String alias : meta.getAliases()) {
       if (primaryAlias.equals(alias)) {
         continue;
       }

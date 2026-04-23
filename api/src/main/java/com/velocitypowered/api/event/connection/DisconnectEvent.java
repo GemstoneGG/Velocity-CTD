@@ -41,7 +41,7 @@ public final class DisconnectEvent {
    * @param player the player who disconnected
    * @param loginStatus the status of the player's login at the time of disconnection
    */
-  public DisconnectEvent(final Player player, final LoginStatus loginStatus) {
+  public DisconnectEvent(Player player, LoginStatus loginStatus) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.loginStatus = Preconditions.checkNotNull(loginStatus, "loginStatus");
   }

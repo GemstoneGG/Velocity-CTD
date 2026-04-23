@@ -57,12 +57,12 @@ public interface EventTask {
    * @param task The task
    * @return The async event task
    */
-  static EventTask async(final Runnable task) {
+  static EventTask async(Runnable task) {
     requireNonNull(task, "task");
     return new EventTask() {
 
       @Override
-      public void execute(final Continuation continuation) {
+      public void execute(Continuation continuation) {
         task.run();
         continuation.resume();
       }
@@ -82,12 +82,12 @@ public interface EventTask {
    * @param task The task to execute
    * @return The event task
    */
-  static EventTask withContinuation(final Consumer<Continuation> task) {
+  static EventTask withContinuation(Consumer<Continuation> task) {
     requireNonNull(task, "task");
     return new EventTask() {
 
       @Override
-      public void execute(final Continuation continuation) {
+      public void execute(Continuation continuation) {
         task.accept(continuation);
       }
 
@@ -108,7 +108,7 @@ public interface EventTask {
    */
   // The Error Prone annotation here is spurious. The Future is handled via the CompletableFuture
   // API, which does NOT use the traditional blocking model.
-  static EventTask resumeWhenComplete(final CompletableFuture<?> future) {
+  static EventTask resumeWhenComplete(CompletableFuture<?> future) {
     requireNonNull(future, "future");
     return withContinuation(continuation -> future.whenComplete((result, cause) -> {
       if (cause != null) {

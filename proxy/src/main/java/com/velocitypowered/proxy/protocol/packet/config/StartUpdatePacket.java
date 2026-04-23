@@ -23,44 +23,31 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
 
-/**
- * The {@code StartUpdatePacket} class represents a packet that signals the
- * start of an update process in the Minecraft protocol.
- *
- * <p>This packet may be used to notify the client or server that a certain update
- * process, such as data synchronization or gameplay changes, is about to begin.</p>
- *
- * <p>Its specific use depends on the version and context of the update,
- * typically handled in the Minecraft networking layer.</p>
- */
 public final class StartUpdatePacket implements MinecraftPacket {
 
-  /**
-   * A shared singleton instance of {@code StartUpdatePacket}, since the packet carries no data.
-   */
   public static final StartUpdatePacket INSTANCE = new StartUpdatePacket();
 
   private StartUpdatePacket() {
   }
 
   @Override
-  public void decode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
+  public void decode(ByteBuf buf, ProtocolUtils.Direction direction,
+                     ProtocolVersion protocolVersion) {
   }
 
   @Override
-  public void encode(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                     final ProtocolVersion protocolVersion) {
+  public void encode(ByteBuf buf, ProtocolUtils.Direction direction,
+                     ProtocolVersion protocolVersion) {
   }
 
   @Override
-  public int decodeExpectedMaxLength(final ByteBuf buf, final ProtocolUtils.Direction direction,
-                                     final ProtocolVersion version) {
+  public int decodeExpectedMaxLength(ByteBuf buf, ProtocolUtils.Direction direction,
+                                     ProtocolVersion version) {
     return 0;
   }
 
   @Override
-  public boolean handle(final MinecraftSessionHandler handler) {
+  public boolean handle(MinecraftSessionHandler handler) {
     return handler.handle(this);
   }
 }

@@ -99,9 +99,7 @@ public interface ProxyConfig {
    * does. For a view of all registered servers, see {@link ProxyServer#getAllServers()}.
    *
    * @return registered servers map
-   * @deprecated use {@link #getBackendServers()} instead.
    */
-  @Deprecated(forRemoval = true, since = "3.4.0")
   Map<String, String> getServers();
 
   /**
@@ -112,7 +110,7 @@ public interface ProxyConfig {
    * @return registered servers map with, instead of the only address, the Backend Server Object for each
    *     of them which contains the address of the server and its info forwarding mode.
    * @since 3.4.0
-   * @see com.velocitypowered.api.proxy.server.ServerInfoForwardingMode
+   * @see com.velocitypowered.api.proxy.server.PlayerInfoForwarding
    */
   Map<String, BackendServerConfig> getBackendServers();
 
@@ -129,20 +127,6 @@ public interface ProxyConfig {
    * @return mapped list of server names
    */
   Map<String, List<String>> getForcedHosts();
-
-  /**
-   * Whether the proxy should cache Mojang profile results to reduce login API pressure.
-   *
-   * @return true if profile result caching is enabled
-   */
-  boolean isCachePlayerProfileResultEnabled();
-
-  /**
-   * How long (in minutes) to cache Mojang profile results.
-   *
-   * @return the profile cache expiration time in minutes
-   */
-  int getProfileCacheExpiryMinutes();
 
   /**
    * Get the minimum compression threshold for packets.

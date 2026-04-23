@@ -31,41 +31,21 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 public class PluginClassLoader extends URLClassLoader {
 
-  /**
-   * The set of all active plugin class loaders.
-   */
   private static final Set<PluginClassLoader> loaders = new CopyOnWriteArraySet<>();
 
   static {
     ClassLoader.registerAsParallelCapable();
   }
 
-  /**
-   * Constructs a new {@code PluginClassLoader} using the given URLs.
-   *
-   * @param urls the URLs from which to load classes and resources
-   */
-  public PluginClassLoader(final URL[] urls) {
+  public PluginClassLoader(URL[] urls) {
     super(urls, Velocity.class.getClassLoader());
   }
 
-  /**
-   * Registers this class loader in the global list of plugin class loaders.
-   *
-   * <p>This allows other plugin class loaders to attempt to load classes from this loader
-   * when a class is not found locally.</p>
-   */
   public void addToClassloaders() {
     loaders.add(this);
   }
 
-  /**
-   * Adds a path to the class loader's classpath at runtime.
-   *
-   * @param path the file system path to a JAR or directory
-   * @throws AssertionError if the path cannot be converted to a valid URL
-   */
-  void addPath(final Path path) {
+  void addPath(Path path) {
     try {
       addURL(path.toUri().toURL());
     } catch (MalformedURLException e) {
@@ -73,36 +53,18 @@ public class PluginClassLoader extends URLClassLoader {
     }
   }
 
-  /**
-   * Closes this class loader and removes it from the global loader registry.
-   *
-   * <p>This allows the plugin to be safely unloaded and its classes released from memory.</p>
-   *
-   * @throws IOException if an I/O error occurs while closing
-   */
   @Override
   public void close() throws IOException {
     loaders.remove(this);
     super.close();
   }
 
-  /**
-   * Attempts to load the given class name, optionally resolving it.
-   *
-   * <p>If the class cannot be found locally, this method falls back to other registered
-   * {@code PluginClassLoader} instances for cooperative resolution.</p>
-   *
-   * @param name the binary name of the class
-   * @param resolve whether to resolve the class after loading
-   * @return the resulting {@link Class} object
-   * @throws ClassNotFoundException if the class cannot be found in any class loader
-   */
   @Override
-  protected Class<?> loadClass(final String name, final boolean resolve) throws ClassNotFoundException {
+  protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
     return loadClass0(name, resolve, true);
   }
 
-  private Class<?> loadClass0(final String name, final boolean resolve, final boolean checkOther) throws ClassNotFoundException {
+  private Class<?> loadClass0(String name, boolean resolve, boolean checkOther) throws ClassNotFoundException {
     try {
       return super.loadClass(name, resolve);
     } catch (ClassNotFoundException ignored) {

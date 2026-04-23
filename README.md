@@ -41,6 +41,10 @@ dependencies, useful performance improvements, and more.
 * Configurable `/alertraw` command to send non-prefixed messages across your
   entire network.
 * Configurable `/find` command that locates yourself and other users.
+* Configurable `/gkick` command that kicks a player from the network, supporting
+  both local and cross-proxy (Redis) players.
+* Configurable `/gip` command that retrieves the IP address of an online player,
+  supporting both local and cross-proxy (Redis) players.
 * `/hub` with `/lobby` alias that sends you to the/a fallback server,
   which synchronizes with the activation and deactivation of dynamic fallbacks.
 * Configurable `/ping` command that displays your and other users' ping.
@@ -85,8 +89,12 @@ dependencies, useful performance improvements, and more.
   alerts to all users on the proxy or proxies, depending on your setup).
 * `velocity.command.find` [/find] (Allows you to find the specific server a user is
   actively connected to on the network).
+* `velocity.command.gkick` [/gkick] (Allows you to kick a player from the network,
+  including players connected to a different proxy in a Redis multi-proxy setup).
 * `velocity.command.hub` [/hub & /lobby] (Allows you to be sent to the hub/lobby or
   your fallback server(s), depending on your setup).
+* `velocity.command.gip` [/gip] (Allows you to retrieve the IP address of an online player,
+  including players connected to a different proxy in a Redis multi-proxy setup).
 * `velocity.command.ping` [/ping] (Returns your latency of the proxy you are currently
   connected to and not the latency of the backend server).
 * `velocity.command.plist` [/plist] (Returns the total users on your proxy
@@ -116,8 +124,12 @@ dependencies, useful performance improvements, and more.
 ## Velocity-CTD Queue Permissions
 * `velocity.queue.bypass` or `velocity.queue.bypass.{SERVER}` (Allows you to bypass the queue for all
   servers or a specific server).
+* `velocity.queue.full.bypass` (Allows you to connect to a server even when it is at capacity).
 * `velocity.queue.leave` (Allows you to leave the queue you are in or all queues you are in).
 * `velocity.queue.priority.{ALL/SERVER}.{WEIGHT}` (Sets the position you are in for the/a queue).
+* `velocity.queue.server-switch.bypass` (Allows you to switch servers freely while in a queue,
+  even when `queue-server` is configured. Without this permission, players on the `queue-server`
+  are blocked from switching to any server other than their queued destination).
 * `velocity.queue.timeout.{SECONDS}` (Specifies the amount of time a user has before they
   are unqueued from a server when disconnecting; if you reach the position where
   you can be sent and are offline, your queue position will reset, regardless of
@@ -141,7 +153,7 @@ consider utilizing JProfiler to enhance your experience and report any ongoing i
 
 ## Building
 
-Velocity is built with [Gradle](https://gradle.org). We recommend using the
+Velocity-CTD is built with [Gradle](https://gradle.org). We recommend using the
 wrapper script (`./gradlew`) as our CI builds using it.
 
 It is sufficient to run `./gradlew build` to run the full build cycle.
@@ -152,5 +164,13 @@ where our latest updates will be compiled and ready for use.
 ## Running
 
 Once you've built Velocity, you can copy and run the `-all` JAR from
-`proxy/build/libs`. Velocity will generate a default configuration file,
+`proxy/build/libs`. Velocity-CTD will generate a default configuration file,
 and you can configure it from there.
+
+## Localisation
+
+Upstream Velocity's Translations are handled using [Crowdin](https://papermc-io.crowdin.com/velocity).
+If you want to translate a language not available on Crowdin,
+you might want to ask in the upstream's [Discord](https://discord.gg/papermc) about it.
+
+Velocity-CTD removes the translations to preserve maintainability. See `Additional Features/Removals`.

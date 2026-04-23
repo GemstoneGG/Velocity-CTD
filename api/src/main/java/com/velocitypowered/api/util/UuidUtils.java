@@ -27,7 +27,7 @@ public final class UuidUtils {
    * @param string the string to convert
    * @return the UUID object
    */
-  public static UUID fromUndashed(final String string) {
+  public static UUID fromUndashed(String string) {
     Objects.requireNonNull(string, "string");
     return FastUuidSansHyphens.parseUuid(string);
   }
@@ -38,7 +38,7 @@ public final class UuidUtils {
    * @param uuid the UUID to convert
    * @return the undashed UUID
    */
-  public static String toUndashed(final UUID uuid) {
+  public static String toUndashed(UUID uuid) {
     Preconditions.checkNotNull(uuid, "uuid");
     return FastUuidSansHyphens.toString(uuid);
   }
@@ -49,7 +49,7 @@ public final class UuidUtils {
    * @param username the username to use
    * @return the offline mode UUID
    */
-  public static UUID generateOfflinePlayerUuid(final String username) {
+  public static UUID generateOfflinePlayerUuid(String username) {
     return UUID.nameUUIDFromBytes(("OfflinePlayer:" + username).getBytes(StandardCharsets.UTF_8));
   }
 }

@@ -35,7 +35,7 @@ public final class PlayerSettingsChangedEvent {
    * @param player the player who changed settings
    * @param playerSettings the new settings sent by the client
    */
-  public PlayerSettingsChangedEvent(final Player player, final PlayerSettings playerSettings) {
+  public PlayerSettingsChangedEvent(Player player, PlayerSettings playerSettings) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.playerSettings = Preconditions.checkNotNull(playerSettings, "playerSettings");
   }

@@ -26,6 +26,7 @@ sequenceOf(
     "api",
     "native",
     "proxy",
+    "luckperms-integration",
 ).forEach {
     val project = ":velocity-$it"
     include(project)

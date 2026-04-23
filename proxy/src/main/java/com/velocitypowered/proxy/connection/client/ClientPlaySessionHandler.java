@@ -21,13 +21,13 @@ import static com.velocitypowered.proxy.protocol.util.PluginMessageUtil.construc
 
 import com.google.common.collect.ImmutableList;
 import com.mojang.brigadier.suggestion.Suggestion;
+import com.velocityctd.api.event.player.TabCompleteRequestEvent;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.player.CookieReceiveEvent;
 import com.velocitypowered.api.event.player.PlayerChannelRegisterEvent;
 import com.velocitypowered.api.event.player.PlayerChannelUnregisterEvent;
 import com.velocitypowered.api.event.player.PlayerClientBrandEvent;
 import com.velocitypowered.api.event.player.TabCompleteEvent;
-import com.velocitypowered.api.event.player.TabCompleteRequestEvent;
 import com.velocitypowered.api.event.player.configuration.PlayerEnteredConfigurationEvent;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
@@ -42,6 +42,7 @@ import com.velocitypowered.proxy.connection.forge.legacy.LegacyForgeConstants;
 import com.velocitypowered.proxy.connection.player.resourcepack.ResourcePackResponseBundle;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.StateRegistry;
+import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
 import com.velocitypowered.proxy.protocol.packet.BossBarPacket;
 import com.velocitypowered.proxy.protocol.packet.ClientSettingsPacket;
 import com.velocitypowered.proxy.protocol.packet.JoinGamePacket;
@@ -99,66 +100,31 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * center that joins backend servers with players.
  */
 public class ClientPlaySessionHandler implements MinecraftSessionHandler {
+  private static final boolean BACKPRESSURE_LOG =
+      Boolean.getBoolean("velocity.log-server-backpressure");
 
-  /**
-   * Logger instance for this session handler.
-   */
-  private static final Logger logger = LogManager.getLogger(ClientPlaySessionHandler.class);
+  private static final Logger LOGGER = LogManager.getLogger(ClientPlaySessionHandler.class);
 
-  /**
-   * The player associated with this session.
-   */
   private final ConnectedPlayer player;
 
-  /**
-   * Whether the player has received a JoinGame packet and is considered spawned.
-   */
   private boolean spawned = false;
 
-  /**
-   * List of UUIDs representing boss bars currently added by the backend server.
-   */
   private final List<UUID> serverBossBars = new ArrayList<>();
 
-  /**
-   * Queue of plugin messages sent during login or handshake stages to be forwarded
-   * once the client is ready.
-   */
   private final Queue<PluginMessagePacket> loginPluginMessages = new ConcurrentLinkedQueue<>();
 
-  /**
-   * The Velocity server instance.
-   */
   private final VelocityServer server;
 
-  /**
-   * The outstanding tab complete request, if any, from 1.12 or lower clients.
-   */
   private @Nullable TabCompleteRequestPacket outstandingTabComplete;
 
-  /**
-   * Handler responsible for processing player chat messages.
-   */
   private final ChatHandler<? extends MinecraftPacket> chatHandler;
 
-  /**
-   * Handler responsible for processing player command messages.
-   */
   private final CommandHandler<? extends MinecraftPacket> commandHandler;
 
-  /**
-   * Tracks timestamps of received chat messages to detect out-of-order packets.
-   */
   private final ChatTimeKeeper timeKeeper = new ChatTimeKeeper();
 
-  /**
-   * A future that completes when the player has fully transitioned into a new CONFIG state.
-   */
   private CompletableFuture<Void> configSwitchFuture;
 
-  /**
-   * Tracks the number of failed tab completion attempts used for rate-limiting enforcement.
-   */
   private int failedTabCompleteAttempts;
 
   /**
@@ -167,7 +133,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
    * @param server the Velocity server instance
    * @param player the player
    */
-  public ClientPlaySessionHandler(final VelocityServer server, final ConnectedPlayer player) {
+  public ClientPlaySessionHandler(VelocityServer server, ConnectedPlayer player) {
     this.player = player;
     this.server = server;
 
@@ -184,7 +150,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
   }
 
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-  private boolean updateTimeKeeper(final @Nullable Instant instant) {
+  private boolean updateTimeKeeper(@Nullable Instant instant) {
     if (instant == null) {
       return true;
     }
@@ -198,7 +164,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
   }
 
   @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-  private boolean validateChat(final String message) {
+  private boolean validateChat(String message) {
     if (!server.getConfiguration().isAllowIllegalCharactersInChat() && CharacterUtil.containsIllegalCharacters(message)) {
       player.disconnect(Component.translatable("velocity.error.illegal-chat-characters", NamedTextColor.RED));
       return false;
@@ -207,13 +173,6 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  /**
-   * Called when the session handler becomes active.
-   *
-   * <p>This method initializes the configuration switch future and sends the
-   * {@code REGISTER} plugin message if the player has any plugin channels
-   * registered for their current protocol version.</p>
-   */
   @Override
   public void activated() {
     configSwitchFuture = new CompletableFuture<>();
@@ -224,12 +183,6 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     }
   }
 
-  /**
-   * Called when the session handler is deactivated.
-   *
-   * <p>This clears any chat queue the player has and releases all retained
-   * {@link PluginMessagePacket}s that were queued during login or handshake.</p>
-   */
   @Override
   public void deactivated() {
     player.discardChatQueue();
@@ -238,31 +191,14 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     }
   }
 
-  /**
-   * Handles an inbound {@link KeepAlivePacket} from the client.
-   *
-   * <p>This is forwarded to the backend to maintain the keep-alive loop.</p>
-   *
-   * @param packet the keep-alive packet
-   * @return {@code true} to indicate it was handled
-   */
   @Override
-  public boolean handle(final KeepAlivePacket packet) {
+  public boolean handle(KeepAlivePacket packet) {
     player.forwardKeepAlive(packet);
     return true;
   }
 
-  /**
-   * Handles a {@link ClientSettingsPacket} sent by the client.
-   *
-   * <p>This updates the player's settings and forwards them to the backend server
-   * if a server connection exists.</p>
-   *
-   * @param packet the client settings
-   * @return {@code true} always
-   */
   @Override
-  public boolean handle(final ClientSettingsPacket packet) {
+  public boolean handle(ClientSettingsPacket packet) {
     player.setClientSettings(packet);
     VelocityServerConnection serverConnection = player.getConnectedServer();
     if (serverConnection == null) {
@@ -274,16 +210,8 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     return true; // will forward onto the server
   }
 
-  /**
-   * Handles a {@link SessionPlayerCommandPacket} from Minecraft 1.19.3+ clients.
-   *
-   * <p>The command is validated and dispatched through the configured {@link CommandHandler}.</p>
-   *
-   * @param packet the session-based command packet
-   * @return {@code true} if the command was processed or blocked
-   */
   @Override
-  public boolean handle(final SessionPlayerCommandPacket packet) {
+  public boolean handle(SessionPlayerCommandPacket packet) {
     if (player.getCurrentServer().isEmpty()) {
       return true;
     }
@@ -299,16 +227,8 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     return this.commandHandler.handlePlayerCommand(packet);
   }
 
-  /**
-   * Handles a {@link SessionPlayerChatPacket} from Minecraft 1.19.3+ clients.
-   *
-   * <p>The message is validated and passed to the {@link ChatHandler} for processing.</p>
-   *
-   * @param packet the session-based chat message
-   * @return {@code true} if the message was processed or blocked
-   */
   @Override
-  public boolean handle(final SessionPlayerChatPacket packet) {
+  public boolean handle(SessionPlayerChatPacket packet) {
     if (player.getCurrentServer().isEmpty()) {
       return true;
     }
@@ -324,16 +244,8 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     return this.chatHandler.handlePlayerChat(packet);
   }
 
-  /**
-   * Handles a {@link KeyedPlayerCommandPacket} from Minecraft 1.19 to 1.19.2 clients.
-   *
-   * <p>The command is validated and dispatched through the {@link CommandHandler}.</p>
-   *
-   * @param packet the keyed command packet
-   * @return {@code true} if processed or blocked
-   */
   @Override
-  public boolean handle(final KeyedPlayerCommandPacket packet) {
+  public boolean handle(KeyedPlayerCommandPacket packet) {
     if (player.getCurrentServer().isEmpty()) {
       return true;
     }
@@ -349,16 +261,8 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     return this.commandHandler.handlePlayerCommand(packet);
   }
 
-  /**
-   * Handles a {@link KeyedPlayerChatPacket} from Minecraft 1.19 to 1.19.2 clients.
-   *
-   * <p>The chat message is validated and passed to the {@link ChatHandler}.</p>
-   *
-   * @param packet the keyed chat packet
-   * @return {@code true} if processed or blocked
-   */
   @Override
-  public boolean handle(final KeyedPlayerChatPacket packet) {
+  public boolean handle(KeyedPlayerChatPacket packet) {
     if (player.getCurrentServer().isEmpty()) {
       return true;
     }
@@ -374,17 +278,8 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     return this.chatHandler.handlePlayerChat(packet);
   }
 
-  /**
-   * Handles a {@link LegacyChatPacket} from Minecraft 1.18 and older clients.
-   *
-   * <p>Routes messages beginning with {@code /} to the {@link CommandHandler},
-   * and others to the {@link ChatHandler}.</p>
-   *
-   * @param packet the legacy-format chat packet
-   * @return {@code true} if processed
-   */
   @Override
-  public boolean handle(final LegacyChatPacket packet) {
+  public boolean handle(LegacyChatPacket packet) {
     if (player.getCurrentServer().isEmpty()) {
       return true;
     }
@@ -403,17 +298,8 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  /**
-   * Handles a {@link TabCompleteRequestPacket} sent by the client.
-   *
-   * <p>This dispatches to either a command or regular tab complete path depending
-   * on the format of the input and client version.</p>
-   *
-   * @param packet the tab complete request
-   * @return {@code true} if processed
-   */
   @Override
-  public boolean handle(final TabCompleteRequestPacket packet) {
+  public boolean handle(TabCompleteRequestPacket packet) {
     boolean isCommand = !packet.isAssumeCommand() && packet.getCommand().startsWith("/");
 
     if (isCommand) {
@@ -423,17 +309,8 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     }
   }
 
-  /**
-   * Handles a {@link PluginMessagePacket} sent from the client.
-   *
-   * <p>This method supports channel registration, branding, Forge handshakes, and plugin messaging.
-   * Messages may be queued for delivery if the connection is not ready.</p>
-   *
-   * @param packet the plugin message packet
-   * @return {@code true} always
-   */
   @Override
-  public boolean handle(final PluginMessagePacket packet) {
+  public boolean handle(PluginMessagePacket packet) {
     // Handling an edge case, when a packet with FML client handshake (state COMPLETE)
     // arrives after JoinGame packet from destination server
     VelocityServerConnection serverConn =
@@ -445,7 +322,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     MinecraftConnection backendConn = serverConn != null ? serverConn.getConnection() : null;
     if (serverConn != null && backendConn != null) {
       if (backendConn.getState() != StateRegistry.PLAY) {
-        logger.warn("A plugin message was received while the backend server was not "
+        LOGGER.warn("A plugin message was received while the backend server was not "
             + "ready. Channel: {}. Packet discarded.", packet.getChannel());
       } else if (PluginMessageUtil.isRegister(packet)) {
         List<ChannelIdentifier> channels = PluginMessageUtil.getChannels(this.player.getClientsideChannels().size(), packet,
@@ -512,7 +389,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
                 }
               }
             }, backendConn.eventLoop()).exceptionally((ex) -> {
-              logger.error("Exception while handling plugin message packet for {}", player, ex);
+              LOGGER.error("Exception while handling plugin message packet for {}", player, ex);
               return null;
             });
           }
@@ -523,34 +400,16 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  /**
-   * Handles a {@link ResourcePackResponsePacket} from the client.
-   *
-   * <p>This delegates processing to the player's {@link ResourcePackResponsePacket}.</p>
-   *
-   * @param packet the resource pack response
-   * @return {@code true} if handled
-   */
   @Override
-  public boolean handle(final ResourcePackResponsePacket packet) {
+  public boolean handle(ResourcePackResponsePacket packet) {
     return player.resourcePackHandler().onResourcePackResponse(
         new ResourcePackResponseBundle(packet.getId(),
             packet.getHash(),
             packet.getStatus()));
   }
 
-  /**
-   * Handles a {@link FinishedUpdatePacket} indicating that the client is acknowledging
-   * configuration transition.
-   *
-   * <p>This finalizes the config switch, forwards the packet to the server,
-   * and updates both session states to {@link StateRegistry#CONFIG}.</p>
-   *
-   * @param packet the config complete packet
-   * @return {@code true} if the transition was finalized
-   */
   @Override
-  public boolean handle(final FinishedUpdatePacket packet) {
+  public boolean handle(FinishedUpdatePacket packet) {
     if (!player.getConnection().pendingConfigurationSwitch) {
       throw new QuietRuntimeException("Not expecting reconfiguration");
     }
@@ -566,7 +425,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
         smc.setActiveSessionHandler(StateRegistry.CONFIG);
         smc.setAutoReading(true);
       }, smc.eventLoop()).exceptionally((ex) -> {
-        logger.error("Error forwarding config state acknowledgement to server:", ex);
+        LOGGER.error("Error forwarding config state acknowledgement to server:", ex);
         return null;
       });
     }
@@ -575,16 +434,8 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  /**
-   * Handles a {@link ChatAcknowledgementPacket} acknowledging message receipt.
-   *
-   * <p>Passes the acknowledgement offset to the player's chat queue for bookkeeping.</p>
-   *
-   * @param packet the chat acknowledgement
-   * @return {@code true} always
-   */
   @Override
-  public boolean handle(final ChatAcknowledgementPacket packet) {
+  public boolean handle(ChatAcknowledgementPacket packet) {
     if (player.getCurrentServer().isEmpty()) {
       return true;
     }
@@ -593,25 +444,17 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  /**
-   * Handles a {@link ServerboundCookieResponsePacket} from the client.
-   *
-   * <p>Fires a {@link CookieReceiveEvent} and forwards the packet to the backend if permitted.</p>
-   *
-   * @param packet the cookie response
-   * @return {@code true} if processed
-   */
   @Override
-  public boolean handle(final ServerboundCookieResponsePacket packet) {
+  public boolean handle(ServerboundCookieResponsePacket packet) {
     server.getEventManager()
         .fire(new CookieReceiveEvent(player, packet.getKey(), packet.getPayload()))
         .thenAcceptAsync(event -> {
           if (event.getResult().isAllowed()) {
-            final VelocityServerConnection serverConnection = player.getConnectedServer();
+            VelocityServerConnection serverConnection = player.getConnectedServer();
             if (serverConnection != null) {
-              final Key resultedKey = event.getResult().getKey() == null
+              Key resultedKey = event.getResult().getKey() == null
                   ? event.getOriginalKey() : event.getResult().getKey();
-              final byte[] resultedData = event.getResult().getData() == null
+              byte[] resultedData = event.getResult().getData() == null
                   ? event.getOriginalData() : event.getResult().getData();
 
               serverConnection.ensureConnected().write(new ServerboundCookieResponsePacket(resultedKey, resultedData));
@@ -622,28 +465,15 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  /**
-   * Handles a {@link JoinGamePacket} sent by the backend server.
-   *
-   * <p>This clears any chat queue the client had, to remain consistent with client behavior.</p>
-   *
-   * @param packet the join game packet
-   * @return {@code false} to allow forwarding
-   */
   @Override
-  public boolean handle(final JoinGamePacket packet) {
+  public boolean handle(JoinGamePacket packet) {
     // Forward the packet as normal, but discard any chat state we have queued - the client will do this too
     player.discardChatQueue();
     return false;
   }
 
-  /**
-   * Forwards unrecognized packets to the backend server.
-   *
-   * @param packet the unhandled packet
-   */
   @Override
-  public void handleGeneric(final MinecraftPacket packet) {
+  public void handleGeneric(MinecraftPacket packet) {
     VelocityServerConnection serverConnection = player.getConnectedServer();
     if (serverConnection == null) {
       // No server connection yet, probably transitioning.
@@ -651,7 +481,11 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     }
 
     MinecraftConnection smc = serverConnection.getConnection();
-    if (smc != null && serverConnection.getPhase().consideredComplete()) {
+    boolean stateAllowsForward = smc != null
+        && !smc.isClosed()
+        && serverConnection.getPhase().consideredComplete()
+        && smc.getState() == StateRegistry.PLAY;
+    if (stateAllowsForward) {
       if (packet instanceof PluginMessagePacket) {
         ((PluginMessagePacket) packet).retain();
       }
@@ -659,13 +493,8 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     }
   }
 
-  /**
-   * Forwards unknown byte-level packet data to the backend server.
-   *
-   * @param buf the raw packet buffer
-   */
   @Override
-  public void handleUnknown(final ByteBuf buf) {
+  public void handleUnknown(ByteBuf buf) {
     VelocityServerConnection serverConnection = player.getConnectedServer();
     if (serverConnection == null) {
       // No server connection yet, probably transitioning.
@@ -673,41 +502,39 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     }
 
     MinecraftConnection smc = serverConnection.getConnection();
-    if (smc != null && !smc.isClosed() && serverConnection.getPhase().consideredComplete()) {
+    boolean stateAllowsForward = smc != null
+        && !smc.isClosed()
+        && serverConnection.getPhase().consideredComplete()
+        && smc.getState() == StateRegistry.PLAY;
+    if (stateAllowsForward) {
       smc.write(buf.retain());
     }
   }
 
-  /**
-   * Called when the connection to the client is closed.
-   *
-   * <p>This tears down the player session and cleans up internal state.</p>
-   */
   @Override
   public void disconnected() {
     player.teardown();
   }
 
-  /**
-   * Handles an exception thrown during packet handling.
-   *
-   * <p>The player is disconnected with a generic error message.</p>
-   *
-   * @param throwable the exception that occurred
-   */
   @Override
-  public void exception(final Throwable throwable) {
+  public void exception(Throwable throwable) {
     player.disconnect(Component.translatable("velocity.error.player-connection-error", NamedTextColor.RED));
+    if (MinecraftDecoder.DEBUG) {
+      LOGGER.info("Exception while handling plugin message packet for {}", player, throwable);
+    }
   }
 
-  /**
-   * Called when the client's channel writability state changes.
-   *
-   * <p>Flushes pending packets and updates the backend auto-reading flag accordingly.</p>
-   */
   @Override
   public void writabilityChanged() {
     boolean writable = player.getConnection().getChannel().isWritable();
+
+    if (BACKPRESSURE_LOG) {
+      if (writable) {
+        LOGGER.info("{} is writable, will auto-read backend connection data", player);
+      } else {
+        LOGGER.info("{} is not writable, not auto-reading backend connection data", player);
+      }
+    }
 
     if (!writable) {
       // We might have packets queued from the server, so flush them now to free up memory. Make
@@ -732,7 +559,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
    * @return a future that completes when the switch is complete
    */
   public CompletableFuture<Void> doSwitch() {
-    final VelocityServerConnection existingConnection = player.getConnectedServer();
+    VelocityServerConnection existingConnection = player.getConnectedServer();
 
     if (existingConnection != null) {
       // Shut down the existing server connection.
@@ -765,8 +592,8 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
    * @param joinGame    the join game packet
    * @param destination the new server we are connecting to
    */
-  public void handleBackendJoinGame(final JoinGamePacket joinGame, final VelocityServerConnection destination) {
-    final MinecraftConnection serverMc = destination.ensureConnected();
+  public void handleBackendJoinGame(JoinGamePacket joinGame, VelocityServerConnection destination) {
+    MinecraftConnection serverMc = destination.ensureConnected();
 
     if (!spawned) {
       // The player wasn't spawned in yet, so we don't need to do anything special.
@@ -807,7 +634,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
 
     // Tell the server about the proxy's plugin message channels.
     ProtocolVersion serverVersion = serverMc.getProtocolVersion();
-    final Collection<ChannelIdentifier> channels = server.getChannelRegistrar().getChannelsForProtocol(serverMc.getProtocolVersion());
+    Collection<ChannelIdentifier> channels = server.getChannelRegistrar().getChannelsForProtocol(serverMc.getProtocolVersion());
     if (!channels.isEmpty()) {
       serverMc.delayedWrite(constructChannelsPacket(serverVersion, channels));
     }
@@ -836,7 +663,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     destination.completeJoin();
   }
 
-  private void doFastClientServerSwitch(final JoinGamePacket joinGame) {
+  private void doFastClientServerSwitch(JoinGamePacket joinGame) {
     // In order to handle switching to another server, you will need to send two packets:
     //
     // - The join game packet from the backend server, with a different dimension
@@ -845,7 +672,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     // Most notably, by having the client accept the join game packet, we can work around the need
     // to perform entity ID rewrites, eliminating potential issues from rewriting packets and
     // improving compatibility with mods.
-    final RespawnPacket respawn = RespawnPacket.fromJoinGame(joinGame);
+    RespawnPacket respawn = RespawnPacket.fromJoinGame(joinGame);
 
     if (player.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_16)) {
       // Before Minecraft 1.16, we could not switch to the same dimension without sending an
@@ -858,7 +685,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     player.getConnection().delayedWrite(respawn);
   }
 
-  private void doSafeClientServerSwitch(final JoinGamePacket joinGame) {
+  private void doSafeClientServerSwitch(JoinGamePacket joinGame) {
     // Some clients do not behave well with the "fast" respawn sequence.
     // In this case, we will use a "safe" respawn sequence that involves sending three packets to the client.
     // They have the same effect but tend to work better with buggier clients (Forge 1.8 in particular).
@@ -867,25 +694,20 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     player.getConnection().delayedWrite(joinGame);
 
     // Send a respawn packet in a different dimension.
-    final RespawnPacket fakeSwitchPacket = RespawnPacket.fromJoinGame(joinGame);
+    RespawnPacket fakeSwitchPacket = RespawnPacket.fromJoinGame(joinGame);
     fakeSwitchPacket.setDimension(joinGame.getDimension() == 0 ? -1 : 0);
     player.getConnection().delayedWrite(fakeSwitchPacket);
 
     // Now send a respawn packet in the correct dimension.
-    final RespawnPacket correctSwitchPacket = RespawnPacket.fromJoinGame(joinGame);
+    RespawnPacket correctSwitchPacket = RespawnPacket.fromJoinGame(joinGame);
     player.getConnection().delayedWrite(correctSwitchPacket);
   }
 
-  /**
-   * Returns the list of boss bars currently tracked as added by the backend server.
-   *
-   * @return the list of server-added boss bar UUIDs
-   */
   public List<UUID> getServerBossBars() {
     return serverBossBars;
   }
 
-  private boolean handleCommandTabComplete(final TabCompleteRequestPacket packet) {
+  private boolean handleCommandTabComplete(TabCompleteRequestPacket packet) {
     // In 1.13+, we need to do additional work for the richer suggestions available.
     String command = packet.getCommand().substring(1);
     int commandEndPosition = command.indexOf(' ');
@@ -956,7 +778,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
             player.getConnection().write(resp);
           }
         }, player.getConnection().eventLoop()).exceptionally((ex) -> {
-          logger.error("Exception while handling command tab completion for player {} executing {}",
+          LOGGER.error("Exception while handling command tab completion for player {} executing {}",
               player, command, ex);
           return null;
         });
@@ -964,7 +786,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     return true; // Sorry, handler; we're just going to have to lie to you here.
   }
 
-  private boolean handleRegularTabComplete(final TabCompleteRequestPacket packet) {
+  private boolean handleRegularTabComplete(TabCompleteRequestPacket packet) {
     if (player.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_13)) {
       // Outstanding tab completes are recorded for use with 1.12 clients and below to provide
       // additional tab completion support.
@@ -979,7 +801,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
    *
    * @param response the tab complete response from the backend
    */
-  public void handleTabCompleteResponse(final TabCompleteResponsePacket response) {
+  public void handleTabCompleteResponse(TabCompleteResponsePacket response) {
     if (outstandingTabComplete != null && !outstandingTabComplete.isAssumeCommand()) {
       if (outstandingTabComplete.getCommand().startsWith("/")) {
         this.finishCommandTabComplete(outstandingTabComplete, response);
@@ -993,8 +815,8 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     }
   }
 
-  private void finishCommandTabComplete(final TabCompleteRequestPacket request,
-                                        final TabCompleteResponsePacket response) {
+  private void finishCommandTabComplete(TabCompleteRequestPacket request,
+                                        TabCompleteResponsePacket response) {
     server.getEventManager().fire(new TabCompleteRequestEvent(player, request.getCommand().substring(1)))
         .thenAcceptAsync(e -> {
           String command = e.getPartialMessage();
@@ -1022,24 +844,24 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
                   response.getOffers().sort(null);
                   player.getConnection().write(response);
                 } catch (Exception ex) {
-                  logger.error("Unable to provide tab list completions for {} for command '{}'", player.getUsername(), command, ex);
+                  LOGGER.error("Unable to provide tab list completions for {} for command '{}'", player.getUsername(), command, ex);
                 }
               }, player.getConnection().eventLoop()).exceptionally((ex) -> {
-                logger.error("Exception while finishing command tab completion,"
+                LOGGER.error("Exception while finishing command tab completion,"
                         + " with request {} and response {}",
                     request, response, ex);
                 return null;
               });
         }, player.getConnection().eventLoop()).exceptionally((ex) -> {
-          logger.error("Exception while finishing command tab completion,"
+          LOGGER.error("Exception while finishing command tab completion,"
                   + " with request {} and response {}",
               request, response, ex);
           return null;
         });
   }
 
-  private void finishRegularTabComplete(final TabCompleteRequestPacket request,
-                                        final TabCompleteResponsePacket response) {
+  private void finishRegularTabComplete(TabCompleteRequestPacket request,
+                                        TabCompleteResponsePacket response) {
     List<String> offers = new ArrayList<>();
     for (Offer offer : response.getOffers()) {
       offers.add(offer.getText());
@@ -1052,7 +874,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
           }
           player.getConnection().write(response);
         }, player.getConnection().eventLoop()).exceptionally((ex) -> {
-          logger.error(
+          LOGGER.error(
               "Exception while finishing regular tab completion,"
                   + " with request {} and response {}", request, response, ex);
           return null;

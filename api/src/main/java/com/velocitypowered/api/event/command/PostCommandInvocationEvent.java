@@ -49,9 +49,9 @@ public final class PostCommandInvocationEvent {
    * @param command the command being executed without a first slash
    * @param result the result of this command
    */
-  public PostCommandInvocationEvent(final @NotNull CommandSource commandSource,
-                                    final @NotNull String command,
-                                    final @NotNull CommandResult result) {
+  public PostCommandInvocationEvent(@NotNull CommandSource commandSource,
+                                    @NotNull String command,
+                                    @NotNull CommandResult result) {
     this.commandSource = Preconditions.checkNotNull(commandSource, "commandSource");
     this.command = Preconditions.checkNotNull(command, "command");
     this.result = Preconditions.checkNotNull(result, "result");
