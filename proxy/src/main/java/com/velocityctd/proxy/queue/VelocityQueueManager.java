@@ -328,7 +328,11 @@ public class VelocityQueueManager implements QueueManager {
       });
 
       ScheduledTask task = server.getScheduler()
-          .buildTask(VelocityVirtualPlugin.INSTANCE, () -> removePlayerEntirely(playerUniqueId))
+          .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+            if (!isPlayerOnline(playerUniqueId)) {
+              removePlayerEntirely(playerUniqueId);
+            }
+          })
           .delay(timeout, TimeUnit.SECONDS)
           .schedule();
 

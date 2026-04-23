@@ -170,7 +170,11 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
         }
 
         ScheduledTask task = server.getScheduler()
-            .buildTask(VelocityVirtualPlugin.INSTANCE, () -> removePlayerEntirely(uuid))
+            .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+              if (!isPlayerOnline(uuid)) {
+                removePlayerEntirely(uuid);
+              }
+            })
             .delay(delayMs, TimeUnit.MILLISECONDS)
             .schedule();
         pendingTimeoutTasks.put(uuid, task);
