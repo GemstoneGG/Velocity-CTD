@@ -53,6 +53,12 @@ public final class PlayerDataForwarding {
   private static final String ALGORITHM = "HmacSHA256";
 
   /**
+   * Whether modern forwarding is enabled for legacy clients (1.7.2–1.12.2) via
+   * Proxy-Compatible-Forge. Activated by the JVM flag {@code -Dvelocity.legacyModernForwarding=true}.
+   */
+  public static final boolean LEGACY_MODERN_FORWARDING = Boolean.getBoolean("velocity.legacyModernForwarding");
+
+  /**
    * The channel name used for Velocity's modern player forwarding.
    */
   public static final String CHANNEL = "velocity:player_info";
