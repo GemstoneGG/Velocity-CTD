@@ -26,10 +26,14 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.JsonObject;
+import com.mojang.brigadier.tree.CommandNode;
+import com.mojang.brigadier.tree.RootCommandNode;
 import com.velocityctd.api.permission.PermissionResolver;
 import com.velocityctd.api.queue.QueueState;
 import com.velocityctd.proxy.permission.PermissionUtils;
 import com.velocityctd.proxy.queue.VelocityQueue;
+import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.event.command.PlayerAvailableCommandsEvent;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.connection.DisconnectEvent.LoginStatus;
 import com.velocitypowered.api.event.connection.PreTransferEvent;
@@ -65,7 +69,9 @@ import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.api.util.ModInfo;
 import com.velocitypowered.api.util.ServerLink;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.adventure.ClickCallbackManager;
 import com.velocitypowered.proxy.adventure.VelocityBossBarImplementation;
+import com.velocitypowered.proxy.command.CommandGraphInjector;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftConnectionAssociation;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
@@ -80,6 +86,7 @@ import com.velocitypowered.proxy.connection.util.VelocityInboundConnection;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
+import com.velocitypowered.proxy.protocol.packet.AvailableCommandsPacket;
 import com.velocitypowered.proxy.protocol.packet.BundleDelimiterPacket;
 import com.velocitypowered.proxy.protocol.packet.ClientSettingsPacket;
 import com.velocitypowered.proxy.protocol.packet.ClientboundCookieRequestPacket;
@@ -828,6 +835,51 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   public void resetInFlightConnection() {
     connectionInFlight = null;
+  }
+
+  /**
+   * Builds and sends an {@link AvailableCommandsPacket} to this player using the last known
+   * backend command tree (if any) merged with the current proxy command set. Safe to call even
+   * when the backend has never sent its own command tree; in that case only proxy commands are
+   * included.
+   *
+   * <p>This method is non-blocking: the packet is written asynchronously on the player's event
+   * loop after the {@link PlayerAvailableCommandsEvent} has been fired.
+   *
+   * @return a future that completes once the packet has been written (or an error has been logged)
+   */
+  public CompletableFuture<Void> sendAvailableCommands() {
+    RootCommandNode<CommandSource> workingNode = new RootCommandNode<>();
+    VelocityServerConnection conn = this.connectedServer;
+    if (conn != null) {
+      RootCommandNode<CommandSource> backendNode = conn.getBackendCommandsNode();
+      if (backendNode != null) {
+        for (CommandNode<CommandSource> child : backendNode.getChildren()) {
+          workingNode.addChild(child);
+        }
+      }
+    }
+
+    if (server.getConfiguration().isAnnounceProxyCommands()) {
+      // Inject commands from the proxy.
+      CommandGraphInjector<CommandSource> injector = server.getCommandManager().getInjector();
+      injector.inject(workingNode, this);
+
+      // In 1.21.6 a confirmation prompt was added when executing a command via `run_command` click
+      // action if the command is unknown. To prevent this prompt we have to send the command.
+      if (this.connection.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_21_6)) {
+        workingNode.removeChildByName(ClickCallbackManager.COMMAND_LABEL);
+      }
+    }
+
+    AvailableCommandsPacket packet = new AvailableCommandsPacket(workingNode);
+    return server.getEventManager()
+        .fire(new PlayerAvailableCommandsEvent(this, workingNode))
+        .thenAcceptAsync(event -> connection.write(packet), connection.eventLoop())
+        .exceptionally(ex -> {
+          LOGGER.error("Exception while sending available commands to {}", this, ex);
+          return null;
+        });
   }
 
   /**
