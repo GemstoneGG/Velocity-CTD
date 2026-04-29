@@ -5,7 +5,7 @@ flare = "2.0.1"
 log4j = "2.25.4"
 netty = "4.2.12.Final"
 lettuce = "7.5.1.RELEASE"
-jline = "3.30.11"
+jline = "3.30.12"
 
 [plugins]
 shadow = "com.gradleup.shadow:9.4.1"
