@@ -889,9 +889,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       CommandGraphInjector<CommandSource> injector = server.getCommandManager().getInjector();
       injector.inject(workingNode, this);
 
-      // In 1.21.6 a confirmation prompt was added when executing a command via `run_command` click
-      // action if the command is unknown. To prevent this prompt we have to send the command.
-      if (this.connection.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_21_6)) {
+      // Omit the click-callback command from the client's command tree unless:
+      // - the client is 1.21.6+ (needs it to suppress the unknown-command confirmation prompt), AND
+      // - there are actually pending callbacks to execute
+      if (this.connection.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_21_6)
+          || !ClickCallbackManager.INSTANCE.hasHadRegistrations()) {
         workingNode.removeChildByName(ClickCallbackManager.COMMAND_LABEL);
       }
     }

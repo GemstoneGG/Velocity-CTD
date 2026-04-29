@@ -62,6 +62,7 @@ import com.velocitypowered.api.util.Favicon;
 import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.api.util.ProxyVersion;
 import com.velocitypowered.api.util.ServerLink;
+import com.velocitypowered.proxy.adventure.ClickCallbackManager;
 import com.velocitypowered.proxy.command.VelocityCommandManager;
 import com.velocitypowered.proxy.command.builtin.BuiltinCommandDefinition;
 import com.velocitypowered.proxy.command.builtin.CallbackCommand;
@@ -437,6 +438,18 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     }
 
     registerCommands();
+
+    // Re-send the available commands to all online players once a click-callback has been registered.
+    // Vanilla Velocity does not register any click-callbacks, only plugins may do so via the Adventure API.
+    // If no plugins are making use of this feature, we can omit the /velocity:callback (ClickCallbackManager#COMMAND_LABEL)
+    // from the available commands, as it only adds clutter to command completion suggestions.
+    // ConnectedPlayer#sendAvailableCommands will include this callback command in the command set if a click-listener
+    // has been registered at least once.
+    ClickCallbackManager.INSTANCE.setOnFirstRegistration(() -> {
+      for (ConnectedPlayer player : getAllPlayers()) {
+        player.sendAvailableCommands();
+      }
+    });
 
     LOGGER.info("Loading localizations...");
     translationRegistryManager.registerTranslations();
