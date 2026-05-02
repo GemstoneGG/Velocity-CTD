@@ -165,6 +165,7 @@ override-server-command-usage = false
 interval = 7
 packets-per-second = 500
 bytes-per-second = -1
+decompressed-bytes-per-second = -1
 
 [servers]
 # Configure your servers here. Each key represents the server's name, and the value
