@@ -172,6 +172,9 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Expose
   private final boolean logPlayerConnections;
 
+  @Expose
+  private final boolean logPlayerIps;
+
   /**
    * Whether to log all player disconnections.
    */
@@ -264,7 +267,7 @@ public final class VelocityConfiguration implements ProxyConfig {
                                 Commands commands, Advanced advanced,
                                 Query query, Metrics metrics, boolean forceKeyAuthentication,
                                 PacketLimiterConfig packetLimiterConfig,
-                                boolean logPlayerConnections, boolean logPlayerDisconnections,
+                                boolean logPlayerConnections, boolean logPlayerIps, boolean logPlayerDisconnections,
                                 boolean logOfflineConnections, boolean disableForge,
                                 boolean enforceChatSigning, boolean preventsChatReports, boolean translateHeaderFooter,
                                 boolean logMinimumVersion, String minimumVersion,
@@ -297,6 +300,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     this.forceKeyAuthentication = forceKeyAuthentication;
     this.packetLimiterConfig = packetLimiterConfig;
     this.logPlayerConnections = logPlayerConnections;
+    this.logPlayerIps = logPlayerIps;
     this.logPlayerDisconnections = logPlayerDisconnections;
     this.logOfflineConnections = logOfflineConnections;
     this.disableForge = disableForge;
@@ -1144,6 +1148,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       boolean enablePlayerAddressLogging = config.getOrElse("enable-player-address-logging", true);
       PacketLimiterConfig packetLimiterConfig = PacketLimiterConfig.fromConfig(config.get("packet-limiter"));
       boolean logPlayerConnections = config.getOrElse("log-player-connections", true);
+      boolean logPlayerIps = config.getOrElse("log-player-ips", true);
       boolean logPlayerDisconnections = config.getOrElse("log-player-disconnections", true);
       boolean logOfflineConnections = config.getOrElse("log-offline-connections", true);
       boolean disableForge = config.getOrElse("disable-forge", false);
@@ -1255,6 +1260,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           forceKeyAuthentication,
           packetLimiterConfig,
           logPlayerConnections,
+          logPlayerIps,
           logPlayerDisconnections,
           logOfflineConnections,
           disableForge,
@@ -1370,6 +1376,10 @@ public final class VelocityConfiguration implements ProxyConfig {
 
   public boolean isLogPlayerConnections() {
     return logPlayerConnections;
+  }
+
+  public boolean isLogPlayerIps() {
+    return logPlayerIps;
   }
 
   /**

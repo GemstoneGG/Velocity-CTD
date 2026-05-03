@@ -87,6 +87,11 @@ public class CtdConfigMigrations {
             true
         ),
         migration(
+                "Enables loggin of player ips",
+                "log-player-ips",
+                true
+        ),
+        migration(
             "Enables logging of player disconnection and by default, still displays\n"
                 + "player connections and initial connections.",
             "log-player-disconnections",

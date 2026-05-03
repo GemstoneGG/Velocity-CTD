@@ -153,7 +153,19 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
       }
 
       if (server.getConfiguration().isLogPlayerConnections()) {
-        LOGGER.info("{} has connected", player);
+        if (server.getConfiguration().isLogPlayerIps()) {
+          LOGGER.info("{} has connected", player);
+        } else {
+          String ipRegex =
+                  "(25[0-5]|2[0-4]\\d|1\\d\\d|[0-9]?\\d)\\." +
+                          "(25[0-5]|2[0-4]\\d|1\\d\\d|[0-9]?\\d)\\." +
+                          "(25[0-5]|2[0-4]\\d|1\\d\\d|[0-9]?\\d)\\." +
+                          "(25[0-5]|2[0-4]\\d|1\\d\\d|[0-9]?\\d)";
+
+          String maskedIps = player.toString().replaceAll(ipRegex, "***.***.***.***");
+
+          LOGGER.info("{} has connected", maskedIps);
+        }
       }
 
       return server.getEventManager()
