@@ -3,7 +3,7 @@ configurate3 = "3.7.3"
 configurate4 = "4.2.0"
 flare = "2.0.1"
 log4j = "2.25.4"
-netty = "4.2.12.Final"
+netty = "4.2.13.Final"
 lettuce = "7.5.1.RELEASE"
 jline = "3.30.13"
 
