@@ -18,6 +18,7 @@
 package com.velocitypowered.proxy.connection.util;
 
 import com.spotify.futures.CompletableFutures;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.server.PingOptions;
 import com.velocitypowered.api.proxy.server.ServerPing;
@@ -27,12 +28,12 @@ import com.velocitypowered.proxy.config.PingPassthroughMode;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
+import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
 
 /**
@@ -67,8 +68,8 @@ public class ServerListPingHandler {
 
     // When forcing a mismatch, prefer displayVersion's protocol so the client still shows an
     // informative "Client out of date, update to X" label. Fall back to LEGACY (-2) only when
-    // displayVersion would coincide with the client's protocol (e.g. a client on the proxy's
-    // actual maximum while maximum-version is configured lower), since that would otherwise
+    // displayVersion coincides with the client's protocol (e.g., a client on the proxy's
+    // actual maximum while the maximum-version is configured lower), since that would otherwise
     // collapse into a normal online state.
     boolean forceMismatch = configuration.isAlwaysFallBackPing()
         || clientVersion == ProtocolVersion.UNKNOWN
@@ -85,21 +86,23 @@ public class ServerListPingHandler {
 
     List<ServerPing.SamplePlayer> samplePlayers;
     if (configuration.getSamplePlayersInPing()) {
-      List<ServerPing.SamplePlayer> unshuffledPlayers = server.getClusterPlayerService()
-          .getAllPlayers()
-          .stream()
-          .map(player -> {
-            if (player.isClientListingAllowed()) {
-              return new ServerPing.SamplePlayer(player.getUsername(), player.getUniqueId());
-            } else {
-              return ServerPing.SamplePlayer.ANONYMOUS;
-            }
-          })
-          .collect(Collectors.toList());
+      final int sampleSize = 12;
+      Collection<VelocityClusterPlayer> all = server.getClusterPlayerService().getAllPlayers();
+      samplePlayers = new ArrayList<>(Math.min(sampleSize, all.size()));
+      ThreadLocalRandom rng = ThreadLocalRandom.current();
+      int seen = 0;
+      for (VelocityClusterPlayer player : all) {
+        if (samplePlayers.size() < sampleSize) {
+          samplePlayers.add(toSample(player));
+        } else {
+          int j = rng.nextInt(seen + 1);
+          if (j < sampleSize) {
+            samplePlayers.set(j, toSample(player));
+          }
+        }
 
-      Collections.shuffle(unshuffledPlayers);
-      int limit = Math.min(12, unshuffledPlayers.size());
-      samplePlayers = new ArrayList<>(unshuffledPlayers.subList(0, limit));
+        seen++;
+      }
     } else {
       samplePlayers = new ArrayList<>();
     }
@@ -122,20 +125,23 @@ public class ServerListPingHandler {
   }
 
   private String formatVersionString(String raw, ProtocolVersion version) {
+    if (raw.indexOf('{') < 0) {
+      return raw;
+    }
     String minVersionIntroducedIn = ProtocolVersion.getVersionByName(
         server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn();
     String maxVersionDisplay = server.getConfiguration().getMaximumVersion()
         .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
     return raw
-        .replaceAll("\\{protocol-min}", minVersionIntroducedIn)
-        .replaceAll("\\{protocol-max}", maxVersionDisplay)
-        .replaceAll("\\{protocol}", version.getVersionIntroducedIn())
-        .replaceAll("\\{proxy-brand}", server.getVersion().getName())
-        .replaceAll("\\{proxy-brand-custom}", server.getConfiguration().getProxyBrandCustom())
-        .replaceAll("\\{proxy-version}", server.getVersion().getVersion())
-        .replaceAll("\\{proxy-vendor}", server.getVersion().getVendor())
-        .replaceAll("\\{player-count}", String.valueOf(server.getClusterPlayerService().getTotalPlayerCount()))
-        .replaceAll("\\{max-players}", String.valueOf(server.getConfiguration().getShowMaxPlayers()));
+        .replace("{protocol-min}", minVersionIntroducedIn)
+        .replace("{protocol-max}", maxVersionDisplay)
+        .replace("{protocol}", version.getVersionIntroducedIn())
+        .replace("{proxy-brand}", server.getVersion().getName())
+        .replace("{proxy-brand-custom}", server.getConfiguration().getProxyBrandCustom())
+        .replace("{proxy-version}", server.getVersion().getVersion())
+        .replace("{proxy-vendor}", server.getVersion().getVendor())
+        .replace("{player-count}", String.valueOf(server.getClusterPlayerService().getTotalPlayerCount()))
+        .replace("{max-players}", String.valueOf(server.getConfiguration().getShowMaxPlayers()));
   }
 
   private CompletableFuture<ServerPing> attemptPingPassthrough(VelocityInboundConnection connection,
@@ -242,5 +248,11 @@ public class ServerListPingHandler {
       return attemptPingPassthrough(connection, passthroughMode, fallbackServers.serversToTry(),
           shownVersion, fallbackServers.virtualHost());
     }
+  }
+
+  private static ServerPing.SamplePlayer toSample(VelocityClusterPlayer player) {
+    return player.isClientListingAllowed()
+        ? new ServerPing.SamplePlayer(player.getUsername(), player.getUniqueId())
+        : ServerPing.SamplePlayer.ANONYMOUS;
   }
 }

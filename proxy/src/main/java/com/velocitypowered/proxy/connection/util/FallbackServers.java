@@ -136,20 +136,18 @@ public record FallbackServers(
    */
   private static Optional<FallbackServers> getForcedHostFallbacks(VelocityConfiguration config, String virtualHost) {
     Map<String, ForcedHostEntry> forcedHosts = config.getForcedHostEntries();
-    Map.Entry<String, ForcedHostEntry> exactMatch = forcedHosts.entrySet()
-        .stream()
-        .filter(e -> e.getKey().equalsIgnoreCase(virtualHost))
-        .findAny()
-        .orElse(null);
-
+    ForcedHostEntry exactMatch = forcedHosts.get(virtualHost);
     if (exactMatch != null) {
-      return Optional.of(fromMapEntry(config, virtualHost, exactMatch));
+      return Optional.of(fromMapEntry(config, virtualHost,
+          Map.entry(virtualHost, exactMatch)));
     }
 
     // Check for wildcard ("*.example.com" matches "anything.example.com")
     for (Map.Entry<String, ForcedHostEntry> entry : forcedHosts.entrySet()) {
-      String pattern = entry.getKey().toLowerCase(Locale.ROOT);
-      if (pattern.startsWith("*.") && virtualHost.endsWith(pattern.substring(1))) {
+      String pattern = entry.getKey();
+      if (pattern.length() > 1 && pattern.charAt(0) == '*' && pattern.charAt(1) == '.'
+          && virtualHost.regionMatches(virtualHost.length() - (pattern.length() - 1),
+              pattern, 1, pattern.length() - 1)) {
         return Optional.of(fromMapEntry(config, virtualHost, entry));
       }
     }
