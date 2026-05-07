@@ -19,9 +19,9 @@ package com.velocitypowered.proxy.protocol.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.velocityctd.proxy.util.ParsingUtils.parseVariables;
 
 import com.google.common.collect.ImmutableList;
-import com.velocityctd.proxy.util.ParsingUtils;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.LegacyChannelIdentifier;
@@ -211,28 +211,23 @@ public final class PluginMessageUtil {
     checkNotNull(brand, "brand");
     checkArgument(isMcBrand(message), "message is not a brand plugin message");
 
-    String rewrittenBrand;
-    if (brand.indexOf('{') < 0) {
-      rewrittenBrand = brand + "§r";
-    } else {
-      rewrittenBrand = ParsingUtils.parseVariables(brand, (variable) -> {
-        return switch (variable) {
-          case "protocol-min" -> minimumVersion;
-          case "protocol-max" -> ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion();
-          case "protocol" -> ProtocolVersion.MAXIMUM_VERSION.getVersionIntroducedIn();
-          case "backend-brand" -> readBrandMessage(message.content());
-          case "backend-brand-custom" -> backendBrandCustom;
-          case "proxy-brand" -> version.getName();
-          case "proxy-brand-custom" -> proxyBrandCustom;
-          case "proxy-version" -> version.getVersion();
-          case "proxy-vendor" -> version.getVendor();
-          case "server-connected" -> connectedServer;
-          default -> "UNKNOWN_PLACEHOLDER";
-        };
-      });
+    String rewrittenBrand = parseVariables(brand, (variable) -> {
+      return switch (variable) {
+        case "protocol-min" -> minimumVersion;
+        case "protocol-max" -> ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion();
+        case "protocol" -> ProtocolVersion.MAXIMUM_VERSION.getVersionIntroducedIn();
+        case "backend-brand" -> readBrandMessage(message.content());
+        case "backend-brand-custom" -> backendBrandCustom;
+        case "proxy-brand" -> version.getName();
+        case "proxy-brand-custom" -> proxyBrandCustom;
+        case "proxy-version" -> version.getVersion();
+        case "proxy-vendor" -> version.getVendor();
+        case "server-connected" -> connectedServer;
+        default -> "UNKNOWN_PLACEHOLDER";
+      };
+    });
 
-      rewrittenBrand += "§r"; // Ensures brand coloration remains within bounds
-    }
+    rewrittenBrand += "§r"; // Ensures brand coloration remains within bounds
 
     ByteBuf rewrittenBuf = Unpooled.buffer();
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {

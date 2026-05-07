@@ -127,10 +127,6 @@ public class ServerListPingHandler {
   }
 
   private String formatVersionString(String raw, ProtocolVersion version) {
-    if (raw.indexOf('{') < 0) {
-      return raw;
-    }
-
     return parseVariables(raw, (variable) -> {
       return switch (variable) {
         case "protocol-min" -> ProtocolVersion.getVersionByName(
