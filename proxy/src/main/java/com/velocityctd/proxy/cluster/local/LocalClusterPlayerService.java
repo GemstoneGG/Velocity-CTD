@@ -17,6 +17,7 @@
 
 package com.velocityctd.proxy.cluster.local;
 
+import com.google.common.collect.Collections2;
 import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.cluster.VelocityClusterPlayerService;
 import com.velocitypowered.api.proxy.player.PlayerSettings;
@@ -53,17 +54,14 @@ public final class LocalClusterPlayerService implements VelocityClusterPlayerSer
 
   @Override
   public Collection<VelocityClusterPlayer> getAllPlayers() {
-    return this.server.getAllPlayers().stream()
-        .<VelocityClusterPlayer>map(this::toLocalPlayer)
-        .toList();
+    return Collections2.transform(this.server.getAllPlayers(), this::toLocalPlayer);
   }
 
   @Override
   public Collection<VelocityClusterPlayer> getPlayersOnServer(String serverName) {
     return this.server.getServer(serverName)
-        .map(rs -> rs.getPlayersConnected().stream()
-            .<VelocityClusterPlayer>map(this::toLocalPlayer)
-            .toList())
+        .<Collection<VelocityClusterPlayer>>map(
+            rs -> Collections2.transform(rs.getPlayersConnected(), this::toLocalPlayer))
         .orElse(List.of());
   }
 

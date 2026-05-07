@@ -1186,7 +1186,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
   @Override
   public Collection<ConnectedPlayer> getAllPlayers() {
-    return ImmutableList.copyOf(connectionsByUuid.values());
+    return Collections.unmodifiableCollection(connectionsByUuid.values());
   }
 
   @Override

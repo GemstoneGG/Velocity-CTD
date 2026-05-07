@@ -11,7 +11,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.velocitypowered.api.util.Ordered;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -361,6 +360,24 @@ public enum ProtocolVersion implements Ordered<@NotNull ProtocolVersion> {
   }
 
   /**
+   * A map linking each user-facing version name (e.g. {@code "1.20.4"}) to its
+   * {@link ProtocolVersion}. If the same name appears under multiple constants, the first
+   * declaration wins, mirroring the resolution order of the previous linear scan.
+   */
+  public static final ImmutableMap<@NotNull String, @NotNull ProtocolVersion> NAME_TO_PROTOCOL_CONSTANT;
+
+  static {
+    Map<String, ProtocolVersion> byName = new HashMap<>();
+    for (ProtocolVersion version : values()) {
+      for (String name : version.names) {
+        byName.putIfAbsent(name, version);
+      }
+    }
+
+    NAME_TO_PROTOCOL_CONSTANT = ImmutableMap.copyOf(byName);
+  }
+
+  /**
    * A set containing all the protocols that the proxy actually supports, excluding special-purpose
    * "versions" like {@link #LEGACY} and {@link #UNKNOWN}.
    */
@@ -488,10 +505,7 @@ public enum ProtocolVersion implements Ordered<@NotNull ProtocolVersion> {
    * @return the protocol version
    */
   public static ProtocolVersion getVersionByName(String version) {
-    return Arrays.stream(ProtocolVersion.values())
-        .filter(protocolVersion -> Arrays.asList(protocolVersion.names).contains(version))
-        .findFirst()
-        .orElse(ProtocolVersion.MINECRAFT_1_7_2);
+    return NAME_TO_PROTOCOL_CONSTANT.getOrDefault(version, ProtocolVersion.MINECRAFT_1_7_2);
   }
 
   /**

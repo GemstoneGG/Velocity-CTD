@@ -211,18 +211,23 @@ public final class PluginMessageUtil {
     checkArgument(isMcBrand(message), "message is not a brand plugin message");
 
     String currentBrand = readBrandMessage(message.content());
-    String rewrittenBrand = brand
-        .replaceAll("\\{protocol-min}", minimumVersion)
-        .replaceAll("\\{protocol-max}", ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())
-        .replaceAll("\\{protocol}", ProtocolVersion.MAXIMUM_VERSION.getVersionIntroducedIn())
-        .replaceAll("\\{backend-brand}", currentBrand)
-        .replaceAll("\\{backend-brand-custom}", backendBrandCustom)
-        .replaceAll("\\{proxy-brand}", version.getName())
-        .replaceAll("\\{proxy-brand-custom}", proxyBrandCustom)
-        .replaceAll("\\{proxy-version}", version.getVersion())
-        .replaceAll("\\{proxy-vendor}", version.getVendor())
-        .replaceAll("\\{server-connected}", connectedServer)
-        + "§r"; // Ensures brand coloration remains within bounds
+    String rewrittenBrand;
+    if (brand.indexOf('{') < 0) {
+      rewrittenBrand = brand + "§r";
+    } else {
+      rewrittenBrand = brand
+          .replace("{protocol-min}", minimumVersion)
+          .replace("{protocol-max}", ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())
+          .replace("{protocol}", ProtocolVersion.MAXIMUM_VERSION.getVersionIntroducedIn())
+          .replace("{backend-brand}", currentBrand)
+          .replace("{backend-brand-custom}", backendBrandCustom)
+          .replace("{proxy-brand}", version.getName())
+          .replace("{proxy-brand-custom}", proxyBrandCustom)
+          .replace("{proxy-version}", version.getVersion())
+          .replace("{proxy-vendor}", version.getVendor())
+          .replace("{server-connected}", connectedServer)
+          + "§r"; // Ensures brand coloration remains within bounds
+    }
 
     ByteBuf rewrittenBuf = Unpooled.buffer();
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
