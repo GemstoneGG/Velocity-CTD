@@ -319,7 +319,7 @@ public class BungeeCordMessageResponder {
         out.writeUTF("ALL");
 
         StringJoiner joiner = new StringJoiner(", ");
-        for (ConnectedPlayer online : proxy.getAllPlayers()) {
+        for (ConnectedPlayer online : proxy.getOnlinePlayers()) {
           joiner.add(online.getUsername());
         }
 

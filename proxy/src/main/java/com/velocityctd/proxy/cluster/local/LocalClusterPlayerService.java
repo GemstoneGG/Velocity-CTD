@@ -54,7 +54,7 @@ public final class LocalClusterPlayerService implements VelocityClusterPlayerSer
 
   @Override
   public Collection<VelocityClusterPlayer> getAllPlayers() {
-    return Collections2.transform(this.server.getAllPlayers(), this::toLocalPlayer);
+    return Collections2.transform(this.server.getOnlinePlayers(), this::toLocalPlayer);
   }
 
   @Override
@@ -70,7 +70,7 @@ public final class LocalClusterPlayerService implements VelocityClusterPlayerSer
     if (!this.server.getProxyId().equalsIgnoreCase(proxyId)) {
       return List.of();
     }
-    return getAllPlayers();
+    return this.getAllPlayers();
   }
 
   @Override
@@ -107,7 +107,7 @@ public final class LocalClusterPlayerService implements VelocityClusterPlayerSer
 
   @Override
   public Collection<String> getPlayerNames() {
-    return this.server.getAllPlayers().stream()
+    return this.server.getOnlinePlayers().stream()
         .map(ConnectedPlayer::getUsername)
         .toList();
   }
