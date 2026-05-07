@@ -80,9 +80,8 @@ public interface ProxyServer extends Audience {
    * Retrieves all players currently connected to this proxy. This call may or may not be a snapshot
    * of all players online.
    *
-   * <p>Deprecated, use {@link #getOnlinePlayers()} instead.
-   *
    * @return the players online on this proxy
+   * @deprecated use {@link #getOnlinePlayers()} instead (faster, doesn't make copy)
    */
   @Deprecated
   Collection<? extends Player> getAllPlayers();
