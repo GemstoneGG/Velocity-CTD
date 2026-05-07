@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
+import com.velocityctd.proxy.util.ParsingUtils;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.LegacyChannelIdentifier;
@@ -215,18 +216,23 @@ public final class PluginMessageUtil {
     if (brand.indexOf('{') < 0) {
       rewrittenBrand = brand + "§r";
     } else {
-      rewrittenBrand = brand
-          .replace("{protocol-min}", minimumVersion)
-          .replace("{protocol-max}", ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())
-          .replace("{protocol}", ProtocolVersion.MAXIMUM_VERSION.getVersionIntroducedIn())
-          .replace("{backend-brand}", currentBrand)
-          .replace("{backend-brand-custom}", backendBrandCustom)
-          .replace("{proxy-brand}", version.getName())
-          .replace("{proxy-brand-custom}", proxyBrandCustom)
-          .replace("{proxy-version}", version.getVersion())
-          .replace("{proxy-vendor}", version.getVendor())
-          .replace("{server-connected}", connectedServer)
-          + "§r"; // Ensures brand coloration remains within bounds
+      rewrittenBrand = ParsingUtils.parseVariables(brand, (variable) -> {
+        return switch (variable) {
+          case "protocol-min" -> minimumVersion;
+          case "protocol-max" -> ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion();
+          case "protocol" -> ProtocolVersion.MAXIMUM_VERSION.getVersionIntroducedIn();
+          case "backend-brand" -> currentBrand;
+          case "backend-brand-custom" -> backendBrandCustom;
+          case "proxy-brand" -> version.getName();
+          case "proxy-brand-custom" -> proxyBrandCustom;
+          case "proxy-version" -> version.getVersion();
+          case "proxy-vendor" -> version.getVendor();
+          case "server-connected" -> connectedServer;
+          default -> throw new IllegalStateException("Unexpected value: " + variable);
+        };
+      });
+
+      rewrittenBrand += "§r"; // Ensures brand coloration remains within bounds
     }
 
     ByteBuf rewrittenBuf = Unpooled.buffer();
