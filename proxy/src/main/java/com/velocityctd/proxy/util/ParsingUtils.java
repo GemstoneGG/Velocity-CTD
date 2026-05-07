@@ -36,14 +36,15 @@ public class ParsingUtils {
    * @return the input with all variables substituted
    */
   public static String parseVariables(String input, Function<String, String> variableMapper) {
-    StringBuilder variable = null;
-    StringBuilder out = new StringBuilder();
+    StringBuilder out = new StringBuilder(input.length());
+    StringBuilder variable = new StringBuilder();
+    boolean inVariable = false;
     for (int i = 0; i < input.length(); i++) {
       char c = input.charAt(i);
-      if (variable == null) {
+      if (!inVariable) {
         if (c == '{') {
           // start reading variable
-          variable = new StringBuilder();
+          inVariable = true;
         } else {
           // pass-through output string
           out.append(c);
@@ -53,7 +54,8 @@ public class ParsingUtils {
           // write variable value
           out.append(variableMapper.apply(variable.toString()));
 
-          variable = null;
+          variable.setLength(0);
+          inVariable = false;
         } else {
           // pass-through variable name
           variable.append(c);
