@@ -130,15 +130,13 @@ public class ServerListPingHandler {
     if (raw.indexOf('{') < 0) {
       return raw;
     }
-    String minVersionIntroducedIn = ProtocolVersion.getVersionByName(
-        server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn();
-    String maxVersionDisplay = server.getConfiguration().getMaximumVersion()
-        .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
 
     return parseVariables(raw, (variable) -> {
       return switch (variable) {
-        case "protocol-min" -> minVersionIntroducedIn;
-        case "protocol-max" -> maxVersionDisplay;
+        case "protocol-min" -> ProtocolVersion.getVersionByName(
+            server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn();
+        case "protocol-max" -> server.getConfiguration().getMaximumVersion()
+            .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
         case "protocol" -> version.getVersionIntroducedIn();
         case "proxy-brand" -> server.getVersion().getName();
         case "proxy-brand-custom" -> server.getConfiguration().getProxyBrandCustom();

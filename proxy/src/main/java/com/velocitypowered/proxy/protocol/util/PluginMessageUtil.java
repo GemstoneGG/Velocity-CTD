@@ -211,7 +211,6 @@ public final class PluginMessageUtil {
     checkNotNull(brand, "brand");
     checkArgument(isMcBrand(message), "message is not a brand plugin message");
 
-    String currentBrand = readBrandMessage(message.content());
     String rewrittenBrand;
     if (brand.indexOf('{') < 0) {
       rewrittenBrand = brand + "§r";
@@ -221,7 +220,7 @@ public final class PluginMessageUtil {
           case "protocol-min" -> minimumVersion;
           case "protocol-max" -> ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion();
           case "protocol" -> ProtocolVersion.MAXIMUM_VERSION.getVersionIntroducedIn();
-          case "backend-brand" -> currentBrand;
+          case "backend-brand" -> readBrandMessage(message.content());
           case "backend-brand-custom" -> backendBrandCustom;
           case "proxy-brand" -> version.getName();
           case "proxy-brand-custom" -> proxyBrandCustom;
