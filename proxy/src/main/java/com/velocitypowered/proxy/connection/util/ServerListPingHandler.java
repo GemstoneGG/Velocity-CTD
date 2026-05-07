@@ -17,6 +17,8 @@
 
 package com.velocitypowered.proxy.connection.util;
 
+import static com.velocityctd.proxy.util.ParsingUtils.parseVariables;
+
 import com.spotify.futures.CompletableFutures;
 import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocitypowered.api.network.ProtocolVersion;
@@ -132,16 +134,21 @@ public class ServerListPingHandler {
         server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn();
     String maxVersionDisplay = server.getConfiguration().getMaximumVersion()
         .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
-    return raw
-        .replace("{protocol-min}", minVersionIntroducedIn)
-        .replace("{protocol-max}", maxVersionDisplay)
-        .replace("{protocol}", version.getVersionIntroducedIn())
-        .replace("{proxy-brand}", server.getVersion().getName())
-        .replace("{proxy-brand-custom}", server.getConfiguration().getProxyBrandCustom())
-        .replace("{proxy-version}", server.getVersion().getVersion())
-        .replace("{proxy-vendor}", server.getVersion().getVendor())
-        .replace("{player-count}", String.valueOf(server.getClusterPlayerService().getTotalPlayerCount()))
-        .replace("{max-players}", String.valueOf(server.getConfiguration().getShowMaxPlayers()));
+
+    return parseVariables(raw, (variable) -> {
+      return switch (variable) {
+        case "protocol-min" -> minVersionIntroducedIn;
+        case "protocol-max" -> maxVersionDisplay;
+        case "protocol" -> version.getVersionIntroducedIn();
+        case "proxy-brand" -> server.getVersion().getName();
+        case "proxy-brand-custom" -> server.getConfiguration().getProxyBrandCustom();
+        case "proxy-version" -> server.getVersion().getVersion();
+        case "proxy-vendor" -> server.getVersion().getVendor();
+        case "player-count" -> String.valueOf(server.getClusterPlayerService().getTotalPlayerCount());
+        case "max-players" -> String.valueOf(server.getConfiguration().getShowMaxPlayers());
+        default -> throw new IllegalStateException("Unexpected value: " + variable);
+      };
+    });
   }
 
   private CompletableFuture<ServerPing> attemptPingPassthrough(VelocityInboundConnection connection,
