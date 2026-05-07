@@ -228,7 +228,7 @@ public final class PluginMessageUtil {
           case "proxy-version" -> version.getVersion();
           case "proxy-vendor" -> version.getVendor();
           case "server-connected" -> connectedServer;
-          default -> throw new IllegalStateException("Unexpected value: " + variable);
+          default -> "UNKNOWN_PLACEHOLDER";
         };
       });
 

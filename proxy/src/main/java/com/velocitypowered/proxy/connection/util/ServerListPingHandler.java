@@ -146,7 +146,7 @@ public class ServerListPingHandler {
         case "proxy-vendor" -> server.getVersion().getVendor();
         case "player-count" -> String.valueOf(server.getClusterPlayerService().getTotalPlayerCount());
         case "max-players" -> String.valueOf(server.getConfiguration().getShowMaxPlayers());
-        default -> throw new IllegalStateException("Unexpected value: " + variable);
+        default -> "UNKNOWN_PLACEHOLDER";
       };
     });
   }
