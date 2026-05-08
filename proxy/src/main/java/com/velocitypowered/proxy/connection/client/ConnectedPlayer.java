@@ -1318,12 +1318,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       connectedServer.disconnect();
     }
 
-    Optional<ConnectedPlayer> connectedPlayer = server.getPlayer(this.getUniqueId());
-    server.unregisterConnection(this);
-
+    Optional<ConnectedPlayer> registered = server.getPlayer(this.getUniqueId());
     DisconnectEvent.LoginStatus status;
-    if (connectedPlayer.isPresent()) {
-      if (connectedPlayer.get() != this) {
+    if (registered.isPresent()) {
+      if (registered.get() != this) {
         status = LoginStatus.CONFLICTING_LOGIN;
       } else if (this.firstServerConnected) {
         status = LoginStatus.SUCCESSFUL_LOGIN;
@@ -1335,13 +1333,16 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     }
 
     DisconnectEvent event = new DisconnectEvent(this, status);
-    server.getEventManager().fire(event).whenComplete((val, ex) -> {
-      if (ex == null) {
-        this.teardownFuture.complete(null);
-      } else {
-        this.teardownFuture.completeExceptionally(ex);
-      }
-    });
+    server.getEventManager().fire(event)
+        .completeOnTimeout(event, 30, TimeUnit.SECONDS)
+        .whenComplete((val, ex) -> {
+          server.unregisterConnection(this);
+          if (ex == null) {
+            this.teardownFuture.complete(null);
+          } else {
+            this.teardownFuture.completeExceptionally(ex);
+          }
+        });
   }
 
   public CompletableFuture<Void> getTeardownFuture() {
