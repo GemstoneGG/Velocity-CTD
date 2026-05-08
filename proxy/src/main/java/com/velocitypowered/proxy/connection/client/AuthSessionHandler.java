@@ -154,6 +154,13 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
           inbound.getHandshakeIntent(), inbound.getIdentifiedKey());
       this.connectedPlayer = player;
 
+      if (!server.registerConnection(player)) {
+        player.disconnect0(
+            Component.translatable("velocity.error.already-connected-proxy", NamedTextColor.RED),
+            true);
+        return CompletableFuture.completedFuture(null);
+      }
+
       if (server.getConfiguration().isLogPlayerConnections()) {
         LOGGER.info("{} has connected", player);
       }
@@ -293,11 +300,6 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
       if (reason.isPresent()) {
         player.disconnect0(reason.get(), true);
       } else {
-        if (!server.registerConnection(player)) {
-          player.disconnect0(Component.translatable("velocity.error.already-connected-proxy"), true);
-          return;
-        }
-
         if (!this.server.getClusterPlayerService().onPlayerConnect(player)) {
           return;
         }
