@@ -31,8 +31,10 @@ import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
@@ -42,6 +44,8 @@ import net.kyori.adventure.text.Component;
  * Common utilities for handling server list ping results.
  */
 public class ServerListPingHandler {
+
+  public static final int SAMPLE_SIZE = 12;
 
   private final VelocityServer server;
 
@@ -88,22 +92,25 @@ public class ServerListPingHandler {
 
     List<ServerPing.SamplePlayer> samplePlayers;
     if (configuration.getSamplePlayersInPing()) {
-      final int sampleSize = 12;
       Collection<VelocityClusterPlayer> all = server.getClusterPlayerService().getAllPlayers();
-      samplePlayers = new ArrayList<>(Math.min(sampleSize, all.size()));
-      ThreadLocalRandom rng = ThreadLocalRandom.current();
-      int seen = 0;
-      for (VelocityClusterPlayer player : all) {
-        if (samplePlayers.size() < sampleSize) {
+      int total = all.size();
+      if (total <= SAMPLE_SIZE) {
+        samplePlayers = new ArrayList<>(total);
+        for (VelocityClusterPlayer player : all) {
           samplePlayers.add(toSample(player));
-        } else {
-          int j = rng.nextInt(seen + 1);
-          if (j < sampleSize) {
-            samplePlayers.set(j, toSample(player));
-          }
+        }
+      } else {
+        List<VelocityClusterPlayer> indexed = new ArrayList<>(all);
+        ThreadLocalRandom rng = ThreadLocalRandom.current();
+        Set<Integer> picked = HashSet.newHashSet(SAMPLE_SIZE);
+        while (picked.size() < SAMPLE_SIZE) {
+          picked.add(rng.nextInt(total));
         }
 
-        seen++;
+        samplePlayers = new ArrayList<>(SAMPLE_SIZE);
+        for (int index : picked) {
+          samplePlayers.add(toSample(indexed.get(index)));
+        }
       }
     } else {
       samplePlayers = new ArrayList<>();

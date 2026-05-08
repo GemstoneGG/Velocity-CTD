@@ -324,6 +324,25 @@ public enum ProtocolVersion implements Ordered<@NotNull ProtocolVersion> {
   private final String[] names;
 
   /**
+   * A map linking each user-facing version name (e.g. {@code "1.20.4"}) to its
+   * {@link ProtocolVersion}.
+   */
+  private static final ImmutableMap<@NotNull String, @NotNull ProtocolVersion> NAME_TO_PROTOCOL_CONSTANT;
+
+  static {
+    Map<String, ProtocolVersion> byName = new HashMap<>();
+    for (ProtocolVersion version : values()) {
+      for (String name : version.names) {
+        if (byName.put(name, version) != null) {
+          throw new IllegalStateException("Multiple versions mapped to '" + name + "' found!");
+        }
+      }
+    }
+
+    NAME_TO_PROTOCOL_CONSTANT = ImmutableMap.copyOf(byName);
+  }
+
+  /**
    * Represents the lowest supported version.
    */
   public static final ProtocolVersion MINIMUM_VERSION = MINECRAFT_1_7_2;
@@ -357,24 +376,6 @@ public enum ProtocolVersion implements Ordered<@NotNull ProtocolVersion> {
     }
 
     ID_TO_PROTOCOL_CONSTANT = ImmutableMap.copyOf(versions);
-  }
-
-  /**
-   * A map linking each user-facing version name (e.g. {@code "1.20.4"}) to its
-   * {@link ProtocolVersion}. If the same name appears under multiple constants, the first
-   * declaration wins, mirroring the resolution order of the previous linear scan.
-   */
-  public static final ImmutableMap<@NotNull String, @NotNull ProtocolVersion> NAME_TO_PROTOCOL_CONSTANT;
-
-  static {
-    Map<String, ProtocolVersion> byName = new HashMap<>();
-    for (ProtocolVersion version : values()) {
-      for (String name : version.names) {
-        byName.putIfAbsent(name, version);
-      }
-    }
-
-    NAME_TO_PROTOCOL_CONSTANT = ImmutableMap.copyOf(byName);
   }
 
   /**
