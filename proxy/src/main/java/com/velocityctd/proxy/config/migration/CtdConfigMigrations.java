@@ -17,10 +17,13 @@
 
 package com.velocityctd.proxy.config.migration;
 
+import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.velocitypowered.proxy.config.migration.ConfigurationMigration;
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.logging.log4j.Logger;
 
 public class CtdConfigMigrations {
 
@@ -126,7 +129,7 @@ public class CtdConfigMigrations {
         ),
 
         // [command-aliases]
-        migration(
+        sectionedMigration(
             "What commands should have aliases for simpler execution that\n"
                 + " do not already have a more advanced function or implementation.",
             "command-aliases.hub",
@@ -134,7 +137,7 @@ public class CtdConfigMigrations {
         ),
 
         // [proxy-command-aliases]
-        migration(
+        sectionedMigration(
             "Proxy command aliases create new commands that execute other commands when invoked.\n"
                 + " This is similar to Bukkit's commands.yml functionality.\n"
                 + " Adding multiple aliases executes multiple commands.",
@@ -334,5 +337,33 @@ public class CtdConfigMigrations {
     }
 
     return new CtdSimpleMigration(key, defaultValue, comment);
+  }
+
+  /**
+   * Like {@link #migration} but only fires when the parent section already exists in the
+   * config. Used for example/seed values under sections the user is allowed to delete
+   * outright (e.g. {@code [command-aliases]}, {@code [proxy-command-aliases]}) — if the
+   * user has removed the section, we don't forcibly re-add it.
+   */
+  private static ConfigurationMigration sectionedMigration(String comment, String key, Object defaultValue) {
+    int dot = key.indexOf('.');
+    if (dot < 0) {
+      throw new IllegalArgumentException("sectionedMigration requires a dotted key, got: " + key);
+    }
+
+    String parent = key.substring(0, dot);
+    ConfigurationMigration base = migration(comment, key, defaultValue);
+    return new ConfigurationMigration() {
+
+      @Override
+      public boolean shouldMigrate(CommentedFileConfig config) {
+        return config.contains(parent) && base.shouldMigrate(config);
+      }
+
+      @Override
+      public void migrate(CommentedFileConfig config, Logger logger) throws IOException {
+        base.migrate(config, logger);
+      }
+    };
   }
 }

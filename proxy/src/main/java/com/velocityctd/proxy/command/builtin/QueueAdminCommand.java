@@ -80,6 +80,7 @@ public class QueueAdminCommand implements BuiltinCommandDefinition {
 
   @Override
   public BrigadierCommand build() {
+    String label = label();
     LiteralCommandNode<CommandSource> listQueues = BrigadierCommand.literalArgumentBuilder("listqueues")
             .requires(source -> source.getPermissionValue("velocity.queue.admin.listqueues") == Tristate.TRUE)
             .executes(this::listQueues)
@@ -173,14 +174,14 @@ public class QueueAdminCommand implements BuiltinCommandDefinition {
     return new BrigadierCommand(
             commands.stream()
                     .reduce(
-                            BrigadierCommand.literalArgumentBuilder("queueadmin")
+                            BrigadierCommand.literalArgumentBuilder(label)
                                     .executes(ctx -> {
                                       CommandSource source = ctx.getSource();
                                       String availableCommands = commands.stream()
                                               .filter(e -> e.getRequirement().test(source))
                                               .map(LiteralCommandNode::getName)
                                               .collect(Collectors.joining("|"));
-                                      String commandText = "/queueadmin <%s>".formatted(availableCommands);
+                                      String commandText = "/%s <%s>".formatted(label, availableCommands);
                                       source.sendMessage(Component.text(commandText, NamedTextColor.RED));
                                       return 0;
                                     })
