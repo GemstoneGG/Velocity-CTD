@@ -319,16 +319,13 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
    */
   public void closeWith(Object msg) {
     if (channel.isActive()) {
+      knownDisconnect = true;
+
       boolean is17 = this.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_8)
           && this.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_7_2);
       Runnable doClose = () -> {
-        knownDisconnect = true;
-
         ChannelFuture writeFuture = channel.writeAndFlush(msg);
         writeFuture.addListener(ChannelFutureListener.CLOSE);
-        // Force-close after a deadline if the write stalls; otherwise a degraded
-        // client (full TCP receive window) leaves the channel alive until the read
-        // timeout fires (~30s), making DisconnectEvent fire late.
         ScheduledFuture<?> hardClose = channel.eventLoop().schedule(() -> {
           if (channel.isActive()) {
             channel.close();

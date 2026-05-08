@@ -131,7 +131,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import net.kyori.adventure.audience.MessageType;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.identity.Identity;
@@ -228,8 +227,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private final Collection<ChannelIdentifier> clientsideChannels;
 
   private final CompletableFuture<Void> teardownFuture = new CompletableFuture<>();
-
-  private final AtomicBoolean terminating = new AtomicBoolean(false);
 
   private final ResourcePackHandler resourcePackHandler;
 
@@ -815,7 +812,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @param duringLogin whether the disconnect happened during login
    */
   public void disconnect0(Component reason, boolean duringLogin) {
-    if (!terminating.compareAndSet(false, true)) {
+    if (connection.isKnownDisconnect()) {
       return;
     }
 
@@ -854,7 +851,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   public void handleConnectionException(VelocityRegisteredServer server,
                                         Throwable throwable,
                                         boolean safe) {
-    if (!isActive() || terminating.get()) {
+    if (!isActive() || connection.isKnownDisconnect()) {
       // No point trying to recover an inactive connection or one already being torn down.
       return;
     }
@@ -899,7 +896,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   public void handleConnectionException(VelocityRegisteredServer server,
                                         DisconnectPacket disconnect,
                                         boolean safe) {
-    if (!isActive() || terminating.get()) {
+    if (!isActive() || connection.isKnownDisconnect()) {
       // No point trying to recover an inactive connection or one already being torn down.
       return;
     }
@@ -943,7 +940,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                                          @Nullable Component kickReason,
                                          Component friendlyReason,
                                          boolean safe) {
-    if (!isActive() || terminating.get()) {
+    if (!isActive() || connection.isKnownDisconnect()) {
       // No point trying to recover an inactive connection or one already being torn down.
       return;
     }
@@ -991,7 +988,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
         connectedServer = null;
       }
 
-      if (!isActive() || terminating.get()) {
+      if (!isActive() || connection.isKnownDisconnect()) {
         // Connection inactive, or termination is already in flight from another path.
         return;
       }
