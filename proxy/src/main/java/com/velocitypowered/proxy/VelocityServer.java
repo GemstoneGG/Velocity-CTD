@@ -838,9 +838,9 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private static List<ServerInfo> loadServersFromNewList(VelocityConfiguration config) {
     List<ServerInfo> serverList = new ArrayList<>();
 
-    config.getServers().forEach((serverName, address) -> {
-      InetSocketAddress socketAddress = AddressUtil.parseAddress(address);
-      serverList.add(new ServerInfo(serverName, socketAddress));
+    config.getBackendServers().forEach((serverName, backendConfig) -> {
+      InetSocketAddress socketAddress = AddressUtil.parseAddress(backendConfig.address());
+      serverList.add(new ServerInfo(serverName, socketAddress, backendConfig.forwardingMode()));
     });
 
     return serverList;
