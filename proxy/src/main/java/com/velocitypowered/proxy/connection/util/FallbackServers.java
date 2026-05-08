@@ -144,7 +144,7 @@ public record FallbackServers(
 
     // Check for wildcard ("*.example.com" matches "anything.example.com")
     for (Map.Entry<String, ForcedHostEntry> entry : forcedHosts.entrySet()) {
-      String pattern = entry.getKey();
+      String pattern = entry.getKey().toLowerCase(Locale.ROOT);
       if (pattern.startsWith("*.") && virtualHost.endsWith(pattern.substring(1))) {
         return Optional.of(fromMapEntry(config, virtualHost, entry));
       }
@@ -157,7 +157,7 @@ public record FallbackServers(
    * Resolves the fallback server configuration for an inbound connection.
    *
    * <p>If the connection supplies a virtual host that matches a forced-host rule (exact or
-   * wildcard), the servers and filter from that rule are used. Otherwise the global
+   * wildcard), the servers and filter from that rule are used. Otherwise, the global
    * {@code attempt-connection-order} and dynamic fallback filter from the proxy configuration
    * are used, with {@link #matchedVirtualHostPattern()} left as {@code null}.
    *
