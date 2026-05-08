@@ -801,12 +801,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   /**
-   * Disconnects the player from the proxy. Idempotent and race-safe: the first call
-   * wins the {@link #terminating} CAS and drives the disconnect; any concurrent or
-   * further calls (including backend-driven kicks reaching this method via
-   * {@link #disconnect}) detect the in-flight termination and return without doing
-   * additional work, so there is exactly one channel close and one
-   * {@link DisconnectEvent}.
+   * Disconnects the player from the proxy.
    *
    * @param reason      the reason for disconnecting the player
    * @param duringLogin whether the disconnect happened during login
