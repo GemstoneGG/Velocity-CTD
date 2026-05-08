@@ -1061,25 +1061,27 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   }
 
   /**
-   * Checks if the {@code connection} can be registered with the proxy.
+   * Checks if a connection identified by the given profile can be registered with the proxy.
+   * Called before the {@link ConnectedPlayer} instance is constructed so that rejected
+   * connections never create a phantom player object.
    *
-   * @param connection the connection to check
+   * @param profile the resolved game profile of the incoming connection
    * @return {@code true} if we can register the connection, {@code false} if not
    */
-  public boolean canRegisterConnection(ConnectedPlayer connection) {
+  public boolean canRegisterConnection(GameProfile profile) {
     // When kick-existing-players is enabled, skip duplicate checks here.
     // registerConnection() handles kicking the existing player and enforcing IP rules.
     if (configuration.isKickExistingPlayers()) {
       return true;
     }
 
-    String lowerName = connection.getUsername().toLowerCase(Locale.US);
+    String lowerName = profile.getName().toLowerCase(Locale.US);
 
     if (connectionsByName.containsKey(lowerName)) {
       return false;
     }
 
-    return !connectionsByUuid.containsKey(connection.getUniqueId());
+    return !connectionsByUuid.containsKey(profile.getId());
   }
 
   /**
@@ -1107,9 +1109,11 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       return true;
     }
 
-    // kick-existing-players is enabled. Kick the existing session so the new one can take over.
-    // When kick-existing-players-check-ip is also enabled, only kick if the new connection comes
-    // from the same IP address.
+    // kick-existing-players is enabled. Disconnect the existing session so the new one
+    // can take over. disconnect() is idempotent: if the backend's own duplicate-login
+    // kick races with this path, only one teardown flow runs.
+    // When kick-existing-players-check-ip is also enabled, only kick if the new
+    // connection comes from the same IP address.
     ConnectedPlayer existingByUuid = connectionsByUuid.get(connection.getUniqueId());
     if (existingByUuid != null) {
       if (this.configuration.isKickExistingPlayersCheckIp()) {

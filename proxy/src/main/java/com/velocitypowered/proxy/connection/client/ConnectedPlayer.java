@@ -131,6 +131,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import net.kyori.adventure.audience.MessageType;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.identity.Identity;
@@ -228,6 +229,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   private final CompletableFuture<Void> teardownFuture = new CompletableFuture<>();
 
+  private final AtomicBoolean terminating = new AtomicBoolean(false);
+
   private final ResourcePackHandler resourcePackHandler;
 
   private final BundleDelimiterHandler bundleHandler = new BundleDelimiterHandler(this);
@@ -314,6 +317,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * Used for cleaning up resources during a disconnection.
    */
   public void disconnected() {
+    if (!fullyConnected) {
+      return;
+    }
+
     for (VelocityBossBarImplementation bar : this.bossBars) {
       bar.viewerDisconnected(this);
     }
@@ -328,12 +335,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       tryQueueOnJoinTask = null;
     }
 
-    if (this.fullyConnected) {
-      this.server.getClusterPlayerService().onPlayerDisconnect(this);
+    this.server.getClusterPlayerService().onPlayerDisconnect(this);
 
-      if (this.server.isQueueEnabled()) {
-        this.server.getQueueManager().onPlayerDisconnect(this);
-      }
+    if (this.server.isQueueEnabled()) {
+      this.server.getQueueManager().onPlayerDisconnect(this);
     }
   }
 
@@ -799,12 +804,21 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   /**
-   * Disconnects the player from the proxy.
+   * Disconnects the player from the proxy. Idempotent and race-safe: the first call
+   * wins the {@link #terminating} CAS and drives the disconnect; any concurrent or
+   * further calls (including backend-driven kicks reaching this method via
+   * {@link #disconnect}) detect the in-flight termination and return without doing
+   * additional work, so there is exactly one channel close and one
+   * {@link DisconnectEvent}.
    *
    * @param reason      the reason for disconnecting the player
    * @param duringLogin whether the disconnect happened during login
    */
   public void disconnect0(Component reason, boolean duringLogin) {
+    if (!terminating.compareAndSet(false, true)) {
+      return;
+    }
+
     Component translated = this.translateMessage(reason);
 
     if (server.getConfiguration().isLogPlayerDisconnections()) {
@@ -840,8 +854,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   public void handleConnectionException(VelocityRegisteredServer server,
                                         Throwable throwable,
                                         boolean safe) {
-    if (!isActive()) {
-      // If the connection is no longer active, it makes no sense to try and recover it.
+    if (!isActive() || terminating.get()) {
+      // No point trying to recover an inactive connection or one already being torn down.
       return;
     }
 
@@ -885,8 +899,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   public void handleConnectionException(VelocityRegisteredServer server,
                                         DisconnectPacket disconnect,
                                         boolean safe) {
-    if (!isActive()) {
-      // If the connection is no longer active, it makes no sense to try and recover it.
+    if (!isActive() || terminating.get()) {
+      // No point trying to recover an inactive connection or one already being torn down.
       return;
     }
 
@@ -929,8 +943,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                                          @Nullable Component kickReason,
                                          Component friendlyReason,
                                          boolean safe) {
-    if (!isActive()) {
-      // If the connection is no longer active, it makes no sense to try and recover it.
+    if (!isActive() || terminating.get()) {
+      // No point trying to recover an inactive connection or one already being torn down.
       return;
     }
 
@@ -977,8 +991,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
         connectedServer = null;
       }
 
-      if (!isActive()) {
-        // If the connection is no longer active, it makes no sense to try and recover it.
+      if (!isActive() || terminating.get()) {
+        // Connection inactive, or termination is already in flight from another path.
         return;
       }
 
@@ -1309,10 +1323,12 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
     DisconnectEvent.LoginStatus status;
     if (connectedPlayer.isPresent()) {
-      if (connectedPlayer.get().getCurrentServer().isEmpty()) {
-        status = LoginStatus.PRE_SERVER_JOIN;
+      if (connectedPlayer.get() != this) {
+        status = LoginStatus.CONFLICTING_LOGIN;
+      } else if (this.firstServerConnected) {
+        status = LoginStatus.SUCCESSFUL_LOGIN;
       } else {
-        status = connectedPlayer.get() == this ? LoginStatus.SUCCESSFUL_LOGIN : LoginStatus.CONFLICTING_LOGIN;
+        status = LoginStatus.PRE_SERVER_JOIN;
       }
     } else {
       status = connection.isKnownDisconnect() ? LoginStatus.CANCELLED_BY_PROXY : LoginStatus.CANCELLED_BY_USER;

@@ -140,17 +140,19 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         return CompletableFuture.completedFuture(null);
       }
 
+      GameProfile resolvedProfile = profileEvent.getGameProfile();
+
+      if (!server.canRegisterConnection(resolvedProfile)) {
+        inbound.disconnect(
+            Component.translatable("velocity.error.already-connected-proxy", NamedTextColor.RED));
+        return CompletableFuture.completedFuture(null);
+      }
+
       // Initiate a regular connection and move over to it.
-      ConnectedPlayer player = new ConnectedPlayer(server, profileEvent.getGameProfile(),
+      ConnectedPlayer player = new ConnectedPlayer(server, resolvedProfile,
           mcConnection, inbound.getVirtualHost().orElse(null), inbound.getRawVirtualHost().orElse(null), onlineMode,
           inbound.getHandshakeIntent(), inbound.getIdentifiedKey());
       this.connectedPlayer = player;
-      if (!server.canRegisterConnection(player)) {
-        player.disconnect0(
-            Component.translatable("velocity.error.already-connected-proxy", NamedTextColor.RED),
-            true);
-        return CompletableFuture.completedFuture(null);
-      }
 
       if (server.getConfiguration().isLogPlayerConnections()) {
         LOGGER.info("{} has connected", player);
