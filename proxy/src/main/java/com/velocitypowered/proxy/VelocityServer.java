@@ -1110,11 +1110,9 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       return true;
     }
 
-    // kick-existing-players is enabled. Disconnect the existing session so the new one
-    // can take over. disconnect() is idempotent: if the backend's own duplicate-login
-    // kick races with this path, only one teardown flow runs.
-    // When kick-existing-players-check-ip is also enabled, only kick if the new
-    // connection comes from the same IP address.
+    // kick-existing-players is enabled. Kick the existing session so the new one can take over.
+    // When kick-existing-players-check-ip is also enabled, only kick if the new connection comes
+    // from the same IP address.
     ConnectedPlayer existingByUuid = connectionsByUuid.get(connection.getUniqueId());
     if (existingByUuid != null) {
       if (this.configuration.isKickExistingPlayersCheckIp()) {
