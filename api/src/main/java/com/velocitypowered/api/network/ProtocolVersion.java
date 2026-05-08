@@ -309,21 +309,6 @@ public enum ProtocolVersion implements Ordered<@NotNull ProtocolVersion> {
   private static final int SNAPSHOT_BIT = 30;
 
   /**
-   * The protocol version number used by the Minecraft network protocol.
-   */
-  private final int protocol;
-
-  /**
-   * The protocol version number used for snapshot compatibility, or {@code -1} if not applicable.
-   */
-  private final int snapshotProtocol;
-
-  /**
-   * All human-readable Minecraft version names that this protocol version covers.
-   */
-  private final String[] names;
-
-  /**
    * A map linking each user-facing version name (e.g. {@code "1.20.4"}) to its
    * {@link ProtocolVersion}.
    */
@@ -341,6 +326,21 @@ public enum ProtocolVersion implements Ordered<@NotNull ProtocolVersion> {
 
     NAME_TO_PROTOCOL_CONSTANT = ImmutableMap.copyOf(byName);
   }
+
+  /**
+   * The protocol version number used by the Minecraft network protocol.
+   */
+  private final int protocol;
+
+  /**
+   * The protocol version number used for snapshot compatibility, or {@code -1} if not applicable.
+   */
+  private final int snapshotProtocol;
+
+  /**
+   * All human-readable Minecraft version names that this protocol version covers.
+   */
+  private final String[] names;
 
   /**
    * Represents the lowest supported version.
