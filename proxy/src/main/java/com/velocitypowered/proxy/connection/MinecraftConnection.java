@@ -77,6 +77,7 @@ import java.util.EnumMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -320,19 +321,31 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     if (channel.isActive()) {
       boolean is17 = this.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_8)
           && this.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_7_2);
+      Runnable doClose = () -> {
+        knownDisconnect = true;
+
+        ChannelFuture writeFuture = channel.writeAndFlush(msg);
+        writeFuture.addListener(ChannelFutureListener.CLOSE);
+        // Force-close after a deadline if the write stalls; otherwise a degraded
+        // client (full TCP receive window) leaves the channel alive until the read
+        // timeout fires (~30s), making DisconnectEvent fire late.
+        ScheduledFuture<?> hardClose = channel.eventLoop().schedule(() -> {
+          if (channel.isActive()) {
+            channel.close();
+          }
+        }, 5, TimeUnit.SECONDS);
+        writeFuture.addListener(f -> hardClose.cancel(false));
+      };
+
       if (is17 && this.getState() != StateRegistry.STATUS) {
         channel.eventLoop().execute(() -> {
           // 1.7.x versions have a race condition with switching protocol states, so explicitly
           // close the connection after a short while.
           this.setAutoReading(false);
-          channel.eventLoop().schedule(() -> {
-            knownDisconnect = true;
-            channel.writeAndFlush(msg).addListener(ChannelFutureListener.CLOSE);
-          }, 250, TimeUnit.MILLISECONDS);
+          channel.eventLoop().schedule(doClose, 250, TimeUnit.MILLISECONDS);
         });
       } else {
-        knownDisconnect = true;
-        channel.writeAndFlush(msg).addListener(ChannelFutureListener.CLOSE);
+        doClose.run();
       }
     }
   }
