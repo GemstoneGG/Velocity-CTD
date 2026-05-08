@@ -145,9 +145,7 @@ public record FallbackServers(
     // Check for wildcard ("*.example.com" matches "anything.example.com")
     for (Map.Entry<String, ForcedHostEntry> entry : forcedHosts.entrySet()) {
       String pattern = entry.getKey();
-      if (pattern.length() > 1 && pattern.charAt(0) == '*' && pattern.charAt(1) == '.'
-          && virtualHost.regionMatches(virtualHost.length() - (pattern.length() - 1),
-              pattern, 1, pattern.length() - 1)) {
+      if (pattern.startsWith("*.") && virtualHost.endsWith(pattern.substring(1))) {
         return Optional.of(fromMapEntry(config, virtualHost, entry));
       }
     }
