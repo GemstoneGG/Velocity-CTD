@@ -312,10 +312,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * Used for cleaning up resources during a disconnection.
    */
   public void disconnected() {
-    if (!fullyConnected) {
-      return;
-    }
-
     for (VelocityBossBarImplementation bar : this.bossBars) {
       bar.viewerDisconnected(this);
     }
@@ -330,10 +326,12 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       tryQueueOnJoinTask = null;
     }
 
-    this.server.getClusterPlayerService().onPlayerDisconnect(this);
+    if (this.fullyConnected) {
+      this.server.getClusterPlayerService().onPlayerDisconnect(this);
 
-    if (this.server.isQueueEnabled()) {
-      this.server.getQueueManager().onPlayerDisconnect(this);
+      if (this.server.isQueueEnabled()) {
+        this.server.getQueueManager().onPlayerDisconnect(this);
+      }
     }
   }
 
@@ -347,7 +345,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   /**
    * Discards any messages still being processed by the {@link ChatQueue}, and creates a fresh state for future packets.
-   * This should be used on server switches, or whenever the client resets its own 'last seen' state.
+   * This should be used on server switches or whenever the client resets its own 'last seen' state.
    */
   public void discardChatQueue() {
     // No need for atomic swap should only be called from event loop
