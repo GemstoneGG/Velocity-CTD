@@ -30,7 +30,6 @@ import com.velocitypowered.proxy.config.PingPassthroughMode;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -92,15 +91,15 @@ public class ServerListPingHandler {
 
     List<ServerPing.SamplePlayer> samplePlayers;
     if (configuration.getSamplePlayersInPing()) {
-      Collection<VelocityClusterPlayer> all = server.getClusterPlayerService().getAllPlayers();
-      int total = all.size();
+      List<VelocityClusterPlayer> snapshot =
+          new ArrayList<>(server.getClusterPlayerService().getAllPlayers());
+      int total = snapshot.size();
       if (total <= SAMPLE_SIZE) {
         samplePlayers = new ArrayList<>(total);
-        for (VelocityClusterPlayer player : all) {
+        for (VelocityClusterPlayer player : snapshot) {
           samplePlayers.add(toSample(player));
         }
       } else {
-        List<VelocityClusterPlayer> indexed = new ArrayList<>(all);
         ThreadLocalRandom rng = ThreadLocalRandom.current();
         Set<Integer> picked = HashSet.newHashSet(SAMPLE_SIZE);
         while (picked.size() < SAMPLE_SIZE) {
@@ -109,7 +108,7 @@ public class ServerListPingHandler {
 
         samplePlayers = new ArrayList<>(SAMPLE_SIZE);
         for (int index : picked) {
-          samplePlayers.add(toSample(indexed.get(index)));
+          samplePlayers.add(toSample(snapshot.get(index)));
         }
       }
     } else {
@@ -147,7 +146,7 @@ public class ServerListPingHandler {
         case "proxy-vendor" -> server.getVersion().getVendor();
         case "player-count" -> String.valueOf(server.getClusterPlayerService().getTotalPlayerCount());
         case "max-players" -> String.valueOf(server.getConfiguration().getShowMaxPlayers());
-        default -> "UNKNOWN_PLACEHOLDER";
+        default -> null;
       };
     });
   }

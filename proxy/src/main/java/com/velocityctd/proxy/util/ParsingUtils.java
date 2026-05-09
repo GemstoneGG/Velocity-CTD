@@ -26,14 +26,17 @@ public class ParsingUtils {
    * the given mapper.
    *
    * <p>Each variable is delimited by a literal {@code '{'} and {@code '}'}. The mapper is called
-   * with the inner name only (no braces) and its return value is substituted in place. Text
-   * outside variables is passed through unchanged. Nesting is not supported: a {@code '{'} inside
-   * a variable is treated as part of the name. If the input ends while a variable is still open
-   * (no matching {@code '}'}), the partial content is dropped.
+   * with the inner name only (no braces). If it returns a non-null value, that value is
+   * substituted in place; if it returns {@code null}, the original {@code {name}} is written
+   * back unchanged so unknown placeholders pass through intact. Text outside variables is
+   * passed through unchanged. Nesting is not supported: a {@code '{'} inside a variable is
+   * treated as part of the name. If the input ends while a variable is still open (no matching
+   * {@code '}'}), the partial content is dropped.
    *
    * @param input the string to process
-   * @param variableMapper function mapping a variable name (without braces) to its replacement
-   * @return the input with all variables substituted
+   * @param variableMapper function mapping a variable name (without braces) to its replacement,
+   *                       or {@code null} to leave the {@code {name}} literal in the output
+   * @return the input with all known variables substituted
    */
   public static String parseVariables(String input, Function<String, String> variableMapper) {
     StringBuilder out = new StringBuilder(input.length());
@@ -52,7 +55,16 @@ public class ParsingUtils {
       } else {
         if (c == '}') {
           // write variable value
-          out.append(variableMapper.apply(variable.toString()));
+          String value = variableMapper.apply(variable.toString());
+          if (value == null) {
+            // pass-through unknown variables as-is
+            out.append('{');
+            out.append(variable);
+            out.append('}');
+          } else {
+            // write variable value
+            out.append(value);
+          }
 
           variable.setLength(0);
           inVariable = false;
