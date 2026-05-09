@@ -22,20 +22,21 @@ import java.util.function.Function;
 public class ParsingUtils {
 
   /**
-   * Replaces variables of the form {@code {name}} in the input string with values produced by
-   * the given mapper.
+   * Replaces variables of the form <code>{name}</code> in the input string with values produced
+   * by the given mapper.
    *
-   * <p>Each variable is delimited by a literal {@code '{'} and {@code '}'}. The mapper is called
-   * with the inner name only (no braces). If it returns a non-null value, that value is
-   * substituted in place; if it returns {@code null}, the original {@code {name}} is written
-   * back unchanged so unknown placeholders pass through intact. Text outside variables is
-   * passed through unchanged. Nesting is not supported: a {@code '{'} inside a variable is
+   * <p>Each variable is delimited by a literal <code>{</code> and <code>}</code>. The mapper is
+   * called with the inner name only (no braces). If it returns a non-null value, that value is
+   * substituted in place; if it returns {@code null}, the original <code>{name}</code> is
+   * written back unchanged so unknown placeholders pass through intact. Text outside variables
+   * is passed through unchanged. Nesting is not supported: a <code>{</code> inside a variable is
    * treated as part of the name. If the input ends while a variable is still open (no matching
-   * {@code '}'}), the opening {@code '{'} and any partial content are written back unchanged.
+   * <code>}</code>), the opening <code>{</code> and any partial content are written back
+   * unchanged.
    *
    * @param input the string to process
    * @param variableMapper function mapping a variable name (without braces) to its replacement,
-   *                       or {@code null} to leave the {@code {name}} literal in the output
+   *                       or {@code null} to leave the <code>{name}</code> literal in the output
    * @return the input with all known variables substituted
    */
   public static String parseVariables(String input, Function<String, String> variableMapper) {
