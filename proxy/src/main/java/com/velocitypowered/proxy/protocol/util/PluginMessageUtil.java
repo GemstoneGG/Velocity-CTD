@@ -223,7 +223,7 @@ public final class PluginMessageUtil {
         case "proxy-version" -> version.getVersion();
         case "proxy-vendor" -> version.getVendor();
         case "server-connected" -> connectedServer;
-        default -> "UNKNOWN_PLACEHOLDER";
+        default -> null;
       };
     });
 
