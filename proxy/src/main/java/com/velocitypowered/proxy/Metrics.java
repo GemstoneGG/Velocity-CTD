@@ -106,6 +106,8 @@ public final class Metrics {
 
     private static final Logger LOGGER = LogManager.getLogger(Metrics.class);
 
+    private static final Pattern MAJOR_VERSION_DIGITS = Pattern.compile("\\d+");
+
     static void startMetrics(VelocityServer server, VelocityConfiguration.Metrics metricsConfig) {
       Metrics metrics = new Metrics(LOGGER, 30992, metricsConfig.isEnabled());
 
@@ -144,7 +146,7 @@ public final class Metrics {
           // of course, it really wouldn't be all that simple if they didn't add a quirk, now
           // would it valid strings for the major may potentially include values such as -ea to
           // denote a pre-release
-          Matcher versionMatcher = Pattern.compile("\\d+").matcher(majorVersion);
+          Matcher versionMatcher = MAJOR_VERSION_DIGITS.matcher(majorVersion);
           if (versionMatcher.find()) {
             majorVersion = versionMatcher.group(0);
           }
@@ -156,6 +158,18 @@ public final class Metrics {
 
         return map;
       }));
+
+      // --- Velocity-CTD-specific metrics ---
+
+      metrics.addCustomChart(
+          new SimplePie("redis_enabled",
+              () -> server.getConfiguration().getRedis().isEnabled() ? "enabled" : "disabled")
+      );
+
+      metrics.addCustomChart(
+          new SimplePie("queue_enabled",
+              () -> server.getConfiguration().getQueue().isEnabled() ? "enabled" : "disabled")
+      );
     }
   }
 }

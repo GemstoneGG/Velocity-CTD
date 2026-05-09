@@ -136,14 +136,10 @@ public record FallbackServers(
    */
   private static Optional<FallbackServers> getForcedHostFallbacks(VelocityConfiguration config, String virtualHost) {
     Map<String, ForcedHostEntry> forcedHosts = config.getForcedHostEntries();
-    Map.Entry<String, ForcedHostEntry> exactMatch = forcedHosts.entrySet()
-        .stream()
-        .filter(e -> e.getKey().equalsIgnoreCase(virtualHost))
-        .findAny()
-        .orElse(null);
-
+    ForcedHostEntry exactMatch = forcedHosts.get(virtualHost);
     if (exactMatch != null) {
-      return Optional.of(fromMapEntry(config, virtualHost, exactMatch));
+      return Optional.of(fromMapEntry(config, virtualHost,
+          Map.entry(virtualHost, exactMatch)));
     }
 
     // Check for wildcard ("*.example.com" matches "anything.example.com")
@@ -161,7 +157,7 @@ public record FallbackServers(
    * Resolves the fallback server configuration for an inbound connection.
    *
    * <p>If the connection supplies a virtual host that matches a forced-host rule (exact or
-   * wildcard), the servers and filter from that rule are used. Otherwise the global
+   * wildcard), the servers and filter from that rule are used. Otherwise, the global
    * {@code attempt-connection-order} and dynamic fallback filter from the proxy configuration
    * are used, with {@link #matchedVirtualHostPattern()} left as {@code null}.
    *

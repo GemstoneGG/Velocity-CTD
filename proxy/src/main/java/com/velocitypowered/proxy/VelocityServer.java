@@ -138,6 +138,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.UnmodifiableView;
 
 /**
  * Implementation of {@link ProxyServer}.
@@ -666,7 +667,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     }
 
     if (!this.getConfiguration().getServerLinks().isEmpty()) {
-      for (ConnectedPlayer player : this.getAllPlayers()) {
+      for (ConnectedPlayer player : this.getOnlinePlayers()) {
         if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_21)) {
           try {
             if (player.getProtocolState() == ProtocolState.CONFIGURATION || player.getProtocolState() == ProtocolState.PLAY) {
@@ -1170,7 +1171,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   public Collection<ConnectedPlayer> matchPlayer(String partialName) {
     Objects.requireNonNull(partialName);
 
-    return getAllPlayers().stream().filter(p -> p.getUsername()
+    return getOnlinePlayers().stream().filter(p -> p.getUsername()
             .regionMatches(true, 0, partialName, 0, partialName.length()))
         .collect(Collectors.toList());
   }
@@ -1187,6 +1188,22 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   @Override
   public Collection<ConnectedPlayer> getAllPlayers() {
     return ImmutableList.copyOf(connectionsByUuid.values());
+  }
+
+  @Override
+  public @UnmodifiableView Collection<ConnectedPlayer> getOnlinePlayers() {
+    return Collections.unmodifiableCollection(connectionsByUuid.values());
+  }
+
+  /**
+   * Returns whether the given player is currently registered as online on this proxy. Uses an
+   * O(1) UUID lookup against the underlying connection map.
+   *
+   * @param player the player to check
+   * @return {@code true} if the same player instance is registered under its UUID
+   */
+  public boolean isPlayerOnline(ConnectedPlayer player) {
+    return connectionsByUuid.get(player.getUniqueId()) == player;
   }
 
   @Override
@@ -1272,7 +1289,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
   @Override
   public @NonNull Iterable<? extends Audience> audiences() {
-    Collection<ConnectedPlayer> connectedPlayers = getAllPlayers();
+    Collection<ConnectedPlayer> connectedPlayers = getOnlinePlayers();
 
     Collection<Audience> audiences = new ArrayList<>(connectedPlayers.size() + 1);
     audiences.add(console);

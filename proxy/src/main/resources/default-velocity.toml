@@ -163,8 +163,9 @@ override-server-command-usage = false
 
 [packet-limiter]
 interval = 7
-packets-per-second = 500
+packets-per-second = -1
 bytes-per-second = -1
+decompressed-bytes-per-second = 5242880
 
 [servers]
 # Configure your servers here. Each key represents the server's name, and the value
@@ -213,7 +214,7 @@ server-aliases = [
 "factions.example.com" = [
     "factions"
 ]
-"minigames.example.com" = { servers = ["minigames-limbo", "minigames-1", "minigames-2"], dynamic-fallbacks-filter = "first_available", forced-host-as-fallback = true }
+# "minigames.example.com" = { servers = ["minigames-limbo", "minigames-1", "minigames-2"], dynamic-fallbacks-filter = "first_available", forced-host-as-fallback = true }
 
 [command-aliases]
 # What commands should have aliases for simpler execution that

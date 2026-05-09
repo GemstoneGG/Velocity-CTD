@@ -1,11 +1,16 @@
 # Velocity-CTD
 
-[![Join my Discord](https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdG5sdGgwazRwYjh4djdsdXJwcHR5ajZrNGE2NDBvcTUzdXltbHp1cCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/fGIwpaCrtkFdHVksSu/giphy.gif)](https://discord.gg/beer)
+[![Join my Discord](https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdG5sdGgwazRwYjh4djdsdXJwcHR5ajZrNGE2NDBvcTUzdXltbHp1cCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/fGIwpaCrtkFdHVksSu/giphy.gif)](https://discord.gg/beer) \
+_[Discord](https://discord.gg/beer)_ | _[VelocityCTD.com](https://velocityctd.com/)_
 
 A Minecraft server proxy with unparalleled server support, scalability,
 and flexibility.
 
 Velocity-CTD is licensed under the GPLv3 license.
+
+[![Servers using Velocity-CTD](https://bstats-graph.gritter.nl/v1/plugins/30992/charts/servers/chart.png?max_elements=336)](https://bstats.velocityctd.com/)
+_Live graph of servers using Velocity-CTD, using [bstats-graph.gritter.nl](https://bstats-graph.gritter.nl/)._
+_Note that Velocity-CTD has only been using its own bStats ID since 28 April._
 
 ## Purpose
 
@@ -144,6 +149,57 @@ dependencies, useful performance improvements, and more.
 * `velocity.queue.admin.remove` (Allows you to remove a player from any specific queue).
 * `velocity.queue.admin.removeall` (Allows you to remove a player from all queues).
 * `velocity.queue.admin.unpause` (Allows you to unpause any specific server for queuing).
+
+## Velocity-CTD API
+
+Velocity-CTD exposes its own api, one that is fully backwards-compatible with [com.velocitypowered:velocity-api](https://mvnrepository.com/artifact/com.velocitypowered/velocity-api) with some additional features.
+Some features are added to existing Velocity interfaces (in `com.velocitypowered.api`), and the CTD-custom functionality is exposed through the `com.velocityctd.api` package.
+
+Our API mainly adds and exposes the redis and queue subsystem through the API module, allowing you to interact with this system through plugins.
+
+See:
+- `ProxyServer.getClusterPlayerService()`
+- `ProxyServer.getClusterProxyService()`
+- `ProxyServer.getQueueManager()`
+
+Compile your plugin using CTD's API through the [Velocity-CTD Maven Repository](https://repo.velocityctd.com/#/):
+
+**Maven**
+```xml
+<repository>
+  <id>velocityctd-snapshots</id>
+  <name>Velocity-CTD Repository</name>
+  <url>https://repo.velocityctd.com/snapshots</url>
+</repository>
+
+<dependency>
+  <groupId>com.velocityctd</groupId>
+  <artifactId>velocity-api</artifactId>
+  <version>3.5.0-SNAPSHOT</version>
+</dependency>
+```
+
+**Gradle**
+
+_Groovy_
+```groovy
+maven {
+    name "velocityctdSnapshots"
+    url "https://repo.velocityctd.com/snapshots"
+}
+
+implementation "com.velocityctd:velocity-api:3.5.0-SNAPSHOT"
+```
+
+_Kotlin_
+```kotlin
+maven {
+    name = "velocityctdSnapshots"
+    url = uri("https://repo.velocityctd.com/snapshots")
+}
+
+implementation("com.velocityctd:velocity-api:3.5.0-SNAPSHOT")
+```
 
 ## Special Notes
 To proficiently review the stability and performance of your proxy in addition to spark,

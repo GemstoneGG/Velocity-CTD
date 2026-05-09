@@ -520,7 +520,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
   public void exception(Throwable throwable) {
     player.disconnect(Component.translatable("velocity.error.player-connection-error", NamedTextColor.RED));
     if (MinecraftDecoder.DEBUG) {
-      LOGGER.info("Exception while handling plugin message packet for {}", player, throwable);
+      LOGGER.info("Exception while handling packet for {}", player, throwable);
     }
   }
 
