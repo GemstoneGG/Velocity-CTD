@@ -1195,6 +1195,17 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     return Collections.unmodifiableCollection(connectionsByUuid.values());
   }
 
+  /**
+   * Returns whether the given player is currently registered as online on this proxy. Uses an
+   * O(1) UUID lookup against the underlying connection map.
+   *
+   * @param player the player to check
+   * @return {@code true} if the same player instance is registered under its UUID
+   */
+  public boolean isPlayerOnline(ConnectedPlayer player) {
+    return connectionsByUuid.get(player.getUniqueId()) == player;
+  }
+
   @Override
   public int getPlayerCount() {
     return clusterPlayerService.getTotalPlayerCount();
