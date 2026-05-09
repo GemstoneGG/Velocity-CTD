@@ -66,8 +66,6 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
 
   private static final Logger LOGGER = LogManager.getLogger(InitialLoginSessionHandler.class);
 
-  private static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
-
   private static final String MOJANG_HASJOINED_URL =
       System.getProperty("mojang.sessionserver",
               "https://sessionserver.mojang.com/session/minecraft/hasJoined")
@@ -278,7 +276,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
 
   private EncryptionRequestPacket generateEncryptionRequest() {
     byte[] verify = new byte[4];
-    RANDOM.nextBytes(verify);
+    ThreadLocalRandom.current().nextBytes(verify);
 
     EncryptionRequestPacket request = new EncryptionRequestPacket();
     request.setPublicKey(server.getServerKeyPair().getPublic().getEncoded());

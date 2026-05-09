@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.UUID;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
+import org.jetbrains.annotations.UnmodifiableView;
 
 /**
  * Provides an interface to a Minecraft server proxy.
@@ -80,8 +81,19 @@ public interface ProxyServer extends Audience {
    * of all players online.
    *
    * @return the players online on this proxy
+   * @deprecated use {@link #getOnlinePlayers()} instead (faster, doesn't make copy)
    */
+  @Deprecated
   Collection<? extends Player> getAllPlayers();
+
+  /**
+   * Retrieves all players currently connected to this proxy. This is an unmodifiable view of the live
+   * collection of online players.
+   *
+   * @return the players online on this proxy
+   */
+  @UnmodifiableView
+  Collection<? extends Player> getOnlinePlayers();
 
   /**
    * Returns the number of players currently connected to this proxy.

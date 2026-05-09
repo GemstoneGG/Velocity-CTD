@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -123,23 +123,6 @@ public class CtdConfigMigrations {
             "The list of aliases for the \"/server\" command when the queue system is enabled.",
             "servers.server-aliases",
             List.of("joinqueue", "queue")
-        ),
-
-        // [command-aliases]
-        migration(
-            "What commands should have aliases for simpler execution that\n"
-                + " do not already have a more advanced function or implementation.",
-            "command-aliases.hub",
-            List.of("lobby", "return")
-        ),
-
-        // [proxy-command-aliases]
-        migration(
-            "Proxy command aliases create new commands that execute other commands when invoked.\n"
-                + " This is similar to Bukkit's commands.yml functionality.\n"
-                + " Adding multiple aliases executes multiple commands.",
-            "proxy-command-aliases.examplealias",
-            List.of("velocity help")
         ),
 
         // [advanced]
