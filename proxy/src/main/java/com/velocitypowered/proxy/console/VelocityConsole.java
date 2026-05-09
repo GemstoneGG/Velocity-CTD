@@ -30,7 +30,6 @@ import com.velocitypowered.proxy.util.ClosestLocaleMatcher;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import net.kyori.adventure.audience.MessageType;
 import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.permission.PermissionChecker;
 import net.kyori.adventure.platform.facet.FacetPointers;
@@ -88,10 +87,8 @@ public final class VelocityConsole extends SimpleTerminalConsole implements Cons
     this.server = server;
   }
 
-  @SuppressWarnings("deprecation")
   @Override
-  public void sendMessage(@NonNull Identity identity, @NonNull Component message,
-                          @NonNull MessageType messageType) {
+  public void sendMessage(@NonNull Component message) {
     COMPONENT_LOGGER.info(message);
   }
 

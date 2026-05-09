@@ -62,7 +62,6 @@ public enum ProtocolUtils {
 
   private static final GsonComponentSerializer PRE_1_16_SERIALIZER =
       GsonComponentSerializer.builder()
-          .downsampleColors()
           .legacyHoverEventSerializer(NBTLegacyHoverEventSerializer.get())
           .options(
               OptionSchema.globalSchema().stateBuilder()
