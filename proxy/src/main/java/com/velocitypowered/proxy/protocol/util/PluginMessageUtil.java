@@ -19,6 +19,7 @@ package com.velocitypowered.proxy.protocol.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.velocityctd.proxy.util.ParsingUtils.parseVariables;
 
 import com.google.common.collect.ImmutableList;
 import com.velocitypowered.api.network.ProtocolVersion;
@@ -210,19 +211,23 @@ public final class PluginMessageUtil {
     checkNotNull(brand, "brand");
     checkArgument(isMcBrand(message), "message is not a brand plugin message");
 
-    String currentBrand = readBrandMessage(message.content());
-    String rewrittenBrand = brand
-        .replaceAll("\\{protocol-min}", minimumVersion)
-        .replaceAll("\\{protocol-max}", ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion())
-        .replaceAll("\\{protocol}", ProtocolVersion.MAXIMUM_VERSION.getVersionIntroducedIn())
-        .replaceAll("\\{backend-brand}", currentBrand)
-        .replaceAll("\\{backend-brand-custom}", backendBrandCustom)
-        .replaceAll("\\{proxy-brand}", version.getName())
-        .replaceAll("\\{proxy-brand-custom}", proxyBrandCustom)
-        .replaceAll("\\{proxy-version}", version.getVersion())
-        .replaceAll("\\{proxy-vendor}", version.getVendor())
-        .replaceAll("\\{server-connected}", connectedServer)
-        + "§r"; // Ensures brand coloration remains within bounds
+    String rewrittenBrand = parseVariables(brand, (variable) -> {
+      return switch (variable) {
+        case "protocol-min" -> minimumVersion;
+        case "protocol-max" -> ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion();
+        case "protocol" -> ProtocolVersion.MAXIMUM_VERSION.getVersionIntroducedIn();
+        case "backend-brand" -> readBrandMessage(message.content());
+        case "backend-brand-custom" -> backendBrandCustom;
+        case "proxy-brand" -> version.getName();
+        case "proxy-brand-custom" -> proxyBrandCustom;
+        case "proxy-version" -> version.getVersion();
+        case "proxy-vendor" -> version.getVendor();
+        case "server-connected" -> connectedServer;
+        default -> null;
+      };
+    });
+
+    rewrittenBrand += "§r"; // Ensures brand coloration remains within bounds
 
     ByteBuf rewrittenBuf = Unpooled.buffer();
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {

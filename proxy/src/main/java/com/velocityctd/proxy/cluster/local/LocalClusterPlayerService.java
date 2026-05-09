@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 package com.velocityctd.proxy.cluster.local;
 
+import com.google.common.collect.Collections2;
 import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.cluster.VelocityClusterPlayerService;
 import com.velocitypowered.api.proxy.player.PlayerSettings;
@@ -53,17 +54,14 @@ public final class LocalClusterPlayerService implements VelocityClusterPlayerSer
 
   @Override
   public Collection<VelocityClusterPlayer> getAllPlayers() {
-    return this.server.getAllPlayers().stream()
-        .<VelocityClusterPlayer>map(this::toLocalPlayer)
-        .toList();
+    return Collections2.transform(this.server.getOnlinePlayers(), this::toLocalPlayer);
   }
 
   @Override
   public Collection<VelocityClusterPlayer> getPlayersOnServer(String serverName) {
     return this.server.getServer(serverName)
-        .map(rs -> rs.getPlayersConnected().stream()
-            .<VelocityClusterPlayer>map(this::toLocalPlayer)
-            .toList())
+        .<Collection<VelocityClusterPlayer>>map(
+            rs -> Collections2.transform(rs.getPlayersConnected(), this::toLocalPlayer))
         .orElse(List.of());
   }
 
@@ -72,7 +70,7 @@ public final class LocalClusterPlayerService implements VelocityClusterPlayerSer
     if (!this.server.getProxyId().equalsIgnoreCase(proxyId)) {
       return List.of();
     }
-    return getAllPlayers();
+    return this.getAllPlayers();
   }
 
   @Override
@@ -109,7 +107,7 @@ public final class LocalClusterPlayerService implements VelocityClusterPlayerSer
 
   @Override
   public Collection<String> getPlayerNames() {
-    return this.server.getAllPlayers().stream()
+    return this.server.getOnlinePlayers().stream()
         .map(ConnectedPlayer::getUsername)
         .toList();
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -90,7 +90,7 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
 
   @Override
   public void teardown() {
-    for (ConnectedPlayer player : this.server.getAllPlayers()) {
+    for (ConnectedPlayer player : this.server.getOnlinePlayers()) {
       this.depot.remove(player.getUniqueId());
     }
 
@@ -312,7 +312,7 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
       return;
     }
 
-    for (ConnectedPlayer player : this.server.getAllPlayers()) {
+    for (ConnectedPlayer player : this.server.getOnlinePlayers()) {
       if (this.depot.contains(player.getUniqueId())) {
         continue;
       }

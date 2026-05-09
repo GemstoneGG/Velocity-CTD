@@ -917,7 +917,7 @@ public enum ProtocolUtils {
    * @return pre-sized map
    */
   public static <K, V> Map<K, V> newMap(int initialCapacity) {
-    return new HashMap<>(Math.min(initialCapacity, Short.MAX_VALUE));
+    return HashMap.newHashMap(Math.min(initialCapacity, Short.MAX_VALUE));
   }
 
   /**
