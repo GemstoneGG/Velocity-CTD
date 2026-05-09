@@ -31,7 +31,7 @@ public class ParsingUtils {
    * back unchanged so unknown placeholders pass through intact. Text outside variables is
    * passed through unchanged. Nesting is not supported: a {@code '{'} inside a variable is
    * treated as part of the name. If the input ends while a variable is still open (no matching
-   * {@code '}'}), the partial content is dropped.
+   * {@code '}'}), the opening {@code '{'} and any partial content are written back unchanged.
    *
    * @param input the string to process
    * @param variableMapper function mapping a variable name (without braces) to its replacement,
@@ -73,6 +73,12 @@ public class ParsingUtils {
           variable.append(c);
         }
       }
+    }
+
+    if (inVariable) {
+      // unclosed '{', pass through as-is
+      out.append('{');
+      out.append(variable);
     }
 
     return out.toString();
