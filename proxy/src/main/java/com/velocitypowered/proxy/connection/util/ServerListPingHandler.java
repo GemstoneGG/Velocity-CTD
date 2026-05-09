@@ -30,10 +30,10 @@ import com.velocitypowered.proxy.config.PingPassthroughMode;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
@@ -91,26 +91,7 @@ public class ServerListPingHandler {
 
     List<ServerPing.SamplePlayer> samplePlayers;
     if (configuration.getSamplePlayersInPing()) {
-      List<VelocityClusterPlayer> snapshot =
-          new ArrayList<>(server.getClusterPlayerService().getAllPlayers());
-      int total = snapshot.size();
-      if (total <= SAMPLE_SIZE) {
-        samplePlayers = new ArrayList<>(total);
-        for (VelocityClusterPlayer player : snapshot) {
-          samplePlayers.add(toSample(player));
-        }
-      } else {
-        ThreadLocalRandom rng = ThreadLocalRandom.current();
-        Set<Integer> picked = HashSet.newHashSet(SAMPLE_SIZE);
-        while (picked.size() < SAMPLE_SIZE) {
-          picked.add(rng.nextInt(total));
-        }
-
-        samplePlayers = new ArrayList<>(SAMPLE_SIZE);
-        for (int index : picked) {
-          samplePlayers.add(toSample(snapshot.get(index)));
-        }
-      }
+      samplePlayers = sampleClusterPlayers(server.getClusterPlayerService().getAllPlayers());
     } else {
       samplePlayers = new ArrayList<>();
     }
@@ -257,9 +238,29 @@ public class ServerListPingHandler {
     }
   }
 
-  private static ServerPing.SamplePlayer toSample(VelocityClusterPlayer player) {
-    return player.isClientListingAllowed()
-        ? new ServerPing.SamplePlayer(player.getUsername(), player.getUniqueId())
-        : ServerPing.SamplePlayer.ANONYMOUS;
+  /**
+   * Picks up to {@link #SAMPLE_SIZE} players uniformly at random from {@code players} and maps
+   * them to {@link ServerPing.SamplePlayer} entries.
+   */
+  private static List<ServerPing.SamplePlayer> sampleClusterPlayers(Collection<VelocityClusterPlayer> players) {
+    List<VelocityClusterPlayer> snapshot = new ArrayList<>(players);
+    int total = snapshot.size();
+
+    if (total > SAMPLE_SIZE) {
+      ThreadLocalRandom rng = ThreadLocalRandom.current();
+      for (int i = 0; i < SAMPLE_SIZE; i++) {
+        Collections.swap(snapshot, i, i + rng.nextInt(total - i));
+      }
+      total = SAMPLE_SIZE;
+    }
+
+    List<ServerPing.SamplePlayer> result = new ArrayList<>(total);
+    for (int i = 0; i < total; i++) {
+      VelocityClusterPlayer player = snapshot.get(i);
+      result.add(player.isClientListingAllowed()
+          ? new ServerPing.SamplePlayer(player.getUsername(), player.getUniqueId())
+          : ServerPing.SamplePlayer.ANONYMOUS);
+    }
+    return result;
   }
 }
