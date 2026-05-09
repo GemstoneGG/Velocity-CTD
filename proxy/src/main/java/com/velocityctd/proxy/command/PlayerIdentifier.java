@@ -26,6 +26,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -86,7 +87,10 @@ public final class PlayerIdentifier {
     }
 
     private static Result success(Type type, Collection<VelocityClusterPlayer> players, @Nullable String name) {
-      return new Result(type, true, players, name);
+      // Snapshot to insulate consumers from lazy/live views (e.g. Collections2.transform on the
+      // online-players map): guarantees stable size and iteration regardless of joins/leaves
+      // happening between calls to players().
+      return new Result(type, true, List.copyOf(players), name);
     }
 
     private static Result failure(Type type, @Nullable String name) {
