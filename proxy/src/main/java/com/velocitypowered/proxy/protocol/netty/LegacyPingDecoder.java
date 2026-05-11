@@ -57,13 +57,20 @@ public class LegacyPingDecoder extends ByteToMessageDecoder {
       }
 
       short next = in.readUnsignedByte();
-      if (next == 1 && !in.isReadable()) {
-        out.add(new LegacyPingPacket(LegacyMinecraftPingVersion.MINECRAFT_1_4));
-        return;
+      if (next == 1) {
+        if (!in.isReadable()) {
+          out.add(new LegacyPingPacket(LegacyMinecraftPingVersion.MINECRAFT_1_4));
+          return;
+        }
+        if (in.getUnsignedByte(in.readerIndex()) == 0xFA) {
+          out.add(readExtended16Data(in));
+          return;
+        }
       }
 
-      // We got a 1.6.x ping. Let's chomp off the stuff we don't need.
-      out.add(readExtended16Data(in));
+      // Not a legacy ping. Reset and let the modern decoder handle it.
+      in.readerIndex(originalReaderIndex);
+      ctx.pipeline().remove(this);
     } else if (first == 0x02 && in.isReadable()) {
       in.skipBytes(in.readableBytes());
       out.add(new LegacyHandshakePacket());
