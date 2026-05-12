@@ -276,11 +276,6 @@ public class CtdConfigMigrations {
             List.of()
         ),
         migration(
-            "Whether the kick message or indicator should be shown when you have failed to queue and join a specific server.",
-            "queue.forward-kick-reason",
-            true
-        ),
-        migration(
             "Whether users can enter a queue that is paused.",
             "queue.allow-paused-queue-joining",
             false

@@ -20,13 +20,11 @@ package com.velocityctd.proxy.queue;
 import com.velocityctd.api.queue.QueueEntry;
 import com.velocityctd.api.queue.QueueEntryData;
 import com.velocityctd.api.queue.ServerStatus;
-import com.velocitypowered.api.proxy.ConnectionRequestBuilder;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.ApiStatus;
@@ -185,19 +183,8 @@ public class VelocityQueueEntry implements QueueEntry {
         return;
       }
 
-      CompletableFuture<?> future = config.isForwardKickReason()
-          ? player.createConnectionRequest(foundServer).connectWithIndication()
-          : player.createConnectionRequest(foundServer).connect();
-
-      future.thenAccept(result -> {
-        boolean success = false;
-        if (result instanceof Boolean b) {
-          success = b;
-        } else if (result instanceof ConnectionRequestBuilder.Result r) {
-          success = r.isSuccessful();
-        }
-
-        if (success) {
+      player.createConnectionRequest(foundServer).connect().thenAccept(result -> {
+        if (result.isSuccessful()) {
           queue.dequeue(this.uniqueId);
         } else {
           resetAfterFailedTransfer(config);

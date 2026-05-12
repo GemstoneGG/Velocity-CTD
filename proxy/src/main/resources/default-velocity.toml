@@ -493,9 +493,6 @@ queue-server = ""
 #   queue-on-join = ["factions1", "factions2"]
 queue-on-join = []
 
-# Whether the kick message or indicator should be shown when you have failed to queue and join a specific server.
-forward-kick-reason = true
-
 # Whether users can enter a queue that is paused.
 allow-paused-queue-joining = false
 
