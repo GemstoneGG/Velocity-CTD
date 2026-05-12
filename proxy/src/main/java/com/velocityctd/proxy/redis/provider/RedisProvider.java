@@ -34,11 +34,6 @@ import org.jetbrains.annotations.Nullable;
 public sealed interface RedisProvider permits AbstractRedisProvider {
 
   /**
-   * The current Redis protocol version.
-   */
-  String VERSION = "v1";
-
-  /**
    * Gets the namespace used for all Redis keys and channels.
    *
    * @return the Redis namespace

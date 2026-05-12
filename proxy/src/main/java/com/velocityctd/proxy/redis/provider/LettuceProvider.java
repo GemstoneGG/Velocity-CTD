@@ -56,6 +56,11 @@ import org.slf4j.LoggerFactory;
 public final class LettuceProvider extends AbstractRedisProvider {
 
   /**
+   * The current Redis protocol version.
+   */
+  public static final String VERSION = "v1";
+
+  /**
    * Logger used for all Lettuce provider operations and diagnostics.
    */
   private static final Logger LOGGER = LoggerFactory.getLogger(LettuceProvider.class);
@@ -102,7 +107,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
                          @NotNull PacketSerializer packetSerializer) {
     super(scheduler, packetSerializer, config.getNamespace());
 
-    this.channel = CHANNEL_TEMPLATE.formatted(config.getNamespace(), RedisProvider.VERSION);
+    this.channel = CHANNEL_TEMPLATE.formatted(config.getNamespace(), VERSION);
 
     this.client = RedisClient.create(RedisURI.Builder.redis(config.getHost(), config.getPort())
             .withAuthentication(Objects.requireNonNullElse(config.getUsername(), ""),
@@ -416,7 +421,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      * @param valueClass the class of the depot value
      */
     public LettuceDepot(@NotNull Class<V> valueClass) {
-      this.name = DEPOT_TEMPLATE.formatted(getNamespace(), RedisProvider.VERSION,
+      this.name = DEPOT_TEMPLATE.formatted(getNamespace(), VERSION,
               valueClass.getSimpleName().toLowerCase().replace("entry", ""));
       this.valueClass = valueClass;
       this.connection = client.connectPubSub(RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE)).sync();

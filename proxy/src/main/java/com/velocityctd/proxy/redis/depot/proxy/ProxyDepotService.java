@@ -84,7 +84,7 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
     this.redis = redis;
     this.heartbeatKeyPrefix = HEARTBEAT_KEY_TEMPLATE.formatted(
             redis.getProvider().getNamespace(),
-            com.velocityctd.proxy.redis.provider.RedisProvider.VERSION
+            com.velocityctd.proxy.redis.provider.LettuceProvider.VERSION
     );
 
     this.depot.upsert(new ProxyEntry(redis.getServer()));
