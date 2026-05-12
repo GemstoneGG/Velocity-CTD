@@ -550,6 +550,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
         entry.setDepot(this);
         return entry;
       } catch (Exception e) {
+        LOGGER.debug("Failed to deserialize depot entry for class {}", this.valueClass.getName(), e);
         return null;
       }
     }
