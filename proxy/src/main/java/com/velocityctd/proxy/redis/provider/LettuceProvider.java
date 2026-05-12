@@ -457,7 +457,16 @@ public final class LettuceProvider extends AbstractRedisProvider {
     @Override
     public @Nullable V get(@NotNull K key) {
       byte[] data = this.connection.hget(this.name, parseKey(key));
-      return data == null ? null : deserialize(data);
+      if (data == null) {
+        return null;
+      }
+      V entry = deserialize(data);
+      if (entry == null) {
+        // Stale or malformed data from a previous version, ignore it.
+        LOGGER.warn("Encountered malformed data for key '{}' in depot '{}', ignoring.", key, name);
+        return null;
+      }
+      return entry;
     }
 
     /**
@@ -483,7 +492,10 @@ public final class LettuceProvider extends AbstractRedisProvider {
         byte[] data = this.connection.hget(this.name, parseKey(key));
         this.connection.hdel(this.name, parseKey(key));
 
-        return data == null ? null : deserialize(data);
+        if (data == null) {
+          return null;
+        }
+        return deserialize(data);
       }
 
       return null;
@@ -496,7 +508,10 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public Collection<V> values() {
-      return this.connection.hvals(this.name).stream().map(this::deserialize).toList();
+      return this.connection.hvals(this.name).stream()
+              .map(this::deserialize)
+              .filter(Objects::nonNull)
+              .toList();
     }
 
     /**
@@ -527,15 +542,15 @@ public final class LettuceProvider extends AbstractRedisProvider {
      * Deserializes the specified binary data into an entry and associates it with this depot.
      *
      * @param data the binary data to deserialize
-     * @return the deserialized entry
+     * @return the deserialized entry, or {@code null} if deserialization fails
      */
-    private @NotNull V deserialize(@NotNull byte[] data) {
+    private @Nullable V deserialize(@NotNull byte[] data) {
       try {
         V entry = mapper.readValue(data, this.valueClass);
         entry.setDepot(this);
         return entry;
       } catch (Exception e) {
-        throw new RuntimeException("Failed to deserialize depot entry", e);
+        return null;
       }
     }
 
