@@ -52,7 +52,7 @@ public class VelocityQueueEntry implements QueueEntry {
   protected volatile long offlineSinceMs = 0;
 
   /**
-   * The timeout in seconds that was active at the time of disconnect, or 0 if unknown.
+   * The timeout in seconds that was active at the time of disconnect or 0 if unknown.
    * Only meaningful when {@link #offlineSinceMs} is non-zero.
    */
   protected volatile int offlineTimeoutSeconds = 0;
@@ -185,32 +185,39 @@ public class VelocityQueueEntry implements QueueEntry {
         return;
       }
 
-      CompletableFuture<?> future = config.isForwardKickReason()
-          ? player.createConnectionRequest(foundServer).connectWithIndication()
-          : player.createConnectionRequest(foundServer).connect();
-
-      future.thenAccept(result -> {
-        boolean success = false;
-        if (result instanceof Boolean b) {
-          success = b;
-        } else if (result instanceof ConnectionRequestBuilder.Result r) {
-          success = r.isSuccessful();
+      foundServer.ping().orTimeout(3, TimeUnit.SECONDS).whenComplete((pingResult, pingError) -> {
+        if (pingError != null) {
+          markOfflineAndReset();
+          return;
         }
 
-        if (success) {
-          queue.dequeue(this.uniqueId);
-        } else {
+        CompletableFuture<?> future = config.isForwardKickReason()
+            ? player.createConnectionRequest(foundServer).connectWithIndication()
+            : player.createConnectionRequest(foundServer).connect();
+
+        future.thenAccept(result -> {
+          boolean success = false;
+          if (result instanceof Boolean b) {
+            success = b;
+          } else if (result instanceof ConnectionRequestBuilder.Result r) {
+            success = r.isSuccessful();
+          }
+
+          if (success) {
+            queue.dequeue(this.uniqueId);
+          } else {
+            resetAfterFailedTransfer(config);
+          }
+        }).exceptionally(ex -> {
           resetAfterFailedTransfer(config);
-        }
-      }).exceptionally(ex -> {
-        resetAfterFailedTransfer(config);
-        return null;
+          return null;
+        });
       });
     }, () -> resetAfterFailedTransfer(config));
   }
 
   /**
-   * Aborts a pending transfer that was never picked up.
+   * Aborts a pending transfer which was never picked up.
    *
    * <p>This is a no-op in local mode (only one proxy, transfers are always local).
    * The Redis subclass overrides this to reset the waiting flag and notify other proxies.</p>
@@ -225,16 +232,25 @@ public class VelocityQueueEntry implements QueueEntry {
 
     targetServer.ping().orTimeout(3, TimeUnit.SECONDS).whenComplete((result, th) -> {
       if (th != null) {
-        // Backend is offline. Mark it and silently reset this entry without counting the attempt,
-        // so the player sees no error and stays in the queue.
-        this.queue.setServerStatus(ServerStatus.OFFLINE);
-        this.waitingForConnection = false;
-        publishWaitingChange();
+        // Backend is offline. Silently reset without counting the attempt, so the player
+        // sees no error and stays in the queue.
+        markOfflineAndReset();
       } else {
         // Backend is reachable. The connection failure was legitimate.
         applyFailedAttempt(config);
       }
     });
+  }
+
+  /**
+   * Marks the owning queue's server status as {@link ServerStatus#OFFLINE} and clears the
+   * waiting-for-connection flag, propagating the change to other proxies in Redis mode.
+   * Does not count this against the entry's connection-attempt budget.
+   */
+  private void markOfflineAndReset() {
+    this.queue.setServerStatus(ServerStatus.OFFLINE);
+    this.waitingForConnection = false;
+    publishWaitingChange();
   }
 
   private void applyFailedAttempt(VelocityConfiguration.Queue config) {
