@@ -94,7 +94,7 @@ public record FallbackServers(
   }
 
   /**
-   * Builds a map from server name to current player count for the given set of server names.
+   * Builds a map from the server name to the current player count for the given set of server names.
    * Servers not found in {@code server} are mapped to {@code 0}.
    *
    * @param server      the Velocity server instance used to look up registered servers

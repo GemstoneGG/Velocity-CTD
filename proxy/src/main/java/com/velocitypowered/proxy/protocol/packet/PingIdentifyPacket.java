@@ -30,8 +30,7 @@ public class PingIdentifyPacket implements MinecraftPacket {
   @Override
   public String toString() {
     return "Ping{"
-        + "proxyId="
-        + id
+        + "proxyId=" + id
         + '}';
   }
 

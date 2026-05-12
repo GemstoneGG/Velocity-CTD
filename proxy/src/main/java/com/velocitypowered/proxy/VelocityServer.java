@@ -838,9 +838,9 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private static List<ServerInfo> loadServersFromNewList(VelocityConfiguration config) {
     List<ServerInfo> serverList = new ArrayList<>();
 
-    config.getServers().forEach((serverName, address) -> {
-      InetSocketAddress socketAddress = AddressUtil.parseAddress(address);
-      serverList.add(new ServerInfo(serverName, socketAddress));
+    config.getBackendServers().forEach((serverName, backendConfig) -> {
+      InetSocketAddress socketAddress = AddressUtil.parseAddress(backendConfig.address());
+      serverList.add(new ServerInfo(serverName, socketAddress, backendConfig.forwardingMode()));
     });
 
     return serverList;
@@ -1062,25 +1062,27 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   }
 
   /**
-   * Checks if the {@code connection} can be registered with the proxy.
+   * Checks if a connection identified by the given profile can be registered with the proxy.
+   * Called before the {@link ConnectedPlayer} instance is constructed so that rejected
+   * connections never create a phantom player object.
    *
-   * @param connection the connection to check
+   * @param profile the resolved game profile of the incoming connection
    * @return {@code true} if we can register the connection, {@code false} if not
    */
-  public boolean canRegisterConnection(ConnectedPlayer connection) {
+  public boolean canRegisterConnection(GameProfile profile) {
     // When kick-existing-players is enabled, skip duplicate checks here.
     // registerConnection() handles kicking the existing player and enforcing IP rules.
     if (configuration.isKickExistingPlayers()) {
       return true;
     }
 
-    String lowerName = connection.getUsername().toLowerCase(Locale.US);
+    String lowerName = profile.getName().toLowerCase(Locale.US);
 
     if (connectionsByName.containsKey(lowerName)) {
       return false;
     }
 
-    return !connectionsByUuid.containsKey(connection.getUniqueId());
+    return !connectionsByUuid.containsKey(profile.getId());
   }
 
   /**

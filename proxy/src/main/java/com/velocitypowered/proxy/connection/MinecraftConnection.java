@@ -77,6 +77,7 @@ import java.util.EnumMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -102,6 +103,13 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
    * Defaults to {@code 2097152} (2 MiB).
    */
   public static final int MAX_CLIENT_PACKET_SIZE = Integer.getInteger("velocity.max-client-packet-size", 2097152);
+
+  /**
+   * Maximum time to wait for {@link #closeWith(Object)}'s write-and-flush to complete before
+   * forcibly closing the channel. Guards against a stuck outbound buffer leaving the connection
+   * alive until Netty's read timeout.
+   */
+  private static final long HARD_CLOSE_TIMEOUT_SECONDS = 5;
 
   private final Channel channel;
 
@@ -318,23 +326,33 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
    */
   public void closeWith(Object msg) {
     if (channel.isActive()) {
+      knownDisconnect = true;
+
       boolean is17 = this.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_8)
           && this.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_7_2);
+
       if (is17 && this.getState() != StateRegistry.STATUS) {
         channel.eventLoop().execute(() -> {
           // 1.7.x versions have a race condition with switching protocol states, so explicitly
           // close the connection after a short while.
           this.setAutoReading(false);
-          channel.eventLoop().schedule(() -> {
-            knownDisconnect = true;
-            channel.writeAndFlush(msg).addListener(ChannelFutureListener.CLOSE);
-          }, 250, TimeUnit.MILLISECONDS);
+          channel.eventLoop().schedule(() -> writeAndCloseChannel(msg), 250, TimeUnit.MILLISECONDS);
         });
       } else {
-        knownDisconnect = true;
-        channel.writeAndFlush(msg).addListener(ChannelFutureListener.CLOSE);
+        writeAndCloseChannel(msg);
       }
     }
+  }
+
+  private void writeAndCloseChannel(Object msg) {
+    ChannelFuture writeFuture = channel.writeAndFlush(msg);
+    writeFuture.addListener(ChannelFutureListener.CLOSE);
+    ScheduledFuture<?> hardClose = channel.eventLoop().schedule(() -> {
+      if (channel.isActive()) {
+        channel.close();
+      }
+    }, HARD_CLOSE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    writeFuture.addListener(f -> hardClose.cancel(false));
   }
 
   public void close() {

@@ -116,12 +116,12 @@ public class BungeeCordMessageResponder {
 
       if (queue && proxy.isQueueEnabled()) {
         if (this.proxy.getConfiguration().getQueue().getNoQueueServers().contains(referencedServer.get().getServerInfo().getName())) {
-          player.createConnectionRequest(referencedServer.get()).connectWithIndication();
+          referencedPlayer.get().createConnectionRequest(referencedServer.get()).connectWithIndication();
           return;
         }
 
         if (!referencedPlayer.get().hasPermission("velocity.queue.bypass")) {
-          proxy.getQueueManager().queue(player, referencedServer.get());
+          proxy.getQueueManager().queue(referencedPlayer.get(), referencedServer.get());
         } else {
           referencedPlayer.get().createConnectionRequest(referencedServer.get()).fireAndForget();
         }
@@ -563,8 +563,8 @@ public class BungeeCordMessageResponder {
       case "MaxQueuedPosition" -> this.queuedMaxPosition(in);
       case "QueuedPausedChannel" -> this.queuedPaused(in);
       default -> {
+        // Do nothing, unknown command
       }
-      // Do nothing, unknown command
     }
 
     return true;

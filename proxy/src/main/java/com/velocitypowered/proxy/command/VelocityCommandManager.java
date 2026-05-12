@@ -370,7 +370,7 @@ public class VelocityCommandManager implements CommandManager {
     return command != null && command.canUse(source);
   }
 
-  public final CommandNode<CommandSource> getCommand(String alias) {
+  CommandNode<CommandSource> getCommand(String alias) {
     Preconditions.checkNotNull(alias, "alias");
     return dispatcher.getRoot().getChild(alias.toLowerCase(Locale.ENGLISH));
   }
