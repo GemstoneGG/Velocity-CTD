@@ -31,10 +31,19 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.msgpack.jackson.dataformat.MessagePackFactory;
 
+/**
+ * Serializer for {@link DataPacket} objects to and from binary data using Jackson and MessagePack.
+ */
 public final class PacketSerializer {
 
+  /**
+   * {@link ObjectMapper} instance configured for Redis packet (de)serialization, using MessagePack.
+   */
   private final ObjectMapper mapper;
 
+  /**
+   * Constructs a new {@link PacketSerializer} with MessagePack configuration.
+   */
   public PacketSerializer() {
     this.mapper = new ObjectMapper(new MessagePackFactory());
     this.mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
@@ -48,10 +57,21 @@ public final class PacketSerializer {
     this.mapper.registerModule(module);
   }
 
+  /**
+   * Gets the {@link ObjectMapper} instance used by this serializer.
+   *
+   * @return the configured ObjectMapper instance
+   */
   public ObjectMapper mapper() {
     return mapper;
   }
 
+  /**
+   * Serializes a {@link DataPacket} to binary data.
+   *
+   * @param packet the packet to serialize
+   * @return the binary representation of the packet
+   */
   @NotNull
   public byte[] serialize(@NotNull DataPacket packet) {
     try {
@@ -61,6 +81,12 @@ public final class PacketSerializer {
     }
   }
 
+  /**
+   * Deserializes binary data to a {@link DataPacket}.
+   *
+   * @param data the binary data to deserialize
+   * @return the deserialized {@link DataPacket}, or {@code null} if deserialization fails
+   */
   @Nullable
   public DataPacket deserialize(@NotNull byte[] data) {
     try {
@@ -70,6 +96,13 @@ public final class PacketSerializer {
     }
   }
 
+  /**
+   * Serializes a payload object to binary data.
+   *
+   * @param payload the object to serialize
+   * @param <T> the type of the payload
+   * @return the binary representation of the payload
+   */
   @NotNull
   <T> byte[] serializePayload(T payload) {
     try {
@@ -79,6 +112,14 @@ public final class PacketSerializer {
     }
   }
 
+  /**
+   * Deserializes binary data to a specific payload class.
+   *
+   * @param data the binary data to deserialize
+   * @param payloadClass the class to deserialize into
+   * @param <T> the type of the payload
+   * @return the deserialized payload object, or {@code null} if deserialization fails
+   */
   @Nullable
   <T> T deserializePayload(@NotNull byte[] data, Class<T> payloadClass) {
     try {
