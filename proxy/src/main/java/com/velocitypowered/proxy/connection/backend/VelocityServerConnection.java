@@ -83,7 +83,7 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
 
   private @MonotonicNonNull Integer entityId;
 
-  private @Nullable RootCommandNode<CommandSource> backendCommandsNode;
+  private volatile @Nullable RootCommandNode<CommandSource> backendCommandsNode;
 
   /**
    * Initializes a new server connection.

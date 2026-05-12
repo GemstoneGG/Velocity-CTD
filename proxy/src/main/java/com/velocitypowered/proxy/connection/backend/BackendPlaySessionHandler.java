@@ -374,7 +374,7 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
   @Override
   public boolean handle(AvailableCommandsPacket commands) {
     serverConn.setBackendCommandsNode(commands.getRootNode());
-    serverConn.getPlayer().sendAvailableCommands();
+    serverConn.getPlayer().sendAvailableCommands(serverConn);
     return true;
   }
 

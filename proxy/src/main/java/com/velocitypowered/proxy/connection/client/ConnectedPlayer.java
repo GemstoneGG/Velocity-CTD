@@ -850,9 +850,9 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   /**
    * Builds and sends an {@link AvailableCommandsPacket} to this player using the last known
-   * backend command tree (if any) merged with the current proxy command set. Safe to call even
-   * when the backend has never sent its own command tree; in that case only proxy commands are
-   * included.
+   * backend command tree from the currently-connected server (if any) merged with the current
+   * proxy command set. Safe to call even when the backend has never sent its own command tree;
+   * in that case only proxy commands are included.
    *
    * <p>This method is non-blocking: the packet is written asynchronously on the player's event
    * loop after the {@link PlayerAvailableCommandsEvent} has been fired.
@@ -860,8 +860,21 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @return a future that completes once the packet has been written (or an error has been logged)
    */
   public CompletableFuture<Void> sendAvailableCommands() {
+    return sendAvailableCommands(this.connectedServer);
+  }
+
+  /**
+   * Builds and sends an {@link AvailableCommandsPacket} to this player using the backend command
+   * tree from the given server connection (if any) merged with the current proxy command set.
+   * Used by the backend session handler to ensure the packet is built from the exact connection
+   * that received the source tree, even if the player has since moved to another backend.
+   *
+   * @param conn the server connection whose backend command tree should be used, or null to send
+   *             only proxy commands
+   * @return a future that completes once the packet has been written (or an error has been logged)
+   */
+  public CompletableFuture<Void> sendAvailableCommands(@Nullable VelocityServerConnection conn) {
     RootCommandNode<CommandSource> workingNode = new RootCommandNode<>();
-    VelocityServerConnection conn = this.connectedServer;
     if (conn != null) {
       RootCommandNode<CommandSource> backendNode = conn.getBackendCommandsNode();
       if (backendNode != null) {
