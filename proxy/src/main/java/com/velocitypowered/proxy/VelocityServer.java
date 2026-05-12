@@ -86,6 +86,7 @@ import com.velocitypowered.proxy.plugin.loader.VelocityPluginContainer;
 import com.velocitypowered.proxy.plugin.loader.VelocityPluginDescription;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
+import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.util.FaviconSerializer;
 import com.velocitypowered.proxy.protocol.util.GameProfileSerializer;
 import com.velocitypowered.proxy.scheduler.VelocityScheduler;
@@ -447,7 +448,9 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     // has been registered at least once.
     ClickCallbackManager.INSTANCE.setOnFirstRegistration(() -> {
       for (ConnectedPlayer player : getAllPlayers()) {
-        player.sendAvailableCommands();
+        if (player.getConnection().getState() == StateRegistry.PLAY) {
+          player.sendAvailableCommands();
+        }
       }
     });
 

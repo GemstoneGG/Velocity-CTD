@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.event.ClickCallback;
 import org.checkerframework.checker.index.qual.NonNegative;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -42,7 +43,7 @@ public final class ClickCallbackManager {
 
   private final AtomicBoolean hadRegistrations = new AtomicBoolean(false);
 
-  private Runnable onFirstRegistration = () -> {};
+  private volatile @MonotonicNonNull Runnable onFirstRegistration;
 
   private final Cache<UUID, RegisteredCallback> registrations = Caffeine.newBuilder()
       .expireAfter(new Expiry<UUID, RegisteredCallback>() {
@@ -77,8 +78,12 @@ public final class ClickCallbackManager {
    * Sets a listener that is invoked the first time a callback is registered.
    *
    * @param listener the listener to invoke on the first registration
+   * @throws IllegalStateException if a listener has already been set
    */
   public void setOnFirstRegistration(Runnable listener) {
+    if (this.onFirstRegistration != null) {
+      throw new IllegalStateException("A first-registration listener has already been set");
+    }
     this.onFirstRegistration = listener;
   }
 
@@ -123,7 +128,10 @@ public final class ClickCallbackManager {
 
     boolean alreadyHadRegistrations = hadRegistrations.getAndSet(true);
     if (!alreadyHadRegistrations) {
-      onFirstRegistration.run();
+      Runnable listener = this.onFirstRegistration;
+      if (listener != null) {
+        listener.run();
+      }
     }
 
     return id;
