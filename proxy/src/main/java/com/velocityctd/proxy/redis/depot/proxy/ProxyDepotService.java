@@ -51,6 +51,11 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
   /**
    * Redis key prefix for per-proxy heartbeat keys. The full key is {@code <namespace>:<version>:heartbeat:<proxyId>}.
    */
+  private static final String HEARTBEAT_KEY_TEMPLATE = "%s:%s:heartbeat:";
+
+  /**
+   * The Redis key prefix for per-proxy heartbeat keys, including the namespace and version.
+   */
   private final String heartbeatKeyPrefix;
 
   /**
@@ -77,8 +82,10 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
     super(ProxyEntry.class, redis.getProvider());
 
     this.redis = redis;
-    this.heartbeatKeyPrefix = redis.getProvider().getNamespace() + ":"
-            + redis.getProvider().getVersion() + ":heartbeat:";
+    this.heartbeatKeyPrefix = HEARTBEAT_KEY_TEMPLATE.formatted(
+            redis.getProvider().getNamespace(),
+            com.velocityctd.proxy.redis.provider.RedisProvider.VERSION
+    );
 
     this.depot.upsert(new ProxyEntry(redis.getServer()));
 

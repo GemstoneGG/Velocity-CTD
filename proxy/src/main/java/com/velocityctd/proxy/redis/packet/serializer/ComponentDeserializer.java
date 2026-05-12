@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 
@@ -30,10 +31,10 @@ public final class ComponentDeserializer extends JsonDeserializer<Component> {
 
   @Override
   public Component deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-    String json = p.getValueAsString();
-    if (json == null) {
+    byte[] binary = p.getBinaryValue();
+    if (binary == null) {
       return null;
     }
-    return SERIALIZER.deserialize(json);
+    return SERIALIZER.deserialize(new String(binary, StandardCharsets.UTF_8));
   }
 }

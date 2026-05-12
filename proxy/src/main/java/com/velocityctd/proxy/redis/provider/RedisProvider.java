@@ -34,27 +34,16 @@ import org.jetbrains.annotations.Nullable;
 public sealed interface RedisProvider permits AbstractRedisProvider {
 
   /**
+   * The current Redis protocol version.
+   */
+  String VERSION = "v1";
+
+  /**
    * Gets the namespace used for all Redis keys and channels.
    *
    * @return the Redis namespace
    */
   @NotNull String getNamespace();
-
-  /**
-   * Gets the version used for all Redis keys and channels.
-   *
-   * @return the Redis version
-   */
-  @NotNull String getVersion();
-
-  /**
-   * Gets the Redis Pub/Sub channel name used for all Velocity Redis communication.
-   *
-   * @return the Redis channel name
-   */
-  default @NotNull String getChannel() {
-    return getNamespace() + ":" + getVersion() + ":channel";
-  }
 
   /**
    * Restarts the underlying Redis connection and resubscribes to the channel.

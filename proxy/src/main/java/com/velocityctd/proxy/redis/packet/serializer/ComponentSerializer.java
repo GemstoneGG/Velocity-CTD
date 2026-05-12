@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 
@@ -34,6 +35,6 @@ public final class ComponentSerializer extends JsonSerializer<Component> {
       gen.writeNull();
       return;
     }
-    gen.writeString(SERIALIZER.serialize(value));
+    gen.writeBinary(SERIALIZER.serialize(value).getBytes(StandardCharsets.UTF_8));
   }
 }

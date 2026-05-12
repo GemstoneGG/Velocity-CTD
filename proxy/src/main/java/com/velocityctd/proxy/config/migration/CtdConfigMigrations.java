@@ -195,11 +195,6 @@ public class CtdConfigMigrations {
             "redis.namespace",
             "velocity"
         ),
-        migration(
-            "The version to use for all Redis keys and channels.",
-            "redis.redis-version",
-            "v1"
-        ),
 
         // [queue]
         migration(

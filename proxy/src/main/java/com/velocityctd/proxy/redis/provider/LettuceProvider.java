@@ -61,6 +61,16 @@ public final class LettuceProvider extends AbstractRedisProvider {
   private static final Logger LOGGER = LoggerFactory.getLogger(LettuceProvider.class);
 
   /**
+   * Redis key template for the pub/sub channel.
+   */
+  private static final String CHANNEL_TEMPLATE = "%s:%s:channel";
+
+  /**
+   * Redis key template for the depot names.
+   */
+  private static final String DEPOT_TEMPLATE = "%s:%s:depot:%s";
+
+  /**
    * The underlying Lettuce {@link RedisClient} used to establish Redis connections.
    */
   private final RedisClient client;
@@ -76,18 +86,9 @@ public final class LettuceProvider extends AbstractRedisProvider {
   private RedisPubSubCommands<String, byte[]> syncPublisher;
 
   /**
-   * A single shared connection used by all {@link LettuceDepot} instances for hash
-   * operations. Depots do not use pub/sub, so one regular connection replaces the
-   * previous per-depot connections. The connection itself is held for lifecycle
-   * management; {@link #depotCommands} is its synchronous command view.
+   * The Redis Pub/Sub channel name used for all Velocity Redis communication.
    */
-  private StatefulRedisConnection<String, String> depotConnection;
-
-  /**
-   * The synchronous command view of {@link #depotConnection}, shared by all
-   * {@link LettuceDepot} instances for their Redis hash operations.
-   */
-  private RedisCommands<String, String> depotCommands;
+  private final String channel;
 
   /**
    * Constructs a new {@link LettuceProvider}.
@@ -99,7 +100,9 @@ public final class LettuceProvider extends AbstractRedisProvider {
   public LettuceProvider(VelocityConfiguration.Redis config,
                          @NotNull Scheduler scheduler,
                          @NotNull PacketSerializer packetSerializer) {
-    super(scheduler, packetSerializer, config.getNamespace(), config.getRedisVersion());
+    super(scheduler, packetSerializer, config.getNamespace());
+
+    this.channel = CHANNEL_TEMPLATE.formatted(config.getNamespace(), RedisProvider.VERSION);
 
     this.client = RedisClient.create(RedisURI.Builder.redis(config.getHost(), config.getPort())
             .withAuthentication(Objects.requireNonNullElse(config.getUsername(), ""),
@@ -116,9 +119,13 @@ public final class LettuceProvider extends AbstractRedisProvider {
    */
   @Override
   public void restart() {
-    final RedisPubSubAsyncCommands<String, byte[]> oldPublisher = this.publisher;
-    final RedisPubSubCommands<String, byte[]> oldSyncPublisher = this.syncPublisher;
-    final StatefulRedisConnection<String, String> oldDepotConnection = this.depotConnection;
+    if (this.publisher != null) {
+      this.publisher.getStatefulConnection().close();
+    }
+
+    if (this.syncPublisher != null) {
+      this.syncPublisher.getStatefulConnection().close();
+    }
 
     StatefulRedisPubSubConnection<String, byte[]> connection = this.client.connectPubSub(
             RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE));
@@ -127,10 +134,10 @@ public final class LettuceProvider extends AbstractRedisProvider {
     // the initial subscribe; every subsequent one is a re-subscribe after a reconnect.
     AtomicBoolean subscribedOnce = new AtomicBoolean(false);
 
-    connection.addListener(new RedisPubSubAdapter<>() {
+    connection.addListener(new RedisPubSubAdapter<String, byte[]>() {
       @Override
       public void subscribed(String channel, long count) {
-        if (getChannel().equals(channel) && subscribedOnce.getAndSet(true)) {
+        if (LettuceProvider.this.channel.equals(channel) && subscribedOnce.getAndSet(true)) {
           // Re-subscribe after a reconnect, notify listeners so they can reload state.
           fireReconnectListeners();
         }
@@ -138,7 +145,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
 
       @Override
       public void message(String channel, byte[] message) {
-        if (!channel.equals(getChannel())) {
+        if (!channel.equals(LettuceProvider.this.channel)) {
           return;
         }
 
@@ -162,24 +169,10 @@ public final class LettuceProvider extends AbstractRedisProvider {
     });
 
     this.publisher = connection.async();
-    this.publisher.subscribe(getChannel());
+    this.publisher.subscribe(this.channel);
     this.syncPublisher = connection.sync();
-    this.depotConnection = this.client.connect();
-    this.depotCommands = this.depotConnection.sync();
 
-    if (oldPublisher != null) {
-      oldPublisher.getStatefulConnection().close();
-    }
-
-    if (oldSyncPublisher != null) {
-      oldSyncPublisher.getStatefulConnection().close();
-    }
-
-    if (oldDepotConnection != null) {
-      oldDepotConnection.close();
-    }
-
-    LOGGER.info("Connected to Lettuce Redis Server on channel '{}'", getChannel());
+    LOGGER.info("Connected to Lettuce Redis Server on channel '{}'", this.channel);
   }
 
   /**
@@ -204,15 +197,9 @@ public final class LettuceProvider extends AbstractRedisProvider {
     }
     syncPublisher = null;
 
-    if (depotConnection != null && depotConnection.isOpen()) {
-      depotConnection.close();
-    }
-    depotConnection = null;
-    depotCommands = null;
-
     this.client.shutdown();
 
-    LOGGER.info("Disconnected from Lettuce Redis Server on channel '{}'", getChannel());
+    LOGGER.info("Disconnected from Lettuce Redis Server on channel '{}'", this.channel);
   }
 
   /**
@@ -225,13 +212,13 @@ public final class LettuceProvider extends AbstractRedisProvider {
   @Override
   protected void publishRaw(@NotNull DataPacket packet) {
     if (this.publisher == null) {
-      LOGGER.warn("Attempted to publish a packet to channel '{}' but the publisher is not initialized", getChannel());
+      LOGGER.warn("Attempted to publish a packet to channel '{}' but the publisher is not initialized", this.channel);
       return;
     }
 
-    this.publisher.publish(getChannel(), packetSerializer.serialize(packet)).whenComplete((received, throwable) -> {
+    this.publisher.publish(this.channel, packetSerializer.serialize(packet)).whenComplete((received, throwable) -> {
       if (throwable != null) {
-        LOGGER.warn("Failed to publish packet to '{}' channel", getChannel(), throwable);
+        LOGGER.warn("Failed to publish packet to '{}' channel", this.channel, throwable);
       }
     });
   }
@@ -269,7 +256,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
     RouteHandler<?> routeHandler = routeHandlers.get(dataPacket.getPayloadType());
     if (routeHandler == null) {
       LOGGER.warn("Received a packet of type '{}' from channel '{}', but no route registration exists, ignoring",
-              dataPacket.getPayloadType(), getChannel());
+              dataPacket.getPayloadType(), this.channel);
       return;
     }
 
@@ -429,7 +416,8 @@ public final class LettuceProvider extends AbstractRedisProvider {
      * @param valueClass the class of the depot value
      */
     public LettuceDepot(@NotNull Class<V> valueClass) {
-      this.name = getNamespace() + ":" + getVersion() + ":depot:" + valueClass.getSimpleName().toLowerCase().replace("entry", "");
+      this.name = DEPOT_TEMPLATE.formatted(getNamespace(), RedisProvider.VERSION,
+              valueClass.getSimpleName().toLowerCase().replace("entry", ""));
       this.valueClass = valueClass;
       this.connection = client.connectPubSub(RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE)).sync();
     }

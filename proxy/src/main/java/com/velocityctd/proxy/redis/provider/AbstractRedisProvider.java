@@ -65,11 +65,6 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
   protected final String namespace;
 
   /**
-   * The version used for all Redis keys and channels.
-   */
-  protected final String version;
-
-  /**
    * Listeners notified whenever the Redis pub/sub connection is re-established after a drop.
    */
   private final List<Runnable> reconnectListeners = new CopyOnWriteArrayList<>();
@@ -92,16 +87,13 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
    * @param scheduler the scheduler used for transaction timeout tasks
    * @param packetSerializer the serializer for packet (de)serialization
    * @param namespace the namespace for Redis keys
-   * @param version the version for Redis keys
    */
   public AbstractRedisProvider(@NotNull Scheduler scheduler,
                                @NotNull PacketSerializer packetSerializer,
-                               @NotNull String namespace,
-                               @NotNull String version) {
+                               @NotNull String namespace) {
     this.pendingTransactions = new PendingTransactions(scheduler);
     this.packetSerializer = packetSerializer;
     this.namespace = namespace;
-    this.version = version;
     this.routeHandlers = new HashMap<>();
     this.transactionHandlers = new HashMap<>();
   }
@@ -110,12 +102,6 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
   public @NotNull String getNamespace() {
     return namespace;
   }
-
-  @Override
-  public @NotNull String getVersion() {
-    return version;
-  }
-
 
   /**
    * Publishes a payload by wrapping it in a {@link DataPacket} and sending it
