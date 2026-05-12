@@ -130,7 +130,7 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
 
     this.redis.getProvider().setWithExpiry(
             HEARTBEAT_KEY_PREFIX + this.redis.getProxyId(),
-            "1",
+            new byte[]{(byte) 1},
             HEARTBEAT_TTL.toSeconds()
     );
   }

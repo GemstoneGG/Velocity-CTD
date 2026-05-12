@@ -17,6 +17,8 @@
 
 package com.velocityctd.proxy.redis.packet;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
 import java.util.UUID;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -39,22 +41,26 @@ public final class DataPacket {
    * A unique internal identifier automatically assigned to this packet.
    * Used for equality and tracking packet flow across the Redis pipeline.
    */
+  @JsonProperty("packetId")
   private final UUID packetId;
 
   /**
-   * The GSON-serialized JSON representation of the payload.
+   * The binary representation of the payload.
    */
-  private final String payload;
+  @JsonProperty("payload")
+  private final byte[] payload;
 
   /**
    * The fully qualified class name of the payload type,
    * used for deserialization and routing.
    */
+  @JsonProperty("payloadType")
   private final String payloadType;
 
   /**
    * Indicates whether this packet instance represents a reply to another packet.
    */
+  @JsonProperty("reply")
   private boolean reply;
 
   /**
@@ -62,6 +68,7 @@ public final class DataPacket {
    * Present when a packet participates in a request–reply transaction.
    * If {@code null}, the packet is treated as one-way.
    */
+  @JsonProperty("transactionId")
   private @MonotonicNonNull UUID transactionId;
 
   /**
@@ -70,13 +77,30 @@ public final class DataPacket {
   private transient Object rawPayload;
 
   /**
+   * Constructs a new {@link DataPacket} from JSON/MessagePack.
+   */
+  @JsonCreator
+  private DataPacket(
+          @JsonProperty("packetId") UUID packetId,
+          @JsonProperty("payload") byte[] payload,
+          @JsonProperty("payloadType") String payloadType,
+          @JsonProperty("reply") boolean reply,
+          @JsonProperty("transactionId") UUID transactionId) {
+    this.packetId = packetId;
+    this.payload = payload;
+    this.payloadType = payloadType;
+    this.reply = reply;
+    this.transactionId = transactionId;
+  }
+
+  /**
    * Constructs a new {@link DataPacket} by serializing the given payload.
    *
-   * @param serializedPayload the serialized payload
+   * @param serializedPayload the binary payload
    * @param rawPayload the raw payload
    * @param <T> the type of the payload
    */
-  private <T> DataPacket(@NotNull String serializedPayload, @NotNull T rawPayload) {
+  private <T> DataPacket(@NotNull byte[] serializedPayload, @NotNull T rawPayload) {
     this.packetId = UUID.randomUUID();
     this.payload = serializedPayload;
     this.payloadType = rawPayload.getClass().getName();
@@ -87,7 +111,7 @@ public final class DataPacket {
    * Creates a new {@link DataPacket} by serializing the given payload.
    *
    * @param payload the payload to serialize
-   * @param serializer the serializer to use for JSON conversion
+   * @param serializer the serializer to use for binary conversion
    * @param <T> the type of the payload
    * @return a new data packet
    */

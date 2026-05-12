@@ -17,8 +17,8 @@
 
 package com.velocityctd.proxy.redis.provider;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
-import com.google.gson.Gson;
 import com.velocityctd.proxy.redis.depot.Depot;
 import com.velocityctd.proxy.redis.depot.DepotEntry;
 import com.velocityctd.proxy.redis.handler.RouteHandler;
@@ -32,6 +32,9 @@ import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.sync.RedisCommands;
+import io.lettuce.core.codec.ByteArrayCodec;
+import io.lettuce.core.codec.RedisCodec;
+import io.lettuce.core.codec.StringCodec;
 import io.lettuce.core.pubsub.RedisPubSubAdapter;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import io.lettuce.core.pubsub.api.async.RedisPubSubAsyncCommands;
@@ -65,13 +68,12 @@ public final class LettuceProvider extends AbstractRedisProvider {
   /**
    * The asynchronous Redis Pub/Sub command API used to publish packets and manage subscriptions.
    */
-  private RedisPubSubAsyncCommands<String, String> publisher;
+  private RedisPubSubAsyncCommands<String, byte[]> publisher;
 
   /**
-   * A synchronous pub/sub connection used for raw key operations such as setting keys with expiry,
-   * checking key existence, and deleting keys.
+   * A synchronous pub/sub connection used for raw key operations bunded with binary values.
    */
-  private RedisPubSubCommands<String, String> syncPublisher;
+  private RedisPubSubCommands<String, byte[]> syncPublisher;
 
   /**
    * A single shared connection used by all {@link LettuceDepot} instances for hash
@@ -118,7 +120,8 @@ public final class LettuceProvider extends AbstractRedisProvider {
     final RedisPubSubCommands<String, String> oldSyncPublisher = this.syncPublisher;
     final StatefulRedisConnection<String, String> oldDepotConnection = this.depotConnection;
 
-    StatefulRedisPubSubConnection<String, String> connection = this.client.connectPubSub();
+    StatefulRedisPubSubConnection<String, byte[]> connection = this.client.connectPubSub(
+            RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE));
 
     // Tracks whether the initial subscribe has completed. The first subscribed() callback is
     // the initial subscribe; every subsequent one is a re-subscribe after a reconnect.
@@ -134,7 +137,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
       }
 
       @Override
-      public void message(String channel, String message) {
+      public void message(String channel, byte[] message) {
         if (!channel.equals(CHANNEL)) {
           return;
         }
@@ -331,13 +334,13 @@ public final class LettuceProvider extends AbstractRedisProvider {
   }
 
   /**
-   * Gets the value associated with a key using the regular (non-pub/sub) connection.
+   * Gets the binary value associated with a key using the regular (non-pub/sub) connection.
    *
    * @param key the key to look up
-   * @return the value, or {@code null} if none exists
+   * @return the binary value, or {@code null} if none exists
    */
   @Override
-  public @Nullable String get(@NotNull String key) {
+  public @Nullable byte[] get(@NotNull String key) {
     if (this.syncPublisher == null) {
       LOGGER.warn("Attempted to get key '{}' but the sync connection is not initialized", key);
       return null;
@@ -350,11 +353,11 @@ public final class LettuceProvider extends AbstractRedisProvider {
    * Sets a key with an expiry time in seconds using the regular (non-pub/sub) connection.
    *
    * @param key        the key to set
-   * @param value      the value to store
+   * @param value      the binary value to store
    * @param ttlSeconds the time-to-live in seconds
    */
   @Override
-  public void setWithExpiry(@NotNull String key, @NotNull String value, long ttlSeconds) {
+  public void setWithExpiry(@NotNull String key, @NotNull byte[] value, long ttlSeconds) {
     if (this.syncPublisher == null) {
       LOGGER.warn("Attempted to set key '{}' with expiry but the sync connection is not initialized", key);
       return;
@@ -403,9 +406,9 @@ public final class LettuceProvider extends AbstractRedisProvider {
   public final class LettuceDepot<K, V extends DepotEntry<K, V>> implements Depot<K, V> {
 
     /**
-     * {@link Gson} instance used for serializing and deserializing depot entries.
+     * {@link ObjectMapper} instance used for serializing and deserializing depot entries.
      */
-    private final Gson gson = packetSerializer.gson();
+    private final ObjectMapper mapper = packetSerializer.mapper();
 
     /**
      * The Redis hash key name used to store entries for this depot.
@@ -418,6 +421,12 @@ public final class LettuceProvider extends AbstractRedisProvider {
     private final Class<V> valueClass;
 
     /**
+    /**
+     * The synchronous Pub/Sub commands used to interact with Redis hashes for this depot.
+     */
+    private final RedisPubSubCommands<String, byte[]> connection;
+
+    /**
      * Constructs a new {@link LettuceDepot} instance.
      *
      * @param valueClass the class of the depot value
@@ -425,6 +434,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
     public LettuceDepot(@NotNull Class<V> valueClass) {
       this.name = valueClass.getSimpleName().toLowerCase();
       this.valueClass = valueClass;
+      this.connection = client.connectPubSub(RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE)).sync();
     }
 
     /**
@@ -435,7 +445,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public boolean contains(@NotNull K key) {
-      return depotCommands.hexists(this.name, parseKey(key));
+      return this.connection.hexists(this.name, parseKey(key));
     }
 
     /**
@@ -446,7 +456,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public @Nullable V get(@NotNull K key) {
-      String data = depotCommands.hget(this.name, parseKey(key));
+      byte[] data = this.connection.hget(this.name, parseKey(key));
       return data == null ? null : deserialize(data);
     }
 
@@ -457,7 +467,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public void upsert(@NotNull V value) {
-      depotCommands.hset(this.name, parseKey(value.getUniqueId()), serialize(value));
+      this.connection.hset(this.name, parseKey(value.getUniqueId()), serialize(value));
       value.setDepot(this);
     }
 
@@ -469,14 +479,14 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public @Nullable V remove(@NotNull K key) {
-      String field = parseKey(key);
-      String data = depotCommands.hget(this.name, field);
-      if (data == null) {
-        return null;
+      if (this.connection.hexists(this.name, parseKey(key))) {
+        byte[] data = this.connection.hget(this.name, parseKey(key));
+        this.connection.hdel(this.name, parseKey(key));
+
+        return data == null ? null : deserialize(data);
       }
 
-      depotCommands.hdel(this.name, field);
-      return deserialize(data);
+      return null;
     }
 
     /**
@@ -486,7 +496,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public Collection<V> values() {
-      return depotCommands.hvals(this.name).stream().map(this::deserialize).toList();
+      return this.connection.hvals(this.name).stream().map(this::deserialize).toList();
     }
 
     /**
@@ -496,30 +506,37 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public Collection<String> keys() {
-      return depotCommands.hkeys(this.name);
+      return this.connection.hkeys(this.name);
     }
 
     /**
-     * Serializes the specified entry into a JSON string.
+     * Serializes the specified entry into binary data.
      *
      * @param entry the entry to serialize
-     * @return the JSON string representation of the entry
+     * @return the binary representation of the entry
      */
-    private @NotNull String serialize(@NotNull V entry) {
-      return gson.toJson(entry, this.valueClass);
+    private @NotNull byte[] serialize(@NotNull V entry) {
+      try {
+        return mapper.writeValueAsBytes(entry);
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to serialize depot entry", e);
+      }
     }
 
     /**
-     * Deserializes the specified JSON string into an entry and associates it with this depot.
+     * Deserializes the specified binary data into an entry and associates it with this depot.
      *
-     * @param data the JSON string to deserialize
+     * @param data the binary data to deserialize
      * @return the deserialized entry
      */
-    private @NotNull V deserialize(@NotNull String data) {
-      V entry = gson.fromJson(data, this.valueClass);
-      entry.setDepot(this);
-
-      return entry;
+    private @NotNull V deserialize(@NotNull byte[] data) {
+      try {
+        V entry = mapper.readValue(data, this.valueClass);
+        entry.setDepot(this);
+        return entry;
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to deserialize depot entry", e);
+      }
     }
 
     /**

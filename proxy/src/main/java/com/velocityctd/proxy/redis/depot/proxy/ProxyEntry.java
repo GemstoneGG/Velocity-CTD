@@ -17,6 +17,8 @@
 
 package com.velocityctd.proxy.redis.depot.proxy;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.velocityctd.proxy.redis.depot.DepotEntry;
 import com.velocitypowered.proxy.VelocityServer;
 import org.jetbrains.annotations.NotNull;
@@ -25,6 +27,14 @@ import org.jetbrains.annotations.NotNull;
  * Represents a proxy entry in the depot.
  */
 public final class ProxyEntry extends DepotEntry<String, ProxyEntry> {
+
+  /**
+   * Constructs a new {@link ProxyEntry} from Jackson.
+   */
+  @JsonCreator
+  private ProxyEntry(@JsonProperty("uniqueId") String uniqueId) {
+    super(uniqueId);
+  }
 
   /**
    * Constructs a new {@link ProxyEntry}.

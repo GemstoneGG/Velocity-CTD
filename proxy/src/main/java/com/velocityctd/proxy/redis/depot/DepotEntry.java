@@ -17,6 +17,7 @@
 
 package com.velocityctd.proxy.redis.depot;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.jetbrains.annotations.ApiStatus;
@@ -86,6 +87,7 @@ public abstract class DepotEntry<K, T extends DepotEntry<K, T>> {
    *
    * @return the unique identifier of this entry
    */
+  @JsonProperty("uniqueId")
   public K getUniqueId() {
     return uniqueId;
   }

@@ -122,21 +122,21 @@ public sealed interface RedisProvider permits AbstractRedisProvider {
   <K, V extends DepotEntry<K, V>> @NotNull Depot<K, V> createDepot(Class<V> valueClass);
 
   /**
-   * Gets the value associated with a key.
+   * Gets the binary value associated with a key.
    *
    * @param key the key to look up
-   * @return the value, or {@code null} if none exists
+   * @return the binary value, or {@code null} if none exists
    */
-  @Nullable String get(@NotNull String key);
+  @Nullable byte[] get(@NotNull String key);
 
   /**
    * Sets a key with an expiry time in seconds.
    *
    * @param key        the key to set
-   * @param value      the value to store
+   * @param value      the binary value to store
    * @param ttlSeconds the time-to-live in seconds
    */
-  void setWithExpiry(@NotNull String key, @NotNull String value, long ttlSeconds);
+  void setWithExpiry(@NotNull String key, @NotNull byte[] value, long ttlSeconds);
 
   /**
    * Checks whether a key exists in Redis.
