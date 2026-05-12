@@ -6,8 +6,8 @@ log4j = "2.26.0"
 netty = "4.2.13.Final"
 lettuce = "7.5.2.RELEASE"
 jline = "3.30.13"
-jackson = "2.18.2"
-msgpack = "0.9.9"
+jackson = "2.21.1"
+msgpack = "0.9.12"
 
 [plugins]
 shadow = "com.gradleup.shadow:9.4.1"
