@@ -20,12 +20,16 @@ package com.velocitypowered.proxy.util;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.TranslatableComponent;
+import net.kyori.adventure.text.TranslationArgument;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.translation.GlobalTranslator;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -214,13 +218,35 @@ public final class ComponentUtils {
    */
   public static boolean containsString(@NotNull Component component,
                                        @NotNull String searchString) {
+    return containsStringRecursive(GlobalTranslator.render(component, Locale.US), searchString);
+  }
+
+  private static boolean containsStringRecursive(@NotNull Component component,
+                                                 @NotNull String searchString) {
     if (component instanceof TextComponent textComponent
         && textComponent.content().contains(searchString)) {
       return true;
     }
 
+    if (component instanceof TranslatableComponent translatableComponent) {
+      if (translatableComponent.key().contains(searchString)) {
+        return true;
+      }
+
+      String fallback = translatableComponent.fallback();
+      if (fallback != null && fallback.contains(searchString)) {
+        return true;
+      }
+
+      for (TranslationArgument argument : translatableComponent.arguments()) {
+        if (containsStringRecursive(argument.asComponent(), searchString)) {
+          return true;
+        }
+      }
+    }
+
     for (Component child : component.children()) {
-      if (containsString(child, searchString)) {
+      if (containsStringRecursive(child, searchString)) {
         return true;
       }
     }
