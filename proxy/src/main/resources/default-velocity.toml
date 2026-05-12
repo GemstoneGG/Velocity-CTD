@@ -422,6 +422,14 @@ use-ssl = false
 # Your server will not start if this is blank and Redis is on.
 proxy-id = ""
 
+# The namespace to use for all Redis keys and channels.
+# This allows multiple Velocity-CTD clusters to share the same Redis instance.
+namespace = "velocity"
+
+# The version to use for all Redis keys and channels.
+# This ensures that future updates with breaking Redis changes can coexist.
+redis-version = "v1"
+
 [queue]
 # Whether the queue system is enabled. This will fully unregister
 # all permissions, commands, and this feature as a whole.

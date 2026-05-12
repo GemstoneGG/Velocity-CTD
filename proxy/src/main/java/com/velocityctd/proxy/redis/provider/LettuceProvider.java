@@ -99,7 +99,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
   public LettuceProvider(VelocityConfiguration.Redis config,
                          @NotNull Scheduler scheduler,
                          @NotNull PacketSerializer packetSerializer) {
-    super(scheduler, packetSerializer);
+    super(scheduler, packetSerializer, config.getNamespace(), config.getRedisVersion());
 
     this.client = RedisClient.create(RedisURI.Builder.redis(config.getHost(), config.getPort())
             .withAuthentication(Objects.requireNonNullElse(config.getUsername(), ""),
@@ -116,8 +116,8 @@ public final class LettuceProvider extends AbstractRedisProvider {
    */
   @Override
   public void restart() {
-    final RedisPubSubAsyncCommands<String, String> oldPublisher = this.publisher;
-    final RedisPubSubCommands<String, String> oldSyncPublisher = this.syncPublisher;
+    final RedisPubSubAsyncCommands<String, byte[]> oldPublisher = this.publisher;
+    final RedisPubSubCommands<String, byte[]> oldSyncPublisher = this.syncPublisher;
     final StatefulRedisConnection<String, String> oldDepotConnection = this.depotConnection;
 
     StatefulRedisPubSubConnection<String, byte[]> connection = this.client.connectPubSub(
@@ -130,7 +130,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
     connection.addListener(new RedisPubSubAdapter<>() {
       @Override
       public void subscribed(String channel, long count) {
-        if (CHANNEL.equals(channel) && subscribedOnce.getAndSet(true)) {
+        if (getChannel().equals(channel) && subscribedOnce.getAndSet(true)) {
           // Re-subscribe after a reconnect, notify listeners so they can reload state.
           fireReconnectListeners();
         }
@@ -138,7 +138,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
 
       @Override
       public void message(String channel, byte[] message) {
-        if (!channel.equals(CHANNEL)) {
+        if (!channel.equals(getChannel())) {
           return;
         }
 
@@ -161,14 +161,11 @@ public final class LettuceProvider extends AbstractRedisProvider {
       }
     });
 
-    RedisPubSubAsyncCommands<String, String> newPublisher = connection.async();
-    newPublisher.subscribe(CHANNEL);
-    StatefulRedisConnection<String, String> newDepotConnection = this.client.connect();
-
-    this.publisher = newPublisher;
+    this.publisher = connection.async();
+    this.publisher.subscribe(getChannel());
     this.syncPublisher = connection.sync();
-    this.depotConnection = newDepotConnection;
-    this.depotCommands = newDepotConnection.sync();
+    this.depotConnection = this.client.connect();
+    this.depotCommands = this.depotConnection.sync();
 
     if (oldPublisher != null) {
       oldPublisher.getStatefulConnection().close();
@@ -182,7 +179,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
       oldDepotConnection.close();
     }
 
-    LOGGER.info("Connected to Lettuce Redis Server on channel '{}'", CHANNEL);
+    LOGGER.info("Connected to Lettuce Redis Server on channel '{}'", getChannel());
   }
 
   /**
@@ -215,7 +212,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
 
     this.client.shutdown();
 
-    LOGGER.info("Disconnected from Lettuce Redis Server on channel '{}'", CHANNEL);
+    LOGGER.info("Disconnected from Lettuce Redis Server on channel '{}'", getChannel());
   }
 
   /**
@@ -228,13 +225,13 @@ public final class LettuceProvider extends AbstractRedisProvider {
   @Override
   protected void publishRaw(@NotNull DataPacket packet) {
     if (this.publisher == null) {
-      LOGGER.warn("Attempted to publish a packet to channel '{}' but the publisher is not initialized", CHANNEL);
+      LOGGER.warn("Attempted to publish a packet to channel '{}' but the publisher is not initialized", getChannel());
       return;
     }
 
-    this.publisher.publish(CHANNEL, packetSerializer.serialize(packet)).whenComplete((received, throwable) -> {
+    this.publisher.publish(getChannel(), packetSerializer.serialize(packet)).whenComplete((received, throwable) -> {
       if (throwable != null) {
-        LOGGER.warn("Failed to publish packet to '{}' channel", CHANNEL, throwable);
+        LOGGER.warn("Failed to publish packet to '{}' channel", getChannel(), throwable);
       }
     });
   }
@@ -272,7 +269,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
     RouteHandler<?> routeHandler = routeHandlers.get(dataPacket.getPayloadType());
     if (routeHandler == null) {
       LOGGER.warn("Received a packet of type '{}' from channel '{}', but no route registration exists, ignoring",
-              dataPacket.getPayloadType(), CHANNEL);
+              dataPacket.getPayloadType(), getChannel());
       return;
     }
 
@@ -432,7 +429,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      * @param valueClass the class of the depot value
      */
     public LettuceDepot(@NotNull Class<V> valueClass) {
-      this.name = valueClass.getSimpleName().toLowerCase();
+      this.name = getNamespace() + ":" + getVersion() + ":depot:" + valueClass.getSimpleName().toLowerCase().replace("entry", "");
       this.valueClass = valueClass;
       this.connection = client.connectPubSub(RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE)).sync();
     }
@@ -462,9 +459,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
       }
       V entry = deserialize(data);
       if (entry == null) {
-        // Stale or malformed data from a previous version, ignore it.
-        LOGGER.warn("Encountered malformed data for key '{}' in depot '{}', ignoring.", key, name);
-        return null;
+        throw new RuntimeException("Encountered malformed data for key '" + key + "' in depot '" + name + "'. Killing proxy to avoid undefined state.");
       }
       return entry;
     }
@@ -509,8 +504,13 @@ public final class LettuceProvider extends AbstractRedisProvider {
     @Override
     public Collection<V> values() {
       return this.connection.hvals(this.name).stream()
-              .map(this::deserialize)
-              .filter(Objects::nonNull)
+              .map(data -> {
+                V entry = this.deserialize(data);
+                if (entry == null) {
+                  throw new RuntimeException("Encountered malformed data in depot '" + name + "'. Killing proxy to avoid undefined state.");
+                }
+                return entry;
+              })
               .toList();
     }
 

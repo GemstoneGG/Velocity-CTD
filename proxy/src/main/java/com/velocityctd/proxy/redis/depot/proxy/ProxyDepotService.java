@@ -49,9 +49,9 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
   public static final Duration HEARTBEAT_TTL = Duration.ofSeconds(5);
 
   /**
-   * Redis key prefix for per-proxy heartbeat keys. The full key is {@code heartbeat:<proxyId>}.
+   * Redis key prefix for per-proxy heartbeat keys. The full key is {@code <namespace>:<version>:heartbeat:<proxyId>}.
    */
-  private static final String HEARTBEAT_KEY_PREFIX = "heartbeat:";
+  private final String heartbeatKeyPrefix;
 
   /**
    * The Redis manager used to interact with proxy-related data stored in Redis.
@@ -77,6 +77,8 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
     super(ProxyEntry.class, redis.getProvider());
 
     this.redis = redis;
+    this.heartbeatKeyPrefix = redis.getProvider().getNamespace() + ":"
+            + redis.getProvider().getVersion() + ":heartbeat:";
 
     this.depot.upsert(new ProxyEntry(redis.getServer()));
 
@@ -102,7 +104,7 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
     }
 
     // Delete own heartbeat key so surviving proxies don't try to reap us while we're cleaning up.
-    this.redis.getProvider().deleteKey(HEARTBEAT_KEY_PREFIX + this.redis.getProxyId());
+    this.redis.getProvider().deleteKey(this.heartbeatKeyPrefix + this.redis.getProxyId());
 
     ProxyEntry proxyEntry = this.get(this.redis.getServer().getProxyId());
     if (proxyEntry != null) {
@@ -129,7 +131,7 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
     }
 
     this.redis.getProvider().setWithExpiry(
-            HEARTBEAT_KEY_PREFIX + this.redis.getProxyId(),
+            this.heartbeatKeyPrefix + this.redis.getProxyId(),
             new byte[]{(byte) 1},
             HEARTBEAT_TTL.toSeconds()
     );
@@ -150,7 +152,7 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
         continue; // Never reap ourselves.
       }
 
-      if (this.redis.getProvider().existsKey(HEARTBEAT_KEY_PREFIX + proxyId)) {
+      if (this.redis.getProvider().existsKey(this.heartbeatKeyPrefix + proxyId)) {
         continue; // Proxy is alive.
       }
 
