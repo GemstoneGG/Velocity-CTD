@@ -191,11 +191,18 @@ public class VelocityQueueEntry implements QueueEntry {
           return;
         }
 
-        CompletableFuture<Boolean> future = config.isForwardKickReason()
+        CompletableFuture<?> future = config.isForwardKickReason()
             ? player.createConnectionRequest(foundServer).connectWithIndication()
-            : player.createConnectionRequest(foundServer).connect().thenApply(ConnectionRequestBuilder.Result::isSuccessful);
+            : player.createConnectionRequest(foundServer).connect();
 
-        future.thenAccept(success -> {
+        future.thenAccept(result -> {
+          boolean success = false;
+          if (result instanceof Boolean b) {
+            success = b;
+          } else if (result instanceof ConnectionRequestBuilder.Result r) {
+            success = r.isSuccessful();
+          }
+
           if (success) {
             queue.dequeue(this.uniqueId);
           } else {
