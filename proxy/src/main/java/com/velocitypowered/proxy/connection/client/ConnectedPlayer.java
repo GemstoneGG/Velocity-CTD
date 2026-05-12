@@ -166,6 +166,12 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   public static final int MAX_CLIENTSIDE_PLUGIN_CHANNELS = Integer.getInteger("velocity.max-clientside-plugin-channels", 1024);
 
+  /**
+   * Maximum time to wait for {@link DisconnectEvent} handlers to complete during {@link #teardown()}
+   * before unregistering the player and completing the teardown future.
+   */
+  private static final long DISCONNECT_EVENT_TIMEOUT_SECONDS = 30;
+
   private static final PlainTextComponentSerializer PASS_THRU_TRANSLATE =
       PlainTextComponentSerializer.builder().flattener(TranslatableMapper.FLATTENER).build();
 
@@ -248,9 +254,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   /**
    * Whether the player has fully connected to the first server it's connecting to.
-   * This flag will be {@code true} after the first call to
-   * {@link #setConnectedServer(VelocityServerConnection)} with a non-null
-   * {@link VelocityServerConnection} as its argument.
+   * Set on the first non-null call to {@link #setConnectedServer(VelocityServerConnection)}
+   * and never cleared, so that {@link DisconnectEvent.LoginStatus} correctly reports
+   * {@link DisconnectEvent.LoginStatus#SUCCESSFUL_LOGIN} even when {@code connectedServer}
+   * has been nulled by a kick handler.
    */
   private boolean firstServerConnected = false;
 
@@ -347,7 +354,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   /**
    * Discards any messages still being processed by the {@link ChatQueue}, and creates a fresh state for future packets.
-   * This should be used on server switches or whenever the client resets its own 'last seen' state.
+   * This should be used on server switches, or whenever the client resets its own 'last seen' state.
    */
   public void discardChatQueue() {
     // No need for atomic swap should only be called from event loop
@@ -982,7 +989,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       }
 
       if (!isActive() || connection.isKnownDisconnect()) {
-        // Connection inactive, or termination is already in flight from another path.
+        // No point trying to recover an inactive connection or one already being torn down.
         return;
       }
 
@@ -1308,23 +1315,9 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       connectedServer.disconnect();
     }
 
-    Optional<ConnectedPlayer> registered = server.getPlayer(this.getUniqueId());
-    DisconnectEvent.LoginStatus status;
-    if (registered.isPresent()) {
-      if (registered.get() != this) {
-        status = LoginStatus.CONFLICTING_LOGIN;
-      } else if (this.firstServerConnected) {
-        status = LoginStatus.SUCCESSFUL_LOGIN;
-      } else {
-        status = LoginStatus.PRE_SERVER_JOIN;
-      }
-    } else {
-      status = connection.isKnownDisconnect() ? LoginStatus.CANCELLED_BY_PROXY : LoginStatus.CANCELLED_BY_USER;
-    }
-
-    DisconnectEvent event = new DisconnectEvent(this, status);
+    DisconnectEvent event = new DisconnectEvent(this, computeDisconnectStatus());
     server.getEventManager().fire(event)
-        .completeOnTimeout(event, 30, TimeUnit.SECONDS)
+        .completeOnTimeout(event, DISCONNECT_EVENT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .whenComplete((val, ex) -> {
           server.unregisterConnection(this);
           if (ex == null) {
@@ -1333,6 +1326,19 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
             this.teardownFuture.completeExceptionally(ex);
           }
         });
+  }
+
+  private DisconnectEvent.LoginStatus computeDisconnectStatus() {
+    Optional<ConnectedPlayer> registered = server.getPlayer(this.getUniqueId());
+    if (registered.isEmpty()) {
+      return connection.isKnownDisconnect() ? LoginStatus.CANCELLED_BY_PROXY : LoginStatus.CANCELLED_BY_USER;
+    }
+
+    if (registered.get() != this) {
+      return LoginStatus.CONFLICTING_LOGIN;
+    }
+
+    return this.firstServerConnected ? LoginStatus.SUCCESSFUL_LOGIN : LoginStatus.PRE_SERVER_JOIN;
   }
 
   public CompletableFuture<Void> getTeardownFuture() {
