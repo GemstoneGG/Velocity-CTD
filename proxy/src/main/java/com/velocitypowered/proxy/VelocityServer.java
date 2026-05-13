@@ -214,6 +214,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
   private final Map<String, ConnectedPlayer> connectionsByName = new ConcurrentHashMap<>();
 
+  private final Object kickRegistrationLock = new Object();
+
   /**
    * Holds a set of all registered BuiltinCommand instances. Used for unregistering these commands later.
    */
@@ -1024,29 +1026,25 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       case FIRST_FOUND -> {
         // Don't sort
       }
-      case MOST_EMPTY -> {
-        // Sort to get most empty first
-        addresses.sort((o1, o2) -> {
-          int connectedSize1 = redis.getPlayerService().getPlayerEntriesOnProxy(o1.proxyId()).size();
-          int connectedSize2 = redis.getPlayerService().getPlayerEntriesOnProxy(o2.proxyId()).size();
-          return Long.compare(connectedSize1, connectedSize2);
-        });
-      }
-      case LEAST_EMPTY -> {
-        // Sort to get least empty first
-        addresses.sort((o1, o2) -> {
-          int connectedSize1 = redis.getPlayerService().getPlayerEntriesOnProxy(o1.proxyId()).size();
-          int connectedSize2 = redis.getPlayerService().getPlayerEntriesOnProxy(o2.proxyId()).size();
-          return Long.compare(connectedSize2, connectedSize1);
-        });
-      }
+      case MOST_EMPTY ->
+          // Sort to get most empty first
+          addresses.sort((o1, o2) -> {
+            int connectedSize1 = redis.getPlayerService().getPlayerEntriesOnProxy(o1.proxyId()).size();
+            int connectedSize2 = redis.getPlayerService().getPlayerEntriesOnProxy(o2.proxyId()).size();
+            return Long.compare(connectedSize1, connectedSize2);
+          });
+      case LEAST_EMPTY ->
+          // Sort to get least empty first
+          addresses.sort((o1, o2) -> {
+            int connectedSize1 = redis.getPlayerService().getPlayerEntriesOnProxy(o1.proxyId()).size();
+            int connectedSize2 = redis.getPlayerService().getPlayerEntriesOnProxy(o2.proxyId()).size();
+            return Long.compare(connectedSize2, connectedSize1);
+          });
       case NONE -> {
         // No next address
         return null;
       }
-      default -> {
-        throw new IllegalStateException("Invalid filter '" + filter + "'.");
-      }
+      default -> throw new IllegalStateException("Invalid filter '" + filter + "'.");
     }
 
     return addresses.getFirst();
@@ -1105,60 +1103,65 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    * Attempts to register the {@code connection} with the proxy.
    *
    * @param connection the connection to register
-   * @return {@code true} if we registered the connection, {@code false} if not
+   * @return a future resolving to {@code true} if we registered the connection, {@code false} if not
    */
-  public boolean registerConnection(ConnectedPlayer connection) {
+  public CompletableFuture<Boolean> registerConnection(ConnectedPlayer connection) {
     String lowerName = connection.getUsername().toLowerCase(Locale.US);
 
     if (!this.configuration.isKickExistingPlayers()) {
       // Standard behavior: block duplicate connections
       if (connectionsByName.containsKey(lowerName)) {
-        return false;
+        return CompletableFuture.completedFuture(false);
       }
 
       connectionsByName.put(lowerName, connection);
 
       if (connectionsByUuid.putIfAbsent(connection.getUniqueId(), connection) != null) {
         connectionsByName.remove(lowerName, connection);
-        return false;
+        return CompletableFuture.completedFuture(false);
       }
 
-      return true;
+      return CompletableFuture.completedFuture(true);
     }
 
-    // kick-existing-players is enabled. Kick the existing session so the new one can take over.
-    // When kick-existing-players-check-ip is also enabled, only kick if the new connection comes
-    // from the same IP address.
-    ConnectedPlayer existingByUuid = connectionsByUuid.get(connection.getUniqueId());
-    if (existingByUuid != null) {
+    ConnectedPlayer existingByUuid;
+    ConnectedPlayer existingByName;
+
+    synchronized (kickRegistrationLock) {
+      existingByUuid = connectionsByUuid.get(connection.getUniqueId());
+      existingByName = connectionsByName.get(lowerName);
+
       if (this.configuration.isKickExistingPlayersCheckIp()) {
         InetAddress newIp = connection.getRemoteAddress().getAddress();
-        InetAddress existingIp = existingByUuid.getRemoteAddress().getAddress();
-        if (!newIp.equals(existingIp)) {
+        if (existingByUuid != null
+            && !newIp.equals(existingByUuid.getRemoteAddress().getAddress())) {
           // Different IP with same UUID: protect the existing player, deny the new connection.
-          return false;
+          return CompletableFuture.completedFuture(false);
+        }
+        if (existingByName != null && existingByName != existingByUuid
+            && !newIp.equals(existingByName.getRemoteAddress().getAddress())) {
+          return CompletableFuture.completedFuture(false);
         }
       }
+
+      connectionsByName.put(lowerName, connection);
+      connectionsByUuid.put(connection.getUniqueId(), connection);
+    }
+
+    CompletableFuture<Void> evictionFuture;
+    if (existingByUuid != null) {
       existingByUuid.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
+      evictionFuture = existingByUuid.getTeardownFuture();
+    } else {
+      evictionFuture = CompletableFuture.completedFuture(null);
     }
 
-    // Also check for a username conflict whose UUID differs from the one above.
-    ConnectedPlayer existingByName = connectionsByName.get(lowerName);
     if (existingByName != null && existingByName != existingByUuid) {
-      if (this.configuration.isKickExistingPlayersCheckIp()) {
-        InetAddress newIp = connection.getRemoteAddress().getAddress();
-        InetAddress existingIp = existingByName.getRemoteAddress().getAddress();
-        if (!newIp.equals(existingIp)) {
-          return false;
-        }
-      }
       existingByName.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
+      evictionFuture = evictionFuture.thenCompose(v -> existingByName.getTeardownFuture());
     }
 
-    connectionsByName.put(lowerName, connection);
-    connectionsByUuid.put(connection.getUniqueId(), connection);
-
-    return true;
+    return evictionFuture.thenApply(v -> true);
   }
 
   /**
