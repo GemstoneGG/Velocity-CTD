@@ -17,6 +17,9 @@
 
 package com.velocitypowered.proxy;
 
+import static java.util.concurrent.CompletableFuture.completedFuture;
+import static java.util.concurrent.CompletableFuture.failedFuture;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
@@ -123,6 +126,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -214,7 +218,23 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
   private final Map<String, ConnectedPlayer> connectionsByName = new ConcurrentHashMap<>();
 
-  private final Object kickRegistrationLock = new Object();
+  /**
+   * Serializes registration-related access to {@link #connectionsByUuid} and
+   * {@link #connectionsByName}.
+   *
+   * <p>All registration paths must hold this semaphore while checking for existing
+   * connections and while inserting the new connection. Reads used to make
+   * registration decisions must also hold it.
+   *
+   * <p>Unregistration may run without this semaphore, but must remove entries only
+   * conditionally with {@code remove(key, connection)}. It must not use
+   * unconditional removal, otherwise an old connection could remove a newer
+   * mapping for the same name or UUID.
+   *
+   * <p>Teardown/unregistration must not acquire this semaphore while a registration
+   * path is waiting for teardown to complete.
+   */
+  private final Semaphore connectionRegistrationLock = new Semaphore(1);
 
   /**
    * Holds a set of all registered BuiltinCommand instances. Used for unregistering these commands later.
@@ -1094,19 +1114,15 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       return true;
     }
 
-    String lowerName = profile.getName().toLowerCase(Locale.US);
-
-    if (connectionsByName.containsKey(lowerName)) {
-      return false;
-    }
-
-    return !connectionsByUuid.containsKey(profile.getId());
+    String lowerName = profile.getName().toLowerCase(Locale.ROOT);
+    return !connectionsByUuid.containsKey(profile.getId())
+        && !connectionsByName.containsKey(lowerName);
   }
 
   /**
    * Attempts to register the {@code connection} with the proxy, kicking any existing
    * player under the same name or UUID if present and if
-   * {@link VelocityConfiguration#isKickExistingPlayers()} is {@code true}
+   * {@link VelocityConfiguration#isKickExistingPlayers()} is {@code true}.
    *
    * @param connection the connection to register
    * @return a future resolving to {@code true} if we registered the connection, {@code false} if not
@@ -1115,18 +1131,24 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     if (!this.configuration.isKickExistingPlayers()) {
       // Block duplicate connections
       String lowerName = connection.getUsername().toLowerCase(Locale.ROOT);
-      if (connectionsByName.containsKey(lowerName)) {
-        return CompletableFuture.completedFuture(false);
+      UUID uuid = connection.getUniqueId();
+
+      // Acquire lock on this thread. Semantically the same as synchronized() {}, but we
+      // use a Semaphore because registerConnectionKickExisting makes use of it.
+      connectionRegistrationLock.acquireUninterruptibly();
+
+      try {
+        if (connectionsByName.containsKey(lowerName) || connectionsByUuid.containsKey(uuid)) {
+          return completedFuture(false);
+        } else {
+          connectionsByName.put(lowerName, connection);
+          connectionsByUuid.put(uuid, connection);
+
+          return completedFuture(true);
+        }
+      } finally {
+        connectionRegistrationLock.release();
       }
-
-      connectionsByName.put(lowerName, connection);
-
-      if (connectionsByUuid.putIfAbsent(connection.getUniqueId(), connection) != null) {
-        connectionsByName.remove(lowerName, connection);
-        return CompletableFuture.completedFuture(false);
-      }
-
-      return CompletableFuture.completedFuture(true);
     } else {
       // Kick existing connection
       return registerConnectionKickExisting(connection);
@@ -1141,46 +1163,64 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    * @return a future resolving to {@code true} if we registered the connection, {@code false} if not
    */
   private CompletableFuture<Boolean> registerConnectionKickExisting(ConnectedPlayer connection) {
-    String lowerName = connection.getUsername().toLowerCase(Locale.ROOT);
+    final UUID uuid = connection.getUniqueId();
+    final String lowerName = connection.getUsername().toLowerCase(Locale.ROOT);
 
-    ConnectedPlayer existingByUuid;
-    ConnectedPlayer existingByName;
+    return CompletableFuture.runAsync(connectionRegistrationLock::acquireUninterruptibly)
+        .thenCompose(v -> {
+          CompletableFuture<Boolean> result;
+          try {
+            result = registerConnectionKickExistingLocked(connection, uuid, lowerName);
+          } catch (Throwable throwable) {
+            connectionRegistrationLock.release();
+            return failedFuture(throwable);
+          }
 
-    synchronized (kickRegistrationLock) {
-      existingByUuid = connectionsByUuid.get(connection.getUniqueId());
-      existingByName = connectionsByName.get(lowerName);
+          return result.whenComplete((ignored, throwable) -> connectionRegistrationLock.release());
+        });
+  }
 
-      if (this.configuration.isKickExistingPlayersCheckIp()) {
-        InetAddress newIp = connection.getRemoteAddress().getAddress();
-        if (existingByUuid != null
-            && !newIp.equals(existingByUuid.getRemoteAddress().getAddress())) {
-          // Different IP with same UUID: protect the existing player, deny the new connection.
-          return CompletableFuture.completedFuture(false);
-        }
-        if (existingByName != null && existingByName != existingByUuid
-            && !newIp.equals(existingByName.getRemoteAddress().getAddress())) {
-          return CompletableFuture.completedFuture(false);
-        }
+  private CompletableFuture<Boolean> registerConnectionKickExistingLocked(ConnectedPlayer connection,
+                                                                          UUID uuid,
+                                                                          String lowerName) {
+    ConnectedPlayer existingByUuid = connectionsByUuid.get(uuid);
+    ConnectedPlayer existingByName = connectionsByName.get(lowerName);
+
+    if (configuration.isKickExistingPlayersCheckIp()) {
+      // IPs must match before actually kicking existing.
+      InetAddress address = connection.getRemoteAddress().getAddress();
+
+      if (existingByUuid != null
+          && !address.equals(existingByUuid.getRemoteAddress().getAddress())) {
+        // Address mismatch on player with the same UUID. Abort.
+        return completedFuture(false);
       }
 
-      connectionsByName.put(lowerName, connection);
-      connectionsByUuid.put(connection.getUniqueId(), connection);
+      if (existingByName != null
+          && !address.equals(existingByName.getRemoteAddress().getAddress())) {
+        // Address mismatch on player with the same name. Abort.
+        return completedFuture(false);
+      }
     }
 
-    CompletableFuture<Void> evictionFuture;
+    List<CompletableFuture<?>> teardownFutures = new ArrayList<>();
+
     if (existingByUuid != null) {
       existingByUuid.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
-      evictionFuture = existingByUuid.getTeardownFuture();
-    } else {
-      evictionFuture = CompletableFuture.completedFuture(null);
+      teardownFutures.add(existingByUuid.getTeardownFuture());
     }
 
     if (existingByName != null && existingByName != existingByUuid) {
       existingByName.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
-      evictionFuture = evictionFuture.thenCompose(v -> existingByName.getTeardownFuture());
+      teardownFutures.add(existingByName.getTeardownFuture());
     }
 
-    return evictionFuture.thenApply(v -> true);
+    return CompletableFuture.allOf(teardownFutures.toArray(CompletableFuture[]::new))
+        .thenApply(v -> {
+          connectionsByName.put(lowerName, connection);
+          connectionsByUuid.put(uuid, connection);
+          return true;
+        });
   }
 
   /**
@@ -1189,7 +1229,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    * @param connection the connection to unregister
    */
   public void unregisterConnection(ConnectedPlayer connection) {
-    connectionsByName.remove(connection.getUsername().toLowerCase(Locale.US), connection);
+    connectionsByName.remove(connection.getUsername().toLowerCase(Locale.ROOT), connection);
     connectionsByUuid.remove(connection.getUniqueId(), connection);
     connection.disconnected();
   }
@@ -1198,7 +1238,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   public Optional<ConnectedPlayer> getPlayer(String username) {
     Preconditions.checkNotNull(username, "username");
 
-    return Optional.ofNullable(connectionsByName.get(username.toLowerCase(Locale.US)));
+    return Optional.ofNullable(connectionsByName.get(username.toLowerCase(Locale.ROOT)));
   }
 
   @Override
