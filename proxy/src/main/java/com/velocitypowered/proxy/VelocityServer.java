@@ -1104,16 +1104,17 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   }
 
   /**
-   * Attempts to register the {@code connection} with the proxy.
+   * Attempts to register the {@code connection} with the proxy, kicking any existing
+   * player under the same name or UUID if present and if
+   * {@link VelocityConfiguration#isKickExistingPlayers()} is {@code true}
    *
    * @param connection the connection to register
    * @return a future resolving to {@code true} if we registered the connection, {@code false} if not
    */
   public CompletableFuture<Boolean> registerConnection(ConnectedPlayer connection) {
-    String lowerName = connection.getUsername().toLowerCase(Locale.US);
-
     if (!this.configuration.isKickExistingPlayers()) {
-      // Standard behavior: block duplicate connections
+      // Block duplicate connections
+      String lowerName = connection.getUsername().toLowerCase(Locale.ROOT);
       if (connectionsByName.containsKey(lowerName)) {
         return CompletableFuture.completedFuture(false);
       }
@@ -1126,7 +1127,21 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       }
 
       return CompletableFuture.completedFuture(true);
+    } else {
+      // Kick existing connection
+      return registerConnectionKickExisting(connection);
     }
+  }
+
+  /**
+   * Attempts to register the {@code connection} with the proxy, always kicking any existing
+   * player under the same name or UUID if present.
+   *
+   * @param connection the connection to register
+   * @return a future resolving to {@code true} if we registered the connection, {@code false} if not
+   */
+  private CompletableFuture<Boolean> registerConnectionKickExisting(ConnectedPlayer connection) {
+    String lowerName = connection.getUsername().toLowerCase(Locale.ROOT);
 
     ConnectedPlayer existingByUuid;
     ConnectedPlayer existingByName;
