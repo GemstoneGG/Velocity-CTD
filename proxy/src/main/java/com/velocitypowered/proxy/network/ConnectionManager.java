@@ -42,6 +42,7 @@ import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.client5.http.config.ConnectionConfig;
@@ -307,7 +308,7 @@ public final class ConnectionManager {
 
   public CompletableFuture<SimpleHttpResponse> sendAsync(SimpleHttpRequest request) {
     CompletableFuture<SimpleHttpResponse> future = new CompletableFuture<>();
-    getSharedHttpClient().execute(request, new FutureCallback<>() {
+    Future<SimpleHttpResponse> handle = getSharedHttpClient().execute(request, new FutureCallback<>() {
       @Override
       public void completed(SimpleHttpResponse result) {
         future.complete(result);
@@ -323,6 +324,13 @@ public final class ConnectionManager {
         future.cancel(false);
       }
     });
+
+    future.whenComplete((r, ex) -> {
+      if (future.isCancelled()) {
+        handle.cancel(true);
+      }
+    });
+
     return future;
   }
 
@@ -356,6 +364,7 @@ public final class ConnectionManager {
     CloseableHttpAsyncClient client = HttpAsyncClients.custom()
         .setConnectionManager(connectionManager)
         .setUserAgent(server.getVersion().getName() + "/" + server.getVersion().getVersion())
+        .useSystemProperties()
         .evictExpiredConnections()
         .evictIdleConnections(TimeValue.ofSeconds(60))
         .build();
