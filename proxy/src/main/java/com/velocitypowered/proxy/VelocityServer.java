@@ -203,11 +203,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
   private boolean shutdown = false;
 
-  /**
-   * Whether the shutdown sequence has officially begun.
-   */
-  private boolean startedShutdown = false;
-
   private final VelocityPluginManager pluginManager;
 
   private final Map<UUID, ConnectedPlayer> connectionsByUuid = new ConcurrentHashMap<>();
@@ -336,15 +331,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         .orElse("Velocity(-CTD) Contributors");
 
     return new ProxyVersion(implName, implVendor, implVersion);
-  }
-
-  /**
-   * Indicates whether the shutdown sequence has begun.
-   *
-   * @return {@code true} if shutdown has started, otherwise {@code false}
-   */
-  public boolean isStartedShutdown() {
-    return this.startedShutdown;
   }
 
   private VelocityPluginContainer createVirtualPlugin() {
@@ -878,7 +864,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     }
 
     Runnable shutdownProcess = () -> {
-      startedShutdown = true;
       LOGGER.info("Shutting down the proxy...");
 
       // Shutdown the connection manager, this should be
@@ -1024,29 +1009,25 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       case FIRST_FOUND -> {
         // Don't sort
       }
-      case MOST_EMPTY -> {
-        // Sort to get most empty first
-        addresses.sort((o1, o2) -> {
-          int connectedSize1 = redis.getPlayerService().getPlayerEntriesOnProxy(o1.proxyId()).size();
-          int connectedSize2 = redis.getPlayerService().getPlayerEntriesOnProxy(o2.proxyId()).size();
-          return Long.compare(connectedSize1, connectedSize2);
-        });
-      }
-      case LEAST_EMPTY -> {
-        // Sort to get least empty first
-        addresses.sort((o1, o2) -> {
-          int connectedSize1 = redis.getPlayerService().getPlayerEntriesOnProxy(o1.proxyId()).size();
-          int connectedSize2 = redis.getPlayerService().getPlayerEntriesOnProxy(o2.proxyId()).size();
-          return Long.compare(connectedSize2, connectedSize1);
-        });
-      }
+      case MOST_EMPTY ->
+          // Sort to get most empty first
+          addresses.sort((o1, o2) -> {
+            int connectedSize1 = redis.getPlayerService().getPlayerEntriesOnProxy(o1.proxyId()).size();
+            int connectedSize2 = redis.getPlayerService().getPlayerEntriesOnProxy(o2.proxyId()).size();
+            return Long.compare(connectedSize1, connectedSize2);
+          });
+      case LEAST_EMPTY ->
+          // Sort to get least empty first
+          addresses.sort((o1, o2) -> {
+            int connectedSize1 = redis.getPlayerService().getPlayerEntriesOnProxy(o1.proxyId()).size();
+            int connectedSize2 = redis.getPlayerService().getPlayerEntriesOnProxy(o2.proxyId()).size();
+            return Long.compare(connectedSize2, connectedSize1);
+          });
       case NONE -> {
         // No next address
         return null;
       }
-      default -> {
-        throw new IllegalStateException("Invalid filter '" + filter + "'.");
-      }
+      default -> throw new IllegalStateException("Invalid filter '" + filter + "'.");
     }
 
     return addresses.getFirst();
@@ -1372,15 +1353,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   @Override
   public VelocityClusterProxyService getClusterProxyService() {
     return clusterProxyService;
-  }
-
-  /**
-   * Check whether the redis system is enabled for the proxy.
-   *
-   * @return true if the redis system is enabled, otherwise false
-   */
-  public boolean isRedisEnabled() {
-    return this.configuration.getRedis().isEnabled();
   }
 
   /**

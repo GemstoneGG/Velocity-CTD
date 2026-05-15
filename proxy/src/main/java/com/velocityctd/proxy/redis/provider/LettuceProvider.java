@@ -231,9 +231,8 @@ public final class LettuceProvider extends AbstractRedisProvider {
    *
    * @param dataPacket the one-way packet to handle
    */
-  @SuppressWarnings("unchecked")
   private void handleOneWay(@NotNull DataPacket dataPacket) {
-    RouteHandler<Object> routeHandler = (RouteHandler<Object>) routeHandlers.get(dataPacket.getPayloadType());
+    RouteHandler<?> routeHandler = routeHandlers.get(dataPacket.getPayloadType());
     if (routeHandler == null) {
       LOGGER.warn("Received a packet of type '{}' from channel '{}', but no route registration exists, ignoring",
               dataPacket.getPayloadType(), CHANNEL);
@@ -241,7 +240,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
     }
 
     try {
-      routeHandler.getConsumer().accept(dataPacket.getPayload(packetSerializer));
+      routeHandler.dispatch(dataPacket, packetSerializer);
     } catch (Throwable t) {
       LOGGER.warn("Failed to handle one way packet of type '{}'.", dataPacket.getPayloadType(), t);
     }
@@ -253,14 +252,13 @@ public final class LettuceProvider extends AbstractRedisProvider {
    *
    * @param dataPacket the incoming transaction request packet
    */
-  @SuppressWarnings({"unchecked", "rawtypes"})
   private void handleTransactionRequest(@NotNull DataPacket dataPacket) {
-    TransactionHandler transactionHandler = transactionHandlers.get(dataPacket.getPayloadType());
+    TransactionHandler<?, ?> transactionHandler = transactionHandlers.get(dataPacket.getPayloadType());
     if (transactionHandler == null) {
       return;
     }
 
-    CompletableFuture<?> future = transactionHandler.handleData(dataPacket.getPayload(packetSerializer));
+    CompletableFuture<?> future = transactionHandler.dispatch(dataPacket, packetSerializer);
     if (future == null) {
       return;
     }
@@ -295,7 +293,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
       return;
     }
 
-    transaction.complete(dataPacket.getPayload(packetSerializer));
+    transaction.completeFrom(dataPacket, packetSerializer);
   }
 
   /**

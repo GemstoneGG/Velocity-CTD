@@ -47,17 +47,35 @@ public final class PlayerIdentifier {
    * The type of identifier that was parsed.
    */
   public enum Type {
-    /** The {@code all} keyword. */
+
+    /**
+     * The {@code all} keyword.
+     */
     ALL,
-    /** The {@code current} keyword (sender's current server). */
+
+    /**
+     * The {@code current} keyword (sender's current server).
+     */
     CURRENT_SERVER,
-    /** A {@code +<server>} prefix. */
+
+    /**
+     * A {@code +<server>} prefix.
+     */
     SERVER,
-    /** A {@code -<proxy>} prefix. */
+
+    /**
+     * A {@code -<proxy>} prefix.
+     */
     PROXY,
-    /** One or more player names (possibly comma-separated). */
+
+    /**
+     * One or more player names (possibly comma-separated).
+     */
     PLAYER,
-    /** The source is not a player (failed {@code current} from console). */
+
+    /**
+     * The source is not a player (failed {@code current} from console).
+     */
     PLAYER_EXECUTOR_REQUIRED
   }
 

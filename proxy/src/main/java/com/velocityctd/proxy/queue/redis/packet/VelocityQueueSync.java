@@ -28,7 +28,7 @@ import org.jetbrains.annotations.Nullable;
  * <p>This record is published whenever the queue state changes on any proxy (player enqueued,
  * dequeued, server status changed, queue state changed, or waitingForConnection flag updated).
  * All proxies receive the record and apply the change to their local in-memory queue, ensuring
- * consistent queue state across the cluster without full-overwrite race conditions.</p>
+ * a consistent queue state across the cluster without full-overwrite race conditions.</p>
  */
 public record VelocityQueueSync(
     Action action,

@@ -28,21 +28,21 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 /**
  * Encapsulates the ordered player deque and its UUID lookup index for a {@link VelocityQueue}.
  */
-public final class QueuePlayerList {
+public final class QueuePlayerList<E extends VelocityQueueEntry> {
 
-  private final ConcurrentLinkedDeque<VelocityQueueEntry> players = new ConcurrentLinkedDeque<>();
-  private final ConcurrentHashMap<UUID, VelocityQueueEntry> index = new ConcurrentHashMap<>();
+  private final ConcurrentLinkedDeque<E> players = new ConcurrentLinkedDeque<>();
+  private final ConcurrentHashMap<UUID, E> index = new ConcurrentHashMap<>();
 
   /**
    * Inserts the entry in descending priority order, preserving FIFO within the same priority tier.
    * Silently ignores the call if an entry with the same UUID is already present.
    */
-  public synchronized void insertByPriority(VelocityQueueEntry entry) {
+  public synchronized void insertByPriority(E entry) {
     if (index.containsKey(entry.getUniqueId())) {
       return;
     }
 
-    Iterator<VelocityQueueEntry> it = players.iterator();
+    Iterator<E> it = players.iterator();
     int position = 0;
     boolean inserted = false;
 
@@ -68,7 +68,7 @@ public final class QueuePlayerList {
    * Used when restoring entries from a Redis depot snapshot, where ordering
    * is already correct.
    */
-  public synchronized void addLast(VelocityQueueEntry entry) {
+  public synchronized void addLast(E entry) {
     players.addLast(entry);
     index.put(entry.getUniqueId(), entry);
     entry.setPosition(players.size());
@@ -101,7 +101,7 @@ public final class QueuePlayerList {
   /**
    * Returns the entry for the given UUID, or {@code null} if not present.
    */
-  public @Nullable VelocityQueueEntry get(UUID uniqueId) {
+  public @Nullable E get(UUID uniqueId) {
     return index.get(uniqueId);
   }
 
@@ -115,12 +115,12 @@ public final class QueuePlayerList {
   /**
    * Returns an unmodifiable ordered snapshot of all entries.
    */
-  public List<VelocityQueueEntry> snapshot() {
+  public List<E> snapshot() {
     return List.copyOf(players);
   }
 
-  private void insertAt(VelocityQueueEntry entry, int position) {
-    List<VelocityQueueEntry> tempList = new ArrayList<>(players);
+  private void insertAt(E entry, int position) {
+    List<E> tempList = new ArrayList<>(players);
     tempList.add(position, entry);
     players.clear();
     players.addAll(tempList);
@@ -128,7 +128,7 @@ public final class QueuePlayerList {
 
   private void rebuildPositions() {
     int pos = 1;
-    for (VelocityQueueEntry entry : players) {
+    for (E entry : players) {
       entry.setPosition(pos++);
     }
   }

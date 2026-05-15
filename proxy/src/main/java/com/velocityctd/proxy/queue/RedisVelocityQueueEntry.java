@@ -65,7 +65,7 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
   }
 
   /**
-   * Resets the waiting state after a transfer was never picked up by any proxy.
+   * Resets the waiting state after any proxy never picked up a transfer.
    *
    * <p>Checks the volatile {@code waitingForConnection} flag first. If another proxy already
    * handled the transfer and published a {@code WAITING_CHANGE} sync that reset the flag,
@@ -79,7 +79,7 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
     }
 
     this.waitingForConnection = false;
-    this.connectionAttempts++;
+    this.connectionAttempts.incrementAndGet();
     refreshPermissions();
     publishWaitingChange();
   }
@@ -92,7 +92,7 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
   protected void publishWaitingChange() {
     server.getRedis().publish(VelocityQueueSync.waitingChange(
         getQueue().getName(), getUniqueId(), this.waitingForConnection,
-        this.connectionAttempts, this.priority, this.fullBypass, this.queueBypass
+        this.connectionAttempts.get(), this.priority, this.fullBypass, this.queueBypass
     ));
   }
 
@@ -123,7 +123,7 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
                                            boolean updatedFullBypass,
                                            boolean updatedQueueBypass) {
     this.waitingForConnection = waiting;
-    this.connectionAttempts = attempts;
+    this.connectionAttempts.set(attempts);
     this.priority = updatedPriority;
     this.fullBypass = updatedFullBypass;
     this.queueBypass = updatedQueueBypass;

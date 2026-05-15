@@ -26,6 +26,7 @@ import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -38,7 +39,7 @@ public class VelocityQueueEntry implements QueueEntry {
   private final UUID uniqueId;
   private final String username;
   protected volatile int priority;
-  protected volatile int connectionAttempts;
+  protected final AtomicInteger connectionAttempts = new AtomicInteger();
   protected volatile boolean waitingForConnection;
   protected volatile boolean fullBypass;
   protected volatile boolean queueBypass;
@@ -50,7 +51,7 @@ public class VelocityQueueEntry implements QueueEntry {
   protected volatile long offlineSinceMs = 0;
 
   /**
-   * The timeout in seconds that was active at the time of disconnect, or 0 if unknown.
+   * The timeout in seconds that was active at the time of disconnect or 0 if unknown.
    * Only meaningful when {@link #offlineSinceMs} is non-zero.
    */
   protected volatile int offlineTimeoutSeconds = 0;
@@ -63,7 +64,7 @@ public class VelocityQueueEntry implements QueueEntry {
   /**
    * Injected after construction or deserialization.
    */
-  private transient VelocityQueue queue;
+  private transient VelocityQueue<?> queue;
 
   /**
    * The 1-based position of this entry in its owning queue.
@@ -79,7 +80,7 @@ public class VelocityQueueEntry implements QueueEntry {
    * @param data   the player data
    */
   public VelocityQueueEntry(@NotNull VelocityServer server,
-                            @NotNull VelocityQueue queue,
+                            @NotNull VelocityQueue<?> queue,
                             @NotNull QueueEntryData data) {
     this.server = server;
     this.queue = queue;
@@ -96,7 +97,7 @@ public class VelocityQueueEntry implements QueueEntry {
    * @param server the proxy server
    * @param queue  the owning queue
    */
-  protected void setContext(@NotNull VelocityServer server, @NotNull VelocityQueue queue) {
+  protected void setContext(@NotNull VelocityServer server, @NotNull VelocityQueue<?> queue) {
     this.server = server;
     this.queue = queue;
   }
@@ -127,7 +128,7 @@ public class VelocityQueueEntry implements QueueEntry {
 
   @Override
   public int getConnectionAttempts() {
-    return connectionAttempts;
+    return connectionAttempts.get();
   }
 
   @Override
@@ -155,7 +156,7 @@ public class VelocityQueueEntry implements QueueEntry {
   }
 
   @Override
-  public VelocityQueue getQueue() {
+  public VelocityQueue<?> getQueue() {
     return queue;
   }
 
@@ -197,7 +198,7 @@ public class VelocityQueueEntry implements QueueEntry {
   }
 
   /**
-   * Aborts a pending transfer that was never picked up.
+   * Aborts a pending transfer which was never picked up.
    *
    * <p>This is a no-op in local mode (only one proxy, transfers are always local).
    * The Redis subclass overrides this to reset the waiting flag and notify other proxies.</p>
@@ -226,11 +227,11 @@ public class VelocityQueueEntry implements QueueEntry {
 
   private void applyFailedAttempt(VelocityConfiguration.Queue config) {
     this.waitingForConnection = false;
-    this.connectionAttempts++;
+    int attempts = this.connectionAttempts.incrementAndGet();
     refreshPermissions();
     publishWaitingChange();
 
-    if (this.connectionAttempts >= config.getMaxSendRetries()) {
+    if (attempts >= config.getMaxSendRetries()) {
       Component message = Component.translatable("velocity.queue.error.max-send-retries-reached")
           .arguments(
               Component.text(this.queue.getName()),

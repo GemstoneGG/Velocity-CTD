@@ -34,4 +34,9 @@ public final class ProxyEntry extends DepotEntry<String, ProxyEntry> {
   public ProxyEntry(@NotNull VelocityServer server) {
     super(server.getProxyId());
   }
+
+  @Override
+  protected ProxyEntry self() {
+    return this;
+  }
 }

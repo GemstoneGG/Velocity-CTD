@@ -280,7 +280,7 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
    * @return The queue of the server
    */
   @Override
-  public VelocityQueue getQueue() {
+  public VelocityQueue<?> getQueue() {
     VelocityQueueManager queueManager = requireNonNull(server).getQueueManager();
     if (queueManager == null) {
       throw new IllegalStateException("No QueueManager available on the server");

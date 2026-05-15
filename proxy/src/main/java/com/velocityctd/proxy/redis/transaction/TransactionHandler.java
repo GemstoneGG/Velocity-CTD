@@ -17,6 +17,8 @@
 
 package com.velocityctd.proxy.redis.transaction;
 
+import com.velocityctd.proxy.redis.packet.DataPacket;
+import com.velocityctd.proxy.redis.packet.PacketSerializer;
 import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -45,6 +47,20 @@ public abstract class TransactionHandler<T extends TransactionData<R>, R> {
    */
   public TransactionHandler(@NotNull Class<T> dataClass) {
     this.dataClass = dataClass;
+  }
+
+  /**
+   * Deserializes the packet's payload using this handler's data class and delivers it to
+   * {@link #handleData}. The method is generic on T from the enclosing class, so the
+   * deserialization target and {@code handleData}'s input type agree by construction.
+   *
+   * @param packet     the incoming transaction request packet
+   * @param serializer the packet serializer used for deserialization
+   * @return whatever {@link #handleData} returned
+   */
+  public @Nullable CompletableFuture<R> dispatch(@NotNull DataPacket packet,
+                                                 @NotNull PacketSerializer serializer) {
+    return handleData(packet.getPayload(serializer, dataClass));
   }
 
   /**

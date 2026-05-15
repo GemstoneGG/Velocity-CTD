@@ -61,7 +61,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class VelocityQueueManager implements QueueManager {
 
-  private static final Logger LOGGER = LogManager.getLogger(VelocityQueueManager.class);
+  static final Logger LOGGER = LogManager.getLogger(VelocityQueueManager.class);
 
   /**
    * Timestamp (ms) of when each server last transitioned from OFFLINE to WAITING.
@@ -78,7 +78,7 @@ public class VelocityQueueManager implements QueueManager {
   /**
    * Local in-memory queues keyed by server name.
    */
-  protected final Map<String, VelocityQueue> queues = new ConcurrentHashMap<>();
+  protected final Map<String, VelocityQueue<?>> queues = new ConcurrentHashMap<>();
 
   /**
    * Holds all scheduled tasks to remove players from all queues (after a player's timeout).
@@ -158,8 +158,8 @@ public class VelocityQueueManager implements QueueManager {
   /**
    * Creates a new queue for the given backend server.
    */
-  protected VelocityQueue createQueue(VelocityRegisteredServer rs, QueueState state) {
-    return new VelocityQueue(server, this, rs, state);
+  protected VelocityQueue<?> createQueue(VelocityRegisteredServer rs, QueueState state) {
+    return new LocalVelocityQueue(server, this, rs, state);
   }
 
   /**
@@ -184,7 +184,7 @@ public class VelocityQueueManager implements QueueManager {
   }
 
   @Override
-  public @NotNull VelocityQueue getQueue(@NotNull String serverName) {
+  public @NotNull VelocityQueue<?> getQueue(@NotNull String serverName) {
     VelocityRegisteredServer rs = server.getServer(serverName)
         .orElseThrow(() -> new IllegalArgumentException("Unknown server: " + serverName));
 
@@ -195,13 +195,13 @@ public class VelocityQueueManager implements QueueManager {
   }
 
   @Override
-  public @NotNull Collection<VelocityQueue> getQueues() {
+  public @NotNull Collection<VelocityQueue<?>> getQueues() {
     return Collections.unmodifiableCollection(queues.values());
   }
 
   @Override
-  public @Nullable VelocityQueue getQueueFor(@NotNull UUID uniqueId) {
-    for (VelocityQueue q : queues.values()) {
+  public @Nullable VelocityQueue<?> getQueueFor(@NotNull UUID uniqueId) {
+    for (VelocityQueue<?> q : queues.values()) {
       if (q.contains(uniqueId)) {
         return q;
       }
@@ -216,7 +216,7 @@ public class VelocityQueueManager implements QueueManager {
 
   public void queue(@NotNull ConnectedPlayer player, @NotNull VelocityRegisteredServer targetServer) {
     String targetName = targetServer.getServerInfo().getName();
-    VelocityQueue queue = getQueue(targetName);
+    VelocityQueue<?> queue = getQueue(targetName);
 
     VelocityConfiguration.Queue config = server.getConfiguration().getQueue();
     if (!config.isEnabled() || player.hasPermission("velocity.queue.bypass")) {
@@ -231,7 +231,7 @@ public class VelocityQueueManager implements QueueManager {
     }
 
     if (!config.isAllowMultiQueue()) {
-      for (VelocityQueue q : queues.values()) {
+      for (VelocityQueue<?> q : queues.values()) {
         if (q.contains(player)) {
           q.dequeue(player);
           player.sendMessage(Component.translatable("velocity.queue.error.queued-swap")
@@ -260,19 +260,18 @@ public class VelocityQueueManager implements QueueManager {
     // If a queue-server is configured, move the player there if they aren't already on it
     String queueServerName = config.getQueueServer();
     if (!queueServerName.isEmpty()) {
-      server.getServer(queueServerName).ifPresentOrElse(queueServer -> {
-        player.getCurrentServer().ifPresent(currentServer -> {
-          if (!currentServer.getServerInfo().getName().equals(queueServerName)) {
-            player.createConnectionRequest(queueServer).connectWithIndication();
-          }
-        });
-      }, () -> LOGGER.warn("Queue server '{}' is configured but not registered!", queueServerName));
+      server.getServer(queueServerName).ifPresentOrElse(queueServer ->
+            player.getCurrentServer().ifPresent(currentServer -> {
+              if (!currentServer.getServerInfo().getName().equals(queueServerName)) {
+                player.createConnectionRequest(queueServer).connectWithIndication();
+              }
+            }), () -> LOGGER.warn("Queue server '{}' is configured but not registered!", queueServerName));
     }
   }
 
   @Override
   public void removePlayerEntirely(@NotNull UUID uniqueId) {
-    for (VelocityQueue queue : queues.values()) {
+    for (VelocityQueue<?> queue : queues.values()) {
       if (queue.contains(uniqueId)) {
         queue.dequeue(uniqueId);
       }
@@ -427,7 +426,7 @@ public class VelocityQueueManager implements QueueManager {
       return;
     }
 
-    for (VelocityQueue queue : queues.values()) {
+    for (VelocityQueue<?> queue : queues.values()) {
       VelocityRegisteredServer rs = server.getServer(queue.getName()).orElse(null);
       if (rs == null) {
         continue;
@@ -454,7 +453,7 @@ public class VelocityQueueManager implements QueueManager {
           return;
         }
 
-        // Still WAITING – check warmup delay
+        // Still WAITING ? check warmup delay
         Long lastOnline = LAST_TURNED_ONLINE_TIME.get(queue.getName());
         if (lastOnline != null) {
           double queueDelay = server.getConfiguration().getQueue().getQueueDelay() * 1000;
