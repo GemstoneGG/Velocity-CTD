@@ -35,7 +35,6 @@ import com.velocityctd.proxy.queue.VelocityQueue;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.event.command.PlayerAvailableCommandsEvent;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
-import com.velocitypowered.api.event.connection.DisconnectEvent.LoginStatus;
 import com.velocitypowered.api.event.connection.PreTransferEvent;
 import com.velocitypowered.api.event.player.CookieRequestEvent;
 import com.velocitypowered.api.event.player.CookieStoreEvent;
@@ -266,6 +265,12 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * {@code LoginEvent} breaks plugins that pair the two events).
    */
   private final AtomicBoolean loginEventFired = new AtomicBoolean(false);
+
+  /**
+   * Set when the full login sequence (through {@code PostLoginEvent}) has completed
+   * successfully, i.e. when {@code PlayerRegistry.finalizeLogin} runs.
+   */
+  private final AtomicBoolean loginCompleted = new AtomicBoolean(false);
 
   private final ResourcePackHandler resourcePackHandler;
 
@@ -1412,22 +1417,12 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     server.getPlayerRegistry().unregisterConnection(this);
   }
 
-  /**
-   * Transfers ownership of the per-identity lock to this player. Called by
-   * {@code PlayerRegistry} immediately after successful registration; the lock is held until
-   * one of the consumers below releases it.
-   */
   void setIdentityLock(@NonNull PlayerIdentityLock.LockHandle lock) {
     if (!identityLock.compareAndSet(null, lock)) {
       throw new IllegalStateException("Identity lock already set on " + this);
     }
   }
 
-  /**
-   * Atomically removes the held identity lock so the caller can release it. Returns {@code null}
-   * if no lock is currently held (already consumed by another path). Also cancels the login
-   * lock watchdog if it had been scheduled.
-   */
   @Nullable PlayerIdentityLock.LockHandle consumeIdentityLock() {
     PlayerIdentityLock.LockHandle lock = identityLock.getAndSet(null);
     if (lock != null) {
@@ -1439,9 +1434,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     return lock;
   }
 
-  /**
-   * Stores the watchdog that will forcibly release the identity lock on login timeout.
-   */
   void setLoginLockTimeout(@NonNull ScheduledFuture<?> timeout) {
     ScheduledFuture<?> previous = loginLockTimeout.getAndSet(timeout);
     if (previous != null) {
@@ -1449,35 +1441,26 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     }
   }
 
-  /**
-   * Atomically marks {@code DisconnectEvent} as fired for this player. Returns {@code true} the
-   * first time it is called, {@code false} on subsequent calls. Callers that get {@code false}
-   * must NOT fire {@code DisconnectEvent} or perform map cleanup; another path is doing so.
-   */
   boolean markDisconnectFired() {
     return disconnectFired.compareAndSet(false, true);
   }
 
-  /**
-   * Marks that {@code LoginEvent} has been fired for this player. Called by
-   * {@code AuthSessionHandler} immediately before {@code LoginEvent} fires.
-   */
   void markLoginEventFired() {
     loginEventFired.set(true);
   }
 
-  /**
-   * Returns {@code true} if {@code LoginEvent} has been fired for this player; the registry
-   * uses this to decide whether to fire {@code DisconnectEvent} at teardown.
-   */
   boolean isLoginEventFired() {
     return loginEventFired.get();
   }
 
-  /**
-   * Completes the {@link #teardownFuture}, exceptionally if {@code error} is non-null. Safe to
-   * call multiple times; only the first call has an effect.
-   */
+  void markLoginCompleted() {
+    loginCompleted.set(true);
+  }
+
+  boolean isLoginCompleted() {
+    return loginCompleted.get();
+  }
+
   void completeTeardown(@Nullable Throwable error) {
     if (error == null) {
       teardownFuture.complete(null);
@@ -1486,21 +1469,12 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     }
   }
 
-  /**
-   * Returns the disconnect status used when firing {@link DisconnectEvent} for this player.
-   * Package-visible so {@code PlayerRegistry} can compute it before maps are mutated.
-   */
-  DisconnectEvent.LoginStatus computeDisconnectStatus() {
-    Optional<ConnectedPlayer> registered = server.getPlayer(this.getUniqueId());
-    if (registered.isEmpty()) {
-      return connection.isKnownDisconnect() ? LoginStatus.CANCELLED_BY_PROXY : LoginStatus.CANCELLED_BY_USER;
-    }
+  boolean isFirstServerConnected() {
+    return firstServerConnected;
+  }
 
-    if (registered.get() != this) {
-      return LoginStatus.CONFLICTING_LOGIN;
-    }
-
-    return this.firstServerConnected ? LoginStatus.SUCCESSFUL_LOGIN : LoginStatus.PRE_SERVER_JOIN;
+  boolean isKnownDisconnect() {
+    return connection.isKnownDisconnect();
   }
 
   public CompletableFuture<Void> getTeardownFuture() {

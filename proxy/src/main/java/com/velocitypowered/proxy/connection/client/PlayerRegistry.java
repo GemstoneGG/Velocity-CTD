@@ -17,7 +17,11 @@
 
 package com.velocitypowered.proxy.connection.client;
 
+import static java.util.concurrent.CompletableFuture.completedFuture;
+import static java.util.concurrent.CompletableFuture.failedFuture;
+
 import com.velocitypowered.api.event.connection.DisconnectEvent;
+import com.velocitypowered.api.event.connection.DisconnectEvent.LoginStatus;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.PlayerIdentityLock.LockHandle;
 import java.net.InetAddress;
@@ -33,6 +37,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import net.kyori.adventure.text.Component;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -97,7 +102,7 @@ public final class PlayerRegistry {
     UUID uuid = player.getUniqueId();
     String name = player.getUsername().toLowerCase(Locale.ROOT);
     return identityLock.acquire(uuid, name)
-        .thenCompose(lock -> tryRegisterLocked(player, lock));
+        .thenCompose(lock -> withLockReleasedOnFailure(lock, () -> tryRegisterLocked(player, lock)));
   }
 
   /**
@@ -106,6 +111,7 @@ public final class PlayerRegistry {
    * after a successful login flow.
    */
   public void finalizeLogin(@NonNull ConnectedPlayer player) {
+    player.markLoginCompleted();
     LockHandle lock = player.consumeIdentityLock();
     if (lock != null) {
       lock.release();
@@ -126,15 +132,29 @@ public final class PlayerRegistry {
   public @NonNull CompletableFuture<Void> unregisterConnection(@NonNull ConnectedPlayer player) {
     LockHandle held = player.consumeIdentityLock();
     if (held != null) {
-      return doUnregisterLocked(player)
+      return withLockReleasedOnFailure(held, () -> doUnregisterLocked(player))
           .whenComplete((v, ex) -> held.release());
     }
 
     UUID uuid = player.getUniqueId();
     String name = player.getUsername().toLowerCase(Locale.ROOT);
     return identityLock.acquire(uuid, name)
-        .thenCompose(lock -> doUnregisterLocked(player)
+        .thenCompose(lock -> withLockReleasedOnFailure(lock, () -> doUnregisterLocked(player))
             .whenComplete((v, ex) -> lock.release()));
+  }
+
+  private static <T> CompletableFuture<T> withLockReleasedOnFailure(LockHandle lock, Supplier<CompletableFuture<T>> function) {
+    CompletableFuture<T> result;
+    try {
+      result = function.get();
+    } catch (Throwable t) {
+      lock.release();
+      return failedFuture(t);
+    }
+    return result.exceptionallyCompose(ex -> {
+      lock.release();
+      return failedFuture(ex);
+    });
   }
 
   private CompletableFuture<Boolean> tryRegisterLocked(ConnectedPlayer player, LockHandle lock) {
@@ -144,13 +164,13 @@ public final class PlayerRegistry {
     if (!server.getConfiguration().isKickExistingPlayers()) {
       if (byUuid.containsKey(uuid) || byName.containsKey(name)) {
         lock.release();
-        return CompletableFuture.completedFuture(false);
+        return completedFuture(false);
       }
 
       byUuid.put(uuid, player);
       byName.put(name, player);
       attachLockToPlayer(player, lock);
-      return CompletableFuture.completedFuture(true);
+      return completedFuture(true);
     }
 
     ConnectedPlayer existingByUuid = byUuid.get(uuid);
@@ -162,13 +182,13 @@ public final class PlayerRegistry {
       if (existingByUuid != null
           && !address.equals(existingByUuid.getRemoteAddress().getAddress())) {
         lock.release();
-        return CompletableFuture.completedFuture(false);
+        return completedFuture(false);
       }
 
       if (existingByName != null
           && !address.equals(existingByName.getRemoteAddress().getAddress())) {
         lock.release();
-        return CompletableFuture.completedFuture(false);
+        return completedFuture(false);
       }
     }
 
@@ -182,10 +202,15 @@ public final class PlayerRegistry {
     } else if (existingByName != null) {
       evictFuture = forciblyEvict(existingByName);
     } else {
-      evictFuture = CompletableFuture.completedFuture(null);
+      evictFuture = completedFuture(null);
     }
 
     return evictFuture.thenApply(v -> {
+      if (player.getConnection().isClosed()) {
+        lock.release();
+        return false;
+      }
+
       byUuid.put(uuid, player);
       byName.put(name, player);
       attachLockToPlayer(player, lock);
@@ -230,17 +255,17 @@ public final class PlayerRegistry {
       return existing.getTeardownFuture().exceptionally(ex -> null);
     }
 
-    return fireDisconnectAndCleanup(existing, "kicked player");
+    return fireDisconnectAndCleanup(existing, "kicked player", LoginStatus.CONFLICTING_LOGIN);
   }
 
   private CompletableFuture<Void> doUnregisterLocked(ConnectedPlayer player) {
     if (!player.markDisconnectFired()) {
       // DisconnectEvent was already fired (e.g. by the kick path). Cleanup has already run
       // and teardownFuture has already been completed by the kicker; nothing more to do.
-      return CompletableFuture.completedFuture(null);
+      return completedFuture(null);
     }
 
-    return fireDisconnectAndCleanup(player, "player");
+    return fireDisconnectAndCleanup(player, "player", computeDisconnectStatus(player));
   }
 
   /**
@@ -249,14 +274,16 @@ public final class PlayerRegistry {
    * cleanup, and completes the teardown future. Callers must have won {@link
    * ConnectedPlayer#markDisconnectFired()} before invoking this so only one path runs cleanup.
    */
-  private CompletableFuture<Void> fireDisconnectAndCleanup(ConnectedPlayer player, String label) {
+  private CompletableFuture<Void> fireDisconnectAndCleanup(ConnectedPlayer player,
+                                                           String label,
+                                                           LoginStatus status) {
     if (!player.isLoginEventFired()) {
       // The connection was rejected or aborted before LoginEvent fired. Run cleanup but skip the event.
       runCleanup(player, null, label);
-      return CompletableFuture.completedFuture(null);
+      return completedFuture(null);
     }
 
-    DisconnectEvent event = new DisconnectEvent(player, player.computeDisconnectStatus());
+    DisconnectEvent event = new DisconnectEvent(player, status);
     return server.getEventManager().fire(event)
         .completeOnTimeout(event, DISCONNECT_EVENT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .handle((v, ex) -> {
@@ -266,6 +293,20 @@ public final class PlayerRegistry {
           runCleanup(player, ex, label);
           return null;
         });
+  }
+
+  /**
+   * Resolves to all {@link LoginStatus} values except for {@link LoginStatus#CONFLICTING_LOGIN}.
+   */
+  private LoginStatus computeDisconnectStatus(ConnectedPlayer player) {
+    ConnectedPlayer registered = byUuid.get(player.getUniqueId());
+    if (registered != player) {
+      return player.isKnownDisconnect() ? LoginStatus.CANCELLED_BY_PROXY : LoginStatus.CANCELLED_BY_USER;
+    }
+    if (!player.isLoginCompleted() && !player.isKnownDisconnect()) {
+      return LoginStatus.CANCELLED_BY_USER_BEFORE_COMPLETE;
+    }
+    return player.isFirstServerConnected() ? LoginStatus.SUCCESSFUL_LOGIN : LoginStatus.PRE_SERVER_JOIN;
   }
 
   private void runCleanup(ConnectedPlayer player, Throwable error, String label) {
