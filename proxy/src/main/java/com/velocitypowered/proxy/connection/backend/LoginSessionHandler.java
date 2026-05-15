@@ -219,7 +219,9 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
               This is usually because the remote server does not have \
               BungeeCord IP forwarding correctly enabled.
               See https://docs.papermc.io/velocity/player-information-forwarding for instructions \
-              on how to configure player info forwarding correctly."""));
+              on how to configure player info forwarding correctly.
+              """
+      ));
     } else {
       resultFuture.completeExceptionally(
           new QuietRuntimeException("The connection to the remote server was unexpectedly closed.")
