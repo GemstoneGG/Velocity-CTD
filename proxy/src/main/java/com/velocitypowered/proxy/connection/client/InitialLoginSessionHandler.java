@@ -43,10 +43,6 @@ import com.velocitypowered.proxy.protocol.packet.ServerLoginPacket;
 import com.velocitypowered.proxy.util.VelocityProperties;
 import io.netty.buffer.ByteBuf;
 import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.MessageDigest;
@@ -55,6 +51,8 @@ import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
+import org.apache.hc.client5.http.async.methods.SimpleRequestBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -220,14 +218,9 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
         url += "&ip=" + urlFormParameterEscaper().escape(playerIp);
       }
 
-      HttpRequest httpRequest = HttpRequest.newBuilder()
-          .setHeader("User-Agent",
-              server.getVersion().getName() + "/" + server.getVersion().getVersion())
-          .uri(URI.create(url))
-          .build();
+      SimpleHttpRequest httpRequest = SimpleRequestBuilder.get(url).build();
 
-      HttpClient httpClient = server.getSharedHttpClient();
-      httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString())
+      server.getConnectionManager().sendAsync(httpRequest)
           .whenCompleteAsync((response, throwable) -> {
             if (mcConnection.isClosed()) {
               // The player disconnected after we authenticated them.
@@ -240,8 +233,8 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
               return;
             }
 
-            if (response.statusCode() == 200) {
-              GameProfile profile = GENERAL_GSON.fromJson(response.body(), GameProfile.class);
+            if (response.getCode() == 200) {
+              GameProfile profile = GENERAL_GSON.fromJson(response.getBodyText(), GameProfile.class);
 
               // Not so fast, now we verify the public key for 1.19.1+
               if (inbound.getIdentifiedKey() != null
@@ -254,7 +247,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
               }
               // All went well, initialize the session.
               mcConnection.setActiveSessionHandler(StateRegistry.LOGIN, new AuthSessionHandler(server, inbound, profile, true, serverId));
-            } else if (response.statusCode() == 204) {
+            } else if (response.getCode() == 204) {
               // Apparently, an offline-mode user logged onto this online-mode proxy.
               inbound.disconnect(
                   Component.translatable("velocity.error.online-mode-only", NamedTextColor.RED));
@@ -262,7 +255,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
               // Something else went wrong
               LOGGER.error(
                   "Got an unexpected error code {} whilst contacting Mojang to log in {} ({})",
-                  response.statusCode(), login.getUsername(), playerIp);
+                  response.getCode(), login.getUsername(), playerIp);
               inbound.disconnect(Component.translatable("multiplayer.disconnect.authservers_down"));
             }
           }, mcConnection.eventLoop());

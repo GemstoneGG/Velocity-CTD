@@ -104,7 +104,6 @@ import io.netty.channel.EventLoopGroup;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.http.HttpClient;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyPair;
@@ -1057,12 +1056,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     this.cm.closeEndpoints(false);
   }
 
-  public HttpClient createHttpClient() {
-    return cm.createHttpClient();
-  }
-
-  public HttpClient getSharedHttpClient() {
-    return cm.getSharedHttpClient();
+  public ConnectionManager getConnectionManager() {
+    return cm;
   }
 
   public @MonotonicNonNull Ratelimiter<InetAddress> getIpAttemptLimiter() {

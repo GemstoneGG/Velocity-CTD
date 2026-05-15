@@ -151,6 +151,7 @@ dependencies {
     implementation(variantOf(libs.netty.transport.native.kqueue) { classifier("osx-aarch_64") })
 
     implementation(libs.lettuce.core)
+    implementation(libs.httpclient5)
     implementation(libs.jopt)
     implementation(libs.terminalconsoleappender)
     implementation(libs.jline.terminal)
