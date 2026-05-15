@@ -206,7 +206,6 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
    * type via its {@code <E>} parameter and supplies the matching constructor call here.
    *
    * @param data the player data
-   * @return a new entry instance
    */
   protected abstract E createEntry(@NotNull QueueEntryData data);
 

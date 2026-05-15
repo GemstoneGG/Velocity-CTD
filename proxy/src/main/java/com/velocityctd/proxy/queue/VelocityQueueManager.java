@@ -453,7 +453,7 @@ public class VelocityQueueManager implements QueueManager {
           return;
         }
 
-        // Still WAITING ? check warmup delay
+        // Still WAITING - check warmup delay
         Long lastOnline = LAST_TURNED_ONLINE_TIME.get(queue.getName());
         if (lastOnline != null) {
           double queueDelay = server.getConfiguration().getQueue().getQueueDelay() * 1000;

@@ -26,7 +26,7 @@ import org.jetbrains.annotations.NotNull;
  * @param proxyId the id of the proxy to get the uptime of
  */
 public record VelocityUptime(String proxyId) implements TransactionData<Long> {
-    
+
   @Override
   public @NotNull Class<Long> responseClass() {
     return Long.class;
