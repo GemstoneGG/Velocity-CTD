@@ -442,13 +442,13 @@ public final class LettuceProvider extends AbstractRedisProvider {
      * Retrieves a value from the depot by key.
      *
      * @param key the key to retrieve the value for
-     * @return the deserialized value, or {@code null} if none exists
+     * @return the deserialized value
      */
     @Override
-    public @Nullable V get(@NotNull K key) {
+    public @NotNull V get(@NotNull K key) {
       byte[] data = this.connection.hget(this.name, parseKey(key));
       if (data == null) {
-        return null;
+        throw new RuntimeException("Failed to retrieve key '" + key + "' from depot '" + name + "'. Killing proxy to avoid undefined state.");
       }
       V entry = deserialize(data);
       if (entry == null) {

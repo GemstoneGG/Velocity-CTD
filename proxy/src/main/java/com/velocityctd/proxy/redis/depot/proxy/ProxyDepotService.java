@@ -20,6 +20,7 @@ package com.velocityctd.proxy.redis.depot.proxy;
 import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.depot.AbstractDepotService;
 import com.velocityctd.proxy.redis.depot.player.PlayerEntry;
+import com.velocityctd.proxy.redis.provider.LettuceProvider;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import java.time.Duration;
@@ -84,7 +85,7 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
     this.redis = redis;
     this.heartbeatKeyPrefix = HEARTBEAT_KEY_TEMPLATE.formatted(
             redis.getProvider().getNamespace(),
-            com.velocityctd.proxy.redis.provider.LettuceProvider.VERSION
+            LettuceProvider.VERSION
     );
 
     this.depot.upsert(new ProxyEntry(redis.getServer()));
