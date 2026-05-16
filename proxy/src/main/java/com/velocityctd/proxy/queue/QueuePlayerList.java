@@ -18,19 +18,18 @@
 package com.velocityctd.proxy.queue;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.function.Predicate;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Encapsulates the ordered player deque and its UUID lookup index for a {@link VelocityQueue}.
+ * Encapsulates the ordered player list and its UUID lookup index for a {@link VelocityQueue}.
  */
 public final class QueuePlayerList<E extends VelocityQueueEntry> {
 
-  private final ConcurrentLinkedDeque<E> players = new ConcurrentLinkedDeque<>();
+  private final List<E> players = new ArrayList<>();
   private final ConcurrentHashMap<UUID, E> index = new ConcurrentHashMap<>();
 
   /**
@@ -42,34 +41,35 @@ public final class QueuePlayerList<E extends VelocityQueueEntry> {
       return;
     }
 
-    Iterator<E> it = players.iterator();
-    int position = 0;
-    boolean inserted = false;
+    int size = players.size();
 
-    while (it.hasNext()) {
-      if (it.next().getPriority() < entry.getPriority()) {
-        insertAt(entry, position);
-        inserted = true;
+    if (size == 0 || players.get(size - 1).getPriority() >= entry.getPriority()) {
+      players.add(entry);
+      index.put(entry.getUniqueId(), entry);
+      entry.setPosition(size + 1);
+      return;
+    }
+
+    int target = size;
+    for (int i = 0; i < size; i++) {
+      if (players.get(i).getPriority() < entry.getPriority()) {
+        target = i;
         break;
       }
-      position++;
     }
 
-    if (!inserted) {
-      players.addLast(entry);
-    }
-
+    players.add(target, entry);
     index.put(entry.getUniqueId(), entry);
-    rebuildPositions();
+    renumberFrom(target);
   }
 
   /**
-   * Appends the entry to the tail of the deque without priority sorting.
+   * Appends the entry to the tail of the list without priority sorting.
    * Used when restoring entries from a Redis depot snapshot, where ordering
    * is already correct.
    */
   public synchronized void addLast(E entry) {
-    players.addLast(entry);
+    players.add(entry);
     index.put(entry.getUniqueId(), entry);
     entry.setPosition(players.size());
   }
@@ -78,9 +78,14 @@ public final class QueuePlayerList<E extends VelocityQueueEntry> {
    * Removes the entry with the given UUID, if present.
    */
   public synchronized void remove(UUID uniqueId) {
-    players.removeIf(p -> p.getUniqueId().equals(uniqueId));
-    index.remove(uniqueId);
-    rebuildPositions();
+    E removed = index.remove(uniqueId);
+    if (removed == null) {
+      return;
+    }
+
+    int idx = players.indexOf(removed);
+    players.remove(idx);
+    renumberFrom(idx);
   }
 
   /**
@@ -113,23 +118,33 @@ public final class QueuePlayerList<E extends VelocityQueueEntry> {
   }
 
   /**
-   * Returns an unmodifiable ordered snapshot of all entries.
+   * Returns an unmodifiable, point-in-time ordered snapshot of all entries.
    */
-  public List<E> snapshot() {
+  public synchronized List<E> snapshot() {
     return List.copyOf(players);
   }
 
-  private void insertAt(E entry, int position) {
-    List<E> tempList = new ArrayList<>(players);
-    tempList.add(position, entry);
-    players.clear();
-    players.addAll(tempList);
+  /**
+   * Returns the first entry, in queue order, that matches the given predicate, or
+   * {@code null} if none match. Evaluates the predicate against the live list under
+   * the lock - no snapshot copy is made.
+   */
+  public synchronized @Nullable E findFirst(Predicate<? super E> filter) {
+    for (E entry : players) {
+      if (filter.test(entry)) {
+        return entry;
+      }
+    }
+    return null;
   }
 
-  private void rebuildPositions() {
-    int pos = 1;
-    for (E entry : players) {
-      entry.setPosition(pos++);
+  /**
+   * Reassigns 1-based positions to every entry from {@code fromIndex} onward.
+   * Entries before {@code fromIndex} keep their existing positions.
+   */
+  private void renumberFrom(int fromIndex) {
+    for (int i = fromIndex; i < players.size(); i++) {
+      players.get(i).setPosition(i + 1);
     }
   }
 }

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -105,6 +106,15 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
   @Override
   public @NotNull @Unmodifiable Collection<E> getEntries() {
     return playerList.snapshot();
+  }
+
+  /**
+   * Returns the first entry matching the predicate, evaluated against the live list
+   * without copying the queue. Intended for hot paths that would otherwise scan
+   * {@link #getEntries()}.
+   */
+  public @Nullable E findFirst(@NotNull Predicate<? super E> filter) {
+    return playerList.findFirst(filter);
   }
 
   @Override

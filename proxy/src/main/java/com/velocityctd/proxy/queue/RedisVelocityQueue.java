@@ -184,15 +184,12 @@ public final class RedisVelocityQueue extends VelocityQueue<RedisVelocityQueueEn
   @ApiStatus.Internal
   void applyWaitingChange(@NotNull UUID uuid, boolean waitingForConnection, int connectionAttempts,
                           int updatedPriority, boolean updatedFullBypass, boolean updatedQueueBypass) {
-    for (RedisVelocityQueueEntry entry : getInternalEntries()) {
-      if (entry.getUniqueId().equals(uuid)) {
-        entry.applyWaitingChangeFromPacket(
-            waitingForConnection, connectionAttempts,
-            updatedPriority, updatedFullBypass, updatedQueueBypass
-        );
-
-        break;
-      }
+    RedisVelocityQueueEntry entry = getEntry(uuid);
+    if (entry != null) {
+      entry.applyWaitingChangeFromPacket(
+          waitingForConnection, connectionAttempts,
+          updatedPriority, updatedFullBypass, updatedQueueBypass
+      );
     }
   }
 
