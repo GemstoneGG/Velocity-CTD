@@ -33,11 +33,9 @@ public final class TransferIntegrationMigration implements ConfigurationMigratio
   @Override
   public void migrate(CommentedFileConfig config, Logger logger) {
     config.set("advanced.accepts-transfers", false);
-    config.setComment("advanced.accepts-transfers",
-            """
+    config.setComment("advanced.accepts-transfers", """
             Allows players transferred from other hosts via the
-            Transfer packet (Minecraft 1.20.5) to be received.
-            """
+            Transfer packet (Minecraft 1.20.5) to be received."""
     );
     config.set("config-version", "2.7");
   }

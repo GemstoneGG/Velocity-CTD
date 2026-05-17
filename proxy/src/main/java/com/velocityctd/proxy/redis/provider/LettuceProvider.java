@@ -114,17 +114,9 @@ public final class LettuceProvider extends AbstractRedisProvider {
    */
   @Override
   public void restart() {
-    if (this.publisher != null) {
-      this.publisher.getStatefulConnection().close();
-    }
-
-    if (this.syncPublisher != null) {
-      this.syncPublisher.getStatefulConnection().close();
-    }
-
-    if (this.depotConnection != null) {
-      this.depotConnection.close();
-    }
+    final RedisPubSubAsyncCommands<String, String> oldPublisher = this.publisher;
+    final RedisPubSubCommands<String, String> oldSyncPublisher = this.syncPublisher;
+    final StatefulRedisConnection<String, String> oldDepotConnection = this.depotConnection;
 
     StatefulRedisPubSubConnection<String, String> connection = this.client.connectPubSub();
 
@@ -166,12 +158,26 @@ public final class LettuceProvider extends AbstractRedisProvider {
       }
     });
 
-    this.publisher = connection.async();
-    this.publisher.subscribe(CHANNEL);
+    RedisPubSubAsyncCommands<String, String> newPublisher = connection.async();
+    newPublisher.subscribe(CHANNEL);
+    StatefulRedisConnection<String, String> newDepotConnection = this.client.connect();
 
+    this.publisher = newPublisher;
     this.syncPublisher = connection.sync();
-    this.depotConnection = this.client.connect();
-    this.depotCommands = this.depotConnection.sync();
+    this.depotConnection = newDepotConnection;
+    this.depotCommands = newDepotConnection.sync();
+
+    if (oldPublisher != null) {
+      oldPublisher.getStatefulConnection().close();
+    }
+
+    if (oldSyncPublisher != null) {
+      oldSyncPublisher.getStatefulConnection().close();
+    }
+
+    if (oldDepotConnection != null) {
+      oldDepotConnection.close();
+    }
 
     LOGGER.info("Connected to Lettuce Redis Server on channel '{}'", CHANNEL);
   }
