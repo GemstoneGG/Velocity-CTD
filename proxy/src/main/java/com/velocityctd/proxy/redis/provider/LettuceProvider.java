@@ -30,8 +30,6 @@ import com.velocitypowered.api.scheduler.Scheduler;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
-import io.lettuce.core.api.StatefulRedisConnection;
-import io.lettuce.core.api.sync.RedisCommands;
 import io.lettuce.core.codec.ByteArrayCodec;
 import io.lettuce.core.codec.RedisCodec;
 import io.lettuce.core.codec.StringCodec;
