@@ -99,7 +99,6 @@ import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
 import com.velocitypowered.proxy.protocol.packet.RemoveResourcePackPacket;
 import com.velocitypowered.proxy.protocol.packet.TransferPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatQueue;
-import com.velocitypowered.proxy.protocol.packet.chat.ChatType;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
 import com.velocitypowered.proxy.protocol.packet.chat.PlayerChatCompletionPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.builder.ChatBuilderFactory;
@@ -140,7 +139,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import net.kyori.adventure.audience.MessageType;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.key.Key;
@@ -574,26 +572,13 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   @Override
-  @SuppressWarnings("deprecation")
-  public void sendMessage(@NonNull Identity identity, @NonNull Component message) {
-    Component translated = translateMessage(message);
-
-    connection.write(getChatBuilderFactory().builder().component(translated).forIdentity(identity).toClient());
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public void sendMessage(@NonNull Identity identity, @NonNull Component message,
-                          @NonNull MessageType type) {
+  public void sendMessage(final @NonNull Component message) {
     Preconditions.checkNotNull(message, "message");
-    Preconditions.checkNotNull(type, "type");
 
-    Component translated = translateMessage(message).replaceText(TextReplacementConfig.builder().match("''").replacement("'").build());
+    final Component translated = translateMessage(message).replaceText(TextReplacementConfig.builder().match("''").replacement("'").build());
 
     connection.write(getChatBuilderFactory().builder()
-        .component(translated).forIdentity(identity)
-        .setType(type == MessageType.CHAT ? ChatType.CHAT : ChatType.SYSTEM)
-        .toClient());
+        .component(translated).toClient());
   }
 
   @Override
