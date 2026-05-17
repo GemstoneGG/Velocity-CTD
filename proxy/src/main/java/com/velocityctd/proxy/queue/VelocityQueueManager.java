@@ -401,27 +401,29 @@ public class VelocityQueueManager implements QueueManager {
 
     Set<UUID> transferredThisTick = new HashSet<>();
 
-    queues.values().stream()
-        .filter(q -> q.getState() == ACTIVE)
-        .filter(q -> q.getServerStatus().isActive())
-        .filter(q -> q.size() > 0)
-        .forEach(queue -> {
-          VelocityQueueEntry candidate = queue.findFirst(e ->
-              !transferredThisTick.contains(e.getUniqueId())
-                  && (queue.getServerStatus() != FULL || e.isFullBypass())
-                  && !e.isWaitingForConnection());
+    for (VelocityQueue<?> queue : queues.values()) {
+      if (queue.getState() != ACTIVE
+          || !queue.getServerStatus().isActive()
+          || queue.size() == 0) {
+        continue;
+      }
 
-          if (candidate == null) {
-            return;
-          }
+      VelocityQueueEntry candidate = queue.findFirst(e ->
+          !transferredThisTick.contains(e.getUniqueId())
+              && (queue.getServerStatus() != FULL || e.isFullBypass())
+              && !e.isWaitingForConnection());
 
-          if (isPlayerOnline(candidate.getUniqueId())) {
-            queue.transferEntry(candidate);
-            transferredThisTick.add(candidate.getUniqueId());
-          } else {
-            queue.removeEntry(candidate);
-          }
-        });
+      if (candidate == null) {
+        continue;
+      }
+
+      if (isPlayerOnline(candidate.getUniqueId())) {
+        queue.transferEntry(candidate);
+        transferredThisTick.add(candidate.getUniqueId());
+      } else {
+        queue.removeEntry(candidate);
+      }
+    }
   }
 
   private void pingBackends() {
@@ -489,6 +491,7 @@ public class VelocityQueueManager implements QueueManager {
       if (entries.size() > 1) {
         entries.sort(Comparator.comparing(e -> e.getQueue().getName()));
       }
+
       int index = (actionBarTick / TICKS_PER_ACTION_BAR_CHANGE) % entries.size();
       sendActionBar(entries.get(index));
     }
