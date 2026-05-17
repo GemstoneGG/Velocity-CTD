@@ -28,7 +28,7 @@ import org.jetbrains.annotations.Nullable;
  * <p>This record is published whenever the queue state changes on any proxy (player enqueued,
  * dequeued, server status changed, queue state changed, or waitingForConnection flag updated).
  * All proxies receive the record and apply the change to their local in-memory queue, ensuring
- * consistent queue state across the cluster without full-overwrite race conditions.</p>
+ * a consistent queue state across the cluster without full-overwrite race conditions.</p>
  */
 public record VelocityQueueSync(
     Action action,
@@ -65,7 +65,7 @@ public record VelocityQueueSync(
    * Creates an ENQUEUE sync.
    */
   public static VelocityQueueSync enqueue(String serverName, UUID uuid, String username, int priority,
-                                           boolean fullBypass, boolean queueBypass) {
+                                          boolean fullBypass, boolean queueBypass) {
     return new VelocityQueueSync(Action.ENQUEUE, serverName, uuid, username, priority, fullBypass,
         queueBypass, null, null, false, 0, 0, false, false, 0L, 0);
   }
@@ -98,8 +98,8 @@ public record VelocityQueueSync(
    * Creates a WAITING_CHANGE sync.
    */
   public static VelocityQueueSync waitingChange(String serverName, UUID uuid, boolean waitingForConnection,
-                                                  int connectionAttempts, int updatedPriority,
-                                                  boolean updatedFullBypass, boolean updatedQueueBypass) {
+                                                int connectionAttempts, int updatedPriority,
+                                                boolean updatedFullBypass, boolean updatedQueueBypass) {
     return new VelocityQueueSync(Action.WAITING_CHANGE, serverName, uuid, null, 0, false, false,
         null, null, waitingForConnection, connectionAttempts, updatedPriority,
         updatedFullBypass, updatedQueueBypass, 0L, 0);

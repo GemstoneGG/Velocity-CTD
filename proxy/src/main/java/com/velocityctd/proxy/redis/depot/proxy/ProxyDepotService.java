@@ -120,15 +120,6 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
   }
 
   /**
-   * Get a list of all the {@link ProxyEntry proxy} IDs currently present in the depot, in lower case.
-   *
-   * @return the list of all proxy IDs in lower case, sorted alphabetically
-   */
-  public List<String> getAllProxyIdsLowerCase() {
-    return this.depot.keys().stream().map(String::toLowerCase).sorted().toList();
-  }
-
-  /**
    * Publishes this proxy's heartbeat key to Redis with a TTL of {@link #HEARTBEAT_TTL}.
    * Called every {@link #HEARTBEAT_INTERVAL} by the scheduler.
    */
@@ -146,7 +137,7 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
 
   /**
    * Checks all known proxies in Redis for a live heartbeat key. Any proxy whose heartbeat
-   * has expired is considered dead and its player and proxy entries are removed from Redis.
+   * has expired is considered dead, and its player and proxy entries are removed from Redis.
    * Called every {@link #HEARTBEAT_INTERVAL} by the scheduler.
    */
   private void reapDeadProxies() {

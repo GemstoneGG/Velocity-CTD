@@ -30,6 +30,8 @@ import com.velocitypowered.api.scheduler.Scheduler;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
+import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.api.sync.RedisCommands;
 import io.lettuce.core.pubsub.RedisPubSubAdapter;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import io.lettuce.core.pubsub.api.async.RedisPubSubAsyncCommands;
@@ -72,6 +74,20 @@ public final class LettuceProvider extends AbstractRedisProvider {
   private RedisPubSubCommands<String, String> syncPublisher;
 
   /**
+   * A single shared connection used by all {@link LettuceDepot} instances for hash
+   * operations. Depots do not use pub/sub, so one regular connection replaces the
+   * previous per-depot connections. The connection itself is held for lifecycle
+   * management; {@link #depotCommands} is its synchronous command view.
+   */
+  private StatefulRedisConnection<String, String> depotConnection;
+
+  /**
+   * The synchronous command view of {@link #depotConnection}, shared by all
+   * {@link LettuceDepot} instances for their Redis hash operations.
+   */
+  private RedisCommands<String, String> depotCommands;
+
+  /**
    * Constructs a new {@link LettuceProvider}.
    *
    * @param config the {@link VelocityConfiguration.Redis} instance to use for connection credentials
@@ -98,13 +114,9 @@ public final class LettuceProvider extends AbstractRedisProvider {
    */
   @Override
   public void restart() {
-    if (this.publisher != null) {
-      this.publisher.getStatefulConnection().close();
-    }
-
-    if (this.syncPublisher != null) {
-      this.syncPublisher.getStatefulConnection().close();
-    }
+    final RedisPubSubAsyncCommands<String, String> oldPublisher = this.publisher;
+    final RedisPubSubCommands<String, String> oldSyncPublisher = this.syncPublisher;
+    final StatefulRedisConnection<String, String> oldDepotConnection = this.depotConnection;
 
     StatefulRedisPubSubConnection<String, String> connection = this.client.connectPubSub();
 
@@ -146,10 +158,26 @@ public final class LettuceProvider extends AbstractRedisProvider {
       }
     });
 
-    this.publisher = connection.async();
-    this.publisher.subscribe(CHANNEL);
+    RedisPubSubAsyncCommands<String, String> newPublisher = connection.async();
+    newPublisher.subscribe(CHANNEL);
+    StatefulRedisConnection<String, String> newDepotConnection = this.client.connect();
 
+    this.publisher = newPublisher;
     this.syncPublisher = connection.sync();
+    this.depotConnection = newDepotConnection;
+    this.depotCommands = newDepotConnection.sync();
+
+    if (oldPublisher != null) {
+      oldPublisher.getStatefulConnection().close();
+    }
+
+    if (oldSyncPublisher != null) {
+      oldSyncPublisher.getStatefulConnection().close();
+    }
+
+    if (oldDepotConnection != null) {
+      oldDepotConnection.close();
+    }
 
     LOGGER.info("Connected to Lettuce Redis Server on channel '{}'", CHANNEL);
   }
@@ -175,6 +203,12 @@ public final class LettuceProvider extends AbstractRedisProvider {
       syncPublisher.getStatefulConnection().close();
     }
     syncPublisher = null;
+
+    if (depotConnection != null && depotConnection.isOpen()) {
+      depotConnection.close();
+    }
+    depotConnection = null;
+    depotCommands = null;
 
     this.client.shutdown();
 
@@ -231,9 +265,8 @@ public final class LettuceProvider extends AbstractRedisProvider {
    *
    * @param dataPacket the one-way packet to handle
    */
-  @SuppressWarnings("unchecked")
   private void handleOneWay(@NotNull DataPacket dataPacket) {
-    RouteHandler<Object> routeHandler = (RouteHandler<Object>) routeHandlers.get(dataPacket.getPayloadType());
+    RouteHandler<?> routeHandler = routeHandlers.get(dataPacket.getPayloadType());
     if (routeHandler == null) {
       LOGGER.warn("Received a packet of type '{}' from channel '{}', but no route registration exists, ignoring",
               dataPacket.getPayloadType(), CHANNEL);
@@ -241,7 +274,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
     }
 
     try {
-      routeHandler.getConsumer().accept(dataPacket.getPayload(packetSerializer));
+      routeHandler.dispatch(dataPacket, packetSerializer);
     } catch (Throwable t) {
       LOGGER.warn("Failed to handle one way packet of type '{}'.", dataPacket.getPayloadType(), t);
     }
@@ -253,14 +286,13 @@ public final class LettuceProvider extends AbstractRedisProvider {
    *
    * @param dataPacket the incoming transaction request packet
    */
-  @SuppressWarnings({"unchecked", "rawtypes"})
   private void handleTransactionRequest(@NotNull DataPacket dataPacket) {
-    TransactionHandler transactionHandler = transactionHandlers.get(dataPacket.getPayloadType());
+    TransactionHandler<?, ?> transactionHandler = transactionHandlers.get(dataPacket.getPayloadType());
     if (transactionHandler == null) {
       return;
     }
 
-    CompletableFuture<?> future = transactionHandler.handleData(dataPacket.getPayload(packetSerializer));
+    CompletableFuture<?> future = transactionHandler.dispatch(dataPacket, packetSerializer);
     if (future == null) {
       return;
     }
@@ -295,7 +327,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
       return;
     }
 
-    transaction.complete(dataPacket.getPayload(packetSerializer));
+    transaction.completeFrom(dataPacket, packetSerializer);
   }
 
   /**
@@ -386,11 +418,6 @@ public final class LettuceProvider extends AbstractRedisProvider {
     private final Class<V> valueClass;
 
     /**
-     * The synchronous Pub/Sub commands used to interact with Redis hashes for this depot.
-     */
-    private final RedisPubSubCommands<String, String> connection;
-
-    /**
      * Constructs a new {@link LettuceDepot} instance.
      *
      * @param valueClass the class of the depot value
@@ -398,7 +425,6 @@ public final class LettuceProvider extends AbstractRedisProvider {
     public LettuceDepot(@NotNull Class<V> valueClass) {
       this.name = valueClass.getSimpleName().toLowerCase();
       this.valueClass = valueClass;
-      this.connection = client.connectPubSub().sync();
     }
 
     /**
@@ -409,7 +435,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public boolean contains(@NotNull K key) {
-      return this.connection.hexists(this.name, parseKey(key));
+      return depotCommands.hexists(this.name, parseKey(key));
     }
 
     /**
@@ -420,7 +446,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public @Nullable V get(@NotNull K key) {
-      String data = this.connection.hget(this.name, parseKey(key));
+      String data = depotCommands.hget(this.name, parseKey(key));
       return data == null ? null : deserialize(data);
     }
 
@@ -431,7 +457,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public void upsert(@NotNull V value) {
-      this.connection.hset(this.name, parseKey(value.getUniqueId()), serialize(value));
+      depotCommands.hset(this.name, parseKey(value.getUniqueId()), serialize(value));
       value.setDepot(this);
     }
 
@@ -443,14 +469,14 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public @Nullable V remove(@NotNull K key) {
-      if (this.connection.hexists(this.name, parseKey(key))) {
-        String data = this.connection.hget(this.name, parseKey(key));
-        this.connection.hdel(this.name, parseKey(key));
-
-        return data == null ? null : deserialize(data);
+      String field = parseKey(key);
+      String data = depotCommands.hget(this.name, field);
+      if (data == null) {
+        return null;
       }
 
-      return null;
+      depotCommands.hdel(this.name, field);
+      return deserialize(data);
     }
 
     /**
@@ -460,7 +486,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public Collection<V> values() {
-      return this.connection.hvals(this.name).stream().map(this::deserialize).toList();
+      return depotCommands.hvals(this.name).stream().map(this::deserialize).toList();
     }
 
     /**
@@ -470,7 +496,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public Collection<String> keys() {
-      return this.connection.hkeys(this.name);
+      return depotCommands.hkeys(this.name);
     }
 
     /**

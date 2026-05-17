@@ -53,11 +53,6 @@ public final class VelocityRedis {
   private final RedisProvider provider;
 
   /**
-   * The {@link PacketSerializer} used for packet (de)serialization.
-   */
-  private final PacketSerializer packetSerializer;
-
-  /**
    * The service responsible for tracking player-related Redis entries.
    */
   private final PlayerDepotService playerService;
@@ -92,8 +87,7 @@ public final class VelocityRedis {
     this.proxyId = config.getProxyId();
 
     this.server = server;
-    this.packetSerializer = new PacketSerializer();
-    this.provider = new LettuceProvider(config, server.getScheduler(), this.packetSerializer);
+    this.provider = new LettuceProvider(config, server.getScheduler(), new PacketSerializer());
     this.provider.restart();
 
     this.playerService = new PlayerDepotService(this);
@@ -222,15 +216,6 @@ public final class VelocityRedis {
   }
 
   /**
-   * Gets the {@link PacketSerializer} instance used by this Redis module.
-   *
-   * @return the packet serializer
-   */
-  public PacketSerializer getPacketSerializer() {
-    return packetSerializer;
-  }
-
-  /**
    * Gets the proxy identifier for this server instance.
    *
    * @return the proxy identifier
@@ -240,7 +225,7 @@ public final class VelocityRedis {
   }
 
   /**
-   * Registers a listener that is invoked whenever the Redis pub/sub connection is
+   * Registers a listener which is invoked whenever the Redis pub/sub connection is
    * re-established after a disconnection.
    *
    * @param listener the callback to register

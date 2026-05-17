@@ -19,6 +19,7 @@ package com.velocityctd.proxy.redis.data;
 
 import com.velocityctd.proxy.redis.transaction.TransactionData;
 import java.util.UUID;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Data record used to transfer a player to a remote address.
@@ -28,4 +29,9 @@ import java.util.UUID;
  * @param port the port of the remote server
  */
 public record VelocityTransferRemote(UUID uniqueId, String ip, int port) implements TransactionData<Boolean> {
+
+  @Override
+  public @NotNull Class<Boolean> responseClass() {
+    return Boolean.class;
+  }
 }

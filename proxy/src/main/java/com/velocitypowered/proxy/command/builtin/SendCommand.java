@@ -223,7 +223,7 @@ public class SendCommand implements BuiltinCommandDefinition {
   }
 
   private static boolean equalsIgnoreCase(@Nullable String a, @Nullable String b) {
-    return a != null && b != null && a.equalsIgnoreCase(b);
+    return a != null && a.equalsIgnoreCase(b);
   }
 
   private static boolean startsWithIgnoreCase(String candidate, String input) {

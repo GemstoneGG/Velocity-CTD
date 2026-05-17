@@ -190,4 +190,9 @@ public final class PlayerEntry extends DepotEntry<UUID, PlayerEntry> {
   public void setClientListingAllowed(boolean clientListingAllowed) {
     this.clientListingAllowed = clientListingAllowed;
   }
+
+  @Override
+  protected PlayerEntry self() {
+    return this;
+  }
 }

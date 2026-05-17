@@ -17,6 +17,8 @@
 
 package com.velocityctd.proxy.redis.handler;
 
+import com.velocityctd.proxy.redis.packet.DataPacket;
+import com.velocityctd.proxy.redis.packet.PacketSerializer;
 import java.util.function.Consumer;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -67,20 +69,20 @@ public final class RouteHandler<T> {
   }
 
   /**
+   * Deserializes the packet's payload using this handler's data class and delivers it to
+   * the consumer. The method is generic on T from the enclosing class, so both the
+   * deserialization target and the consumer's input type agree by construction.
+   */
+  public void dispatch(@NotNull DataPacket packet, @NotNull PacketSerializer serializer) {
+    consumer.accept(packet.getPayload(serializer, dataClass));
+  }
+
+  /**
    * Gets the data class associated with this route registration.
    *
    * @return the {@link Class} object representing the data type handled by this registration
    */
   public Class<T> getDataClass() {
     return dataClass;
-  }
-
-  /**
-   * Gets the {@link Consumer} responsible for handling data associated with this route.
-   *
-   * @return the consumer tied to this route registration
-   */
-  public Consumer<T> getConsumer() {
-    return consumer;
   }
 }

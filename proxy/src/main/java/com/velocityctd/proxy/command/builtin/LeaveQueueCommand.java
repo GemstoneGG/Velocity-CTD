@@ -82,7 +82,7 @@ public class LeaveQueueCommand implements BuiltinCommandDefinition {
 
     int amountDone = 0;
     for (VelocityRegisteredServer registeredServer : this.server.getAllServers()) {
-      VelocityQueue queue = this.server.getQueueManager().getQueue(registeredServer.getServerInfo().getName());
+      VelocityQueue<?> queue = this.server.getQueueManager().getQueue(registeredServer.getServerInfo().getName());
       if (!queue.contains(player)) {
         continue;
       }
@@ -111,7 +111,7 @@ public class LeaveQueueCommand implements BuiltinCommandDefinition {
       return 0;
     }
 
-    VelocityQueue queue = this.server.getQueueManager().getQueue(registeredServer.getServerInfo().getName());
+    VelocityQueue<?> queue = this.server.getQueueManager().getQueue(registeredServer.getServerInfo().getName());
     if (queue.contains(player)) {
       queue.dequeue(player);
       player.sendMessage(

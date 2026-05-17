@@ -26,12 +26,15 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.JsonObject;
+import com.mojang.brigadier.tree.CommandNode;
+import com.mojang.brigadier.tree.RootCommandNode;
 import com.velocityctd.api.permission.PermissionResolver;
 import com.velocityctd.api.queue.QueueState;
 import com.velocityctd.proxy.permission.PermissionUtils;
 import com.velocityctd.proxy.queue.VelocityQueue;
+import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.event.command.PlayerAvailableCommandsEvent;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
-import com.velocitypowered.api.event.connection.DisconnectEvent.LoginStatus;
 import com.velocitypowered.api.event.connection.PreTransferEvent;
 import com.velocitypowered.api.event.player.CookieRequestEvent;
 import com.velocitypowered.api.event.player.CookieStoreEvent;
@@ -65,7 +68,9 @@ import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.api.util.ModInfo;
 import com.velocitypowered.api.util.ServerLink;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.adventure.ClickCallbackManager;
 import com.velocitypowered.proxy.adventure.VelocityBossBarImplementation;
+import com.velocitypowered.proxy.command.CommandGraphInjector;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftConnectionAssociation;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
@@ -80,6 +85,7 @@ import com.velocitypowered.proxy.connection.util.VelocityInboundConnection;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
+import com.velocitypowered.proxy.protocol.packet.AvailableCommandsPacket;
 import com.velocitypowered.proxy.protocol.packet.BundleDelimiterPacket;
 import com.velocitypowered.proxy.protocol.packet.ClientSettingsPacket;
 import com.velocitypowered.proxy.protocol.packet.ClientboundCookieRequestPacket;
@@ -93,6 +99,7 @@ import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
 import com.velocitypowered.proxy.protocol.packet.RemoveResourcePackPacket;
 import com.velocitypowered.proxy.protocol.packet.TransferPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatQueue;
+import com.velocitypowered.proxy.protocol.packet.chat.ChatType;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
 import com.velocitypowered.proxy.protocol.packet.chat.PlayerChatCompletionPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.builder.ChatBuilderFactory;
@@ -128,8 +135,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import net.kyori.adventure.audience.MessageType;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.key.Key;
@@ -226,6 +237,41 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   private final CompletableFuture<Void> teardownFuture = new CompletableFuture<>();
 
+  /**
+   * Per-identity lock held while this connection is in the registration/login pipeline.
+   * Transferred to this player by {@code PlayerRegistry.registerConnection} and released by
+   * exactly one of {@code finalizeLogin}, {@code unregisterConnection}, or the login-lock
+   * watchdog. {@code null} once consumed.
+   */
+  private final AtomicReference<PlayerIdentityLock.LockHandle> identityLock = new AtomicReference<>();
+
+  /**
+   * Watchdog cancelling the forced lock release once login completes (or the lock is
+   * otherwise consumed). May be {@code null} until registration completes.
+   */
+  private final AtomicReference<ScheduledFuture<?>> loginLockTimeout = new AtomicReference<>();
+
+  /**
+   * Set the first time a {@code DisconnectEvent} is fired for this player; subsequent attempts
+   * are no-ops. Used to coordinate between the kick path (where the new connection fires the
+   * old player's DisconnectEvent) and the natural teardown path.
+   */
+  private final AtomicBoolean disconnectFired = new AtomicBoolean(false);
+
+  /**
+   * Set the first time {@code LoginEvent} is fired for this player. A {@code false} value at
+   * teardown time means the connection was rejected or aborted before LoginEvent ran, so no
+   * {@code DisconnectEvent} should be fired (a {@code DisconnectEvent} without a preceding
+   * {@code LoginEvent} breaks plugins that pair the two events).
+   */
+  private final AtomicBoolean loginEventFired = new AtomicBoolean(false);
+
+  /**
+   * Set when the full login sequence (through {@code PostLoginEvent}) has completed
+   * successfully, i.e. when {@code PlayerRegistry.finalizeLogin} runs.
+   */
+  private final AtomicBoolean loginCompleted = new AtomicBoolean(false);
+
   private final ResourcePackHandler resourcePackHandler;
 
   private final BundleDelimiterHandler bundleHandler = new BundleDelimiterHandler(this);
@@ -246,9 +292,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   /**
    * Whether the player has fully connected to the first server it's connecting to.
-   * This flag will be {@code true} after the first call to
-   * {@link #setConnectedServer(VelocityServerConnection)} with a non-null
-   * {@link VelocityServerConnection} as its argument.
+   * Set on the first non-null call to {@link #setConnectedServer(VelocityServerConnection)}
+   * and never cleared, so that {@link DisconnectEvent.LoginStatus} correctly reports
+   * {@link DisconnectEvent.LoginStatus#SUCCESSFUL_LOGIN} even when {@code connectedServer}
+   * has been nulled by a kick handler.
    */
   private boolean firstServerConnected = false;
 
@@ -527,13 +574,26 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   @Override
-  public void sendMessage(final @NonNull Component message) {
-    Preconditions.checkNotNull(message, "message");
+  @SuppressWarnings("deprecation")
+  public void sendMessage(@NonNull Identity identity, @NonNull Component message) {
+    Component translated = translateMessage(message);
 
-    final Component translated = translateMessage(message).replaceText(TextReplacementConfig.builder().match("''").replacement("'").build());
+    connection.write(getChatBuilderFactory().builder().component(translated).forIdentity(identity).toClient());
+  }
+
+  @Override
+  @SuppressWarnings("deprecation")
+  public void sendMessage(@NonNull Identity identity, @NonNull Component message,
+                          @NonNull MessageType type) {
+    Preconditions.checkNotNull(message, "message");
+    Preconditions.checkNotNull(type, "type");
+
+    Component translated = translateMessage(message).replaceText(TextReplacementConfig.builder().match("''").replacement("'").build());
 
     connection.write(getChatBuilderFactory().builder()
-        .component(translated).toClient());
+        .component(translated).forIdentity(identity)
+        .setType(type == MessageType.CHAT ? ChatType.CHAT : ChatType.SYSTEM)
+        .toClient());
   }
 
   @Override
@@ -790,6 +850,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @param duringLogin whether the disconnect happened during login
    */
   public void disconnect0(Component reason, boolean duringLogin) {
+    if (connection.isKnownDisconnect()) {
+      return;
+    }
+
     Component translated = this.translateMessage(reason);
 
     if (server.getConfiguration().isLogPlayerDisconnections()) {
@@ -816,6 +880,67 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   /**
+   * Builds and sends an {@link AvailableCommandsPacket} to this player using the last known
+   * backend command tree from the currently connected server (if any) merged with the current
+   * proxy command set. Safe to call even when the backend has never sent its own command tree;
+   * in that case only proxy commands are included.
+   *
+   * <p>This method is non-blocking: the packet is written asynchronously on the player's event
+   * loop after the {@link PlayerAvailableCommandsEvent} has been fired.
+   *
+   * @return a future that completes once the packet has been written (or an error has been logged)
+   */
+  public CompletableFuture<Void> sendAvailableCommands() {
+    return sendAvailableCommands(this.connectedServer);
+  }
+
+  /**
+   * Builds and sends an {@link AvailableCommandsPacket} to this player using the backend command
+   * tree from the given server connection (if any) merged with the current proxy command set.
+   * Used by the backend session handler to ensure the packet is built from the exact connection
+   * that received the source tree, even if the player has since moved to another backend.
+   *
+   * @param conn the server connection whose backend command tree should be used, or null to send
+   *             only proxy commands
+   * @return a future that completes once the packet has been written (or an error has been logged)
+   */
+  public CompletableFuture<Void> sendAvailableCommands(@Nullable VelocityServerConnection conn) {
+    RootCommandNode<CommandSource> workingNode = new RootCommandNode<>();
+    if (conn != null) {
+      RootCommandNode<CommandSource> backendNode = conn.getBackendCommandsNode();
+      if (backendNode != null) {
+        for (CommandNode<CommandSource> child : backendNode.getChildren()) {
+          workingNode.addChild(child);
+        }
+      }
+    }
+
+    if (server.getConfiguration().isAnnounceProxyCommands()) {
+      // Inject commands from the proxy.
+      CommandGraphInjector<CommandSource> injector = server.getCommandManager().getInjector();
+      injector.inject(workingNode, this);
+
+      // Omit the click-callback command from the client's command tree unless:
+      // - the client is 1.21.6+ (needs it to suppress the unknown-command confirmation prompt), AND
+      // - at least one callback has been registered since proxy startup (i.e. some plugin is
+      //   using the click-callback feature).
+      if (this.connection.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_21_6)
+          || !ClickCallbackManager.INSTANCE.hasHadRegistrations()) {
+        workingNode.removeChildByName(ClickCallbackManager.COMMAND_LABEL);
+      }
+    }
+
+    AvailableCommandsPacket packet = new AvailableCommandsPacket(workingNode);
+    return server.getEventManager()
+        .fire(new PlayerAvailableCommandsEvent(this, workingNode))
+        .thenAcceptAsync(event -> connection.write(packet), connection.eventLoop())
+        .exceptionally(ex -> {
+          LOGGER.error("Exception while sending available commands to {}", this, ex);
+          return null;
+        });
+  }
+
+  /**
    * Handles unexpected disconnects.
    *
    * @param server    the server we disconnected from
@@ -825,8 +950,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   public void handleConnectionException(VelocityRegisteredServer server,
                                         Throwable throwable,
                                         boolean safe) {
-    if (!isActive()) {
-      // If the connection is no longer active, it makes no sense to try and recover it.
+    if (!isActive() || connection.isKnownDisconnect()) {
+      // No point trying to recover an inactive connection or one already being torn down.
       return;
     }
 
@@ -870,8 +995,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   public void handleConnectionException(VelocityRegisteredServer server,
                                         DisconnectPacket disconnect,
                                         boolean safe) {
-    if (!isActive()) {
-      // If the connection is no longer active, it makes no sense to try and recover it.
+    if (!isActive() || connection.isKnownDisconnect()) {
+      // No point trying to recover an inactive connection or one already being torn down.
       return;
     }
 
@@ -914,8 +1039,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                                          @Nullable Component kickReason,
                                          Component friendlyReason,
                                          boolean safe) {
-    if (!isActive()) {
-      // If the connection is no longer active, it makes no sense to try and recover it.
+    if (!isActive() || connection.isKnownDisconnect()) {
+      // No point trying to recover an inactive connection or one already being torn down.
       return;
     }
 
@@ -962,17 +1087,17 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
         connectedServer = null;
       }
 
-      if (!isActive()) {
-        // If the connection is no longer active, it makes no sense to try and recover it.
+      if (!isActive() || connection.isKnownDisconnect()) {
+        // No point trying to recover an inactive connection or one already being torn down.
         return;
       }
 
       switch (event.getResult()) {
         case DisconnectPlayer res -> disconnect(res.getReasonComponent());
-        // cast required (api event class)
+        // Cast required (API event class)
         case RedirectPlayer res -> createConnectionRequest((VelocityRegisteredServer) res.getServer(), previousConnection).connect()
             .whenCompleteAsync((status, throwable) -> {
-              // cast required (api event class)
+              // Cast required (API event class)
               VelocityRegisteredServer server = (VelocityRegisteredServer) res.getServer();
               if (throwable != null) {
                 handleConnectionException(server, throwable, true);
@@ -1016,7 +1141,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
                     if (!this.server.getConfiguration().getQueue().getNoQueueServers().contains(targetServerName)) {
                       Component kickMsg = originalEvent.getServerKickReason().orElse(Component.empty());
-                      VelocityQueue queue = this.server.getQueueManager().getQueue(targetServerName);
+                      VelocityQueue<?> queue = this.server.getQueueManager().getQueue(targetServerName);
 
                       // Checks if the kick reason is valid for a re-queue
                       // This is done to make sure players don't get constantly sent over and over again in a kick loop
@@ -1280,7 +1405,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     return mc;
   }
 
-  public void teardown() {
+  void teardown() {
     if (connectionInFlight != null) {
       connectionInFlight.disconnect();
     }
@@ -1289,28 +1414,67 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       connectedServer.disconnect();
     }
 
-    Optional<ConnectedPlayer> connectedPlayer = server.getPlayer(this.getUniqueId());
-    server.unregisterConnection(this);
+    server.getPlayerRegistry().unregisterConnection(this);
+  }
 
-    DisconnectEvent.LoginStatus status;
-    if (connectedPlayer.isPresent()) {
-      if (connectedPlayer.get().getCurrentServer().isEmpty()) {
-        status = LoginStatus.PRE_SERVER_JOIN;
-      } else {
-        status = connectedPlayer.get() == this ? LoginStatus.SUCCESSFUL_LOGIN : LoginStatus.CONFLICTING_LOGIN;
-      }
-    } else {
-      status = connection.isKnownDisconnect() ? LoginStatus.CANCELLED_BY_PROXY : LoginStatus.CANCELLED_BY_USER;
+  void setIdentityLock(@NonNull PlayerIdentityLock.LockHandle lock) {
+    if (!identityLock.compareAndSet(null, lock)) {
+      throw new IllegalStateException("Identity lock already set on " + this);
     }
+  }
 
-    DisconnectEvent event = new DisconnectEvent(this, status);
-    server.getEventManager().fire(event).whenComplete((val, ex) -> {
-      if (ex == null) {
-        this.teardownFuture.complete(null);
-      } else {
-        this.teardownFuture.completeExceptionally(ex);
+  @Nullable PlayerIdentityLock.LockHandle consumeIdentityLock() {
+    PlayerIdentityLock.LockHandle lock = identityLock.getAndSet(null);
+    if (lock != null) {
+      ScheduledFuture<?> timeout = loginLockTimeout.getAndSet(null);
+      if (timeout != null) {
+        timeout.cancel(false);
       }
-    });
+    }
+    return lock;
+  }
+
+  void setLoginLockTimeout(@NonNull ScheduledFuture<?> timeout) {
+    ScheduledFuture<?> previous = loginLockTimeout.getAndSet(timeout);
+    if (previous != null) {
+      previous.cancel(false);
+    }
+  }
+
+  boolean markDisconnectFired() {
+    return disconnectFired.compareAndSet(false, true);
+  }
+
+  void markLoginEventFired() {
+    loginEventFired.set(true);
+  }
+
+  boolean isLoginEventFired() {
+    return loginEventFired.get();
+  }
+
+  void markLoginCompleted() {
+    loginCompleted.set(true);
+  }
+
+  boolean isLoginCompleted() {
+    return loginCompleted.get();
+  }
+
+  void completeTeardown(@Nullable Throwable error) {
+    if (error == null) {
+      teardownFuture.complete(null);
+    } else {
+      teardownFuture.completeExceptionally(error);
+    }
+  }
+
+  boolean isFirstServerConnected() {
+    return firstServerConnected;
+  }
+
+  boolean isKnownDisconnect() {
+    return connection.isKnownDisconnect();
   }
 
   public CompletableFuture<Void> getTeardownFuture() {
@@ -1643,7 +1807,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   @Override
-  public void removeResourcePacks(@NotNull UUID id, @NotNull UUID @NotNull... others) {
+  public void removeResourcePacks(@NotNull UUID id, @NotNull UUID @NotNull ... others) {
     if (this.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       Preconditions.checkNotNull(id, "packUUID");
       if (this.resourcePackHandler.remove(id)) {
@@ -1672,7 +1836,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   @Override
   public void removeResourcePacks(@NotNull ResourcePackInfoLike request,
-                                  @NotNull ResourcePackInfoLike @NotNull... others) {
+                                  @NotNull ResourcePackInfoLike @NotNull ... others) {
     removeResourcePacks(request.asResourcePackInfo().id());
     for (ResourcePackInfoLike other : others) {
       removeResourcePacks(other.asResourcePackInfo().id());
@@ -1874,7 +2038,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
         ServerPreConnectEvent event = new ServerPreConnectEvent(ConnectedPlayer.this, toConnect, previousServer);
         return server.getEventManager().fire(event).thenComposeAsync(newEvent -> {
-          // cast required (api event class)
+          // Cast required (API event class)
           VelocityRegisteredServer realDestination = (VelocityRegisteredServer) newEvent.getResult().getServer().orElse(null);
           if (realDestination == null) {
             return completedFuture(plainResult(ConnectionRequestBuilder.Status.CONNECTION_CANCELLED, toConnect));

@@ -53,7 +53,9 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
    */
   @Override
   public void transfer() {
-    this.waitingForConnection = true;
+    synchronized (this) {
+      this.waitingForConnection = true;
+    }
     publishWaitingChange();
 
     server.getRedis().publish(new VelocityQueueTransfer(getUniqueId(), getQueue().getName()));
@@ -65,7 +67,7 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
   }
 
   /**
-   * Resets the waiting state after a transfer was never picked up by any proxy.
+   * Resets the waiting state after any proxy never picked up a transfer.
    *
    * <p>Checks the volatile {@code waitingForConnection} flag first. If another proxy already
    * handled the transfer and published a {@code WAITING_CHANGE} sync that reset the flag,
@@ -74,12 +76,14 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
   @Override
   @ApiStatus.Internal
   public void abortTransfer() {
-    if (!this.waitingForConnection) {
-      return;
-    }
+    synchronized (this) {
+      if (!this.waitingForConnection) {
+        return;
+      }
 
-    this.waitingForConnection = false;
-    this.connectionAttempts++;
+      this.waitingForConnection = false;
+      this.connectionAttempts++;
+    }
     refreshPermissions();
     publishWaitingChange();
   }
@@ -90,10 +94,13 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
    */
   @Override
   protected void publishWaitingChange() {
-    server.getRedis().publish(VelocityQueueSync.waitingChange(
-        getQueue().getName(), getUniqueId(), this.waitingForConnection,
-        this.connectionAttempts, this.priority, this.fullBypass, this.queueBypass
-    ));
+    VelocityQueueSync sync;
+    synchronized (this) {
+      sync = VelocityQueueSync.waitingChange(
+          getQueue().getName(), getUniqueId(), this.waitingForConnection,
+          this.connectionAttempts, this.priority, this.fullBypass, this.queueBypass);
+    }
+    server.getRedis().publish(sync);
   }
 
   /**
@@ -102,9 +109,12 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
    */
   @Override
   protected void publishOfflineChange() {
-    server.getRedis().publish(VelocityQueueSync.offlineChange(
-        getQueue().getName(), getUniqueId(), this.offlineSinceMs, this.offlineTimeoutSeconds
-    ));
+    VelocityQueueSync sync;
+    synchronized (this) {
+      sync = VelocityQueueSync.offlineChange(
+          getQueue().getName(), getUniqueId(), this.offlineSinceMs, this.offlineTimeoutSeconds);
+    }
+    server.getRedis().publish(sync);
   }
 
   /**
@@ -118,10 +128,10 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
    * @param updatedQueueBypass the refreshed queueBypass flag
    */
   @ApiStatus.Internal
-  public void applyWaitingChangeFromPacket(boolean waiting, int attempts,
-                                           int updatedPriority,
-                                           boolean updatedFullBypass,
-                                           boolean updatedQueueBypass) {
+  public synchronized void applyWaitingChangeFromPacket(boolean waiting, int attempts,
+                                                        int updatedPriority,
+                                                        boolean updatedFullBypass,
+                                                        boolean updatedQueueBypass) {
     this.waitingForConnection = waiting;
     this.connectionAttempts = attempts;
     this.priority = updatedPriority;

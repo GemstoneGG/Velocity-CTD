@@ -20,7 +20,6 @@ package com.velocitypowered.proxy.connection.client;
 import static com.velocitypowered.api.network.ProtocolVersion.MINECRAFT_1_8;
 
 import com.google.common.base.Preconditions;
-import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.connection.LoginEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.permission.PermissionsSetupEvent;
@@ -140,39 +139,48 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         return CompletableFuture.completedFuture(null);
       }
 
-      // Initiate a regular connection and move over to it.
-      ConnectedPlayer player = new ConnectedPlayer(server, profileEvent.getGameProfile(),
+      GameProfile resolvedProfile = profileEvent.getGameProfile();
+
+      // Initiate a regular connection and move over to it. Duplicate-detection and IP-check
+      // rejection happen atomically inside server.registerConnection() under the identity
+      // lock; if rejected, the !registered branch below disconnects the player. Because
+      // LoginEvent never fires for a rejected player, the natural teardown path does not
+      // fire a spurious DisconnectEvent (see PlayerRegistry#fireDisconnectAndCleanup).
+      ConnectedPlayer player = new ConnectedPlayer(server, resolvedProfile,
           mcConnection, inbound.getVirtualHost().orElse(null), inbound.getRawVirtualHost().orElse(null), onlineMode,
           inbound.getHandshakeIntent(), inbound.getIdentifiedKey());
       this.connectedPlayer = player;
-      if (!server.canRegisterConnection(player)) {
-        player.disconnect0(
-            Component.translatable("velocity.error.already-connected-proxy", NamedTextColor.RED),
-            true);
-        return CompletableFuture.completedFuture(null);
-      }
 
-      if (server.getConfiguration().isLogPlayerConnections()) {
-        LOGGER.info("{} has connected", player);
-      }
+      return server.registerConnection(player).thenComposeAsync(registered -> {
+        if (!registered) {
+          player.disconnect0(
+              Component.translatable("velocity.error.already-connected-proxy", NamedTextColor.RED),
+              true);
+          return CompletableFuture.completedFuture(null);
+        }
 
-      return server.getEventManager()
-          .fire(new PermissionsSetupEvent(player, ConnectedPlayer.DEFAULT_PERMISSIONS))
-          .thenAcceptAsync(event -> {
-            if (!mcConnection.isClosed()) {
-              // wait for permissions to load, then set the players permission function
-              PermissionFunction function = event.createFunction(player);
-              if (function == null) {
-                LOGGER.error("A plugin permission provider {} provided an invalid permission "
-                        + "function for player {}. This is a bug in the plugin, not in "
-                        + "Velocity. Falling back to the default permission function.",
-                    event.getProvider().getClass().getName(), player.getUsername());
-              } else {
-                player.setPermissionFunction(function);
+        if (server.getConfiguration().isLogPlayerConnections()) {
+          LOGGER.info("{} has connected", player);
+        }
+
+        return server.getEventManager()
+            .fire(new PermissionsSetupEvent(player, ConnectedPlayer.DEFAULT_PERMISSIONS))
+            .thenAcceptAsync(event -> {
+              if (!mcConnection.isClosed()) {
+                // wait for permissions to load, then set the players permission function
+                PermissionFunction function = event.createFunction(player);
+                if (function == null) {
+                  LOGGER.error("A plugin permission provider {} provided an invalid permission "
+                          + "function for player {}. This is a bug in the plugin, not in "
+                          + "Velocity. Falling back to the default permission function.",
+                      event.getProvider().getClass().getName(), player.getUsername());
+                } else {
+                  player.setPermissionFunction(function);
+                }
+                startLoginCompletion(player);
               }
-              startLoginCompletion(player);
-            }
-          }, mcConnection.eventLoop());
+            }, mcConnection.eventLoop());
+      }, mcConnection.eventLoop());
     }, mcConnection.eventLoop()).exceptionally((ex) -> {
       LOGGER.error("Exception during connection of {}", finalProfile, ex);
       return null;
@@ -247,9 +255,12 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
       loginState = State.ACKNOWLEDGED;
       mcConnection.setActiveSessionHandler(StateRegistry.CONFIG, new ClientConfigSessionHandler(server, connectedPlayer));
 
-      server.getEventManager().fire(new PostLoginEvent(connectedPlayer)).thenCompose(ignored -> connectToInitialServer(connectedPlayer))
+      ConnectedPlayer player = connectedPlayer;
+      server.getEventManager().fire(new PostLoginEvent(player))
+          .whenComplete((ignored, throwable) -> server.getPlayerRegistry().finalizeLogin(player))
+          .thenCompose(ignored -> connectToInitialServer(player))
           .exceptionally((ex) -> {
-            LOGGER.error("Exception while connecting {} to initial server", connectedPlayer, ex);
+            LOGGER.error("Exception while connecting {} to initial server", player, ex);
             return null;
           });
     }
@@ -279,11 +290,11 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
   private void completeLoginProtocolPhaseAndInitialize(ConnectedPlayer player) {
     mcConnection.setAssociation(player);
 
+    player.markLoginEventFired();
     server.getEventManager().fire(new LoginEvent(player, serverIdHash)).thenAcceptAsync(event -> {
       if (mcConnection.isClosed()) {
-        // The player was disconnected
-        server.getEventManager().fireAndForget(new DisconnectEvent(player,
-            DisconnectEvent.LoginStatus.CANCELLED_BY_USER_BEFORE_COMPLETE));
+        // The player was disconnected during LoginEvent processing. The natural teardown path
+        // is in flight (or will be) and will fire DisconnectEvent + release the identity lock.
         return;
       }
 
@@ -291,11 +302,6 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
       if (reason.isPresent()) {
         player.disconnect0(reason.get(), true);
       } else {
-        if (!server.registerConnection(player)) {
-          player.disconnect0(Component.translatable("velocity.error.already-connected-proxy"), true);
-          return;
-        }
-
         if (!this.server.getClusterPlayerService().onPlayerConnect(player)) {
           return;
         }
@@ -312,8 +318,10 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         if (inbound.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
           loginState = State.ACKNOWLEDGED;
           mcConnection.setActiveSessionHandler(StateRegistry.PLAY, new InitialConnectSessionHandler(player, server));
-          server.getEventManager().fire(new PostLoginEvent(player)).thenCompose((ignored) ->
-              connectToInitialServer(player)).exceptionally((ex) -> {
+          server.getEventManager().fire(new PostLoginEvent(player))
+              .whenComplete((ignored, throwable) -> server.getPlayerRegistry().finalizeLogin(player))
+              .thenCompose((ignored) -> connectToInitialServer(player))
+              .exceptionally((ex) -> {
                 LOGGER.error("Exception while connecting {} to initial server", player, ex);
                 return null;
               });
@@ -331,7 +339,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         new PlayerChooseInitialServerEvent(player, initialFromConfig.orElse(null));
 
     return server.getEventManager().fire(event).thenRunAsync(() -> {
-      // cast required (api event class)
+      // Cast required (API event class)
       VelocityRegisteredServer toTry = (VelocityRegisteredServer) event.getInitialServer().orElse(null);
       if (toTry == null) {
         if (event.getReason().isPresent()) {

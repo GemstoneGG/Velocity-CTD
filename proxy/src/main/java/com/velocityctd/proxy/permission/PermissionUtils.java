@@ -43,16 +43,13 @@ public class PermissionUtils {
    * Returns the highest positive integer {@code v} ({@code 1}..{@code max}) for which {@code subject} has the permission
    * {@code permissionPrefix + v}. If no such permission is granted, returns {@link Optional#empty()}.
    *
-   * <p>
-   * The {@code permissionPrefix} must end with {@code '.'} and {@code max} must be {@code > 0}.
+   * <p>The {@code permissionPrefix} must end with {@code '.'} and {@code max} must be {@code > 0}.</p>
    *
-   * <p>
-   * <b>Performance note:</b> keep {@code max} as low as practical. When the permission provider does not implement
+   * <p><b>Performance note:</b> keep {@code max} as low as practical. When the permission provider does not implement
    * {@code getPermissionMap()} (i.e., it returns {@code null}), this method may perform up to {@code max} permission
-   * checks (O({@code max})) by querying {@code hasPermission(prefix + v)} in a descending loop.
+   * checks (O({@code max})) by querying {@code hasPermission(prefix + v)} in a descending loop.</p>
    *
-   * <p>
-   * Implementation uses one of two strategies depending on the permission provider:
+   * <p>Implementation uses one of two strategies depending on the permission provider:</p>
    *
    * <ul>
    *   <li><b>Permission-map path</b> (when {@code subject.getPermissionMap()} is non-null):
@@ -110,7 +107,7 @@ public class PermissionUtils {
 
     // Fast-track max permission check
     // Needed for subjects with '*' permission with some permission providers (permission map won't match this)
-    if (subject.hasPermission(permissionPrefix + String.valueOf(max))) {
+    if (subject.hasPermission(permissionPrefix + max)) {
       return Optional.of(max);
     }
 
@@ -141,7 +138,7 @@ public class PermissionUtils {
       PermissionSubject subject, String permissionPrefix, int max) {
 
     for (int value = max; value > 0; value--) {
-      if (subject.hasPermission(permissionPrefix + String.valueOf(value))) {
+      if (subject.hasPermission(permissionPrefix + value)) {
         return Optional.of(value);
       }
     }

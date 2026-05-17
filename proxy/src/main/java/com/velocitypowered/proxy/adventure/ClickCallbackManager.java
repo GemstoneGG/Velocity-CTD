@@ -22,10 +22,12 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.event.ClickCallback;
 import org.checkerframework.checker.index.qual.NonNegative;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -38,6 +40,10 @@ public final class ClickCallbackManager {
   public static final String COMMAND_LABEL = "velocity:callback";
 
   static final String COMMAND = "/" + COMMAND_LABEL + " ";
+
+  private final AtomicBoolean hadRegistrations = new AtomicBoolean(false);
+
+  private volatile @MonotonicNonNull Runnable onFirstRegistration;
 
   private final Cache<UUID, RegisteredCallback> registrations = Caffeine.newBuilder()
       .expireAfter(new Expiry<UUID, RegisteredCallback>() {
@@ -69,6 +75,28 @@ public final class ClickCallbackManager {
   }
 
   /**
+   * Sets a listener that is invoked the first time a callback is registered.
+   *
+   * @param listener the listener to invoke on the first registration
+   * @throws IllegalStateException if a listener has already been set
+   */
+  public void setOnFirstRegistration(Runnable listener) {
+    if (this.onFirstRegistration != null) {
+      throw new IllegalStateException("A first-registration listener has already been set");
+    }
+    this.onFirstRegistration = listener;
+  }
+
+  /**
+   * Returns whether any callback has ever been registered.
+   *
+   * @return {@code true} if at least one callback has been registered, {@code false} otherwise
+   */
+  public boolean hasHadRegistrations() {
+    return hadRegistrations.get();
+  }
+
+  /**
    * Run a callback.
    *
    * @param audience the audience
@@ -97,6 +125,15 @@ public final class ClickCallbackManager {
     UUID id = UUID.randomUUID();
     RegisteredCallback registration = new RegisteredCallback(options.lifetime(), options.uses(), callback);
     this.registrations.put(id, registration);
+
+    boolean alreadyHadRegistrations = hadRegistrations.getAndSet(true);
+    if (!alreadyHadRegistrations) {
+      Runnable listener = this.onFirstRegistration;
+      if (listener != null) {
+        listener.run();
+      }
+    }
+
     return id;
   }
 }

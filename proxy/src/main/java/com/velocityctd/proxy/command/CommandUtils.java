@@ -105,7 +105,7 @@ public class CommandUtils {
    * @param server the proxy instance
    * @param ctx the command context
    * @param argName the name of the argument
-   * @param allowNonQueueable whether to return a servers if it can't be queued.
+   * @param allowNonQueueable whether to return a server if it can't be queued.
    * @return the found server, or {@code null} if one couldn't be found
    */
   public static VelocityRegisteredServer getServer(VelocityServer server, CommandContext<CommandSource> ctx,
