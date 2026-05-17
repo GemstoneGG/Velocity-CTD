@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,9 @@
 
 package com.velocityctd.proxy.command.builtin;
 
+import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
 import static java.util.Objects.requireNonNull;
 
-import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import com.velocityctd.proxy.command.CommandUtils;
 import com.velocitypowered.api.command.BrigadierCommand;
@@ -27,7 +27,6 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.builtin.BuiltinCommandDefinition;
-import com.velocitypowered.proxy.command.builtin.CommandMessages;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.connection.util.FallbackServers;
@@ -66,7 +65,6 @@ public class HubCommand implements BuiltinCommandDefinition {
 
   private int hub(CommandContext<CommandSource> context) {
     if (!(context.getSource() instanceof ConnectedPlayer player)) {
-      context.getSource().sendMessage(CommandMessages.PLAYERS_ONLY);
       return 0;
     }
 
@@ -100,7 +98,7 @@ public class HubCommand implements BuiltinCommandDefinition {
 
     CommandUtils.sendOrQueue(server, player, nextServer);
 
-    return Command.SINGLE_SUCCESS;
+    return SINGLE_SUCCESS;
   }
 
   private static boolean fallbackConnectingTranslationExists(ConnectedPlayer player) {

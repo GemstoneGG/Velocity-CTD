@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,8 @@
 
 package com.velocityctd.proxy.command.builtin;
 
-import com.mojang.brigadier.Command;
+import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
+
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -54,7 +55,7 @@ public class AlertRawCommand implements BuiltinCommandDefinition {
             .literalArgumentBuilder(label())
             .requires(source ->
                     source.getPermissionValue("velocity.command.alertraw") == Tristate.TRUE)
-            .executes(ctx -> CommandUtils.emitUsage(ctx, label()))
+            .executes(ctx -> CommandUtils.emitUsage(ctx, "velocity.command.alertraw.usage"))
             .then(BrigadierCommand
                     .requiredArgumentBuilder("message", StringArgumentType.greedyString())
                     .executes(this::alert));
@@ -77,6 +78,6 @@ public class AlertRawCommand implements BuiltinCommandDefinition {
 
     server.getClusterPlayerService().broadcastAlert(alertRawComponent);
 
-    return Command.SINGLE_SUCCESS;
+    return SINGLE_SUCCESS;
   }
 }

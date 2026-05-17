@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,13 +18,16 @@
 package com.velocityctd.proxy.queue;
 
 import static com.velocityctd.api.queue.ServerStatus.WAITING;
+import static java.util.Objects.requireNonNull;
 
+import com.velocityctd.api.queue.QueueEntryData;
 import com.velocityctd.api.queue.QueueState;
 import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotEntry;
 import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotService;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueSync;
 import com.velocityctd.proxy.queue.util.QueueComponents;
 import com.velocityctd.proxy.redis.data.VelocityActionBar;
+import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
@@ -32,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 
@@ -51,6 +55,8 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
 
   @Override
   protected void postInitialize() {
+    scheduleOfflineRemovals();
+
     server.getRedis().addReconnectListener(() ->
         server.getScheduler()
             .buildTask(VelocityVirtualPlugin.INSTANCE, this::reloadFromRedis)
@@ -98,6 +104,11 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
   }
 
   @Override
+  public @NotNull RedisVelocityQueue getQueue(@NotNull String serverName) {
+    return (RedisVelocityQueue) super.getQueue(serverName);
+  }
+
+  @Override
   protected void sendActionBar(VelocityQueueEntry entry) {
     Component component = QueueComponents.createActionbarComponent(entry);
     if (component != null) {
@@ -114,18 +125,83 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
   public void handleSync(@NotNull VelocityQueueSync sync) {
     RedisVelocityQueue queue;
     try {
-      queue = (RedisVelocityQueue) getQueue(sync.serverName());
+      queue = getQueue(sync.serverName());
     } catch (IllegalArgumentException ignored) {
       return; // unknown server
     }
 
     switch (sync.action()) {
-      case ENQUEUE -> queue.applyEnqueue(sync);
-      case DEQUEUE -> queue.applyDequeue(sync.playerUuid());
-      case STATE_CHANGE -> queue.applyStateChange(sync.newState());
-      case STATUS_CHANGE -> queue.applyStatusChange(sync.newStatus());
-      case WAITING_CHANGE -> queue.applyWaitingChange(sync);
+      case ENQUEUE -> queue.applyEnqueue(new QueueEntryData(
+          requireNonNull(sync.playerUuid(), "playerUuid"),
+          requireNonNull(sync.username(), "username"),
+          sync.priority(),
+          sync.fullBypass(),
+          sync.queueBypass()));
+      case DEQUEUE -> queue.applyDequeue(
+          requireNonNull(sync.playerUuid(), "playerUuid"));
+      case STATE_CHANGE -> queue.applyStateChange(
+          requireNonNull(sync.newState(), "newState"));
+      case STATUS_CHANGE -> queue.applyStatusChange(
+          requireNonNull(sync.newStatus(), "newStatus"));
+      case WAITING_CHANGE -> queue.applyWaitingChange(
+          requireNonNull(sync.playerUuid(), "playerUuid"),
+          sync.waitingForConnection(),
+          sync.connectionAttempts(),
+          sync.updatedPriority(),
+          sync.updatedFullBypass(),
+          sync.updatedQueueBypass());
+      case OFFLINE_CHANGE -> queue.applyOfflineChange(
+          requireNonNull(sync.playerUuid(), "playerUuid"),
+          sync.offlineSinceMs(),
+          sync.offlineTimeoutSeconds());
       default -> throw new IllegalStateException("Unknown action " + sync.action() + ".");
+    }
+  }
+
+  /**
+   * Schedules removal of offline players that were loaded from the depot at startup.
+   *
+   * <p>For each offline player in the just-loaded queues:
+   * <ul>
+   *   <li>If {@code offlineSinceMs == 0}: the proxy was force-killed and no disconnect was
+   *       recorded - the player is removed immediately since we cannot know how long they have
+   *       been offline.</li>
+   *   <li>If {@code offlineSinceMs > 0}: the remaining timeout is calculated from the stored
+   *       disconnect time and the player is removed once that window expires.</li>
+   * </ul>
+   * Online players are skipped; the normal session lifecycle handles them.</p>
+   */
+  private void scheduleOfflineRemovals() {
+    for (VelocityQueue<?> queue : queues.values()) {
+      for (VelocityQueueEntry entry : queue.getEntries()) {
+        if (isPlayerOnline(entry.getUniqueId())) {
+          continue;
+        }
+
+        long offlineSinceMs = entry.getOfflineSinceMs();
+        int timeoutSeconds = entry.getOfflineTimeoutSeconds();
+        UUID uuid = entry.getUniqueId();
+
+        long delayMs;
+        if (offlineSinceMs == 0) {
+          // Force-kill scenario: disconnect was never recorded, remove immediately.
+          delayMs = 0;
+        } else {
+          long elapsedMs = System.currentTimeMillis() - offlineSinceMs;
+          long remainingMs = (long) timeoutSeconds * 1000 - elapsedMs;
+          delayMs = Math.max(0, remainingMs);
+        }
+
+        ScheduledTask task = server.getScheduler()
+            .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+              if (!isPlayerOnline(uuid)) {
+                removePlayerEntirely(uuid);
+              }
+            })
+            .delay(delayMs, TimeUnit.MILLISECONDS)
+            .schedule();
+        pendingTimeoutTasks.put(uuid, task);
+      }
     }
   }
 
@@ -162,7 +238,7 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
     loadFromRedis();
 
     if (isMasterProxy()) {
-      for (VelocityQueue queue : queues.values()) {
+      for (VelocityQueue<?> queue : queues.values()) {
         server.getRedis().publish(VelocityQueueSync.statusChange(queue.getName(), queue.getServerStatus()));
         server.getRedis().publish(VelocityQueueSync.stateChange(queue.getName(), queue.getState()));
       }

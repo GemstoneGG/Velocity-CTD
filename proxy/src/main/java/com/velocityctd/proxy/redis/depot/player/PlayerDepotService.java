@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -90,7 +90,7 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
 
   @Override
   public void teardown() {
-    for (ConnectedPlayer player : this.server.getAllPlayers()) {
+    for (ConnectedPlayer player : this.server.getOnlinePlayers()) {
       this.depot.remove(player.getUniqueId());
     }
 
@@ -281,14 +281,12 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    * it is updated with the latest details. If it doesn't exist, a new entry is created.
    *
    * @param player the {@link ConnectedPlayer} object representing the player for whom the entry is to be upserted; must not be null
-   * @return the {@link PlayerEntry} object representing the player's entry; never null
    */
-  public @NotNull PlayerEntry upsertPlayerEntry(@NotNull ConnectedPlayer player) {
+  public void upsertPlayerEntry(@NotNull ConnectedPlayer player) {
     PlayerEntry playerEntry = new PlayerEntry(player, this.redis.getProxyId());
     playerEntry.setDepot(this.depot);
 
     this.depot.upsert(playerEntry);
-    return playerEntry;
   }
 
   /**
@@ -312,7 +310,7 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
       return;
     }
 
-    for (ConnectedPlayer player : this.server.getAllPlayers()) {
+    for (ConnectedPlayer player : this.server.getOnlinePlayers()) {
       if (this.depot.contains(player.getUniqueId())) {
         continue;
       }

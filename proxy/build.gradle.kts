@@ -18,6 +18,8 @@ tasks {
             attributes["Implementation-Title"] = "Velocity-CTD"
             attributes["Implementation-Vendor"] = "Velocity(-CTD) Contributors"
             attributes["Multi-Release"] = "true"
+            attributes["Enable-Native-Access"] = "ALL-UNNAMED"
+            attributes["Enable-Final-Field-Mutation"] = "ALL-UNNAMED"
         }
     }
 
@@ -149,6 +151,7 @@ dependencies {
     implementation(variantOf(libs.netty.transport.native.kqueue) { classifier("osx-aarch_64") })
 
     implementation(libs.lettuce.core)
+    implementation(libs.httpclient5)
     implementation(libs.jopt)
     implementation(libs.terminalconsoleappender)
     implementation(libs.jline.terminal)

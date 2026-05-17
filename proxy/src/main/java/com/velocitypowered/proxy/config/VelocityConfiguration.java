@@ -2313,12 +2313,13 @@ public final class VelocityConfiguration implements ProxyConfig {
   /**
    * Configuration for packet limiting.
    *
-   * @param interval the interval in seconds to measure packets over
-   * @param pps      the maximum number of packets per second allowed
-   * @param bytes    the maximum number of bytes per second allowed
+   * @param interval                the interval in seconds to measure packets over
+   * @param pps                     the maximum number of packets per second allowed
+   * @param bytes                   the maximum number of compressed bytes per second allowed
+   * @param bytesAfterDecompression the maximum number of decompressed bytes per second allowed
    */
-  public record PacketLimiterConfig(int interval, int pps, int bytes) {
-    public static PacketLimiterConfig DEFAULT = new PacketLimiterConfig(7, 500, -1);
+  public record PacketLimiterConfig(int interval, int pps, int bytes, int bytesAfterDecompression) {
+    public static PacketLimiterConfig DEFAULT = new PacketLimiterConfig(7, -1, -1, 5242880);
 
     /**
      * returns a PacketLimiterConfig from a config section, or the default if the section is null.
@@ -2331,7 +2332,8 @@ public final class VelocityConfiguration implements ProxyConfig {
         return new PacketLimiterConfig(
             config.getIntOrElse("interval", DEFAULT.interval()),
             config.getIntOrElse("packets-per-second", DEFAULT.pps()),
-            config.getIntOrElse("bytes-per-second", DEFAULT.bytes())
+            config.getIntOrElse("bytes-per-second", DEFAULT.bytes()),
+            config.getIntOrElse("decompressed-bytes-per-second", DEFAULT.bytesAfterDecompression())
         );
       } else {
         return DEFAULT;
@@ -2536,12 +2538,6 @@ public final class VelocityConfiguration implements ProxyConfig {
     private boolean removePlayerOnServerSwitch = true;
 
     /**
-     * If true, forwards the reason a player was kicked while waiting in queue.
-     */
-    @Expose
-    private boolean forwardKickReason = true;
-
-    /**
      * If true, allows players to join queues that are currently paused.
      */
     @Expose
@@ -2616,7 +2612,6 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.backendPingInterval = config.getOrElse("backend-ping-interval", 5.0);
       this.maxSendRetries = config.getOrElse("max-send-retries", 10);
       this.removePlayerOnServerSwitch = config.getOrElse("remove-player-on-server-switch", true);
-      this.forwardKickReason = config.getOrElse("forward-kick-reason", true);
       this.allowPausedQueueJoining = config.getOrElse("allow-paused-queue-joining", false);
       this.queueOnShutdown = config.getOrElse("queue-on-shutdown", true);
       this.overrideBungeeMessaging = config.getOrElse("override-bungee-messaging", true);
@@ -2703,15 +2698,6 @@ public final class VelocityConfiguration implements ProxyConfig {
      */
     public List<String> getBannedReason() {
       return this.bannedReason;
-    }
-
-    /**
-     * Returns whether kick reasons are forwarded to players in the queue.
-     *
-     * @return {@code true} if kick reasons are forwarded, {@code false} otherwise
-     */
-    public boolean isForwardKickReason() {
-      return forwardKickReason;
     }
 
     /**
@@ -2863,7 +2849,6 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("backendPingInterval", backendPingInterval)
           .add("maxSendRetries", maxSendRetries)
           .add("removePlayerOnServerSwitch", removePlayerOnServerSwitch)
-          .add("forwardKickReason", forwardKickReason)
           .add("allowPausedQueueJoining", allowPausedQueueJoining)
           .add("queueOnShutdown", queueOnShutdown)
           .add("overrideBungeeMessaging", overrideBungeeMessaging)

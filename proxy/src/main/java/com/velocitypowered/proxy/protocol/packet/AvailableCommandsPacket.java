@@ -77,6 +77,13 @@ public class AvailableCommandsPacket implements MinecraftPacket {
 
   private @MonotonicNonNull RootCommandNode<CommandSource> rootNode;
 
+  public AvailableCommandsPacket(RootCommandNode<CommandSource> rootNode) {
+    this.rootNode = rootNode;
+  }
+
+  public AvailableCommandsPacket() {
+  }
+
   /**
    * Returns the root node.
    *

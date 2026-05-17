@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
  *
  * @param uniqueId the unique identifier of the player being kicked
  * @param component the disconnect message
- * @param targetProxyId the proxy ID that should process this kick, or {@code null} for all proxies
+ * @param targetProxyId the proxy ID that should process this kick or {@code null} for all proxies
  */
 public record VelocityKick(UUID uniqueId, Component component, @Nullable String targetProxyId) {
 

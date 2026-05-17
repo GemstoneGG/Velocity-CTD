@@ -17,7 +17,8 @@
 
 package com.velocitypowered.proxy.command.builtin;
 
-import com.mojang.brigadier.Command;
+import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
+
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
@@ -54,10 +55,10 @@ public class CallbackCommand implements BuiltinCommandDefinition {
     try {
       id = UUID.fromString(providedId);
     } catch (IllegalArgumentException ignored) {
-      return Command.SINGLE_SUCCESS;
+      return 0;
     }
 
     ClickCallbackManager.INSTANCE.runCallback(context.getSource(), id);
-    return Command.SINGLE_SUCCESS;
+    return SINGLE_SUCCESS;
   }
 }

@@ -155,7 +155,7 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
               serverConn.getServerInfo().getName());
 
           if (this.server.isQueueEnabled()) {
-            VelocityQueue queue = this.server.getQueueManager().getQueue(serverConn.getServer()
+            VelocityQueue<?> queue = this.server.getQueueManager().getQueue(serverConn.getServer()
                     .getServerInfo().getName());
             queue.dequeue(player.getUniqueId());
           }

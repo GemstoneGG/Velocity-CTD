@@ -17,7 +17,8 @@
 
 package com.velocitypowered.proxy.command.builtin;
 
-import com.mojang.brigadier.Command;
+import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
+
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
@@ -56,14 +57,14 @@ public class ShutdownCommand implements BuiltinCommandDefinition {
             .requires(source -> source instanceof ConsoleCommandSource)
             .executes(context -> {
               server.shutdown(true);
-              return Command.SINGLE_SUCCESS;
+              return SINGLE_SUCCESS;
             })
             .then(RequiredArgumentBuilder.<CommandSource, String>argument("reason",
                             StringArgumentType.greedyString())
                     .executes(context -> {
                       String reason = context.getArgument("reason", String.class);
                       server.shutdown(true, CommandUtils.deserializeComponent(reason));
-                      return Command.SINGLE_SUCCESS;
+                      return SINGLE_SUCCESS;
                     })
             ).build());
   }

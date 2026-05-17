@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,8 @@
 
 package com.velocityctd.proxy.command.builtin;
 
-import com.mojang.brigadier.Command;
+import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
+
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -28,7 +29,6 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.builtin.BuiltinCommandDefinition;
-import com.velocitypowered.proxy.command.builtin.CommandMessages;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.List;
@@ -76,52 +76,53 @@ public class LeaveQueueCommand implements BuiltinCommandDefinition {
   }
 
   private int leaveAllQueues(CommandContext<CommandSource> ctx) {
-    if (ctx.getSource() instanceof ConnectedPlayer player) {
-      int amountDone = 0;
-      for (VelocityRegisteredServer registeredServer : this.server.getAllServers()) {
-        VelocityQueue queue = this.server.getQueueManager().getQueue(registeredServer.getServerInfo().getName());
-        if (!queue.contains(player)) {
-          continue;
-        }
-
-        queue.dequeue(player);
-        amountDone++;
-      }
-
-      if (amountDone == 0) {
-        player.sendMessage(Component.translatable("velocity.queue.error.not-in-queue.all"));
-        return -1;
-      }
-
-      player.sendMessage(Component.translatable("velocity.queue.command.left-queue.all"));
+    if (!(ctx.getSource() instanceof ConnectedPlayer player)) {
+      return 0;
     }
 
-    return Command.SINGLE_SUCCESS;
+    int amountDone = 0;
+    for (VelocityRegisteredServer registeredServer : this.server.getAllServers()) {
+      VelocityQueue<?> queue = this.server.getQueueManager().getQueue(registeredServer.getServerInfo().getName());
+      if (!queue.contains(player)) {
+        continue;
+      }
+
+      queue.dequeue(player);
+      amountDone++;
+    }
+
+    if (amountDone == 0) {
+      player.sendMessage(Component.translatable("velocity.queue.error.not-in-queue.all"));
+      return 0;
+    }
+
+    player.sendMessage(Component.translatable("velocity.queue.command.left-queue.all"));
+
+    return amountDone;
   }
 
   private int leaveQueue(CommandContext<CommandSource> ctx) {
     VelocityRegisteredServer registeredServer = CommandUtils.getServer(this.server, ctx, "server", false);
     if (registeredServer == null) {
-      return -1;
+      return 0;
     }
 
-    if (ctx.getSource() instanceof ConnectedPlayer player) {
-      VelocityQueue queue = this.server.getQueueManager().getQueue(registeredServer.getServerInfo().getName());
-      if (queue.contains(player)) {
-        queue.dequeue(player);
-        player.sendMessage(
-                Component.translatable("velocity.queue.command.left-queue")
-                        .arguments(Component.text(registeredServer.getServerInfo().getName())));
-      } else {
-        player.sendMessage(
-                Component.translatable("velocity.queue.error.not-in-queue")
-                        .arguments(Component.text(registeredServer.getServerInfo().getName())));
-      }
+    if (!(ctx.getSource() instanceof ConnectedPlayer player)) {
+      return 0;
+    }
+
+    VelocityQueue<?> queue = this.server.getQueueManager().getQueue(registeredServer.getServerInfo().getName());
+    if (queue.contains(player)) {
+      queue.dequeue(player);
+      player.sendMessage(
+          Component.translatable("velocity.queue.command.left-queue")
+              .arguments(Component.text(registeredServer.getServerInfo().getName())));
+      return SINGLE_SUCCESS;
     } else {
-      ctx.getSource().sendMessage(CommandMessages.PLAYERS_ONLY);
-      return -1;
+      player.sendMessage(
+          Component.translatable("velocity.queue.error.not-in-queue")
+              .arguments(Component.text(registeredServer.getServerInfo().getName())));
+      return 0;
     }
-
-    return Command.SINGLE_SUCCESS;
   }
 }

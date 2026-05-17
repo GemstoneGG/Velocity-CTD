@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@ package com.velocityctd.proxy.redis.data;
 
 import com.velocityctd.proxy.redis.transaction.TransactionData;
 import java.util.UUID;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Data record representing a request to get the ping of a player.
@@ -26,4 +27,9 @@ import java.util.UUID;
  * @param uniqueId the player's unique ID
  */
 public record VelocityGetPlayerPing(UUID uniqueId) implements TransactionData<Long> {
+
+  @Override
+  public @NotNull Class<Long> responseClass() {
+    return Long.class;
+  }
 }

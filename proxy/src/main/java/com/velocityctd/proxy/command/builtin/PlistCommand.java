@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,9 @@
 
 package com.velocityctd.proxy.command.builtin;
 
+import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 
-import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -102,7 +102,7 @@ public class PlistCommand implements BuiltinCommandDefinition {
               .arguments(Argument.string("alias", VelocityCommands.readAlias(context.getNodes()))));
     }
 
-    return Command.SINGLE_SUCCESS;
+    return SINGLE_SUCCESS;
   }
 
   private Optional<String> validateProxy(String proxyName, CommandSource source) {
@@ -126,7 +126,7 @@ public class PlistCommand implements BuiltinCommandDefinition {
     } else {
       validatedProxy = validateProxy(proxyName, context.getSource()).orElse(null);
       if (validatedProxy == null) {
-        return Command.SINGLE_SUCCESS;
+        return 0;
       }
     }
 
@@ -138,16 +138,16 @@ public class PlistCommand implements BuiltinCommandDefinition {
       }
 
       sendTotalProxyCount(context.getSource(), validatedProxy, totalPlayers);
-      return Command.SINGLE_SUCCESS;
+      return SINGLE_SUCCESS;
     }
 
     VelocityRegisteredServer validatedServer = validateServer(serverName, context.getSource()).orElse(null);
     if (validatedServer == null) {
-      return Command.SINGLE_SUCCESS;
+      return 0;
     }
 
     sendServerPlayers(context.getSource(), validatedProxy, validatedServer, false);
-    return Command.SINGLE_SUCCESS;
+    return SINGLE_SUCCESS;
   }
 
   private int proxyCount(CommandContext<CommandSource> context) {
@@ -158,12 +158,12 @@ public class PlistCommand implements BuiltinCommandDefinition {
 
     Optional<String> validatedProxy = validateProxy(proxyName, context.getSource());
     if (validatedProxy.isEmpty()) {
-      return Command.SINGLE_SUCCESS;
+      return 0;
     }
 
     Collection<VelocityClusterPlayer> proxyPlayers = server.getClusterPlayerService().getPlayersOnProxy(validatedProxy.get());
     sendTotalProxyCount(context.getSource(), validatedProxy.get(), proxyPlayers.size());
-    return Command.SINGLE_SUCCESS;
+    return SINGLE_SUCCESS;
   }
 
   private Optional<VelocityRegisteredServer> validateServer(String serverName, CommandSource source) {

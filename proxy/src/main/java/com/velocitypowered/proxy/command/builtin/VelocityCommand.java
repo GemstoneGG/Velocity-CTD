@@ -150,7 +150,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
                               .arguments(Argument.string("command", "velocity sudo"))
               );
 
-              return Command.SINGLE_SUCCESS;
+              return 0;
             })
             .then(BrigadierCommand.requiredArgumentBuilder("target", StringArgumentType.word())
                     .suggests(PlayerIdentifier.suggest(server, "target"))
@@ -160,7 +160,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
                                       .arguments(Argument.string("command", "velocity sudo"))
                       );
 
-                      return Command.SINGLE_SUCCESS;
+                      return 0;
                     })
                     .then(BrigadierCommand.requiredArgumentBuilder("message/command", StringArgumentType.greedyString())
                             .executes(new Sudo(server))))
@@ -203,7 +203,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
                                               .collect(Collectors.joining("|"));
                                       String commandText = USAGE.formatted(availableCommands);
                                       source.sendMessage(Component.text(commandText, NamedTextColor.RED));
-                                      return Command.SINGLE_SUCCESS;
+                                      return 0;
                                     })
                                     .requires(commands.stream()
                                             .map(CommandNode::getRequirement)
@@ -242,7 +242,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
     public int run(CommandContext<CommandSource> context) {
       CommandSource source = context.getSource();
       source.sendMessage(getUptimeComponent((System.currentTimeMillis() - server.getStartTime()) / 1000));
-      return Command.SINGLE_SUCCESS;
+      return SINGLE_SUCCESS;
     }
   }
 
@@ -262,7 +262,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
       if (realId == null) {
         source.sendMessage(Component.translatable("velocity.command.proxy-does-not-exist")
                 .arguments(Component.text(proxyId)));
-        return -1;
+        return 0;
       }
 
       server.getClusterProxyService().queryProxyUptime(realId).thenAccept(uptimeSeconds -> {
@@ -275,7 +275,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
         }
         return null;
       });
-      return Command.SINGLE_SUCCESS;
+      return SINGLE_SUCCESS;
     }
   }
 
@@ -300,12 +300,12 @@ public class VelocityCommand implements BuiltinCommandDefinition {
           default -> {
           }
         }
-        return Command.SINGLE_SUCCESS;
+        return 0;
       }
 
       if (result.players().isEmpty()) {
         source.sendMessage(Component.translatable("velocity.command.sudo.no-players"));
-        return Command.SINGLE_SUCCESS;
+        return 0;
       }
 
       for (VelocityClusterPlayer player : result.players()) {
@@ -323,7 +323,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
               .arguments(Argument.string("target", targetDisplay),
                       Argument.string("message", messageOrCommand)));
 
-      return Command.SINGLE_SUCCESS;
+      return result.players().size();
     }
   }
 
@@ -338,16 +338,18 @@ public class VelocityCommand implements BuiltinCommandDefinition {
         if (server.reloadConfiguration()) {
           source.sendMessage(Component.translatable("velocity.command.reload-success",
                   NamedTextColor.GREEN));
+          return SINGLE_SUCCESS;
         } else {
           source.sendMessage(Component.translatable("velocity.command.reload-failure",
                   NamedTextColor.RED));
+          return 0;
         }
       } catch (Exception e) {
         LOGGER.error("Unable to reload configuration", e);
         source.sendMessage(Component.translatable("velocity.command.reload-failure",
                 NamedTextColor.RED));
+        return 0;
       }
-      return Command.SINGLE_SUCCESS;
     }
   }
 
@@ -367,7 +369,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
       if (realId == null) {
         source.sendMessage(Component.translatable("velocity.command.proxy-does-not-exist")
                 .arguments(Component.text(proxyId)));
-        return -1;
+        return 0;
       }
 
       server.getClusterProxyService().reloadProxy(realId).thenAccept(success -> {
@@ -384,7 +386,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
         }
         return null;
       });
-      return Command.SINGLE_SUCCESS;
+      return SINGLE_SUCCESS;
     }
   }
 
@@ -499,7 +501,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
     public int run(CommandContext<CommandSource> context) {
       CommandSource source = context.getSource();
       source.sendMessage(infoSupplier.get());
-      return Command.SINGLE_SUCCESS;
+      return SINGLE_SUCCESS;
     }
   }
 
@@ -515,7 +517,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
       if (pluginCount == 0) {
         source.sendMessage(Component.translatable("velocity.command.no-plugins",
                 NamedTextColor.YELLOW));
-        return Command.SINGLE_SUCCESS;
+        return SINGLE_SUCCESS;
       }
 
       TextComponent.Builder listBuilder = Component.text();
@@ -533,7 +535,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
               .arguments(Argument.component("plugins", listBuilder.build()))
               .build();
       source.sendMessage(output);
-      return Command.SINGLE_SUCCESS;
+      return SINGLE_SUCCESS;
     }
 
     private TextComponent componentForPlugin(PluginDescription description) {
@@ -551,13 +553,14 @@ public class VelocityCommand implements BuiltinCommandDefinition {
       if (!description.getAuthors().isEmpty()) {
         hoverText.append(Component.newline());
         if (description.getAuthors().size() == 1) {
-          hoverText.append(Component.translatable("velocity.command.plugin-tooltip-author")
-                  .arguments(Argument.string("author", description.getAuthors().getFirst())));
+          hoverText.append(
+              Component.translatable("velocity.command.plugin-tooltip-author")
+                  .arguments(Argument.string("author", description.getAuthors().getFirst()))
+          );
         } else {
           hoverText.append(
-                  Component.translatable("velocity.command.plugin-tooltip-author",
-                          Argument.string("authors", String.join(", ", description.getAuthors()))
-                  )
+              Component.translatable("velocity.command.plugin-tooltip-authors")
+                  .arguments(Argument.string("authors", String.join(", ", description.getAuthors())))
           );
         }
       }
@@ -615,18 +618,18 @@ public class VelocityCommand implements BuiltinCommandDefinition {
               dumpPath, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW)) {
         bw.write(InformationUtils.toHumanReadableString(dump));
 
-        source.sendMessage(Component.text(
-                "An anonymised report containing useful information about "
-                        + "this proxy has been saved at " + dumpPath.toAbsolutePath(),
-                NamedTextColor.GREEN));
+        source.sendMessage(
+            Component.translatable("velocity.command.dump-created", NamedTextColor.GREEN)
+                .arguments(Argument.string("path", dumpPath.toAbsolutePath().toString()))
+        );
+        return SINGLE_SUCCESS;
       } catch (IOException e) {
         LOGGER.error("Failed to complete dump command, the executor was interrupted: {}", e.getMessage(), e);
-        source.sendMessage(Component.text(
-                "We could not save the anonymized dump. Check the console for more details.",
-                NamedTextColor.RED)
+        source.sendMessage(
+            Component.translatable("velocity.command.dump-failed", NamedTextColor.RED)
         );
+        return 0;
       }
-      return Command.SINGLE_SUCCESS;
     }
   }
 
@@ -675,7 +678,10 @@ public class VelocityCommand implements BuiltinCommandDefinition {
                 // This should not occur
                 throw new RuntimeException(e);
               }
-              src.sendMessage(Component.text("Heap dump saved to " + file, NamedTextColor.GREEN));
+              src.sendMessage(
+                  Component.translatable("velocity.command.heapdump-created", NamedTextColor.GREEN)
+                      .arguments(Argument.string("path", file.toAbsolutePath().toString()))
+              );
             };
           } catch (ClassNotFoundException e) {
             Class<?> clazz = Class.forName("com.sun.management.HotSpotDiagnosticMXBean");
@@ -693,18 +699,23 @@ public class VelocityCommand implements BuiltinCommandDefinition {
                 // This should not occur
                 throw new RuntimeException(e1);
               }
-              src.sendMessage(Component.text("Heap dump saved to " + file, NamedTextColor.GREEN));
+              src.sendMessage(
+                  Component.translatable("velocity.command.heapdump-created", NamedTextColor.GREEN)
+                      .arguments(Argument.string("path", file.toAbsolutePath().toString()))
+              );
             };
           }
         }
 
         this.heapConsumer.accept(source);
+        return SINGLE_SUCCESS;
       } catch (Throwable t) {
-        source.sendMessage(Component.text("Failed to write heap dump, see server log for details",
-                NamedTextColor.RED));
         LOGGER.error("Could not write heap", t);
+        source.sendMessage(
+            Component.translatable("velocity.command.heapdump-failed", NamedTextColor.RED)
+        );
+        return 0;
       }
-      return Command.SINGLE_SUCCESS;
     }
   }
 
@@ -759,13 +770,13 @@ public class VelocityCommand implements BuiltinCommandDefinition {
           }
         }
 
+        return SINGLE_SUCCESS;
       } catch (IOException e) {
         source.sendMessage(Component.translatable("velocity.command.config-check.error", NamedTextColor.RED)
                 .arguments(Argument.string("message", e.getMessage())));
         LOGGER.error("Failed to analyze configuration file: {}", configPath, e);
+        return 0;
       }
-
-      return Command.SINGLE_SUCCESS;
     }
   }
 }

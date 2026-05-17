@@ -101,7 +101,7 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
         .maxPlayers(server.getConfiguration().getShowMaxPlayers())
         .proxyPort(server.getConfiguration().getBind().getPort())
         .proxyHost(server.getConfiguration().getBind().getHostString())
-        .players(server.getAllPlayers().stream().map(ConnectedPlayer::getUsername).collect(Collectors.toList()))
+        .players(server.getOnlinePlayers().stream().map(ConnectedPlayer::getUsername).collect(Collectors.toList()))
         .proxyVersion("Velocity-CTD")
         .plugins(server.getConfiguration().shouldQueryShowPlugins() ? getRealPluginInformation() : Collections.emptyList())
         .build();

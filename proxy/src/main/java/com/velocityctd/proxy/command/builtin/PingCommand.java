@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,8 @@
 
 package com.velocityctd.proxy.command.builtin;
 
-import com.mojang.brigadier.Command;
+import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
+
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -110,7 +111,7 @@ public class PingCommand implements BuiltinCommandDefinition {
       if (maybeClusterPlayer.isEmpty()) {
         context.getSource().sendMessage(Component.translatable("velocity.command.player-not-found")
             .arguments(Argument.string("player", username)));
-        return -1;
+        return 0;
       }
 
       CommandSource source = context.getSource();
@@ -127,6 +128,6 @@ public class PingCommand implements BuiltinCommandDefinition {
       });
     }
 
-    return Command.SINGLE_SUCCESS;
+    return SINGLE_SUCCESS;
   }
 }

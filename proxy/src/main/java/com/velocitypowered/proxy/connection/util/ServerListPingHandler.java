@@ -17,7 +17,10 @@
 
 package com.velocitypowered.proxy.connection.util;
 
+import static com.velocityctd.proxy.util.ParsingUtils.parseVariables;
+
 import com.spotify.futures.CompletableFutures;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.server.PingOptions;
 import com.velocitypowered.api.proxy.server.ServerPing;
@@ -27,18 +30,21 @@ import com.velocitypowered.proxy.config.PingPassthroughMode;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
+import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
 
 /**
  * Common utilities for handling server list ping results.
  */
 public class ServerListPingHandler {
+
+  public static final int SAMPLE_SIZE = 12;
 
   private final VelocityServer server;
 
@@ -67,8 +73,8 @@ public class ServerListPingHandler {
 
     // When forcing a mismatch, prefer displayVersion's protocol so the client still shows an
     // informative "Client out of date, update to X" label. Fall back to LEGACY (-2) only when
-    // displayVersion would coincide with the client's protocol (e.g. a client on the proxy's
-    // actual maximum while maximum-version is configured lower), since that would otherwise
+    // displayVersion coincides with the client's protocol (e.g., a client on the proxy's
+    // actual maximum while the maximum-version is configured lower), since that would otherwise
     // collapse into a normal online state.
     boolean forceMismatch = configuration.isAlwaysFallBackPing()
         || clientVersion == ProtocolVersion.UNKNOWN
@@ -85,21 +91,7 @@ public class ServerListPingHandler {
 
     List<ServerPing.SamplePlayer> samplePlayers;
     if (configuration.getSamplePlayersInPing()) {
-      List<ServerPing.SamplePlayer> unshuffledPlayers = server.getClusterPlayerService()
-          .getAllPlayers()
-          .stream()
-          .map(player -> {
-            if (player.isClientListingAllowed()) {
-              return new ServerPing.SamplePlayer(player.getUsername(), player.getUniqueId());
-            } else {
-              return ServerPing.SamplePlayer.ANONYMOUS;
-            }
-          })
-          .collect(Collectors.toList());
-
-      Collections.shuffle(unshuffledPlayers);
-      int limit = Math.min(12, unshuffledPlayers.size());
-      samplePlayers = new ArrayList<>(unshuffledPlayers.subList(0, limit));
+      samplePlayers = sampleClusterPlayers(server.getClusterPlayerService().getAllPlayers());
     } else {
       samplePlayers = new ArrayList<>();
     }
@@ -122,20 +114,22 @@ public class ServerListPingHandler {
   }
 
   private String formatVersionString(String raw, ProtocolVersion version) {
-    String minVersionIntroducedIn = ProtocolVersion.getVersionByName(
-        server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn();
-    String maxVersionDisplay = server.getConfiguration().getMaximumVersion()
-        .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
-    return raw
-        .replaceAll("\\{protocol-min}", minVersionIntroducedIn)
-        .replaceAll("\\{protocol-max}", maxVersionDisplay)
-        .replaceAll("\\{protocol}", version.getVersionIntroducedIn())
-        .replaceAll("\\{proxy-brand}", server.getVersion().getName())
-        .replaceAll("\\{proxy-brand-custom}", server.getConfiguration().getProxyBrandCustom())
-        .replaceAll("\\{proxy-version}", server.getVersion().getVersion())
-        .replaceAll("\\{proxy-vendor}", server.getVersion().getVendor())
-        .replaceAll("\\{player-count}", String.valueOf(server.getClusterPlayerService().getTotalPlayerCount()))
-        .replaceAll("\\{max-players}", String.valueOf(server.getConfiguration().getShowMaxPlayers()));
+    return parseVariables(raw, (variable) -> {
+      return switch (variable) {
+        case "protocol-min" -> ProtocolVersion.getVersionByName(
+            server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn();
+        case "protocol-max" -> server.getConfiguration().getMaximumVersion()
+            .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
+        case "protocol" -> version.getVersionIntroducedIn();
+        case "proxy-brand" -> server.getVersion().getName();
+        case "proxy-brand-custom" -> server.getConfiguration().getProxyBrandCustom();
+        case "proxy-version" -> server.getVersion().getVersion();
+        case "proxy-vendor" -> server.getVersion().getVendor();
+        case "player-count" -> String.valueOf(server.getClusterPlayerService().getTotalPlayerCount());
+        case "max-players" -> String.valueOf(server.getConfiguration().getShowMaxPlayers());
+        default -> null;
+      };
+    });
   }
 
   private CompletableFuture<ServerPing> attemptPingPassthrough(VelocityInboundConnection connection,
@@ -242,5 +236,31 @@ public class ServerListPingHandler {
       return attemptPingPassthrough(connection, passthroughMode, fallbackServers.serversToTry(),
           shownVersion, fallbackServers.virtualHost());
     }
+  }
+
+  /**
+   * Picks up to {@link #SAMPLE_SIZE} players uniformly at random from {@code players} and maps
+   * them to {@link ServerPing.SamplePlayer} entries.
+   */
+  private static List<ServerPing.SamplePlayer> sampleClusterPlayers(Collection<VelocityClusterPlayer> players) {
+    List<VelocityClusterPlayer> snapshot = new ArrayList<>(players);
+    int total = snapshot.size();
+
+    if (total > SAMPLE_SIZE) {
+      ThreadLocalRandom rng = ThreadLocalRandom.current();
+      for (int i = 0; i < SAMPLE_SIZE; i++) {
+        Collections.swap(snapshot, i, i + rng.nextInt(total - i));
+      }
+      total = SAMPLE_SIZE;
+    }
+
+    List<ServerPing.SamplePlayer> result = new ArrayList<>(total);
+    for (int i = 0; i < total; i++) {
+      VelocityClusterPlayer player = snapshot.get(i);
+      result.add(player.isClientListingAllowed()
+          ? new ServerPing.SamplePlayer(player.getUsername(), player.getUniqueId())
+          : ServerPing.SamplePlayer.ANONYMOUS);
+    }
+    return result;
   }
 }

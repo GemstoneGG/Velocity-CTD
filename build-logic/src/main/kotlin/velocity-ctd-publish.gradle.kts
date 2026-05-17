@@ -10,13 +10,13 @@ extensions.configure<JavaPluginExtension> {
 extensions.configure<PublishingExtension> {
     repositories {
         maven {
-            name = "gritter"
-            val releasesUrl = "https://repo.gritter.nl/releases"
-            val snapshotsUrl = "https://repo.gritter.nl/snapshots"
+            name = "velocityctd"
+            val releasesUrl = "https://repo.velocityctd.com/releases"
+            val snapshotsUrl = "https://repo.velocityctd.com/snapshots"
             setUrl(if (version.toString().endsWith("-SNAPSHOT")) snapshotsUrl else releasesUrl)
             credentials {
-                username = providers.gradleProperty("gritterUser").orNull
-                password = providers.gradleProperty("gritterPassword").orNull
+                username = providers.gradleProperty("velocityctdUser").orNull
+                password = providers.gradleProperty("velocityctdPassword").orNull
             }
         }
     }

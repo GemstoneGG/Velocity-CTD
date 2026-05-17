@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ public class QueueComponents {
    * Creates the action bar component shown to the player at their current position.
    */
   public static @Nullable Component createActionbarComponent(@NotNull VelocityQueueEntry entry) {
-    VelocityQueue queue = entry.getQueue();
+    VelocityQueue<?> queue = entry.getQueue();
     Integer position = queue.getPosition(entry.getUniqueId()).orElse(null);
     if (position == null) {
       return null;
@@ -90,32 +90,51 @@ public class QueueComponents {
 
     Component output = Component.empty();
     if (days != 0) {
-      output = output.append(formatTimeUnit("day", days));
+      output = output.append(formatTimeUnit(
+          days == 1
+              ? "velocity.queue.time.day"
+              : "velocity.queue.time.days",
+          days
+      ));
     }
 
     if (hours != 0) {
-      output = output.append(formatTimeUnit("hour", hours));
+      output = output.append(formatTimeUnit(
+          hours == 1
+              ? "velocity.queue.time.hour"
+              : "velocity.queue.time.hours",
+          hours
+      ));
     }
 
     if (minutes != 0) {
-      output = output.append(formatTimeUnit("minute", minutes));
+      output = output.append(formatTimeUnit(
+          minutes == 1
+              ? "velocity.queue.time.minute"
+              : "velocity.queue.time.minutes",
+          minutes
+      ));
     }
 
     long seconds = (TimeUnit.SECONDS.toSeconds(inputSeconds)
         - (TimeUnit.SECONDS.toMinutes(inputSeconds) * 60));
 
-    return output.append(formatTimeUnit("second", seconds));
+    return output.append(formatTimeUnit(
+        seconds == 1
+            ? "velocity.queue.time.second"
+            : "velocity.queue.time.seconds",
+        seconds
+    ));
   }
 
   /**
    * Formats a time value as a component.
    *
-   * @param name  the name of the time unit
+   * @param key   the translation key of the time unit
    * @param value the value of the time unit
    * @return the time formatted as a component
    */
-  private static Component formatTimeUnit(String name, long value) {
-    String key = "velocity.queue.time." + name + (value == 1 ? "" : "s");
+  private static Component formatTimeUnit(String key, long value) {
     return Component.translatable(key).arguments(Component.text(String.valueOf(value)));
   }
 }

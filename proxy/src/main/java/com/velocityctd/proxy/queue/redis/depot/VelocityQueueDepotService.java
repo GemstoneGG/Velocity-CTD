@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ import org.jetbrains.annotations.Nullable;
  * Manages persistence of {@link VelocityQueueDepotEntry} objects in Redis.
  *
  * <p>This service is used only for cold-start state recovery. The master proxy
- * writes queue snapshots here periodically; a newly-started or newly-promoted
+ * writes queue snapshots here periodically; a newly started or newly-promoted
  * master proxy reads them back on initialization.</p>
  */
 public final class VelocityQueueDepotService

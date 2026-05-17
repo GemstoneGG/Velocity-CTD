@@ -39,9 +39,23 @@ import io.netty.channel.unix.UnixChannelOption;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import io.netty.util.concurrent.MultithreadEventExecutorGroup;
 import java.net.InetSocketAddress;
-import java.net.http.HttpClient;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
+import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
+import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.config.TlsConfig;
+import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
+import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.core5.concurrent.FutureCallback;
+import org.apache.hc.core5.http2.HttpVersionPolicy;
+import org.apache.hc.core5.io.CloseMode;
+import org.apache.hc.core5.util.TimeValue;
+import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessageFactory;
@@ -75,9 +89,12 @@ public final class ConnectionManager {
   private final SeparatePoolInetNameResolver resolver;
 
   /**
-   * Shared {@link HttpClient} for pooled http connections.
+   * Shared {@link CloseableHttpAsyncClient} for pooled http connections. Uses Apache HttpClient
+   * because the JDK HTTP/2 client refuses to open additional connections when the server-advertised
+   * concurrent stream limit is hit and fails the request instead
+   * (see <a href="https://bugs.openjdk.org/browse/JDK-8225647">JDK-8225647</a>).
    */
-  private volatile @MonotonicNonNull HttpClient sharedHttpClient;
+  private volatile @MonotonicNonNull CloseableHttpAsyncClient sharedHttpClient;
 
   /**
    * Initializes the {@code ConnectionManager}.
@@ -274,6 +291,11 @@ public final class ConnectionManager {
     this.closeEndpoints(true);
 
     this.resolver.shutdown();
+
+    CloseableHttpAsyncClient httpClient = this.sharedHttpClient;
+    if (httpClient != null) {
+      httpClient.close(CloseMode.GRACEFUL);
+    }
   }
 
   public EventLoopGroup getBossGroup() {
@@ -284,14 +306,36 @@ public final class ConnectionManager {
     return this.serverChannelInitializer;
   }
 
-  public HttpClient createHttpClient() {
-    return HttpClient.newBuilder()
-        .executor(this.workerGroup)
-        .build();
+  public CompletableFuture<SimpleHttpResponse> sendAsync(SimpleHttpRequest request) {
+    CompletableFuture<SimpleHttpResponse> future = new CompletableFuture<>();
+    Future<SimpleHttpResponse> handle = getSharedHttpClient().execute(request, new FutureCallback<>() {
+      @Override
+      public void completed(SimpleHttpResponse result) {
+        future.complete(result);
+      }
+
+      @Override
+      public void failed(Exception ex) {
+        future.completeExceptionally(ex);
+      }
+
+      @Override
+      public void cancelled() {
+        future.cancel(false);
+      }
+    });
+
+    future.whenComplete((r, ex) -> {
+      if (future.isCancelled()) {
+        handle.cancel(true);
+      }
+    });
+
+    return future;
   }
 
   @EnsuresNonNull("sharedHttpClient")
-  public HttpClient getSharedHttpClient() {
+  public CloseableHttpAsyncClient getSharedHttpClient() {
     if (sharedHttpClient == null) {
       synchronized (this) {
         if (sharedHttpClient == null) { // check again in lock
@@ -300,6 +344,33 @@ public final class ConnectionManager {
       }
     }
     return sharedHttpClient;
+  }
+
+  private CloseableHttpAsyncClient createHttpClient() {
+    PoolingAsyncClientConnectionManager connectionManager =
+        PoolingAsyncClientConnectionManagerBuilder.create()
+            .setDefaultConnectionConfig(ConnectionConfig.custom()
+                .setConnectTimeout(Timeout.ofSeconds(15))
+                .setSocketTimeout(Timeout.ofSeconds(30))
+                .setTimeToLive(TimeValue.ofMinutes(5))
+                .build())
+            .setDefaultTlsConfig(TlsConfig.custom()
+                .setVersionPolicy(HttpVersionPolicy.NEGOTIATE)
+                .build())
+            .setMaxConnPerRoute(8)
+            .setMaxConnTotal(32)
+            .build();
+
+    CloseableHttpAsyncClient client = HttpAsyncClients.custom()
+        .setConnectionManager(connectionManager)
+        .setUserAgent(server.getVersion().getName() + "/" + server.getVersion().getVersion())
+        .useSystemProperties()
+        .evictExpiredConnections()
+        .evictIdleConnections(TimeValue.ofSeconds(60))
+        .build();
+    client.start();
+
+    return client;
   }
 
   public BackendChannelInitializerHolder getBackendChannelInitializer() {

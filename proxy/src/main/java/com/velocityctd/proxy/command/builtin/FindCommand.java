@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,8 @@
 
 package com.velocityctd.proxy.command.builtin;
 
-import com.mojang.brigadier.Command;
+import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
+
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
@@ -56,7 +57,7 @@ public class FindCommand implements BuiltinCommandDefinition {
     LiteralArgumentBuilder<CommandSource> rootNode = BrigadierCommand
         .literalArgumentBuilder(label())
         .requires(source -> source.getPermissionValue("velocity.command.find") == Tristate.TRUE)
-        .executes(ctx -> CommandUtils.emitUsage(ctx, label()));
+        .executes(ctx -> CommandUtils.emitUsage(ctx, "velocity.command.find.usage"));
     RequiredArgumentBuilder<CommandSource, String> playerNode = BrigadierCommand
         .requiredArgumentBuilder("player", StringArgumentType.word())
         .suggests((ctx, builder) -> CommandUtils.suggestPlayer(server, ctx, builder))
@@ -94,6 +95,6 @@ public class FindCommand implements BuiltinCommandDefinition {
                 Argument.string("player", clusterPlayer.getUsername()),
                 Argument.string("server", serverDisplay)));
 
-    return Command.SINGLE_SUCCESS;
+    return SINGLE_SUCCESS;
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -105,7 +105,7 @@ public class CommandUtils {
    * @param server the proxy instance
    * @param ctx the command context
    * @param argName the name of the argument
-   * @param allowNonQueueable whether to return a servers if it can't be queued.
+   * @param allowNonQueueable whether to return a server if it can't be queued.
    * @return the found server, or {@code null} if one couldn't be found
    */
   public static VelocityRegisteredServer getServer(VelocityServer server, CommandContext<CommandSource> ctx,
@@ -152,21 +152,17 @@ public class CommandUtils {
    * Emits usage text for the given command name to the source of the given command context.
    *
    * @param ctx the command context to send usage to
-   * @param commandName the command name
-   * @return {@code Command.SINGLE_SUCCESS} to allow using in expression-style {@code .executes} lambdas.
+   * @param key the usage message translatable key
+   * @return {@code 0} to allow using in expression-style {@code .executes} lambdas, and to indicate a failed state
    */
-  public static int emitUsage(CommandContext<CommandSource> ctx, String commandName) {
-    String usedName = commandName;
+  public static int emitUsage(CommandContext<CommandSource> ctx, String key) {
     ParsedCommandNode<?> node = ctx.getNodes().getFirst();
-
-    if (node != null) {
-      usedName = node.getNode().getName();
-    }
+    String usedName = node.getNode().getName();
 
     ctx.getSource().sendMessage(
-        Component.translatable("velocity.command." + commandName + ".usage", NamedTextColor.YELLOW)
+        Component.translatable(key, NamedTextColor.YELLOW)
             .arguments(Argument.string("command", usedName)));
-    return com.mojang.brigadier.Command.SINGLE_SUCCESS;
+    return 0;
   }
 
   /**

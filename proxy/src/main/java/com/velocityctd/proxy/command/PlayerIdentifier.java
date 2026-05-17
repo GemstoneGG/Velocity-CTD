@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -46,17 +47,35 @@ public final class PlayerIdentifier {
    * The type of identifier that was parsed.
    */
   public enum Type {
-    /** The {@code all} keyword. */
+
+    /**
+     * The {@code all} keyword.
+     */
     ALL,
-    /** The {@code current} keyword (sender's current server). */
+
+    /**
+     * The {@code current} keyword (sender's current server).
+     */
     CURRENT_SERVER,
-    /** A {@code +<server>} prefix. */
+
+    /**
+     * A {@code +<server>} prefix.
+     */
     SERVER,
-    /** A {@code -<proxy>} prefix. */
+
+    /**
+     * A {@code -<proxy>} prefix.
+     */
     PROXY,
-    /** One or more player names (possibly comma-separated). */
+
+    /**
+     * One or more player names (possibly comma-separated).
+     */
     PLAYER,
-    /** The source is not a player (failed {@code current} from console). */
+
+    /**
+     * The source is not a player (failed {@code current} from console).
+     */
     PLAYER_EXECUTOR_REQUIRED
   }
 
@@ -86,7 +105,10 @@ public final class PlayerIdentifier {
     }
 
     private static Result success(Type type, Collection<VelocityClusterPlayer> players, @Nullable String name) {
-      return new Result(type, true, players, name);
+      // Snapshot to insulate consumers from lazy/live views (e.g. Collections2.transform on the
+      // online-players map): guarantees stable size and iteration regardless of joins/leaves
+      // happening between calls to players().
+      return new Result(type, true, List.copyOf(players), name);
     }
 
     private static Result failure(Type type, @Nullable String name) {

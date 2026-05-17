@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 /**
  * Factory for producing an {@link PermissionResolver} for a given {@link PermissionSubject}.
  *
- * <p>This factory supports an optional, runtime-discovered integration that is embedded inside the
+ * <p>This factory supports an optional, runtime-discovered integration which is embedded inside the
  * proxy jar (as a nested jar resource). When present, the embedded integration jar is extracted to
  * a temporary file and loaded via a dedicated {@link PluginClassLoader}. The implementation is then
  * discovered using {@link ServiceLoader} by locating an {@link PermissionResolverProvider}.

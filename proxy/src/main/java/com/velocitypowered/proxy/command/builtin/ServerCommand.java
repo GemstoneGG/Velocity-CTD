@@ -17,9 +17,9 @@
 
 package com.velocitypowered.proxy.command.builtin;
 
+import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
 import static net.kyori.adventure.text.event.HoverEvent.showText;
 
-import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocityctd.proxy.command.CommandUtils;
@@ -76,12 +76,12 @@ public class ServerCommand implements BuiltinCommandDefinition {
         .requires(src -> src instanceof ConnectedPlayer && src.getPermissionValue("velocity.command.server") != Tristate.FALSE)
         .executes(ctx -> {
           if (server.getConfiguration().isOverrideServerCommandUsage()) {
-            return CommandUtils.emitUsage(ctx, label());
+            return CommandUtils.emitUsage(ctx, "velocity.command.server.usage");
           }
 
           ConnectedPlayer player = (ConnectedPlayer) ctx.getSource();
           outputServerInformation(player, server);
-          return Command.SINGLE_SUCCESS;
+          return SINGLE_SUCCESS;
         })
         .then(BrigadierCommand.requiredArgumentBuilder(SERVER_ARG, StringArgumentType.word())
             .suggests(CommandUtils.suggestServer(server, SERVER_ARG, true, true))
@@ -90,17 +90,17 @@ public class ServerCommand implements BuiltinCommandDefinition {
               VelocityRegisteredServer registeredServer = CommandUtils.getServer(server, ctx, SERVER_ARG, true);
 
               if (registeredServer == null) {
-                return -1;
+                return 0;
               }
 
               VelocityServerConnection connection = player.getCurrentServer().orElse(null);
               if (connection != null && connection.getServer() == registeredServer) {
                 player.sendMessage(Component.translatable("velocity.error.already-connected"));
-                return -1;
+                return 0;
               }
 
               CommandUtils.sendOrQueue(server, player, registeredServer);
-              return Command.SINGLE_SUCCESS;
+              return SINGLE_SUCCESS;
             })
         ).build();
 

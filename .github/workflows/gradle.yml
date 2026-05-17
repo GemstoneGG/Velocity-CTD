@@ -4,7 +4,13 @@
 name: Java CI with Gradle
 on:
   push:
+    branches:
+      - libdeflate
   pull_request:
+  workflow_dispatch:
+
+env:
+  RELEASE_BRANCH: refs/heads/libdeflate
 
 jobs:
   build:
@@ -14,18 +20,21 @@ jobs:
       uses: actions/checkout@v6
       with:
         persist-credentials: false
+
     - name: Set up Gradle
       uses: gradle/actions/setup-gradle@v6
+
     - name: Set up JDK 21
       uses: actions/setup-java@v5
       with:
         java-version: 21
         distribution: 'zulu'
+
     - name: Build with Gradle
       run: ./gradlew build
 
     - name: Generate Release Tag
-      if: github.ref == 'refs/heads/libdeflate'
+      if: github.ref == env.RELEASE_BRANCH
       id: release_tag
       run: |
         # Fetch all tags from remote
@@ -55,15 +64,24 @@ jobs:
         echo "Previous highest build: $LATEST_BUILD"
         echo "New build number: $NEW_BUILD"
 
-    - name: Rename Jar
-      if: github.ref == 'refs/heads/libdeflate'
+    - name: Rename Velocity-CTD Jar
+      if: github.ref == env.RELEASE_BRANCH
       run: |
         JAR=$(ls proxy/build/libs/velocity-proxy-*-all.jar)
         VERSION=$(echo "$JAR" | sed 's|proxy/build/libs/velocity-proxy-||' | sed 's|-all\.jar||')
         cp "$JAR" "proxy/build/libs/velocity-ctd-$VERSION-${{ steps.release_tag.outputs.build_nr }}.jar"
 
-    - name: Upload Velocity
-      if: github.ref == 'refs/heads/libdeflate'
+    - name: Publish to Maven Repository
+      if: github.ref == env.RELEASE_BRANCH
+      continue-on-error: true
+      run: ./gradlew publish
+      env:
+        ORG_GRADLE_PROJECT_velocityctdUser: ${{ secrets.MAVEN_USERNAME }}
+        ORG_GRADLE_PROJECT_velocityctdPassword: ${{ secrets.MAVEN_PASSWORD }}
+
+    - name: Upload as GitHub Release
+      if: github.ref == env.RELEASE_BRANCH
+      continue-on-error: true
       uses: marvinpinto/action-automatic-releases@master
       with:
         title: "Velocity-CTD"

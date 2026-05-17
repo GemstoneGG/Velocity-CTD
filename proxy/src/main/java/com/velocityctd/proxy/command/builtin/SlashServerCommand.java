@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,8 @@
 
 package com.velocityctd.proxy.command.builtin;
 
-import com.mojang.brigadier.Command;
+import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
+
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.velocityctd.proxy.command.CommandUtils;
@@ -72,10 +73,10 @@ public class SlashServerCommand implements BuiltinCommandDefinition {
     VelocityServerConnection connection = player.getCurrentServer().orElse(null);
     if (connection != null && connection.getServer() == registeredServer) {
       player.sendMessage(Component.translatable("velocity.command.slashserver.already-connected"));
-      return -1;
+      return 0;
     }
 
     CommandUtils.sendOrQueue(server, player, registeredServer);
-    return Command.SINGLE_SUCCESS;
+    return SINGLE_SUCCESS;
   }
 }

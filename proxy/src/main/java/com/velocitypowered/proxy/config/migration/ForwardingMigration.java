@@ -41,7 +41,8 @@ public final class ForwardingMigration implements ConfigurationMigration {
             You are currently using a deprecated configuration version.
             The "forwarding-secret"  parameter is a security hazard and was removed in \
             config version 2.0.
-            We will migrate your secret to the "forwarding.secret" file.""");
+            We will migrate your secret to the "forwarding.secret" file."""
+    );
     String actualSecret = config.get("forwarding-secret");
     Path path = Path.of(config.getOrElse("forwarding-secret-file", "forwarding.secret"));
     if (Files.exists(path)) {
@@ -62,7 +63,8 @@ public final class ForwardingMigration implements ConfigurationMigration {
     config.setComment("forwarding-secret-file", """
                 If you are using modern or BungeeGuard IP forwarding, \
                 configure a file that contains a unique secret here.
-                The file is expected to be UTF-8 encoded and not empty.""");
+                The file is expected to be UTF-8 encoded and not empty."""
+    );
     config.set("config-version", "2.0");
   }
 }

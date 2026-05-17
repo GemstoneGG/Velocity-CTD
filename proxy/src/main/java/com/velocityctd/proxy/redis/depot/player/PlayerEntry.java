@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -189,5 +189,10 @@ public final class PlayerEntry extends DepotEntry<UUID, PlayerEntry> {
    */
   public void setClientListingAllowed(boolean clientListingAllowed) {
     this.clientListingAllowed = clientListingAllowed;
+  }
+
+  @Override
+  protected PlayerEntry self() {
+    return this;
   }
 }

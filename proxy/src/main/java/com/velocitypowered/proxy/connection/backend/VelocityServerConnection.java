@@ -22,6 +22,8 @@ import static com.velocitypowered.proxy.network.Connections.HANDLER;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.base.Preconditions;
+import com.mojang.brigadier.tree.RootCommandNode;
+import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.network.HandshakeIntent;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.ServerConnection;
@@ -80,6 +82,8 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
   private final Map<Long, Long> pendingPings = new HashMap<>();
 
   private @MonotonicNonNull Integer entityId;
+
+  private volatile @Nullable RootCommandNode<CommandSource> backendCommandsNode;
 
   /**
    * Initializes a new server connection.
@@ -390,5 +394,13 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
    */
   public boolean hasCompletedJoin() {
     return hasCompletedJoin;
+  }
+
+  public @Nullable RootCommandNode<CommandSource> getBackendCommandsNode() {
+    return backendCommandsNode;
+  }
+
+  public void setBackendCommandsNode(@Nullable RootCommandNode<CommandSource> backendCommandsNode) {
+    this.backendCommandsNode = backendCommandsNode;
   }
 }
