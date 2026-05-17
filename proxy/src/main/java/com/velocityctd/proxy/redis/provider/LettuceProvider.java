@@ -445,14 +445,16 @@ public final class LettuceProvider extends AbstractRedisProvider {
      * @return the deserialized value
      */
     @Override
-    public @NotNull V get(@NotNull K key) {
+    public @Nullable V get(@NotNull K key) {
       byte[] data = this.connection.hget(this.name, parseKey(key));
       if (data == null) {
-        throw new RuntimeException("Failed to retrieve key '" + key + "' from depot '" + name + "'. Killing proxy to avoid undefined state.");
+        return null;
       }
+
       V entry = deserialize(data);
       if (entry == null) {
-        throw new RuntimeException("Encountered malformed data for key '" + key + "' in depot '" + name + "'. Killing proxy to avoid undefined state.");
+        LOGGER.warn("Encountered malformed data for key '{}' in depot '{}', ignoring", key, name);
+        return null;
       }
       return entry;
     }
@@ -497,13 +499,8 @@ public final class LettuceProvider extends AbstractRedisProvider {
     @Override
     public Collection<V> values() {
       return this.connection.hvals(this.name).stream()
-              .map(data -> {
-                V entry = this.deserialize(data);
-                if (entry == null) {
-                  throw new RuntimeException("Encountered malformed data in depot '" + name + "'. Killing proxy to avoid undefined state.");
-                }
-                return entry;
-              })
+              .map(this::deserialize)
+              .filter(Objects::nonNull)
               .toList();
     }
 

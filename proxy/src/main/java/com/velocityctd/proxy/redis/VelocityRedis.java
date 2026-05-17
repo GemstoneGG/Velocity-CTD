@@ -171,6 +171,15 @@ public final class VelocityRedis {
   }
 
   /**
+   * Gets the {@link PacketSerializer} used for packet (de)serialization.
+   *
+   * @return the packet serializer
+   */
+  public PacketSerializer getPacketSerializer() {
+    return packetSerializer;
+  }
+
+  /**
    * Gets the {@link PlayerDepotService} associated with this Redis module.
    *
    * @return the player service
