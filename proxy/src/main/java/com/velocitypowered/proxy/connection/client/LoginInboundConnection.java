@@ -17,6 +17,8 @@
 
 package com.velocitypowered.proxy.connection.client;
 
+import static com.velocitypowered.proxy.connection.PlayerDataForwarding.LEGACY_MODERN_FORWARDING;
+
 import com.velocitypowered.api.network.HandshakeIntent;
 import com.velocitypowered.api.network.ProtocolState;
 import com.velocitypowered.api.network.ProtocolVersion;
@@ -107,7 +109,7 @@ public class LoginInboundConnection implements LoginPhaseConnection, KeyIdentifi
       throw new NullPointerException("consumer");
     }
 
-    if (delegate.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_13)) {
+    if (!LEGACY_MODERN_FORWARDING && delegate.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_13)) {
       throw new IllegalStateException("Login plugin messages can only be sent to clients running "
           + "Minecraft 1.13 and above");
     }
