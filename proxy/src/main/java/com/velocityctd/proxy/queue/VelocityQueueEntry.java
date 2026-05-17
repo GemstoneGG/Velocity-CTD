@@ -39,7 +39,7 @@ public class VelocityQueueEntry implements QueueEntry {
   private final UUID uniqueId;
   private final String username;
   protected volatile int priority;
-  protected final AtomicInteger connectionAttempts = new AtomicInteger();
+  protected int connectionAttempts;
   protected volatile boolean waitingForConnection;
   protected volatile boolean fullBypass;
   protected volatile boolean queueBypass;
@@ -128,7 +128,9 @@ public class VelocityQueueEntry implements QueueEntry {
 
   @Override
   public int getConnectionAttempts() {
-    return connectionAttempts.get();
+    synchronized (this) {
+      return connectionAttempts;
+    }
   }
 
   @Override
@@ -226,8 +228,11 @@ public class VelocityQueueEntry implements QueueEntry {
   }
 
   private void applyFailedAttempt(VelocityConfiguration.Queue config) {
-    this.waitingForConnection = false;
-    int attempts = this.connectionAttempts.incrementAndGet();
+    int attempts;
+    synchronized (this) {
+      this.waitingForConnection = false;
+      attempts = ++this.connectionAttempts;
+    }
     refreshPermissions();
     publishWaitingChange();
 

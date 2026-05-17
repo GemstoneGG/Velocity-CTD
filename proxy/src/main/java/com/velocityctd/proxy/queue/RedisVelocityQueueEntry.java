@@ -74,12 +74,14 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
   @Override
   @ApiStatus.Internal
   public void abortTransfer() {
-    if (!this.waitingForConnection) {
-      return;
-    }
+    synchronized (this) {
+      if (!this.waitingForConnection) {
+        return;
+      }
 
-    this.waitingForConnection = false;
-    this.connectionAttempts.incrementAndGet();
+      this.waitingForConnection = false;
+      this.connectionAttempts++;
+    }
     refreshPermissions();
     publishWaitingChange();
   }
@@ -90,10 +92,13 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
    */
   @Override
   protected void publishWaitingChange() {
-    server.getRedis().publish(VelocityQueueSync.waitingChange(
-        getQueue().getName(), getUniqueId(), this.waitingForConnection,
-        this.connectionAttempts.get(), this.priority, this.fullBypass, this.queueBypass
-    ));
+    VelocityQueueSync sync;
+    synchronized (this) {
+      sync = VelocityQueueSync.waitingChange(
+          getQueue().getName(), getUniqueId(), this.waitingForConnection,
+          this.connectionAttempts, this.priority, this.fullBypass, this.queueBypass);
+    }
+    server.getRedis().publish(sync);
   }
 
   /**
@@ -122,10 +127,12 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
                                            int updatedPriority,
                                            boolean updatedFullBypass,
                                            boolean updatedQueueBypass) {
-    this.waitingForConnection = waiting;
-    this.connectionAttempts.set(attempts);
-    this.priority = updatedPriority;
-    this.fullBypass = updatedFullBypass;
-    this.queueBypass = updatedQueueBypass;
+    synchronized (this) {
+      this.waitingForConnection = waiting;
+      this.connectionAttempts = attempts;
+      this.priority = updatedPriority;
+      this.fullBypass = updatedFullBypass;
+      this.queueBypass = updatedQueueBypass;
+    }
   }
 }

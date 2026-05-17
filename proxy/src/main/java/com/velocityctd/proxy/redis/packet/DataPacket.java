@@ -183,7 +183,13 @@ public final class DataPacket {
       rawPayload = serializer.deserializePayload(payload, expectedType);
     }
 
-    return expectedType.cast(rawPayload);
+    try {
+      return expectedType.cast(rawPayload);
+    } catch (ClassCastException e) {
+      throw new IllegalStateException(
+          "Deserialized payload is inconsistent with declared type %s"
+              .formatted(payloadType), e);
+    }
   }
 
   @Override

@@ -335,11 +335,9 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
   public boolean handle(TransferPacket packet) {
     InetSocketAddress originalAddress = packet.address();
     if (originalAddress == null) {
-      LOGGER.error(
-          """
+      LOGGER.error("""
           Unexpected nullable address received in TransferPacket \
-          from Backend Server in Configuration State
-          """
+          from Backend Server in Configuration State"""
       );
       return true;
     }

@@ -158,12 +158,11 @@ public final class Transaction<T extends TransactionData<R>, R> {
     try {
       this.future.complete(responseClass.cast(result));
     } catch (ClassCastException e) {
-      LOGGER.warn("Transaction {} completed with unexpected result type '{}', expected '{}'",
-          this.transactionId,
-          result == null ? "null" : result.getClass().getName(),
-          responseClass.getName(),
-          e);
-      this.future.completeExceptionally(e);
+      String message = "Transaction " + this.transactionId
+          + " completed with unexpected result type '" + result.getClass().getName()
+          + "', expected '" + responseClass.getName() + "'";
+      LOGGER.warn(message, e);
+      this.future.completeExceptionally(new IllegalStateException(message, e));
     }
   }
 

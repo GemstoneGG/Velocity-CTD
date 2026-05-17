@@ -18,6 +18,7 @@
 package com.velocityctd.proxy.queue;
 
 import static com.velocityctd.api.queue.ServerStatus.WAITING;
+import static java.util.Objects.requireNonNull;
 
 import com.velocityctd.api.queue.QueueEntryData;
 import com.velocityctd.api.queue.QueueState;
@@ -129,58 +130,31 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
       return; // unknown server
     }
 
-    try {
-      switch (sync.action()) {
-        case ENQUEUE -> {
-          if (sync.playerUuid() == null || sync.username() == null) {
-            throw new IllegalStateException(
-                "ENQUEUE missing playerUuid/username for queue " + sync.serverName());
-          }
-          queue.applyEnqueue(new QueueEntryData(sync.playerUuid(), sync.username(),
-              sync.priority(), sync.fullBypass(), sync.queueBypass()));
-        }
-        case DEQUEUE -> {
-          if (sync.playerUuid() == null) {
-            throw new IllegalStateException(
-                "DEQUEUE missing playerUuid for queue " + sync.serverName());
-          }
-          queue.applyDequeue(sync.playerUuid());
-        }
-        case STATE_CHANGE -> {
-          if (sync.newState() == null) {
-            throw new IllegalStateException(
-                "STATE_CHANGE missing newState for queue " + sync.serverName());
-          }
-          queue.applyStateChange(sync.newState());
-        }
-        case STATUS_CHANGE -> {
-          if (sync.newStatus() == null) {
-            throw new IllegalStateException(
-                "STATUS_CHANGE missing newStatus for queue " + sync.serverName());
-          }
-          queue.applyStatusChange(sync.newStatus());
-        }
-        case WAITING_CHANGE -> {
-          if (sync.playerUuid() == null) {
-            throw new IllegalStateException(
-                "WAITING_CHANGE missing playerUuid for queue " + sync.serverName());
-          }
-          queue.applyWaitingChange(sync.playerUuid(),
-              sync.waitingForConnection(), sync.connectionAttempts(),
-              sync.updatedPriority(), sync.updatedFullBypass(), sync.updatedQueueBypass());
-        }
-        case OFFLINE_CHANGE -> {
-          if (sync.playerUuid() == null) {
-            throw new IllegalStateException(
-                "OFFLINE_CHANGE missing playerUuid for queue " + sync.serverName());
-          }
-          queue.applyOfflineChange(sync.playerUuid(),
-              sync.offlineSinceMs(), sync.offlineTimeoutSeconds());
-        }
-        default -> throw new IllegalStateException("Unknown action " + sync.action() + ".");
-      }
-    } catch (IllegalStateException ex) {
-      LOGGER.warn("Dropping malformed sync: {}", ex.getMessage());
+    switch (sync.action()) {
+      case ENQUEUE -> queue.applyEnqueue(new QueueEntryData(
+          requireNonNull(sync.playerUuid(), "playerUuid"),
+          requireNonNull(sync.username(), "username"),
+          sync.priority(),
+          sync.fullBypass(),
+          sync.queueBypass()));
+      case DEQUEUE -> queue.applyDequeue(
+          requireNonNull(sync.playerUuid(), "playerUuid"));
+      case STATE_CHANGE -> queue.applyStateChange(
+          requireNonNull(sync.newState(), "newState"));
+      case STATUS_CHANGE -> queue.applyStatusChange(
+          requireNonNull(sync.newStatus(), "newStatus"));
+      case WAITING_CHANGE -> queue.applyWaitingChange(
+          requireNonNull(sync.playerUuid(), "playerUuid"),
+          sync.waitingForConnection(),
+          sync.connectionAttempts(),
+          sync.updatedPriority(),
+          sync.updatedFullBypass(),
+          sync.updatedQueueBypass());
+      case OFFLINE_CHANGE -> queue.applyOfflineChange(
+          requireNonNull(sync.playerUuid(), "playerUuid"),
+          sync.offlineSinceMs(),
+          sync.offlineTimeoutSeconds());
+      default -> throw new IllegalStateException("Unknown action " + sync.action() + ".");
     }
   }
 

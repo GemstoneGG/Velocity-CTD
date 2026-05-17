@@ -61,7 +61,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class VelocityQueueManager implements QueueManager {
 
-  static final Logger LOGGER = LogManager.getLogger(VelocityQueueManager.class);
+  private static final Logger LOGGER = LogManager.getLogger(VelocityQueueManager.class);
 
   /**
    * Timestamp (ms) of when each server last transitioned from OFFLINE to WAITING.
@@ -265,12 +265,13 @@ public class VelocityQueueManager implements QueueManager {
     // If a queue-server is configured, move the player there if they aren't already on it
     String queueServerName = config.getQueueServer();
     if (!queueServerName.isEmpty()) {
-      server.getServer(queueServerName).ifPresentOrElse(queueServer ->
-            player.getCurrentServer().ifPresent(currentServer -> {
-              if (!currentServer.getServerInfo().getName().equals(queueServerName)) {
-                player.createConnectionRequest(queueServer).connectWithIndication();
-              }
-            }), () -> LOGGER.warn("Queue server '{}' is configured but not registered!", queueServerName));
+      server.getServer(queueServerName).ifPresentOrElse(queueServer -> {
+        player.getCurrentServer().ifPresent(currentServer -> {
+          if (!currentServer.getServerInfo().getName().equals(queueServerName)) {
+            player.createConnectionRequest(queueServer).connectWithIndication();
+          }
+        });
+      }, () -> LOGGER.warn("Queue server '{}' is configured but not registered!", queueServerName));
     }
   }
 

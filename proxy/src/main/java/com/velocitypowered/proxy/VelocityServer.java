@@ -1009,25 +1009,29 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       case FIRST_FOUND -> {
         // Don't sort
       }
-      case MOST_EMPTY ->
-          // Sort to get most empty first
-          addresses.sort((o1, o2) -> {
-            int connectedSize1 = redis.getPlayerService().getPlayerEntriesOnProxy(o1.proxyId()).size();
-            int connectedSize2 = redis.getPlayerService().getPlayerEntriesOnProxy(o2.proxyId()).size();
-            return Long.compare(connectedSize1, connectedSize2);
-          });
-      case LEAST_EMPTY ->
-          // Sort to get least empty first
-          addresses.sort((o1, o2) -> {
-            int connectedSize1 = redis.getPlayerService().getPlayerEntriesOnProxy(o1.proxyId()).size();
-            int connectedSize2 = redis.getPlayerService().getPlayerEntriesOnProxy(o2.proxyId()).size();
-            return Long.compare(connectedSize2, connectedSize1);
-          });
+      case MOST_EMPTY -> {
+        // Sort to get most empty first
+        addresses.sort((o1, o2) -> {
+          int connectedSize1 = redis.getPlayerService().getPlayerEntriesOnProxy(o1.proxyId()).size();
+          int connectedSize2 = redis.getPlayerService().getPlayerEntriesOnProxy(o2.proxyId()).size();
+          return Long.compare(connectedSize1, connectedSize2);
+        });
+      }
+      case LEAST_EMPTY -> {
+        // Sort to get least empty first
+        addresses.sort((o1, o2) -> {
+          int connectedSize1 = redis.getPlayerService().getPlayerEntriesOnProxy(o1.proxyId()).size();
+          int connectedSize2 = redis.getPlayerService().getPlayerEntriesOnProxy(o2.proxyId()).size();
+          return Long.compare(connectedSize2, connectedSize1);
+        });
+      }
       case NONE -> {
         // No next address
         return null;
       }
-      default -> throw new IllegalStateException("Invalid filter '" + filter + "'.");
+      default -> {
+        throw new IllegalStateException("Invalid filter '" + filter + "'.");
+      }
     }
 
     return addresses.getFirst();
@@ -1201,6 +1205,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    * @param player the player to check
    * @return {@code true} if the same player instance is registered under its UUID
    */
+  @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   public boolean isPlayerOnline(ConnectedPlayer player) {
     return connectionsByUuid.get(player.getUniqueId()) == player;
   }

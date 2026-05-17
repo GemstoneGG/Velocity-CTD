@@ -108,11 +108,6 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
     return playerList.snapshot();
   }
 
-  /**
-   * Returns the first entry matching the predicate, evaluated against the live list
-   * without copying the queue. Intended for hot paths that would otherwise scan
-   * {@link #getEntries()}.
-   */
   public @Nullable E findFirst(@NotNull Predicate<? super E> filter) {
     return playerList.findFirst(filter);
   }

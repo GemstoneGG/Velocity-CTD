@@ -36,12 +36,10 @@ public final class CtdAutoQueueServersMigration implements ConfigurationMigratio
       Map.entry("factions-limbo", "factions")
   ).collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (x, y) -> y, LinkedHashMap::new));
 
-  private static final String SECTION_COMMENT =
-        """
-        The list of servers that should auto-queue players on join.
-        When a player joins the server on the left, it will enqueue them to the server(s) to the right.
-        If allow-multi-queue is disabled and multiple servers are configured, only the first server will be chosen.
-        """;
+  private static final String SECTION_COMMENT = ""
+      + " The list of servers that should auto-queue players on join.\n"
+      + " When a player joins the server on the left, it will enqueue them to the server(s) to the right.\n"
+      + " If allow-multi-queue is disabled and multiple servers are configured, only the first server will be chosen.";
 
   @Override
   public boolean shouldMigrate(CommentedFileConfig config) {

@@ -138,8 +138,8 @@ public enum TransactionHandlerRegistry {
    * A type-coherent {@code (Class<T>, Delegate<T, R>)} pair backing one enum constant.
    * Bundling preserves the T- and R-binding that parallel wildcard fields would lose.
    */
-  private record TransactionEntry<T extends TransactionData<R>, R>(
-      Class<T> dataClass, Delegate<T, R> delegate) {
+  private record TransactionEntry<T extends TransactionData<R>, R>(Class<T> dataClass,
+      Delegate<T, R> delegate) {
     TransactionHandler<T, R> create(VelocityServer server) {
       return new TransactionHandler<>(dataClass) {
         @Override
