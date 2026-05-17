@@ -89,6 +89,13 @@ public final class LettuceProvider extends AbstractRedisProvider {
   private RedisPubSubCommands<String, byte[]> syncPublisher;
 
   /**
+   * A single shared connection used by all {@link LettuceDepot} instances for hash
+   * operations. Depots do not use pub/sub, so one regular connection replaces the
+   * previous per-depot connections.
+   */
+  private RedisPubSubCommands<String, byte[]> depotCommands;
+
+  /**
    * The Redis Pub/Sub channel name used for all Velocity Redis communication.
    */
   private final String channel;
@@ -122,13 +129,9 @@ public final class LettuceProvider extends AbstractRedisProvider {
    */
   @Override
   public void restart() {
-    if (this.publisher != null) {
-      this.publisher.getStatefulConnection().close();
-    }
-
-    if (this.syncPublisher != null) {
-      this.syncPublisher.getStatefulConnection().close();
-    }
+    final RedisPubSubAsyncCommands<String, byte[]> oldPublisher = this.publisher;
+    final RedisPubSubCommands<String, byte[]> oldSyncPublisher = this.syncPublisher;
+    final RedisPubSubCommands<String, byte[]> oldDepotCommands = this.depotCommands;
 
     StatefulRedisPubSubConnection<String, byte[]> connection = this.client.connectPubSub(
             RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE));
@@ -174,6 +177,19 @@ public final class LettuceProvider extends AbstractRedisProvider {
     this.publisher = connection.async();
     this.publisher.subscribe(this.channel);
     this.syncPublisher = connection.sync();
+    this.depotCommands = this.client.connectPubSub(RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE)).sync();
+
+    if (oldPublisher != null) {
+      oldPublisher.getStatefulConnection().close();
+    }
+
+    if (oldSyncPublisher != null) {
+      oldSyncPublisher.getStatefulConnection().close();
+    }
+
+    if (oldDepotCommands != null) {
+      oldDepotCommands.getStatefulConnection().close();
+    }
 
     LOGGER.info("Connected to Lettuce Redis Server on channel '{}'", this.channel);
   }
@@ -199,6 +215,11 @@ public final class LettuceProvider extends AbstractRedisProvider {
       syncPublisher.getStatefulConnection().close();
     }
     syncPublisher = null;
+
+    if (depotCommands != null && depotCommands.getStatefulConnection().isOpen()) {
+      depotCommands.getStatefulConnection().close();
+    }
+    depotCommands = null;
 
     this.client.shutdown();
 
@@ -408,11 +429,6 @@ public final class LettuceProvider extends AbstractRedisProvider {
     private final Class<V> valueClass;
 
     /**
-     * The synchronous Pub/Sub commands used to interact with Redis hashes for this depot.
-     */
-    private final RedisPubSubCommands<String, byte[]> connection;
-
-    /**
      * Constructs a new {@link LettuceDepot} instance.
      *
      * @param valueClass the class of the depot value
@@ -421,7 +437,6 @@ public final class LettuceProvider extends AbstractRedisProvider {
       this.name = DEPOT_TEMPLATE.formatted(getNamespace(), VERSION,
               valueClass.getSimpleName().toLowerCase().replace("entry", ""));
       this.valueClass = valueClass;
-      this.connection = client.connectPubSub(RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE)).sync();
     }
 
     /**
@@ -432,7 +447,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public boolean contains(@NotNull K key) {
-      return this.connection.hexists(this.name, parseKey(key));
+      return depotCommands.hexists(this.name, parseKey(key));
     }
 
     /**
@@ -443,7 +458,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public @Nullable V get(@NotNull K key) {
-      byte[] data = this.connection.hget(this.name, parseKey(key));
+      byte[] data = depotCommands.hget(this.name, parseKey(key));
       if (data == null) {
         return null;
       }
@@ -463,7 +478,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public void upsert(@NotNull V value) {
-      this.connection.hset(this.name, parseKey(value.getUniqueId()), serialize(value));
+      depotCommands.hset(this.name, parseKey(value.getUniqueId()), serialize(value));
       value.setDepot(this);
     }
 
@@ -475,9 +490,9 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public @Nullable V remove(@NotNull K key) {
-      if (this.connection.hexists(this.name, parseKey(key))) {
-        byte[] data = this.connection.hget(this.name, parseKey(key));
-        this.connection.hdel(this.name, parseKey(key));
+      if (depotCommands.hexists(this.name, parseKey(key))) {
+        byte[] data = depotCommands.hget(this.name, parseKey(key));
+        depotCommands.hdel(this.name, parseKey(key));
 
         if (data == null) {
           return null;
@@ -495,7 +510,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public Collection<V> values() {
-      return this.connection.hvals(this.name).stream()
+      return depotCommands.hvals(this.name).stream()
               .map(this::deserialize)
               .filter(Objects::nonNull)
               .toList();
@@ -508,7 +523,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public Collection<String> keys() {
-      return this.connection.hkeys(this.name);
+      return depotCommands.hkeys(this.name);
     }
 
     /**
