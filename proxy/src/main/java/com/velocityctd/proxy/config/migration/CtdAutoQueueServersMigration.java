@@ -40,7 +40,7 @@ public final class CtdAutoQueueServersMigration implements ConfigurationMigratio
         """
         The list of servers that should auto-queue players on join.
         When a player joins the server on the left, it will enqueue them to the server(s) to the right.
-        If allow-multi-queue is disabled and multiple servers are configured, only the first server will be chosen.\
+        If allow-multi-queue is disabled and multiple servers are configured, only the first server will be chosen.
         """;
 
   @Override
