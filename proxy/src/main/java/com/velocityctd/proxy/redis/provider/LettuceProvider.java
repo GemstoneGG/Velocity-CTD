@@ -136,15 +136,12 @@ public final class LettuceProvider extends AbstractRedisProvider {
     StatefulRedisPubSubConnection<String, byte[]> connection = this.client.connectPubSub(
             RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE));
 
-    // Tracks whether the initial subscribe has completed. The first subscribed() callback is
-    // the initial subscribe; every subsequent one is a re-subscribe after a reconnect.
     AtomicBoolean subscribedOnce = new AtomicBoolean(false);
 
     connection.addListener(new RedisPubSubAdapter<String, byte[]>() {
       @Override
       public void subscribed(String channel, long count) {
         if (LettuceProvider.this.channel.equals(channel) && subscribedOnce.getAndSet(true)) {
-          // Re-subscribe after a reconnect, notify listeners so they can reload state.
           fireReconnectListeners();
         }
       }
