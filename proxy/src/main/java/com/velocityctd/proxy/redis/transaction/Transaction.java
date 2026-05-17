@@ -17,6 +17,8 @@
 
 package com.velocityctd.proxy.redis.transaction;
 
+import com.velocityctd.proxy.redis.packet.DataPacket;
+import com.velocityctd.proxy.redis.packet.PacketSerializer;
 import com.velocityctd.proxy.redis.provider.RedisProvider;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -62,6 +64,11 @@ public final class Transaction<T extends TransactionData<R>, R> {
   private final T sentData;
 
   /**
+   * The class of the expected response type R.
+   */
+  private final Class<R> responseClass;
+
+  /**
    * The future that will be completed with the response data when a reply
    * is received, or completed exceptionally on timeout.
    */
@@ -85,6 +92,7 @@ public final class Transaction<T extends TransactionData<R>, R> {
   private Transaction(@NotNull T sentData) {
     this.transactionId = UUID.randomUUID();
     this.sentData = sentData;
+    this.responseClass = sentData.responseClass();
   }
 
   /**
@@ -142,19 +150,32 @@ public final class Transaction<T extends TransactionData<R>, R> {
    *
    * @param result the response data
    */
-  @SuppressWarnings("unchecked")
   public void complete(Object result) {
     if (this.future.isDone()) {
       return;
     }
 
     try {
-      this.future.complete((R) result);
+      this.future.complete(responseClass.cast(result));
     } catch (ClassCastException e) {
-      LOGGER.warn("Transaction {} completed with unexpected result type '{}', expected a different type",
-          this.transactionId, result == null ? "null" : result.getClass().getName(), e);
-      this.future.completeExceptionally(e);
+      String message = "Transaction " + this.transactionId
+          + " completed with unexpected result type '" + result.getClass().getName()
+          + "', expected '" + responseClass.getName() + "'";
+      LOGGER.warn(message, e);
+      this.future.completeExceptionally(new IllegalStateException(message, e));
     }
+  }
+
+  /**
+   * Completes this transaction by deserializing the given packet's payload as the response
+   * type and delegating to {@link #complete(Object)}. R is held by the enclosing class, so
+   * the deserialization is type-safe by construction.
+   *
+   * @param packet     the reply packet
+   * @param serializer the packet serializer used for deserialization
+   */
+  public void completeFrom(@NotNull DataPacket packet, @NotNull PacketSerializer serializer) {
+    complete(packet.getPayload(serializer, responseClass));
   }
 
   /**

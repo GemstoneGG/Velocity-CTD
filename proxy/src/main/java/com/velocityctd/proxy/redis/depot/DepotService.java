@@ -64,19 +64,4 @@ public sealed interface DepotService<K, V extends DepotEntry<K, V>> permits Abst
    * Tears down the depot service.
    */
   void teardown();
-
-  /**
-   * Returns the first value in the depot that matches the given predicate.
-   *
-   * @param predicate the predicate to filter the values by
-   * @return the first value in the depot that matches the given predicate, or {@code null} if none match
-   */
-  default @Nullable V query(Predicate<V> predicate) {
-    Collection<V> values = queryAll(predicate);
-    if (values.isEmpty()) {
-      return null;
-    }
-
-    return values.iterator().next();
-  }
 }

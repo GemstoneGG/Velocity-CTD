@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -40,13 +41,13 @@ import org.jetbrains.annotations.Unmodifiable;
 /**
  * Local implementation of {@link Queue}.
  */
-public class VelocityQueue implements Queue {
+public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Queue {
 
   protected final VelocityServer server;
   protected final VelocityQueueManager manager;
 
   private final VelocityRegisteredServer backend;
-  private final QueuePlayerList playerList = new QueuePlayerList();
+  private final QueuePlayerList<E> playerList = new QueuePlayerList<>();
 
   private volatile ServerStatus serverStatus;
   private volatile QueueState state;
@@ -98,13 +99,17 @@ public class VelocityQueue implements Queue {
   }
 
   @Override
-  public @Nullable VelocityQueueEntry getEntry(@NotNull UUID uniqueId) {
+  public @Nullable E getEntry(@NotNull UUID uniqueId) {
     return playerList.get(uniqueId);
   }
 
   @Override
-  public @NotNull @Unmodifiable Collection<VelocityQueueEntry> getEntries() {
+  public @NotNull @Unmodifiable Collection<E> getEntries() {
     return playerList.snapshot();
+  }
+
+  public @Nullable E findFirst(@NotNull Predicate<? super E> filter) {
+    return playerList.findFirst(filter);
   }
 
   @Override
@@ -149,8 +154,8 @@ public class VelocityQueue implements Queue {
     playerList.clear();
   }
 
-  public void broadcastMessage(@NotNull Function<VelocityQueueEntry, Component> componentFn) {
-    for (VelocityQueueEntry entry : getEntries()) {
+  public void broadcastMessage(@NotNull Function<E, Component> componentFn) {
+    for (E entry : getEntries()) {
       Component msg = componentFn.apply(entry);
       server.getPlayer(entry.getUniqueId()).ifPresent(p -> p.sendMessage(msg));
     }
@@ -190,28 +195,24 @@ public class VelocityQueue implements Queue {
    * {@link VelocityQueueDepotEntry} for snapshotting.
    */
   @ApiStatus.Internal
-  public List<? extends VelocityQueueEntry> getInternalEntries() {
+  public List<E> getInternalEntries() {
     return playerList.snapshot();
   }
 
   /**
    * Appends a pre-constructed entry to the end of the deque without priority sorting.
    */
-  protected void addEntryInternal(VelocityQueueEntry entry) {
+  protected void addEntryInternal(E entry) {
     playerList.addLast(entry);
   }
 
   /**
-   * Creates a new queue entry for the given data.
-   *
-   * <p>Subclasses override this to produce the appropriate entry type.</p>
+   * Creates a new queue entry for the given data. Each concrete subclass binds the entry
+   * type via its {@code <E>} parameter and supplies the matching constructor call here.
    *
    * @param data the player data
-   * @return a new entry instance
    */
-  protected VelocityQueueEntry createEntry(@NotNull QueueEntryData data) {
-    return new VelocityQueueEntry(server, this, data);
-  }
+  protected abstract E createEntry(@NotNull QueueEntryData data);
 
   /**
    * Creates a {@link QueueEntryData} for the given player joining this queue.

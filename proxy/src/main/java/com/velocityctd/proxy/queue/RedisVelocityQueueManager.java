@@ -18,7 +18,9 @@
 package com.velocityctd.proxy.queue;
 
 import static com.velocityctd.api.queue.ServerStatus.WAITING;
+import static java.util.Objects.requireNonNull;
 
+import com.velocityctd.api.queue.QueueEntryData;
 import com.velocityctd.api.queue.QueueState;
 import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotEntry;
 import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotService;
@@ -102,6 +104,11 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
   }
 
   @Override
+  public @NotNull RedisVelocityQueue getQueue(@NotNull String serverName) {
+    return (RedisVelocityQueue) super.getQueue(serverName);
+  }
+
+  @Override
   protected void sendActionBar(VelocityQueueEntry entry) {
     Component component = QueueComponents.createActionbarComponent(entry);
     if (component != null) {
@@ -118,19 +125,35 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
   public void handleSync(@NotNull VelocityQueueSync sync) {
     RedisVelocityQueue queue;
     try {
-      queue = (RedisVelocityQueue) getQueue(sync.serverName());
+      queue = getQueue(sync.serverName());
     } catch (IllegalArgumentException ignored) {
       return; // unknown server
     }
 
     switch (sync.action()) {
-      case ENQUEUE -> queue.applyEnqueue(sync);
-      case DEQUEUE -> queue.applyDequeue(sync.playerUuid());
-      case STATE_CHANGE -> queue.applyStateChange(sync.newState());
-      case STATUS_CHANGE -> queue.applyStatusChange(sync.newStatus());
-      case WAITING_CHANGE -> queue.applyWaitingChange(sync);
+      case ENQUEUE -> queue.applyEnqueue(new QueueEntryData(
+          requireNonNull(sync.playerUuid(), "playerUuid"),
+          requireNonNull(sync.username(), "username"),
+          sync.priority(),
+          sync.fullBypass(),
+          sync.queueBypass()));
+      case DEQUEUE -> queue.applyDequeue(
+          requireNonNull(sync.playerUuid(), "playerUuid"));
+      case STATE_CHANGE -> queue.applyStateChange(
+          requireNonNull(sync.newState(), "newState"));
+      case STATUS_CHANGE -> queue.applyStatusChange(
+          requireNonNull(sync.newStatus(), "newStatus"));
+      case WAITING_CHANGE -> queue.applyWaitingChange(
+          requireNonNull(sync.playerUuid(), "playerUuid"),
+          sync.waitingForConnection(),
+          sync.connectionAttempts(),
+          sync.updatedPriority(),
+          sync.updatedFullBypass(),
+          sync.updatedQueueBypass());
       case OFFLINE_CHANGE -> queue.applyOfflineChange(
-          sync.playerUuid(), sync.offlineSinceMs(), sync.offlineTimeoutSeconds());
+          requireNonNull(sync.playerUuid(), "playerUuid"),
+          sync.offlineSinceMs(),
+          sync.offlineTimeoutSeconds());
       default -> throw new IllegalStateException("Unknown action " + sync.action() + ".");
     }
   }
@@ -149,7 +172,7 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
    * Online players are skipped; the normal session lifecycle handles them.</p>
    */
   private void scheduleOfflineRemovals() {
-    for (VelocityQueue queue : queues.values()) {
+    for (VelocityQueue<?> queue : queues.values()) {
       for (VelocityQueueEntry entry : queue.getEntries()) {
         if (isPlayerOnline(entry.getUniqueId())) {
           continue;
@@ -215,7 +238,7 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
     loadFromRedis();
 
     if (isMasterProxy()) {
-      for (VelocityQueue queue : queues.values()) {
+      for (VelocityQueue<?> queue : queues.values()) {
         server.getRedis().publish(VelocityQueueSync.statusChange(queue.getName(), queue.getServerStatus()));
         server.getRedis().publish(VelocityQueueSync.stateChange(queue.getName(), queue.getState()));
       }

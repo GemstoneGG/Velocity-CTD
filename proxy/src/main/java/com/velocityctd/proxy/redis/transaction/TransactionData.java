@@ -17,6 +17,8 @@
 
 package com.velocityctd.proxy.redis.transaction;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Marker interface for data types that can participate in a request-reply
  * {@link Transaction}. The type parameter {@code R} declares the expected
@@ -31,4 +33,11 @@ package com.velocityctd.proxy.redis.transaction;
  * @param <R> the type of the expected response
  */
 public interface TransactionData<R> {
+
+  /**
+   * Returns the class of the response type R. Implementations should return the same
+   * {@code Class<R>} that matches their declared R type parameter — this lets {@link
+   * Transaction} perform type-safe deserialization without unchecked casts.
+   */
+  @NotNull Class<R> responseClass();
 }

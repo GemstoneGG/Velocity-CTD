@@ -199,7 +199,7 @@ public class BungeeCordMessageResponder {
     String queuedServer = null;
 
     if (proxy.isQueueEnabled()) {
-      for (VelocityQueue queue : proxy.getQueueManager().getQueues()) {
+      for (VelocityQueue<?> queue : proxy.getQueueManager().getQueues()) {
         if (queue.contains(playerUuid)) {
           queuedServer = queue.getName();
           break;
@@ -227,7 +227,7 @@ public class BungeeCordMessageResponder {
 
     Integer position = null;
     if (proxy.isQueueEnabled()) {
-      for (VelocityQueue queue : proxy.getQueueManager().getQueues()) {
+      for (VelocityQueue<?> queue : proxy.getQueueManager().getQueues()) {
         if (queue.contains(playerUuid)) {
           position = queue.getPosition(playerUuid).orElse(null);
           if (position != null) {
@@ -258,7 +258,7 @@ public class BungeeCordMessageResponder {
     int position = -1;
 
     if (proxy.isQueueEnabled()) {
-      for (VelocityQueue queue : proxy.getQueueManager().getQueues()) {
+      for (VelocityQueue<?> queue : proxy.getQueueManager().getQueues()) {
         if (queue.contains(playerUuid)) {
           position = queue.size();
           break;
@@ -287,7 +287,7 @@ public class BungeeCordMessageResponder {
     boolean paused = false;
 
     if (proxy.isQueueEnabled()) {
-      for (VelocityQueue queue : proxy.getQueueManager().getQueues()) {
+      for (VelocityQueue<?> queue : proxy.getQueueManager().getQueues()) {
         if (queue.contains(playerUuid)) {
           paused = true;
           break;

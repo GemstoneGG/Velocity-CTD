@@ -202,7 +202,7 @@ public class QueueAdminCommand implements BuiltinCommandDefinition {
         continue;
       }
 
-      VelocityQueue queue = this.server.getQueueManager().getQueue(server.getServerInfo().getName());
+      VelocityQueue<?> queue = this.server.getQueueManager().getQueue(server.getServerInfo().getName());
 
       source.sendMessage(createListComponent(queue));
     }
@@ -210,7 +210,7 @@ public class QueueAdminCommand implements BuiltinCommandDefinition {
     return SINGLE_SUCCESS;
   }
 
-  private Component createListComponent(VelocityQueue queue) {
+  private Component createListComponent(VelocityQueue<?> queue) {
     return Component.translatable("velocity.queue.command.listqueues.item")
         .arguments(
             Argument.component("server",
@@ -250,7 +250,7 @@ public class QueueAdminCommand implements BuiltinCommandDefinition {
     if (serverName.equalsIgnoreCase("all")) {
       Set<UUID> uniquePlayers = new HashSet<>();
 
-      for (VelocityQueue queue : this.server.getQueueManager().getQueues()) {
+      for (VelocityQueue<?> queue : this.server.getQueueManager().getQueues()) {
         for (VelocityQueueEntry queueEntry : queue.getEntries()) {
           uniquePlayers.add(queueEntry.getUniqueId());
         }
@@ -343,7 +343,7 @@ public class QueueAdminCommand implements BuiltinCommandDefinition {
       return 0;
     }
 
-    VelocityQueue queue = server.getQueue();
+    VelocityQueue<?> queue = server.getQueue();
     String serverName = server.getServerInfo().getName();
     if (queue.getState() == QueueState.PAUSED) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-paused")
@@ -370,7 +370,7 @@ public class QueueAdminCommand implements BuiltinCommandDefinition {
       return 0;
     }
 
-    VelocityQueue queue = server.getQueue();
+    VelocityQueue<?> queue = server.getQueue();
     if (queue.getState() != QueueState.PAUSED) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.not-paused")
               .arguments(Component.text(server.getServerInfo().getName())));
@@ -407,7 +407,7 @@ public class QueueAdminCommand implements BuiltinCommandDefinition {
     VelocityClusterPlayer player = maybePlayer.get();
 
     if (!this.server.getConfiguration().getQueue().isAllowMultiQueue()) {
-      for (VelocityQueue queue : this.server.getQueueManager().getQueues()) {
+      for (VelocityQueue<?> queue : this.server.getQueueManager().getQueues()) {
         if (queue.contains(player.getUniqueId())) {
           ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-queued.other")
                   .arguments(

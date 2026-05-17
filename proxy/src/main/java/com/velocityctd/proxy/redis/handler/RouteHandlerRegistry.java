@@ -141,7 +141,7 @@ public enum RouteHandlerRegistry {
    * Handles the {@link VelocityQueueTransfer} data by transferring the player to their target server.
    */
   VELOCITY_QUEUE(VelocityQueueTransfer.class, (server, data) -> {
-    VelocityQueue queue;
+    VelocityQueue<?> queue;
     try {
       queue = server.getQueueManager().getQueue(data.queueName());
     } catch (IllegalArgumentException ignored) {
@@ -168,18 +168,12 @@ public enum RouteHandlerRegistry {
   });
 
   /**
-   * The data class handled by this route.
+   * The (data class, route handler) pair for this route.
    */
-  private final Class<?> dataClass;
-
-  /**
-   * The route handler logic accepting the server and data.
-   */
-  private final BiConsumer<VelocityServer, ?> route;
+  private final RouteEntry<?> entry;
 
   <T> RouteHandlerRegistry(Class<T> dataClass, @NotNull BiConsumer<VelocityServer, T> route) {
-    this.dataClass = dataClass;
-    this.route = route;
+    this.entry = new RouteEntry<>(dataClass, route);
   }
 
   /**
@@ -188,9 +182,17 @@ public enum RouteHandlerRegistry {
    * @param server the server to pass to the handler
    * @return a new route handler
    */
-  @SuppressWarnings("unchecked")
-  public <T> RouteHandler<T> createRouteHandler(@NotNull VelocityServer server) {
-    BiConsumer<VelocityServer, T> typedRoute = (BiConsumer<VelocityServer, T>) this.route;
-    return RouteHandler.consumer((Class<T>) dataClass, data -> typedRoute.accept(server, data));
+  public RouteHandler<?> createRouteHandler(@NotNull VelocityServer server) {
+    return entry.create(server);
+  }
+
+  /**
+   * A type-coherent {@code (Class<T>, BiConsumer<VelocityServer, T>)}
+   * pair backing one enum constant.
+   */
+  private record RouteEntry<T>(Class<T> dataClass, BiConsumer<VelocityServer, T> route) {
+    RouteHandler<T> create(VelocityServer server) {
+      return RouteHandler.consumer(dataClass, data -> route.accept(server, data));
+    }
   }
 }
