@@ -25,6 +25,12 @@ import java.nio.charset.StandardCharsets;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 
+/**
+ * A Jackson serializer for Adventure {@link Component} objects.
+ *
+ * <p>This serializer converts a {@link Component} to its JSON representation and then
+ * writes it as binary data to the stream, which is optimized for MessagePack.</p>
+ */
 public final class ComponentSerializer extends JsonSerializer<Component> {
 
   private static final GsonComponentSerializer SERIALIZER = GsonComponentSerializer.gson();

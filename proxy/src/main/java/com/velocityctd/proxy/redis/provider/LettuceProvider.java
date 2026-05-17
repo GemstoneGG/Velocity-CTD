@@ -410,7 +410,6 @@ public final class LettuceProvider extends AbstractRedisProvider {
     private final Class<V> valueClass;
 
     /**
-    /**
      * The synchronous Pub/Sub commands used to interact with Redis hashes for this depot.
      */
     private final RedisPubSubCommands<String, byte[]> connection;
