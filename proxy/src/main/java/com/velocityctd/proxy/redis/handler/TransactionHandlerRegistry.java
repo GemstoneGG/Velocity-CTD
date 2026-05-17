@@ -139,7 +139,7 @@ public enum TransactionHandlerRegistry {
    * Bundling preserves the T- and R-binding that parallel wildcard fields would lose.
    */
   private record TransactionEntry<T extends TransactionData<R>, R>(Class<T> dataClass,
-      Delegate<T, R> delegate) {
+                                                                   Delegate<T, R> delegate) {
     TransactionHandler<T, R> create(VelocityServer server) {
       return new TransactionHandler<>(dataClass) {
         @Override
