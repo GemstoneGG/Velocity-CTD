@@ -40,7 +40,7 @@ public interface CommandSource extends Audience, PermissionSubject {
    *     for more information on the format.
    */
   default void sendRichMessage(@NotNull String message,
-                               @NotNull TagResolver @NotNull... resolvers) {
+                               @NotNull TagResolver @NotNull ... resolvers) {
     this.sendMessage(MiniMessage.miniMessage().deserialize(message, this, resolvers));
   }
 

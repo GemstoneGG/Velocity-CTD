@@ -27,7 +27,7 @@ import org.jetbrains.annotations.Nullable;
  * Manages persistence of {@link VelocityQueueDepotEntry} objects in Redis.
  *
  * <p>This service is used only for cold-start state recovery. The master proxy
- * writes queue snapshots here periodically; a newly-started or newly-promoted
+ * writes queue snapshots here periodically; a newly started or newly-promoted
  * master proxy reads them back on initialization.</p>
  */
 public final class VelocityQueueDepotService

@@ -40,7 +40,7 @@ public class QueueComponents {
    * Creates the action bar component shown to the player at their current position.
    */
   public static @Nullable Component createActionbarComponent(@NotNull VelocityQueueEntry entry) {
-    VelocityQueue queue = entry.getQueue();
+    VelocityQueue<?> queue = entry.getQueue();
     Integer position = queue.getPosition(entry.getUniqueId()).orElse(null);
     if (position == null) {
       return null;

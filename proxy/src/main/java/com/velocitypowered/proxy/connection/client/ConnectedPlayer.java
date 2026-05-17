@@ -850,7 +850,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   /**
    * Builds and sends an {@link AvailableCommandsPacket} to this player using the last known
-   * backend command tree from the currently-connected server (if any) merged with the current
+   * backend command tree from the currently connected server (if any) merged with the current
    * proxy command set. Safe to call even when the backend has never sent its own command tree;
    * in that case only proxy commands are included.
    *
@@ -1110,7 +1110,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
                     if (!this.server.getConfiguration().getQueue().getNoQueueServers().contains(targetServerName)) {
                       Component kickMsg = originalEvent.getServerKickReason().orElse(Component.empty());
-                      VelocityQueue queue = this.server.getQueueManager().getQueue(targetServerName);
+                      VelocityQueue<?> queue = this.server.getQueueManager().getQueue(targetServerName);
 
                       // Checks if the kick reason is valid for a re-queue
                       // This is done to make sure players don't get constantly sent over and over again in a kick loop
@@ -1739,7 +1739,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   @Override
-  public void removeResourcePacks(@NotNull UUID id, @NotNull UUID @NotNull... others) {
+  public void removeResourcePacks(@NotNull UUID id, @NotNull UUID @NotNull ... others) {
     if (this.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       Preconditions.checkNotNull(id, "packUUID");
       if (this.resourcePackHandler.remove(id)) {
@@ -1768,7 +1768,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   @Override
   public void removeResourcePacks(@NotNull ResourcePackInfoLike request,
-                                  @NotNull ResourcePackInfoLike @NotNull... others) {
+                                  @NotNull ResourcePackInfoLike @NotNull ... others) {
     removeResourcePacks(request.asResourcePackInfo().id());
     for (ResourcePackInfoLike other : others) {
       removeResourcePacks(other.asResourcePackInfo().id());

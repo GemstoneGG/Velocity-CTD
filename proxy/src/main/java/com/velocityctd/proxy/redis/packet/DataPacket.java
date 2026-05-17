@@ -161,24 +161,35 @@ public final class DataPacket {
   /**
    * Deserializes and returns the payload using the given serializer.
    *
-   * @param serializer the serializer to use for deserialization
-   * @param <T> the target type
+   * <p>The caller passes the expected {@link Class} so the return is statically typed and
+   * the runtime cast is performed via {@link Class#cast}, which throws {@link ClassCastException}
+   * if the payload's actual type does not match.</p>
+   *
+   * @param serializer   the serializer to use for deserialization
+   * @param expectedType the expected payload class
+   * @param <T>          the target type
    * @return the deserialized payload
+   * @throws IllegalArgumentException if {@code expectedType} does not match this packet's
+   *                                  declared {@link #getPayloadType() payload type}
    */
-  @SuppressWarnings("unchecked")
-  public <T> T getPayload(@NotNull PacketSerializer serializer) {
-    if (rawPayload == null) {
-      Class<?> clazz;
-      try {
-        clazz = Class.forName(payloadType);
-      } catch (ClassNotFoundException e) {
-        throw new RuntimeException(e);
-      }
-
-      rawPayload = serializer.deserializePayload(payload, clazz);
+  public <T> T getPayload(@NotNull PacketSerializer serializer, @NotNull Class<T> expectedType) {
+    if (!payloadType.equals(expectedType.getName())) {
+      throw new IllegalArgumentException(
+          "Expected payload type %s but packet contains %s"
+              .formatted(expectedType.getName(), payloadType));
     }
 
-    return (T) rawPayload;
+    if (rawPayload == null) {
+      rawPayload = serializer.deserializePayload(payload, expectedType);
+    }
+
+    try {
+      return expectedType.cast(rawPayload);
+    } catch (ClassCastException e) {
+      throw new IllegalStateException(
+          "Deserialized payload is inconsistent with declared type %s"
+              .formatted(payloadType), e);
+    }
   }
 
   @Override

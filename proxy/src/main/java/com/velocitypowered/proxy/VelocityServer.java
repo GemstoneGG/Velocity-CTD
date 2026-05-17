@@ -202,11 +202,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
   private boolean shutdown = false;
 
-  /**
-   * Whether the shutdown sequence has officially begun.
-   */
-  private boolean startedShutdown = false;
-
   private final VelocityPluginManager pluginManager;
 
   private final Map<UUID, ConnectedPlayer> connectionsByUuid = new ConcurrentHashMap<>();
@@ -335,15 +330,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         .orElse("Velocity(-CTD) Contributors");
 
     return new ProxyVersion(implName, implVendor, implVersion);
-  }
-
-  /**
-   * Indicates whether the shutdown sequence has begun.
-   *
-   * @return {@code true} if shutdown has started, otherwise {@code false}
-   */
-  public boolean isStartedShutdown() {
-    return this.startedShutdown;
   }
 
   private VelocityPluginContainer createVirtualPlugin() {
@@ -877,7 +863,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     }
 
     Runnable shutdownProcess = () -> {
-      startedShutdown = true;
       LOGGER.info("Shutting down the proxy...");
 
       // Shutdown the connection manager, this should be
@@ -1215,6 +1200,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    * @param player the player to check
    * @return {@code true} if the same player instance is registered under its UUID
    */
+  @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   public boolean isPlayerOnline(ConnectedPlayer player) {
     return connectionsByUuid.get(player.getUniqueId()) == player;
   }
@@ -1367,15 +1353,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   @Override
   public VelocityClusterProxyService getClusterProxyService() {
     return clusterProxyService;
-  }
-
-  /**
-   * Check whether the redis system is enabled for the proxy.
-   *
-   * @return true if the redis system is enabled, otherwise false
-   */
-  public boolean isRedisEnabled() {
-    return this.configuration.getRedis().isEnabled();
   }
 
   /**

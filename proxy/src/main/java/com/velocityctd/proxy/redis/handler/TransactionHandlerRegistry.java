@@ -113,37 +113,41 @@ public enum TransactionHandlerRegistry {
   ;
 
   /**
-   * The data class handled by this transaction.
+   * The (data class, delegate) pair for this transaction.
    */
-  private final Class<?> dataClass;
-
-  /**
-   * The delegate logic for handling the transaction.
-   */
-  private final Delegate<?, ?> delegate;
+  private final TransactionEntry<?, ?> entry;
 
   <T extends TransactionData<R>, R> TransactionHandlerRegistry(Class<T> dataClass,
-                                                                Delegate<T, R> delegate) {
-    this.dataClass = dataClass;
-    this.delegate = delegate;
+                                                               Delegate<T, R> delegate) {
+    this.entry = new TransactionEntry<>(dataClass, delegate);
   }
 
   /**
-   * Creates a {@link TransactionHandler} bound to the given server instance.
+   * Creates a {@link TransactionHandler} bound to the given server instance. The wildcard
+   * return reflects that each enum constantly carries different data and response types;
+   * callers operate on the returned handler via its class-keyed dispatch.
    *
    * @param server the server to pass to the handler
    * @return a new transaction handler
    */
-  @SuppressWarnings("unchecked")
-  public <T extends TransactionData<R>, R> TransactionHandler<T, R> createTransactionHandler(
-          @NotNull VelocityServer server) {
-    Delegate<T, R> typedDelegate = (Delegate<T, R>) this.delegate;
-    return new TransactionHandler<>((Class<T>) dataClass) {
-      @Override
-      public @Nullable CompletableFuture<R> handleData(T data) {
-        return typedDelegate.handleData(server, data);
-      }
-    };
+  public TransactionHandler<?, ?> createTransactionHandler(@NotNull VelocityServer server) {
+    return entry.create(server);
+  }
+
+  /**
+   * A type-coherent {@code (Class<T>, Delegate<T, R>)} pair backing one enum constant.
+   * Bundling preserves the T- and R-binding that parallel wildcard fields would lose.
+   */
+  private record TransactionEntry<T extends TransactionData<R>, R>(Class<T> dataClass,
+                                                                   Delegate<T, R> delegate) {
+    TransactionHandler<T, R> create(VelocityServer server) {
+      return new TransactionHandler<>(dataClass) {
+        @Override
+        public @Nullable CompletableFuture<R> handleData(T data) {
+          return delegate.handleData(server, data);
+        }
+      };
+    }
   }
 
   /**

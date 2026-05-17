@@ -26,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
  *
  * @param uniqueId the unique identifier of the player being kicked
  * @param component the disconnect message
- * @param targetProxyId the proxy ID that should process this kick, or {@code null} for all proxies
+ * @param targetProxyId the proxy ID that should process this kick or {@code null} for all proxies
  */
 public record VelocityKick(UUID uniqueId, Component component, @Nullable String targetProxyId) {
 

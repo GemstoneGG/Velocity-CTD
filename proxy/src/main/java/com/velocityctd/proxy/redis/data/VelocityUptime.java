@@ -18,6 +18,7 @@
 package com.velocityctd.proxy.redis.data;
 
 import com.velocityctd.proxy.redis.transaction.TransactionData;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Data record representing a request to get the uptime of a proxy.
@@ -25,4 +26,9 @@ import com.velocityctd.proxy.redis.transaction.TransactionData;
  * @param proxyId the id of the proxy to get the uptime of
  */
 public record VelocityUptime(String proxyId) implements TransactionData<Long> {
+
+  @Override
+  public @NotNull Class<Long> responseClass() {
+    return Long.class;
+  }
 }

@@ -62,8 +62,7 @@ public final class VelocityQueueDepotEntry extends DepotEntry<String, VelocityQu
   public VelocityQueueDepotEntry(@NotNull RedisVelocityQueue queue) {
     super(queue.getName());
 
-    //noinspection unchecked
-    this.entries = new ArrayList<>((List<RedisVelocityQueueEntry>) (List<?>) queue.getInternalEntries());
+    this.entries = new ArrayList<>(queue.getInternalEntries());
     this.serverStatus = queue.getServerStatus();
     this.state = queue.getState();
   }
@@ -93,5 +92,10 @@ public final class VelocityQueueDepotEntry extends DepotEntry<String, VelocityQu
    */
   public QueueState getState() {
     return state;
+  }
+
+  @Override
+  protected VelocityQueueDepotEntry self() {
+    return this;
   }
 }

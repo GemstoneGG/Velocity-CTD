@@ -39,7 +39,7 @@ public abstract class DepotEntry<K, T extends DepotEntry<K, T>> {
   private final K uniqueId;
 
   /**
-   * The depot to which this entry is currently associated.
+   * The depot with which this entry is currently associated.
    *
    * <p>Marked {@code transient} because depot associations are not serialized
    * and are re-established by the depot implementation when entries are loaded.</p>
@@ -58,12 +58,18 @@ public abstract class DepotEntry<K, T extends DepotEntry<K, T>> {
   /**
    * Updates or inserts the current instance into its associated {@link Depot}.
    */
-  @SuppressWarnings("unchecked")
   public void upsert() {
     if (this.depot != null) {
-      this.depot.upsert((T) this);
+      this.depot.upsert(self());
     }
   }
+
+  /**
+   * Returns this entry as its concrete subclass type. Subclasses implement as
+   * {@code return this;} to satisfy the F-bound without an unchecked cast.
+   */
+  @ApiStatus.Internal
+  protected abstract T self();
 
   /**
    * Removes this entry from its associated {@link Depot}, if it is currently present.

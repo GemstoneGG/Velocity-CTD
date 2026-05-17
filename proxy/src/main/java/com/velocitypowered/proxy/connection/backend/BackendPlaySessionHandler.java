@@ -396,7 +396,8 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
     if (originalAddress == null) {
       LOGGER.error("""
           Unexpected nullable address received in TransferPacket \
-          from Backend Server in Play State""");
+          from Backend Server in Play State"""
+      );
       return true;
     }
 
