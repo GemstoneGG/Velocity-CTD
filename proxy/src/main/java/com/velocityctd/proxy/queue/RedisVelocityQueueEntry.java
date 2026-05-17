@@ -123,16 +123,14 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
    * @param updatedQueueBypass the refreshed queueBypass flag
    */
   @ApiStatus.Internal
-  public void applyWaitingChangeFromPacket(boolean waiting, int attempts,
-                                           int updatedPriority,
-                                           boolean updatedFullBypass,
-                                           boolean updatedQueueBypass) {
-    synchronized (this) {
-      this.waitingForConnection = waiting;
-      this.connectionAttempts = attempts;
-      this.priority = updatedPriority;
-      this.fullBypass = updatedFullBypass;
-      this.queueBypass = updatedQueueBypass;
-    }
+    public synchronized void applyWaitingChangeFromPacket(boolean waiting, int attempts,
+                                                          int updatedPriority,
+                                                          boolean updatedFullBypass,
+                                                          boolean updatedQueueBypass) {
+    this.waitingForConnection = waiting;
+    this.connectionAttempts = attempts;
+    this.priority = updatedPriority;
+    this.fullBypass = updatedFullBypass;
+    this.queueBypass = updatedQueueBypass;
   }
 }

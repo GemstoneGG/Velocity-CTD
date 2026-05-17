@@ -121,29 +121,27 @@ public class VelocityQueueEntry implements QueueEntry {
   }
 
   @Override
-  public int getPriority() {
+  public synchronized int getPriority() {
     return priority;
   }
 
   @Override
-  public int getConnectionAttempts() {
-    synchronized (this) {
-      return connectionAttempts;
-    }
+  public synchronized int getConnectionAttempts() {
+    return connectionAttempts;
   }
 
   @Override
-  public boolean isWaitingForConnection() {
+  public synchronized boolean isWaitingForConnection() {
     return waitingForConnection;
   }
 
   @Override
-  public boolean isFullBypass() {
+  public synchronized boolean isFullBypass() {
     return fullBypass;
   }
 
   @Override
-  public boolean isQueueBypass() {
+  public synchronized boolean isQueueBypass() {
     return queueBypass;
   }
 
