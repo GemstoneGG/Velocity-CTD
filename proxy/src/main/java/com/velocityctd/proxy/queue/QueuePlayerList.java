@@ -29,7 +29,21 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class QueuePlayerList<E extends VelocityQueueEntry> {
 
+  /**
+   * The ordered list of entries.
+   *
+   * <p>Kept strictly in lockstep with {@link #index}: every entry present in {@code players} is
+   * also present in {@code index} under its UUID key, and vice versa. All mutations of either
+   * collection occur inside a {@code synchronized(this)} block, so an entry obtained from
+   * {@code index} can be located in {@code players} via {@link List#indexOf(Object)} (using
+   * reference equality, since {@link VelocityQueueEntry} does not override {@code equals}).</p>
+   */
   private final List<E> players = new ArrayList<>();
+
+  /**
+   * UUID-keyed lookup for {@link #players}. See the contract documented on that field: the two
+   * collections are kept in lockstep under the instance monitor.
+   */
   private final ConcurrentHashMap<UUID, E> index = new ConcurrentHashMap<>();
 
   /**

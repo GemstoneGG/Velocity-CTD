@@ -201,8 +201,7 @@ public final class RedisVelocityQueue extends VelocityQueue<RedisVelocityQueueEn
   void applyOfflineChange(@NotNull UUID uuid, long offlineSinceMs, int offlineTimeoutSeconds) {
     VelocityQueueEntry entry = getEntry(uuid);
     if (entry != null) {
-      entry.offlineSinceMs = offlineSinceMs;
-      entry.offlineTimeoutSeconds = offlineTimeoutSeconds;
+      entry.setOfflineFromSync(offlineSinceMs, offlineTimeoutSeconds);
       persistAsync();
     }
   }

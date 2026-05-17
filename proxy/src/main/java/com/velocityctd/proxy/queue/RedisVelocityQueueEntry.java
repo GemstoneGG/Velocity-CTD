@@ -53,7 +53,9 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
    */
   @Override
   public void transfer() {
-    this.waitingForConnection = true;
+    synchronized (this) {
+      this.waitingForConnection = true;
+    }
     publishWaitingChange();
 
     server.getRedis().publish(new VelocityQueueTransfer(getUniqueId(), getQueue().getName()));
@@ -107,9 +109,12 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
    */
   @Override
   protected void publishOfflineChange() {
-    server.getRedis().publish(VelocityQueueSync.offlineChange(
-        getQueue().getName(), getUniqueId(), this.offlineSinceMs, this.offlineTimeoutSeconds
-    ));
+    VelocityQueueSync sync;
+    synchronized (this) {
+      sync = VelocityQueueSync.offlineChange(
+          getQueue().getName(), getUniqueId(), this.offlineSinceMs, this.offlineTimeoutSeconds);
+    }
+    server.getRedis().publish(sync);
   }
 
   /**

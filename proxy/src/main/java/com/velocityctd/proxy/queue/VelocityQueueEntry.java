@@ -37,23 +37,26 @@ public class VelocityQueueEntry implements QueueEntry {
 
   private final UUID uniqueId;
   private final String username;
-  protected volatile int priority;
+
+  // All mutable fields below are guarded by synchronization on this entry instance.
+  // Reads and writes must occur inside a synchronized(this) block (or a synchronized method).
+  protected int priority;
   protected int connectionAttempts;
-  protected volatile boolean waitingForConnection;
-  protected volatile boolean fullBypass;
-  protected volatile boolean queueBypass;
+  protected boolean waitingForConnection;
+  protected boolean fullBypass;
+  protected boolean queueBypass;
 
   /**
    * Epoch-millisecond timestamp when this player disconnected while queued, or 0 if the
    * player is currently online or if the disconnect was not recorded (e.g. force-kill).
    */
-  protected volatile long offlineSinceMs = 0;
+  protected long offlineSinceMs = 0;
 
   /**
    * The timeout in seconds that was active at the time of disconnect or 0 if unknown.
    * Only meaningful when {@link #offlineSinceMs} is non-zero.
    */
-  protected volatile int offlineTimeoutSeconds = 0;
+  protected int offlineTimeoutSeconds = 0;
 
   /**
    * Injected after construction or deserialization.
@@ -163,7 +166,9 @@ public class VelocityQueueEntry implements QueueEntry {
    * Initiates the transfer of this player to their target server.
    */
   public void transfer() {
-    this.waitingForConnection = true;
+    synchronized (this) {
+      this.waitingForConnection = true;
+    }
     handleTransfer();
   }
 
@@ -215,7 +220,9 @@ public class VelocityQueueEntry implements QueueEntry {
         // Backend is offline. Mark it and silently reset this entry without counting the attempt,
         // so the player sees no error and stays in the queue.
         this.queue.setServerStatus(ServerStatus.OFFLINE);
-        this.waitingForConnection = false;
+        synchronized (this) {
+          this.waitingForConnection = false;
+        }
         publishWaitingChange();
       } else {
         // Backend is reachable. The connection failure was legitimate.
@@ -247,11 +254,11 @@ public class VelocityQueueEntry implements QueueEntry {
     }
   }
 
-  public long getOfflineSinceMs() {
+  public synchronized long getOfflineSinceMs() {
     return offlineSinceMs;
   }
 
-  public int getOfflineTimeoutSeconds() {
+  public synchronized int getOfflineTimeoutSeconds() {
     return offlineTimeoutSeconds;
   }
 
@@ -260,8 +267,10 @@ public class VelocityQueueEntry implements QueueEntry {
    * change to other proxies via {@link #publishOfflineChange()}.
    */
   public void setOffline(long sinceMs, int timeoutSeconds) {
-    this.offlineSinceMs = sinceMs;
-    this.offlineTimeoutSeconds = timeoutSeconds;
+    synchronized (this) {
+      this.offlineSinceMs = sinceMs;
+      this.offlineTimeoutSeconds = timeoutSeconds;
+    }
     publishOfflineChange();
   }
 
@@ -270,9 +279,21 @@ public class VelocityQueueEntry implements QueueEntry {
    * Propagates the change to other proxies via {@link #publishOfflineChange()}.
    */
   public void clearOffline() {
-    this.offlineSinceMs = 0;
-    this.offlineTimeoutSeconds = 0;
+    synchronized (this) {
+      this.offlineSinceMs = 0;
+      this.offlineTimeoutSeconds = 0;
+    }
     publishOfflineChange();
+  }
+
+  /**
+   * Applies an offline-state update received from another proxy without re-publishing.
+   * Both fields are written atomically under the entry's monitor.
+   */
+  @ApiStatus.Internal
+  synchronized void setOfflineFromSync(long sinceMs, int timeoutSeconds) {
+    this.offlineSinceMs = sinceMs;
+    this.offlineTimeoutSeconds = timeoutSeconds;
   }
 
   /**
@@ -288,9 +309,14 @@ public class VelocityQueueEntry implements QueueEntry {
    */
   protected void refreshPermissions() {
     this.server.getPlayer(this.uniqueId).ifPresent(player -> {
-      this.priority = player.getQueuePriority(this.queue.getName());
-      this.fullBypass = player.hasPermission("velocity.queue.full.bypass");
-      this.queueBypass = player.hasPermission("velocity.queue.bypass");
+      int newPriority = player.getQueuePriority(this.queue.getName());
+      boolean newFullBypass = player.hasPermission("velocity.queue.full.bypass");
+      boolean newQueueBypass = player.hasPermission("velocity.queue.bypass");
+      synchronized (this) {
+        this.priority = newPriority;
+        this.fullBypass = newFullBypass;
+        this.queueBypass = newQueueBypass;
+      }
     });
   }
 
