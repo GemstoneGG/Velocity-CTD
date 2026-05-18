@@ -94,6 +94,37 @@ public class VelocityQueueEntry implements QueueEntry {
   }
 
   /**
+   * Reconstructs an entry from a persisted depot state.
+   *
+   * <p>Server and queue context is intentionally left unset; the loading queue must
+   * re-inject it via {@link #setContext} before the entry is used.</p>
+   *
+   * @param uniqueId              the player's unique id
+   * @param username              the player's username
+   * @param priority              the queue priority
+   * @param connectionAttempts    the number of failed connection attempts
+   * @param waitingForConnection  whether a transfer is currently in flight
+   * @param fullBypass            whether the player bypasses full-server limits
+   * @param queueBypass           whether the player bypasses the queue entirely
+   * @param offlineSinceMs        epoch-ms the player went offline, or 0
+   * @param offlineTimeoutSeconds the offline timeout active at disconnect, or 0
+   */
+  protected VelocityQueueEntry(UUID uniqueId, String username, int priority,
+                               int connectionAttempts, boolean waitingForConnection,
+                               boolean fullBypass, boolean queueBypass,
+                               long offlineSinceMs, int offlineTimeoutSeconds) {
+    this.uniqueId = uniqueId;
+    this.username = username;
+    this.priority = priority;
+    this.connectionAttempts = connectionAttempts;
+    this.waitingForConnection = waitingForConnection;
+    this.fullBypass = fullBypass;
+    this.queueBypass = queueBypass;
+    this.offlineSinceMs = offlineSinceMs;
+    this.offlineTimeoutSeconds = offlineTimeoutSeconds;
+  }
+
+  /**
    * (Re-)Injects the server and queue context.
    *
    * @param server the proxy server

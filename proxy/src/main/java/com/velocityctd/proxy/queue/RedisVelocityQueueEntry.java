@@ -17,11 +17,14 @@
 
 package com.velocityctd.proxy.queue;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.velocityctd.api.queue.QueueEntryData;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueSync;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueTransfer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -42,6 +45,26 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
                                  @NotNull RedisVelocityQueue queue,
                                  @NotNull QueueEntryData data) {
     super(server, queue, data);
+  }
+
+  /**
+   * Reconstructs a {@link RedisVelocityQueueEntry} from a persisted depot snapshot.
+   *
+   * <p>Server and queue context is intentionally left unset; the loading
+   * {@link RedisVelocityQueue} re-injects it via {@link #setContext}.</p>
+   */
+  @JsonCreator
+  private RedisVelocityQueueEntry(@JsonProperty("uniqueId") UUID uniqueId,
+                                  @JsonProperty("username") String username,
+                                  @JsonProperty("priority") int priority,
+                                  @JsonProperty("connectionAttempts") int connectionAttempts,
+                                  @JsonProperty("waitingForConnection") boolean waitingForConnection,
+                                  @JsonProperty("fullBypass") boolean fullBypass,
+                                  @JsonProperty("queueBypass") boolean queueBypass,
+                                  @JsonProperty("offlineSinceMs") long offlineSinceMs,
+                                  @JsonProperty("offlineTimeoutSeconds") int offlineTimeoutSeconds) {
+    super(uniqueId, username, priority, connectionAttempts, waitingForConnection,
+        fullBypass, queueBypass, offlineSinceMs, offlineTimeoutSeconds);
   }
 
   /**
