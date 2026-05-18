@@ -17,6 +17,8 @@
 
 package com.velocityctd.proxy.queue.redis.depot;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.velocityctd.api.queue.QueueState;
 import com.velocityctd.api.queue.ServerStatus;
 import com.velocityctd.proxy.queue.RedisVelocityQueue;
@@ -53,6 +55,21 @@ public final class VelocityQueueDepotEntry extends DepotEntry<String, VelocityQu
    * The queue state at the time of persistence.
    */
   private final QueueState state;
+
+  /**
+   * Constructs a new {@link VelocityQueueDepotEntry} from Jackson.
+   */
+  @JsonCreator
+  private VelocityQueueDepotEntry(
+          @JsonProperty("uniqueId") String uniqueId,
+          @JsonProperty("entries") List<RedisVelocityQueueEntry> entries,
+          @JsonProperty("serverStatus") ServerStatus serverStatus,
+          @JsonProperty("state") QueueState state) {
+    super(uniqueId);
+    this.entries = entries;
+    this.serverStatus = serverStatus;
+    this.state = state;
+  }
 
   /**
    * Constructs a {@link VelocityQueueDepotEntry} by capturing the current state of a queue.

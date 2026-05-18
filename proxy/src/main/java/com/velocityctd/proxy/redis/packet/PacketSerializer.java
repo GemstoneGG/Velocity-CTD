@@ -17,78 +17,115 @@
 
 package com.velocityctd.proxy.redis.packet;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.velocityctd.proxy.redis.packet.serializer.ComponentTypeAdapter;
-import java.lang.reflect.Modifier;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.velocityctd.proxy.redis.packet.serializer.ComponentDeserializer;
+import com.velocityctd.proxy.redis.packet.serializer.ComponentSerializer;
+import java.io.IOException;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.msgpack.jackson.dataformat.MessagePackFactory;
 
 /**
- * Serializer for {@link DataPacket} objects to and from JSON strings using {@link Gson}.
+ * Serializer for {@link DataPacket} objects to and from binary data using Jackson and MessagePack.
  */
 public final class PacketSerializer {
 
   /**
-   * {@link Gson} instance configured for Redis packet (de)serialization, excluding
-   * {@code transient} and {@code static} fields and preserving {@code null} values.
-   *
-   * <p>Includes a custom type adapter for Adventure {@link Component} objects,
-   * allowing them to be used directly as fields in data records.</p>
+   * {@link ObjectMapper} instance configured for Redis packet (de)serialization, using MessagePack.
    */
-  private final Gson gson;
+  private final ObjectMapper mapper;
 
   /**
-   * Constructs a new {@link PacketSerializer} with default GSON configuration.
+   * Constructs a new {@link PacketSerializer} with MessagePack configuration.
    */
   public PacketSerializer() {
-    this.gson = new GsonBuilder()
-            .excludeFieldsWithModifiers(Modifier.TRANSIENT, Modifier.STATIC)
-            .disableHtmlEscaping()
-            .serializeNulls()
-            .registerTypeHierarchyAdapter(Component.class, new ComponentTypeAdapter())
-            .create();
+    this.mapper = new ObjectMapper(new MessagePackFactory());
+    this.mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
+    this.mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+    this.mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+    this.mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    SimpleModule module = new SimpleModule();
+    module.addSerializer(Component.class, new ComponentSerializer());
+    module.addDeserializer(Component.class, new ComponentDeserializer());
+    this.mapper.registerModule(module);
   }
 
   /**
-   * Gets the {@link Gson} instance used by this serializer.
+   * Gets the {@link ObjectMapper} instance used by this serializer.
    *
-   * @return the configured Gson instance
+   * @return the configured ObjectMapper instance
    */
-  public Gson gson() {
-    return gson;
+  public ObjectMapper mapper() {
+    return mapper;
   }
 
   /**
-   * Serializes a {@link DataPacket} to a JSON string.
+   * Serializes a {@link DataPacket} to binary data.
    *
    * @param packet the packet to serialize
-   * @return the JSON string representation of the packet
+   * @return the binary representation of the packet
    */
   @NotNull
-  public String serialize(@NotNull DataPacket packet) {
-    return gson.toJson(packet);
+  public byte[] serialize(@NotNull DataPacket packet) {
+    try {
+      return mapper.writeValueAsBytes(packet);
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to serialize packet", e);
+    }
   }
 
   /**
-   * Deserializes a JSON string to a {@link DataPacket}.
+   * Deserializes binary data to a {@link DataPacket}.
    *
-   * @param json the JSON string to deserialize
+   * @param data the binary data to deserialize
    * @return the deserialized {@link DataPacket}, or {@code null} if deserialization fails
    */
   @Nullable
-  public DataPacket deserialize(@NotNull String json) {
-    return gson.fromJson(json, DataPacket.class);
+  public DataPacket deserialize(@NotNull byte[] data) {
+    try {
+      return mapper.readValue(data, DataPacket.class);
+    } catch (IOException e) {
+      return null;
+    }
   }
 
+  /**
+   * Serializes a payload object to binary data.
+   *
+   * @param payload the object to serialize
+   * @param <T> the type of the payload
+   * @return the binary representation of the payload
+   */
   @NotNull
-  <T> String serializePayload(T payload) {
-    return gson.toJson(payload);
+  <T> byte[] serializePayload(T payload) {
+    try {
+      return mapper.writeValueAsBytes(payload);
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to serialize payload", e);
+    }
   }
 
+  /**
+   * Deserializes binary data to a specific payload class.
+   *
+   * @param data the binary data to deserialize
+   * @param payloadClass the class to deserialize into
+   * @param <T> the type of the payload
+   * @return the deserialized payload object, or {@code null} if deserialization fails
+   */
   @Nullable
-  <T> T deserializePayload(@NotNull String json, Class<T> payloadClass) {
-    return gson.fromJson(json, payloadClass);
+  <T> T deserializePayload(@NotNull byte[] data, Class<T> payloadClass) {
+    try {
+      return mapper.readValue(data, payloadClass);
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to deserialize payload", e);
+    }
   }
 }

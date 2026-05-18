@@ -17,6 +17,8 @@
 
 package com.velocityctd.proxy.redis.depot.player;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.velocityctd.proxy.redis.depot.DepotEntry;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
@@ -76,6 +78,31 @@ public final class PlayerEntry extends DepotEntry<UUID, PlayerEntry> {
    * Reflects {@link ClientSettingsPacket#isClientListingAllowed()}.
    */
   private boolean clientListingAllowed;
+
+  /**
+   * Constructs a new {@link PlayerEntry} from Jackson.
+   */
+  @JsonCreator
+  private PlayerEntry(
+          @JsonProperty("uniqueId") UUID uniqueId,
+          @JsonProperty("username") String username,
+          @JsonProperty("proxyId") String proxyId,
+          @JsonProperty("queuePriority") Map<String, Integer> queuePriority,
+          @JsonProperty("fullServerBypass") boolean fullServerBypass,
+          @JsonProperty("queueBypass") boolean queueBypass,
+          @JsonProperty("serverName") String serverName,
+          @JsonProperty("ipAddress") String ipAddress,
+          @JsonProperty("clientListingAllowed") boolean clientListingAllowed) {
+    super(uniqueId);
+    this.username = username;
+    this.proxyId = proxyId;
+    this.queuePriority = queuePriority;
+    this.fullServerBypass = fullServerBypass;
+    this.queueBypass = queueBypass;
+    this.serverName = serverName;
+    this.ipAddress = ipAddress;
+    this.clientListingAllowed = clientListingAllowed;
+  }
 
   /**
    * Constructs a new {@link PlayerEntry} from a {@link ConnectedPlayer}.

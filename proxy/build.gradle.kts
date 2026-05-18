@@ -152,6 +152,8 @@ dependencies {
 
     implementation(libs.lettuce.core)
     implementation(libs.httpclient5)
+    implementation(libs.jackson.databind)
+    implementation(libs.jackson.dataformat.msgpack)
     implementation(libs.jopt)
     implementation(libs.terminalconsoleappender)
     implementation(libs.jline.terminal)

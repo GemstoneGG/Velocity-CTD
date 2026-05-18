@@ -6,6 +6,8 @@ log4j = "2.26.0"
 netty = "4.2.13.Final"
 lettuce = "7.5.2.RELEASE"
 jline = "3.30.13"
+jackson = "2.21.1"
+msgpack = "0.9.12"
 
 [plugins]
 shadow = "com.gradleup.shadow:9.4.1"
@@ -42,6 +44,8 @@ lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
 jopt = "net.sf.jopt-simple:jopt-simple:5.0.4"
 junit = "org.junit.jupiter:junit-jupiter:6.0.3"
 jspecify = "org.jspecify:jspecify:1.0.0"
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+jackson-dataformat-msgpack = { module = "org.msgpack:jackson-dataformat-msgpack", version.ref = "msgpack" }
 kyori-ansi = "net.kyori:ansi:1.1.1"
 guava = "com.google.guava:guava:33.6.0-jre"
 gson = "com.google.code.gson:gson:2.14.0"
