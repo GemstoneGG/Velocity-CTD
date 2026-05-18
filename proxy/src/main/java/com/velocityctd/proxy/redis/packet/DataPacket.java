@@ -80,12 +80,11 @@ public final class DataPacket {
    * Constructs a new {@link DataPacket} from JSON/MessagePack.
    */
   @JsonCreator
-  private DataPacket(
-          @JsonProperty("packetId") UUID packetId,
-          @JsonProperty("payload") byte[] payload,
-          @JsonProperty("payloadType") String payloadType,
-          @JsonProperty("reply") boolean reply,
-          @JsonProperty("transactionId") UUID transactionId) {
+  private DataPacket(@JsonProperty("packetId") UUID packetId,
+                     @JsonProperty("payload") byte[] payload,
+                     @JsonProperty("payloadType") String payloadType,
+                     @JsonProperty("reply") boolean reply,
+                     @JsonProperty("transactionId") UUID transactionId) {
     this.packetId = packetId;
     this.payload = payload;
     this.payloadType = payloadType;
@@ -100,7 +99,7 @@ public final class DataPacket {
    * @param rawPayload the raw payload
    * @param <T> the type of the payload
    */
-  private <T> DataPacket(@NotNull byte[] serializedPayload, @NotNull T rawPayload) {
+  private <T> DataPacket(byte @NotNull [] serializedPayload, @NotNull T rawPayload) {
     this.packetId = UUID.randomUUID();
     this.payload = serializedPayload;
     this.payloadType = rawPayload.getClass().getName();

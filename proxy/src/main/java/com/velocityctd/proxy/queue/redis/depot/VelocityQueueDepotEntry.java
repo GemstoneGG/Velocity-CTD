@@ -60,12 +60,12 @@ public final class VelocityQueueDepotEntry extends DepotEntry<String, VelocityQu
    * Constructs a new {@link VelocityQueueDepotEntry} from Jackson.
    */
   @JsonCreator
-  private VelocityQueueDepotEntry(
-          @JsonProperty("uniqueId") String uniqueId,
-          @JsonProperty("entries") List<RedisVelocityQueueEntry> entries,
-          @JsonProperty("serverStatus") ServerStatus serverStatus,
-          @JsonProperty("state") QueueState state) {
+  private VelocityQueueDepotEntry(@JsonProperty("uniqueId") String uniqueId,
+                                  @JsonProperty("entries") List<RedisVelocityQueueEntry> entries,
+                                  @JsonProperty("serverStatus") ServerStatus serverStatus,
+                                  @JsonProperty("state") QueueState state) {
     super(uniqueId);
+
     this.entries = entries;
     this.serverStatus = serverStatus;
     this.state = state;

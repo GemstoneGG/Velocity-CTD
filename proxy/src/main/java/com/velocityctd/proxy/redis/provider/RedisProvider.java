@@ -129,7 +129,7 @@ public sealed interface RedisProvider permits AbstractRedisProvider {
    * @param key the key to look up
    * @return the binary value, or {@code null} if none exists
    */
-  @Nullable byte[] get(@NotNull String key);
+  byte @Nullable [] get(@NotNull String key);
 
   /**
    * Sets a key with an expiry time in seconds.
@@ -138,7 +138,7 @@ public sealed interface RedisProvider permits AbstractRedisProvider {
    * @param value      the binary value to store
    * @param ttlSeconds the time-to-live in seconds
    */
-  void setWithExpiry(@NotNull String key, @NotNull byte[] value, long ttlSeconds);
+  void setWithExpiry(@NotNull String key, byte @NotNull [] value, long ttlSeconds);
 
   /**
    * Checks whether a key exists in Redis.

@@ -30,6 +30,8 @@ import com.velocitypowered.api.scheduler.Scheduler;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
+import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.api.sync.RedisCommands;
 import io.lettuce.core.codec.ByteArrayCodec;
 import io.lettuce.core.codec.RedisCodec;
 import io.lettuce.core.codec.StringCodec;
@@ -91,9 +93,16 @@ public final class LettuceProvider extends AbstractRedisProvider {
   /**
    * A single shared connection used by all {@link LettuceDepot} instances for hash
    * operations. Depots do not use pub/sub, so one regular connection replaces the
-   * previous per-depot connections.
+   * previous per-depot connections. The connection itself is held for lifecycle
+   * management; {@link #depotCommands} is its synchronous command view.
    */
-  private RedisPubSubCommands<String, byte[]> depotCommands;
+  private StatefulRedisConnection<String, byte[]> depotConnection;
+
+  /**
+   * The synchronous command view of {@link #depotConnection}, shared by all
+   * {@link LettuceDepot} instances for their Redis hash operations.
+   */
+  private RedisCommands<String, byte[]> depotCommands;
 
   /**
    * The Redis Pub/Sub channel name used for all Velocity Redis communication.
@@ -131,17 +140,20 @@ public final class LettuceProvider extends AbstractRedisProvider {
   public void restart() {
     final RedisPubSubAsyncCommands<String, byte[]> oldPublisher = this.publisher;
     final RedisPubSubCommands<String, byte[]> oldSyncPublisher = this.syncPublisher;
-    final RedisPubSubCommands<String, byte[]> oldDepotCommands = this.depotCommands;
+    final StatefulRedisConnection<String, byte[]> oldDepotConnection = this.depotConnection;
 
     StatefulRedisPubSubConnection<String, byte[]> connection = this.client.connectPubSub(
             RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE));
 
+    // Tracks whether the initial subscribe has completed. The first subscribed() callback is
+    // the initial subscribe; every subsequent one is a re-subscribe after a reconnect.
     AtomicBoolean subscribedOnce = new AtomicBoolean(false);
 
-    connection.addListener(new RedisPubSubAdapter<String, byte[]>() {
+    connection.addListener(new RedisPubSubAdapter<>() {
       @Override
       public void subscribed(String channel, long count) {
         if (LettuceProvider.this.channel.equals(channel) && subscribedOnce.getAndSet(true)) {
+          // Re-subscribe after a reconnect, notify listeners so they can reload state.
           fireReconnectListeners();
         }
       }
@@ -171,10 +183,15 @@ public final class LettuceProvider extends AbstractRedisProvider {
       }
     });
 
-    this.publisher = connection.async();
-    this.publisher.subscribe(this.channel);
+    RedisPubSubAsyncCommands<String, byte[]> newPublisher = connection.async();
+    newPublisher.subscribe(this.channel);
+    StatefulRedisConnection<String, byte[]> newDepotConnection = this.client.connect(
+            RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE));
+
+    this.publisher = newPublisher;
     this.syncPublisher = connection.sync();
-    this.depotCommands = this.client.connectPubSub(RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE)).sync();
+    this.depotConnection = newDepotConnection;
+    this.depotCommands = newDepotConnection.sync();
 
     if (oldPublisher != null) {
       oldPublisher.getStatefulConnection().close();
@@ -184,8 +201,8 @@ public final class LettuceProvider extends AbstractRedisProvider {
       oldSyncPublisher.getStatefulConnection().close();
     }
 
-    if (oldDepotCommands != null) {
-      oldDepotCommands.getStatefulConnection().close();
+    if (oldDepotConnection != null) {
+      oldDepotConnection.close();
     }
 
     LOGGER.info("Connected to Lettuce Redis Server on channel '{}'", this.channel);
@@ -213,9 +230,10 @@ public final class LettuceProvider extends AbstractRedisProvider {
     }
     syncPublisher = null;
 
-    if (depotCommands != null && depotCommands.getStatefulConnection().isOpen()) {
-      depotCommands.getStatefulConnection().close();
+    if (depotConnection != null && depotConnection.isOpen()) {
+      depotConnection.close();
     }
+    depotConnection = null;
     depotCommands = null;
 
     this.client.shutdown();
@@ -345,7 +363,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
    * @return the binary value, or {@code null} if none exists
    */
   @Override
-  public @Nullable byte[] get(@NotNull String key) {
+  public byte @Nullable [] get(@NotNull String key) {
     if (this.syncPublisher == null) {
       LOGGER.warn("Attempted to get key '{}' but the sync connection is not initialized", key);
       return null;
@@ -362,7 +380,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
    * @param ttlSeconds the time-to-live in seconds
    */
   @Override
-  public void setWithExpiry(@NotNull String key, @NotNull byte[] value, long ttlSeconds) {
+  public void setWithExpiry(@NotNull String key, byte @NotNull [] value, long ttlSeconds) {
     if (this.syncPublisher == null) {
       LOGGER.warn("Attempted to set key '{}' with expiry but the sync connection is not initialized", key);
       return;
@@ -451,7 +469,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      * Retrieves a value from the depot by key.
      *
      * @param key the key to retrieve the value for
-     * @return the deserialized value
+     * @return the deserialized value, or {@code null} if no value exists or the stored data is malformed
      */
     @Override
     public @Nullable V get(@NotNull K key) {
@@ -462,7 +480,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
 
       V entry = deserialize(data);
       if (entry == null) {
-        LOGGER.warn("Encountered malformed data for key '{}' in depot '{}', ignoring", key, name);
+        LOGGER.warn("Encountered malformed data for key '{}' in depot '{}', ignoring", key, this.name);
         return null;
       }
       return entry;
@@ -487,17 +505,14 @@ public final class LettuceProvider extends AbstractRedisProvider {
      */
     @Override
     public @Nullable V remove(@NotNull K key) {
-      if (depotCommands.hexists(this.name, parseKey(key))) {
-        byte[] data = depotCommands.hget(this.name, parseKey(key));
-        depotCommands.hdel(this.name, parseKey(key));
-
-        if (data == null) {
-          return null;
-        }
-        return deserialize(data);
+      String field = parseKey(key);
+      byte[] data = depotCommands.hget(this.name, field);
+      if (data == null) {
+        return null;
       }
 
-      return null;
+      depotCommands.hdel(this.name, field);
+      return deserialize(data);
     }
 
     /**
@@ -529,7 +544,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      * @param entry the entry to serialize
      * @return the binary representation of the entry
      */
-    private @NotNull byte[] serialize(@NotNull V entry) {
+    private byte @NotNull [] serialize(@NotNull V entry) {
       try {
         return mapper.writeValueAsBytes(entry);
       } catch (Exception e) {
@@ -543,7 +558,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
      * @param data the binary data to deserialize
      * @return the deserialized entry, or {@code null} if deserialization fails
      */
-    private @Nullable V deserialize(@NotNull byte[] data) {
+    private @Nullable V deserialize(byte @NotNull [] data) {
       try {
         V entry = mapper.readValue(data, this.valueClass);
         entry.setDepot(this);

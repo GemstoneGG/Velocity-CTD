@@ -53,11 +53,6 @@ public final class VelocityRedis {
   private final RedisProvider provider;
 
   /**
-   * The {@link PacketSerializer} used for packet (de)serialization.
-   */
-  private final PacketSerializer packetSerializer;
-
-  /**
    * The service responsible for tracking player-related Redis entries.
    */
   private final PlayerDepotService playerService;
@@ -92,8 +87,7 @@ public final class VelocityRedis {
     this.proxyId = config.getProxyId();
 
     this.server = server;
-    this.packetSerializer = new PacketSerializer();
-    this.provider = new LettuceProvider(config, server.getScheduler(), packetSerializer);
+    this.provider = new LettuceProvider(config, server.getScheduler(), new PacketSerializer());
     this.provider.restart();
 
     this.playerService = new PlayerDepotService(this);
@@ -168,15 +162,6 @@ public final class VelocityRedis {
    */
   public RedisProvider getProvider() {
     return provider;
-  }
-
-  /**
-   * Gets the {@link PacketSerializer} used for packet (de)serialization.
-   *
-   * @return the packet serializer
-   */
-  public PacketSerializer getPacketSerializer() {
-    return packetSerializer;
   }
 
   /**

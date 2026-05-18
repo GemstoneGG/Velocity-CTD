@@ -83,17 +83,17 @@ public final class PlayerEntry extends DepotEntry<UUID, PlayerEntry> {
    * Constructs a new {@link PlayerEntry} from Jackson.
    */
   @JsonCreator
-  private PlayerEntry(
-          @JsonProperty("uniqueId") UUID uniqueId,
-          @JsonProperty("username") String username,
-          @JsonProperty("proxyId") String proxyId,
-          @JsonProperty("queuePriority") Map<String, Integer> queuePriority,
-          @JsonProperty("fullServerBypass") boolean fullServerBypass,
-          @JsonProperty("queueBypass") boolean queueBypass,
-          @JsonProperty("serverName") String serverName,
-          @JsonProperty("ipAddress") String ipAddress,
-          @JsonProperty("clientListingAllowed") boolean clientListingAllowed) {
+  private PlayerEntry(@JsonProperty("uniqueId") UUID uniqueId,
+                      @JsonProperty("username") String username,
+                      @JsonProperty("proxyId") String proxyId,
+                      @JsonProperty("queuePriority") Map<String, Integer> queuePriority,
+                      @JsonProperty("fullServerBypass") boolean fullServerBypass,
+                      @JsonProperty("queueBypass") boolean queueBypass,
+                      @JsonProperty("serverName") String serverName,
+                      @JsonProperty("ipAddress") String ipAddress,
+                      @JsonProperty("clientListingAllowed") boolean clientListingAllowed) {
     super(uniqueId);
+
     this.username = username;
     this.proxyId = proxyId;
     this.queuePriority = queuePriority;

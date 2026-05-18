@@ -46,7 +46,7 @@ public final class PacketSerializer {
    */
   public PacketSerializer() {
     this.mapper = new ObjectMapper(new MessagePackFactory());
-    this.mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
+    this.mapper.setDefaultPropertyInclusion(JsonInclude.Include.ALWAYS);
     this.mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
     this.mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
     this.mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -72,8 +72,7 @@ public final class PacketSerializer {
    * @param packet the packet to serialize
    * @return the binary representation of the packet
    */
-  @NotNull
-  public byte[] serialize(@NotNull DataPacket packet) {
+  public byte @NotNull [] serialize(@NotNull DataPacket packet) {
     try {
       return mapper.writeValueAsBytes(packet);
     } catch (IOException e) {
@@ -88,7 +87,7 @@ public final class PacketSerializer {
    * @return the deserialized {@link DataPacket}, or {@code null} if deserialization fails
    */
   @Nullable
-  public DataPacket deserialize(@NotNull byte[] data) {
+  public DataPacket deserialize(byte @NotNull [] data) {
     try {
       return mapper.readValue(data, DataPacket.class);
     } catch (IOException e) {
@@ -103,8 +102,7 @@ public final class PacketSerializer {
    * @param <T> the type of the payload
    * @return the binary representation of the payload
    */
-  @NotNull
-  <T> byte[] serializePayload(T payload) {
+  <T> byte @NotNull [] serializePayload(T payload) {
     try {
       return mapper.writeValueAsBytes(payload);
     } catch (IOException e) {
@@ -121,7 +119,7 @@ public final class PacketSerializer {
    * @return the deserialized payload object, or {@code null} if deserialization fails
    */
   @Nullable
-  <T> T deserializePayload(@NotNull byte[] data, Class<T> payloadClass) {
+  <T> T deserializePayload(byte @NotNull [] data, Class<T> payloadClass) {
     try {
       return mapper.readValue(data, payloadClass);
     } catch (IOException e) {
