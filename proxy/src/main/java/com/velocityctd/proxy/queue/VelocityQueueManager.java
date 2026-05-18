@@ -385,10 +385,12 @@ public class VelocityQueueManager implements QueueManager {
       transferTask.cancel();
       transferTask = null;
     }
+
     if (actionBarTask != null) {
       actionBarTask.cancel();
       actionBarTask = null;
     }
+
     if (backendHandshakeTask != null) {
       backendHandshakeTask.cancel();
       backendHandshakeTask = null;
@@ -443,6 +445,9 @@ public class VelocityQueueManager implements QueueManager {
           queue.setServerStatus(OFFLINE);
           return;
         }
+
+        result.getPlayers()
+            .ifPresent(players -> queue.recordServerPing(players.getOnline(), players.getMax()));
 
         boolean serverFull = result.getPlayers()
             .map(p -> p.getMax() > 0 && p.getOnline() >= p.getMax())

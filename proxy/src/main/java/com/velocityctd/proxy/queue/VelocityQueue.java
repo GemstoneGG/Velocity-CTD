@@ -48,6 +48,7 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
 
   private final VelocityRegisteredServer backend;
   private final QueuePlayerList<E> playerList = new QueuePlayerList<>();
+  private final ServerEtaTracker etaTracker = new ServerEtaTracker();
 
   private volatile ServerStatus serverStatus;
   private volatile QueueState state;
@@ -133,6 +134,9 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
     if (this.serverStatus == status) {
       return;
     }
+    if (status == ServerStatus.OFFLINE) {
+      etaTracker.reset();
+    }
     this.serverStatus = status;
   }
 
@@ -183,11 +187,52 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
   }
 
   /**
-   * Computes the estimated time to transfer for the given position.
+   * Records a backend player-count observation from a server ping so the queue can estimate
+   * how quickly players are leaving a full backend server.
+   *
+   * @param online the number of players currently on the backend server
+   * @param max    the backend server's player-slot capacity
+   */
+  public void recordServerPing(int online, int max) {
+    etaTracker.recordPing(online, max, System.currentTimeMillis());
+  }
+
+  /**
+   * Exports this queue's learned departure-rate samples so they can be persisted (e.g. to the
+   * Redis depot) and restored after a restart or master failover.
+   *
+   * @return the recorded departure intervals in seconds, oldest first
+   */
+  @ApiStatus.Internal
+  public double[] exportEtaSamples() {
+    return etaTracker.exportSamples();
+  }
+
+  /**
+   * Restores departure-rate samples previously produced by {@link #exportEtaSamples()}.
+   *
+   * @param samples the departure intervals to load, or {@code null} for none
+   */
+  @ApiStatus.Internal
+  public void importEtaSamples(double[] samples) {
+    etaTracker.importSamples(samples);
+  }
+
+  /**
+   * Computes the estimated time, in seconds, before the player at the given queue position
+   * is transferred to the backend server.
+   *
+   * <p>When the backend is full, the estimate is the number of players that must still leave
+   * multiplied by the observed average time between departures. Until enough departures have
+   * been observed - or when the backend already has room for the position - it falls back to
+   * the queue send-delay estimate.</p>
+   *
+   * @param position the 1-based queue position
+   * @return the estimated wait in seconds
    */
   public int calculateEta(int position) {
-    int eta = (int) (server.getConfiguration().getQueue().getSendDelay() * position);
-    return Math.max(eta, 0);
+    double sendDelay = server.getConfiguration().getQueue().getSendDelay();
+    return etaTracker.estimateEta(position, sendDelay);
   }
 
   /**

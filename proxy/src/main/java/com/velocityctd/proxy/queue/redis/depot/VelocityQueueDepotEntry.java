@@ -55,6 +55,12 @@ public final class VelocityQueueDepotEntry extends DepotEntry<String, VelocityQu
   private final QueueState state;
 
   /**
+   * The learned per-player departure intervals (seconds) at the time of persistence, used to
+   * restore the queue's ETA estimate after a restart or master failover.
+   */
+  private final double[] leaveIntervals;
+
+  /**
    * Constructs a {@link VelocityQueueDepotEntry} by capturing the current state of a queue.
    *
    * @param queue the queue to snapshot
@@ -65,6 +71,7 @@ public final class VelocityQueueDepotEntry extends DepotEntry<String, VelocityQu
     this.entries = new ArrayList<>(queue.getInternalEntries());
     this.serverStatus = queue.getServerStatus();
     this.state = queue.getState();
+    this.leaveIntervals = queue.exportEtaSamples();
   }
 
   /**
@@ -92,6 +99,16 @@ public final class VelocityQueueDepotEntry extends DepotEntry<String, VelocityQu
    */
   public QueueState getState() {
     return state;
+  }
+
+  /**
+   * Returns the persisted per-player departure intervals (seconds),
+   * oldest first, used to restore the queue's ETA estimate.
+   *
+   * @return the persisted departure intervals
+   */
+  public double[] getLeaveIntervals() {
+    return leaveIntervals;
   }
 
   @Override

@@ -21,7 +21,6 @@ import com.velocityctd.proxy.queue.RedisVelocityQueue;
 import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.depot.AbstractDepotService;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Manages persistence of {@link VelocityQueueDepotEntry} objects in Redis.
@@ -49,15 +48,5 @@ public final class VelocityQueueDepotService
    */
   public void upsertQueue(@NotNull RedisVelocityQueue queue) {
     this.depot.upsert(new VelocityQueueDepotEntry(queue));
-  }
-
-  /**
-   * Retrieves the persisted state for the given server's queue, or {@code null} if none exists.
-   *
-   * @param serverName the name of the server
-   * @return the depot entry, or {@code null}
-   */
-  public @Nullable VelocityQueueDepotEntry getQueueEntry(@NotNull String serverName) {
-    return this.depot.get(serverName);
   }
 }
