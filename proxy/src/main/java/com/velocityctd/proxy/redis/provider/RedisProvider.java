@@ -39,6 +39,13 @@ public sealed interface RedisProvider permits AbstractRedisProvider {
   String CHANNEL = "velocity.redis";
 
   /**
+   * Gets the namespace used for all Redis keys and channels.
+   *
+   * @return the Redis namespace
+   */
+  @NotNull String getNamespace();
+
+  /**
    * Restart the Redis provider.
    */
   void restart();
