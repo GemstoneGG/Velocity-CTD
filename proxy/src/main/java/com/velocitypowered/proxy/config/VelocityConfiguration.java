@@ -2386,12 +2386,6 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private @Nullable String proxyId;
 
-    /**
-     * The namespace to use for all Redis keys and channels.
-     */
-    @Expose
-    private String namespace;
-
     private Redis(CommentedConfig config) {
       if (config == null) {
         return;
@@ -2409,7 +2403,6 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.password = config.get("password");
       this.useSsl = config.getOrElse("use-ssl", true);
       this.proxyId = config.get("proxy-id");
-      this.namespace = config.getOrElse("namespace", "velocity");
 
       if (this.proxyId == null || this.proxyId.isEmpty()) {
         this.proxyId = null;
@@ -2475,15 +2468,6 @@ public final class VelocityConfiguration implements ProxyConfig {
       return proxyId;
     }
 
-    /**
-     * Gets the namespace used for Redis keys and channels.
-     *
-     * @return the Redis namespace
-     */
-    public String getNamespace() {
-      return namespace;
-    }
-
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
@@ -2493,7 +2477,6 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("username", username)
           .add("useSsl", useSsl)
           .add("proxyId", proxyId)
-          .add("namespace", namespace)
           .toString();
     }
   }

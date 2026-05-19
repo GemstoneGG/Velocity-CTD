@@ -190,12 +190,6 @@ public class CtdConfigMigrations {
             "redis.proxy-id",
             ""
         ),
-        migration(
-            "The namespace to use for all Redis keys and channels.\n"
-                + " This allows multiple Velocity-CTD clusters to share the same Redis instance.",
-            "redis.namespace",
-            "velocity"
-        ),
 
         // [queue]
         migration(

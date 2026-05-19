@@ -63,6 +63,11 @@ public final class LettuceProvider extends AbstractRedisProvider {
   private static final Logger LOGGER = LoggerFactory.getLogger(LettuceProvider.class);
 
   /**
+   * The namespace applied to all Redis keys and channels.
+   */
+  private static final String NAMESPACE = System.getProperty("velocity.redis-namespace", "velocity");
+
+  /**
    * Redis key template for the pub/sub channel.
    */
   private static final String CHANNEL_TEMPLATE = "%s:%s:channel";
@@ -117,9 +122,9 @@ public final class LettuceProvider extends AbstractRedisProvider {
   public LettuceProvider(VelocityConfiguration.Redis config,
                          @NotNull Scheduler scheduler,
                          @NotNull PacketSerializer packetSerializer) {
-    super(scheduler, packetSerializer, config.getNamespace());
+    super(scheduler, packetSerializer, NAMESPACE);
 
-    this.channel = CHANNEL_TEMPLATE.formatted(config.getNamespace(), VERSION);
+    this.channel = CHANNEL_TEMPLATE.formatted(NAMESPACE, VERSION);
 
     this.client = RedisClient.create(RedisURI.Builder.redis(config.getHost(), config.getPort())
             .withAuthentication(Objects.requireNonNullElse(config.getUsername(), ""),
