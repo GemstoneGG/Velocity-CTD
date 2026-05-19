@@ -26,14 +26,13 @@ import com.velocitypowered.api.permission.PermissionProvider;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.ConsoleCommandSource;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.adventure.AudiencePointers;
 import com.velocitypowered.proxy.util.ClosestLocaleMatcher;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.permission.PermissionChecker;
-import net.kyori.adventure.platform.facet.FacetPointers;
-import net.kyori.adventure.platform.facet.FacetPointers.Type;
 import net.kyori.adventure.pointer.Pointers;
 import net.kyori.adventure.pointer.PointersSupplier;
 import net.kyori.adventure.text.Component;
@@ -57,7 +56,6 @@ import org.jline.reader.LineReaderBuilder;
  * Implements the Velocity console, including sending commands and being the recipient
  * of messages from plugins.
  */
-@SuppressWarnings("UnstableApiUsage")
 public final class VelocityConsole extends SimpleTerminalConsole implements ConsoleCommandSource {
 
   /**
@@ -80,7 +78,7 @@ public final class VelocityConsole extends SimpleTerminalConsole implements Cons
   private static final @NotNull PointersSupplier<VelocityConsole> POINTERS = PointersSupplier.<VelocityConsole>builder()
       .resolving(PermissionChecker.POINTER, VelocityConsole::getPermissionChecker)
       .resolving(Identity.LOCALE, (console) -> ClosestLocaleMatcher.INSTANCE.lookupClosest(Locale.getDefault()))
-      .resolving(FacetPointers.TYPE, (console) -> Type.CONSOLE)
+      .resolving(AudiencePointers.TYPE, (console) -> AudiencePointers.Type.CONSOLE)
       .build();
 
   public VelocityConsole(VelocityServer server) {

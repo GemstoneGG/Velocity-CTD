@@ -68,6 +68,8 @@ import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.api.util.ModInfo;
 import com.velocitypowered.api.util.ServerLink;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.adventure.AudiencePointers;
+import com.velocitypowered.proxy.adventure.AudiencePointers.Type;
 import com.velocitypowered.proxy.adventure.ClickCallbackManager;
 import com.velocitypowered.proxy.adventure.VelocityBossBarImplementation;
 import com.velocitypowered.proxy.command.CommandGraphInjector;
@@ -143,8 +145,6 @@ import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.permission.PermissionChecker;
-import net.kyori.adventure.platform.facet.FacetPointers;
-import net.kyori.adventure.platform.facet.FacetPointers.Type;
 import net.kyori.adventure.pointer.Pointers;
 import net.kyori.adventure.pointer.PointersSupplier;
 import net.kyori.adventure.resource.ResourcePackInfoLike;
@@ -168,7 +168,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
 
-@SuppressWarnings("UnstableApiUsage")
 public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, KeyIdentifiable, VelocityInboundConnection {
 
   public static final int MAX_CLIENTSIDE_PLUGIN_CHANNELS = Integer.getInteger("velocity.max-clientside-plugin-channels", 1024);
@@ -186,7 +185,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       .resolving(Identity.DISPLAY_NAME, player -> Component.text(player.getUsername()))
       .resolving(Identity.LOCALE, Player::getEffectiveLocale)
       .resolving(PermissionChecker.POINTER, Player::getPermissionChecker)
-      .resolving(FacetPointers.TYPE, player -> Type.PLAYER)
+      .resolving(AudiencePointers.TYPE, player -> Type.PLAYER)
       .build();
 
   /**
