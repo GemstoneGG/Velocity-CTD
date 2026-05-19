@@ -2457,15 +2457,6 @@ public final class VelocityConfiguration implements ProxyConfig {
     }
 
     /**
-     * Gets the namespace used for Redis keys and channels.
-     *
-     * @return the Redis namespace
-     */
-    public String getNamespace() {
-      return namespace;
-    }
-
-    /**
      * Returns whether SSL is used for connecting to Redis.
      *
      * @return {@code true} if SSL is used, {@code false} otherwise
@@ -2484,6 +2475,15 @@ public final class VelocityConfiguration implements ProxyConfig {
       return proxyId;
     }
 
+    /**
+     * Gets the namespace used for Redis keys and channels.
+     *
+     * @return the Redis namespace
+     */
+    public String getNamespace() {
+      return namespace;
+    }
+
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
@@ -2493,6 +2493,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("username", username)
           .add("useSsl", useSsl)
           .add("proxyId", proxyId)
+          .add("namespace", namespace)
           .toString();
     }
   }
