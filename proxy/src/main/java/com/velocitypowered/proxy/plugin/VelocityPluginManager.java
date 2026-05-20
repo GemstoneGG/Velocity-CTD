@@ -35,7 +35,7 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.plugin.loader.VelocityPluginContainer;
 import com.velocitypowered.proxy.plugin.loader.java.JavaPluginLoader;
 import com.velocitypowered.proxy.plugin.util.PluginDependencyUtils;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -106,15 +106,19 @@ public class VelocityPluginManager implements PluginManager {
   }
 
   /**
-   * Loads all plugins from the {@code directory} and by paths {@code extraPluginJars}.
+   * Loads all plugins from the {@code directory} and by paths {@code extraPluginJars}. If an
+   * {@code updateDirectory} is supplied, JAR files inside it are inspected first: any whose
+   * plugin id matches one already in the plugins folder replaces the existing file before
+   * the load proceeds, so the next startup runs the updated version.
    *
-   * @param directory the directory to load from
+   * @param directory       the directory to load from
    * @param extraPluginJars the path to additional plugins JAR's
+   * @param updateDirectory the directory to pull updated plugin files from, or {@code null}
+   *                        to disable the update step
    * @throws IOException if we could not open the directory
    */
-  @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
-      justification = "I looked carefully and there's no way SpotBugs is right.")
-  public void loadPlugins(Path directory, Collection<Path> extraPluginJars) throws IOException {
+  public void loadPlugins(Path directory, Collection<Path> extraPluginJars,
+                          @Nullable Path updateDirectory) throws IOException {
 
     Map<String, PluginDescription> foundCandidates = new LinkedHashMap<>();
     JavaPluginLoader loader = new JavaPluginLoader(server, directory);
@@ -133,6 +137,12 @@ public class VelocityPluginManager implements PluginManager {
       }
     } else {
       LOGGER.warn("Plugin location {} is not a directory, continuing without loading plugins", directory);
+    }
+
+    // Move pending updates from updateDirectory into the plugins folder, replacing any older
+    // version of the same plugin id before the dependency sort and class-loading step below.
+    if (updateDirectory != null) {
+      updatePlugins(directory, updateDirectory, foundCandidates, loader);
     }
 
     if (foundCandidates.isEmpty()) {
@@ -197,6 +207,64 @@ public class VelocityPluginManager implements PluginManager {
       LOGGER.info("Loaded plugin {} {} by {}", description.getId(), description.getVersion()
           .orElse("<UNKNOWN>"), Joiner.on(", ").join(description.getAuthors()));
       registerPlugin(container);
+    }
+  }
+
+  private void updatePlugins(Path pluginDirectory,
+                             Path updateDirectory,
+                             Map<String, PluginDescription> found,
+                             JavaPluginLoader loader) throws IOException {
+    checkNotNull(updateDirectory, "updateDirectory");
+
+    List<PluginDescription> availableUpdates = new ArrayList<>();
+    JavaPluginLoader updateLoader = new JavaPluginLoader(server, updateDirectory);
+    try (DirectoryStream<Path> stream = Files.newDirectoryStream(updateDirectory,
+          VelocityPluginManager::isJarFile)) {
+      for (Path path : stream) {
+        try {
+          availableUpdates.add(updateLoader.loadCandidate(path));
+        } catch (Exception e) {
+          LOGGER.error("Unable to load plugin candidate {}", path, e);
+        }
+      }
+    }
+
+    for (PluginDescription availableUpdate : availableUpdates) {
+      PluginDescription potentialMatch = found.get(availableUpdate.getId());
+
+      // This should not happen but acts as a failsafe
+      if (availableUpdate.getSource().isEmpty()) {
+        LOGGER.warn("No source for plugin {} found", availableUpdate.getId());
+        continue;
+      }
+
+      if (potentialMatch != null) {
+        if (potentialMatch.getSource().isEmpty()) {
+          LOGGER.warn("No source for plugin {} found, continuing without update.",
+              potentialMatch.getId());
+          continue;
+        }
+
+        // Remove outdated plugin file
+        try {
+          Files.deleteIfExists(potentialMatch.getSource().get());
+        } catch (IOException e) {
+          LOGGER.error("Unable to delete plugin {} from plugins folder at {}",
+              potentialMatch.getId(), pluginDirectory.toString(), e);
+          continue;
+        }
+      }
+
+      Path newPath = pluginDirectory.resolve(availableUpdate.getSource().get().getFileName());
+      try {
+        Files.move(availableUpdate.getSource().get(), newPath);
+        LOGGER.info("Successfully updated plugin {} to version {}",
+            availableUpdate.getId(), availableUpdate.getVersion());
+        PluginDescription movedDescription = loader.loadCandidate(newPath);
+        found.put(movedDescription.getId(), movedDescription);
+      } catch (Exception e) {
+        LOGGER.error("Unable to update plugin {}", availableUpdate.getId(), e);
+      }
     }
   }
 

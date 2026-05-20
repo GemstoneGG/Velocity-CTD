@@ -504,6 +504,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     try {
       Path pluginPath = Path.of("plugins");
       ArrayList<Path> additionalPlugins = new ArrayList<>();
+      String updateFolderName = System.getProperty("velocity.update-folder-name", "update");
+      Path updatePath = !updateFolderName.isEmpty() ? pluginPath.resolve(updateFolderName) : null;
 
       if (!pluginPath.toFile().exists()) {
         Files.createDirectory(pluginPath);
@@ -513,6 +515,10 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
               pluginPath);
           return;
         }
+      }
+
+      if (updatePath != null && !Files.exists(updatePath)) {
+        Files.createDirectory(updatePath);
       }
 
       for (String additionalPluginPath : options.getAdditionalPlugins()) {
@@ -530,7 +536,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         additionalPlugins.add(path);
       }
 
-      pluginManager.loadPlugins(pluginPath, additionalPlugins);
+      pluginManager.loadPlugins(pluginPath, additionalPlugins, updatePath);
     } catch (Exception e) {
       LOGGER.error("Couldn't load plugins", e);
     }
