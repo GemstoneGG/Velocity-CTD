@@ -19,6 +19,7 @@ package com.velocitypowered.proxy.connection.util;
 
 import static com.velocityctd.proxy.util.ParsingUtils.parseVariables;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import com.spotify.futures.CompletableFutures;
 import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocitypowered.api.network.ProtocolVersion;
@@ -99,7 +100,7 @@ public class ServerListPingHandler {
     String serverPingVersion = configuration.getFallbackVersionPing();
 
     for (Component s : server.getConfiguration().getMotdHover()) {
-      samplePlayers.add(new ServerPing.SamplePlayer(s, UUID.randomUUID()));
+      samplePlayers.add(new ServerPing.SamplePlayer(s, UuidCreator.getTimeOrderedEpochFast()));
     }
 
     return new ServerPing(
