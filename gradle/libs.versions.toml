@@ -42,7 +42,7 @@ jline-terminal-jni = { module = "org.jline:jline-terminal-jni", version.ref = "j
 jline-terminal-ffm = { module = "org.jline:jline-terminal-ffm", version.ref = "jline" }
 lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
 jopt = "net.sf.jopt-simple:jopt-simple:5.0.4"
-junit = "org.junit.jupiter:junit-jupiter:6.0.3"
+junit = "org.junit.jupiter:junit-jupiter:6.1.0"
 jspecify = "org.jspecify:jspecify:1.0.0"
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
 jackson-dataformat-msgpack = { module = "org.msgpack:jackson-dataformat-msgpack", version.ref = "msgpack" }
