@@ -275,7 +275,9 @@ public class JoinGamePacket implements MinecraftPacket {
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_9_1)) {
       this.dimension = buf.readInt();
     } else {
-      this.dimension = buf.readByte();
+      // Preserve unsigned dimension IDs for modded backends.
+      short raw = buf.readUnsignedByte();
+      this.dimension = raw == 0xFF ? -1 : raw;
     }
 
     if (version.noGreaterThan(ProtocolVersion.MINECRAFT_1_13_2)) {
