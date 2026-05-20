@@ -67,7 +67,7 @@ public class ClientboundSoundEntityPacket implements MinecraftPacket {
 
     buf.writeFloat(sound.pitch());
 
-    sound.seed().orElseGet(() -> ThreadLocalRandom.current().nextLong());
+    buf.writeLong(sound.seed().orElseGet(() -> ThreadLocalRandom.current().nextLong()));
   }
 
   @Override
