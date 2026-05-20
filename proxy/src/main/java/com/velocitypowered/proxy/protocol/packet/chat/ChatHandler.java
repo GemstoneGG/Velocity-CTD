@@ -17,9 +17,14 @@
 
 package com.velocitypowered.proxy.protocol.packet.chat;
 
+import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
+import net.kyori.adventure.text.Component;
+import org.apache.logging.log4j.Logger;
 
 public interface ChatHandler<T extends MinecraftPacket> {
+
+  Logger logger();
 
   Class<T> packetClass();
 
@@ -32,5 +37,21 @@ public interface ChatHandler<T extends MinecraftPacket> {
     }
 
     return false;
+  }
+
+  default void invalidCancel(ConnectedPlayer player) {
+    logger().fatal("A plugin tried to cancel a signed chat message."
+        + " This is no longer possible in 1.19.1 and newer. "
+        + "Disconnecting player {}", player.getUsername());
+    player.disconnect(Component.text("A proxy plugin caused an illegal protocol state. "
+        + "Contact your network administrator."));
+  }
+
+  default void invalidChange(ConnectedPlayer player) {
+    logger().fatal("A plugin tried to change a signed chat message. "
+        + "This is no longer possible in 1.19.1 and newer. "
+        + "Disconnecting player {}", player.getUsername());
+    player.disconnect(Component.text("A proxy plugin caused an illegal protocol state. "
+        + "Contact your network administrator."));
   }
 }

@@ -24,10 +24,13 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatAcknowledgementPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.RateLimitedCommandHandler;
 import java.util.concurrent.CompletableFuture;
-import net.kyori.adventure.text.Component;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlayerCommandPacket> {
+
+  private static final Logger LOGGER = LogManager.getLogger(SessionCommandHandler.class);
 
   private final ConnectedPlayer player;
 
@@ -37,6 +40,11 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
     super(player, server);
     this.player = player;
     this.server = server;
+  }
+
+  @Override
+  public Logger logger() {
+    return LOGGER;
   }
 
   @Override
@@ -53,12 +61,7 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
     if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
       // Any signed message produced by the client *must* be passed through to the server to maintain a
       // consistent state for future messages.
-      LOGGER.fatal("A plugin tried to deny a command with signable component(s). This is not supported. "
-          + "Disconnecting player {}. Command packet: {}",
-          player.getUsername(), packet);
-      player.disconnect(Component.text(
-          "A proxy plugin caused an illegal protocol state. "
-              + "Contact your network administrator."));
+      alterSignableComponentError("deny", player, packet);
       return null;
     }
 
@@ -84,13 +87,7 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
   @Nullable
   private MinecraftPacket modifyCommand(SessionPlayerCommandPacket packet, String newCommand) {
     if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
-      LOGGER.fatal("A plugin tried to change a command with signed component(s). "
-          + "This is not supported. "
-          + "Disconnecting player {}. Command packet: {}",
-          player.getUsername(), packet);
-      player.disconnect(Component.text(
-          "A proxy plugin caused an illegal protocol state. "
-              + "Contact your network administrator."));
+      alterSignableComponentError("change", player, packet);
       return null;
     }
 

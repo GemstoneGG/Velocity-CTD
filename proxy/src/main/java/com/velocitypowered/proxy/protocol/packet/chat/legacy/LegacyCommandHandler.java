@@ -23,8 +23,12 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.chat.RateLimitedCommandHandler;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class LegacyCommandHandler extends RateLimitedCommandHandler<LegacyChatPacket> {
+
+  private static final Logger LOGGER = LogManager.getLogger(LegacyCommandHandler.class);
 
   private final ConnectedPlayer player;
 
@@ -34,6 +38,11 @@ public class LegacyCommandHandler extends RateLimitedCommandHandler<LegacyChatPa
     super(player, server);
     this.player = player;
     this.server = server;
+  }
+
+  @Override
+  public Logger logger() {
+    return LOGGER;
   }
 
   @Override
