@@ -17,6 +17,7 @@
 
 package com.velocityctd.proxy.redis.packet;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import java.util.Objects;
 import java.util.UUID;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -77,7 +78,7 @@ public final class DataPacket {
    * @param <T> the type of the payload
    */
   private <T> DataPacket(@NotNull String serializedPayload, @NotNull T rawPayload) {
-    this.packetId = UUID.randomUUID();
+    this.packetId = UuidCreator.getTimeOrderedEpochFast();
     this.payload = serializedPayload;
     this.payloadType = rawPayload.getClass().getName();
     this.rawPayload = rawPayload;

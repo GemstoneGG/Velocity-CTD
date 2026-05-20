@@ -34,9 +34,11 @@ import org.jetbrains.annotations.Nullable;
 public sealed interface RedisProvider permits AbstractRedisProvider {
 
   /**
-   * The Redis Pub/Sub channel name used for all Velocity Redis communication.
+   * Gets the namespace used for all Redis keys and channels.
+   *
+   * @return the Redis namespace
    */
-  String CHANNEL = "velocity.redis";
+  @NotNull String getNamespace();
 
   /**
    * Restart the Redis provider.

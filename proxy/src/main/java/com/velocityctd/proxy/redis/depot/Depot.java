@@ -84,7 +84,5 @@ public interface Depot<K, V extends DepotEntry<K, V>> {
    *
    * @return the number of entries in the depot
    */
-  default int size() {
-    return keys().size();
-  }
+  int size();
 }
