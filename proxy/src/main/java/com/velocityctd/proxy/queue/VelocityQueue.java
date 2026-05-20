@@ -234,11 +234,6 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
    * Computes the estimated time, in seconds, before the player at the given queue position
    * is transferred to the backend server.
    *
-   * <p>When the backend is full, the estimate is the number of players that must still leave
-   * multiplied by the observed average time between departures. Until enough departures have
-   * been observed - or when the backend already has room for the position - it falls back to
-   * the queue send-delay estimate.</p>
-   *
    * @param position the 1-based queue position
    * @return the estimated wait in seconds
    */
