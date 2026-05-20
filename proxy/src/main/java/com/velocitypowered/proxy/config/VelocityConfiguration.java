@@ -538,10 +538,12 @@ public final class VelocityConfiguration implements ProxyConfig {
     return preventClientProxyConnections;
   }
 
+  @Override
   public PlayerInfoForwarding getPlayerInfoForwardingMode() {
     return playerInfoForwardingMode;
   }
 
+  @Override
   public byte[] getForwardingSecret() {
     return forwardingSecret.clone();
   }
