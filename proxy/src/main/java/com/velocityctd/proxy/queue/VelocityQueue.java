@@ -187,14 +187,26 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
   }
 
   /**
-   * Records a backend player-count observation from a server ping so the queue can estimate
-   * how quickly players are leaving a full backend server.
+   * Records a backend player-count observation from a server ping so the queue's ETA tracker
+   * has an up-to-date {@code mustLeave} baseline.
    *
    * @param online the number of players currently on the backend server
    * @param max    the backend server's player-slot capacity
    */
   public void recordServerPing(int online, int max) {
-    etaTracker.recordPing(online, max, System.currentTimeMillis());
+    etaTracker.recordPing(online, max);
+  }
+
+  /**
+   * Records that a player departed this queue's backend server at the given wall-clock
+   * timestamp. Each call appends one interval to the rolling window used by
+   * {@link #calculateEta(int)}.
+   *
+   * @param nowMillis the wall-clock timestamp of the departure in epoch milliseconds
+   */
+  @ApiStatus.Internal
+  public void recordLeave(long nowMillis) {
+    etaTracker.recordLeave(nowMillis);
   }
 
   /**

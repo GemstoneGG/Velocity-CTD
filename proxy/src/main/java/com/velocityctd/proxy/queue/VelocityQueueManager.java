@@ -34,6 +34,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
+import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
@@ -305,6 +306,11 @@ public class VelocityQueueManager implements QueueManager {
    * @param player the player who disconnected
    */
   public void onPlayerDisconnect(@NotNull ConnectedPlayer player) {
+    VelocityServerConnection connectedServer = player.getConnectedServer();
+    if (connectedServer != null) {
+      recordBackendLeave(connectedServer.getServerInfo().getName(), System.currentTimeMillis());
+    }
+
     if (!isQueued(player)) {
       return;
     }
@@ -342,6 +348,33 @@ public class VelocityQueueManager implements QueueManager {
           .schedule();
 
       pendingTimeoutTasks.put(playerUniqueId, task);
+    }
+  }
+
+  /**
+   * Records that a player departed the named backend server at the given wall-clock
+   * timestamp.
+   *
+   * @param serverName the name of the backend the player left
+   * @param nowMillis  the wall-clock timestamp of the departure in epoch milliseconds
+   */
+  public void recordBackendLeave(@NotNull String serverName, long nowMillis) {
+    applyBackendLeave(serverName, nowMillis);
+  }
+
+  /**
+   * Applies a backend-leave observation to the matching queue's ETA tracker without
+   * broadcasting. Called directly in local mode by {@link #recordBackendLeave(String, long)}
+   * and from the route handler in Redis mode when a {@code VelocityBackendLeave} packet
+   * arrives.
+   *
+   * @param serverName the name of the backend the player left
+   * @param nowMillis  the wall-clock timestamp of the departure in epoch milliseconds
+   */
+  public void applyBackendLeave(@NotNull String serverName, long nowMillis) {
+    VelocityQueue<?> queue = queues.get(serverName);
+    if (queue != null) {
+      queue.recordLeave(nowMillis);
     }
   }
 

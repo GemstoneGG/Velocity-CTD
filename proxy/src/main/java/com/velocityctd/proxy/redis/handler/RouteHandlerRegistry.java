@@ -20,6 +20,8 @@ package com.velocityctd.proxy.redis.handler;
 import com.velocityctd.proxy.queue.RedisVelocityQueueManager;
 import com.velocityctd.proxy.queue.VelocityQueue;
 import com.velocityctd.proxy.queue.VelocityQueueEntry;
+import com.velocityctd.proxy.queue.VelocityQueueManager;
+import com.velocityctd.proxy.queue.redis.packet.VelocityBackendLeave;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueSync;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueTransfer;
 import com.velocityctd.proxy.redis.data.VelocityActionBar;
@@ -135,6 +137,18 @@ public enum RouteHandlerRegistry {
   VELOCITY_QUEUE_SYNC(VelocityQueueSync.class, (server, data) -> {
     RedisVelocityQueueManager redisVelocityQueueManager = ((RedisVelocityQueueManager) server.getQueueManager());
     redisVelocityQueueManager.handleSync(data);
+  }),
+
+  /**
+   * Handles the {@link VelocityBackendLeave} data by folding the leave interval into the
+   * matching queue's ETA tracker.
+   */
+  VELOCITY_BACKEND_LEAVE(VelocityBackendLeave.class, (server, data) -> {
+    VelocityQueueManager queueManager = server.getQueueManager();
+    if (!queueManager.isMasterProxy()) {
+      return;
+    }
+    queueManager.applyBackendLeave(data.serverName(), data.leaveMillis());
   }),
 
   /**

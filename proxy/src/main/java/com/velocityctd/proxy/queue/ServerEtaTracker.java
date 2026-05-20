@@ -36,37 +36,39 @@ public final class ServerEtaTracker {
   private long lastLeaveMillis;
 
   /**
-   * Records a backend player-count observation from a server ping. A drop in the online count
-   * since the last observation is treated as one or more departures and folded into the
-   * rolling average.
+   * Updates the most recently observed backend player count and capacity. This is fed by the
+   * periodic backend ping and feeds the {@code mustLeave} term of {@link #estimateEta(int, double)}
+   * only - it no longer produces interval samples.
+   *
+   * @param online the current online player count on the backend
+   * @param max    the backend's maximum player capacity
    */
-  public synchronized void recordPing(int online, int max, long nowMillis) {
-    this.lastMax = max;
-
-    if (lastOnline != UNKNOWN && online < lastOnline) {
-      int leaves = lastOnline - online;
-
-      if (lastLeaveMillis != 0L) {
-        double intervalSeconds = (nowMillis - lastLeaveMillis) / 1000.0;
-        if (intervalSeconds > 0.0) {
-          double perLeave = intervalSeconds / leaves;
-          int pushes = Math.min(leaves, WINDOW_SIZE);
-          for (int i = 0; i < pushes; i++) {
-            pushInterval(perLeave);
-          }
-        }
-      }
-
-      lastLeaveMillis = nowMillis;
-    }
-
+  public synchronized void recordPing(int online, int max) {
     this.lastOnline = online;
+    this.lastMax = max;
   }
 
   /**
-   * Clears the online baseline so the next observation does not register a bogus mass
-   * departure, for example after the backend becomes unreachable. Recorded departure
-   * intervals are kept as a prior.
+   * Records a single player departure from the backend at the given wall-clock timestamp.
+   * The interval since the previous departure (if any) is appended to the rolling window.
+   *
+   * @param nowMillis the wall-clock timestamp of the departure in epoch milliseconds
+   */
+  public synchronized void recordLeave(long nowMillis) {
+    if (lastLeaveMillis != 0L) {
+      double intervalSeconds = (nowMillis - lastLeaveMillis) / 1000.0;
+      if (intervalSeconds > 0.0) {
+        pushInterval(intervalSeconds);
+      }
+    }
+
+    lastLeaveMillis = nowMillis;
+  }
+
+  /**
+   * Clears the online baseline and the last-leave timestamp so that the next observations do
+   * not register against stale state - for example after the backend becomes unreachable.
+   * Recorded departure intervals are kept as a prior.
    */
   public synchronized void reset() {
     this.lastOnline = UNKNOWN;
@@ -75,37 +77,43 @@ public final class ServerEtaTracker {
 
   /**
    * Estimates the wait, in seconds, before the player at the given position is transferred.
-   * Falls back to the send-delay estimate when the backend already has room for the position
-   * or no departures have been observed yet.
+   *
+   * @param position                 the 1-based queue position
+   * @param fallbackSendDelaySeconds the send-delay fallback in seconds
+   * @return                         the estimated wait in seconds
    */
   public synchronized int estimateEta(int position, double fallbackSendDelaySeconds) {
-    int fallback = (int) Math.max(0L, Math.round(fallbackSendDelaySeconds * position));
+    if (lastOnline == UNKNOWN || lastMax <= 0) {
+      return sendDelayEta(position, fallbackSendDelaySeconds);
+    }
 
-    int mustLeave = playersThatMustLeave(position);
-    if (mustLeave <= 0) {
-      // The backend already has room for this position; the send cadence is the bound.
-      return fallback;
+    int availableNow = Math.max(0, lastMax - lastOnline);
+    int deficit = Math.max(0, lastOnline - lastMax);
+
+    int sendDelaySteps = Math.min(position, availableNow);
+    int leaveSteps = (position - sendDelaySteps) + deficit;
+
+    if (leaveSteps == 0) {
+      // The player fits within the current free spots; no leaves required.
+      return sendDelayEta(sendDelaySteps, fallbackSendDelaySeconds);
     }
 
     double averageInterval = averageLeaveIntervalSeconds();
     if (averageInterval <= 0.0) {
-      // No departure samples yet - fall back to the send-delay estimate.
-      return fallback;
+      // No leave samples yet - degrade gracefully to a flat per-position send-delay estimate.
+      return sendDelayEta(position, fallbackSendDelaySeconds);
     }
 
-    long eta = Math.round(mustLeave * averageInterval);
-    return (int) Math.clamp(eta, 0L, Integer.MAX_VALUE);
+    double total = sendDelaySteps * fallbackSendDelaySeconds + leaveSteps * averageInterval;
+    return (int) Math.clamp(Math.round(total), 0L, Integer.MAX_VALUE);
   }
 
   /**
-   * Returns how many players must leave before the player at the given position can be
-   * transferred, or {@code 0} if this cannot be determined yet.
+   * Returns the flat per-position send-delay estimate used for the free-spot region and as
+   * a degraded fallback when no leave samples are available.
    */
-  private int playersThatMustLeave(int position) {
-    if (lastOnline == UNKNOWN || lastMax <= 0) {
-      return 0;
-    }
-    return Math.max(0, (lastOnline - lastMax) + position);
+  private static int sendDelayEta(int positions, double sendDelaySeconds) {
+    return (int) Math.max(0L, Math.round(sendDelaySeconds * positions));
   }
 
   /**
@@ -138,6 +146,8 @@ public final class ServerEtaTracker {
   /**
    * Exports the recorded departure intervals, oldest first, so they can be persisted and
    * later restored via {@link #importSamples(double[])}.
+   *
+   * @return the recorded intervals in seconds, oldest first
    */
   public synchronized double[] exportSamples() {
     double[] out = new double[sampleCount];
@@ -151,7 +161,10 @@ public final class ServerEtaTracker {
   /**
    * Replaces the departure-interval window with a previously exported snapshot, keeping only
    * the most recent samples. The online baseline stays cleared so the tracker re-learns the
-   * live player count from its next ping.
+   * live player count from its next ping, and the last-leave timestamp is cleared so the
+   * first imported-state leave does not produce a bogus interval.
+   *
+   * @param samples the departure intervals to load, or {@code null} for none
    */
   public synchronized void importSamples(double[] samples) {
     sampleCount = 0;
