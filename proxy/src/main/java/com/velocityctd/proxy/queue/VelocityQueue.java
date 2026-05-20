@@ -48,7 +48,6 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
 
   private final VelocityRegisteredServer backend;
   private final QueuePlayerList<E> playerList = new QueuePlayerList<>();
-  private final ServerEtaTracker etaTracker;
 
   private volatile ServerStatus serverStatus;
   private volatile QueueState state;
@@ -61,7 +60,6 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
     this.server = server;
     this.manager = manager;
     this.backend = backend;
-    this.etaTracker = new ServerEtaTracker(server);
     this.serverStatus = ServerStatus.OFFLINE;
     this.state = initialState;
   }
@@ -135,9 +133,7 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
     if (this.serverStatus == status) {
       return;
     }
-    if (status == ServerStatus.OFFLINE) {
-      etaTracker.reset();
-    }
+
     this.serverStatus = status;
   }
 
@@ -188,13 +184,14 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
   }
 
   /**
-   * Returns this queue's {@link ServerEtaTracker}. Callers interact with the tracker directly
-   * for departure-rate observations and ETA estimates - the queue is only a holder.
+   * Returns the {@link VelocityQueueManager} that owns this queue. Exposed so external
+   * collaborators (e.g. components rendering the action bar) can reach manager-owned
+   * services such as the ETA tracker without this class having to delegate to them.
    *
-   * @return the ETA tracker bound to this queue
+   * @return the owning queue manager
    */
-  public ServerEtaTracker getEtaTracker() {
-    return etaTracker;
+  public VelocityQueueManager getManager() {
+    return manager;
   }
 
   /**

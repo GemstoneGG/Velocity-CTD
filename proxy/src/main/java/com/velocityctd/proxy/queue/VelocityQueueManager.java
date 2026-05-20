@@ -86,6 +86,13 @@ public class VelocityQueueManager implements QueueManager {
    */
   protected final Map<UUID, ScheduledTask> pendingTimeoutTasks = new ConcurrentHashMap<>();
 
+  /**
+   * Per-server ETA trackers, lazily allocated by {@link #getEtaTracker(VelocityQueue)} and
+   * keyed by server name so they survive queue-object replacement (e.g. depot reloads) on
+   * the same backend.
+   */
+  private final Map<String, ServerEtaTracker> etaTrackers = new ConcurrentHashMap<>();
+
   private @Nullable ScheduledTask transferTask;
   private @Nullable ScheduledTask actionBarTask;
   private @Nullable ScheduledTask backendHandshakeTask;
@@ -290,7 +297,50 @@ public class VelocityQueueManager implements QueueManager {
   public void onGlobalBackendLeave(@NotNull String serverName, long nowMillis) {
     VelocityQueue<?> queue = queues.get(serverName);
     if (queue != null) {
-      queue.getEtaTracker().recordLeave(nowMillis);
+      getEtaTracker(queue).recordLeave(nowMillis);
+    }
+  }
+
+  /**
+   * Computes the estimated wait, in seconds, for the player at the given position in the
+   * given queue. The underlying {@link ServerEtaTracker} only exists on the master proxy,
+   * so this method must be invoked from a master-only code path; calling it elsewhere
+   * throws {@link IllegalStateException} via {@link #getEtaTracker(VelocityQueue)}.
+   *
+   * @param queue    the queue containing the player
+   * @param position the 1-based queue position
+   * @return         the estimated wait in seconds, never negative
+   */
+  public double calculateEta(@NotNull VelocityQueue<?> queue, int position) {
+    return getEtaTracker(queue).calculateEta(position);
+  }
+
+  /**
+   * Returns the {@link ServerEtaTracker} bound to the given queue, lazily allocating one
+   * on first use. The tracker map is master-only - invoking this on a non-master proxy
+   * throws to enforce the contract at runtime.
+   *
+   * @param queue the queue whose tracker is requested
+   * @return      the tracker, never {@code null}
+   * @throws IllegalStateException if called when this proxy is not the master proxy
+   */
+  private ServerEtaTracker getEtaTracker(@NotNull VelocityQueue<?> queue) {
+    if (!isMasterProxy()) {
+      throw new IllegalStateException(
+          "Queue ETA tracking should only be used when we are the master proxy.");
+    }
+
+    return etaTrackers.computeIfAbsent(queue.getName(), k -> new ServerEtaTracker(server));
+  }
+
+  /**
+   * Resets the ETA tracker for the given queue when the backend goes offline so its stale
+   * online-baseline and last-leave timestamp do not corrupt the first sample after the
+   * server comes back. A no-op on non-master proxies, where the tracker map is empty.
+   */
+  private void resetEtaTracker(@NotNull VelocityQueue<?> queue) {
+    if (isMasterProxy()) {
+      getEtaTracker(queue).reset();
     }
   }
 
@@ -441,6 +491,7 @@ public class VelocityQueueManager implements QueueManager {
 
   private void pingBackends() {
     if (!isMasterProxy()) {
+      etaTrackers.clear();
       return;
     }
 
@@ -452,12 +503,15 @@ public class VelocityQueueManager implements QueueManager {
 
       rs.ping().orTimeout(3, TimeUnit.SECONDS).whenComplete((result, th) -> {
         if (th != null) {
+          resetEtaTracker(queue);
           queue.setServerStatus(OFFLINE);
           return;
         }
 
-        result.getPlayers()
-            .ifPresent(players -> queue.getEtaTracker().recordPing(players.getOnline(), players.getMax()));
+        if (isMasterProxy()) {
+          result.getPlayers()
+              .ifPresent(players -> getEtaTracker(queue).recordPing(players.getOnline(), players.getMax()));
+        }
 
         boolean serverFull = result.getPlayers()
             .map(p -> p.getMax() > 0 && p.getOnline() >= p.getMax())
@@ -483,6 +537,7 @@ public class VelocityQueueManager implements QueueManager {
           }
         }
       }).exceptionally(th -> {
+        resetEtaTracker(queue);
         queue.setServerStatus(OFFLINE);
         return null;
       });

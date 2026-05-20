@@ -54,7 +54,7 @@ public class QueueComponents {
               Component.text(position),
               Component.text(queue.size()),
               Component.text(queue.getName()),
-              formatSeconds((long) queue.getEtaTracker().calculateEta(position)));
+              formatSeconds((long) queue.getManager().calculateEta(queue, position)));
     } else if (entry.isWaitingForConnection()) {
       return Component.translatable("velocity.queue.player-status.connecting", NamedTextColor.YELLOW)
           .arguments(Component.text(queue.getName()));
@@ -66,7 +66,7 @@ public class QueueComponents {
               Component.text(position),
               Component.text(queue.size()),
               Component.text(queue.getName()),
-              formatSeconds((long) queue.getEtaTracker().calculateEta(position)));
+              formatSeconds((long) queue.getManager().calculateEta(queue, position)));
     } else {
       return Component.translatable("velocity.queue.player-status.offline", NamedTextColor.YELLOW)
           .arguments(
