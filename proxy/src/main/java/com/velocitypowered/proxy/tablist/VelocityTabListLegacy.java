@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.tablist;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import com.google.common.collect.ImmutableList;
 import com.velocitypowered.api.proxy.crypto.IdentifiedKey;
 import com.velocitypowered.api.proxy.player.ChatSession;
@@ -96,7 +97,8 @@ public class VelocityTabListLegacy extends KeyedVelocityTabList {
             entry.setLatencyInternal(item.getLatency());
           }
         } else {
-          UUID uuid = UUID.randomUUID(); // Use a fake uuid to preserve the function of custom entries
+          // Use a fake UUID to preserve the function of custom entries
+          UUID uuid = UuidCreator.getTimeOrderedEpochFast();
           nameMapping.put(item.getName(), uuid);
           entries.put(uuid, (KeyedVelocityTabListEntry) TabListEntry.builder()
               .tabList(this)

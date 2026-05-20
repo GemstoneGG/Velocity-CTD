@@ -17,6 +17,7 @@
 
 package com.velocityctd.proxy.redis.transaction;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocityctd.proxy.redis.packet.PacketSerializer;
 import com.velocityctd.proxy.redis.provider.RedisProvider;
@@ -90,7 +91,7 @@ public final class Transaction<T extends TransactionData<R>, R> {
    * @param sentData the data to send
    */
   private Transaction(@NotNull T sentData) {
-    this.transactionId = UUID.randomUUID();
+    this.transactionId = UuidCreator.getTimeOrderedEpochFast();
     this.sentData = sentData;
     this.responseClass = sentData.responseClass();
   }
