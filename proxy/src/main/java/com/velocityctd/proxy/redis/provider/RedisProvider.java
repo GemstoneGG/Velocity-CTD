@@ -41,7 +41,7 @@ public sealed interface RedisProvider permits AbstractRedisProvider {
   @NotNull String getNamespace();
 
   /**
-   * Restarts the underlying Redis connection and resubscribes to the channel.
+   * Restart the Redis provider.
    */
   void restart();
 

@@ -190,11 +190,6 @@ public class CtdConfigMigrations {
             "redis.proxy-id",
             ""
         ),
-        migration(
-            "The namespace to use for all Redis keys and channels.",
-            "redis.namespace",
-            "velocity"
-        ),
 
         // [queue]
         migration(
