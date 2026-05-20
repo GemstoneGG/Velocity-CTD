@@ -290,7 +290,7 @@ public class VelocityQueueManager implements QueueManager {
   public void onGlobalBackendLeave(@NotNull String serverName, long nowMillis) {
     VelocityQueue<?> queue = queues.get(serverName);
     if (queue != null) {
-      queue.recordLeave(nowMillis);
+      queue.getEtaTracker().recordLeave(nowMillis);
     }
   }
 
@@ -457,7 +457,7 @@ public class VelocityQueueManager implements QueueManager {
         }
 
         result.getPlayers()
-            .ifPresent(players -> queue.recordServerPing(players.getOnline(), players.getMax()));
+            .ifPresent(players -> queue.getEtaTracker().recordPing(players.getOnline(), players.getMax()));
 
         boolean serverFull = result.getPlayers()
             .map(p -> p.getMax() > 0 && p.getOnline() >= p.getMax())

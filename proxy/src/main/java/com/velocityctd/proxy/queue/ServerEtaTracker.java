@@ -17,6 +17,9 @@
 
 package com.velocityctd.proxy.queue;
 
+import com.velocitypowered.proxy.VelocityServer;
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Tracks how quickly players leave a backend server and estimates how long a queued player
  * must wait before a slot frees up for them.
@@ -26,6 +29,7 @@ public final class ServerEtaTracker {
   private static final int UNKNOWN = -1;
   private static final int WINDOW_SIZE = 20;
 
+  private final VelocityServer server;
   private final double[] leaveIntervals = new double[WINDOW_SIZE];
 
   private int sampleCount;
@@ -36,9 +40,20 @@ public final class ServerEtaTracker {
   private long lastLeaveMillis;
 
   /**
+   * Creates a fresh tracker bound to the given proxy server. The proxy reference is used to
+   * read the live {@code send-delay} setting from the queue configuration on each
+   * {@link #calculateEta(int)} call, so configuration reloads take effect immediately.
+   *
+   * @param server the proxy server this tracker draws its send-delay from
+   */
+  public ServerEtaTracker(@NotNull VelocityServer server) {
+    this.server = server;
+  }
+
+  /**
    * Updates the most recently observed backend player count and capacity. This is fed by the
-   * periodic backend ping and feeds the {@code mustLeave} term of {@link #estimateEta(int, double)}
-   * only - it no longer produces interval samples.
+   * periodic backend ping and feeds the {@code mustLeave} term of {@link #calculateEta(int)}
+   * only - it does not produce interval samples.
    *
    * @param online the current online player count on the backend
    * @param max    the backend's maximum player capacity
@@ -76,15 +91,18 @@ public final class ServerEtaTracker {
   }
 
   /**
-   * Estimates the wait, in seconds, before the player at the given position is transferred.
+   * Computes the estimated wait, in seconds, before the player at the given position is
+   * transferred. The send-delay component is sourced from the proxy's live queue
+   * configuration; callers truncate the returned value to whatever unit they need.
    *
-   * @param position                 the 1-based queue position
-   * @param fallbackSendDelaySeconds the send-delay fallback in seconds
-   * @return                         the estimated wait in seconds
+   * @param position the 1-based queue position
+   * @return         the estimated wait in seconds, never negative
    */
-  public synchronized int estimateEta(int position, double fallbackSendDelaySeconds) {
+  public synchronized double calculateEta(int position) {
+    double sendDelay = server.getConfiguration().getQueue().getSendDelay();
+
     if (lastOnline == UNKNOWN || lastMax <= 0) {
-      return sendDelayEta(position, fallbackSendDelaySeconds);
+      return sendDelayEta(position, sendDelay);
     }
 
     int availableNow = Math.max(0, lastMax - lastOnline);
@@ -95,25 +113,25 @@ public final class ServerEtaTracker {
 
     if (leaveSteps == 0) {
       // The player fits within the current free spots; no leaves required.
-      return sendDelayEta(sendDelaySteps, fallbackSendDelaySeconds);
+      return sendDelayEta(sendDelaySteps, sendDelay);
     }
 
     double averageInterval = averageLeaveIntervalSeconds();
     if (averageInterval <= 0.0) {
       // No leave samples yet - degrade gracefully to a flat per-position send-delay estimate.
-      return sendDelayEta(position, fallbackSendDelaySeconds);
+      return sendDelayEta(position, sendDelay);
     }
 
-    double total = sendDelaySteps * fallbackSendDelaySeconds + leaveSteps * averageInterval;
-    return (int) Math.clamp(Math.round(total), 0L, Integer.MAX_VALUE);
+    double total = sendDelaySteps * sendDelay + leaveSteps * averageInterval;
+    return Math.max(0.0, total);
   }
 
   /**
-   * Returns the flat per-position send-delay estimate used for the free-spot region and as
-   * a degraded fallback when no leave samples are available.
+   * Returns the flat per-position send-delay estimate, used for the free-spot region and as a
+   * degraded fallback when no leave samples are available.
    */
-  private static int sendDelayEta(int positions, double sendDelaySeconds) {
-    return (int) Math.max(0L, Math.round(sendDelaySeconds * positions));
+  private static double sendDelayEta(int positions, double sendDelaySeconds) {
+    return Math.max(0.0, sendDelaySeconds * positions);
   }
 
   /**
@@ -140,47 +158,6 @@ public final class ServerEtaTracker {
     writeIndex = (writeIndex + 1) % WINDOW_SIZE;
     if (sampleCount < WINDOW_SIZE) {
       sampleCount++;
-    }
-  }
-
-  /**
-   * Exports the recorded departure intervals, oldest first, so they can be persisted and
-   * later restored via {@link #importSamples(double[])}.
-   *
-   * @return the recorded intervals in seconds, oldest first
-   */
-  public synchronized double[] exportSamples() {
-    double[] out = new double[sampleCount];
-    int start = (sampleCount < WINDOW_SIZE) ? 0 : writeIndex;
-    for (int i = 0; i < sampleCount; i++) {
-      out[i] = leaveIntervals[(start + i) % WINDOW_SIZE];
-    }
-    return out;
-  }
-
-  /**
-   * Replaces the departure-interval window with a previously exported snapshot, keeping only
-   * the most recent samples. The online baseline stays cleared so the tracker re-learns the
-   * live player count from its next ping, and the last-leave timestamp is cleared so the
-   * first imported-state leave does not produce a bogus interval.
-   *
-   * @param samples the departure intervals to load, or {@code null} for none
-   */
-  public synchronized void importSamples(double[] samples) {
-    sampleCount = 0;
-    writeIndex = 0;
-    lastOnline = UNKNOWN;
-    lastLeaveMillis = 0L;
-
-    if (samples == null) {
-      return;
-    }
-
-    int from = Math.max(0, samples.length - WINDOW_SIZE);
-    for (int i = from; i < samples.length; i++) {
-      if (samples[i] > 0.0) {
-        pushInterval(samples[i]);
-      }
     }
   }
 }

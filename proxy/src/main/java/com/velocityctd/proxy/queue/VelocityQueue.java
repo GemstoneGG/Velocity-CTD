@@ -48,7 +48,7 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
 
   private final VelocityRegisteredServer backend;
   private final QueuePlayerList<E> playerList = new QueuePlayerList<>();
-  private final ServerEtaTracker etaTracker = new ServerEtaTracker();
+  private final ServerEtaTracker etaTracker;
 
   private volatile ServerStatus serverStatus;
   private volatile QueueState state;
@@ -61,6 +61,7 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
     this.server = server;
     this.manager = manager;
     this.backend = backend;
+    this.etaTracker = new ServerEtaTracker(server);
     this.serverStatus = ServerStatus.OFFLINE;
     this.state = initialState;
   }
@@ -187,59 +188,13 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
   }
 
   /**
-   * Records a backend player-count observation from a server ping so the queue's ETA tracker
-   * has an up-to-date {@code mustLeave} baseline.
+   * Returns this queue's {@link ServerEtaTracker}. Callers interact with the tracker directly
+   * for departure-rate observations and ETA estimates - the queue is only a holder.
    *
-   * @param online the number of players currently on the backend server
-   * @param max    the backend server's player-slot capacity
+   * @return the ETA tracker bound to this queue
    */
-  public void recordServerPing(int online, int max) {
-    etaTracker.recordPing(online, max);
-  }
-
-  /**
-   * Records that a player departed this queue's backend server at the given wall-clock
-   * timestamp. Each call appends one interval to the rolling window used by
-   * {@link #calculateEta(int)}.
-   *
-   * @param nowMillis the wall-clock timestamp of the departure in epoch milliseconds
-   */
-  @ApiStatus.Internal
-  public void recordLeave(long nowMillis) {
-    etaTracker.recordLeave(nowMillis);
-  }
-
-  /**
-   * Exports this queue's learned departure-rate samples so they can be persisted (e.g. to the
-   * Redis depot) and restored after a restart or master failover.
-   *
-   * @return the recorded departure intervals in seconds, oldest first
-   */
-  @ApiStatus.Internal
-  public double[] exportEtaSamples() {
-    return etaTracker.exportSamples();
-  }
-
-  /**
-   * Restores departure-rate samples previously produced by {@link #exportEtaSamples()}.
-   *
-   * @param samples the departure intervals to load, or {@code null} for none
-   */
-  @ApiStatus.Internal
-  public void importEtaSamples(double[] samples) {
-    etaTracker.importSamples(samples);
-  }
-
-  /**
-   * Computes the estimated time, in seconds, before the player at the given queue position
-   * is transferred to the backend server.
-   *
-   * @param position the 1-based queue position
-   * @return the estimated wait in seconds
-   */
-  public int calculateEta(int position) {
-    double sendDelay = server.getConfiguration().getQueue().getSendDelay();
-    return etaTracker.estimateEta(position, sendDelay);
+  public ServerEtaTracker getEtaTracker() {
+    return etaTracker;
   }
 
   /**

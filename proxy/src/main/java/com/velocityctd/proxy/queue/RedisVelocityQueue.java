@@ -67,9 +67,6 @@ public final class RedisVelocityQueue extends VelocityQueue<RedisVelocityQueueEn
     // Use super.setServerStatus to set the field without triggering the publish override.
     super.setServerStatus(entry.getServerStatus());
 
-    // Restore the learned departure rate so the ETA estimate survives a restart or failover.
-    importEtaSamples(entry.getLeaveIntervals());
-
     for (RedisVelocityQueueEntry queueEntry : entry.getEntries()) {
       queueEntry.setContext(server, this);
       addEntryInternal(queueEntry);
