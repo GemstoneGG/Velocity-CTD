@@ -17,12 +17,12 @@
 
 package com.velocityctd.proxy.redis.transaction;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocityctd.proxy.redis.packet.PacketSerializer;
 import com.velocityctd.proxy.redis.provider.RedisProvider;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.jetbrains.annotations.NotNull;
@@ -91,7 +91,7 @@ public final class Transaction<T extends TransactionData<R>, R> {
    * @param sentData the data to send
    */
   private Transaction(@NotNull T sentData) {
-    this.transactionId = new UUID(ThreadLocalRandom.current().nextLong(), ThreadLocalRandom.current().nextLong());
+    this.transactionId = UuidCreator.getTimeOrderedEpochFast();
     this.sentData = sentData;
     this.responseClass = sentData.responseClass();
   }

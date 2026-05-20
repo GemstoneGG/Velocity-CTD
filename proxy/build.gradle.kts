@@ -169,6 +169,7 @@ dependencies {
     implementation(libs.lmbda)
     implementation(libs.asm)
     implementation(libs.bundles.flare)
+    implementation(libs.uuid.creator)
     compileOnly(libs.spotbugs.annotations)
     compileOnly(libs.auto.service.annotations)
     testImplementation(libs.mockito)

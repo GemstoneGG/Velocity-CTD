@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.tablist;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import com.google.common.collect.ImmutableList;
 import com.velocitypowered.api.proxy.crypto.IdentifiedKey;
 import com.velocitypowered.api.proxy.player.ChatSession;
@@ -31,7 +32,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import net.kyori.adventure.text.Component;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -39,8 +39,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * Exposes the legacy 1.7 tab list to "plugins".
  */
 public class VelocityTabListLegacy extends KeyedVelocityTabList {
-
-  private static final AtomicLong NEXT_LEGACY_ENTRY_ID = new AtomicLong();
 
   private final Map<String, UUID> nameMapping = new ConcurrentHashMap<>();
 
@@ -99,7 +97,7 @@ public class VelocityTabListLegacy extends KeyedVelocityTabList {
             entry.setLatencyInternal(item.getLatency());
           }
         } else {
-          UUID uuid = new UUID(0L, NEXT_LEGACY_ENTRY_ID.incrementAndGet());
+          UUID uuid = UuidCreator.getTimeOrderedEpochFast();
           nameMapping.put(item.getName(), uuid);
           entries.put(uuid, (KeyedVelocityTabListEntry) TabListEntry.builder()
               .tabList(this)
