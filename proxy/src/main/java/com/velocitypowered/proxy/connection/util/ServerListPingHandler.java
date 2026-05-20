@@ -99,8 +99,7 @@ public class ServerListPingHandler {
     String serverPingVersion = configuration.getFallbackVersionPing();
 
     for (Component s : server.getConfiguration().getMotdHover()) {
-      samplePlayers.add(new ServerPing.SamplePlayer(s, new UUID(
-            ThreadLocalRandom.current().nextLong(), ThreadLocalRandom.current().nextLong())));
+      samplePlayers.add(new ServerPing.SamplePlayer(s, UUID.randomUUID()));
     }
 
     return new ServerPing(
