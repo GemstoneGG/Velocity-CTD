@@ -24,7 +24,6 @@ import com.velocityctd.api.queue.QueueEntryData;
 import com.velocityctd.api.queue.QueueState;
 import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotEntry;
 import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotService;
-import com.velocityctd.proxy.queue.redis.packet.VelocityBackendLeave;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueSync;
 import com.velocityctd.proxy.queue.util.QueueComponents;
 import com.velocityctd.proxy.redis.data.VelocityActionBar;
@@ -157,17 +156,6 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
           sync.offlineTimeoutSeconds());
       default -> throw new IllegalStateException("Unknown action " + sync.action() + ".");
     }
-  }
-
-  /**
-   * Broadcasts a backend-leave observation to the whole cluster instead of applying it locally.
-   *
-   * @param serverName the name of the backend the player left
-   * @param nowMillis  the wall-clock timestamp of the departure in epoch milliseconds
-   */
-  @Override
-  public void recordBackendLeave(@NotNull String serverName, long nowMillis) {
-    server.getRedis().publish(new VelocityBackendLeave(serverName, nowMillis));
   }
 
   /**

@@ -378,7 +378,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       this.server.getClusterPlayerService().onPlayerDisconnect(this);
 
       if (this.server.isQueueEnabled()) {
-        this.server.getQueueManager().onPlayerDisconnect(this);
+        this.server.getQueueManager().onLocalPlayerDisconnect(this);
       }
     }
   }
@@ -831,7 +831,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     this.fullyConnected = true;
 
     if (this.server.isQueueEnabled()) {
-      this.server.getQueueManager().onPlayerConnect(this);
+      this.server.getQueueManager().onLocalPlayerConnect(this);
     }
   }
 

@@ -151,20 +151,15 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
             serverConn.ensureConnected().write(player.getClientSettingsPacket());
           }
 
-          server.getClusterPlayerService().onPlayerSwitchServer(player,
+          server.getClusterPlayerService().onPlayerSwitchServer(
+              player,
+              previousServer != null ? previousServer.getServerInfo().getName() : null,
               serverConn.getServerInfo().getName());
 
           if (this.server.isQueueEnabled()) {
             VelocityQueue<?> queue = this.server.getQueueManager().getQueue(serverConn.getServer()
                     .getServerInfo().getName());
             queue.dequeue(player.getUniqueId());
-
-            // The player has just left their previous backend; feed that as a leave event
-            // into that queue's ETA tracker (and broadcast it cluster-wide in Redis mode).
-            if (previousServer != null) {
-              this.server.getQueueManager().recordBackendLeave(
-                  previousServer.getServerInfo().getName(), System.currentTimeMillis());
-            }
           }
 
           // We're done! :)

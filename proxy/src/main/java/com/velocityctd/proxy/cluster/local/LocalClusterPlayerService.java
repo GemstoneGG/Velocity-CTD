@@ -22,12 +22,14 @@ import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.cluster.VelocityClusterPlayerService;
 import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Local (single-proxy) implementation of {@link VelocityClusterPlayerService}.
@@ -95,10 +97,20 @@ public final class LocalClusterPlayerService implements VelocityClusterPlayerSer
 
   @Override
   public void onPlayerDisconnect(ConnectedPlayer player) {
+    if (server.isQueueEnabled()) {
+      VelocityServerConnection connectedServer = player.getConnectedServer();
+      if (connectedServer != null) {
+        String serverName = connectedServer.getServerInfo().getName();
+        server.getQueueManager().onGlobalBackendLeave(serverName, System.currentTimeMillis());
+      }
+    }
   }
 
   @Override
-  public void onPlayerSwitchServer(ConnectedPlayer player, String serverName) {
+  public void onPlayerSwitchServer(ConnectedPlayer player, @Nullable String previousServerName, String serverName) {
+    if (server.isQueueEnabled() && previousServerName != null) {
+      server.getQueueManager().onGlobalBackendLeave(previousServerName, System.currentTimeMillis());
+    }
   }
 
   @Override
