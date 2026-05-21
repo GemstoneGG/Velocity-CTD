@@ -28,6 +28,7 @@ import static com.velocitypowered.proxy.network.Connections.MINECRAFT_ENCODER;
 
 import com.google.common.base.Preconditions;
 import com.velocitypowered.api.network.ProtocolVersion;
+import com.velocitypowered.natives.compression.JavaVelocityCompressor;
 import com.velocitypowered.natives.compression.VelocityCompressor;
 import com.velocitypowered.natives.encryption.VelocityCipher;
 import com.velocitypowered.natives.encryption.VelocityCipherFactory;
@@ -47,7 +48,7 @@ import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.VelocityConnectionEvent;
 import com.velocitypowered.proxy.protocol.netty.MinecraftCipherDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftCipherEncoder;
-import com.velocitypowered.proxy.protocol.netty.MinecraftCompressDecoder;
+import com.velocitypowered.proxy.protocol.netty.MinecraftCompressAndIdDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftCompressorAndLengthEncoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
@@ -55,8 +56,8 @@ import com.velocitypowered.proxy.protocol.netty.MinecraftVarintFrameDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintLengthEncoder;
 import com.velocitypowered.proxy.protocol.netty.PlayPacketQueueInboundHandler;
 import com.velocitypowered.proxy.protocol.netty.PlayPacketQueueOutboundHandler;
+import com.velocitypowered.proxy.protocol.netty.data.IdentifiedPacket;
 import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
-import com.velocitypowered.proxy.protocol.packet.SetCompressionPacket;
 import com.velocitypowered.proxy.util.ClosestLocaleMatcher;
 import com.velocitypowered.proxy.util.except.QuietDecoderException;
 import io.netty.buffer.ByteBuf;
@@ -200,6 +201,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
         }
         case HAProxyMessage proxyMessage -> this.remoteAddress = new InetSocketAddress(proxyMessage.sourceAddress(),
             proxyMessage.sourcePort());
+        case IdentifiedPacket idPacket -> activeSessionHandler.handleUnknown(idPacket);
         case ByteBuf buf -> {
           if (activeSessionHandler instanceof ClientPlaySessionHandler) {
             if (MAX_CLIENT_PACKET_SIZE > 0 && buf.readableBytes() > MAX_CLIENT_PACKET_SIZE) {
@@ -605,55 +607,64 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
   }
 
   /**
-   * Sets the compression threshold on the connection. You are responsible for sending {@link
-   * SetCompressionPacket} beforehand.
+   * Enables or disables compression for the connection. The {@code COMPRESSION_DECODER} stage
+   * is installed by the channel initializer and stays in the pipeline at all times (it
+   * doubles as the packet-id parser even when compression is disabled); only the
+   * {@code COMPRESSION_ENCODER} is hot-added on enable and removed on disable.
    *
-   * @param threshold the compression threshold to use
+   * @param threshold the compression threshold to use, or {@code -1} to disable compression
    */
   public void setCompressionThreshold(int threshold) {
     ensureOpen();
     ensureInEventLoop();
 
-    if (threshold == -1) {
-      ChannelHandler removedDecoder = channel.pipeline().remove(COMPRESSION_DECODER);
-      ChannelHandler removedEncoder = channel.pipeline().remove(COMPRESSION_ENCODER);
+    MinecraftCompressAndIdDecoder decoder = (MinecraftCompressAndIdDecoder) channel.pipeline()
+        .get(COMPRESSION_DECODER);
+    if (decoder == null) {
+      throw new IllegalStateException(
+          "COMPRESSION_DECODER missing from pipeline; channel initializer must install it.");
+    }
 
-      if (removedDecoder != null && removedEncoder != null) {
+    if (threshold == -1) {
+      decoder.setCompression(0, null, null);
+      ChannelHandler removedEncoder = channel.pipeline().remove(COMPRESSION_ENCODER);
+      if (removedEncoder != null) {
         channel.pipeline().addBefore(MINECRAFT_DECODER, FRAME_ENCODER,
             MinecraftVarintLengthEncoder.INSTANCE);
         channel.pipeline().fireUserEventTriggered(VelocityConnectionEvent.COMPRESSION_DISABLED);
       }
-    } else {
-      MinecraftCompressDecoder decoder = (MinecraftCompressDecoder) channel.pipeline()
-          .get(COMPRESSION_DECODER);
-      MinecraftCompressorAndLengthEncoder encoder =
-          (MinecraftCompressorAndLengthEncoder) channel.pipeline().get(COMPRESSION_ENCODER);
-      if (decoder != null && encoder != null) {
-        decoder.setThreshold(threshold);
-        encoder.setThreshold(threshold);
-      } else {
-        int level = server.getConfiguration().getCompressionLevel();
-        VelocityCompressor compressor = Natives.compress.get().create(level);
-        MinecraftDecoder minecraftDecoder = (MinecraftDecoder) channel.pipeline().get(MINECRAFT_DECODER);
-
-        encoder = new MinecraftCompressorAndLengthEncoder(threshold, compressor);
-        decoder = new MinecraftCompressDecoder(threshold, compressor, minecraftDecoder.getDirection());
-
-        channel.pipeline().remove(FRAME_ENCODER);
-        channel.pipeline().addBefore(MINECRAFT_DECODER, COMPRESSION_DECODER, decoder);
-        channel.pipeline().addBefore(MINECRAFT_ENCODER, COMPRESSION_ENCODER, encoder);
-
-        var packetLimiterConfig = server.getConfiguration().getPacketLimiterConfig();
-        if (minecraftDecoder.getDirection() == ProtocolUtils.Direction.SERVERBOUND
-            && packetLimiterConfig.interval() > 0
-            && packetLimiterConfig.bytesAfterDecompression() > 0) {
-          decoder.setPacketLimiter(new SimpleBytesPerSecondLimiter(
-              -1, packetLimiterConfig.bytesAfterDecompression(), packetLimiterConfig.interval()));
-        }
-
-        channel.pipeline().fireUserEventTriggered(VelocityConnectionEvent.COMPRESSION_ENABLED);
-      }
+      return;
     }
+
+    MinecraftCompressorAndLengthEncoder encoder =
+        (MinecraftCompressorAndLengthEncoder) channel.pipeline().get(COMPRESSION_ENCODER);
+    if (encoder != null) {
+      // Encoder already installed: just update both sides' thresholds.
+      decoder.setThreshold(threshold);
+      encoder.setThreshold(threshold);
+      return;
+    }
+
+    int level = server.getConfiguration().getCompressionLevel();
+    VelocityCompressor compressor = Natives.compress.get().create(level);
+    VelocityCompressor javaCompressor = JavaVelocityCompressor.FACTORY.create(level);
+
+    decoder.setCompression(threshold, compressor, javaCompressor);
+
+    encoder = new MinecraftCompressorAndLengthEncoder(threshold, compressor);
+    channel.pipeline().remove(FRAME_ENCODER);
+    channel.pipeline().addBefore(MINECRAFT_ENCODER, COMPRESSION_ENCODER, encoder);
+
+    MinecraftDecoder minecraftDecoder = (MinecraftDecoder) channel.pipeline().get(MINECRAFT_DECODER);
+    var packetLimiterConfig = server.getConfiguration().getPacketLimiterConfig();
+    if (minecraftDecoder.getDirection() == ProtocolUtils.Direction.SERVERBOUND
+        && packetLimiterConfig.interval() > 0
+        && packetLimiterConfig.bytesAfterDecompression() > 0) {
+      decoder.setPacketLimiter(new SimpleBytesPerSecondLimiter(
+          -1, packetLimiterConfig.bytesAfterDecompression(), packetLimiterConfig.interval()));
+    }
+
+    channel.pipeline().fireUserEventTriggered(VelocityConnectionEvent.COMPRESSION_ENABLED);
   }
 
   /**

@@ -43,6 +43,7 @@ import com.velocitypowered.proxy.connection.player.resourcepack.ResourcePackResp
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
+import com.velocitypowered.proxy.protocol.netty.data.IdentifiedPacket;
 import com.velocitypowered.proxy.protocol.packet.BossBarPacket;
 import com.velocitypowered.proxy.protocol.packet.ClientSettingsPacket;
 import com.velocitypowered.proxy.protocol.packet.JoinGamePacket;
@@ -508,6 +509,24 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
         && smc.getState() == StateRegistry.PLAY;
     if (stateAllowsForward) {
       smc.write(buf.retain());
+    }
+  }
+
+  @Override
+  public void handleUnknown(IdentifiedPacket packet) {
+    VelocityServerConnection serverConnection = player.getConnectedServer();
+    if (serverConnection == null) {
+      // No server connection yet, probably transitioning.
+      return;
+    }
+
+    MinecraftConnection smc = serverConnection.getConnection();
+    boolean stateAllowsForward = smc != null
+        && !smc.isClosed()
+        && serverConnection.getPhase().consideredComplete()
+        && smc.getState() == StateRegistry.PLAY;
+    if (stateAllowsForward) {
+      smc.write(packet);
     }
   }
 

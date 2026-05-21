@@ -22,6 +22,9 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
+import com.velocitypowered.proxy.protocol.netty.data.CompressedPacket;
+import com.velocitypowered.proxy.protocol.netty.data.IdentifiedPacket;
+import com.velocitypowered.proxy.protocol.netty.data.UncompressedPacket;
 import com.velocitypowered.proxy.util.except.QuietRuntimeException;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -30,7 +33,8 @@ import io.netty.handler.codec.CorruptedFrameException;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Decodes Minecraft packets.
+ * Decodes {@link IdentifiedPacket}s produced by {@link MinecraftCompressAndIdDecoder}
+ * into concrete {@link MinecraftPacket} instances.
  */
 public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
 
@@ -59,46 +63,80 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
 
   @Override
   public void channelRead(@NotNull ChannelHandlerContext ctx, @NotNull Object msg) throws Exception {
-    if (msg instanceof ByteBuf buf) {
-      try {
-        tryDecode(ctx, buf);
-      } finally {
-        buf.release();
-      }
+    if (msg instanceof IdentifiedPacket idPacket) {
+      tryDecode(ctx, idPacket);
     } else {
       ctx.fireChannelRead(msg);
     }
   }
 
-  private void tryDecode(ChannelHandlerContext ctx, ByteBuf buf) throws Exception {
-    if (!ctx.channel().isActive() || !buf.isReadable()) {
+  private void tryDecode(ChannelHandlerContext ctx, IdentifiedPacket idPacket) throws Exception {
+    if (!ctx.channel().isActive()) {
+      releaseBuffers(idPacket);
       return;
     }
 
-    int originalReaderIndex = buf.readerIndex();
-    int packetId = ProtocolUtils.readVarInt(buf);
+    int packetId = idPacket.getPacketId();
     MinecraftPacket packet = this.registry.createPacket(packetId);
+
     if (packet == null) {
-      buf.readerIndex(originalReaderIndex);
       if (this.direction == ProtocolUtils.Direction.SERVERBOUND && this.state != StateRegistry.PLAY) {
+        releaseBuffers(idPacket);
         throw this.handleInvalidPacketId(packetId);
       }
 
-      ctx.fireChannelRead(buf.retain());
+      ctx.fireChannelRead(idPacket);
+      return;
+    }
+
+    ByteBuf uncompressedBuf;
+    boolean releaseUncompressedAfter;
+    if (idPacket instanceof UncompressedPacket up) {
+      uncompressedBuf = up.getPacketBuf();
+      releaseUncompressedAfter = true;
+    } else if (idPacket instanceof CompressedPacket cp) {
+      uncompressedBuf = cp.decompress(ctx.alloc());
+      releaseUncompressedAfter = true;
     } else {
-      doLengthSanityChecks(buf, packet);
+      releaseBuffers(idPacket);
+      throw new IllegalStateException("Unsupported IdentifiedPacket subtype: "
+          + idPacket.getClass().getName());
+    }
+
+    try {
+      if (!uncompressedBuf.isReadable()) {
+        return;
+      }
+
+      ProtocolUtils.readVarInt(uncompressedBuf);
+      doLengthSanityChecks(uncompressedBuf, packet);
 
       try {
-        packet.decode(buf, direction, registry.version);
+        packet.decode(uncompressedBuf, direction, registry.version);
       } catch (Exception e) {
         throw handleDecodeFailure(e, packet, packetId);
       }
 
-      if (buf.isReadable()) {
-        throw handleOverflow(packet, buf.readerIndex(), buf.writerIndex());
+      if (uncompressedBuf.isReadable()) {
+        throw handleOverflow(packet, uncompressedBuf.readerIndex(), uncompressedBuf.writerIndex());
       }
 
       ctx.fireChannelRead(packet);
+    } finally {
+      if (releaseUncompressedAfter) {
+        uncompressedBuf.release();
+      }
+      if (idPacket instanceof CompressedPacket cp) {
+        cp.getCompressedBuf().release();
+      }
+    }
+  }
+
+  private static void releaseBuffers(IdentifiedPacket idPacket) {
+    if (idPacket instanceof UncompressedPacket up) {
+      up.getPacketBuf().release();
+    } else if (idPacket instanceof CompressedPacket cp) {
+      cp.getCompressedBuf().release();
     }
   }
 

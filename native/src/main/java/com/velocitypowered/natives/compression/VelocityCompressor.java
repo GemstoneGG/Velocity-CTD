@@ -39,6 +39,24 @@ public interface VelocityCompressor extends Disposable, Native {
   void inflate(ByteBuf source, ByteBuf destination, int uncompressedSize) throws DataFormatException;
 
   /**
+   * Decompresses only the first {@code size} bytes of the {@code source} buffer into the
+   * {@code destination} buffer, leaving {@code source}'s reader index unchanged. Implementations
+   * are expected to leak no internal state across calls; the partial inflate exists so the
+   * compression-decoder stage can read just enough bytes (typically up to 5, for a varint
+   * packet id) to identify a packet without paying the cost of decompressing its full payload.
+   *
+   * @param source the compressed input buffer; reader index is not advanced
+   * @param destination the buffer to write up to {@code size} decompressed bytes into
+   * @param size the maximum number of decompressed bytes to produce
+   * @throws DataFormatException if decompression fails due to corrupted or invalid data
+   * @throws UnsupportedOperationException if this compressor cannot perform partial inflation
+   */
+  default void inflatePartial(ByteBuf source, ByteBuf destination, int size) throws DataFormatException {
+    throw new UnsupportedOperationException(
+        "Partial inflation is not supported by this VelocityCompressor implementation.");
+  }
+
+  /**
    * Compresses the data from the {@code source} buffer and writes the compressed result into
    * the {@code destination} buffer.
    *

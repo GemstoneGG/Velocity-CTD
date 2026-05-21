@@ -44,6 +44,9 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintFrameDecoder;
+import com.velocitypowered.proxy.protocol.netty.data.CompressedPacket;
+import com.velocitypowered.proxy.protocol.netty.data.IdentifiedPacket;
+import com.velocitypowered.proxy.protocol.netty.data.UncompressedPacket;
 import com.velocitypowered.proxy.protocol.packet.AvailableCommandsPacket;
 import com.velocitypowered.proxy.protocol.packet.BossBarPacket;
 import com.velocitypowered.proxy.protocol.packet.BundleDelimiterPacket;
@@ -471,6 +474,29 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
       playerConnection.flush();
       packetsFlushed = 0;
     }
+  }
+
+  @Override
+  public void handleUnknown(IdentifiedPacket packet) {
+    int sizeHint = sizeOf(packet);
+    boolean huge = sizeHint > LARGE_PACKET_THRESHOLD;
+    playerConnection.delayedWrite(packet);
+    if (huge || ++packetsFlushed >= MAXIMUM_PACKETS_TO_FLUSH) {
+      playerConnection.flush();
+      packetsFlushed = 0;
+    }
+  }
+
+  private static int sizeOf(IdentifiedPacket packet) {
+    if (packet instanceof UncompressedPacket up) {
+      return up.getPacketBuf().readableBytes();
+    }
+
+    if (packet instanceof CompressedPacket cp) {
+      return cp.getUncompressedLength();
+    }
+
+    return 0;
   }
 
   @Override

@@ -17,19 +17,24 @@
 
 package com.velocitypowered.proxy.protocol.netty;
 
+import static com.velocitypowered.proxy.protocol.netty.MinecraftVarintLengthEncoder.IS_JAVA_CIPHER;
+
 import com.google.common.base.Preconditions;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
+import com.velocitypowered.proxy.protocol.netty.data.UncompressedPacket;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.MessageToByteEncoder;
+import io.netty.handler.codec.MessageToMessageEncoder;
+import java.util.List;
 
 /**
- * Encodes {@link MinecraftPacket} instances.
+ * Encodes {@link MinecraftPacket} instances into {@link UncompressedPacket}s so the downstream
+ * {@link MinecraftCompressorAndLengthEncoder}.
  */
-public class MinecraftEncoder extends MessageToByteEncoder<MinecraftPacket> {
+public class MinecraftEncoder extends MessageToMessageEncoder<MinecraftPacket> {
 
   private final ProtocolUtils.Direction direction;
 
@@ -49,23 +54,29 @@ public class MinecraftEncoder extends MessageToByteEncoder<MinecraftPacket> {
   }
 
   @Override
-  protected void encode(ChannelHandlerContext ctx, MinecraftPacket msg, ByteBuf out) {
+  protected void encode(ChannelHandlerContext ctx, MinecraftPacket msg, List<Object> out) {
     int packetId = this.registry.getPacketId(msg);
-    ProtocolUtils.writeVarInt(out, packetId);
-    msg.encode(out, direction, registry.version);
+    ByteBuf buf = allocateBuffer(ctx, msg, packetId);
+    boolean success = false;
+    try {
+      ProtocolUtils.writeVarInt(buf, packetId);
+      msg.encode(buf, direction, registry.version);
+      out.add(new UncompressedPacket(packetId, buf));
+      success = true;
+    } finally {
+      if (!success) {
+        buf.release();
+      }
+    }
   }
 
-  @Override
-  protected ByteBuf allocateBuffer(ChannelHandlerContext ctx, MinecraftPacket msg,
-                                   boolean preferDirect) throws Exception {
+  private ByteBuf allocateBuffer(ChannelHandlerContext ctx, MinecraftPacket msg, int packetId) {
     int hint = msg.encodeSizeHint(direction, registry.version);
     if (hint < 0) {
-      return super.allocateBuffer(ctx, msg, preferDirect);
+      return IS_JAVA_CIPHER ? ctx.alloc().heapBuffer() : ctx.alloc().ioBuffer();
     }
-
-    int packetId = this.registry.getPacketId(msg);
     int totalHint = ProtocolUtils.varIntBytes(packetId) + hint;
-    return preferDirect ? ctx.alloc().ioBuffer(totalHint) : ctx.alloc().heapBuffer(totalHint);
+    return IS_JAVA_CIPHER ? ctx.alloc().heapBuffer(totalHint) : ctx.alloc().ioBuffer(totalHint);
   }
 
   public void setProtocolVersion(ProtocolVersion protocolVersion) {

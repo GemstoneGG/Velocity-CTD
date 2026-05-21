@@ -18,6 +18,9 @@
 package com.velocitypowered.proxy.connection;
 
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
+import com.velocitypowered.proxy.protocol.netty.data.CompressedPacket;
+import com.velocitypowered.proxy.protocol.netty.data.IdentifiedPacket;
+import com.velocitypowered.proxy.protocol.netty.data.UncompressedPacket;
 import com.velocitypowered.proxy.protocol.packet.AvailableCommandsPacket;
 import com.velocitypowered.proxy.protocol.packet.BossBarPacket;
 import com.velocitypowered.proxy.protocol.packet.BundleDelimiterPacket;
@@ -100,6 +103,14 @@ public interface MinecraftSessionHandler {
   }
 
   default void handleUnknown(ByteBuf buf) {
+  }
+
+  default void handleUnknown(IdentifiedPacket packet) {
+    if (packet instanceof UncompressedPacket up) {
+      up.getPacketBuf().release();
+    } else if (packet instanceof CompressedPacket cp) {
+      cp.getCompressedBuf().release();
+    }
   }
 
   default void connected() {

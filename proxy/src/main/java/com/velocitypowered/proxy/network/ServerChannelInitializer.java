@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.network;
 
+import static com.velocitypowered.proxy.network.Connections.COMPRESSION_DECODER;
 import static com.velocitypowered.proxy.network.Connections.FRAME_DECODER;
 import static com.velocitypowered.proxy.network.Connections.FRAME_ENCODER;
 import static com.velocitypowered.proxy.network.Connections.LEGACY_PING_DECODER;
@@ -34,6 +35,7 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.LegacyPingDecoder;
 import com.velocitypowered.proxy.protocol.netty.LegacyPingEncoder;
+import com.velocitypowered.proxy.protocol.netty.MinecraftCompressAndIdDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintFrameDecoder;
@@ -63,6 +65,8 @@ public class ServerChannelInitializer extends ChannelInitializer<Channel> {
         .addLast(READ_TIMEOUT, new ReadTimeoutHandler(this.server.getConfiguration().getReadTimeout(), TimeUnit.MILLISECONDS))
         .addLast(LEGACY_PING_ENCODER, LegacyPingEncoder.INSTANCE)
         .addLast(FRAME_ENCODER, MinecraftVarintLengthEncoder.INSTANCE)
+        .addLast(COMPRESSION_DECODER,
+            new MinecraftCompressAndIdDecoder(ProtocolUtils.Direction.SERVERBOUND, server))
         .addLast(MINECRAFT_DECODER, new MinecraftDecoder(ProtocolUtils.Direction.SERVERBOUND))
         .addLast(MINECRAFT_ENCODER, new MinecraftEncoder(ProtocolUtils.Direction.CLIENTBOUND));
 

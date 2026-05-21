@@ -242,6 +242,16 @@ compression-threshold = 256
 # default level of 6.
 compression-level = -1
 
+# Inbound compressed packets whose claimed uncompressed size is at or above this value will
+# be passed through to the next hop without being fully decompressed and recompressed,
+# provided no plugin or proxy logic has a typed listener for the packet id. Below this size
+# packets are always fully decompressed. Setting this to 0 disables the pass-through
+# optimization entirely (every compressed packet is fully decompressed); the default
+# (2048 bytes) is tuned to skip the optimization for the small high-traffic packets where
+# inspection is common, and apply it to the large bulk packets (chunk data, light data) where
+# the proxy mostly just relays.
+decompression-threshold = 2048
+
 # How fast (in milliseconds) are clients allowed to connect after the last connection? By
 # default, this is three seconds. Disable this by setting this to 0.
 login-ratelimit = 3000
