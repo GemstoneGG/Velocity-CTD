@@ -51,7 +51,8 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
 
   private volatile ServerStatus serverStatus;
   private volatile QueueState state;
-  private volatile @Nullable VelocityEtaTracker etaTracker;
+
+  private @Nullable VelocityEtaTracker etaTracker;
 
   /**
    * Creates a fresh queue for the given backend server.
@@ -151,14 +152,16 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
   }
 
   @Override
-  public Optional<VelocityEtaTracker> getEtaTracker() {
+  public synchronized Optional<VelocityEtaTracker> getEtaTracker() {
     if (!manager.isMasterProxy()) {
       etaTracker = null;
-    } else if (etaTracker == null) {
-      etaTracker = new VelocityEtaTracker(server);
+      return Optional.empty();
     }
 
-    return Optional.ofNullable(etaTracker);
+    if (etaTracker == null) {
+      etaTracker = new VelocityEtaTracker(server);
+    }
+    return Optional.of(etaTracker);
   }
 
   @Override

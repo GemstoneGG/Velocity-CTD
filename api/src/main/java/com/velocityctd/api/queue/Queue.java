@@ -163,9 +163,13 @@ public interface Queue {
   void setState(@NotNull QueueState state);
 
   /**
-   * Gets this queue's ETA tracker. May be empty.
+   * Returns this queue's ETA tracker, if one is available on this proxy.
    *
-   * @return this queue's ETA tracker, or {@link Optional#empty()} if not present
+   * <p>The result may be {@link Optional#empty()} when this proxy is not
+   * responsible for computing ETAs for the queue. Callers should not cache
+   * the returned tracker; the queue may swap it out at any time.</p>
+   *
+   * @return this queue's ETA tracker, or {@link Optional#empty()} if not available
    */
   Optional<? extends EtaTracker> getEtaTracker();
 
