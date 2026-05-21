@@ -167,7 +167,7 @@ public interface Queue {
    *
    * @return this queue's ETA tracker, or {@link Optional#empty()} if not present
    */
-  Optional<? extends ETATracker> getEtaTracker();
+  Optional<? extends EtaTracker> getEtaTracker();
 
   /**
    * Clears all players from this queue and releases any held resources.

@@ -12,7 +12,7 @@ import java.time.Duration;
 /**
  * Represents a {@link Queue}'s ETA tracker. This class may be used to calculate a player's ETA by their position.
  */
-public interface ETATracker {
+public interface EtaTracker {
 
   /**
    * Computes the ETA for the given queue position.

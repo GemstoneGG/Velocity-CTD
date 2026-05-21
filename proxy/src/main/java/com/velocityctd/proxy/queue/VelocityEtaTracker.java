@@ -17,13 +17,13 @@
 
 package com.velocityctd.proxy.queue;
 
-import com.velocityctd.api.queue.ETATracker;
+import com.velocityctd.api.queue.EtaTracker;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import com.velocitypowered.proxy.VelocityServer;
 import java.time.Duration;
 import org.jetbrains.annotations.NotNull;
 
-public final class VelocityETATracker implements ETATracker {
+public final class VelocityEtaTracker implements EtaTracker {
 
   private static final int WINDOW_SIZE = 20;
 
@@ -37,7 +37,7 @@ public final class VelocityETATracker implements ETATracker {
 
   private Long lastLeaveMillis;
 
-  VelocityETATracker(@NotNull VelocityServer server) {
+  VelocityEtaTracker(@NotNull VelocityServer server) {
     this.server = server;
   }
 

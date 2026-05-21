@@ -54,7 +54,7 @@ public class QueueComponents {
               Component.text(position),
               Component.text(queue.size()),
               Component.text(queue.getName()),
-              formatETA(queue, position));
+              formatEta(queue, position));
     } else if (entry.isWaitingForConnection()) {
       return Component.translatable("velocity.queue.player-status.connecting", NamedTextColor.YELLOW)
           .arguments(Component.text(queue.getName()));
@@ -66,7 +66,7 @@ public class QueueComponents {
               Component.text(position),
               Component.text(queue.size()),
               Component.text(queue.getName()),
-              formatETA(queue, position));
+              formatEta(queue, position));
     } else {
       return Component.translatable("velocity.queue.player-status.offline", NamedTextColor.YELLOW)
           .arguments(
@@ -80,7 +80,7 @@ public class QueueComponents {
    * Formats the ETA for the given position as a {@link Component} if the queue's
    * ETA tracker is available, or a text component with the string {@code "Unknown"} otherwise.
    */
-  private static Component formatETA(VelocityQueue<?> queue, int position) {
+  private static Component formatEta(VelocityQueue<?> queue, int position) {
     return queue.getEtaTracker()
         .map(t -> t.calculateEta(position))
         .map(QueueComponents::formatTime)

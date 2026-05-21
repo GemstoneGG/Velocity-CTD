@@ -452,7 +452,7 @@ public class VelocityQueueManager implements QueueManager {
 
       rs.ping().orTimeout(3, TimeUnit.SECONDS).whenComplete((result, th) -> {
         if (th != null) {
-          queue.getEtaTracker().ifPresent(VelocityETATracker::reset);
+          queue.getEtaTracker().ifPresent(VelocityEtaTracker::reset);
           queue.setServerStatus(OFFLINE);
           return;
         }
@@ -484,7 +484,7 @@ public class VelocityQueueManager implements QueueManager {
           }
         }
       }).exceptionally(th -> {
-        queue.getEtaTracker().ifPresent(VelocityETATracker::reset);
+        queue.getEtaTracker().ifPresent(VelocityEtaTracker::reset);
         queue.setServerStatus(OFFLINE);
         return null;
       });
