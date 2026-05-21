@@ -182,7 +182,7 @@ public final class ResourcePackTransfer {
         }
 
         builder.setOrigin(ORIGINS[ProtocolUtils.readVarInt(buffer)]);
-        VelocityResourcePackInfo appliedResourcePack = (VelocityResourcePackInfo) builder.build();
+        VelocityResourcePackInfo appliedResourcePack = builder.build();
         appliedResourcePack.setOriginalOrigin(ORIGINS[ProtocolUtils.readVarInt(buffer)]);
         appliedResourcePacks.add(appliedResourcePack);
       }
