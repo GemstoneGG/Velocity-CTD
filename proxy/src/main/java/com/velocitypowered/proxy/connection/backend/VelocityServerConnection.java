@@ -50,6 +50,7 @@ import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
+import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -72,6 +73,8 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
   private final VelocityServer server;
 
   private @Nullable MinecraftConnection connection;
+
+  private @Nullable ServerInfo connectedServerInfo;
 
   private boolean hasCompletedJoin = false;
 
@@ -118,6 +121,10 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
         .addListener((ChannelFutureListener) future -> {
           if (future.isSuccess()) {
             connection = new MinecraftConnection(future.channel(), server);
+            if (future.channel().remoteAddress() instanceof InetSocketAddress resolved) {
+              connectedServerInfo = new ServerInfo(registeredServer.getServerInfo().getName(), resolved);
+            }
+
             connection.setAssociation(VelocityServerConnection.this);
             future.channel().pipeline().addLast(HANDLER, connection);
 
@@ -250,6 +257,11 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
   }
 
   @Override
+  public Optional<ServerInfo> getConnectedServerInfo() {
+    return Optional.ofNullable(connectedServerInfo);
+  }
+
+  @Override
   public ConnectedPlayer getPlayer() {
     return proxyPlayer;
   }
@@ -262,6 +274,7 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
       gracefulDisconnect = true;
       connection.close(false);
       connection = null;
+      connectedServerInfo = null;
     }
   }
 

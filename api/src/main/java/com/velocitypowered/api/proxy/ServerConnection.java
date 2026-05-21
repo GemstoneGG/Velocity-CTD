@@ -41,6 +41,14 @@ public interface ServerConnection extends ChannelMessageSource, ChannelMessageSi
   ServerInfo getServerInfo();
 
   /**
+   * Returns the resolved {@link ServerInfo} this connection is actually open to. This may
+   * differ from {@link #getServerInfo()} when the configured backend address is a hostname.
+   *
+   * @return the resolved server info, or empty if not currently connected
+   */
+  Optional<ServerInfo> getConnectedServerInfo();
+
+  /**
    * Returns the player that this connection is associated with.
    *
    * @return the player for this connection
