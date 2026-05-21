@@ -51,6 +51,7 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
 
   private volatile ServerStatus serverStatus;
   private volatile QueueState state;
+  private volatile @Nullable VelocityETATracker etaTracker;
 
   /**
    * Creates a fresh queue for the given backend server.
@@ -133,7 +134,6 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
     if (this.serverStatus == status) {
       return;
     }
-
     this.serverStatus = status;
   }
 
@@ -148,6 +148,17 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
       return;
     }
     this.state = state;
+  }
+
+  @Override
+  public Optional<VelocityETATracker> getEtaTracker() {
+    if (!manager.isMasterProxy()) {
+      etaTracker = null;
+    } else if (etaTracker == null) {
+      etaTracker = new VelocityETATracker(server);
+    }
+
+    return Optional.ofNullable(etaTracker);
   }
 
   @Override
@@ -181,17 +192,6 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
   @ApiStatus.Internal
   void removeEntry(VelocityQueueEntry entry) {
     playerList.remove(entry.getUniqueId());
-  }
-
-  /**
-   * Returns the {@link VelocityQueueManager} that owns this queue. Exposed so external
-   * collaborators (e.g. components rendering the action bar) can reach manager-owned
-   * services such as the ETA tracker without this class having to delegate to them.
-   *
-   * @return the owning queue manager
-   */
-  public VelocityQueueManager getManager() {
-    return manager;
   }
 
   /**

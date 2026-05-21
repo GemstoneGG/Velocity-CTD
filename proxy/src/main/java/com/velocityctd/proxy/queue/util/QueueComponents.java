@@ -22,7 +22,7 @@ import static com.velocityctd.api.queue.ServerStatus.FULL;
 
 import com.velocityctd.proxy.queue.VelocityQueue;
 import com.velocityctd.proxy.queue.VelocityQueueEntry;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.jetbrains.annotations.NotNull;
@@ -54,7 +54,7 @@ public class QueueComponents {
               Component.text(position),
               Component.text(queue.size()),
               Component.text(queue.getName()),
-              formatSeconds((long) queue.getManager().calculateEta(queue, position)));
+              formatETA(queue, position));
     } else if (entry.isWaitingForConnection()) {
       return Component.translatable("velocity.queue.player-status.connecting", NamedTextColor.YELLOW)
           .arguments(Component.text(queue.getName()));
@@ -66,7 +66,7 @@ public class QueueComponents {
               Component.text(position),
               Component.text(queue.size()),
               Component.text(queue.getName()),
-              formatSeconds((long) queue.getManager().calculateEta(queue, position)));
+              formatETA(queue, position));
     } else {
       return Component.translatable("velocity.queue.player-status.offline", NamedTextColor.YELLOW)
           .arguments(
@@ -77,16 +77,21 @@ public class QueueComponents {
   }
 
   /**
-   * Formats a number of seconds as a component.
-   *
-   * @param inputSeconds the number of seconds
-   * @return the time formatted as a component
+   * Formats the ETA for the given position as a {@link Component} if the queue's
+   * ETA tracker is available, or a text component with the string {@code "Unknown"} otherwise.
    */
-  private static Component formatSeconds(long inputSeconds) {
-    long days = TimeUnit.SECONDS.toDays(inputSeconds);
-    long hours = (TimeUnit.SECONDS.toHours(inputSeconds) - (days * 24L));
-    long minutes = (TimeUnit.SECONDS.toMinutes(inputSeconds)
-        - (TimeUnit.SECONDS.toHours(inputSeconds) * 60));
+  private static Component formatETA(VelocityQueue<?> queue, int position) {
+    return queue.getEtaTracker()
+        .map(t -> t.calculateEta(position))
+        .map(QueueComponents::formatTime)
+        .orElseGet(() -> Component.text("Unknown"));
+  }
+
+  private static Component formatTime(Duration duration) {
+    long days = duration.toDaysPart();
+    long hours = duration.toHoursPart();
+    long minutes = duration.toMinutesPart();
+    long seconds = duration.toSecondsPart();
 
     Component output = Component.empty();
     if (days != 0) {
@@ -115,9 +120,6 @@ public class QueueComponents {
           minutes
       ));
     }
-
-    long seconds = (TimeUnit.SECONDS.toSeconds(inputSeconds)
-        - (TimeUnit.SECONDS.toMinutes(inputSeconds) * 60));
 
     return output.append(formatTimeUnit(
         seconds == 1

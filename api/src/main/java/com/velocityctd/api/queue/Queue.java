@@ -163,6 +163,13 @@ public interface Queue {
   void setState(@NotNull QueueState state);
 
   /**
+   * Gets this queue's ETA tracker. May be empty.
+   *
+   * @return this queue's ETA tracker, or {@link Optional#empty()} if not present
+   */
+  Optional<? extends ETATracker> getEtaTracker();
+
+  /**
    * Clears all players from this queue and releases any held resources.
    */
   void teardown();
