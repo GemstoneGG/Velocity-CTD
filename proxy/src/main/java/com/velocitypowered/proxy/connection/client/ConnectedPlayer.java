@@ -77,6 +77,7 @@ import com.velocitypowered.proxy.connection.MinecraftConnectionAssociation;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.player.bossbar.BossBarManager;
 import com.velocitypowered.proxy.connection.player.bundle.BundleDelimiterHandler;
+import com.velocitypowered.proxy.connection.player.resourcepack.ResourcePackTransfer;
 import com.velocitypowered.proxy.connection.player.resourcepack.VelocityResourcePackInfo;
 import com.velocitypowered.proxy.connection.player.resourcepack.handler.ResourcePackHandler;
 import com.velocitypowered.proxy.connection.util.ConnectionMessages;
@@ -1596,9 +1597,23 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           resultedAddress = address;
         }
 
+        storeAppliedPacks();
         connection.write(new TransferPacket(resultedAddress.getHostName(), resultedAddress.getPort()));
       }
     });
+  }
+
+  private void storeAppliedPacks() {
+    if (connection.getState() != StateRegistry.PLAY && connection.getState() != StateRegistry.CONFIG) {
+      return;
+    }
+
+    ResourcePackTransfer.TransferSession session = new ResourcePackTransfer.TransferSession(
+        resourcePackHandler.getAppliedResourcePacks());
+    byte[] cookieData = ResourcePackTransfer.createCookieData(
+        server.getConfiguration().getForwardingSecret(), session);
+    connection.write(new ClientboundStoreCookiePacket(
+        ResourcePackTransfer.APPLIED_RESOURCE_PACKS_KEY, cookieData));
   }
 
   @Override
