@@ -24,6 +24,7 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
+import com.velocitypowered.proxy.util.ComponentUtils;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
@@ -191,9 +192,20 @@ public class VelocityQueueEntry implements QueueEntry {
       player.createConnectionRequest(foundServer).connect().thenAccept(result -> {
         if (result.isSuccessful()) {
           queue.dequeue(this.uniqueId);
-        } else {
-          resetAfterFailedTransfer(config);
+          return;
         }
+
+        Component reason = result.getReasonComponent().orElse(null);
+        if (reason != null) {
+          for (String banned : config.getBannedReason()) {
+            if (ComponentUtils.containsString(reason, banned)) {
+              queue.dequeue(this.uniqueId);
+              return;
+            }
+          }
+        }
+
+        resetAfterFailedTransfer(config);
       }).exceptionally(ex -> {
         resetAfterFailedTransfer(config);
         return null;
