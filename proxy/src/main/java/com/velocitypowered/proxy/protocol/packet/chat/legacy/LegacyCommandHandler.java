@@ -41,11 +41,6 @@ public class LegacyCommandHandler extends RateLimitedCommandHandler<LegacyChatPa
   }
 
   @Override
-  public Logger logger() {
-    return LOGGER;
-  }
-
-  @Override
   public Class<LegacyChatPacket> packetClass() {
     return LegacyChatPacket.class;
   }
@@ -59,7 +54,7 @@ public class LegacyCommandHandler extends RateLimitedCommandHandler<LegacyChatPa
   @Override
   public void handlePlayerCommandInternal(LegacyChatPacket packet) {
     String command = packet.getMessage().substring(1);
-    queueCommandResult(this.server, this.player, (event, newLastSeenMessages) -> {
+    queueCommandResult(LOGGER, this.server, this.player, (event, newLastSeenMessages) -> {
       CommandExecuteEvent.CommandResult result = event.getResult();
       if (result == CommandExecuteEvent.CommandResult.denied()) {
         return CompletableFuture.completedFuture(null);

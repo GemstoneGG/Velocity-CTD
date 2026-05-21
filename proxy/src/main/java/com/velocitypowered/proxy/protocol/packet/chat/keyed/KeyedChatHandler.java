@@ -25,6 +25,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatHandler;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatQueue;
+import com.velocitypowered.proxy.protocol.packet.chat.SignedChatViolations;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import org.apache.logging.log4j.LogManager;
@@ -41,11 +42,6 @@ public class KeyedChatHandler implements ChatHandler<KeyedPlayerChatPacket> {
   public KeyedChatHandler(VelocityServer server, ConnectedPlayer player) {
     this.server = server;
     this.player = player;
-  }
-
-  @Override
-  public Logger logger() {
-    return LOGGER;
   }
 
   @Override
@@ -96,7 +92,7 @@ public class KeyedChatHandler implements ChatHandler<KeyedPlayerChatPacket> {
       if (!chatResult.isAllowed()) {
         if (this.server.getConfiguration().enforceChatSigning() && playerKey.getKeyRevision().noLessThan(IdentifiedKey.Revision.LINKED_V2)) {
           // Bad, very bad.
-          invalidCancel(player);
+          SignedChatViolations.invalidCancel(player);
         }
 
         return null;
@@ -105,7 +101,7 @@ public class KeyedChatHandler implements ChatHandler<KeyedPlayerChatPacket> {
       if (chatResult.getMessage().map(str -> !str.equals(packet.getMessage())).orElse(false)) {
         if (this.server.getConfiguration().enforceChatSigning() && playerKey.getKeyRevision().noLessThan(IdentifiedKey.Revision.LINKED_V2)) {
           // Bad, very bad.
-          invalidChange(player);
+          SignedChatViolations.invalidChange(player);
         } else {
           LOGGER.warn("A plugin changed a signed chat message. The server may not accept it.");
           return player.getChatBuilderFactory().builder()

@@ -23,6 +23,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatAcknowledgementPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.RateLimitedCommandHandler;
+import com.velocitypowered.proxy.protocol.packet.chat.SignedChatViolations;
 import java.util.concurrent.CompletableFuture;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,11 +44,6 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
   }
 
   @Override
-  public Logger logger() {
-    return LOGGER;
-  }
-
-  @Override
   public Class<SessionPlayerCommandPacket> packetClass() {
     return SessionPlayerCommandPacket.class;
   }
@@ -61,7 +57,7 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
     if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
       // Any signed message produced by the client *must* be passed through to the server to maintain a
       // consistent state for future messages.
-      alterSignableComponentError("deny", player, packet);
+      SignedChatViolations.alterSignableComponentError("deny", player, packet);
       return null;
     }
 
@@ -87,7 +83,7 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
   @Nullable
   private MinecraftPacket modifyCommand(SessionPlayerCommandPacket packet, String newCommand) {
     if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
-      alterSignableComponentError("change", player, packet);
+      SignedChatViolations.alterSignableComponentError("change", player, packet);
       return null;
     }
 
@@ -112,7 +108,7 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
 
   @Override
   public void handlePlayerCommandInternal(SessionPlayerCommandPacket packet) {
-    queueCommandResult(this.server, this.player, (event, newLastSeenMessages) -> {
+    queueCommandResult(LOGGER, this.server, this.player, (event, newLastSeenMessages) -> {
       SessionPlayerCommandPacket fixedPacket = packet.withLastSeenMessages(newLastSeenMessages);
 
       CommandExecuteEvent.CommandResult result = event.getResult();

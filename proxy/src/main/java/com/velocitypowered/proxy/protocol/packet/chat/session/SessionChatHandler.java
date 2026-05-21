@@ -23,6 +23,7 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatHandler;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatQueue;
+import com.velocitypowered.proxy.protocol.packet.chat.SignedChatViolations;
 import java.util.concurrent.CompletableFuture;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -38,11 +39,6 @@ public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> 
   public SessionChatHandler(ConnectedPlayer player, VelocityServer server) {
     this.player = player;
     this.server = server;
-  }
-
-  @Override
-  public Logger logger() {
-    return LOGGER;
   }
 
   @Override
@@ -62,7 +58,7 @@ public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> 
               PlayerChatEvent.ChatResult chatResult = pme.getResult();
               if (!chatResult.isAllowed()) {
                 if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
-                  invalidCancel(player);
+                  SignedChatViolations.invalidCancel(player);
                 }
 
                 return null;
@@ -71,7 +67,7 @@ public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> 
               if (chatResult.getMessage().map(str -> !str.equals(packet.getMessage()))
                   .orElse(false)) {
                 if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
-                  invalidChange(player);
+                  SignedChatViolations.invalidChange(player);
                   return null;
                 }
 

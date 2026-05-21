@@ -22,12 +22,8 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatHandler;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class LegacyChatHandler implements ChatHandler<LegacyChatPacket> {
-
-  private static final Logger LOGGER = LogManager.getLogger(LegacyChatHandler.class);
 
   private final VelocityServer server;
 
@@ -36,11 +32,6 @@ public class LegacyChatHandler implements ChatHandler<LegacyChatPacket> {
   public LegacyChatHandler(VelocityServer server, ConnectedPlayer player) {
     this.server = server;
     this.player = player;
-  }
-
-  @Override
-  public Logger logger() {
-    return LOGGER;
   }
 
   @Override

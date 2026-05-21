@@ -22,6 +22,7 @@ import com.velocitypowered.api.proxy.crypto.IdentifiedKey;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.chat.RateLimitedCommandHandler;
+import com.velocitypowered.proxy.protocol.packet.chat.SignedChatViolations;
 import com.velocitypowered.proxy.protocol.packet.chat.builder.ChatBuilderV2;
 import java.util.concurrent.CompletableFuture;
 import org.apache.logging.log4j.LogManager;
@@ -42,11 +43,6 @@ public class KeyedCommandHandler extends RateLimitedCommandHandler<KeyedPlayerCo
   }
 
   @Override
-  public Logger logger() {
-    return LOGGER;
-  }
-
-  @Override
   public Class<KeyedPlayerCommandPacket> packetClass() {
     return KeyedPlayerCommandPacket.class;
   }
@@ -62,14 +58,14 @@ public class KeyedCommandHandler extends RateLimitedCommandHandler<KeyedPlayerCo
 
   @Override
   public void handlePlayerCommandInternal(KeyedPlayerCommandPacket packet) {
-    queueCommandResult(this.server, this.player, (event, newLastSeenMessages) -> {
+    queueCommandResult(LOGGER, this.server, this.player, (event, newLastSeenMessages) -> {
       CommandExecuteEvent.CommandResult result = event.getResult();
       IdentifiedKey playerKey = player.getIdentifiedKey();
       if (result == CommandExecuteEvent.CommandResult.denied()) {
         if (server.getConfiguration().enforceChatSigning() && playerKey != null) {
           if (!packet.isUnsigned()
               && playerKey.getKeyRevision().noLessThan(IdentifiedKey.Revision.LINKED_V2)) {
-            alterSignableComponentError("deny", player, packet);
+            SignedChatViolations.alterSignableComponentError("deny", player, packet);
           }
         }
 
@@ -88,7 +84,7 @@ public class KeyedCommandHandler extends RateLimitedCommandHandler<KeyedPlayerCo
         } else {
           if (!packet.isUnsigned() && playerKey != null
               && playerKey.getKeyRevision().noLessThan(IdentifiedKey.Revision.LINKED_V2)) {
-            alterSignableComponentError("change", player, packet);
+            SignedChatViolations.alterSignableComponentError("change", player, packet);
             return CompletableFuture.completedFuture(null);
           }
 
@@ -105,7 +101,7 @@ public class KeyedCommandHandler extends RateLimitedCommandHandler<KeyedPlayerCo
 
           if (server.getConfiguration().enforceChatSigning() && !packet.isUnsigned() && playerKey != null
               && playerKey.getKeyRevision().noLessThan(IdentifiedKey.Revision.LINKED_V2)) {
-            alterSignableComponentError("change", player, packet);
+            SignedChatViolations.alterSignableComponentError("change", player, packet);
             return null;
           }
 

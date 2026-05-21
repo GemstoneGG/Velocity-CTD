@@ -32,8 +32,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 public interface CommandHandler<T extends MinecraftPacket> {
 
-  Logger logger();
-
   Class<T> packetClass();
 
   void handlePlayerCommandInternal(T packet);
@@ -54,7 +52,7 @@ public interface CommandHandler<T extends MinecraftPacket> {
         .thenApply(hasRunPacketFunction);
   }
 
-  default void queueCommandResult(VelocityServer server, ConnectedPlayer player,
+  default void queueCommandResult(Logger logger, VelocityServer server, ConnectedPlayer player,
                                   BiFunction<CommandExecuteEvent, LastSeenMessages, CompletableFuture<MinecraftPacket>> futurePacketCreator,
                                   String message, Instant timestamp, @Nullable LastSeenMessages lastSeenMessages,
                                   CommandExecuteEvent.InvocationInfo invocationInfo) {
@@ -64,34 +62,14 @@ public interface CommandHandler<T extends MinecraftPacket> {
             .thenComposeAsync(event -> futurePacketCreator.apply(event, newLastSeenMessages))
             .thenApply(pkt -> {
               if (server.getConfiguration().isLogCommandExecutions()) {
-                logger().info("{} -> executed command /{}", player, message);
+                logger.info("{} -> executed command /{}", player, message);
               }
 
               return pkt;
             }).exceptionally(e -> {
-              logger().info("Exception occurred while running command for {}", player.getUsername(), e);
+              logger.info("Exception occurred while running command for {}", player.getUsername(), e);
               player.sendMessage(Component.translatable("velocity.command.generic-error", NamedTextColor.RED));
               return null;
             }), timestamp, lastSeenMessages);
-  }
-
-  /**
-   * Emits the standard fatal log + disconnect sequence used whenever a plugin tries to
-   * deny or modify a command that carries a signable / signed component. Centralizing the
-   * sequence keeps the wording consistent across handlers, while routing the fatal log
-   * through {@link #logger()} ensures the log entry identifies which concrete handler
-   * raised it.
-   *
-   * @param what   verb describing the violation, e.g. {@code "deny"} or {@code "change"}
-   * @param player the offending player; will be disconnected after the log entry
-   * @param packet the command packet that triggered the violation, included in the log
-   */
-  default void alterSignableComponentError(String what, ConnectedPlayer player, MinecraftPacket packet) {
-    logger().fatal("A plugin tried to {} a command with signable component(s). "
-        + "This is not supported. Disconnecting player {}. Command packet: {}",
-        what, player.getUsername(), packet);
-    player.disconnect(Component.text(
-        "A proxy plugin caused an illegal protocol state. "
-            + "Contact your network administrator."));
   }
 }
