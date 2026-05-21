@@ -35,7 +35,7 @@ public final class SignedChatViolations {
           + "Contact your network administrator.");
 
   private SignedChatViolations() {
-    // No-op
+    throw new AssertionError();
   }
 
   public static void invalidCancel(ConnectedPlayer player) {
