@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.server;
 
+import static com.velocitypowered.proxy.network.Connections.COMPRESSION_DECODER;
 import static com.velocitypowered.proxy.network.Connections.FRAME_DECODER;
 import static com.velocitypowered.proxy.network.Connections.FRAME_ENCODER;
 import static com.velocitypowered.proxy.network.Connections.HANDLER;
@@ -42,6 +43,7 @@ import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
+import com.velocitypowered.proxy.protocol.netty.MinecraftCompressAndIdDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintFrameDecoder;
@@ -182,6 +184,8 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
                     ? server.getConfiguration().getReadTimeout()
                     : pingOptions.getTimeout(), TimeUnit.MILLISECONDS))
             .addLast(FRAME_ENCODER, MinecraftVarintLengthEncoder.INSTANCE)
+            .addLast(COMPRESSION_DECODER,
+                new MinecraftCompressAndIdDecoder(ProtocolUtils.Direction.CLIENTBOUND, server))
             .addLast(MINECRAFT_DECODER, new MinecraftDecoder(ProtocolUtils.Direction.CLIENTBOUND))
             .addLast(MINECRAFT_ENCODER, new MinecraftEncoder(ProtocolUtils.Direction.SERVERBOUND));
 
