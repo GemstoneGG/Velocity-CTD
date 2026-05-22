@@ -17,12 +17,11 @@
 
 package com.velocityctd.proxy.command.builtin;
 
-import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
-
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.velocityctd.proxy.command.CommandUtils;
+import com.velocityctd.proxy.command.PlayerIdentifier;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
@@ -30,13 +29,16 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.builtin.BuiltinCommandDefinition;
 import com.velocitypowered.proxy.util.ComponentUtils;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 /**
  * Implements Velocity-CTD's {@code /alert} command.
  */
 public class AlertCommand implements BuiltinCommandDefinition {
+
+  private static final String TARGET_ARG = "target";
+  private static final String MESSAGE_ARG = "message";
+  private static final String NO_MESSAGE_KEY = "velocity.command.alert.no-message";
 
   private final VelocityServer server;
 
@@ -57,27 +59,32 @@ public class AlertCommand implements BuiltinCommandDefinition {
                     source.getPermissionValue("velocity.command.alert") == Tristate.TRUE)
             .executes(ctx -> CommandUtils.emitUsage(ctx, "velocity.command.alert.usage"))
             .then(BrigadierCommand
-                    .requiredArgumentBuilder("message", StringArgumentType.greedyString())
-                    .executes(this::alert));
+                    .requiredArgumentBuilder(TARGET_ARG, StringArgumentType.word())
+                    .suggests(PlayerIdentifier.suggest(server, TARGET_ARG))
+                    .executes(this::alertSingle)
+                    .then(BrigadierCommand
+                            .requiredArgumentBuilder(MESSAGE_ARG, StringArgumentType.greedyString())
+                            .executes(this::alertWithTarget)));
 
     return new BrigadierCommand(rootNode);
   }
 
-  private int alert(CommandContext<CommandSource> context) {
-    String message = StringArgumentType.getString(context, "message");
-    if (message.isEmpty()) {
-      context.getSource().sendMessage(
-              Component.translatable("velocity.command.alert.no-message", NamedTextColor.YELLOW)
-      );
+  private int alertSingle(CommandContext<CommandSource> context) {
+    // Single-argument form: treat the argument as the entire message (legacy /alert <message>).
+    String message = StringArgumentType.getString(context, TARGET_ARG);
+    return AlertDispatcher.dispatch(server, context.getSource(),
+        null, message, NO_MESSAGE_KEY, AlertCommand::format);
+  }
 
-      return 0;
-    }
+  private int alertWithTarget(CommandContext<CommandSource> context) {
+    String target = StringArgumentType.getString(context, TARGET_ARG);
+    String message = StringArgumentType.getString(context, MESSAGE_ARG);
+    return AlertDispatcher.dispatch(server, context.getSource(),
+        target, message, NO_MESSAGE_KEY, AlertCommand::format);
+  }
 
-    TranslatableComponent alertComponent = Component.translatable("velocity.command.alert.message",
-            NamedTextColor.WHITE, ComponentUtils.colorify(message));
-
-    server.getClusterPlayerService().broadcastAlert(alertComponent);
-
-    return SINGLE_SUCCESS;
+  private static Component format(String message) {
+    return Component.translatable("velocity.command.alert.message",
+        NamedTextColor.WHITE, ComponentUtils.colorify(message));
   }
 }
