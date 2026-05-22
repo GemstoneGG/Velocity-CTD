@@ -82,7 +82,9 @@ import io.netty.util.ReferenceCountUtil;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -875,6 +877,8 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
               .thenAcceptAsync(offers -> {
                 boolean legacy = player.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_13);
                 try {
+                  List<String> suggestions = new ArrayList<>(offers.getList().size());
+                  Map<String, ComponentHolder> tooltips = new HashMap<>();
                   for (Suggestion suggestion : offers.getList()) {
                     String offer = suggestion.getText();
                     offer = legacy && !offer.startsWith("/") ? "/" + offer : offer;
@@ -889,11 +893,27 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
                       tooltip = new ComponentHolder(player.getProtocolVersion(), Component.text(suggestion.getTooltip().getString()));
                     }
 
-                    response.getOffers().add(new Offer(offer, tooltip));
+                    suggestions.add(offer);
+                    if (tooltip != null) {
+                      tooltips.put(offer, tooltip);
+                    }
                   }
 
-                  response.getOffers().sort(null);
-                  player.getConnection().write(response);
+                  server.getEventManager()
+                      .fire(new TabCompleteEvent(player, request.getCommand(), suggestions))
+                      .thenAcceptAsync(filtered -> {
+                        response.getOffers().clear();
+                        for (String s : filtered.getSuggestions()) {
+                          response.getOffers().add(new Offer(s, tooltips.get(s)));
+                        }
+
+                        response.getOffers().sort(null);
+                        player.getConnection().write(response);
+                      }, player.getConnection().eventLoop()).exceptionally((ex) -> {
+                        LOGGER.error("Exception while firing TabCompleteEvent for {}",
+                            player.getUsername(), ex);
+                        return null;
+                      });
                 } catch (Exception ex) {
                   LOGGER.error("Unable to provide tab list completions for {} for command '{}'", player.getUsername(), command, ex);
                 }
