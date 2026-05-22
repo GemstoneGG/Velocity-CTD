@@ -425,6 +425,8 @@ public class VelocityCommand implements BuiltinCommandDefinition {
                 .append(Component.text()
                         .content(version.getVersion())
                         .decoration(TextDecoration.BOLD, false))
+                .hoverEvent(Component.translatable("velocity.command.version-offer-copy-version"))
+                .clickEvent(ClickEvent.copyToClipboard(version.getName() + " " + version.getVersion()))
                 .build();
         Component copyright = Component
                 .translatable("velocity.command.version-copyright",

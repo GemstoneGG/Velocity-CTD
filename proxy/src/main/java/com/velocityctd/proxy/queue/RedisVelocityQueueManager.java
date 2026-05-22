@@ -27,6 +27,7 @@ import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotService;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueSync;
 import com.velocityctd.proxy.queue.util.QueueComponents;
 import com.velocityctd.proxy.redis.data.VelocityActionBar;
+import com.velocityctd.proxy.redis.depot.proxy.ProxyDepotService;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
@@ -37,12 +38,20 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Redis-aware extension of {@link VelocityQueueManager}.
  */
 public final class RedisVelocityQueueManager extends VelocityQueueManager {
+
+  private static final Logger LOGGER = LogManager.getLogger(RedisVelocityQueueManager.class);
+
+  private volatile boolean cachedIsMaster;
+  private @Nullable ScheduledTask masterRefreshTask;
 
   public RedisVelocityQueueManager(@NotNull VelocityServer server) {
     super(server);
@@ -50,11 +59,24 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
 
   @Override
   protected void preInitialize() {
+    super.preInitialize();
+
     loadFromRedis();
   }
 
   @Override
   protected void postInitialize() {
+    super.postInitialize();
+
+    // Compute once synchronously so isMasterProxy() returns the correct value before
+    // any of the scheduled queue tasks (transfer/ping/actionbar) get to run.
+    refreshMasterStatus();
+
+    masterRefreshTask = server.getScheduler()
+        .buildTask(VelocityVirtualPlugin.INSTANCE, this::refreshMasterStatus)
+        .repeat(ProxyDepotService.HEARTBEAT_INTERVAL)
+        .schedule();
+
     scheduleOfflineRemovals();
 
     server.getRedis().addReconnectListener(() ->
@@ -65,7 +87,41 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
   }
 
   @Override
+  public void teardown() {
+    if (masterRefreshTask != null) {
+      masterRefreshTask.cancel();
+      masterRefreshTask = null;
+    }
+    super.teardown();
+  }
+
+  @Override
   public boolean isMasterProxy() {
+    return cachedIsMaster;
+  }
+
+  /**
+   * Recomputes whether this proxy is the master and updates {@link #cachedIsMaster}.
+   */
+  private void refreshMasterStatus() {
+    if (server.getRedis().isShutdown()) {
+      return;
+    }
+
+    boolean newIsMaster = computeIsMaster();
+    boolean previous = cachedIsMaster;
+    cachedIsMaster = newIsMaster;
+
+    if (previous != newIsMaster) {
+      if (newIsMaster) {
+        LOGGER.info("This proxy has become the master queue proxy.");
+      } else {
+        LOGGER.info("This proxy is no longer the master queue proxy.");
+      }
+    }
+  }
+
+  private boolean computeIsMaster() {
     List<String> masterProxies = server.getConfiguration().getQueue().getMasterProxyIds();
     List<String> activeProxies = new ArrayList<>(
         server.getRedis().getProxyService().getAllProxyIds());

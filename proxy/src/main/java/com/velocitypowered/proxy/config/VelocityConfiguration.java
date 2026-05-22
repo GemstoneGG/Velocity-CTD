@@ -538,10 +538,12 @@ public final class VelocityConfiguration implements ProxyConfig {
     return preventClientProxyConnections;
   }
 
+  @Override
   public PlayerInfoForwarding getPlayerInfoForwardingMode() {
     return playerInfoForwardingMode;
   }
 
+  @Override
   public byte[] getForwardingSecret() {
     return forwardingSecret.clone();
   }
@@ -1103,12 +1105,12 @@ public final class VelocityConfiguration implements ProxyConfig {
             forwardingSecretString = String.join("", Files.readAllLines(secretPath));
           } else {
             throw new RuntimeException(
-                "The file " + forwardSecretFile + " is not a valid file or it is a directory.");
+                "The file " + secretPath + " is not a valid file or it is a directory.");
           }
         } else {
           Files.createFile(secretPath);
           Files.writeString(secretPath, forwardingSecretString = generateRandomString(12), StandardCharsets.UTF_8);
-          LOGGER.info("The forwarding-secret-file does not exist. A new file has been created at {}", forwardSecretFile);
+          LOGGER.info("The forwarding-secret-file does not exist. A new file has been created at {}", secretPath);
         }
       }
 
