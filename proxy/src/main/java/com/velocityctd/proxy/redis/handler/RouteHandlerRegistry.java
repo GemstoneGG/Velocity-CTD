@@ -142,7 +142,7 @@ public enum RouteHandlerRegistry {
    * Handles the {@link VelocityBackendLeave} data by forwarding the leave to the queue manager.
    */
   VELOCITY_BACKEND_LEAVE(VelocityBackendLeave.class, (server, data) -> {
-    if (server.isQueueEnabled() && server.getQueueManager().isMasterProxy()) {
+    if (server.isQueueEnabled()) {
       server.getQueueManager().onGlobalBackendLeave(data.serverName(), data.leaveMillis());
     }
   }),

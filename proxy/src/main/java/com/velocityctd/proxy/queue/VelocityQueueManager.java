@@ -288,6 +288,10 @@ public class VelocityQueueManager implements QueueManager {
    * Should be called when a player leaves a backend server on any proxy.
    */
   public void onGlobalBackendLeave(@NotNull String serverName, long nowMillis) {
+    if (!isMasterProxy()) {
+      return;
+    }
+
     VelocityQueue<?> queue = queues.get(serverName);
     if (queue != null) {
       queue.getEtaTracker().ifPresent(t -> t.recordBackendPlayerLeave(nowMillis));
