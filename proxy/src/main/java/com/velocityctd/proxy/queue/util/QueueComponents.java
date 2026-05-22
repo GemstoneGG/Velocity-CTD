@@ -49,7 +49,7 @@ public class QueueComponents {
     if (entry.isQueueBypass()) {
       return Component.translatable("velocity.queue.player-status.bypass", NamedTextColor.YELLOW);
     } else if (queue.getServerStatus() == FULL && !entry.isFullBypass()) {
-      return Component.translatable("velocity.queue.player-status.full", NamedTextColor.YELLOW)
+      return Component.translatable("velocity.queue.player-status.full-eta", NamedTextColor.YELLOW)
           .arguments(
               Component.text(position),
               Component.text(queue.size()),
