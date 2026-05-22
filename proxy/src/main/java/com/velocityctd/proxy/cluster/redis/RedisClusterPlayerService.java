@@ -108,10 +108,14 @@ public final class RedisClusterPlayerService implements VelocityClusterPlayerSer
   public void onPlayerDisconnect(ConnectedPlayer player) {
     playerService().onPlayerDisconnect(player);
 
-    VelocityServerConnection connectedServer = player.getConnectedServer();
-    if (connectedServer != null) {
-      String serverName = connectedServer.getServerInfo().getName();
-      server.getRedis().publish(new VelocityBackendLeave(serverName, System.currentTimeMillis()));
+    if (server.isQueueEnabled()) {
+      // The queue system is currently the only consumer of `VelocityBackendLeave`,
+      // hence the `isQueueEnabled()` guard. This may change in the future if we add cluster events!
+      VelocityServerConnection connectedServer = player.getConnectedServer();
+      if (connectedServer != null) {
+        String serverName = connectedServer.getServerInfo().getName();
+        server.getRedis().publish(new VelocityBackendLeave(serverName, System.currentTimeMillis()));
+      }
     }
   }
 
@@ -119,7 +123,9 @@ public final class RedisClusterPlayerService implements VelocityClusterPlayerSer
   public void onPlayerSwitchServer(ConnectedPlayer player, @Nullable String previousServerName, String serverName) {
     playerService().onPlayerSwitchServer(player, serverName);
 
-    if (previousServerName != null) {
+    if (server.isQueueEnabled() && previousServerName != null) {
+      // The queue system is currently the only consumer of `VelocityBackendLeave`,
+      // hence the `isQueueEnabled()` guard. This may change in the future if we add cluster events!
       server.getRedis().publish(new VelocityBackendLeave(previousServerName, System.currentTimeMillis()));
     }
   }
