@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.connection.player.resourcepack.handler;
 
+import com.velocitypowered.api.event.player.PlayerResourcePackStatusEvent;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.player.ResourcePackInfo;
 import com.velocitypowered.proxy.VelocityServer;
@@ -29,8 +30,14 @@ import com.velocitypowered.proxy.protocol.packet.ResourcePackResponsePacket;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
 import io.netty.buffer.ByteBufUtil;
 import java.util.Collection;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import net.kyori.adventure.resource.ResourcePackCallback;
 import net.kyori.adventure.resource.ResourcePackRequest;
+import net.kyori.adventure.resource.ResourcePackStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -45,9 +52,13 @@ import org.jetbrains.annotations.Nullable;
  */
 public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandler, ModernResourcePackHandler {
 
+  private static final Logger LOGGER = LogManager.getLogger(ResourcePackHandler.class);
+
   protected final ConnectedPlayer player;
 
   protected final VelocityServer server;
+
+  private final Map<UUID, ResourcePackCallback> packCallbacks = new ConcurrentHashMap<>();
 
   protected ResourcePackHandler(ConnectedPlayer player, VelocityServer server) {
     this.player = player;
@@ -105,9 +116,15 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
    * @param request the resource pack request
    */
   public void queueResourcePack(@NotNull ResourcePackRequest request) {
+    ResourcePackCallback callback = request.callback();
+    boolean trackCallback = callback != ResourcePackCallback.noOp();
     for (net.kyori.adventure.resource.ResourcePackInfo pack : request.packs()) {
       ResourcePackInfo resourcePackInfo = VelocityResourcePackInfo.fromAdventureRequest(request, pack);
       this.checkAlreadyAppliedPack(resourcePackInfo.getHash());
+      if (trackCallback) {
+        packCallbacks.put(resourcePackInfo.getId(), callback);
+      }
+
       queueResourcePack(resourcePackInfo);
     }
   }
@@ -176,6 +193,40 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
       }
     }
     return handled;
+  }
+
+  /**
+   * Invokes the Adventure {@link ResourcePackCallback} (if any) registered for the given pack
+   * UUID via {@code sendResourcePacks(ResourcePackRequest)}, then evicts the entry on a terminal
+   * status. Called by the per-version handlers when a {@code ResourcePackResponsePacket} arrives,
+   * alongside the {@link PlayerResourcePackStatusEvent} fire.
+   *
+   * @param uuid   the pack UUID from the client response
+   * @param status the Velocity-side status reported by the client
+   */
+  protected void dispatchPackCallback(@NotNull UUID uuid,
+                                      @NotNull PlayerResourcePackStatusEvent.Status status) {
+    ResourcePackCallback callback = status.isIntermediate()
+        ? packCallbacks.get(uuid)
+        : packCallbacks.remove(uuid);
+    if (callback == null) {
+      return;
+    }
+
+    ResourcePackStatus adventureStatus;
+    try {
+      adventureStatus = ResourcePackStatus.valueOf(status.name());
+    } catch (IllegalArgumentException e) {
+      LOGGER.warn("No Adventure ResourcePackStatus mapping for Velocity status {}; "
+          + "skipping callback for pack {}", status, uuid);
+      return;
+    }
+
+    try {
+      callback.packEventReceived(uuid, adventureStatus, player);
+    } catch (Throwable t) {
+      LOGGER.error("Resource pack callback for pack {} on player {} threw", uuid, player, t);
+    }
   }
 
   /**

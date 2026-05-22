@@ -138,6 +138,8 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
               }
             });
 
+    dispatchPackCallback(uuid, bundle.status());
+
     switch (bundle.status()) {
       // The player has accepted the resource pack and will proceed to download it.
       case ACCEPTED -> {

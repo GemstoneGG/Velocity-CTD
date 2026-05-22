@@ -142,6 +142,8 @@ public sealed class LegacyResourcePackHandler extends ResourcePackHandler permit
               }
             });
 
+    dispatchPackCallback(bundle.uuid(), bundle.status());
+
     switch (bundle.status()) {
       case ACCEPTED -> {
         previousResourceResponse = true;
