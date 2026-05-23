@@ -220,11 +220,6 @@ public class PlayerResourcePackStatusEvent {
      */
     DISCARDED(ResourcePackStatus.DISCARDED);
 
-    /**
-     * The Adventure-side {@link ResourcePackStatus} equivalent of this Velocity status. Used to
-     * forward responses to {@link net.kyori.adventure.resource.ResourcePackCallback} handlers
-     * registered via {@code Player#sendResourcePacks(ResourcePackRequest)}.
-     */
     private final ResourcePackStatus adventureStatus;
 
     Status(ResourcePackStatus adventureStatus) {
@@ -233,8 +228,6 @@ public class PlayerResourcePackStatusEvent {
 
     /**
      * Returns the Adventure {@link ResourcePackStatus} corresponding to this Velocity status.
-     * The mapping is exhaustive and total — every Velocity status has a defined Adventure
-     * equivalent.
      *
      * @return the matching Adventure status
      */

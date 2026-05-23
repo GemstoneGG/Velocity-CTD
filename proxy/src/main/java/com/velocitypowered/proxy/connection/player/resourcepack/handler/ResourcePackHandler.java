@@ -95,9 +95,7 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
   public abstract @NotNull Collection<ResourcePackInfo> getPendingResourcePacks();
 
   /**
-   * Clears the applied resource pack field, including any pending Adventure callbacks. Final
-   * to ensure callbacks are always evicted alongside the per-subclass applied-pack state; the
-   * subclass-specific clearing logic lives in {@link #doClearAppliedResourcePacks()}.
+   * Clears the applied resource pack field.
    */
   public final void clearAppliedResourcePacks() {
     packCallbacks.clear();
@@ -105,8 +103,7 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
   }
 
   /**
-   * Subclass hook for {@link #clearAppliedResourcePacks()}. Implementations should clear any
-   * per-version applied/pending/outstanding pack state owned by the subclass.
+   * Clears the applied resource pack field.
    */
   protected abstract void doClearAppliedResourcePacks();
 
