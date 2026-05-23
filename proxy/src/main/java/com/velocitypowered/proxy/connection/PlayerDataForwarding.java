@@ -37,6 +37,12 @@ import org.jspecify.annotations.Nullable;
 
 public final class PlayerDataForwarding {
 
+  /**
+   * Whether modern forwarding is enabled for legacy clients (1.7.2–1.12.2) via
+   * Proxy-Compatible-Forge. Activated by the JVM flag {@code -Dvelocity.legacyModernForwarding=true}.
+   */
+  public static final boolean LEGACY_MODERN_FORWARDING = Boolean.getBoolean("velocity.legacyModernForwarding");
+
   private static final String ALGORITHM = "HmacSHA256";
 
   public static final String CHANNEL = "velocity:player_info";

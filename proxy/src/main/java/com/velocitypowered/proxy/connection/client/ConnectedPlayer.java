@@ -19,6 +19,7 @@ package com.velocitypowered.proxy.connection.client;
 
 import static com.velocityctd.proxy.permission.PermissionResolverAdapterFactory.createPermissionResolverAdapter;
 import static com.velocitypowered.api.proxy.ConnectionRequestBuilder.Status.ALREADY_CONNECTED;
+import static com.velocitypowered.proxy.connection.PlayerDataForwarding.LEGACY_MODERN_FORWARDING;
 import static com.velocitypowered.proxy.connection.util.ConnectionRequestResults.plainResult;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
@@ -115,7 +116,6 @@ import com.velocitypowered.proxy.tablist.InternalTabList;
 import com.velocitypowered.proxy.tablist.KeyedVelocityTabList;
 import com.velocitypowered.proxy.tablist.VelocityTabList;
 import com.velocitypowered.proxy.tablist.VelocityTabListLegacy;
-import com.velocitypowered.proxy.util.ClosestLocaleMatcher;
 import com.velocitypowered.proxy.util.ComponentUtils;
 import com.velocitypowered.proxy.util.DurationUtils;
 import com.velocitypowered.proxy.util.TranslatableMapper;
@@ -374,7 +374,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       this.server.getClusterPlayerService().onPlayerDisconnect(this);
 
       if (this.server.isQueueEnabled()) {
-        this.server.getQueueManager().onPlayerDisconnect(this);
+        this.server.getQueueManager().onLocalPlayerDisconnect(this);
       }
     }
   }
@@ -566,7 +566,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       locale = Locale.getDefault();
     }
 
-    locale = ClosestLocaleMatcher.INSTANCE.lookupClosest(locale);
     return GlobalTranslator.render(message, locale);
   }
 
@@ -814,7 +813,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     this.fullyConnected = true;
 
     if (this.server.isQueueEnabled()) {
-      this.server.getQueueManager().onPlayerConnect(this);
+      this.server.getQueueManager().onLocalPlayerConnect(this);
     }
   }
 
@@ -2210,11 +2209,14 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
     // Check if the server uses modern forwarding and the client is too old
     PlayerInfoForwarding serverForwardingMode = server.getPlayerInfoForwardingMode();
-    if (serverForwardingMode == PlayerInfoForwarding.MODERN && clientProtocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_13)) {
+    ProtocolVersion modernForwardingMinVersion = LEGACY_MODERN_FORWARDING
+        ? ProtocolVersion.MINECRAFT_1_7_2
+        : ProtocolVersion.MINECRAFT_1_13;
+    if (serverForwardingMode == PlayerInfoForwarding.MODERN && clientProtocolVersion.lessThan(modernForwardingMinVersion)) {
       // Disconnect the player with an appropriate message
       disconnect(Component.translatable("velocity.error.modern-forwarding-needs-new-client", NamedTextColor.RED)
           .arguments(
-              Argument.string("min", "1.13"),
+              Argument.string("min", modernForwardingMinVersion.getMostRecentSupportedVersion()),
               Argument.string("max", serverMaximumVersion)));
       return false;
     }

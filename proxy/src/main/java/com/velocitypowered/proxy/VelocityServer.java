@@ -660,7 +660,25 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     this.configuration = newConfiguration;
     eventManager.fireAndForget(new ProxyReloadEvent());
 
-    if (queueManager != null) {
+    boolean newQueueEnabled = newConfiguration.getQueue().isEnabled();
+    if (queueManager != null && !newQueueEnabled) {
+      for (ConnectedPlayer player : getAllPlayers()) {
+        queueManager.removePlayerEntirely(player.getUniqueId());
+      }
+      queueManager.teardown();
+      queueManager = null;
+    } else if (queueManager == null && newQueueEnabled) {
+      if (redis != null) {
+        queueManager = new RedisVelocityQueueManager(this);
+      } else {
+        if (newConfiguration.getRedis().isEnabled()) {
+          LOGGER.warn("Queue was enabled with Redis configured, but Redis cannot be started "
+              + "by a reload. Falling back to the local queue manager. Restart the proxy to "
+              + "use the Redis-backed queue.");
+        }
+        queueManager = new VelocityQueueManager(this);
+      }
+    } else if (queueManager != null) {
       queueManager.reload();
     }
 

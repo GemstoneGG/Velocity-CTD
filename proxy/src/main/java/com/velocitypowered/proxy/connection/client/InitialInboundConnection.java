@@ -25,7 +25,6 @@ import com.velocitypowered.proxy.connection.MinecraftConnectionAssociation;
 import com.velocitypowered.proxy.connection.util.VelocityInboundConnection;
 import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
 import com.velocitypowered.proxy.protocol.packet.HandshakePacket;
-import com.velocitypowered.proxy.util.ClosestLocaleMatcher;
 import java.net.InetSocketAddress;
 import java.util.Locale;
 import java.util.Optional;
@@ -101,8 +100,7 @@ public final class InitialInboundConnection implements VelocityInboundConnection
    * @param reason the reason for disconnecting
    */
   public void disconnect(Component reason) {
-    Component translated = GlobalTranslator.render(reason, ClosestLocaleMatcher.INSTANCE
-        .lookupClosest(Locale.getDefault()));
+    Component translated = GlobalTranslator.render(reason, Locale.getDefault());
     if (connection.server.getConfiguration().isLogOfflineConnections()
         && connection.server.getConfiguration().isLogMinimumVersion()) {
 
@@ -120,8 +118,7 @@ public final class InitialInboundConnection implements VelocityInboundConnection
    * @param reason the reason for disconnecting
    */
   public void disconnectQuietly(Component reason) {
-    Component translated = GlobalTranslator.render(reason, ClosestLocaleMatcher.INSTANCE
-        .lookupClosest(Locale.getDefault()));
+    Component translated = GlobalTranslator.render(reason, Locale.getDefault());
     connection.closeWith(DisconnectPacket.create(translated, getProtocolVersion(), connection.getState()));
   }
 }

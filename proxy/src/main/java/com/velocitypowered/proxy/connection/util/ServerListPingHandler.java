@@ -19,6 +19,7 @@ package com.velocitypowered.proxy.connection.util;
 
 import static com.velocityctd.proxy.util.ParsingUtils.parseVariables;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import com.spotify.futures.CompletableFutures;
 import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocitypowered.api.network.ProtocolVersion;
@@ -34,7 +35,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
@@ -99,7 +99,7 @@ public class ServerListPingHandler {
     String serverPingVersion = configuration.getFallbackVersionPing();
 
     for (Component s : server.getConfiguration().getMotdHover()) {
-      samplePlayers.add(new ServerPing.SamplePlayer(s, UUID.randomUUID()));
+      samplePlayers.add(new ServerPing.SamplePlayer(s, UuidCreator.getTimeOrderedEpochFast()));
     }
 
     return new ServerPing(
@@ -114,21 +114,19 @@ public class ServerListPingHandler {
   }
 
   private String formatVersionString(String raw, ProtocolVersion version) {
-    return parseVariables(raw, (variable) -> {
-      return switch (variable) {
-        case "protocol-min" -> ProtocolVersion.getVersionByName(
-            server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn();
-        case "protocol-max" -> server.getConfiguration().getMaximumVersion()
-            .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
-        case "protocol" -> version.getVersionIntroducedIn();
-        case "proxy-brand" -> server.getVersion().getName();
-        case "proxy-brand-custom" -> server.getConfiguration().getProxyBrandCustom();
-        case "proxy-version" -> server.getVersion().getVersion();
-        case "proxy-vendor" -> server.getVersion().getVendor();
-        case "player-count" -> String.valueOf(server.getClusterPlayerService().getTotalPlayerCount());
-        case "max-players" -> String.valueOf(server.getConfiguration().getShowMaxPlayers());
-        default -> null;
-      };
+    return parseVariables(raw, (variable) -> switch (variable) {
+      case "protocol-min" -> ProtocolVersion.getVersionByName(
+          server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn();
+      case "protocol-max" -> server.getConfiguration().getMaximumVersion()
+          .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
+      case "protocol" -> version.getVersionIntroducedIn();
+      case "proxy-brand" -> server.getVersion().getName();
+      case "proxy-brand-custom" -> server.getConfiguration().getProxyBrandCustom();
+      case "proxy-version" -> server.getVersion().getVersion();
+      case "proxy-vendor" -> server.getVersion().getVendor();
+      case "player-count" -> String.valueOf(server.getClusterPlayerService().getTotalPlayerCount());
+      case "max-players" -> String.valueOf(server.getConfiguration().getShowMaxPlayers());
+      default -> null;
     });
   }
 
