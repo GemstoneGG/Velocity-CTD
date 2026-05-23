@@ -37,6 +37,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Utility for serializing and deserializing the signed cookie data that carries applied
@@ -65,17 +66,23 @@ public final class ResourcePackTransfer {
 
   /**
    * Serializes {@code session} into a signed byte array suitable for sending as a
-   * {@link Key#key(String, String) velocity:applied_resource_packs} cookie. Returns an empty
-   * array when the session has no applied packs.
+   * {@link Key#key(String, String) velocity:applied_resource_packs} cookie. Returns
+   * {@code null} when the cookie should not be sent at all, specifically when the session
+   * has no applied packs, or when {@code secret} is empty (no forwarding secret is configured,
+   * which prevents signing and disables transfer-pack restoration entirely).
    *
    * @param secret  the proxy's forwarding secret, used as the HMAC key
    * @param session the transfer-session state to encode
-   * @return signed cookie payload, or an empty array if there is nothing to encode
+   * @return signed cookie payload, or {@code null} if no cookie should be sent
    */
-  public static byte[] createCookieData(byte[] secret, TransferSession session) {
+  public static byte @Nullable [] createCookieData(byte[] secret, TransferSession session) {
     Collection<ResourcePackInfo> appliedResourcePacks = session.appliedPacks();
     if (appliedResourcePacks.isEmpty()) {
-      return new byte[0];
+      return null;
+    }
+
+    if (secret.length == 0) {
+      return null;
     }
 
     ByteBuf buffer = Unpooled.buffer(appliedResourcePacks.size() * 256);
@@ -136,9 +143,10 @@ public final class ResourcePackTransfer {
    */
   public static TransferSession decodeAndValidateCookieData(byte[] secret, byte[] data)
       throws SignatureException, DecoderException {
-    if (data == null || data.length == 0) {
+    if (data == null || data.length == 0 || secret.length == 0) {
       return new TransferSession(Collections.emptyList());
     }
+
     if (data.length <= SIGNATURE_LENGTH) {
       throw new SignatureException("Applied resource packs cookie data has no or incomplete signature");
     }
@@ -186,6 +194,7 @@ public final class ResourcePackTransfer {
         appliedResourcePack.setOriginalOrigin(ORIGINS[ProtocolUtils.readVarInt(buffer)]);
         appliedResourcePacks.add(appliedResourcePack);
       }
+
       return new TransferSession(appliedResourcePacks);
     } finally {
       buffer.release();
