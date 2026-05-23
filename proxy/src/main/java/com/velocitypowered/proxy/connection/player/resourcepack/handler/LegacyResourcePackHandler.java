@@ -79,7 +79,7 @@ public sealed class LegacyResourcePackHandler extends ResourcePackHandler permit
   }
 
   @Override
-  public void clearAppliedResourcePacks() {
+  protected void doClearAppliedResourcePacks() {
     // This is valid only for players with 1.20.2 versions
     this.appliedResourcePack = null;
   }

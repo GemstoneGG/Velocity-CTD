@@ -81,7 +81,7 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
   }
 
   @Override
-  public void clearAppliedResourcePacks() {
+  protected void doClearAppliedResourcePacks() {
     this.outstandingResourcePacks.clear();
     this.pendingResourcePacks.clear();
     this.appliedResourcePacks.clear();

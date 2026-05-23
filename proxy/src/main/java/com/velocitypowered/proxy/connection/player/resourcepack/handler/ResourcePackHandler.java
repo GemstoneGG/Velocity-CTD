@@ -32,10 +32,10 @@ import io.netty.buffer.ByteBufUtil;
 import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import net.kyori.adventure.resource.ResourcePackCallback;
 import net.kyori.adventure.resource.ResourcePackRequest;
-import net.kyori.adventure.resource.ResourcePackStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -95,9 +95,20 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
   public abstract @NotNull Collection<ResourcePackInfo> getPendingResourcePacks();
 
   /**
-   * Clears the applied resource pack field.
+   * Clears the applied resource pack field, including any pending Adventure callbacks. Final
+   * to ensure callbacks are always evicted alongside the per-subclass applied-pack state; the
+   * subclass-specific clearing logic lives in {@link #doClearAppliedResourcePacks()}.
    */
-  public abstract void clearAppliedResourcePacks();
+  public final void clearAppliedResourcePacks() {
+    packCallbacks.clear();
+    doClearAppliedResourcePacks();
+  }
+
+  /**
+   * Subclass hook for {@link #clearAppliedResourcePacks()}. Implementations should clear any
+   * per-version applied/pending/outstanding pack state owned by the subclass.
+   */
+  protected abstract void doClearAppliedResourcePacks();
 
   public abstract boolean remove(UUID id);
 
@@ -199,7 +210,9 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
    * Invokes the Adventure {@link ResourcePackCallback} (if any) registered for the given pack
    * UUID via {@code sendResourcePacks(ResourcePackRequest)}, then evicts the entry on a terminal
    * status. Called by the per-version handlers when a {@code ResourcePackResponsePacket} arrives,
-   * alongside the {@link PlayerResourcePackStatusEvent} fire.
+   * alongside the {@link PlayerResourcePackStatusEvent} fire. Callback execution is dispatched
+   * asynchronously off the player's connection event loop, since slow plugin callback handlers
+   * would otherwise stall the player's IO thread.
    *
    * @param uuid   the pack UUID from the client response
    * @param status the Velocity-side status reported by the client
@@ -213,20 +226,13 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
       return;
     }
 
-    ResourcePackStatus adventureStatus;
-    try {
-      adventureStatus = ResourcePackStatus.valueOf(status.name());
-    } catch (IllegalArgumentException e) {
-      LOGGER.warn("No Adventure ResourcePackStatus mapping for Velocity status {}; "
-          + "skipping callback for pack {}", status, uuid);
-      return;
-    }
-
-    try {
-      callback.packEventReceived(uuid, adventureStatus, player);
-    } catch (Throwable t) {
-      LOGGER.error("Resource pack callback for pack {} on player {} threw", uuid, player, t);
-    }
+    CompletableFuture.runAsync(() -> {
+      try {
+        callback.packEventReceived(uuid, status.adventureStatus(), player);
+      } catch (Throwable t) {
+        LOGGER.error("Couldn't pass resource pack callback for pack {} to {}", uuid, player, t);
+      }
+    });
   }
 
   /**
