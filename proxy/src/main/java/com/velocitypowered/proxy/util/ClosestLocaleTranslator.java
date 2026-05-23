@@ -61,10 +61,6 @@ public class ClosestLocaleTranslator implements Translator {
     this.byLanguage.put(locale.getLanguage(), locale);
   }
 
-  public Locale lookupClosest(Locale locale) {
-    return closest.get(locale);
-  }
-
   @Override
   public @NotNull Key name() {
     return delegate.name();
@@ -84,5 +80,9 @@ public class ClosestLocaleTranslator implements Translator {
   public @Nullable Component translate(@NotNull TranslatableComponent component,
                                        @NotNull Locale locale) {
     return delegate.translate(component, lookupClosest(locale));
+  }
+
+  private Locale lookupClosest(Locale locale) {
+    return closest.get(locale);
   }
 }
