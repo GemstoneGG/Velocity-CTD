@@ -176,5 +176,9 @@ public class TabCompleteResponsePacket implements MinecraftPacket {
     public String getText() {
       return text;
     }
+
+    public @Nullable ComponentHolder getTooltip() {
+      return tooltip;
+    }
   }
 }

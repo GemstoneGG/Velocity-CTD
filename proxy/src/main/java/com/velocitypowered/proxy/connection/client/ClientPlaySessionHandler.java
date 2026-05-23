@@ -82,7 +82,9 @@ import io.netty.util.ReferenceCountUtil;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -770,12 +772,10 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
 
     String commandLabel = command.substring(0, commandEndPosition);
     if (!server.getCommandManager().hasCommand(commandLabel, player)) {
-      if (player.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_13)) {
-        // Outstanding tab completes are recorded for use with 1.12 clients and below to provide
-        // additional tab completion support.
-        outstandingTabComplete = packet;
-      }
-
+      // Record the request so handleTabCompleteResponse can fire TabCompleteEvent on the
+      // backend's response, giving plugins a chance to filter the backend command set. On
+      // 1.12.2-, this also enables the brigadier+backend merge path in finishCommandTabComplete.
+      outstandingTabComplete = packet;
       return false;
     }
 
@@ -827,8 +827,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
             resp.setTransactionId(packet.getTransactionId());
             resp.setStart(startPos + 1);
             resp.setLength(packet.getCommand().length() - startPos - 1);
-            resp.getOffers().addAll(offers);
-            player.getConnection().write(resp);
+            fireAndWriteTabComplete(packet, resp, offers);
           }
         }, player.getConnection().eventLoop()).exceptionally((ex) -> {
           LOGGER.error("Exception while handling command tab completion for player {} executing {}",
@@ -840,11 +839,9 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
   }
 
   private boolean handleRegularTabComplete(TabCompleteRequestPacket packet) {
-    if (player.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_13)) {
-      // Outstanding tab completes are recorded for use with 1.12 clients and below to provide
-      // additional tab completion support.
-      outstandingTabComplete = packet;
-    }
+    // Record so handleTabCompleteResponse can fire TabCompleteEvent on the backend's response,
+    // letting plugins filter backend chat-completion suggestions consistently with commands.
+    outstandingTabComplete = packet;
 
     return false;
   }
@@ -855,16 +852,24 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
    * @param response the tab complete response from the backend
    */
   public void handleTabCompleteResponse(TabCompleteResponsePacket response) {
-    if (outstandingTabComplete != null && !outstandingTabComplete.isAssumeCommand()) {
-      if (outstandingTabComplete.getCommand().startsWith("/")) {
-        this.finishCommandTabComplete(outstandingTabComplete, response);
-      } else {
-        this.finishRegularTabComplete(outstandingTabComplete, response);
-      }
-      outstandingTabComplete = null;
-    } else {
-      // Nothing to do
+    TabCompleteRequestPacket request = outstandingTabComplete;
+    outstandingTabComplete = null;
+    if (request == null || request.isAssumeCommand()) {
       player.getConnection().write(response);
+      return;
+    }
+
+    boolean isCommand = request.getCommand().startsWith("/");
+    boolean legacy = player.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_13);
+    if (isCommand && legacy) {
+      // 1.12.2- command tab-complete: merge backend offers with proxy brigadier suggestions.
+      this.finishCommandTabComplete(request, response);
+    } else if (isCommand) {
+      // 1.13+ command tab-complete: the proxy didn't know this command.
+      fireAndWriteTabComplete(request, response, new ArrayList<>(response.getOffers()));
+    } else {
+      // Chat tab-complete (1.12.2- in practice).
+      this.finishRegularTabComplete(request, response);
     }
   }
 
@@ -874,12 +879,11 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
         .thenAcceptAsync(e -> {
           String command = e.getPartialMessage();
           server.getCommandManager().offerBrigadierSuggestions(player, command)
-              .thenAcceptAsync(offers -> {
+              .thenAcceptAsync(brigadierOffers -> {
                 boolean legacy = player.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_13);
                 try {
-                  List<String> suggestions = new ArrayList<>(offers.getList().size());
-                  Map<String, ComponentHolder> tooltips = new HashMap<>();
-                  for (Suggestion suggestion : offers.getList()) {
+                  List<Offer> merged = new ArrayList<>(response.getOffers());
+                  for (Suggestion suggestion : brigadierOffers.getList()) {
                     String offer = suggestion.getText();
                     offer = legacy && !offer.startsWith("/") ? "/" + offer : offer;
                     if (legacy && offer.startsWith(command)) {
@@ -893,27 +897,10 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
                       tooltip = new ComponentHolder(player.getProtocolVersion(), Component.text(suggestion.getTooltip().getString()));
                     }
 
-                    suggestions.add(offer);
-                    if (tooltip != null) {
-                      tooltips.put(offer, tooltip);
-                    }
+                    merged.add(new Offer(offer, tooltip));
                   }
 
-                  server.getEventManager()
-                      .fire(new TabCompleteEvent(player, request.getCommand(), suggestions))
-                      .thenAcceptAsync(filtered -> {
-                        response.getOffers().clear();
-                        for (String s : filtered.getSuggestions()) {
-                          response.getOffers().add(new Offer(s, tooltips.get(s)));
-                        }
-
-                        response.getOffers().sort(null);
-                        player.getConnection().write(response);
-                      }, player.getConnection().eventLoop()).exceptionally((ex) -> {
-                        LOGGER.error("Exception while firing TabCompleteEvent for {}",
-                            player.getUsername(), ex);
-                        return null;
-                      });
+                  fireAndWriteTabComplete(request, response, merged);
                 } catch (Exception ex) {
                   LOGGER.error("Unable to provide tab list completions for {} for command '{}'", player.getUsername(), command, ex);
                 }
@@ -927,6 +914,32 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
           LOGGER.error("Exception while finishing command tab completion,"
                   + " with request {} and response {}",
               request, response, ex);
+          return null;
+        });
+  }
+
+  private void fireAndWriteTabComplete(TabCompleteRequestPacket request,
+                                       TabCompleteResponsePacket response,
+                                       List<Offer> sourceOffers) {
+    List<String> suggestions = new ArrayList<>(sourceOffers.size());
+    Map<String, Deque<ComponentHolder>> tooltips = new HashMap<>();
+    for (Offer offer : sourceOffers) {
+      suggestions.add(offer.getText());
+      tooltips.computeIfAbsent(offer.getText(), k -> new LinkedList<>()).add(offer.getTooltip());
+    }
+
+    server.getEventManager()
+        .fire(new TabCompleteEvent(player, request.getCommand(), suggestions))
+        .thenAcceptAsync(filtered -> {
+          response.getOffers().clear();
+          for (String suggestion : filtered.getSuggestions()) {
+            Deque<ComponentHolder> queue = tooltips.get(suggestion);
+            ComponentHolder tooltip = (queue == null || queue.isEmpty()) ? null : queue.poll();
+            response.getOffers().add(new Offer(suggestion, tooltip));
+          }
+          player.getConnection().write(response);
+        }, player.getConnection().eventLoop()).exceptionally((ex) -> {
+          LOGGER.error("Exception while firing TabCompleteEvent for {}", player.getUsername(), ex);
           return null;
         });
   }
