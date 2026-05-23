@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity-CTD Contributors
+ * Copyright (C) 2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -284,7 +284,24 @@ public class VelocityQueueManager implements QueueManager {
     }
   }
 
-  public void onPlayerConnect(@NotNull ConnectedPlayer player) {
+  /**
+   * Should be called when a player leaves a backend server on any proxy.
+   */
+  public void onGlobalBackendLeave(@NotNull String serverName, long nowMillis) {
+    if (!isMasterProxy()) {
+      return;
+    }
+
+    VelocityQueue<?> queue = queues.get(serverName);
+    if (queue != null) {
+      queue.getEtaTracker().ifPresent(t -> t.recordBackendPlayerLeave(nowMillis));
+    }
+  }
+
+  /**
+   * Should only be called when a player connects to this specific proxy.
+   */
+  public void onLocalPlayerConnect(@NotNull ConnectedPlayer player) {
     ScheduledTask timeoutTask = pendingTimeoutTasks.remove(player.getUniqueId());
     if (timeoutTask != null) {
       timeoutTask.cancel();
@@ -299,12 +316,9 @@ public class VelocityQueueManager implements QueueManager {
   }
 
   /**
-   * Called when a player disconnects from the proxy. Removes the player from all queues
-   * after an optional grace period determined by their permissions.
-   *
-   * @param player the player who disconnected
+   * Should only be called when a player disconnects to this specific proxy.
    */
-  public void onPlayerDisconnect(@NotNull ConnectedPlayer player) {
+  public void onLocalPlayerDisconnect(@NotNull ConnectedPlayer player) {
     if (!isQueued(player)) {
       return;
     }
@@ -385,10 +399,12 @@ public class VelocityQueueManager implements QueueManager {
       transferTask.cancel();
       transferTask = null;
     }
+
     if (actionBarTask != null) {
       actionBarTask.cancel();
       actionBarTask = null;
     }
+
     if (backendHandshakeTask != null) {
       backendHandshakeTask.cancel();
       backendHandshakeTask = null;
@@ -440,9 +456,13 @@ public class VelocityQueueManager implements QueueManager {
 
       rs.ping().orTimeout(3, TimeUnit.SECONDS).whenComplete((result, th) -> {
         if (th != null) {
+          queue.getEtaTracker().ifPresent(VelocityEtaTracker::reset);
           queue.setServerStatus(OFFLINE);
           return;
         }
+
+        queue.getEtaTracker().ifPresent(
+            t -> result.getPlayers().ifPresent(t::recordBackendPing));
 
         boolean serverFull = result.getPlayers()
             .map(p -> p.getMax() > 0 && p.getOnline() >= p.getMax())
@@ -468,6 +488,7 @@ public class VelocityQueueManager implements QueueManager {
           }
         }
       }).exceptionally(th -> {
+        queue.getEtaTracker().ifPresent(VelocityEtaTracker::reset);
         queue.setServerStatus(OFFLINE);
         return null;
       });

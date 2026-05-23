@@ -70,6 +70,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
@@ -392,6 +394,8 @@ public class VelocityCommand implements BuiltinCommandDefinition {
 
   private static class Info implements Command<CommandSource> {
 
+    private static final Logger LOGGER = LogManager.getLogger(Info.class);
+
     private static final TextColor VELOCITY_COLOR = TextColor.color(0xff3a4c);
 
     /**
@@ -416,7 +420,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
 
     private Info(VelocityServer server) {
       ProxyVersion version = server.getVersion();
-      this.infoSupplier = Suppliers.memoize(() -> {
+      this.infoSupplier = Suppliers.memoizeWithExpiration(() -> {
         TextComponent.Builder infoBuilder = Component.text();
         Component velocity = Component.text()
                 .content(version.getName() + " ")
@@ -457,7 +461,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
         if (version.isDevelopmentVersion()) {
           infoBuilder.append(Component.text("You are running a development build of Velocity.", NamedTextColor.RED));
         } else {
-          int dist = fetchDistanceFromGitHub(version.getVersion().split("-")[1]);
+          int dist = fetchDistanceFromGitHub(version.getVersion());
           switch (dist) {
             case DISTANCE_ERROR -> infoBuilder.append(Component.translatable(
                     "velocity.command.version-error", NamedTextColor.RED));
@@ -472,19 +476,33 @@ public class VelocityCommand implements BuiltinCommandDefinition {
         }
 
         return infoBuilder.build();
-      });
+      }, 10, TimeUnit.MINUTES);
     }
 
-    private static int fetchDistanceFromGitHub(String hash) {
+    private static final Pattern GIT_HASH = Pattern.compile("-git-([0-9a-fA-F]+)");
+
+    private static final Gson VERSION_GSON = new Gson();
+
+    private static int fetchDistanceFromGitHub(String version) {
+      Matcher matcher = GIT_HASH.matcher(version);
+      if (!matcher.find()) {
+        return DISTANCE_UNKNOWN;
+      }
+
+      String hash = matcher.group(1);
       try {
         HttpURLConnection connection = (HttpURLConnection) URI.create("https://api.github.com/repos/GemstoneGG/Velocity-CTD/compare/libdeflate..." + hash).toURL().openConnection();
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(5000);
+        connection.setRequestProperty("User-Agent", "Velocity-CTD/" + version + " (+https://github.com/GemstoneGG/Velocity-CTD)");
+        connection.setRequestProperty("Accept", "application/vnd.github+json");
         connection.connect();
         if (connection.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
           return DISTANCE_UNKNOWN; // Unidentifiable commit
         }
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
-          JsonObject obj = new Gson().fromJson(reader, JsonObject.class);
+          JsonObject obj = VERSION_GSON.fromJson(reader, JsonObject.class);
           String status = obj.get("status").getAsString();
           return switch (status) {
             case "identical" -> DISTANCE_LATEST;
@@ -492,9 +510,11 @@ public class VelocityCommand implements BuiltinCommandDefinition {
             default -> DISTANCE_ERROR;
           };
         } catch (JsonSyntaxException | NumberFormatException e) {
+          LOGGER.error("Error parsing version-comparison response from GitHub for hash {}", hash, e);
           return DISTANCE_ERROR;
         }
       } catch (IOException e) {
+        LOGGER.error("Error contacting GitHub for version comparison of hash {}", hash, e);
         return DISTANCE_ERROR;
       }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity-CTD Contributors
+ * Copyright (C) 2026 Velocity-CTD Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -161,6 +161,17 @@ public interface Queue {
    * @param state the new queue state
    */
   void setState(@NotNull QueueState state);
+
+  /**
+   * Returns this queue's ETA tracker, if one is available on this proxy.
+   *
+   * <p>The result may be {@link Optional#empty()} when this proxy is not
+   * responsible for computing ETAs for the queue. Callers should not cache
+   * the returned tracker; the queue may swap it out at any time.</p>
+   *
+   * @return this queue's ETA tracker, or {@link Optional#empty()} if not available
+   */
+  Optional<? extends EtaTracker> getEtaTracker();
 
   /**
    * Clears all players from this queue and releases any held resources.

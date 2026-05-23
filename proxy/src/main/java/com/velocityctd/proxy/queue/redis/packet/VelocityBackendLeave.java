@@ -15,16 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocityctd.proxy.redis.data;
-
-import java.util.UUID;
-import net.kyori.adventure.text.Component;
+package com.velocityctd.proxy.queue.redis.packet;
 
 /**
- * Data record used to send an action bar message to a player.
+ * Data record published whenever a player leaves a backend server, used to feed
+ * the queue's ETA tracker on every proxy.
  *
- * @param uniqueId the unique identifier of the player
- * @param component the action bar message
+ * @param serverName  the name of the backend the player left
+ * @param leaveMillis the wall-clock timestamp (epoch milliseconds) of the leave
  */
-public record VelocityActionBar(UUID uniqueId, Component component) {
+public record VelocityBackendLeave(String serverName, long leaveMillis) {
 }
