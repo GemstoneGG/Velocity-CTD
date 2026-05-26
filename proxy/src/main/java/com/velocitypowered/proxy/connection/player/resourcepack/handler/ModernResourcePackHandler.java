@@ -128,7 +128,7 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
 
     dispatchPackCallback(uuid, bundle.status())
             .thenCompose(v -> server.getEventManager()
-            .fire(new PlayerResourcePackStatusEvent(this.player, uuid, bundle.status(), queued)))
+                  .fire(new PlayerResourcePackStatusEvent(this.player, uuid, bundle.status(), queued)))
             .thenAcceptAsync(event -> {
               if (event.getStatus() == PlayerResourcePackStatusEvent.Status.DECLINED
                       && event.getPackInfo() != null && event.getPackInfo().getShouldForce()
