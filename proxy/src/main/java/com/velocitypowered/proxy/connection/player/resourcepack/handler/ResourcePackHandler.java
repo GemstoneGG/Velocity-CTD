@@ -217,7 +217,7 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
    *         future when no callback was registered
    */
   protected CompletableFuture<Void> dispatchPackCallback(@NotNull UUID uuid,
-                                      @NotNull PlayerResourcePackStatusEvent.Status status) {
+                                                         @NotNull PlayerResourcePackStatusEvent.Status status) {
     ResourcePackCallback callback = status.isIntermediate()
         ? packCallbacks.get(uuid)
         : packCallbacks.remove(uuid);
