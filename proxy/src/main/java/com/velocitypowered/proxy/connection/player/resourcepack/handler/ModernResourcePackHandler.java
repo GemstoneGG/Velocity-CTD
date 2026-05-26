@@ -126,8 +126,9 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
     ResourcePackInfo queued = outstandingResourcePacks.isEmpty() ? null
         : peek ? outstandingResourcePacks.getFirst() : outstandingResourcePacks.removeFirst();
 
-    server.getEventManager()
-            .fire(new PlayerResourcePackStatusEvent(this.player, uuid, bundle.status(), queued))
+    dispatchPackCallback(uuid, bundle.status())
+            .thenCompose(v -> server.getEventManager()
+            .fire(new PlayerResourcePackStatusEvent(this.player, uuid, bundle.status(), queued)))
             .thenAcceptAsync(event -> {
               if (event.getStatus() == PlayerResourcePackStatusEvent.Status.DECLINED
                       && event.getPackInfo() != null && event.getPackInfo().getShouldForce()
@@ -137,8 +138,6 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
                         .translatable("multiplayer.requiredTexturePrompt.disconnect"));
               }
             });
-
-    dispatchPackCallback(uuid, bundle.status());
 
     switch (bundle.status()) {
       // The player has accepted the resource pack and will proceed to download it.

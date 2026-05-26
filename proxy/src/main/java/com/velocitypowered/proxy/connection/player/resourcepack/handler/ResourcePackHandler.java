@@ -207,23 +207,25 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
    * Invokes the Adventure {@link ResourcePackCallback} (if any) registered for the given pack
    * UUID via {@code sendResourcePacks(ResourcePackRequest)}, then evicts the entry on a terminal
    * status. Called by the per-version handlers when a {@code ResourcePackResponsePacket} arrives,
-   * alongside the {@link PlayerResourcePackStatusEvent} fire. Callback execution is dispatched
-   * asynchronously off the player's connection event loop, since slow plugin callback handlers
-   * would otherwise stall the player's IO thread.
+   * before the {@link PlayerResourcePackStatusEvent} fire so the two cannot observe each other
+   * mid-flight. Callback execution is dispatched asynchronously off the player's connection event
+   * loop, since slow plugin callback handlers would otherwise stall the player's IO thread.
    *
    * @param uuid   the pack UUID from the client response
    * @param status the Velocity-side status reported by the client
+   * @return a future that completes once the registered callback returns, or an already-completed
+   *         future when no callback was registered
    */
-  protected void dispatchPackCallback(@NotNull UUID uuid,
+  protected CompletableFuture<Void> dispatchPackCallback(@NotNull UUID uuid,
                                       @NotNull PlayerResourcePackStatusEvent.Status status) {
     ResourcePackCallback callback = status.isIntermediate()
         ? packCallbacks.get(uuid)
         : packCallbacks.remove(uuid);
     if (callback == null) {
-      return;
+      return CompletableFuture.completedFuture(null);
     }
 
-    CompletableFuture.runAsync(() -> {
+    return CompletableFuture.runAsync(() -> {
       try {
         callback.packEventReceived(uuid, status.adventureStatus(), player);
       } catch (Throwable t) {

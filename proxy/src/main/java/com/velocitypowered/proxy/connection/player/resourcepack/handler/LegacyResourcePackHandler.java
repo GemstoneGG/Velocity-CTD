@@ -132,17 +132,15 @@ public sealed class LegacyResourcePackHandler extends ResourcePackHandler permit
     boolean peek = bundle.status().isIntermediate();
     ResourcePackInfo queued = peek ? outstandingResourcePacks.peek() : outstandingResourcePacks.poll();
 
-    server.getEventManager()
-            .fire(new PlayerResourcePackStatusEvent(
-                this.player, bundle.uuid(), bundle.status(), queued))
+    dispatchPackCallback(bundle.uuid(), bundle.status())
+            .thenCompose(v -> server.getEventManager()
+            .fire(new PlayerResourcePackStatusEvent(this.player, bundle.uuid(), bundle.status(), queued)))
             .thenAcceptAsync(event -> {
               if (shouldDisconnectForForcePack(event)) {
                 event.getPlayer().disconnect(Component
                         .translatable("multiplayer.requiredTexturePrompt.disconnect"));
               }
             });
-
-    dispatchPackCallback(bundle.uuid(), bundle.status());
 
     switch (bundle.status()) {
       case ACCEPTED -> {
