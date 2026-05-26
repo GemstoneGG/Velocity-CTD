@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity-CTD Contributors
+ * Copyright (C) 2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,17 +19,20 @@ package com.velocityctd.proxy.cluster.redis;
 
 import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.cluster.VelocityClusterPlayerService;
+import com.velocityctd.proxy.queue.redis.packet.VelocityBackendLeave;
 import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.data.VelocityAlert;
 import com.velocityctd.proxy.redis.depot.player.PlayerDepotService;
 import com.velocityctd.proxy.redis.depot.player.PlayerEntry;
 import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Redis-backed implementation of {@link VelocityClusterPlayerService}.
@@ -104,11 +107,27 @@ public final class RedisClusterPlayerService implements VelocityClusterPlayerSer
   @Override
   public void onPlayerDisconnect(ConnectedPlayer player) {
     playerService().onPlayerDisconnect(player);
+
+    if (server.isQueueEnabled()) {
+      // The queue system is currently the only consumer of `VelocityBackendLeave`,
+      // hence the `isQueueEnabled()` guard. This may change in the future if we add cluster events!
+      VelocityServerConnection connectedServer = player.getConnectedServer();
+      if (connectedServer != null) {
+        String serverName = connectedServer.getServerInfo().getName();
+        server.getRedis().publish(new VelocityBackendLeave(serverName, System.currentTimeMillis()));
+      }
+    }
   }
 
   @Override
-  public void onPlayerSwitchServer(ConnectedPlayer player, String serverName) {
+  public void onPlayerSwitchServer(ConnectedPlayer player, @Nullable String previousServerName, String serverName) {
     playerService().onPlayerSwitchServer(player, serverName);
+
+    if (server.isQueueEnabled() && previousServerName != null) {
+      // The queue system is currently the only consumer of `VelocityBackendLeave`,
+      // hence the `isQueueEnabled()` guard. This may change in the future if we add cluster events!
+      server.getRedis().publish(new VelocityBackendLeave(previousServerName, System.currentTimeMillis()));
+    }
   }
 
   @Override

@@ -153,9 +153,9 @@ public final class ConnectionManager {
             if (future.isSuccess()) {
               this.endpoints.put(address, new Endpoint(channel, ListenerType.MINECRAFT));
 
-              LOGGER.info("Listening on {}", channel.localAddress());
-
               if (finalBind == 0) {
+                LOGGER.info("Listening on {} with {} endpoint{}", channel.localAddress(), binds, binds == 1 ? "" : "s");
+
                 // Warn people with console access that HAProxy is in use, see PR: #1436
                 if (this.server.getConfiguration().isProxyProtocol()) {
                   LOGGER.warn(
@@ -244,9 +244,15 @@ public final class ConnectionManager {
     // should have a chance to be notified before the server stops accepting connections.
     server.getEventManager().fire(new ListenerCloseEvent(oldBind, type)).join();
 
+    boolean loggedClosure = false;
+
     for (Endpoint endpoint : endpoints) {
       Channel serverChannel = endpoint.getChannel();
-      LOGGER.info("Closing endpoint {}", serverChannel.localAddress());
+      if (!loggedClosure) {
+        loggedClosure = true;
+        LOGGER.info("Closing endpoint {}", serverChannel.localAddress());
+      }
+
       serverChannel.close().syncUninterruptibly();
     }
   }
@@ -266,8 +272,9 @@ public final class ConnectionManager {
       // should have a chance to be notified before the server stops accepting connections.
       server.getEventManager().fire(new ListenerCloseEvent(address, type)).join();
 
+      LOGGER.info("Closing endpoint {}", address);
+
       for (Endpoint endpoint : endpoints) {
-        LOGGER.info("Closing endpoint {}", address);
         if (interrupt) {
           try {
             endpoint.getChannel().close().sync();

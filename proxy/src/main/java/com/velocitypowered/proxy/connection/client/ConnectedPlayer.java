@@ -115,7 +115,6 @@ import com.velocitypowered.proxy.tablist.InternalTabList;
 import com.velocitypowered.proxy.tablist.KeyedVelocityTabList;
 import com.velocitypowered.proxy.tablist.VelocityTabList;
 import com.velocitypowered.proxy.tablist.VelocityTabListLegacy;
-import com.velocitypowered.proxy.util.ClosestLocaleMatcher;
 import com.velocitypowered.proxy.util.ComponentUtils;
 import com.velocitypowered.proxy.util.DurationUtils;
 import com.velocitypowered.proxy.util.TranslatableMapper;
@@ -378,7 +377,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       this.server.getClusterPlayerService().onPlayerDisconnect(this);
 
       if (this.server.isQueueEnabled()) {
-        this.server.getQueueManager().onPlayerDisconnect(this);
+        this.server.getQueueManager().onLocalPlayerDisconnect(this);
       }
     }
   }
@@ -570,7 +569,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       locale = Locale.getDefault();
     }
 
-    locale = ClosestLocaleMatcher.INSTANCE.lookupClosest(locale);
     return GlobalTranslator.render(message, locale);
   }
 
@@ -831,7 +829,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     this.fullyConnected = true;
 
     if (this.server.isQueueEnabled()) {
-      this.server.getQueueManager().onPlayerConnect(this);
+      this.server.getQueueManager().onLocalPlayerConnect(this);
     }
   }
 
@@ -891,6 +889,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    *
    * @return a future that completes once the packet has been written (or an error has been logged)
    */
+  @Override
   public CompletableFuture<Void> sendAvailableCommands() {
     return sendAvailableCommands(this.connectedServer);
   }

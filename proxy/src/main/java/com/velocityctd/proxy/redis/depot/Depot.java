@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity-CTD Contributors
+ * Copyright (C) 2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -84,7 +84,5 @@ public interface Depot<K, V extends DepotEntry<K, V>> {
    *
    * @return the number of entries in the depot
    */
-  default int size() {
-    return keys().size();
-  }
+  int size();
 }

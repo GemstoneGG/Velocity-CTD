@@ -8,6 +8,7 @@
 package com.velocitypowered.api.proxy.config;
 
 import com.velocitypowered.api.proxy.ProxyServer;
+import com.velocitypowered.api.proxy.server.PlayerInfoForwarding;
 import com.velocitypowered.api.util.Favicon;
 import java.util.List;
 import java.util.Map;
@@ -92,6 +93,26 @@ public interface ProxyConfig {
    * @return whether to prevent client proxy connections by checking the IP with Mojang servers
    */
   boolean shouldPreventClientProxyConnections();
+
+  /**
+   * Retrieves the player information forwarding mode configured for this proxy. This is the
+   * forwarding mode the proxy will apply by default to backend connections that do not have
+   * an explicit per-server override.
+   *
+   * @return the configured {@link PlayerInfoForwarding} mode
+   * @since 3.5.0
+   */
+  PlayerInfoForwarding getPlayerInfoForwardingMode();
+
+  /**
+   * Retrieves the forwarding secret used by {@link PlayerInfoForwarding#MODERN} and
+   * {@link PlayerInfoForwarding#BUNGEEGUARD} to authenticate the proxy to backend servers.
+   * Returns a defensive copy; mutating the returned array does not affect proxy state.
+   *
+   * @return the forwarding secret as a byte array, never {@code null}
+   * @since 3.5.0
+   */
+  byte[] getForwardingSecret();
 
   /**
    * Get a Map of all servers registered in <code>velocity.toml</code>. This method does

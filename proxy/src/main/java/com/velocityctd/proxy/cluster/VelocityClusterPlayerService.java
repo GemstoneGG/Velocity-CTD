@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity-CTD Contributors
+ * Copyright (C) 2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Provides player tracking and query operations across the cluster.
@@ -56,7 +57,7 @@ public interface VelocityClusterPlayerService extends ClusterPlayerService {
 
   void onPlayerDisconnect(ConnectedPlayer player);
 
-  void onPlayerSwitchServer(ConnectedPlayer player, String serverName);
+  void onPlayerSwitchServer(ConnectedPlayer player, @Nullable String previousServerName, String serverName);
 
   void onPlayerSettingsChange(ConnectedPlayer player, PlayerSettings settings);
 }

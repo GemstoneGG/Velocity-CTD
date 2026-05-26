@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity-CTD Contributors
+ * Copyright (C) 2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,9 +34,11 @@ import org.jetbrains.annotations.Nullable;
 public sealed interface RedisProvider permits AbstractRedisProvider {
 
   /**
-   * The Redis Pub/Sub channel name used for all Velocity Redis communication.
+   * Gets the namespace used for all Redis keys and channels.
+   *
+   * @return the Redis namespace
    */
-  String CHANNEL = "velocity.redis";
+  @NotNull String getNamespace();
 
   /**
    * Restart the Redis provider.
