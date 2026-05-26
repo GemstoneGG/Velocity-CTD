@@ -26,8 +26,6 @@ import com.velocitypowered.api.permission.PermissionProvider;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.ConsoleCommandSource;
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.adventure.AudiencePointers;
-import com.velocitypowered.proxy.adventure.AudiencePointers.Type;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -78,7 +76,6 @@ public final class VelocityConsole extends SimpleTerminalConsole implements Cons
   private static final @NotNull PointersSupplier<VelocityConsole> POINTERS = PointersSupplier.<VelocityConsole>builder()
       .resolving(PermissionChecker.POINTER, VelocityConsole::getPermissionChecker)
       .resolving(Identity.LOCALE, (console) -> Locale.getDefault())
-      .resolving(AudiencePointers.TYPE, (console) -> Type.CONSOLE)
       .build();
 
   public VelocityConsole(VelocityServer server) {

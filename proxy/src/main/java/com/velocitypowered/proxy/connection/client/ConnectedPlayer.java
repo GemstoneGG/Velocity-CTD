@@ -69,8 +69,6 @@ import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.api.util.ModInfo;
 import com.velocitypowered.api.util.ServerLink;
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.adventure.AudiencePointers;
-import com.velocitypowered.proxy.adventure.AudiencePointers.Type;
 import com.velocitypowered.proxy.adventure.ClickCallbackManager;
 import com.velocitypowered.proxy.adventure.VelocityBossBarImplementation;
 import com.velocitypowered.proxy.command.CommandGraphInjector;
@@ -185,7 +183,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       .resolving(Identity.DISPLAY_NAME, player -> Component.text(player.getUsername()))
       .resolving(Identity.LOCALE, Player::getEffectiveLocale)
       .resolving(PermissionChecker.POINTER, Player::getPermissionChecker)
-      .resolving(AudiencePointers.TYPE, player -> Type.PLAYER)
       .build();
 
   /**
