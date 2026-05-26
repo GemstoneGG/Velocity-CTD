@@ -29,11 +29,8 @@ import com.velocitypowered.proxy.VelocityServer;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import net.kyori.adventure.audience.MessageType;
 import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.permission.PermissionChecker;
-import net.kyori.adventure.platform.facet.FacetPointers;
-import net.kyori.adventure.platform.facet.FacetPointers.Type;
 import net.kyori.adventure.pointer.Pointers;
 import net.kyori.adventure.pointer.PointersSupplier;
 import net.kyori.adventure.text.Component;
@@ -57,7 +54,6 @@ import org.jline.reader.LineReaderBuilder;
  * Implements the Velocity console, including sending commands and being the recipient
  * of messages from plugins.
  */
-@SuppressWarnings("UnstableApiUsage")
 public final class VelocityConsole extends SimpleTerminalConsole implements ConsoleCommandSource {
 
   /**
@@ -80,17 +76,14 @@ public final class VelocityConsole extends SimpleTerminalConsole implements Cons
   private static final @NotNull PointersSupplier<VelocityConsole> POINTERS = PointersSupplier.<VelocityConsole>builder()
       .resolving(PermissionChecker.POINTER, VelocityConsole::getPermissionChecker)
       .resolving(Identity.LOCALE, (console) -> Locale.getDefault())
-      .resolving(FacetPointers.TYPE, (console) -> Type.CONSOLE)
       .build();
 
   public VelocityConsole(VelocityServer server) {
     this.server = server;
   }
 
-  @SuppressWarnings("deprecation")
   @Override
-  public void sendMessage(@NonNull Identity identity, @NonNull Component message,
-                          @NonNull MessageType messageType) {
+  public void sendMessage(@NonNull Component message) {
     COMPONENT_LOGGER.info(message);
   }
 

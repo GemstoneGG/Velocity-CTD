@@ -696,10 +696,11 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     // If we had plugin messages queued during login/FML handshake, send them now.
     PluginMessagePacket pm;
     while ((pm = loginPluginMessages.poll()) != null) {
-      loginPluginMessagesBytes.addAndGet(-pm.content().readableBytes());
-      loginPluginMessagesCount.decrementAndGet();
       serverMc.delayedWrite(pm);
     }
+
+    loginPluginMessagesBytes.set(0);
+    loginPluginMessagesCount.set(0);
 
     // Clear any title from the previous server.
     if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
@@ -942,10 +943,11 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
       if (connection != null) {
         PluginMessagePacket pm;
         while ((pm = loginPluginMessages.poll()) != null) {
-          loginPluginMessagesBytes.addAndGet(-pm.content().readableBytes());
-          loginPluginMessagesCount.decrementAndGet();
           connection.write(pm);
         }
+
+        loginPluginMessagesBytes.set(0);
+        loginPluginMessagesCount.set(0);
       }
     }
   }

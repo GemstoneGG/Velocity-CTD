@@ -101,7 +101,6 @@ import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
 import com.velocitypowered.proxy.protocol.packet.RemoveResourcePackPacket;
 import com.velocitypowered.proxy.protocol.packet.TransferPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatQueue;
-import com.velocitypowered.proxy.protocol.packet.chat.ChatType;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
 import com.velocitypowered.proxy.protocol.packet.chat.PlayerChatCompletionPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.builder.ChatBuilderFactory;
@@ -141,13 +140,10 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import net.kyori.adventure.audience.MessageType;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.permission.PermissionChecker;
-import net.kyori.adventure.platform.facet.FacetPointers;
-import net.kyori.adventure.platform.facet.FacetPointers.Type;
 import net.kyori.adventure.pointer.Pointers;
 import net.kyori.adventure.pointer.PointersSupplier;
 import net.kyori.adventure.resource.ResourcePackInfoLike;
@@ -171,7 +167,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
 
-@SuppressWarnings("UnstableApiUsage")
 public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, KeyIdentifiable, VelocityInboundConnection {
 
   public static final int MAX_CLIENTSIDE_PLUGIN_CHANNELS = Integer.getInteger("velocity.max-clientside-plugin-channels", 1024);
@@ -189,7 +184,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       .resolving(Identity.DISPLAY_NAME, player -> Component.text(player.getUsername()))
       .resolving(Identity.LOCALE, Player::getEffectiveLocale)
       .resolving(PermissionChecker.POINTER, Player::getPermissionChecker)
-      .resolving(FacetPointers.TYPE, player -> Type.PLAYER)
       .build();
 
   /**
@@ -574,26 +568,13 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   @Override
-  @SuppressWarnings("deprecation")
-  public void sendMessage(@NonNull Identity identity, @NonNull Component message) {
-    Component translated = translateMessage(message);
-
-    connection.write(getChatBuilderFactory().builder().component(translated).forIdentity(identity).toClient());
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public void sendMessage(@NonNull Identity identity, @NonNull Component message,
-                          @NonNull MessageType type) {
+  public void sendMessage(final @NonNull Component message) {
     Preconditions.checkNotNull(message, "message");
-    Preconditions.checkNotNull(type, "type");
 
-    Component translated = translateMessage(message).replaceText(TextReplacementConfig.builder().match("''").replacement("'").build());
+    final Component translated = translateMessage(message).replaceText(TextReplacementConfig.builder().match("''").replacement("'").build());
 
     connection.write(getChatBuilderFactory().builder()
-        .component(translated).forIdentity(identity)
-        .setType(type == MessageType.CHAT ? ChatType.CHAT : ChatType.SYSTEM)
-        .toClient());
+        .component(translated).toClient());
   }
 
   @Override
@@ -890,6 +871,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    *
    * @return a future that completes once the packet has been written (or an error has been logged)
    */
+  @Override
   public CompletableFuture<Void> sendAvailableCommands() {
     return sendAvailableCommands(this.connectedServer);
   }
@@ -1957,8 +1939,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           connection.write(StartUpdatePacket.INSTANCE);
           connection.pendingConfigurationSwitch = true;
           connection.getChannel().pipeline().get(MinecraftEncoder.class).setState(StateRegistry.CONFIG);
-          // Make sure we don't send any play packets to the player after update start
-          connection.addPlayPacketQueueOutboundHandler();
+          // Queue clientbound play packets, and drop stale serverbound ones, during reconfiguration
+          connection.addReconfigurationPlayPacketQueueHandler();
         }, connection.eventLoop()).exceptionally((ex) -> {
           LOGGER.error("Error switching player connection to config state", ex);
           return null;
