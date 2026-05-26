@@ -203,7 +203,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
 
     try {
       ResourcePackTransfer.TransferSession session = ResourcePackTransfer.decodeAndValidateCookieData(
-          server.getConfiguration().getForwardingSecret(), cookieData);
+          server.getTransferPackSecret().get(), cookieData);
       player.resourcePackHandler().loadAppliedResourcePacks(session.appliedPacks());
     } catch (SignatureException e) {
       LOGGER.warn("Signature error while loading applied resource packs of {}", player.getUsername(), e);

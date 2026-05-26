@@ -1591,10 +1591,9 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     ResourcePackTransfer.TransferSession session = new ResourcePackTransfer.TransferSession(
         resourcePackHandler.getAppliedResourcePacks());
     byte[] cookieData = ResourcePackTransfer.createCookieData(
-        server.getConfiguration().getForwardingSecret(), session);
+        server.getTransferPackSecret().get(), session);
     if (cookieData == null) {
-      // No packs to carry across the transfer, or no forwarding secret to sign with. Either
-      // way, the cookie packet would be meaningless.
+      // No packs to carry across the transfer; the cookie packet would be meaningless.
       return;
     }
 

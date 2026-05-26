@@ -67,21 +67,16 @@ public final class ResourcePackTransfer {
   /**
    * Serializes {@code session} into a signed byte array suitable for sending as a
    * {@link Key#key(String, String) velocity:applied_resource_packs} cookie. Returns
-   * {@code null} when the cookie should not be sent at all, specifically when the session
-   * has no applied packs, or when {@code secret} is empty (no forwarding secret is configured,
-   * which prevents signing and disables transfer-pack restoration entirely).
+   * {@code null} when the session has no applied packs, in which case there is nothing
+   * worth carrying across the transfer.
    *
-   * @param secret  the proxy's forwarding secret, used as the HMAC key
+   * @param secret  the HMAC key used to sign the payload (see {@link TransferPackSecret})
    * @param session the transfer-session state to encode
    * @return signed cookie payload, or {@code null} if no cookie should be sent
    */
   public static byte @Nullable [] createCookieData(byte[] secret, TransferSession session) {
     Collection<ResourcePackInfo> appliedResourcePacks = session.appliedPacks();
     if (appliedResourcePacks.isEmpty()) {
-      return null;
-    }
-
-    if (secret.length == 0) {
       return null;
     }
 
@@ -134,7 +129,7 @@ public final class ResourcePackTransfer {
    * {@link TransferSession}. Returns a session with an empty applied-packs collection when
    * {@code data} is {@code null} or empty (i.e. the previous proxy had no packs to carry).
    *
-   * @param secret the proxy's forwarding secret, used to verify the HMAC
+   * @param secret the HMAC key used to verify the payload (see {@link TransferPackSecret})
    * @param data   the signed cookie payload, or {@code null}/empty if no cookie was supplied
    * @return decoded transfer session
    * @throws SignatureException if the payload is shorter than the signature, the signature
@@ -143,7 +138,7 @@ public final class ResourcePackTransfer {
    */
   public static TransferSession decodeAndValidateCookieData(byte[] secret, byte[] data)
       throws SignatureException, DecoderException {
-    if (data == null || data.length == 0 || secret.length == 0) {
+    if (data == null || data.length == 0) {
       return new TransferSession(Collections.emptyList());
     }
 

@@ -76,6 +76,7 @@ import com.velocitypowered.proxy.config.ProxyAddress;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.connection.client.PlayerRegistry;
+import com.velocitypowered.proxy.connection.player.resourcepack.TransferPackSecret;
 import com.velocitypowered.proxy.connection.player.resourcepack.VelocityResourcePackInfo;
 import com.velocitypowered.proxy.connection.util.ServerListPingHandler;
 import com.velocitypowered.proxy.console.VelocityConsole;
@@ -258,6 +259,12 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    */
   private @MonotonicNonNull VelocityClusterProxyService clusterProxyService;
 
+  /**
+   * The HMAC secret used to sign and verify the applied-resource-packs transfer cookie.
+   * Initialized after Redis (or generated locally when Redis is disabled).
+   */
+  private @MonotonicNonNull TransferPackSecret transferPackSecret;
+
   VelocityServer(ProxyOptions options) {
     pluginManager = new VelocityPluginManager(this);
     eventManager = new VelocityEventManager(pluginManager);
@@ -297,6 +304,16 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    */
   public VelocityRedis getRedis() {
     return redis;
+  }
+
+  /**
+   * Returns the {@link TransferPackSecret} used to sign and verify the
+   * applied-resource-packs cookie carried across {@code transferToHost}.
+   *
+   * @return the transfer-pack secret holder
+   */
+  public TransferPackSecret getTransferPackSecret() {
+    return transferPackSecret;
   }
 
   @Override
@@ -419,6 +436,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         queueManager = new VelocityQueueManager(this);
       }
     }
+
+    transferPackSecret = new TransferPackSecret(redis);
 
     registerCommands();
 
