@@ -134,7 +134,7 @@ public sealed class LegacyResourcePackHandler extends ResourcePackHandler permit
 
     dispatchPackCallback(bundle.uuid(), bundle.status())
             .thenCompose(v -> server.getEventManager()
-            .fire(new PlayerResourcePackStatusEvent(this.player, bundle.uuid(), bundle.status(), queued)))
+                  .fire(new PlayerResourcePackStatusEvent(this.player, bundle.uuid(), bundle.status(), queued)))
             .thenAcceptAsync(event -> {
               if (shouldDisconnectForForcePack(event)) {
                 event.getPlayer().disconnect(Component
