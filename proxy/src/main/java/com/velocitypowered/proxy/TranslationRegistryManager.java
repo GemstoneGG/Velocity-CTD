@@ -19,7 +19,7 @@ package com.velocitypowered.proxy;
 
 import static java.util.function.Function.identity;
 
-import com.velocitypowered.proxy.util.ClosestLocaleMatcher;
+import com.velocitypowered.proxy.util.ClosestLocaleTranslator;
 import com.velocitypowered.proxy.util.ResourceUtils;
 import java.io.IOException;
 import java.io.InputStream;
@@ -72,6 +72,8 @@ public class TranslationRegistryManager {
         MiniMessageTranslationStore.create(this.translationRegistryKey);
     translationRegistry.defaultLocale(Locale.US);
 
+    ClosestLocaleTranslator closestLocaleTranslator = new ClosestLocaleTranslator(translationRegistry);
+
     try {
       ResourceUtils.visitResources(VelocityServer.class, path -> {
         Path langPath = Path.of("lang");
@@ -103,7 +105,7 @@ public class TranslationRegistryManager {
           try (Stream<Path> langFiles = Files.walk(langPath)) {
             langFiles.filter(Files::isRegularFile).forEach(file -> {
               try {
-                registerTranslation(file, translationRegistry);
+                registerTranslation(file, translationRegistry, closestLocaleTranslator);
               } catch (Exception e) {
                 LOGGER.error("Failed registering translations from {}", file, e);
               }
@@ -118,10 +120,11 @@ public class TranslationRegistryManager {
       return;
     }
 
-    GlobalTranslator.translator().addSource(translationRegistry);
+    GlobalTranslator.translator().addSource(closestLocaleTranslator);
   }
 
-  private void registerTranslation(Path file, MiniMessageTranslationStore translationRegistry) throws IOException {
+  private void registerTranslation(Path file, MiniMessageTranslationStore translationRegistry,
+                                   ClosestLocaleTranslator closestLocaleTranslator) throws IOException {
     String localePart = com.google.common.io.Files
         .getNameWithoutExtension(file.getFileName().toString());
     if (localePart.startsWith("messages")) {
@@ -137,7 +140,7 @@ public class TranslationRegistryManager {
         : Locale.forLanguageTag(localePart.replace('_', '-'));
 
     translationRegistry.registerAll(locale, file, false);
-    ClosestLocaleMatcher.INSTANCE.registerKnown(locale);
+    closestLocaleTranslator.registerKnown(locale);
   }
 
   private void saveMissingFile(Path src, Path target) throws IOException {

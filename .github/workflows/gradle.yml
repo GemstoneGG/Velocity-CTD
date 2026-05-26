@@ -20,6 +20,7 @@ jobs:
       uses: actions/checkout@v6
       with:
         persist-credentials: false
+        fetch-depth: 0
 
     - name: Set up Gradle
       uses: gradle/actions/setup-gradle@v6
@@ -30,39 +31,41 @@ jobs:
         java-version: 21
         distribution: 'zulu'
 
-    - name: Build with Gradle
-      run: ./gradlew build
-
     - name: Generate Release Tag
       if: github.ref == env.RELEASE_BRANCH
       id: release_tag
       run: |
         # Fetch all tags from remote
         git fetch --tags
-          
+
         # Get the latest build number from existing releases
         LATEST_BUILD=0
-        
+
         # Check if there are existing build tags and find the highest number
         if git tag | grep -E "^build-[0-9]+$" > /dev/null; then
           LATEST_BUILD=$(git tag | grep -E "^build-[0-9]+$" | sed 's/build-//' | sort -n | tail -1)
         fi
-        
+
         # Debug output
         echo "All tags:"
         git tag
         echo "Build tags found:"
         git tag | grep -E "^build-[0-9]+$" || echo "No build tags found"
         echo "Latest build number found: $LATEST_BUILD"
-          
+
         # Increment the build number
         NEW_BUILD=$((LATEST_BUILD + 1))
-        
+
         echo "tag=build-$NEW_BUILD" >> $GITHUB_OUTPUT
         echo "build_nr=$NEW_BUILD" >> $GITHUB_OUTPUT
         echo "Generated tag: build-$NEW_BUILD"
         echo "Previous highest build: $LATEST_BUILD"
         echo "New build number: $NEW_BUILD"
+
+    - name: Build with Gradle
+      env:
+        BUILD_NUMBER: ${{ steps.release_tag.outputs.build_nr }}
+      run: ./gradlew build
 
     - name: Rename Velocity-CTD Jar
       if: github.ref == env.RELEASE_BRANCH
@@ -74,10 +77,11 @@ jobs:
     - name: Publish to Maven Repository
       if: github.ref == env.RELEASE_BRANCH
       continue-on-error: true
-      run: ./gradlew publish
       env:
+        BUILD_NUMBER: ${{ steps.release_tag.outputs.build_nr }}
         ORG_GRADLE_PROJECT_velocityctdUser: ${{ secrets.MAVEN_USERNAME }}
         ORG_GRADLE_PROJECT_velocityctdPassword: ${{ secrets.MAVEN_PASSWORD }}
+      run: ./gradlew publish
 
     - name: Upload as GitHub Release
       if: github.ref == env.RELEASE_BRANCH

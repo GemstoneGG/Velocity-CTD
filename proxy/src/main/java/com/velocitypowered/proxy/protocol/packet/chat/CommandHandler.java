@@ -27,13 +27,10 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public interface CommandHandler<T extends MinecraftPacket> {
-
-  Logger LOGGER = LogManager.getLogger(CommandHandler.class);
 
   Class<T> packetClass();
 
@@ -55,7 +52,7 @@ public interface CommandHandler<T extends MinecraftPacket> {
         .thenApply(hasRunPacketFunction);
   }
 
-  default void queueCommandResult(VelocityServer server, ConnectedPlayer player,
+  default void queueCommandResult(Logger logger, VelocityServer server, ConnectedPlayer player,
                                   BiFunction<CommandExecuteEvent, LastSeenMessages, CompletableFuture<MinecraftPacket>> futurePacketCreator,
                                   String message, Instant timestamp, @Nullable LastSeenMessages lastSeenMessages,
                                   CommandExecuteEvent.InvocationInfo invocationInfo) {
@@ -65,12 +62,12 @@ public interface CommandHandler<T extends MinecraftPacket> {
             .thenComposeAsync(event -> futurePacketCreator.apply(event, newLastSeenMessages))
             .thenApply(pkt -> {
               if (server.getConfiguration().isLogCommandExecutions()) {
-                LOGGER.info("{} -> executed command /{}", player, message);
+                logger.info("{} -> executed command /{}", player, message);
               }
 
               return pkt;
             }).exceptionally(e -> {
-              LOGGER.info("Exception occurred while running command for {}", player.getUsername(), e);
+              logger.info("Exception occurred while running command for {}", player.getUsername(), e);
               player.sendMessage(Component.translatable("velocity.command.generic-error", NamedTextColor.RED));
               return null;
             }), timestamp, lastSeenMessages);

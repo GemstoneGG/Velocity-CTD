@@ -35,6 +35,7 @@ import com.velocitypowered.proxy.config.migration.ForwardingMigration;
 import com.velocitypowered.proxy.config.migration.KeyAuthenticationMigration;
 import com.velocitypowered.proxy.config.migration.MiniMessageTranslationsMigration;
 import com.velocitypowered.proxy.config.migration.MotdMigration;
+import com.velocitypowered.proxy.config.migration.PacketLimiterMigration;
 import com.velocitypowered.proxy.config.migration.TransferIntegrationMigration;
 import com.velocitypowered.proxy.util.AddressUtil;
 import java.io.IOException;
@@ -1082,7 +1083,8 @@ public final class VelocityConfiguration implements ProxyConfig {
           new KeyAuthenticationMigration(),
           new MotdMigration(),
           new MiniMessageTranslationsMigration(),
-          new TransferIntegrationMigration()
+          new TransferIntegrationMigration(),
+          new PacketLimiterMigration()
       ));
 
       migrations.addAll(CtdConfigMigrations.createCtdMigrations());
@@ -1105,12 +1107,12 @@ public final class VelocityConfiguration implements ProxyConfig {
             forwardingSecretString = String.join("", Files.readAllLines(secretPath));
           } else {
             throw new RuntimeException(
-                "The file " + forwardSecretFile + " is not a valid file or it is a directory.");
+                "The file " + secretPath + " is not a valid file or it is a directory.");
           }
         } else {
           Files.createFile(secretPath);
           Files.writeString(secretPath, forwardingSecretString = generateRandomString(12), StandardCharsets.UTF_8);
-          LOGGER.info("The forwarding-secret-file does not exist. A new file has been created at {}", forwardSecretFile);
+          LOGGER.info("The forwarding-secret-file does not exist. A new file has been created at {}", secretPath);
         }
       }
 
@@ -2317,7 +2319,7 @@ public final class VelocityConfiguration implements ProxyConfig {
    *
    * @param interval                the interval in seconds to measure packets over
    * @param pps                     the maximum number of packets per second allowed
-   * @param bytes                   the maximum number of compressed bytes per second allowed
+   * @param bytes                   the maximum number of bytes per second allowed
    * @param bytesAfterDecompression the maximum number of decompressed bytes per second allowed
    */
   public record PacketLimiterConfig(int interval, int pps, int bytes, int bytesAfterDecompression) {

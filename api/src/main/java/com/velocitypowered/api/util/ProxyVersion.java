@@ -9,6 +9,7 @@ package com.velocitypowered.api.util;
 
 import com.google.common.base.Preconditions;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -72,12 +73,28 @@ public final class ProxyVersion {
   }
 
   /**
+   * Pattern matching the {@code -b<digits>} suffix appended to {@code Implementation-Version}
+   * by the CI build pipeline when a build number is available. Its presence is the signal
+   * that a jar is a published build rather than a local development checkout — both share the
+   * same {@code -SNAPSHOT} marker otherwise.
+   */
+  private static final Pattern BUILD_NUMBER_SUFFIX = Pattern.compile("-b\\d+$");
+
+  /**
    * Checks whether this proxy version is a development (snapshot) version.
    *
    * @return true if this version is a development version
    */
   public boolean isDevelopmentVersion() {
-    return version.equalsIgnoreCase("<unknown>") || version.contains("SNAPSHOT");
+    if (version.equalsIgnoreCase("<unknown>")) {
+      return true;
+    }
+
+    if (BUILD_NUMBER_SUFFIX.matcher(version).find()) {
+      return false;
+    }
+
+    return version.contains("SNAPSHOT");
   }
 
   @Override

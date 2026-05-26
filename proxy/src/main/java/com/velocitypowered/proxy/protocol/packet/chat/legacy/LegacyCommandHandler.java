@@ -23,8 +23,12 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.chat.RateLimitedCommandHandler;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class LegacyCommandHandler extends RateLimitedCommandHandler<LegacyChatPacket> {
+
+  private static final Logger LOGGER = LogManager.getLogger(LegacyCommandHandler.class);
 
   private final ConnectedPlayer player;
 
@@ -50,7 +54,7 @@ public class LegacyCommandHandler extends RateLimitedCommandHandler<LegacyChatPa
   @Override
   public void handlePlayerCommandInternal(LegacyChatPacket packet) {
     String command = packet.getMessage().substring(1);
-    queueCommandResult(this.server, this.player, (event, newLastSeenMessages) -> {
+    queueCommandResult(LOGGER, this.server, this.player, (event, newLastSeenMessages) -> {
       CommandExecuteEvent.CommandResult result = event.getResult();
       if (result == CommandExecuteEvent.CommandResult.denied()) {
         return CompletableFuture.completedFuture(null);

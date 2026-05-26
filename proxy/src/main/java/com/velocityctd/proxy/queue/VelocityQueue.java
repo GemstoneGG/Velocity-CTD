@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity-CTD Contributors
+ * Copyright (C) 2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,6 +51,8 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
 
   private volatile ServerStatus serverStatus;
   private volatile QueueState state;
+
+  private @Nullable VelocityEtaTracker etaTracker;
 
   /**
    * Creates a fresh queue for the given backend server.
@@ -150,6 +152,19 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
   }
 
   @Override
+  public synchronized Optional<VelocityEtaTracker> getEtaTracker() {
+    if (!manager.isMasterProxy()) {
+      etaTracker = null;
+      return Optional.empty();
+    }
+
+    if (etaTracker == null) {
+      etaTracker = new VelocityEtaTracker(server);
+    }
+    return Optional.of(etaTracker);
+  }
+
+  @Override
   public void teardown() {
     playerList.clear();
   }
@@ -180,14 +195,6 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
   @ApiStatus.Internal
   void removeEntry(VelocityQueueEntry entry) {
     playerList.remove(entry.getUniqueId());
-  }
-
-  /**
-   * Computes the estimated time to transfer for the given position.
-   */
-  public int calculateEta(int position) {
-    int eta = (int) (server.getConfiguration().getQueue().getSendDelay() * position);
-    return Math.max(eta, 0);
   }
 
   /**

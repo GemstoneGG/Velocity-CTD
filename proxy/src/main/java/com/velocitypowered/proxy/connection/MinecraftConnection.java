@@ -57,7 +57,6 @@ import com.velocitypowered.proxy.protocol.netty.PlayPacketQueueInboundHandler;
 import com.velocitypowered.proxy.protocol.netty.PlayPacketQueueOutboundHandler;
 import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
 import com.velocitypowered.proxy.protocol.packet.SetCompressionPacket;
-import com.velocitypowered.proxy.util.ClosestLocaleMatcher;
 import com.velocitypowered.proxy.util.except.QuietDecoderException;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -204,8 +203,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
           if (activeSessionHandler instanceof ClientPlaySessionHandler) {
             if (MAX_CLIENT_PACKET_SIZE > 0 && buf.readableBytes() > MAX_CLIENT_PACKET_SIZE) {
               LOGGER.error("{}: received oversized packet ({} bytes > {} byte limit)", association, buf.readableBytes(), MAX_CLIENT_PACKET_SIZE);
-              Component translated = GlobalTranslator.render(Component.translatable("velocity.kick.oversized-packet"),
-                  ClosestLocaleMatcher.INSTANCE.lookupClosest(Locale.getDefault()));
+              Component translated = GlobalTranslator.render(Component.translatable("velocity.kick.oversized-packet"), Locale.getDefault());
               closeWith(DisconnectPacket.create(translated, getProtocolVersion(), getState()));
               return;
             }
@@ -460,7 +458,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
       if (previousState == StateRegistry.PLAY
           && this.pendingConfigurationSwitch
           && this.association instanceof ConnectedPlayer) {
-        addPlayPacketQueueOutboundHandler();
+        addReconfigurationPlayPacketQueueHandler();
       } else {
         addPlayPacketQueueHandler();
       }
@@ -484,7 +482,20 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     if (this.channel.pipeline().get(Connections.PLAY_PACKET_QUEUE_INBOUND) == null) {
       this.channel.pipeline().addAfter(Connections.MINECRAFT_DECODER, Connections.PLAY_PACKET_QUEUE_INBOUND,
            new PlayPacketQueueInboundHandler(this.protocolVersion,
-               channel.pipeline().get(MinecraftDecoder.class).getDirection()));
+               channel.pipeline().get(MinecraftDecoder.class).getDirection(), false));
+    }
+  }
+
+  /**
+   * Adds the play packet queue handlers for a re-entrant configuration switch.
+   */
+  public void addReconfigurationPlayPacketQueueHandler() {
+    addPlayPacketQueueOutboundHandler();
+
+    if (this.channel.pipeline().get(Connections.PLAY_PACKET_QUEUE_INBOUND) == null) {
+      this.channel.pipeline().addAfter(Connections.MINECRAFT_DECODER, Connections.PLAY_PACKET_QUEUE_INBOUND,
+           new PlayPacketQueueInboundHandler(this.protocolVersion,
+               channel.pipeline().get(MinecraftDecoder.class).getDirection(), true));
     }
   }
 

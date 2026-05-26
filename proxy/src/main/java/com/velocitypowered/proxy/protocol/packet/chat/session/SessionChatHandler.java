@@ -17,15 +17,13 @@
 
 package com.velocitypowered.proxy.protocol.packet.chat.session;
 
-import static com.velocitypowered.proxy.protocol.packet.chat.keyed.KeyedChatHandler.invalidCancel;
-import static com.velocitypowered.proxy.protocol.packet.chat.keyed.KeyedChatHandler.invalidChange;
-
 import com.velocitypowered.api.event.EventManager;
 import com.velocitypowered.api.event.player.PlayerChatEvent;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatHandler;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatQueue;
+import com.velocitypowered.proxy.protocol.packet.chat.SignedChatViolations;
 import java.util.concurrent.CompletableFuture;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -60,7 +58,7 @@ public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> 
               PlayerChatEvent.ChatResult chatResult = pme.getResult();
               if (!chatResult.isAllowed()) {
                 if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
-                  invalidCancel(LOGGER, player);
+                  SignedChatViolations.invalidCancel(player);
                 }
 
                 return null;
@@ -69,7 +67,7 @@ public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> 
               if (chatResult.getMessage().map(str -> !str.equals(packet.getMessage()))
                   .orElse(false)) {
                 if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
-                  invalidChange(LOGGER, player);
+                  SignedChatViolations.invalidChange(player);
                   return null;
                 }
 
