@@ -48,7 +48,7 @@ public enum TranslatableMapper implements BiConsumer<TranslatableComponent, Cons
   @Override
   public void accept(TranslatableComponent translatableComponent,
                      Consumer<Component> componentConsumer) {
-    Locale locale = ClosestLocaleMatcher.INSTANCE.lookupClosest(Locale.getDefault());
+    Locale locale = Locale.getDefault();
     if (GlobalTranslator.translator().canTranslate(translatableComponent.key(), locale)) {
       componentConsumer.accept(GlobalTranslator.render(translatableComponent, locale));
     } else {

@@ -25,9 +25,9 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatHandler;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatQueue;
+import com.velocitypowered.proxy.protocol.packet.chat.SignedChatViolations;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-import net.kyori.adventure.text.Component;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -47,22 +47,6 @@ public class KeyedChatHandler implements ChatHandler<KeyedPlayerChatPacket> {
   @Override
   public Class<KeyedPlayerChatPacket> packetClass() {
     return KeyedPlayerChatPacket.class;
-  }
-
-  public static void invalidCancel(Logger logger, ConnectedPlayer player) {
-    logger.fatal("A plugin tried to cancel a signed chat message."
-        + " This is no longer possible in 1.19.1 and newer. "
-        + "Disconnecting player {}", player.getUsername());
-    player.disconnect(Component.text("A proxy plugin caused an illegal protocol state. "
-        + "Contact your network administrator."));
-  }
-
-  public static void invalidChange(Logger logger, ConnectedPlayer player) {
-    logger.fatal("A plugin tried to change a signed chat message. "
-        + "This is no longer possible in 1.19.1 and newer. "
-        + "Disconnecting player {}", player.getUsername());
-    player.disconnect(Component.text("A proxy plugin caused an illegal protocol state. "
-        + "Contact your network administrator."));
   }
 
   @Override
@@ -108,7 +92,7 @@ public class KeyedChatHandler implements ChatHandler<KeyedPlayerChatPacket> {
       if (!chatResult.isAllowed()) {
         if (this.server.getConfiguration().enforceChatSigning() && playerKey.getKeyRevision().noLessThan(IdentifiedKey.Revision.LINKED_V2)) {
           // Bad, very bad.
-          invalidCancel(LOGGER, player);
+          SignedChatViolations.invalidCancel(player);
         }
 
         return null;
@@ -117,7 +101,7 @@ public class KeyedChatHandler implements ChatHandler<KeyedPlayerChatPacket> {
       if (chatResult.getMessage().map(str -> !str.equals(packet.getMessage())).orElse(false)) {
         if (this.server.getConfiguration().enforceChatSigning() && playerKey.getKeyRevision().noLessThan(IdentifiedKey.Revision.LINKED_V2)) {
           // Bad, very bad.
-          invalidChange(LOGGER, player);
+          SignedChatViolations.invalidChange(player);
         } else {
           LOGGER.warn("A plugin changed a signed chat message. The server may not accept it.");
           return player.getChatBuilderFactory().builder()

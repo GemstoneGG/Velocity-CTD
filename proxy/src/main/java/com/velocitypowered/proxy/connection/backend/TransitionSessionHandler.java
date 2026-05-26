@@ -151,7 +151,9 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
             serverConn.ensureConnected().write(player.getClientSettingsPacket());
           }
 
-          server.getClusterPlayerService().onPlayerSwitchServer(player,
+          server.getClusterPlayerService().onPlayerSwitchServer(
+              player,
+              previousServer != null ? previousServer.getServerInfo().getName() : null,
               serverConn.getServerInfo().getName());
 
           if (this.server.isQueueEnabled()) {

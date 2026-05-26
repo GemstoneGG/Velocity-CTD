@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity-CTD Contributors
+ * Copyright (C) 2026 Velocity-CTD Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ package com.velocityctd.proxy.redis.handler;
 import com.velocityctd.proxy.queue.RedisVelocityQueueManager;
 import com.velocityctd.proxy.queue.VelocityQueue;
 import com.velocityctd.proxy.queue.VelocityQueueEntry;
+import com.velocityctd.proxy.queue.redis.packet.VelocityBackendLeave;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueSync;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueTransfer;
 import com.velocityctd.proxy.redis.data.VelocityActionBar;
@@ -135,6 +136,15 @@ public enum RouteHandlerRegistry {
   VELOCITY_QUEUE_SYNC(VelocityQueueSync.class, (server, data) -> {
     RedisVelocityQueueManager redisVelocityQueueManager = ((RedisVelocityQueueManager) server.getQueueManager());
     redisVelocityQueueManager.handleSync(data);
+  }),
+
+  /**
+   * Handles the {@link VelocityBackendLeave} data by forwarding the leave to the queue manager.
+   */
+  VELOCITY_BACKEND_LEAVE(VelocityBackendLeave.class, (server, data) -> {
+    if (server.isQueueEnabled()) {
+      server.getQueueManager().onGlobalBackendLeave(data.serverName(), data.leaveMillis());
+    }
   }),
 
   /**
