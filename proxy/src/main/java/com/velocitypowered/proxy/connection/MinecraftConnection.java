@@ -458,7 +458,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
       if (previousState == StateRegistry.PLAY
           && this.pendingConfigurationSwitch
           && this.association instanceof ConnectedPlayer) {
-        addPlayPacketQueueOutboundHandler();
+        addReconfigurationPlayPacketQueueHandler();
       } else {
         addPlayPacketQueueHandler();
       }
@@ -482,7 +482,20 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     if (this.channel.pipeline().get(Connections.PLAY_PACKET_QUEUE_INBOUND) == null) {
       this.channel.pipeline().addAfter(Connections.MINECRAFT_DECODER, Connections.PLAY_PACKET_QUEUE_INBOUND,
            new PlayPacketQueueInboundHandler(this.protocolVersion,
-               channel.pipeline().get(MinecraftDecoder.class).getDirection()));
+               channel.pipeline().get(MinecraftDecoder.class).getDirection(), false));
+    }
+  }
+
+  /**
+   * Adds the play packet queue handlers for a re-entrant configuration switch.
+   */
+  public void addReconfigurationPlayPacketQueueHandler() {
+    addPlayPacketQueueOutboundHandler();
+
+    if (this.channel.pipeline().get(Connections.PLAY_PACKET_QUEUE_INBOUND) == null) {
+      this.channel.pipeline().addAfter(Connections.MINECRAFT_DECODER, Connections.PLAY_PACKET_QUEUE_INBOUND,
+           new PlayPacketQueueInboundHandler(this.protocolVersion,
+               channel.pipeline().get(MinecraftDecoder.class).getDirection(), true));
     }
   }
 
