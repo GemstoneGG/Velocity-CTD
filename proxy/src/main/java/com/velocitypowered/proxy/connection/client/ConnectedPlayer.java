@@ -1592,13 +1592,14 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
         resourcePackHandler.getAppliedResourcePacks());
     byte[] cookieData = ResourcePackTransfer.createCookieData(
         server.getTransferPackSecret().get(), session);
-    if (cookieData == null) {
-      // No packs to carry across the transfer; the cookie packet would be meaningless.
-      return;
-    }
 
+    // When there are no packs to carry we still store an empty payload. Cookies persist on the
+    // client across transfers, so skipping the write would leave a cookie a previous proxy stored
+    // intact, and a later hop would then read stale applied-pack state. The receiving side decodes
+    // an empty payload as "no applied packs".
     connection.write(new ClientboundStoreCookiePacket(
-        ResourcePackTransfer.APPLIED_RESOURCE_PACKS_KEY, cookieData));
+        ResourcePackTransfer.APPLIED_RESOURCE_PACKS_KEY,
+        cookieData == null ? new byte[0] : cookieData));
   }
 
   @Override

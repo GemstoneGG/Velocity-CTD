@@ -165,8 +165,8 @@ public final class ResourcePackTransfer {
     ByteBuf buffer = Unpooled.wrappedBuffer(data);
     try {
       int size = ProtocolUtils.readVarInt(buffer);
-      NettyPreconditions.checkFrame(size <= MAX_APPLIED_PACKS,
-          "Too many applied packs (got %s, maximum is %s)", size, MAX_APPLIED_PACKS);
+      NettyPreconditions.checkFrame(size >= 0 && size <= MAX_APPLIED_PACKS,
+          "Invalid applied pack count (got %s, maximum is %s)", size, MAX_APPLIED_PACKS);
       List<ResourcePackInfo> appliedResourcePacks = new ArrayList<>(size);
       for (int i = 0; i < size; i++) {
         VelocityResourcePackInfo.BuilderImpl builder =

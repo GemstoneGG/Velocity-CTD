@@ -46,7 +46,6 @@ import com.velocitypowered.proxy.protocol.packet.ServerboundCookieResponsePacket
 import com.velocitypowered.proxy.protocol.packet.SetCompressionPacket;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.CodecException;
 import java.security.SignatureException;
 import java.util.Objects;
 import java.util.Optional;
@@ -207,7 +206,8 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
       player.resourcePackHandler().loadAppliedResourcePacks(session.appliedPacks());
     } catch (SignatureException e) {
       LOGGER.warn("Signature error while loading applied resource packs of {}", player.getUsername(), e);
-    } catch (IndexOutOfBoundsException | CodecException e) {
+    } catch (RuntimeException e) {
+      // Restoring pack state is best-effort; don't let exceptions bubble up and skip login completion.
       LOGGER.warn("Error while decoding applied resource packs of {}", player.getUsername(), e);
     }
   }
