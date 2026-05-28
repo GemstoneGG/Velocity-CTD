@@ -19,8 +19,8 @@ package com.velocitypowered.proxy;
 
 import static java.util.function.Function.identity;
 
+import com.velocityctd.proxy.util.ComponentUtils;
 import com.velocitypowered.proxy.util.ClosestLocaleTranslator;
-import com.velocitypowered.proxy.util.ComponentUtils;
 import com.velocitypowered.proxy.util.ResourceUtils;
 import java.io.IOException;
 import java.io.InputStream;
