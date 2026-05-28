@@ -56,7 +56,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -513,7 +512,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           // See https://github.com/vansencool/FastServerPings/issues/8
           // May be removed after a while.
           .map(s -> s.isEmpty() ? " " : s)
-          .map(MiniMessage.miniMessage()::deserialize)
+          .map(ComponentUtils::deserialize)
           .toList();
     }
 
