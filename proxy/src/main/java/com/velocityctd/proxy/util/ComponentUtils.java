@@ -74,7 +74,7 @@ public final class ComponentUtils {
    * @param input the string to parse
    * @return the parsed component, or an empty component if {@code input} is {@code null}
    */
-  public static @NotNull Component deserialize(@Nullable String input) {
+  public static @NotNull Component parse(@Nullable String input) {
     if (input == null) {
       return Component.empty();
     }

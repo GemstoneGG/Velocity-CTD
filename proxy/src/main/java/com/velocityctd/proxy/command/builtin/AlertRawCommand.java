@@ -73,6 +73,6 @@ public class AlertRawCommand implements BuiltinCommandDefinition {
 
   private static Component format(String message) {
     return Component.translatable("velocity.command.alertraw.message",
-        NamedTextColor.WHITE, ComponentUtils.deserialize(message));
+        NamedTextColor.WHITE, ComponentUtils.parse(message));
   }
 }

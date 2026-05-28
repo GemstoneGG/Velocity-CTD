@@ -276,6 +276,6 @@ public class CommandUtils {
       }
     }
 
-    return ComponentUtils.deserialize(raw);
+    return ComponentUtils.parse(raw);
   }
 }

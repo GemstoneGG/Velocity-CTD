@@ -498,7 +498,7 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Override
   public Component getMotd() {
     if (motdAsComponent == null) {
-      motdAsComponent = ComponentUtils.deserialize(motd);
+      motdAsComponent = ComponentUtils.parse(motd);
     }
 
     return motdAsComponent;
@@ -512,7 +512,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           // See https://github.com/vansencool/FastServerPings/issues/8
           // May be removed after a while.
           .map(s -> s.isEmpty() ? " " : s)
-          .map(ComponentUtils::deserialize)
+          .map(ComponentUtils::parse)
           .toList();
     }
 
@@ -1195,7 +1195,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           if (label != null && url != null) {
             for (String scope : scopes) {
               links.computeIfAbsent(scope, s -> new ArrayList<>())
-                  .add(ServerLink.serverLink(ComponentUtils.deserialize(label), url));
+                  .add(ServerLink.serverLink(ComponentUtils.parse(label), url));
             }
           }
         }
@@ -1319,7 +1319,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       if (label != null && url != null) {
         for (String scope : scopes) {
           links.computeIfAbsent(scope, s -> new ArrayList<>())
-              .add(ServerLink.serverLink(ComponentUtils.deserialize(label), url));
+              .add(ServerLink.serverLink(ComponentUtils.parse(label), url));
         }
       }
     }
@@ -2094,9 +2094,9 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
 
       this.serverBrandAsString = LegacyComponentSerializer.legacySection()
-          .serialize(ComponentUtils.deserialize(this.serverBrand));
+          .serialize(ComponentUtils.parse(this.serverBrand));
       this.fallbackVersionPingAsString = LegacyComponentSerializer.legacySection()
-          .serialize(ComponentUtils.deserialize(this.fallbackVersionPing));
+          .serialize(ComponentUtils.parse(this.fallbackVersionPing));
     }
 
     public int getCompressionThreshold() {
