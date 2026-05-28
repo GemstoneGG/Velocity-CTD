@@ -17,13 +17,9 @@
 
 package com.velocitypowered.proxy.util;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import gg.gemstone.component.ComponentParser;
+import gg.gemstone.component.translator.MiniMessageTranslators;
 import java.util.Locale;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.TranslatableComponent;
@@ -33,180 +29,55 @@ import net.kyori.adventure.translation.GlobalTranslator;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Utility methods for working with Adventure {@link net.kyori.adventure.text.Component}s
- * using {@link net.kyori.adventure.text.minimessage.MiniMessage}.
+ * Utility methods for working with Adventure {@link net.kyori.adventure.text.Component}s.
  *
- * <p>This utility supports:
- * <ul>
- *   <li>Serialization and deserialization of components using MiniMessage</li>
- *   <li>Support for legacy formatting codes (e.g., {@code &a}, {@code &l})</li>
- *   <li>Support for boxed and unboxed hex color patterns, including Mojang-style formats</li>
- *   <li>Pattern normalization and hex stripping utilities</li>
- * </ul>
- * </p>
+ * <p>User-supplied text is parsed through the {@code gg.gemstone:component} library, which
+ * normalizes legacy {@code &}/{@code §} formatting codes and Mojang-style hex colors into
+ * MiniMessage before deserialization.
  */
 public final class ComponentUtils {
 
   /**
-   * Matches MiniMessage-style boxed hex codes (e.g. {@code <#FFFFFF>}).
+   * Shared {@link ComponentParser} configured to accept MiniMessage, Mojang-style hex colors
+   * ({@code <&#RRGGBB>}, {@code &#RRGGBB}), bare hex colors ({@code #RRGGBB}) and both
+   * {@code &} and {@code §} legacy formatting codes.
    */
-  private static final Pattern BOXED_HEX_PATTERN = Pattern.compile("<#([A-Fa-f0-9]){6}>");
-
-  /**
-   * Matches Mojang-style boxed hex codes (e.g. {@code <&#FFFFFF>}).
-   */
-  private static final Pattern BOXED_MOJANG_PATTERN = Pattern.compile("<&#([A-Fa-f0-9]){6}>");
-
-  /**
-   * Matches unboxed hex codes (e.g. {@code #FFFFFF}).
-   */
-  private static final Pattern UNBOXED_HEX_PATTERN = Pattern.compile("#([A-Fa-f0-9]){6}");
-
-  /**
-   * Matches Mojang-style unboxed hex codes (e.g. {@code &#FFFFFF}).
-   */
-  private static final Pattern UNBOXED_MOJANG_PATTERN = Pattern.compile("&#([A-Fa-f0-9]){6}");
-
-  /**
-   * Ordered list of hex patterns used to normalize or box color codes.
-   *
-   * <p>The order is significant and determines which formats are parsed first.</p>
-   */
-  private static final List<Pattern> ODD_HEX_PATTERNS = Arrays.asList(
-      BOXED_MOJANG_PATTERN,
-      BOXED_HEX_PATTERN,
-      UNBOXED_MOJANG_PATTERN,
-      UNBOXED_HEX_PATTERN
-  );
-
-  /**
-   * Subset of hex patterns considered unboxed and requiring potential wrapping.
-   */
-  private static final List<Pattern> UNBOXED_PATTERNS = Arrays.asList(
-      UNBOXED_HEX_PATTERN,
-      UNBOXED_MOJANG_PATTERN
-  );
-
-  /**
-   * Subset of hex patterns considered Mojang-style for cleanup.
-   */
-  private static final List<Pattern> MOJANG_PATTERNS = Arrays.asList(
-      BOXED_MOJANG_PATTERN,
-      UNBOXED_MOJANG_PATTERN
-  );
-
-  /**
-   * Shared MiniMessage instance configured with lenient parsing.
-   */
-  private static final MiniMessage MINI = MiniMessage.builder()
-      .strict(false)
+  private static final ComponentParser PARSER = ComponentParser.builder()
+      .withTranslators(
+          MiniMessageTranslators.MOJANG_BOXED_HEX,
+          MiniMessageTranslators.MOJANG_UNBOXED_HEX,
+          MiniMessageTranslators.UNBOXED_HEX,
+          MiniMessageTranslators.LEGACY_CODE_AMPERSAND,
+          MiniMessageTranslators.LEGACY_CODE_SECTION)
+      .withMiniMessage(MiniMessage.builder().strict(false).build())
       .build();
-
-  /**
-   * Maps legacy formatting codes (e.g. {@code &a}, {@code &l}) to their MiniMessage equivalents.
-   */
-  private static final Map<String, String> COLOR_MAP = new HashMap<>();
-
-  static {
-    COLOR_MAP.put("§", "&");
-    COLOR_MAP.put("&0", "<reset><black>");
-    COLOR_MAP.put("&1", "<reset><dark_blue>");
-    COLOR_MAP.put("&2", "<reset><dark_green>");
-    COLOR_MAP.put("&3", "<reset><dark_aqua>");
-    COLOR_MAP.put("&4", "<reset><dark_red>");
-    COLOR_MAP.put("&5", "<reset><dark_purple>");
-    COLOR_MAP.put("&6", "<reset><gold>");
-    COLOR_MAP.put("&7", "<reset><gray>");
-    COLOR_MAP.put("&8", "<reset><dark_gray>");
-    COLOR_MAP.put("&9", "<reset><blue>");
-    COLOR_MAP.put("&a", "<reset><green>");
-    COLOR_MAP.put("&b", "<reset><aqua>");
-    COLOR_MAP.put("&c", "<reset><red>");
-    COLOR_MAP.put("&d", "<reset><light_purple>");
-    COLOR_MAP.put("&e", "<reset><yellow>");
-    COLOR_MAP.put("&f", "<reset><white>");
-    COLOR_MAP.put("&k", "<obfuscated>");
-    COLOR_MAP.put("&l", "<bold>");
-    COLOR_MAP.put("&m", "<strikethrough>");
-    COLOR_MAP.put("&n", "<underlined>");
-    COLOR_MAP.put("&o", "<italic>");
-    COLOR_MAP.put("&r", "<reset>");
-    COLOR_MAP.put("\\n", "<newline>");
-  }
 
   private ComponentUtils() {
     throw new AssertionError("Instances of this class should not be created.");
   }
 
   /**
-   * Serialize a component to a string.
+   * Returns the shared {@link ComponentParser} used to translate user-supplied text into
+   * components.
    *
-   * @param component the component to serialize
-   * @return the serialized component
+   * @return the shared parser
    */
-  public static @NotNull String serializeComponent(Component component) {
-    return MINI.serialize(component);
+  public static @NotNull ComponentParser parser() {
+    return PARSER;
   }
 
   /**
-   * Parses a string to a component.
+   * Parses a user-supplied string into a {@link Component}, normalizing legacy formatting codes
+   * and Mojang-style hex colors into MiniMessage.
    *
    * @param input the string to parse
-   * @return the parsed component
+   * @return the parsed component, or an empty component if {@code input} is {@code null}
    */
-  public static @NotNull Component parseComponent(String input) {
-    return MINI.deserialize(colorifyLegacy(input));
-  }
-
-  /**
-   * Colorify component parsing hex patterns.
-   *
-   * @param input the string to colorify into a component
-   * @return the colorized component
-   */
-  public static @NotNull Component colorify(String input) {
+  public static @NotNull Component deserialize(String input) {
     if (input == null) {
       return Component.empty();
     }
-
-    String parsedStr = input;
-
-    // Parse the hex patterns
-    for (Pattern pattern : ODD_HEX_PATTERNS) {
-      parsedStr = colorMatcher(parsedStr, pattern, UNBOXED_PATTERNS.contains(pattern));
-    }
-
-    return parseComponent(parsedStr.replace("D#DONE", "#"));
-  }
-
-  /**
-   * Colorify legacy parsing legacy color codes.
-   *
-   * @param input the string to colorify into a component
-   * @return the colorized component
-   */
-  public static String colorifyLegacy(String input) {
-    String parsedStr = input;
-
-    for (Map.Entry<String, String> entry : COLOR_MAP.entrySet()) {
-      parsedStr = parsedStr.replace(entry.getKey(), entry.getValue());
-    }
-
-    return parsedStr;
-  }
-
-  /**
-   * Strips matching hex patterns from a string.
-   *
-   * @param input the input
-   * @return the string
-   */
-  public static String stripHex(String input) {
-    for (Pattern pattern : ODD_HEX_PATTERNS) {
-      input = pattern.matcher(input).replaceAll("");
-    }
-
-    return input;
+    return PARSER.parse(input);
   }
 
   /**
@@ -252,61 +123,5 @@ public final class ComponentUtils {
     }
 
     return false;
-  }
-
-  private static @NotNull String colorMatcher(@NotNull String literal, @NotNull Pattern pattern, boolean unboxed) {
-    Matcher matcher = pattern.matcher(literal);
-
-    while (matcher.find()) {
-      String matched = matcher.group();
-      boolean requiresBoxing = false;
-
-      if (unboxed) {
-        int literalIndex = literal.indexOf(matched);
-        int afterLiteralIndex = literalIndex + matched.length();
-
-        if (literal.length() >= afterLiteralIndex) {
-          char charAt = literal.charAt(afterLiteralIndex);
-
-          if (charAt != ':' && charAt != '>') {
-            requiresBoxing = true;
-          }
-        }
-      }
-
-      int index = matched.indexOf("#");
-      String hexCode = matched.substring(index + 1, index + 7);
-
-      if (!requiresBoxing) {
-        String start;
-        String end = matched.substring(index + 7);
-        if (MOJANG_PATTERNS.contains(pattern)) {
-          start = matched.substring(0, index).replace("&", "");
-        } else {
-          start = matched.substring(0, index);
-        }
-        literal = literal.replace(matched, start + "D#DONE" + hexCode + end);
-      } else {
-        literal = literal.replace(matched, "<D#DONE" + hexCode + ">");
-      }
-    }
-
-    return literal;
-  }
-
-  /**
-   * Normalize any hex pattern to a standard hex pattern.
-   *
-   * @param hex the hex pattern to normalize
-   * @return the normalized hex pattern
-   */
-  private static @NotNull String normalizeHex(@NotNull String hex) {
-    if (hex.startsWith("<") || hex.startsWith("{")) {
-      return hex.substring(1, hex.length() - 1);
-    } else if (hex.startsWith("&")) {
-      return hex.substring(1);
-    } else {
-      return hex;
-    }
   }
 }

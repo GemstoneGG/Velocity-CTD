@@ -164,6 +164,7 @@ dependencies {
     implementation(libs.adventure.text.serializer.json.legacy.impl)
     implementation(libs.adventure.facet)
     implementation(libs.completablefutures)
+    implementation(libs.component)
     implementation(libs.nightconfig)
     implementation(libs.bstats)
     implementation(libs.lmbda)

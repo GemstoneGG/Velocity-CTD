@@ -38,6 +38,7 @@ import com.velocitypowered.proxy.config.migration.MotdMigration;
 import com.velocitypowered.proxy.config.migration.PacketLimiterMigration;
 import com.velocitypowered.proxy.config.migration.TransferIntegrationMigration;
 import com.velocitypowered.proxy.util.AddressUtil;
+import com.velocitypowered.proxy.util.ComponentUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
@@ -498,7 +499,7 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Override
   public Component getMotd() {
     if (motdAsComponent == null) {
-      motdAsComponent = MiniMessage.miniMessage().deserialize(motd);
+      motdAsComponent = ComponentUtils.deserialize(motd);
     }
 
     return motdAsComponent;
@@ -1195,7 +1196,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           if (label != null && url != null) {
             for (String scope : scopes) {
               links.computeIfAbsent(scope, s -> new ArrayList<>())
-                  .add(ServerLink.serverLink(MiniMessage.miniMessage().deserialize(label), url));
+                  .add(ServerLink.serverLink(ComponentUtils.deserialize(label), url));
             }
           }
         }
@@ -1319,7 +1320,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       if (label != null && url != null) {
         for (String scope : scopes) {
           links.computeIfAbsent(scope, s -> new ArrayList<>())
-              .add(ServerLink.serverLink(MiniMessage.miniMessage().deserialize(label), url));
+              .add(ServerLink.serverLink(ComponentUtils.deserialize(label), url));
         }
       }
     }
@@ -2094,9 +2095,9 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
 
       this.serverBrandAsString = LegacyComponentSerializer.legacySection()
-          .serialize(MiniMessage.miniMessage().deserialize(this.serverBrand));
+          .serialize(ComponentUtils.deserialize(this.serverBrand));
       this.fallbackVersionPingAsString = LegacyComponentSerializer.legacySection()
-          .serialize(MiniMessage.miniMessage().deserialize(this.fallbackVersionPing));
+          .serialize(ComponentUtils.deserialize(this.fallbackVersionPing));
     }
 
     public int getCompressionThreshold() {
