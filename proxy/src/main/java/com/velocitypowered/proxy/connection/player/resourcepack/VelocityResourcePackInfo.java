@@ -197,7 +197,7 @@ public final class VelocityResourcePackInfo implements ResourcePackInfo {
     }
 
     @Override
-    public ResourcePackInfo build() {
+    public VelocityResourcePackInfo build() {
       return new VelocityResourcePackInfo(id, url, hash, shouldForce, prompt, origin);
     }
 

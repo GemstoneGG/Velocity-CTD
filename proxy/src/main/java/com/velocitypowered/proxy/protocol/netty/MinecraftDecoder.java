@@ -148,7 +148,7 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
     }
 
     if (buf.readableBytes() < expectedMinLen) {
-      throw handleUnderflow(packet, expectedMaxLen, buf.readableBytes());
+      throw handleUnderflow(packet, expectedMinLen, buf.readableBytes());
     }
   }
 

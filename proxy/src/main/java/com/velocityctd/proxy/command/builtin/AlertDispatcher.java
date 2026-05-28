@@ -42,33 +42,35 @@ final class AlertDispatcher {
   }
 
   /**
-   * Dispatches an alert with an optional target.
+   * Dispatches an alert. The raw {@code input} is split on its first whitespace into a
+   * candidate target and the remaining message text; using a single greedy-string argument
+   * upstream means callers can include characters that Brigadier's {@code word()} parser
+   * rejects (notably {@code &} colour codes).
    *
-   * <p>If {@code target} is {@code null}, broadcasts {@code message} to all players (legacy
-   * behavior). Otherwise attempts to resolve {@code target} as a {@link PlayerIdentifier}:</p>
+   * <p>Behaviour after the split:</p>
    * <ul>
-   *   <li>If it resolves, the alert is sent to the resolved players only.</li>
+   *   <li>If the first token resolves as a {@link PlayerIdentifier}, the rest of the input
+   *       is sent to those players.</li>
    *   <li>If it has an explicit identifier prefix ({@code +}, {@code -}) or is an identifier
    *       keyword ({@code all}, {@code current}) but fails to resolve, an error is sent.</li>
-   *   <li>Otherwise (e.g. an unknown bare word) the input is treated as part of the message
-   *       and broadcast to all players, preserving backwards compatibility with
-   *       {@code /alert <message>}.</li>
+   *   <li>Otherwise (e.g. an unknown bare word) the entire input is treated as a message and
+   *       broadcast to all players, preserving backwards compatibility with the legacy
+   *       {@code /alert <message>} form.</li>
    * </ul>
    *
    * @param server       the proxy server
    * @param source       the command source
-   * @param target       the optional target argument, or {@code null} when only a message was given
-   * @param message      the message body
-   * @param noMessageKey translation key to use when {@code message} is empty
+   * @param input        the full argument input (target + message, or just a message)
+   * @param noMessageKey translation key to use when there is no message to send
    * @param formatter    builds the final alert component from the raw message text
    * @return {@link com.mojang.brigadier.Command#SINGLE_SUCCESS} on success, {@code 0} on failure
    */
   static int dispatch(VelocityServer server, CommandSource source,
-                      String target, String message, String noMessageKey,
+                      String input, String noMessageKey,
                       Function<String, Component> formatter) {
-    if (target == null) {
-      return broadcast(server, source, message, noMessageKey, formatter);
-    }
+    int split = indexOfWhitespace(input);
+    String target = split == -1 ? input : input.substring(0, split);
+    String message = split == -1 ? "" : input.substring(split + 1);
 
     PlayerIdentifier.Result result = PlayerIdentifier.resolve(server, target, source);
     if (result.success()) {
@@ -91,19 +93,22 @@ final class AlertDispatcher {
       return 0;
     }
 
-    String combined = message.isEmpty() ? target : target + " " + message;
-    return broadcast(server, source, combined, noMessageKey, formatter);
-  }
-
-  private static int broadcast(VelocityServer server, CommandSource source, String message,
-                               String noMessageKey, Function<String, Component> formatter) {
-    if (message.isEmpty()) {
+    if (input.isEmpty()) {
       source.sendMessage(Component.translatable(noMessageKey, NamedTextColor.YELLOW));
       return 0;
     }
 
-    server.getClusterPlayerService().broadcastAlert(formatter.apply(message));
+    server.getClusterPlayerService().broadcastAlert(formatter.apply(input));
     return SINGLE_SUCCESS;
+  }
+
+  private static int indexOfWhitespace(String s) {
+    for (int i = 0; i < s.length(); i++) {
+      if (Character.isWhitespace(s.charAt(i))) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   private static boolean looksLikeIdentifier(String target) {

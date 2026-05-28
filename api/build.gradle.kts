@@ -64,7 +64,9 @@ tasks {
             "https://guava.dev/releases/${libs.guava.get().version}/api/docs/",
             "https://google.github.io/guice/api-docs/${libs.guice.get().version}/javadoc/",
             "https://docs.oracle.com/en/java/javase/21/docs/api/",
-            "https://jd.papermc.io/adventure/${libs.adventure.bom.get().version}/",
+            "https://jd.advntr.dev/api/${libs.adventure.bom.get().version}/",
+            "https://jd.advntr.dev/text-minimessage/${libs.adventure.bom.get().version}/",
+            "https://jd.advntr.dev/key/${libs.adventure.bom.get().version}/",
         )
 
         o.tags(

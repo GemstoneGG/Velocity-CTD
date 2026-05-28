@@ -162,6 +162,7 @@ dependencies {
     implementation(libs.fastutil)
     implementation(platform(libs.adventure.bom))
     implementation(libs.adventure.text.serializer.json.legacy.impl)
+    implementation(libs.adventure.facet)
     implementation(libs.completablefutures)
     implementation(libs.nightconfig)
     implementation(libs.bstats)

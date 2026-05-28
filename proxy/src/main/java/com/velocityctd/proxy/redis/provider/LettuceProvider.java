@@ -391,6 +391,23 @@ public final class LettuceProvider extends AbstractRedisProvider {
   }
 
   /**
+   * Atomically sets the key only if it does not already exist using the regular (non-pub/sub)
+   * connection.
+   *
+   * @param key   the key to set
+   * @param value the value to store
+   */
+  @Override
+  public void setIfAbsent(@NotNull String key, @NotNull String value) {
+    if (this.syncPublisher == null) {
+      LOGGER.warn("Attempted to set-if-absent key '{}' but the sync connection is not initialized", key);
+      return;
+    }
+
+    this.syncPublisher.setnx(key, value);
+  }
+
+  /**
    * Checks whether a key exists in Redis using the regular (non-pub/sub) connection.
    *
    * @param key the key to check

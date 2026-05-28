@@ -70,6 +70,12 @@ public sealed class LegacyResourcePackHandler extends ResourcePackHandler permit
   }
 
   @Override
+  public void loadAppliedResourcePacks(Collection<ResourcePackInfo> appliedResourcePacks) {
+    throw new UnsupportedOperationException(
+        "Legacy resource pack handlers do not support loading applied packs from a transfer");
+  }
+
+  @Override
   public @NotNull Collection<ResourcePackInfo> getPendingResourcePacks() {
     if (pendingResourcePack == null) {
       return List.of();

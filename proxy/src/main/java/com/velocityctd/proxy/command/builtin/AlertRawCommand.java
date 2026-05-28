@@ -36,8 +36,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
  */
 public class AlertRawCommand implements BuiltinCommandDefinition {
 
-  private static final String TARGET_ARG = "target";
-  private static final String MESSAGE_ARG = "message";
+  private static final String INPUT_ARG = "message";
   private static final String NO_MESSAGE_KEY = "velocity.command.alertraw.no-message";
 
   private final VelocityServer server;
@@ -59,28 +58,17 @@ public class AlertRawCommand implements BuiltinCommandDefinition {
                     source.getPermissionValue("velocity.command.alertraw") == Tristate.TRUE)
             .executes(ctx -> CommandUtils.emitUsage(ctx, "velocity.command.alertraw.usage"))
             .then(BrigadierCommand
-                    .requiredArgumentBuilder(TARGET_ARG, StringArgumentType.word())
-                    .suggests(PlayerIdentifier.suggest(server, TARGET_ARG))
-                    .executes(this::alertSingle)
-                    .then(BrigadierCommand
-                            .requiredArgumentBuilder(MESSAGE_ARG, StringArgumentType.greedyString())
-                            .executes(this::alertWithTarget)));
+                    .requiredArgumentBuilder(INPUT_ARG, StringArgumentType.greedyString())
+                    .suggests(PlayerIdentifier.suggest(server, INPUT_ARG))
+                    .executes(this::alert));
 
     return new BrigadierCommand(rootNode);
   }
 
-  private int alertSingle(CommandContext<CommandSource> context) {
-    // Single-argument form: treat the argument as the entire message (legacy /alertraw <message>).
-    String message = StringArgumentType.getString(context, TARGET_ARG);
+  private int alert(CommandContext<CommandSource> context) {
+    String input = StringArgumentType.getString(context, INPUT_ARG);
     return AlertDispatcher.dispatch(server, context.getSource(),
-        null, message, NO_MESSAGE_KEY, AlertRawCommand::format);
-  }
-
-  private int alertWithTarget(CommandContext<CommandSource> context) {
-    String target = StringArgumentType.getString(context, TARGET_ARG);
-    String message = StringArgumentType.getString(context, MESSAGE_ARG);
-    return AlertDispatcher.dispatch(server, context.getSource(),
-        target, message, NO_MESSAGE_KEY, AlertRawCommand::format);
+        input, NO_MESSAGE_KEY, AlertRawCommand::format);
   }
 
   private static Component format(String message) {

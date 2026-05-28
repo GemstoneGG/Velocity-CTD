@@ -141,6 +141,14 @@ public sealed interface RedisProvider permits AbstractRedisProvider {
   void setWithExpiry(@NotNull String key, @NotNull String value, long ttlSeconds);
 
   /**
+   * Atomically sets the key to the given value only if it does not already exist.
+   *
+   * @param key   the key to set
+   * @param value the value to store
+   */
+  void setIfAbsent(@NotNull String key, @NotNull String value);
+
+  /**
    * Checks whether a key exists in Redis.
    *
    * @param key the key to check

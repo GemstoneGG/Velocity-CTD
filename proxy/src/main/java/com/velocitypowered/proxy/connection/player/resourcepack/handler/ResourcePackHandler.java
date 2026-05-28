@@ -92,6 +92,8 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
 
   public abstract @NotNull Collection<ResourcePackInfo> getAppliedResourcePacks();
 
+  public abstract void loadAppliedResourcePacks(Collection<ResourcePackInfo> appliedResourcePacks);
+
   public abstract @NotNull Collection<ResourcePackInfo> getPendingResourcePacks();
 
   /**
