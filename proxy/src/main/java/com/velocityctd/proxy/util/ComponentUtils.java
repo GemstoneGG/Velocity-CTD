@@ -27,6 +27,7 @@ import net.kyori.adventure.text.TranslationArgument;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.translation.GlobalTranslator;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Utility methods for working with Adventure {@link net.kyori.adventure.text.Component}s.
@@ -73,7 +74,7 @@ public final class ComponentUtils {
    * @param input the string to parse
    * @return the parsed component, or an empty component if {@code input} is {@code null}
    */
-  public static @NotNull Component deserialize(String input) {
+  public static @NotNull Component deserialize(@Nullable String input) {
     if (input == null) {
       return Component.empty();
     }
