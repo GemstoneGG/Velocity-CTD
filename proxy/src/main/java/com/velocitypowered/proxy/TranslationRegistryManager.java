@@ -20,6 +20,7 @@ package com.velocitypowered.proxy;
 import static java.util.function.Function.identity;
 
 import com.velocitypowered.proxy.util.ClosestLocaleTranslator;
+import com.velocitypowered.proxy.util.ComponentUtils;
 import com.velocitypowered.proxy.util.ResourceUtils;
 import java.io.IOException;
 import java.io.InputStream;
@@ -68,8 +69,8 @@ public class TranslationRegistryManager {
   }
 
   void registerTranslations() {
-    MiniMessageTranslationStore translationRegistry =
-        MiniMessageTranslationStore.create(this.translationRegistryKey);
+    MiniMessageTranslationStore translationRegistry = MiniMessageTranslationStore.create(
+        this.translationRegistryKey, ComponentUtils.parser().asMiniMessage());
     translationRegistry.defaultLocale(Locale.US);
 
     ClosestLocaleTranslator closestLocaleTranslator = new ClosestLocaleTranslator(translationRegistry);
