@@ -184,9 +184,9 @@ public final class ResourcePackTransfer {
               .deserialize(ProtocolUtils.readString(buffer)));
         }
 
-        builder.setOrigin(ORIGINS[ProtocolUtils.readVarInt(buffer)]);
+        builder.setOrigin(readOrigin(buffer));
         VelocityResourcePackInfo appliedResourcePack = builder.build();
-        appliedResourcePack.setOriginalOrigin(ORIGINS[ProtocolUtils.readVarInt(buffer)]);
+        appliedResourcePack.setOriginalOrigin(readOrigin(buffer));
         appliedResourcePacks.add(appliedResourcePack);
       }
 
@@ -194,5 +194,12 @@ public final class ResourcePackTransfer {
     } finally {
       buffer.release();
     }
+  }
+
+  private static ResourcePackInfo.Origin readOrigin(ByteBuf buffer) {
+    int ordinal = ProtocolUtils.readVarInt(buffer);
+    NettyPreconditions.checkFrame(ordinal >= 0 && ordinal < ORIGINS.length,
+        "Invalid resource pack origin ordinal (got %s, maximum is %s)", ordinal, ORIGINS.length - 1);
+    return ORIGINS[ordinal];
   }
 }
