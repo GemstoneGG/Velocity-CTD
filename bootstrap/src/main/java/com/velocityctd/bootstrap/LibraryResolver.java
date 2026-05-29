@@ -69,7 +69,9 @@ public final class LibraryResolver {
   public List<Path> resolve(Path librariesDir, boolean verify) {
     List<Path> resolved = new ArrayList<>(manifest.dependencies().size());
     for (Dependency dependency : manifest.dependencies()) {
-      resolved.add(ensure(dependency, librariesDir, verify));
+      // Always verify embedded jars (re-extract on hash mismatch)
+      resolved.add(ensure(dependency, librariesDir,
+          verify || dependency.origin() == Origin.EMBEDDED));
     }
     return resolved;
   }
