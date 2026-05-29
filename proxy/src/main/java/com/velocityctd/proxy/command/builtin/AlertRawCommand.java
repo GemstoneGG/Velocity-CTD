@@ -22,12 +22,12 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.velocityctd.proxy.command.CommandUtils;
 import com.velocityctd.proxy.command.PlayerIdentifier;
+import com.velocityctd.proxy.util.ComponentUtils;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.builtin.BuiltinCommandDefinition;
-import com.velocitypowered.proxy.util.ComponentUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
@@ -73,6 +73,6 @@ public class AlertRawCommand implements BuiltinCommandDefinition {
 
   private static Component format(String message) {
     return Component.translatable("velocity.command.alertraw.message",
-        NamedTextColor.WHITE, ComponentUtils.colorify(message));
+        NamedTextColor.WHITE, ComponentUtils.parse(message));
   }
 }

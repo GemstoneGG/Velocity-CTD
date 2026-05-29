@@ -24,6 +24,7 @@ caffeine = "com.github.ben-manes.caffeine:caffeine:3.2.4"
 checker-qual = "org.checkerframework:checker-qual:4.1.0"
 checkstyle = "com.puppycrawl.tools:checkstyle:13.4.2"
 completablefutures = "com.spotify:completable-futures:0.3.6"
+component = "gg.gemstone:component:1.0.1"
 configurate3-hocon = { module = "org.spongepowered:configurate-hocon", version.ref = "configurate3" }
 configurate3-yaml = { module = "org.spongepowered:configurate-yaml", version.ref = "configurate3" }
 configurate3-gson = { module = "org.spongepowered:configurate-gson", version.ref = "configurate3" }
