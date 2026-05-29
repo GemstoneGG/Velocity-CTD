@@ -35,7 +35,7 @@ public final class BootstrapLogger {
   }
 
   /**
-   * Logs at a trace level (only logs when {@link BootstrapLogger#setTrace} was set to {@code true}).
+   * Logs at a trace level (only logs when {@link #setTrace} was set to {@code true}).
    *
    * @param message the trace message to log
    */
