@@ -32,6 +32,10 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * Resolves every {@link Dependency} in a {@link LibraryManifest} into a local jar file, downloading
@@ -39,6 +43,8 @@ import java.util.List;
  * checksums.
  */
 public final class LibraryResolver {
+
+  private static final int MAX_PARALLEL_DOWNLOADS = 8;
 
   private final LibraryManifest manifest;
   private final ClassLoader resourceLoader;
@@ -64,19 +70,70 @@ public final class LibraryResolver {
    *
    * @param librariesDir the directory that mirrors a Maven repository layout
    * @param verify whether to re-verify the checksum of already-cached files
+   * @param parallel whether to resolve dependencies concurrently
    * @return the resolved jar paths, in manifest order
    */
-  public List<Path> resolve(Path librariesDir, boolean verify) {
-    List<Path> resolved = new ArrayList<>(manifest.dependencies().size());
-    for (Dependency dependency : manifest.dependencies()) {
-      // Always verify embedded jars (re-extract on hash mismatch)
-      resolved.add(ensure(dependency, librariesDir,
-          verify || dependency.origin() == Origin.EMBEDDED));
+  public List<Path> resolve(Path librariesDir, boolean verify, boolean parallel) {
+    List<Dependency> dependencies = manifest.dependencies();
+    if (!parallel || dependencies.size() <= 1) {
+      List<Path> resolved = new ArrayList<>(dependencies.size());
+      for (Dependency dependency : dependencies) {
+        resolved.add(ensure(dependency, librariesDir, verify));
+      }
+      return resolved;
     }
-    return resolved;
+
+    return resolveParallel(dependencies, librariesDir, verify);
+  }
+
+  private List<Path> resolveParallel(List<Dependency> dependencies, Path librariesDir, boolean verify) {
+    int threads = Math.min(dependencies.size(), MAX_PARALLEL_DOWNLOADS);
+    BootstrapLogger.trace("Resolving " + dependencies.size() + " libraries using " + threads + " threads.");
+
+    ExecutorService executor = Executors.newFixedThreadPool(threads, runnable -> {
+      Thread thread = new Thread(runnable, "velocityctd-bootstrap-resolver");
+      thread.setDaemon(true);
+      return thread;
+    });
+
+    try {
+      List<Future<Path>> futures = new ArrayList<>(dependencies.size());
+      for (Dependency dependency : dependencies) {
+        futures.add(executor.submit(() -> ensure(dependency, librariesDir, verify)));
+      }
+
+      List<Path> resolved = new ArrayList<>(dependencies.size());
+      for (Future<Path> future : futures) {
+        resolved.add(awaitResult(future));
+      }
+      return resolved;
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  private static Path awaitResult(Future<Path> future) {
+    try {
+      return future.get();
+    } catch (ExecutionException exception) {
+      Throwable cause = exception.getCause();
+      if (cause instanceof RuntimeException runtime) {
+        throw runtime;
+      }
+      if (cause instanceof Error error) {
+        throw error;
+      }
+      throw new IllegalStateException("Failed to resolve library", cause);
+    } catch (InterruptedException exception) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Interrupted while resolving libraries", exception);
+    }
   }
 
   private Path ensure(Dependency dependency, Path librariesDir, boolean verify) {
+    // Always verify embedded jars (re-extract on hash mismatch).
+    verify |= dependency.origin() == Origin.EMBEDDED;
+
     Path target = librariesDir.resolve(dependency.relativePath());
     if (Files.isRegularFile(target) && (!verify || checksumMatches(target, dependency.sha256()))) {
       return target;

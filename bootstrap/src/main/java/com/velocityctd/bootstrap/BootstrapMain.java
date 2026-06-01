@@ -37,6 +37,7 @@ public final class BootstrapMain {
   private static final String LIBRARIES_PROPERTY = "velocityctd.bootstrap.libraries";
   private static final String VERIFY_PROPERTY = "velocityctd.bootstrap.verify";
   private static final String CLEAN_PROPERTY = "velocityctd.bootstrap.clean";
+  private static final String PARALLEL_PROPERTY = "velocityctd.bootstrap.parallel";
 
   private static final String MANIFEST_RESOURCE = "META-INF/velocityctd/libraries.list";
 
@@ -62,6 +63,7 @@ public final class BootstrapMain {
     Path librariesDir = Path.of(System.getProperty(LIBRARIES_PROPERTY, DEFAULT_LIBRARIES_DIR)).toAbsolutePath();
     boolean verify = Boolean.parseBoolean(System.getProperty(VERIFY_PROPERTY, "true"));
     boolean clean = Boolean.parseBoolean(System.getProperty(CLEAN_PROPERTY, "false"));
+    boolean parallel = Boolean.parseBoolean(System.getProperty(PARALLEL_PROPERTY, "true"));
 
     BootstrapLogger.trace("Found " + manifest.dependencies().size() + " libraries.");
     if (clean) {
@@ -81,7 +83,7 @@ public final class BootstrapMain {
     }
 
     long startTime = System.nanoTime();
-    List<Path> jars = new LibraryResolver(manifest, bootstrapLoader).resolve(librariesDir, verify);
+    List<Path> jars = new LibraryResolver(manifest, bootstrapLoader).resolve(librariesDir, verify, parallel);
     double resolveTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime) / 1000d;
 
     BootstrapLogger.trace("Done (" + new DecimalFormat("#.##").format(resolveTime) + "s).");
