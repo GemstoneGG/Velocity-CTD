@@ -60,7 +60,7 @@ public final class BootstrapLogger {
    * @param message the warning message to log
    */
   public static void warn(String message) {
-    System.out.println(WARN_PREFIX + message);
+    System.err.println(WARN_PREFIX + message);
   }
 
   /**
