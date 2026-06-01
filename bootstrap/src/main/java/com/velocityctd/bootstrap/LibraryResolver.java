@@ -36,6 +36,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Resolves every {@link Dependency} in a {@link LibraryManifest} into a local jar file, downloading
@@ -45,6 +46,11 @@ import java.util.concurrent.Future;
 public final class LibraryResolver {
 
   private static final int MAX_PARALLEL_DOWNLOADS = 8;
+
+  private static final int MAX_DOWNLOAD_ATTEMPTS = 3;
+
+  private static final Duration INITIAL_BACKOFF = Duration.ofMillis(500);
+  private static final Duration MAX_BACKOFF = Duration.ofSeconds(5);
 
   private final LibraryManifest manifest;
   private final ClassLoader resourceLoader;
@@ -180,6 +186,24 @@ public final class LibraryResolver {
       String base = repository.endsWith("/") ? repository : repository + "/";
       String url = base + dependency.relativePath();
       attempted.add(url);
+      if (downloadFrom(url, dependency, target)) {
+        return;
+      }
+    }
+
+    throw new IllegalStateException("Could not download " + describe(dependency) + " from any repository. Tried: " + attempted);
+  }
+
+  /**
+   * Attempts to download and verify an artifact from a single repository, retrying transient
+   * failures (connection errors, read timeouts, 408/429/5xx responses) with exponential backoff.
+   *
+   * @return {@code true} if the artifact was downloaded and moved into place; {@code false} if it
+   *         is absent or invalid here (a 4xx, a checksum mismatch, or exhausted transient retries) and
+   *         the caller should fall through to the next repository
+   */
+  private boolean downloadFrom(String url, Dependency dependency, Path target) {
+    for (int attempt = 1; ; attempt++) {
       try {
         Path temp = Files.createTempFile(target.getParent(), ".download", ".tmp");
         try {
@@ -189,32 +213,63 @@ public final class LibraryResolver {
                   .GET()
                   .build(),
               BodyHandlers.ofFile(temp));
-          if (response.statusCode() != 200) {
-            continue;
+          int status = response.statusCode();
+          if (status != 200) {
+            if (isTransientStatus(status) && attempt < MAX_DOWNLOAD_ATTEMPTS) {
+              BootstrapLogger.warn("HTTP " + status + " from " + url + " (attempt " + attempt + "/"
+                  + MAX_DOWNLOAD_ATTEMPTS + "). Retrying.");
+              backoff(attempt);
+              continue;
+            }
+            return false;
           }
 
           if (!checksumMatches(temp, dependency.sha256())) {
             BootstrapLogger.warn("Checksum mismatch for " + describe(dependency) + " from " + url
                 + " (expected " + dependency.sha256() + "). Trying next repository.");
-            continue;
+            return false;
           }
 
           Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
           BootstrapLogger.trace("Downloaded " + describe(dependency));
 
-          return;
+          return true;
         } finally {
           Files.deleteIfExists(temp);
         }
       } catch (IOException exception) {
-        BootstrapLogger.warn("Failed downloading from " + url + ": " + exception.getMessage());
+        if (attempt < MAX_DOWNLOAD_ATTEMPTS) {
+          BootstrapLogger.warn("Failed downloading from " + url + ": " + exception.getMessage()
+              + " (attempt " + attempt + "/" + MAX_DOWNLOAD_ATTEMPTS + "). Retrying.");
+          backoff(attempt);
+          continue;
+        }
+        BootstrapLogger.warn("Failed downloading from " + url + ": " + exception.getMessage()
+            + " (gave up after " + MAX_DOWNLOAD_ATTEMPTS + " attempts). Trying next repository.");
+        return false;
       } catch (InterruptedException exception) {
         Thread.currentThread().interrupt();
         throw new IllegalStateException("Interrupted while downloading " + url, exception);
       }
     }
+  }
 
-    throw new IllegalStateException("Could not download " + describe(dependency) + " from any repository. Tried: " + attempted);
+  private static boolean isTransientStatus(int status) {
+    return status == 408 || status == 429 || status >= 500;
+  }
+
+  private static void backoff(int attempt) {
+    long cap = Math.min(
+        INITIAL_BACKOFF.toMillis() << (attempt - 1),
+        MAX_BACKOFF.toMillis());
+    long half = cap / 2;
+    long millis = half + ThreadLocalRandom.current().nextLong(half + 1);
+    try {
+      Thread.sleep(millis);
+    } catch (InterruptedException exception) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Interrupted while backing off before retry", exception);
+    }
   }
 
   private void verifyOrThrow(Path file, Dependency dependency) {
