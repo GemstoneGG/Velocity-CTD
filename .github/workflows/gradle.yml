@@ -67,12 +67,19 @@ jobs:
         BUILD_NUMBER: ${{ steps.release_tag.outputs.build_nr }}
       run: ./gradlew build
 
-    - name: Rename Velocity-CTD Jar
+    - name: Rename Velocity-CTD Fat Jar
       if: github.ref == env.RELEASE_BRANCH
       run: |
         JAR=$(ls proxy/build/libs/velocity-proxy-*-all.jar)
         VERSION=$(echo "$JAR" | sed 's|proxy/build/libs/velocity-proxy-||' | sed 's|-all\.jar||')
-        cp "$JAR" "proxy/build/libs/velocity-ctd-$VERSION-${{ steps.release_tag.outputs.build_nr }}.jar"
+        cp "$JAR" "proxy/build/libs/velocity-ctd-fatjar-$VERSION-${{ steps.release_tag.outputs.build_nr }}.jar"
+
+    - name: Rename Velocity-CTD Bootstrap Jar
+      if: github.ref == env.RELEASE_BRANCH
+      run: |
+        JAR=$(ls bootstrap/build/libs/velocity-bootstrap-*.jar | grep -v -- '-sources\.jar')
+        VERSION=$(echo "$JAR" | sed 's|bootstrap/build/libs/velocity-bootstrap-||' | sed 's|\.jar||')
+        cp "$JAR" "bootstrap/build/libs/velocity-ctd-$VERSION-${{ steps.release_tag.outputs.build_nr }}.jar"
 
     - name: Publish to Maven Repository
       if: github.ref == env.RELEASE_BRANCH
@@ -91,5 +98,7 @@ jobs:
         title: "Velocity-CTD"
         automatic_release_tag: "${{ steps.release_tag.outputs.tag }}"
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        files: "proxy/build/libs/velocity-ctd-*-${{ steps.release_tag.outputs.build_nr }}.jar"
+        files: |
+          proxy/build/libs/velocity-ctd-fatjar-*-${{ steps.release_tag.outputs.build_nr }}.jar
+          bootstrap/build/libs/velocity-ctd-*-${{ steps.release_tag.outputs.build_nr }}.jar
         prerelease: false
