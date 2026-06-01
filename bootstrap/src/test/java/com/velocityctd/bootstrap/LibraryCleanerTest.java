@@ -97,6 +97,24 @@ class LibraryCleanerTest {
   }
 
   @Test
+  void preservesNonJarFiles(@TempDir Path tempDir) throws IOException {
+    Dependency stale = dependency("org.other", "unused", "2.0.0");
+    Path staleJar = touch(tempDir, stale);
+    Path checksum = staleJar.resolveSibling(staleJar.getFileName() + ".sha256");
+    Path readme = tempDir.resolve("README.txt");
+    Files.writeString(checksum, "deadbeef");
+    Files.writeString(readme, "do not delete me");
+
+    int removed = new LibraryCleaner(manifestOf()).clean(tempDir);
+
+    assertEquals(1, removed);
+    assertFalse(Files.exists(staleJar));
+    // Non-jar files are left untouched, even when their directory tree is otherwise stale.
+    assertTrue(Files.exists(checksum));
+    assertTrue(Files.exists(readme));
+  }
+
+  @Test
   void preservesTopLevelLibrariesDirectoryEvenWhenEmptied(@TempDir Path tempDir) throws IOException {
     Dependency stale = dependency("org.other", "unused", "2.0.0");
     touch(tempDir, stale);

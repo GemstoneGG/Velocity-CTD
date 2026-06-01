@@ -30,9 +30,13 @@ import java.util.stream.Stream;
 /**
  * Removes stale artifacts from the libraries directory: jars left over from older installs (no
  * longer required, or superseded by a newer version) and the now-empty directories they leave
- * behind. Anything present in the current {@link LibraryManifest} is preserved.
+ * behind. Only {@code *.jar} files are ever deleted; any other file is left untouched so that
+ * unrelated content placed under the directory cannot be removed. Anything present in the current
+ * {@link LibraryManifest} is preserved.
  */
 public final class LibraryCleaner {
+
+  private static final String JAR_SUFFIX = ".jar";
 
   private final LibraryManifest manifest;
 
@@ -46,8 +50,8 @@ public final class LibraryCleaner {
   }
 
   /**
-   * Removes every file under the libraries directory that is not required by the manifest, then
-   * prunes any directories left empty as a result.
+   * Removes every {@code *.jar} under the libraries directory that is not required by the manifest,
+   * then prunes any directories left empty as a result.
    *
    * @param librariesDir the directory that mirrors a Maven repository layout
    *
@@ -79,7 +83,7 @@ public final class LibraryCleaner {
 
     int removed = 0;
     for (Path file : files) {
-      if (expected.contains(file.normalize())) {
+      if (!isJar(file) || expected.contains(file.normalize())) {
         continue;
       }
       try {
@@ -113,6 +117,11 @@ public final class LibraryCleaner {
         BootstrapLogger.warn("Failed to remove directory " + directory + ": " + exception.getMessage());
       }
     }
+  }
+
+  private static boolean isJar(Path file) {
+    String name = file.getFileName().toString();
+    return name.regionMatches(true, name.length() - JAR_SUFFIX.length(), JAR_SUFFIX, 0, JAR_SUFFIX.length());
   }
 
   private static boolean isEmpty(Path directory) {
