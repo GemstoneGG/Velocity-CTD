@@ -62,7 +62,11 @@ val generatedLibrariesDir = layout.buildDirectory.dir("generated/libraries")
  * that cannot be addressed by the standard Maven layout are embedded directly.
  */
 val generateLibraries by tasks.registering {
-    val proxyJar = proxyProject.tasks.named<Jar>("jar")
+    // The proxy is embedded as a minimal shaded jar that bundles relocated copies of the proxy's
+    // `relocatedLibraries` (see :velocity-proxy:proxyRelocatedJar). Those same artifacts must be
+    // excluded from the Maven manifest below.
+    val proxyJar = proxyProject.tasks.named<Jar>("proxyRelocatedJar")
+    val relocatedLibraries = proxyProject.configurations.getByName("relocatedLibraries")
     val apiJar = apiProject.tasks.named<Jar>("jar")
     val nativeJar = nativeProject.tasks.named<Jar>("jar")
     val configurate3Jar = configurate3Project.tasks.named<Jar>("shadowJar")
@@ -70,6 +74,7 @@ val generateLibraries by tasks.registering {
     dependsOn(proxyJar, apiJar, nativeJar, configurate3Jar)
 
     inputs.files(proxyRuntimeClasspath)
+    inputs.files(relocatedLibraries)
     inputs.files(proxyJar, apiJar, nativeJar, configurate3Jar)
     inputs.property("version", project.version.toString())
     inputs.property("repositories", runtimeRepositories)
@@ -118,6 +123,12 @@ val generateLibraries by tasks.registering {
             configurate3Archive.get().asFile
         )
 
+        // Artifacts (and their transitives) that the proxy ships relocated inside its own jar. These
+        // must never be downloaded from Maven.
+        val relocatedKeys = relocatedLibraries.resolvedConfiguration.resolvedArtifacts
+            .map { "${it.moduleVersion.id.group}:${it.moduleVersion.id.name}" }
+            .toSet()
+
         val resolved = proxyRuntimeClasspath.resolvedConfiguration.resolvedArtifacts
         for (artifact in resolved) {
             if (artifact.id.componentIdentifier is ProjectComponentIdentifier) {
@@ -125,6 +136,10 @@ val generateLibraries by tasks.registering {
             }
 
             val id = artifact.moduleVersion.id
+
+            if ("${id.group}:${id.name}" in relocatedKeys) {
+                continue
+            }
             val classifier = artifact.classifier ?: "-"
             val extension = artifact.extension ?: "jar"
 
