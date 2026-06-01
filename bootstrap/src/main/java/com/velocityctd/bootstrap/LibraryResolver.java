@@ -135,7 +135,12 @@ public final class LibraryResolver {
             continue;
           }
 
-          verifyOrThrow(temp, dependency);
+          if (!checksumMatches(temp, dependency.sha256())) {
+            BootstrapLogger.warn("Checksum mismatch for " + describe(dependency) + " from " + url
+                + " (expected " + dependency.sha256() + "). Trying next repository.");
+            continue;
+          }
+
           Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
           BootstrapLogger.trace("Downloaded " + describe(dependency));
 
