@@ -61,10 +61,10 @@ class BootstrapLoggerTest {
   }
 
   @Test
-  void warningIsPrefixedAndWrittenToStandardOut() {
+  void warningIsPrefixedAndWrittenToStandardErr() {
     captureStreams();
     BootstrapLogger.warn("careful");
-    assertEquals("[bootstrap] WARN: careful" + System.lineSeparator(), capturedOut());
+    assertEquals("[bootstrap] WARN: careful" + System.lineSeparator(), capturedErr());
   }
 
   @Test
