@@ -185,6 +185,7 @@ public final class LibraryResolver {
         try {
           var response = httpClient.send(
               HttpRequest.newBuilder(URI.create(url))
+                  .timeout(Duration.ofSeconds(30))
                   .GET()
                   .build(),
               BodyHandlers.ofFile(temp));
