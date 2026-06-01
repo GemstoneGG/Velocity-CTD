@@ -83,7 +83,19 @@ public final class BootstrapMain {
     }
 
     long startTime = System.nanoTime();
-    List<Path> jars = new LibraryResolver(manifest, bootstrapLoader).resolve(librariesDir, verify, parallel);
+    List<Path> jars;
+    try {
+      jars = new LibraryResolver(manifest, bootstrapLoader).resolve(librariesDir, verify, parallel);
+    } catch (Exception e) {
+      BootstrapLogger.error("Failed to resolve the libraries required to start the proxy: " + e.getMessage());
+
+      // Advise to download fat jar on repeated failure. Should be removed if/when we don't ship the fat jar anymore.
+      BootstrapLogger.error("If this keeps happening (e.g. behind a firewall or while a repository "
+          + "is down), download the self-contained fat jar from https://github.com/GemstoneGG/Velocity-CTD/releases/latest "
+          + "instead.");
+
+      throw e;
+    }
     double resolveTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime) / 1000d;
 
     BootstrapLogger.trace("Done (" + new DecimalFormat("#.##").format(resolveTime) + "s).");
@@ -100,8 +112,7 @@ public final class BootstrapMain {
     }
   }
 
-  private static void launchProxy(String mainClassName, List<Path> jars, String[] args)
-      throws Exception {
+  private static void launchProxy(String mainClassName, List<Path> jars, String[] args) throws Exception {
     DependencyClassLoader loader = DependencyClassLoader.create(jars);
     Thread.currentThread().setContextClassLoader(loader);
     Class<?> mainClass = Class.forName(mainClassName, true, loader);
