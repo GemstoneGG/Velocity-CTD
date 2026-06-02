@@ -48,6 +48,8 @@ dependencies, useful performance improvements, and more.
 * Configurable `/find` command that locates yourself and other users.
 * Configurable `/gkick` command that kicks a player from the network, supporting
   both local and cross-proxy (Redis) players.
+* Configurable `/gkickall` command that kicks all players from network, supporting
+  both local and cross-proxy (Redis) players.
 * Configurable `/gip` command that retrieves the IP address of an online player,
   supporting both local and cross-proxy (Redis) players.
 * `/hub` with `/lobby` alias that sends you to the/a fallback server,
