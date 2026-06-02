@@ -115,42 +115,49 @@ public record FallbackServers(
   }
 
   /**
-   * Constructs a {@link FallbackServers} from a forced-host map entry, inheriting the global
-   * dynamic fallback filter from {@code config} if the entry does not define its own.
-   */
-  private static FallbackServers fromMapEntry(VelocityConfiguration config, String virtualHost, Map.Entry<String, ForcedHostEntry> entry) {
-    return new FallbackServers(
-        entry.getValue().getServers(),
-        Optional.ofNullable(entry.getValue().getDynamicFallbackFilter())
-            .orElseGet(config::getDynamicFallbackFilter),
-        virtualHost,
-        entry.getKey().toLowerCase(Locale.ROOT)
-    );
-  }
-
-  /**
    * Looks up a forced-host entry for the given {@code virtualHost}, trying an exact
    * case-insensitive match first, then a wildcard match (e.g. {@code *.example.com}).
    *
    * @return the matching {@link FallbackServers}, or {@link Optional#empty()} if no rule matches
+   *     (or the matched rule opted out of fallback behavior)
    */
   private static Optional<FallbackServers> getForcedHostFallbacks(VelocityConfiguration config, String virtualHost) {
     Map<String, ForcedHostEntry> forcedHosts = config.getForcedHostEntries();
     ForcedHostEntry exactMatch = forcedHosts.get(virtualHost);
     if (exactMatch != null) {
-      return Optional.of(fromMapEntry(config, virtualHost,
-          Map.entry(virtualHost, exactMatch)));
+      return forcedHostFallbacks(config, virtualHost, virtualHost, exactMatch);
     }
 
     // Check for wildcard ("*.example.com" matches "anything.example.com")
     for (Map.Entry<String, ForcedHostEntry> entry : forcedHosts.entrySet()) {
       String pattern = entry.getKey().toLowerCase(Locale.ROOT);
       if (pattern.startsWith("*.") && virtualHost.endsWith(pattern.substring(1))) {
-        return Optional.of(fromMapEntry(config, virtualHost, entry));
+        return forcedHostFallbacks(config, virtualHost, entry.getKey(), entry.getValue());
       }
     }
 
     return Optional.empty();
+  }
+
+  /**
+   * Wraps a matched forced-host entry as {@link FallbackServers}, honoring the entry's
+   * {@code forced-host-as-fallback} option. When that option is disabled the forced host is not
+   * used as a fallback chain and {@link Optional#empty()} is returned so the caller falls back to
+   * the global {@code attempt-connection-order}.
+   */
+  private static Optional<FallbackServers> forcedHostFallbacks(VelocityConfiguration config,
+                                                               String virtualHost, String pattern, ForcedHostEntry entry) {
+    if (!entry.isForcedHostAsFallback()) {
+      return Optional.empty();
+    }
+
+    return Optional.of(new FallbackServers(
+        entry.getServers(),
+        Optional.ofNullable(entry.getDynamicFallbackFilter())
+            .orElseGet(config::getDynamicFallbackFilter),
+        virtualHost,
+        pattern.toLowerCase(Locale.ROOT)
+    ));
   }
 
   /**
