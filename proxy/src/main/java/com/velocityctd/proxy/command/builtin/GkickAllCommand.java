@@ -78,7 +78,7 @@ public class GkickAllCommand implements BuiltinCommandDefinition {
     Collection<VelocityClusterPlayer> players = server.getClusterPlayerService().getAllPlayers();
 
     if (players.isEmpty()) {
-      context.getSource().sendMessage(Component.text("There are no players to kick."));
+      context.getSource().sendMessage(Component.translatable("velocity.command.gkickall.none"));
       return 0;
     }
 
