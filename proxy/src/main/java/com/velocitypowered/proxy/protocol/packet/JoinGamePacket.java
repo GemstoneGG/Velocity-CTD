@@ -75,6 +75,8 @@ public class JoinGamePacket implements MinecraftPacket {
 
   private int seaLevel;
 
+  private boolean onlineMode;
+
   private boolean enforcesSecureChat;
 
   public int getEntityId() {
@@ -383,6 +385,10 @@ public class JoinGamePacket implements MinecraftPacket {
     this.showRespawnScreen = buf.readBoolean();
     this.doLimitedCrafting = buf.readBoolean();
 
+    if (version.noLessThan(ProtocolVersion.MINECRAFT_26_2)) {
+      this.onlineMode = buf.readBoolean();
+    }
+
     String dimensionKey = "";
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
       dimension = ProtocolUtils.readVarInt(buf);
@@ -569,6 +575,10 @@ public class JoinGamePacket implements MinecraftPacket {
 
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_21_2)) {
       ProtocolUtils.writeVarInt(buf, seaLevel);
+    }
+
+    if (version.noLessThan(ProtocolVersion.MINECRAFT_26_2)) {
+      buf.writeBoolean(this.onlineMode);
     }
 
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
