@@ -19,6 +19,7 @@ package com.velocityctd.proxy.permission;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -38,21 +39,21 @@ class PermissionUtilsTest {
 
   @Test
   void rejectsNullPrefix() {
-    PermissionSubject subject = mock(PermissionSubject.class);
+    PermissionSubject subject = mock(PermissionSubject.class, CALLS_REAL_METHODS);
     assertThrows(NullPointerException.class,
         () -> PermissionUtils.findHighestPermissionValue(subject, null, 10));
   }
 
   @Test
   void rejectsPrefixWithoutTrailingDot() {
-    PermissionSubject subject = mock(PermissionSubject.class);
+    PermissionSubject subject = mock(PermissionSubject.class, CALLS_REAL_METHODS);
     assertThrows(IllegalArgumentException.class,
         () -> PermissionUtils.findHighestPermissionValue(subject, "prefix", 10));
   }
 
   @Test
   void rejectsMaxLessThanOrEqualToZero() {
-    PermissionSubject subject = mock(PermissionSubject.class);
+    PermissionSubject subject = mock(PermissionSubject.class, CALLS_REAL_METHODS);
     assertThrows(IllegalArgumentException.class,
         () -> PermissionUtils.findHighestPermissionValue(subject, "perm.", 0));
     assertThrows(IllegalArgumentException.class,
@@ -61,7 +62,7 @@ class PermissionUtilsTest {
 
   @Test
   void returnsEmptyWhenPermissionMapIsEmptyAndFastTrackFails() {
-    PermissionSubject subject = mock(PermissionSubject.class);
+    PermissionSubject subject = mock(PermissionSubject.class, CALLS_REAL_METHODS);
     when(subject.getPermissionMap()).thenReturn(Map.of());
     when(subject.getPermissionValue("perm.100")).thenReturn(Tristate.FALSE);
 
@@ -71,7 +72,7 @@ class PermissionUtilsTest {
 
   @Test
   void returnsMaxFromPermissionMap() {
-    PermissionSubject subject = mock(PermissionSubject.class);
+    PermissionSubject subject = mock(PermissionSubject.class, CALLS_REAL_METHODS);
     when(subject.getPermissionMap()).thenReturn(Map.of("timeout.30", true));
     when(subject.getPermissionValue("timeout.100")).thenReturn(Tristate.FALSE);
 
@@ -81,7 +82,7 @@ class PermissionUtilsTest {
 
   @Test
   void returnsHighestFromMultiplePermissionMapEntries() {
-    PermissionSubject subject = mock(PermissionSubject.class);
+    PermissionSubject subject = mock(PermissionSubject.class, CALLS_REAL_METHODS);
     when(subject.getPermissionMap()).thenReturn(Map.of(
         "timeout.10", true,
         "timeout.25", true,
@@ -96,7 +97,7 @@ class PermissionUtilsTest {
 
   @Test
   void filtersOutValuesAboveMaxFromPermissionMap() {
-    PermissionSubject subject = mock(PermissionSubject.class);
+    PermissionSubject subject = mock(PermissionSubject.class, CALLS_REAL_METHODS);
     when(subject.getPermissionMap()).thenReturn(Map.of(
         "timeout.10", true,
         "timeout.200", true,
@@ -110,7 +111,7 @@ class PermissionUtilsTest {
 
   @Test
   void fastTrackReturnsMaxWhenPermissionGranted() {
-    PermissionSubject subject = mock(PermissionSubject.class);
+    PermissionSubject subject = mock(PermissionSubject.class, CALLS_REAL_METHODS);
     when(subject.getPermissionMap()).thenReturn(Map.of());
     when(subject.getPermissionValue("timeout.100")).thenReturn(Tristate.TRUE);
 
@@ -120,7 +121,7 @@ class PermissionUtilsTest {
 
   @Test
   void skipsFalseEntriesInPermissionMap() {
-    PermissionSubject subject = mock(PermissionSubject.class);
+    PermissionSubject subject = mock(PermissionSubject.class, CALLS_REAL_METHODS);
     when(subject.getPermissionMap()).thenReturn(Map.of(
         "timeout.50", false,
         "timeout.30", true,
@@ -134,7 +135,7 @@ class PermissionUtilsTest {
 
   @Test
   void skipsNonNumericSuffixesGracefully() {
-    PermissionSubject subject = mock(PermissionSubject.class);
+    PermissionSubject subject = mock(PermissionSubject.class, CALLS_REAL_METHODS);
     when(subject.getPermissionMap()).thenReturn(Map.of(
         "timeout.abc", true,
         "timeout.30", true,
@@ -148,7 +149,7 @@ class PermissionUtilsTest {
 
   @Test
   void findsHighestViaGetPermissionValueWhenMapIsNull() {
-    PermissionSubject subject = mock(PermissionSubject.class);
+    PermissionSubject subject = mock(PermissionSubject.class, CALLS_REAL_METHODS);
     when(subject.getPermissionMap()).thenReturn(null);
     when(subject.getPermissionValue("timeout.10")).thenReturn(Tristate.FALSE);
     when(subject.getPermissionValue("timeout.9")).thenReturn(Tristate.FALSE);
@@ -160,7 +161,7 @@ class PermissionUtilsTest {
 
   @Test
   void returnsEmptyWhenPermissionMapIsNullAndNoneGranted() {
-    PermissionSubject subject = mock(PermissionSubject.class);
+    PermissionSubject subject = mock(PermissionSubject.class, CALLS_REAL_METHODS);
     when(subject.getPermissionMap()).thenReturn(null);
     for (int i = 1; i <= 10; i++) {
       when(subject.getPermissionValue("timeout." + i)).thenReturn(Tristate.FALSE);
@@ -172,7 +173,7 @@ class PermissionUtilsTest {
 
   @Test
   void returnsValueWhenMaxIsOneAndGranted() {
-    PermissionSubject subject = mock(PermissionSubject.class);
+    PermissionSubject subject = mock(PermissionSubject.class, CALLS_REAL_METHODS);
     when(subject.getPermissionMap()).thenReturn(null);
     when(subject.getPermissionValue("timeout.1")).thenReturn(Tristate.TRUE);
 
