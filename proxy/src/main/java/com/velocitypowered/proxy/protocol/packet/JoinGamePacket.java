@@ -215,6 +215,10 @@ public class JoinGamePacket implements MinecraftPacket {
     this.seaLevel = seaLevel;
   }
 
+  public void setOnlineMode(boolean onlineMode) {
+    this.onlineMode = onlineMode;
+  }
+
   public boolean getEnforcesSecureChat() {
     return this.enforcesSecureChat;
   }
@@ -251,6 +255,7 @@ public class JoinGamePacket implements MinecraftPacket {
         + ", lastDeathPosition='" + lastDeathPosition + '\''
         + ", portalCooldown=" + portalCooldown
         + ", seaLevel=" + seaLevel
+        + ", onlineMode=" + onlineMode
         + '}';
   }
 
@@ -417,6 +422,10 @@ public class JoinGamePacket implements MinecraftPacket {
       this.seaLevel = ProtocolUtils.readVarInt(buf);
     }
 
+    if (version.noLessThan(ProtocolVersion.MINECRAFT_26_2)) {
+      this.onlineMode = buf.readBoolean();
+    }
+
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
       this.enforcesSecureChat = buf.readBoolean();
     }
@@ -575,6 +584,10 @@ public class JoinGamePacket implements MinecraftPacket {
 
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_21_2)) {
       ProtocolUtils.writeVarInt(buf, seaLevel);
+    }
+
+    if (version.noLessThan(ProtocolVersion.MINECRAFT_26_2)) {
+      buf.writeBoolean(this.onlineMode);
     }
 
     if (version.noLessThan(ProtocolVersion.MINECRAFT_26_2)) {
