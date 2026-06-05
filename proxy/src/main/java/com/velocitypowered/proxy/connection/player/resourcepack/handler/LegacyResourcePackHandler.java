@@ -138,7 +138,8 @@ public sealed class LegacyResourcePackHandler extends ResourcePackHandler permit
     boolean peek = bundle.status().isIntermediate();
     ResourcePackInfo queued = peek ? outstandingResourcePacks.peek() : outstandingResourcePacks.poll();
 
-    dispatchPackCallback(bundle.uuid(), bundle.status())
+    UUID callbackId = queued != null ? queued.getId() : bundle.uuid();
+    dispatchPackCallback(callbackId, bundle.status())
             .thenCompose(v -> server.getEventManager()
                   .fire(new PlayerResourcePackStatusEvent(this.player, bundle.uuid(), bundle.status(), queued)))
             .thenAcceptAsync(event -> {
