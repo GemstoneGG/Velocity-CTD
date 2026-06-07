@@ -85,6 +85,7 @@ import com.velocitypowered.proxy.connection.util.ConnectionMessages;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults.Impl;
 import com.velocitypowered.proxy.connection.util.FallbackServers;
 import com.velocitypowered.proxy.connection.util.VelocityInboundConnection;
+import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
@@ -122,6 +123,7 @@ import com.velocitypowered.proxy.util.TranslatableMapper;
 import com.velocitypowered.proxy.util.collect.CappedSet;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelPipeline;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.Collection;
@@ -828,10 +830,23 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    */
   public void fullyConnected() {
     this.fullyConnected = true;
+    installSeamlessTransferHandler();
 
     if (this.server.isQueueEnabled()) {
       this.server.getQueueManager().onLocalPlayerConnect(this);
     }
+  }
+
+  private void installSeamlessTransferHandler() {
+    ChannelPipeline pipeline = connection.getChannel().pipeline();
+    if (pipeline.get(SeamlessServerTransferHandler.NAME) != null) {
+      return;
+    }
+
+    pipeline.addBefore(Connections.HANDLER, SeamlessServerTransferHandler.NAME,
+        new SeamlessServerTransferHandler(this));
+    LOGGER.debug("Installing {} channel handler for {}.",
+        SeamlessServerTransferHandler.NAME, getUsername());
   }
 
   @Override
@@ -1966,6 +1981,45 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
         });
   }
 
+  public void finishSeamlessTransferConfigurationSuppression() {
+    SeamlessServerTransferHandler handler = getSeamlessTransferHandler();
+    if (handler != null) {
+      handler.finishConfigurationSuppression();
+    }
+  }
+
+  private void updateSeamlessTransferState(@Nullable VelocityRegisteredServer previousServer,
+                                           VelocityRegisteredServer targetServer) {
+    SeamlessServerTransferHandler handler = getSeamlessTransferHandler();
+    if (handler == null) {
+      return;
+    }
+
+    String previousServerName = previousServer == null ? null : previousServer.getServerInfo().getName();
+    String targetServerName = targetServer.getServerInfo().getName();
+    if (previousServerName != null
+        && server.getConfiguration().shouldUseSeamlessTransfer(previousServerName, targetServerName)) {
+      handler.startSeamlessTransfer(previousServerName, targetServerName);
+      return;
+    }
+
+    LOGGER.debug("Resetting/flushing seamless transfer for non-seamless route {} -> {} for {}.",
+        previousServerName == null ? "<none>" : previousServerName, targetServerName, getUsername());
+    handler.flushSeamlessTransfer();
+  }
+
+  private void flushSeamlessTransferState() {
+    SeamlessServerTransferHandler handler = getSeamlessTransferHandler();
+    if (handler != null) {
+      handler.flushSeamlessTransfer();
+    }
+  }
+
+  private @Nullable SeamlessServerTransferHandler getSeamlessTransferHandler() {
+    return (SeamlessServerTransferHandler) connection.getChannel().pipeline()
+        .get(SeamlessServerTransferHandler.NAME);
+  }
+
   /**
    * Gets the current "phase" of the connection, mostly used for tracking modded negotiation for
    * legacy forge servers and provides methods for performing phase-specific actions.
@@ -2062,24 +2116,32 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           // Cast required (API event class)
           VelocityRegisteredServer realDestination = (VelocityRegisteredServer) newEvent.getResult().getServer().orElse(null);
           if (realDestination == null) {
+            flushSeamlessTransferState();
             return completedFuture(plainResult(ConnectionRequestBuilder.Status.CONNECTION_CANCELLED, toConnect));
           }
 
           Optional<ConnectionRequestBuilder.Status> check = checkServer(realDestination);
           if (check.isPresent()) {
+            flushSeamlessTransferState();
             return completedFuture(plainResult(check.get(), realDestination));
           }
 
           // Check if the player's version is compatible with the server's minimum version
           if (!checkVersionCompatibility(realDestination)) {
+            flushSeamlessTransferState();
             return completedFuture(plainResult(ConnectionRequestBuilder.Status.CONNECTION_CANCELLED, realDestination));
           }
 
+          updateSeamlessTransferState(previousServer, realDestination);
           VelocityServerConnection con = new VelocityServerConnection(
               realDestination, previousServer, ConnectedPlayer.this, server);
           connectionInFlight = con;
 
           return con.connect().whenCompleteAsync((result, exception) -> {
+            if (exception != null || result == null || !result.isSuccessful()) {
+              flushSeamlessTransferState();
+            }
+
             if (result != null && !result.isSuccessful() && !result.isSafe()) {
               handleConnectionException(result.getAttemptedConnection(),
                   // The only way for the reason to be null is if the result is safe

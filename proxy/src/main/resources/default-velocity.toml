@@ -323,6 +323,10 @@ allow-illegal-characters-in-chat = false
 # Matching is case-insensitive and only applies after the player has completed initial login.
 skip-client-reconfiguration-servers = []
 
+# Backend server names that should use seamless server-to-server transfer suppression.
+# Both the previous and target server names must be listed for this to apply.
+seamless-transfer-servers = []
+
 # Modifies the server brand that displays in your debug menu.
 # Available options:
 # - "{protocol-min}":          Returns the lowest compatible version from the

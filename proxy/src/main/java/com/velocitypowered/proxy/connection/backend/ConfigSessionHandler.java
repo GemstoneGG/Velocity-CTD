@@ -147,12 +147,20 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(ClientboundCustomReportDetailsPacket packet) {
+    if (!shouldForwardConfigOnlyPacketToClient(packet)) {
+      return true;
+    }
+
     serverConn.getPlayer().getConnection().write(packet);
     return true;
   }
 
   @Override
   public boolean handle(ClientboundServerLinksPacket packet) {
+    if (!shouldForwardConfigOnlyPacketToClient(packet)) {
+      return true;
+    }
+
     serverConn.getPlayer().getConnection().write(packet);
     return true;
   }
@@ -286,6 +294,7 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
           .thenRunAsync(() -> finishConfigurationTransition(smc, player), smc.eventLoop());
     } else {
       warnIfUnexpectedClientState(packet);
+      player.finishSeamlessTransferConfigurationSuppression();
       sendClientBrandToBackend(smc, player);
       finishConfigurationTransition(smc, player);
     }
@@ -507,6 +516,12 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
       return true;
     }
 
+    if (isExpectedSkippedClientConfigurationState()) {
+      LOGGER.debug("Suppressing client reconfiguration/config packet {} for player {} when switching to {}.",
+          packet.getClass().getSimpleName(), serverConn.getPlayer().getUsername(), serverConn.getServerInfo().getName());
+      return false;
+    }
+
     warnIfUnexpectedClientState(packet);
     return false;
   }
@@ -518,12 +533,27 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
   private void warnIfUnexpectedClientState(MinecraftPacket packet) {
     ConnectedPlayer player = serverConn.getPlayer();
     StateRegistry clientState = player.getConnection().getState();
-    boolean expectedSkippedState = clientState == StateRegistry.PLAY
-        && server.getConfiguration().shouldSkipClientReconfiguration(serverConn.getServerInfo().getName());
-    if (!expectedSkippedState) {
+    if (!isExpectedSkippedClientConfigurationState()) {
       LOGGER.warn("Handling backend CONFIG packet {} for player {} on {} while the client is in {}.",
           packet.getClass().getSimpleName(), player.getUsername(), serverConn.getServerInfo().getName(), clientState);
     }
+  }
+
+  private boolean isExpectedSkippedClientConfigurationState() {
+    ConnectedPlayer player = serverConn.getPlayer();
+    if (player.getConnection().getState() != StateRegistry.PLAY) {
+      return false;
+    }
+
+    String targetServerName = serverConn.getServerInfo().getName();
+    if (server.getConfiguration().shouldSkipClientReconfiguration(targetServerName)) {
+      return true;
+    }
+
+    return serverConn.getPreviousServer()
+        .map(previous -> server.getConfiguration().shouldUseSeamlessTransfer(
+            previous.getServerInfo().getName(), targetServerName))
+        .orElse(false);
   }
 
   public enum State {

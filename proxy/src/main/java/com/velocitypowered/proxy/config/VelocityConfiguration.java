@@ -619,6 +619,14 @@ public final class VelocityConfiguration implements ProxyConfig {
     return advanced.shouldSkipClientReconfiguration(serverName);
   }
 
+  public boolean isSeamlessTransferServer(String serverName) {
+    return advanced.isSeamlessTransferServer(serverName);
+  }
+
+  public boolean shouldUseSeamlessTransfer(String previousServerName, String targetServerName) {
+    return advanced.shouldUseSeamlessTransfer(previousServerName, targetServerName);
+  }
+
   @Override
   public int getLoginRatelimit() {
     return advanced.getLoginRatelimit();
@@ -2023,6 +2031,9 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private Set<String> skipClientReconfigurationServers = Set.of();
 
+    @Expose
+    private Set<String> seamlessTransferServers = Set.of();
+
     /**
      * The display string for the backend brand, typically shown in debug tools.
      */
@@ -2098,6 +2109,9 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.skipClientReconfigurationServers = parseServerNameSet(
             config.get("skip-client-reconfiguration-servers"),
             "skip-client-reconfiguration-servers");
+        this.seamlessTransferServers = parseServerNameSet(
+            config.get("seamless-transfer-servers"),
+            "seamless-transfer-servers");
         this.serverBrand = config.getOrElse("server-brand", "{backend-brand} ({proxy-brand})");
         this.fallbackVersionPing = config.getOrElse("fallback-version-ping", "{proxy-brand} {protocol-min}-{protocol-max}");
         this.alwaysFallBackPing = config.getOrElse("always-fallback-ping", false);
@@ -2199,6 +2213,14 @@ public final class VelocityConfiguration implements ProxyConfig {
       return skipClientReconfigurationServers.contains(serverName.toLowerCase(Locale.ROOT));
     }
 
+    public boolean isSeamlessTransferServer(String serverName) {
+      return seamlessTransferServers.contains(serverName.toLowerCase(Locale.ROOT));
+    }
+
+    public boolean shouldUseSeamlessTransfer(String previousServerName, String targetServerName) {
+      return isSeamlessTransferServer(previousServerName) && isSeamlessTransferServer(targetServerName);
+    }
+
     public String getServerBrand() {
       return this.serverBrandAsString;
     }
@@ -2243,6 +2265,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("kickAfterRateLimitedTabCompletes", kickAfterRateLimitedTabCompletes)
           .add("allowIllegalCharactersInChat", allowIllegalCharactersInChat)
           .add("skipClientReconfigurationServers", skipClientReconfigurationServers)
+          .add("seamlessTransferServers", seamlessTransferServers)
           .add("serverBrand", serverBrand)
           .add("fallbackVersionPing", fallbackVersionPing)
           .add("alwaysFallBackPing", alwaysFallBackPing)

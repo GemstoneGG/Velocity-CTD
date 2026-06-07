@@ -173,8 +173,13 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
 
       if (player.getConnection().getActiveSessionHandler() instanceof ClientPlaySessionHandler clientPlaySessionHandler) {
         String targetServerName = serverConn.getServer().getServerInfo().getName();
+        boolean seamlessTransfer = serverConn.getPreviousServer()
+            .map(previous -> server.getConfiguration().shouldUseSeamlessTransfer(
+                previous.getServerInfo().getName(), targetServerName))
+            .orElse(false);
         boolean skipClientReconfiguration = player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_2)
-            && server.getConfiguration().shouldSkipClientReconfiguration(targetServerName);
+            && (server.getConfiguration().shouldSkipClientReconfiguration(targetServerName)
+                || seamlessTransfer);
         if (skipClientReconfiguration) {
           LOGGER.debug("Skipping client reconfiguration for player {} when switching to {}",
               player.getUsername(), targetServerName);
