@@ -50,15 +50,14 @@ import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Handles a player trying to log into the proxy.
  */
 public class LoginSessionHandler implements MinecraftSessionHandler {
 
-  static {
-    LogManager.getLogger(LoginSessionHandler.class);
-  }
+  private static final Logger LOGGER = LogManager.getLogger(LoginSessionHandler.class);
 
   private static final Component MODERN_IP_FORWARDING_FAILURE = Component.translatable("velocity.error.modern-forwarding-failed");
 
@@ -173,8 +172,16 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
       }
 
       if (player.getConnection().getActiveSessionHandler() instanceof ClientPlaySessionHandler clientPlaySessionHandler) {
+        String targetServerName = serverConn.getServer().getServerInfo().getName();
+        boolean skipClientReconfiguration = player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_2)
+            && server.getConfiguration().shouldSkipClientReconfiguration(targetServerName);
+        if (skipClientReconfiguration) {
+          LOGGER.debug("Skipping client reconfiguration for player {} when switching to {}",
+              player.getUsername(), targetServerName);
+        }
         smc.setAutoReading(false);
-        clientPlaySessionHandler.doSwitch().thenRunAsync(() -> smc.setAutoReading(true), smc.eventLoop());
+        clientPlaySessionHandler.doSwitch(skipClientReconfiguration)
+            .thenRunAsync(() -> smc.setAutoReading(true), smc.eventLoop());
       } else {
         // Initial login - the player is already in configuration state.
         server.getEventManager().fireAndForget(new PlayerEnteredConfigurationEvent(player, serverConn));

@@ -23,6 +23,7 @@ import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.gson.annotations.Expose;
 import com.velocityctd.proxy.config.migration.CtdConfigMigrations;
 import com.velocityctd.proxy.util.ComponentUtils;
@@ -55,6 +56,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.apache.logging.log4j.LogManager;
@@ -611,6 +613,10 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Override
   public int getCompressionLevel() {
     return advanced.getCompressionLevel();
+  }
+
+  public boolean shouldSkipClientReconfiguration(String serverName) {
+    return advanced.shouldSkipClientReconfiguration(serverName);
   }
 
   @Override
@@ -2014,6 +2020,9 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private boolean allowIllegalCharactersInChat = false;
 
+    @Expose
+    private Set<String> skipClientReconfigurationServers = Set.of();
+
     /**
      * The display string for the backend brand, typically shown in debug tools.
      */
@@ -2086,6 +2095,9 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.tabCompleteRateLimit = config.getIntOrElse("tab-complete-rate-limit", 10);
         this.kickAfterRateLimitedTabCompletes = config.getIntOrElse("kick-after-rate-limited-tab-completes", 0);
         this.allowIllegalCharactersInChat = config.getOrElse("allow-illegal-characters-in-chat", false);
+        this.skipClientReconfigurationServers = parseServerNameSet(
+            config.get("skip-client-reconfiguration-servers"),
+            "skip-client-reconfiguration-servers");
         this.serverBrand = config.getOrElse("server-brand", "{backend-brand} ({proxy-brand})");
         this.fallbackVersionPing = config.getOrElse("fallback-version-ping", "{proxy-brand} {protocol-min}-{protocol-max}");
         this.alwaysFallBackPing = config.getOrElse("always-fallback-ping", false);
@@ -2183,6 +2195,10 @@ public final class VelocityConfiguration implements ProxyConfig {
       return allowIllegalCharactersInChat;
     }
 
+    public boolean shouldSkipClientReconfiguration(String serverName) {
+      return skipClientReconfigurationServers.contains(serverName.toLowerCase(Locale.ROOT));
+    }
+
     public String getServerBrand() {
       return this.serverBrandAsString;
     }
@@ -2226,6 +2242,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("tabCompleteRateLimit", tabCompleteRateLimit)
           .add("kickAfterRateLimitedTabCompletes", kickAfterRateLimitedTabCompletes)
           .add("allowIllegalCharactersInChat", allowIllegalCharactersInChat)
+          .add("skipClientReconfigurationServers", skipClientReconfigurationServers)
           .add("serverBrand", serverBrand)
           .add("fallbackVersionPing", fallbackVersionPing)
           .add("alwaysFallBackPing", alwaysFallBackPing)
@@ -2233,6 +2250,25 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("backendBrandCustom", backendBrandCustom)
           .toString();
     }
+  }
+
+  private static Set<String> parseServerNameSet(@Nullable Object raw, String optionName) {
+    if (raw == null) {
+      return Set.of();
+    }
+
+    if (raw instanceof List<?> list) {
+      return list.stream()
+          .filter(String.class::isInstance)
+          .map(String.class::cast)
+          .map(String::trim)
+          .filter(s -> !s.isEmpty())
+          .map(s -> s.toLowerCase(Locale.ROOT))
+          .collect(ImmutableSet.toImmutableSet());
+    }
+
+    LOGGER.warn("Invalid value for '{}'. Expected a list of server names.", optionName);
+    return Set.of();
   }
 
   private static final class Query {

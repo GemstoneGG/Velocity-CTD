@@ -319,6 +319,10 @@ kick-after-rate-limited-tab-completes = 0
 # or denies illegal characters that are executed through the proxy.
 allow-illegal-characters-in-chat = false
 
+# Target backend server names that should skip client-side reconfiguration during server switches.
+# Matching is case-insensitive and only applies after the player has completed initial login.
+skip-client-reconfiguration-servers = []
+
 # Modifies the server brand that displays in your debug menu.
 # Available options:
 # - "{protocol-min}":          Returns the lowest compatible version from the

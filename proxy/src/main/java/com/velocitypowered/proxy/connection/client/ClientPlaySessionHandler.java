@@ -500,6 +500,10 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
         .thenAcceptAsync(event -> {
           if (event.getResult().isAllowed()) {
             VelocityServerConnection serverConnection = player.getConnectedServer();
+            if (serverConnection == null) {
+              serverConnection = player.getConnectionInFlight();
+            }
+
             if (serverConnection != null) {
               Key resultedKey = event.getResult().getKey() == null
                   ? event.getOriginalKey() : event.getResult().getKey();
@@ -607,7 +611,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
    *
    * @return a future that completes when the switch is complete
    */
-  public CompletableFuture<Void> doSwitch() {
+  public CompletableFuture<Void> doSwitch(boolean skipClientReconfiguration) {
     VelocityServerConnection existingConnection = player.getConnectedServer();
 
     if (existingConnection != null) {
@@ -618,15 +622,23 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
       // Send keep alive to try to avoid timeouts
       player.sendKeepAlive();
 
-      // Config state clears everything in the client. No need to clear later.
-      spawned = false;
-      player.clearPlayerListHeaderAndFooterSilent();
-      player.getTabList().clearAllSilent();
-      if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
-        player.getBossBarManager().dropPackets();
+      if (skipClientReconfiguration) {
+        player.clearPlayerListHeaderAndFooter();
       } else {
-        serverBossBars.clear();
+        // Config state clears everything in the client. No need to clear later.
+        spawned = false;
+        player.clearPlayerListHeaderAndFooterSilent();
+        player.getTabList().clearAllSilent();
+        if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
+          player.getBossBarManager().dropPackets();
+        } else {
+          serverBossBars.clear();
+        }
       }
+    }
+
+    if (skipClientReconfiguration) {
+      return CompletableFuture.completedFuture(null);
     }
 
     player.switchToConfigState();

@@ -38,6 +38,7 @@ import com.velocitypowered.proxy.connection.util.ConnectionMessages;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults.Impl;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
+import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintFrameDecoder;
@@ -54,14 +55,17 @@ import com.velocitypowered.proxy.protocol.packet.config.ClientboundCustomReportD
 import com.velocitypowered.proxy.protocol.packet.config.ClientboundServerLinksPacket;
 import com.velocitypowered.proxy.protocol.packet.config.CodeOfConductPacket;
 import com.velocitypowered.proxy.protocol.packet.config.FinishedUpdatePacket;
+import com.velocitypowered.proxy.protocol.packet.config.KnownPacksPacket;
 import com.velocitypowered.proxy.protocol.packet.config.RegistrySyncPacket;
 import com.velocitypowered.proxy.protocol.packet.config.StartUpdatePacket;
 import com.velocitypowered.proxy.protocol.packet.config.TagsUpdatePacket;
 import com.velocitypowered.proxy.protocol.util.PluginMessageUtil;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.key.Key;
 import org.apache.logging.log4j.LogManager;
@@ -77,6 +81,8 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
       Boolean.getBoolean("velocity.log-server-backpressure");
 
   private static final Logger LOGGER = LogManager.getLogger(ConfigSessionHandler.class);
+
+  private static final String BRAND_CHANNEL = "minecraft:brand";
 
   private final VelocityServer server;
 
@@ -131,6 +137,10 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(TagsUpdatePacket packet) {
+    if (!shouldForwardConfigOnlyPacketToClient(packet)) {
+      return true;
+    }
+
     serverConn.getPlayer().getConnection().write(packet);
     return true;
   }
@@ -149,8 +159,33 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(KeepAlivePacket packet) {
+    if (!isClientInConfigState()) {
+      serverConn.ensureConnected().write(packet);
+      return true;
+    }
+
     serverConn.getPendingPings().put(packet.getRandomId(), System.nanoTime());
     serverConn.getPlayer().getConnection().write(packet);
+    return true;
+  }
+
+  @Override
+  public boolean handle(KnownPacksPacket packet) {
+    if (isClientInConfigState()) {
+      return false;
+    }
+
+    warnIfUnexpectedClientState(packet);
+    List<KnownPacksPacket.KnownPack> clientPacks = List.of(new KnownPacksPacket.KnownPack(
+        "minecraft",
+        "core",
+        serverConn.getPlayer().getProtocolVersion().getVersionIntroducedIn()
+    ));
+
+    serverConn.ensureConnected().write(new KnownPacksPacket(packet.getPacks().stream()
+        .distinct()
+        .filter(clientPacks::contains)
+        .toList()));
     return true;
   }
 
@@ -243,31 +278,17 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
   public boolean handle(FinishedUpdatePacket packet) {
     MinecraftConnection smc = serverConn.ensureConnected();
     ConnectedPlayer player = serverConn.getPlayer();
-    ClientConfigSessionHandler configHandler = (ClientConfigSessionHandler) player.getConnection().getActiveSessionHandler();
 
     smc.getChannel().pipeline().get(MinecraftVarintFrameDecoder.class).setState(StateRegistry.PLAY);
     smc.getChannel().pipeline().get(MinecraftDecoder.class).setState(StateRegistry.PLAY);
-    // noinspection DataFlowIssue
-    configHandler.handleBackendFinishUpdate(serverConn).thenRunAsync(() -> {
-      smc.write(FinishedUpdatePacket.INSTANCE);
-      if (serverConn == player.getConnectedServer()) {
-        smc.setActiveSessionHandler(StateRegistry.PLAY);
-        player.sendPlayerListHeaderAndFooter(player.getPlayerListHeader(), player.getPlayerListFooter());
-        // The client cleared the tab list. TODO: Restore changes done via TabList API
-        player.getTabList().clearAllSilent();
-      } else {
-        smc.setActiveSessionHandler(StateRegistry.PLAY, new TransitionSessionHandler(server, serverConn, resultFuture));
-      }
-
-      if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_21)) {
-        String target = serverConn.getServerInfo().getName();
-        player.setServerLinks(server.getConfiguration().getServerLinksFor(target));
-      }
-
-      if (player.resourcePackHandler().getFirstAppliedPack() == null && resourcePackToApply != null) {
-        player.resourcePackHandler().queueResourcePack(resourcePackToApply);
-      }
-    }, smc.eventLoop());
+    if (player.getConnection().getActiveSessionHandler() instanceof ClientConfigSessionHandler configHandler) {
+      configHandler.handleBackendFinishUpdate(serverConn)
+          .thenRunAsync(() -> finishConfigurationTransition(smc, player), smc.eventLoop());
+    } else {
+      warnIfUnexpectedClientState(packet);
+      sendClientBrandToBackend(smc, player);
+      finishConfigurationTransition(smc, player);
+    }
     return true;
   }
 
@@ -327,6 +348,10 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(RegistrySyncPacket packet) {
+    if (!shouldForwardConfigOnlyPacketToClient(packet)) {
+      return true;
+    }
+
     serverConn.getPlayer().getConnection().write(packet.retain());
     return true;
   }
@@ -392,6 +417,10 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(CodeOfConductPacket packet) {
+    if (!shouldForwardConfigOnlyPacketToClient(packet)) {
+      return true;
+    }
+
     this.serverConn.getPlayer().getConnection().write(packet.retain());
     return true;
   }
@@ -404,7 +433,9 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public void handleGeneric(MinecraftPacket packet) {
-    serverConn.getPlayer().getConnection().write(packet);
+    if (shouldForwardConfigOnlyPacketToClient(packet)) {
+      serverConn.getPlayer().getConnection().write(packet);
+    }
   }
 
   @Override
@@ -437,6 +468,62 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
    */
   public State getState() {
     return state;
+  }
+
+  private void finishConfigurationTransition(MinecraftConnection smc, ConnectedPlayer player) {
+    smc.write(FinishedUpdatePacket.INSTANCE);
+    if (serverConn == player.getConnectedServer()) {
+      smc.setActiveSessionHandler(StateRegistry.PLAY);
+      player.sendPlayerListHeaderAndFooter(player.getPlayerListHeader(), player.getPlayerListFooter());
+      // The client cleared the tab list. TODO: Restore changes done via TabList API
+      player.getTabList().clearAllSilent();
+    } else {
+      smc.setActiveSessionHandler(StateRegistry.PLAY, new TransitionSessionHandler(server, serverConn, resultFuture));
+    }
+
+    if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_21)) {
+      String target = serverConn.getServerInfo().getName();
+      player.setServerLinks(server.getConfiguration().getServerLinksFor(target));
+    }
+
+    if (player.resourcePackHandler().getFirstAppliedPack() == null && resourcePackToApply != null) {
+      player.resourcePackHandler().queueResourcePack(resourcePackToApply);
+    }
+  }
+
+  private void sendClientBrandToBackend(MinecraftConnection smc, ConnectedPlayer player) {
+    String brand = player.getClientBrand();
+    if (brand == null) {
+      return;
+    }
+
+    ByteBuf buf = Unpooled.buffer();
+    ProtocolUtils.writeString(buf, brand);
+    smc.write(new PluginMessagePacket(BRAND_CHANNEL, buf));
+  }
+
+  private boolean shouldForwardConfigOnlyPacketToClient(MinecraftPacket packet) {
+    if (isClientInConfigState()) {
+      return true;
+    }
+
+    warnIfUnexpectedClientState(packet);
+    return false;
+  }
+
+  private boolean isClientInConfigState() {
+    return serverConn.getPlayer().getConnection().getState() == StateRegistry.CONFIG;
+  }
+
+  private void warnIfUnexpectedClientState(MinecraftPacket packet) {
+    ConnectedPlayer player = serverConn.getPlayer();
+    StateRegistry clientState = player.getConnection().getState();
+    boolean expectedSkippedState = clientState == StateRegistry.PLAY
+        && server.getConfiguration().shouldSkipClientReconfiguration(serverConn.getServerInfo().getName());
+    if (!expectedSkippedState) {
+      LOGGER.warn("Handling backend CONFIG packet {} for player {} on {} while the client is in {}.",
+          packet.getClass().getSimpleName(), player.getUsername(), serverConn.getServerInfo().getName(), clientState);
+    }
   }
 
   public enum State {
