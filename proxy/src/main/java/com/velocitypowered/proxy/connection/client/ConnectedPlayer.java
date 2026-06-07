@@ -2085,10 +2085,13 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
                   // The only way for the reason to be null is if the result is safe
                   DisconnectPacket.create(result.getReasonComponent().orElseThrow(),
                       getProtocolVersion(), connection.getState()), false);
+            } else if (exception != null) {
+              handleConnectionException(realDestination, exception, true);
             }
 
             this.resetIfInFlightIs(con);
-          }, connection.eventLoop());
+          }, connection.eventLoop()).handle((result, throwable) ->
+              throwable != null ? plainResult(ConnectionRequestBuilder.Status.CONNECTION_CANCELLED, realDestination) : result);
         }, connection.eventLoop());
       });
     }
