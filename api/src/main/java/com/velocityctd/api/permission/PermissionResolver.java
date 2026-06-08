@@ -53,4 +53,26 @@ public interface PermissionResolver extends PermissionFunction {
   @Nullable
   @Unmodifiable
   Map<String, Boolean> getPermissionMap();
+
+  /**
+   * Subscribes the given {@link PermissionChangeListener} to changes in this resolver's subject's
+   * effective permissions.
+   *
+   * <p>If the underlying permission system supports change notifications, the listener should be
+   * invoked when the subject's effective permissions change. Resolvers that cannot emit such
+   * notifications should leave this method as the default no-op.
+   *
+   * <p>Resolvers should avoid spamming the listener: a burst of changes that amount to a single
+   * logical change should be coalesced into a single invocation. Multiple listeners may be
+   * registered.
+   *
+   * @param listener the listener to notify of permission changes
+   * @return an {@link AutoCloseable} that unsubscribes the listener when closed. Callers should close
+   *         it once the listener is no longer needed to stop notifications and release any resources
+   *         held for the subscription. The default implementation returns a no-op handle.
+   */
+  default @NonNull AutoCloseable subscribeToPermissionChanges(PermissionChangeListener listener) {
+    return () -> {
+    };
+  }
 }

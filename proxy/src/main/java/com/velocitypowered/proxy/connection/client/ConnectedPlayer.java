@@ -205,10 +205,9 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   private GameProfile profile;
 
-  /**
-   * The permission resolver used to evaluate permission checks for this player.
-   */
   private PermissionResolver permissionResolver;
+
+  private @Nullable AutoCloseable permissionSubscription;
 
   private long ping = -1;
 
@@ -360,6 +359,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * Used for cleaning up resources during a disconnection.
    */
   public void disconnected() {
+    closePermissionSubscription();
+
     for (VelocityBossBarImplementation bar : this.bossBars) {
       bar.viewerDisconnected(this);
     }
@@ -537,10 +538,30 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   void setPermissionFunction(PermissionFunction permissionFunction) {
+    closePermissionSubscription();
+
     if (permissionFunction instanceof PermissionResolver resolver) {
       this.permissionResolver = resolver;
     } else {
       this.permissionResolver = createPermissionResolverAdapter(this, permissionFunction);
+    }
+
+    // Refresh the command tree whenever the resolver reports a permission change, since a player may
+    // gain or lose access to proxy commands.
+    this.permissionSubscription = this.permissionResolver.subscribeToPermissionChanges(this::sendAvailableCommands);
+  }
+
+  private void closePermissionSubscription() {
+    if (this.permissionSubscription == null) {
+      return;
+    }
+
+    try {
+      this.permissionSubscription.close();
+    } catch (Exception e) {
+      LOGGER.warn("Could not close permission change subscription for {}.", this, e);
+    } finally {
+      this.permissionSubscription = null;
     }
   }
 

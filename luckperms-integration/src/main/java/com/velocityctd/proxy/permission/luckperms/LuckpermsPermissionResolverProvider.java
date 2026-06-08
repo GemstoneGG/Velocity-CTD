@@ -22,6 +22,7 @@ import com.velocityctd.api.permission.PermissionResolverProvider;
 import com.velocitypowered.api.permission.PermissionFunction;
 import com.velocitypowered.api.permission.PermissionSubject;
 import com.velocitypowered.api.proxy.Player;
+import net.luckperms.api.LuckPermsProvider;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -31,6 +32,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * if we have the LuckPerms plugin installed and available for the advanced permission checks.
  */
 public final class LuckpermsPermissionResolverProvider implements PermissionResolverProvider {
+
+  private @Nullable LuckpermsPermissionChangeDispatcher changeDispatcher;
 
   @Override
   public boolean isAvailable() {
@@ -48,6 +51,14 @@ public final class LuckpermsPermissionResolverProvider implements PermissionReso
       return null;
     }
 
-    return new LuckpermsPermissionResolver(player, delegate);
+    return new LuckpermsPermissionResolver(player, delegate, changeDispatcher());
+  }
+
+  private synchronized LuckpermsPermissionChangeDispatcher changeDispatcher() {
+    if (changeDispatcher == null) {
+      changeDispatcher = new LuckpermsPermissionChangeDispatcher(LuckPermsProvider.get());
+    }
+
+    return changeDispatcher;
   }
 }

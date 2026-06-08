@@ -17,6 +17,7 @@
 
 package com.velocityctd.proxy.permission.luckperms;
 
+import com.velocityctd.api.permission.PermissionChangeListener;
 import com.velocityctd.api.permission.PermissionResolver;
 import com.velocitypowered.api.permission.PermissionFunction;
 import com.velocitypowered.api.permission.Tristate;
@@ -34,10 +35,11 @@ import org.jetbrains.annotations.Unmodifiable;
  * to LuckPerm's {@link PermissionFunction#getPermissionValue(String)} implementation, and provides more
  * advanced permission methods through the use of the LuckPerms API.
  */
-public final class LuckpermsPermissionResolver implements PermissionResolver {
+final class LuckpermsPermissionResolver implements PermissionResolver {
 
   private final Player player;
   private final PermissionFunction delegate;
+  private final LuckpermsPermissionChangeDispatcher changeDispatcher;
 
   /**
    * Instantiates a {@link LuckpermsPermissionResolver}.
@@ -45,10 +47,13 @@ public final class LuckpermsPermissionResolver implements PermissionResolver {
    * @param player the Velocity player
    * @param delegate the LuckPerms PermissionFunction delegate. It's expected, though not required, that this
    *                 is a {@code me.lucko.luckperms.velocity.service.PlayerPermissionProvider}.
+   * @param changeDispatcher the dispatcher used to register permission change listeners for this player
    */
-  LuckpermsPermissionResolver(Player player, PermissionFunction delegate) {
+  LuckpermsPermissionResolver(Player player, PermissionFunction delegate,
+      LuckpermsPermissionChangeDispatcher changeDispatcher) {
     this.player = player;
     this.delegate = delegate;
+    this.changeDispatcher = changeDispatcher;
   }
 
   @Override
@@ -63,5 +68,10 @@ public final class LuckpermsPermissionResolver implements PermissionResolver {
 
     QueryOptions queryOptions = api.getContextManager().getQueryOptions(player);
     return user.getCachedData().getPermissionData(queryOptions).getPermissionMap();
+  }
+
+  @Override
+  public AutoCloseable subscribeToPermissionChanges(PermissionChangeListener listener) {
+    return changeDispatcher.register(player.getUniqueId(), listener);
   }
 }
