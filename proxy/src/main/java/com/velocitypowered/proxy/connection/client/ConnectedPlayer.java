@@ -29,6 +29,7 @@ import com.google.common.base.Preconditions;
 import com.google.gson.JsonObject;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.RootCommandNode;
+import com.velocityctd.api.event.permission.PermissionsChangeEvent;
 import com.velocityctd.api.permission.PermissionResolver;
 import com.velocityctd.api.queue.QueueState;
 import com.velocityctd.proxy.permission.PermissionUtils;
@@ -546,9 +547,15 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       this.permissionResolver = createPermissionResolverAdapter(this, permissionFunction);
     }
 
+    this.permissionSubscription = this.permissionResolver.subscribeToPermissionChanges(this::onPermissionsChange);
+  }
+
+  private void onPermissionsChange() {
+    server.getEventManager().fireAndForget(new PermissionsChangeEvent(this));
+
     // Refresh the command tree whenever the resolver reports a permission change, since a player may
     // gain or lose access to proxy commands.
-    this.permissionSubscription = this.permissionResolver.subscribeToPermissionChanges(this::sendAvailableCommands);
+    sendAvailableCommands();
   }
 
   private void closePermissionSubscription() {
