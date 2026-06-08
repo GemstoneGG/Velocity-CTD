@@ -86,6 +86,7 @@ import com.velocitypowered.proxy.connection.util.ConnectionMessages;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults.Impl;
 import com.velocitypowered.proxy.connection.util.FallbackServers;
 import com.velocitypowered.proxy.connection.util.VelocityInboundConnection;
+import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
@@ -123,6 +124,7 @@ import com.velocitypowered.proxy.util.TranslatableMapper;
 import com.velocitypowered.proxy.util.collect.CappedSet;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.handler.timeout.ReadTimeoutHandler;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.Collection;
@@ -1249,6 +1251,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     }
 
     if (serverConnection != null) {
+      // The player has reached a server; restore the read-timeout that was suspended while we
+      // were establishing their initial connection (see pauseReadTimeout / issue GemstoneGG#938).
+      resumeReadTimeout();
+
       if (server.isQueueEnabled()) {
         String queueServerName = server.getConfiguration().getQueue().getQueueServer();
         boolean destinationIsQueueServer = !queueServerName.isEmpty()
@@ -1276,6 +1282,33 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       if (!firstServerConnected) {
         firstServerConnected = true;
       }
+    }
+  }
+
+  /**
+   * Suspends the read-timeout on the player's own (client-facing) connection while we establish
+   * their initial connection. The client legitimately idles on the loading screen during that
+   * window, so its read-timeout must not fire -- otherwise a backend that stalls after accepting
+   * the TCP connection times the idle client out before the backend connection's own timeout can
+   * drive the fallback chain, dropping the player instead of moving them on. Restored by
+   * {@link #resumeReadTimeout()} once a server is reached (issue GemstoneGG#938).
+   */
+  private void pauseReadTimeout() {
+    final var pipeline = connection.getChannel().pipeline();
+    if (pipeline.context(Connections.READ_TIMEOUT) != null) {
+      pipeline.remove(Connections.READ_TIMEOUT);
+    }
+  }
+
+  /**
+   * Restores the read-timeout on the player's own connection after it was suspended by
+   * {@link #pauseReadTimeout()}. Idempotent: does nothing if the handler is already present.
+   */
+  private void resumeReadTimeout() {
+    final var pipeline = connection.getChannel().pipeline();
+    if (pipeline.context(Connections.READ_TIMEOUT) == null && pipeline.context(Connections.FRAME_DECODER) != null) {
+      pipeline.addAfter(Connections.FRAME_DECODER, Connections.READ_TIMEOUT, new ReadTimeoutHandler(
+          server.getConfiguration().getReadTimeout(), TimeUnit.MILLISECONDS));
     }
   }
 
@@ -2106,6 +2139,14 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           VelocityServerConnection con = new VelocityServerConnection(
               realDestination, previousServer, ConnectedPlayer.this, server);
           connectionInFlight = con;
+
+          if (connectedServer == null) {
+            // Establishing the player's initial connection (or working through the fallback chain
+            // for it): they have no backend yet and are idling on a loading screen. Suspend their
+            // connection's read-timeout so a stalled backend can't time the idle client out before
+            // the backend timeout drives the fallback. Restored in setConnectedServer (issue GemstoneGG#938).
+            pauseReadTimeout();
+          }
 
           return con.connect().whenCompleteAsync((result, exception) -> {
             if (result != null && !result.isSuccessful() && !result.isSafe()) {
