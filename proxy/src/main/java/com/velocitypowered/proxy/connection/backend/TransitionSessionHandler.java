@@ -98,8 +98,6 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
     ConnectedPlayer player = serverConn.getPlayer();
     VelocityServerConnection existingConnection = player.getConnectedServer();
 
-    packet.setOnlineMode(player.isOnlineMode());
-
     if (existingConnection != null) {
       // Shut down the existing server connection.
       player.setConnectedServer(null);
@@ -108,6 +106,9 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
       // Send keep alive to try to avoid timeouts
       player.sendKeepAlive();
     }
+
+    // Override online mode
+    packet.setOnlineMode(player.isOnlineMode());
 
     // Reset Tablist header and footer to prevent desync
     player.clearPlayerListHeaderAndFooter();
