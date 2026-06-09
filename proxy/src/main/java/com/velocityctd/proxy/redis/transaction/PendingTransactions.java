@@ -20,21 +20,21 @@ package com.velocityctd.proxy.redis.transaction;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.api.scheduler.Scheduler;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents a map implementation of a transaction cache.
  */
-public final class PendingTransactions extends HashMap<UUID, Transaction<?, ?>> {
+public final class PendingTransactions extends ConcurrentHashMap<UUID, Transaction<?, ?>> {
 
   /**
    * Tracks scheduled timeout tasks for each transaction ID stored in the cache.
    */
-  private final @MonotonicNonNull HashMap<UUID, ScheduledTask> refreshTasks;
+  private final Map<UUID, ScheduledTask> refreshTasks;
 
   /**
    * The scheduler used to schedule timeout tasks.
@@ -57,14 +57,14 @@ public final class PendingTransactions extends HashMap<UUID, Transaction<?, ?>> 
    * @param scheduler the scheduler to use for timeout tasks
    */
   public PendingTransactions(@NotNull Scheduler scheduler) {
-    this.refreshTasks = new HashMap<>();
+    this.refreshTasks = new ConcurrentHashMap<>();
     this.scheduler = scheduler;
     this.delay = Transaction.DEFAULT_TIMEOUT;
     this.timeUnit = Transaction.DEFAULT_TIME_UNIT;
   }
 
   @Override
-  public Transaction<?, ?> put(UUID key, Transaction<?, ?> value) {
+  public Transaction<?, ?> put(@NotNull UUID key, @NotNull Transaction<?, ?> value) {
     this.queue(value, this.delay, this.timeUnit);
     return super.put(key, value);
   }
@@ -86,7 +86,7 @@ public final class PendingTransactions extends HashMap<UUID, Transaction<?, ?>> 
   }
 
   @Override
-  public Transaction<?, ?> remove(Object key) {
+  public Transaction<?, ?> remove(@NotNull Object key) {
     ScheduledTask scheduledTask = this.refreshTasks.remove(key);
 
     if (scheduledTask != null) {
