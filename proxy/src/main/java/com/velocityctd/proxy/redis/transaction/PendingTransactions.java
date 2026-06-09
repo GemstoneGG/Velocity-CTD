@@ -119,6 +119,7 @@ public final class PendingTransactions {
       ScheduledTask task = this.refreshTask;
       if (task != null) {
         task.cancel();
+        this.refreshTask = null;
       }
     }
   }
