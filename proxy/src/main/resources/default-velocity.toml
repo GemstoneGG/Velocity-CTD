@@ -259,6 +259,11 @@ connection-timeout = 5000
 # Specify a read timeout for connections here. The default is 25 seconds.
 read-timeout = 25000
 
+# How long (in milliseconds) to wait for a backend to complete login before giving up and moving
+# the player on through the fallback chain. Unlike read-timeout this only bounds connection
+# establishment, so it can be kept short for fast failover. The default is 6 seconds.
+login-timeout = 6000
+
 # Enables compatibility with HAProxy's PROXY protocol. If you don't know what this is for, then
 # don't enable it.
 haproxy-protocol = false

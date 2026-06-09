@@ -52,7 +52,9 @@ public class BackendChannelInitializer extends ChannelInitializer<Channel> {
   protected void initChannel(Channel ch) {
     ch.pipeline()
         .addLast(FRAME_DECODER, new MinecraftVarintFrameDecoder(ProtocolUtils.Direction.CLIENTBOUND))
-        .addLast(READ_TIMEOUT, new ReadTimeoutHandler(server.getConfiguration().getReadTimeout(), TimeUnit.MILLISECONDS))
+        // Short login timeout while establishing the connection, so a stalled backend is abandoned
+        // quickly for the fallback chain. Swapped for read-timeout at PLAY (TransitionSessionHandler).
+        .addLast(READ_TIMEOUT, new ReadTimeoutHandler(server.getConfiguration().getLoginTimeout(), TimeUnit.MILLISECONDS))
         .addLast(FRAME_ENCODER, MinecraftVarintLengthEncoder.INSTANCE)
         .addLast(MINECRAFT_DECODER, new MinecraftDecoder(ProtocolUtils.Direction.CLIENTBOUND))
         .addLast(FLOW_HANDLER, new AutoReadHolderHandler())
