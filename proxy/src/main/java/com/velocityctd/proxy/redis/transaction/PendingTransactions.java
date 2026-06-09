@@ -25,31 +25,22 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Represents a map implementation of a transaction cache.
+ * Tracks in-flight Redis transactions awaiting a reply, keyed by transaction id.
  */
-public final class PendingTransactions extends ConcurrentHashMap<UUID, Transaction<?, ?>> {
+public final class PendingTransactions {
 
   /**
-   * Tracks scheduled timeout tasks for each transaction ID stored in the cache.
+   * The in-flight transactions, keyed by transaction id.
    */
-  private final Map<UUID, ScheduledTask> refreshTasks;
+  private final Map<UUID, PendingTransaction> transactions = new ConcurrentHashMap<>();
 
   /**
-   * The scheduler used to schedule timeout tasks.
+   * The scheduler used to schedule transaction timeout tasks.
    */
   private final Scheduler scheduler;
-
-  /**
-   * Default delay used for scheduling transaction timeout tasks.
-   */
-  private final double delay;
-
-  /**
-   * Time unit associated with the default delay.
-   */
-  private final TimeUnit timeUnit;
 
   /**
    * Constructs a new {@link PendingTransactions}.
@@ -57,69 +48,78 @@ public final class PendingTransactions extends ConcurrentHashMap<UUID, Transacti
    * @param scheduler the scheduler to use for timeout tasks
    */
   public PendingTransactions(@NotNull Scheduler scheduler) {
-    this.refreshTasks = new ConcurrentHashMap<>();
     this.scheduler = scheduler;
-    this.delay = Transaction.DEFAULT_TIMEOUT;
-    this.timeUnit = Transaction.DEFAULT_TIME_UNIT;
-  }
-
-  @Override
-  public Transaction<?, ?> put(@NotNull UUID key, @NotNull Transaction<?, ?> value) {
-    this.queue(value, this.delay, this.timeUnit);
-    return super.put(key, value);
   }
 
   /**
-   * Adds the specified transaction to the cache, associates it with its unique transaction ID,
-   * and schedules it for refresh based on the provided delay and time unit. If a transaction with
-   * the same ID already exists, it will be replaced, and any previous scheduling tasks will
-   * be canceled.
+   * Registers a transaction and schedules its timeout. If a transaction with the same id is already
+   * pending, it is replaced and its timeout task is cancelled.
    *
-   * @param value the transaction to be added to the cache; must not be null
-   * @param delay the delay, in the specified time unit, after which the transaction will be processed
-   * @param timeUnit the time unit of the delay parameter; must not be null
-   * @return the previous transaction associated with the transaction ID, or null if there was no mapping
+   * @param transaction the transaction to track; must not be null
+   * @param delay       the delay after which the transaction times out
+   * @param timeUnit    the time unit of {@code delay}; must not be null
    */
-  public Transaction<?, ?> put(@NotNull Transaction<?, ?> value, int delay, TimeUnit timeUnit) {
-    this.queue(value, delay, timeUnit);
-    return super.put(value.getTransactionId(), value);
-  }
-
-  @Override
-  public Transaction<?, ?> remove(@NotNull Object key) {
-    ScheduledTask scheduledTask = this.refreshTasks.remove(key);
-
-    if (scheduledTask != null) {
-      scheduledTask.cancel();
-    }
-
-    return super.remove(key);
-  }
-
-  /**
-   * Schedules a task to process the specified transaction after a defined delay. If there is an
-   * existing-scheduled task for the same transaction ID, it will be canceled before scheduling the new task.
-   *
-   * @param transaction the transaction to be processed; must not be null
-   * @param delay the delay, after which the transaction will be processed
-   * @param timeUnit the time unit used for the delay parameter; must not be null
-   */
-  private void queue(@NotNull Transaction<?, ?> transaction, double delay, TimeUnit timeUnit) {
+  public void put(@NotNull Transaction<?, ?> transaction, int delay, @NotNull TimeUnit timeUnit) {
     UUID key = transaction.getTransactionId();
+    PendingTransaction pending = new PendingTransaction(transaction);
 
-    if (this.refreshTasks.containsKey(key)) {
-      this.refreshTasks.get(key).cancel();
-      this.refreshTasks.remove(key);
+    PendingTransaction previous = this.transactions.put(key, pending);
+    if (previous != null) {
+      previous.cancelRefreshTask();
     }
 
-    ScheduledTask scheduledTask = this.scheduler
-            .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
-              this.remove(key);
-              transaction.timeout();
-            })
-            .delay((long) delay, timeUnit)
-            .schedule();
+    pending.setRefreshTask(this.scheduler
+        .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+          if (this.transactions.remove(key, pending)) {
+            transaction.timeout();
+          }
+        })
+        .delay(delay, timeUnit)
+        .schedule());
+  }
 
-    this.refreshTasks.put(key, scheduledTask);
+  /**
+   * Removes and returns the transaction with the given id, cancelling its timeout task.
+   *
+   * @param key the transaction id; must not be null
+   * @return the removed transaction, or {@code null} if no transaction was pending for the id
+   */
+  public @Nullable Transaction<?, ?> remove(@NotNull UUID key) {
+    PendingTransaction removed = this.transactions.remove(key);
+    if (removed == null) {
+      return null;
+    }
+
+    removed.cancelRefreshTask();
+    return removed.transaction();
+  }
+
+  /**
+   * Pairs a pending transaction with its timeout task so both can be stored and evicted as a single
+   * atomic map value.
+   */
+  private static final class PendingTransaction {
+
+    private final Transaction<?, ?> transaction;
+    private volatile @Nullable ScheduledTask refreshTask;
+
+    private PendingTransaction(@NotNull Transaction<?, ?> transaction) {
+      this.transaction = transaction;
+    }
+
+    private Transaction<?, ?> transaction() {
+      return this.transaction;
+    }
+
+    private void setRefreshTask(@NotNull ScheduledTask refreshTask) {
+      this.refreshTask = refreshTask;
+    }
+
+    private void cancelRefreshTask() {
+      ScheduledTask task = this.refreshTask;
+      if (task != null) {
+        task.cancel();
+      }
+    }
   }
 }
