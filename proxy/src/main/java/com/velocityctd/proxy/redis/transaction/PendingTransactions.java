@@ -17,6 +17,7 @@
 
 package com.velocityctd.proxy.redis.transaction;
 
+import com.google.common.base.Preconditions;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.api.scheduler.Scheduler;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
@@ -56,26 +57,19 @@ public final class PendingTransactions {
    * pending, it is replaced and its timeout task is cancelled.
    *
    * @param transaction the transaction to track; must not be null
-   * @param delay       the delay after which the transaction times out
+   * @param delay       the delay after which the transaction times out; must be positive
    * @param timeUnit    the time unit of {@code delay}; must not be null
    */
   public void put(@NotNull Transaction<?, ?> transaction, int delay, @NotNull TimeUnit timeUnit) {
-    UUID key = transaction.getTransactionId();
-    PendingTransaction pending = new PendingTransaction(transaction);
+    Preconditions.checkArgument(delay > 0,
+          "Transaction timeout delay must be positive, got %s", delay
+    );
 
-    PendingTransaction previous = this.transactions.put(key, pending);
+    PendingTransaction pending = new PendingTransaction(transaction, delay, timeUnit);
+    PendingTransaction previous = this.transactions.put(transaction.getTransactionId(), pending);
     if (previous != null) {
-      previous.cancelRefreshTask();
+      previous.cancelTimeoutTask();
     }
-
-    pending.setRefreshTask(this.scheduler
-        .buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
-          if (this.transactions.remove(key, pending)) {
-            transaction.timeout();
-          }
-        })
-        .delay(delay, timeUnit)
-        .schedule());
   }
 
   /**
@@ -90,36 +84,56 @@ public final class PendingTransactions {
       return null;
     }
 
-    removed.cancelRefreshTask();
+    removed.cancelTimeoutTask();
     return removed.transaction();
+  }
+
+  /**
+   * Times out the given pending transaction, completing it exceptionally only if it is still pending.
+   *
+   * @param pending the pending transaction whose timeout fired
+   */
+  private void timeout(@NotNull PendingTransaction pending) {
+    Transaction<?, ?> transaction = pending.transaction();
+    if (this.transactions.remove(transaction.getTransactionId(), pending)) {
+      transaction.timeout();
+    }
   }
 
   /**
    * Pairs a pending transaction with its timeout task so both can be stored and evicted as a single
    * atomic map value.
    */
-  private static final class PendingTransaction {
+  private final class PendingTransaction {
 
     private final Transaction<?, ?> transaction;
-    private volatile @Nullable ScheduledTask refreshTask;
+    private @Nullable ScheduledTask timeoutTask;
 
-    private PendingTransaction(@NotNull Transaction<?, ?> transaction) {
+    private PendingTransaction(@NotNull Transaction<?, ?> transaction, int delay, @NotNull TimeUnit timeUnit) {
       this.transaction = transaction;
+      this.timeoutTask = buildTimeoutTask(delay, timeUnit);
     }
 
     private Transaction<?, ?> transaction() {
       return this.transaction;
     }
 
-    private void setRefreshTask(@NotNull ScheduledTask refreshTask) {
-      this.refreshTask = refreshTask;
+    private ScheduledTask buildTimeoutTask(int delay, @NotNull TimeUnit timeUnit) {
+      return scheduler
+          .buildTask(VelocityVirtualPlugin.INSTANCE, () -> timeout(this))
+          .delay(delay, timeUnit)
+          .schedule();
     }
 
-    private void cancelRefreshTask() {
-      ScheduledTask task = this.refreshTask;
+    private void cancelTimeoutTask() {
+      ScheduledTask task;
+      synchronized (this) {
+        task = this.timeoutTask;
+        this.timeoutTask = null;
+      }
+
       if (task != null) {
         task.cancel();
-        this.refreshTask = null;
       }
     }
   }
