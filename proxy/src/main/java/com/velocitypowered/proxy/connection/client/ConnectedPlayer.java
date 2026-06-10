@@ -934,6 +934,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * @return a future that completes once the packet has been written (or an error has been logged)
    */
   public CompletableFuture<Void> sendAvailableCommands(@Nullable VelocityServerConnection conn) {
+    if (connection.getState() != StateRegistry.PLAY) {
+      return CompletableFuture.completedFuture(null);
+    }
+
     RootCommandNode<CommandSource> workingNode = new RootCommandNode<>();
     if (conn != null) {
       RootCommandNode<CommandSource> backendNode = conn.getBackendCommandsNode();
