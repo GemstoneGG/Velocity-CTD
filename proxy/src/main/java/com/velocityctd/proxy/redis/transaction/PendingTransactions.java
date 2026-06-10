@@ -88,11 +88,6 @@ public final class PendingTransactions {
     return removed.transaction();
   }
 
-  /**
-   * Times out the given pending transaction, completing it exceptionally only if it is still pending.
-   *
-   * @param pending the pending transaction whose timeout fired
-   */
   private void timeout(@NotNull PendingTransaction pending) {
     Transaction<?, ?> transaction = pending.transaction();
     if (this.transactions.remove(transaction.getTransactionId(), pending)) {
