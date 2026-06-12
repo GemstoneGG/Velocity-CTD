@@ -199,6 +199,14 @@ public interface ProxyConfig {
   int getReadTimeout();
 
   /**
+   * Get how long this proxy will wait for a backend to complete the login/configuration sequence
+   * before abandoning it and moving the player on through the fallback chain.
+   *
+   * @return login timeout (in milliseconds)
+   */
+  int getLoginTimeout();
+
+  /**
    * Get the rate limit for how fast a player can execute commands.
    *
    * @return the command rate limit (in milliseconds)

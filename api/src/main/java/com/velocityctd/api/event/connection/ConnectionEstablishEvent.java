@@ -12,7 +12,6 @@ import com.velocitypowered.api.event.ResultedEvent;
 import com.velocitypowered.api.event.annotation.AwaitingEvent;
 import com.velocitypowered.api.network.HandshakeIntent;
 import com.velocitypowered.api.proxy.InboundConnection;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -23,31 +22,20 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * an opportunity to validate or reject the connection before the login sequence begins.</p>
  */
 @AwaitingEvent
-public class ConnectionEstablishEvent implements ResultedEvent<ResultedEvent.GenericResult> {
+public final class ConnectionEstablishEvent implements ResultedEvent<ResultedEvent.GenericResult> {
 
   /**
    * The inbound connection that is being established with the proxy.
-   *
-   * <p>This object exposes information about the remote client such as its
-   * address and protocol version, and can be used to make decisions about
-   * whether the connection should be accepted.</p>
    */
   private final InboundConnection connection;
 
   /**
-   * The intention of the client during the handshake phase.
-   *
-   * <p>This may indicate whether the client is attempting to log in, ping the
-   * server list, or perform another handshake action. May be {@code null}
-   * if the handshake intent has not yet been determined.</p>
+   * The handshake intention of the client, or {@code null} if not yet determined.
    */
   private final HandshakeIntent intention;
 
   /**
-   * The result of this event, controlling whether the connection is allowed
-   * to continue or is denied by the proxy.
-   *
-   * <p>Defaults to {@link GenericResult#allowed()} if not otherwise set.</p>
+   * The result of this event, controlling whether the connection is allowed to continue.
    */
   private GenericResult result = GenericResult.allowed();
 
@@ -58,7 +46,7 @@ public class ConnectionEstablishEvent implements ResultedEvent<ResultedEvent.Gen
    * @param intention  the handshake intention of the client, or {@code null} if not yet determined
    * @throws NullPointerException if {@code connection} is null
    */
-  public ConnectionEstablishEvent(@NonNull InboundConnection connection,
+  public ConnectionEstablishEvent(InboundConnection connection,
                                   @Nullable HandshakeIntent intention) {
     this.connection = Preconditions.checkNotNull(connection, "connection");
     this.intention = intention;
@@ -69,7 +57,7 @@ public class ConnectionEstablishEvent implements ResultedEvent<ResultedEvent.Gen
    *
    * @return the inbound connection
    */
-  public @NonNull InboundConnection getConnection() {
+  public InboundConnection getConnection() {
     return this.connection;
   }
 
@@ -102,7 +90,16 @@ public class ConnectionEstablishEvent implements ResultedEvent<ResultedEvent.Gen
    * @throws NullPointerException if {@code result} is null
    */
   @Override
-  public void setResult(@NonNull GenericResult result) {
+  public void setResult(GenericResult result) {
     this.result = Preconditions.checkNotNull(result, "result");
+  }
+
+  @Override
+  public String toString() {
+    return "ConnectionEstablishEvent{"
+        + "connection=" + connection
+        + ", intention=" + intention
+        + ", result=" + result
+        + '}';
   }
 }

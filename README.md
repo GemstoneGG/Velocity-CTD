@@ -8,9 +8,8 @@ and flexibility.
 
 Velocity-CTD is licensed under the GPLv3 license.
 
-[![Servers using Velocity-CTD](https://bstats-graph.gritter.nl/v1/plugins/30992/charts/servers/chart.png?max_elements=336)](https://bstats.velocityctd.com/)
+[![Servers using Velocity-CTD](https://bstats-graph.gritter.nl/v1/plugins/30992/charts/servers/chart.png)](https://bstats.velocityctd.com/) \
 _Live graph of servers using Velocity-CTD, using [bstats-graph.gritter.nl](https://bstats-graph.gritter.nl/)._
-_Note that Velocity-CTD has only been using its own bStats ID since April 28, 2026._
 
 ## Purpose
 

@@ -7,8 +7,7 @@
 
 package com.velocityctd.api.event.player;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
+import com.google.common.base.Preconditions;
 import com.velocitypowered.api.event.annotation.AwaitingEvent;
 import com.velocitypowered.api.proxy.Player;
 
@@ -20,7 +19,7 @@ import com.velocitypowered.api.proxy.Player;
  * remote server for tab completion.</p>
  */
 @AwaitingEvent
-public class TabCompleteRequestEvent {
+public final class TabCompleteRequestEvent {
 
   /**
    * The player who initiated the tab completion request.
@@ -37,10 +36,11 @@ public class TabCompleteRequestEvent {
    *
    * @param player the player who initiated the tab completion request
    * @param partialMessage the message being partially completed
+   * @throws NullPointerException if {@code player} or {@code partialMessage} is null
    */
   public TabCompleteRequestEvent(Player player, String partialMessage) {
-    this.player = checkNotNull(player, "player");
-    this.partialMessage = checkNotNull(partialMessage, "partialMessage");
+    this.player = Preconditions.checkNotNull(player, "player");
+    this.partialMessage = Preconditions.checkNotNull(partialMessage, "partialMessage");
   }
 
   /**
@@ -65,9 +65,10 @@ public class TabCompleteRequestEvent {
    * Updates the partial message to be used for tab completion.
    *
    * @param partialMessage the new partial message string
+   * @throws NullPointerException if {@code partialMessage} is null
    */
   public void setPartialMessage(String partialMessage) {
-    this.partialMessage = partialMessage;
+    this.partialMessage = Preconditions.checkNotNull(partialMessage, "partialMessage");
   }
 
   /**

@@ -19,17 +19,22 @@ package com.velocityctd.proxy.permission;
 
 import com.velocityctd.api.permission.PermissionResolver;
 import com.velocityctd.api.permission.PermissionResolverFunctionAdapter;
-import com.velocityctd.api.permission.PermissionResolverProvider;
+import com.velocityctd.permission.spi.PermissionResolverProvider;
 import com.velocitypowered.api.permission.PermissionFunction;
 import com.velocitypowered.api.permission.PermissionSubject;
 import com.velocitypowered.proxy.plugin.PluginClassLoader;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import org.apache.logging.log4j.LogManager;
@@ -39,10 +44,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 /**
  * Factory for producing an {@link PermissionResolver} for a given {@link PermissionSubject}.
  *
- * <p>This factory supports an optional, runtime-discovered integration which is embedded inside the
- * proxy jar (as a nested jar resource). When present, the embedded integration jar is extracted to
+ * <p>This factory supports optional, runtime-discovered integrations which are embedded inside the
+ * proxy jar (as nested jar resources). The embedded jars are enumerated from an index resource
+ * (see {@link #INTEGRATIONS_INDEX_RESOURCE}) written at build time. Each listed jar is extracted to
  * a temporary file and loaded via a dedicated {@link PluginClassLoader}. The implementation is then
- * discovered using {@link ServiceLoader} by locating an {@link PermissionResolverProvider}.
+ * discovered using {@link ServiceLoader} by locating an {@link PermissionResolverProvider}, and the
+ * first available provider wins.
  *
  * <p>If no provider can be loaded (e.g., the embedded jar is missing, cannot be extracted, or the
  * provider reports it is unavailable), this factory falls back to {@link PermissionResolverFunctionAdapter}.
@@ -54,9 +61,12 @@ public final class PermissionResolverAdapterFactory {
 
   private static final Logger LOGGER = LogManager.getLogger(PermissionResolverAdapterFactory.class);
 
-  private static final String[] INTEGRATION_RESOURCES = new String[] {
-      "META-INF/velocityctd/integrations/velocity-luckperms-integration.jar"
-  };
+  /**
+   * Classpath resource listing the embedded permission integration jars, one resource path per line.
+   * Generated at build time by the {@code generatePermissionIntegrationsIndex} task in the proxy
+   * module. Blank lines and lines starting with {@code #} are ignored.
+   */
+  private static final String INTEGRATIONS_INDEX_RESOURCE = "META-INF/velocityctd/permission-integration/integrations.index";
 
   private static volatile boolean hasLoadedProvider = false;
   private static volatile @Nullable PermissionResolverProvider loadedProvider = null;
@@ -116,7 +126,7 @@ public final class PermissionResolverAdapterFactory {
   }
 
   private static Optional<PermissionResolverProvider> loadProviderOnce() {
-    for (String integrationResource : INTEGRATION_RESOURCES) {
+    for (String integrationResource : readIntegrationResources()) {
       Optional<PermissionResolverProvider> provider = tryLoadProvider(integrationResource);
       if (provider.isPresent()) {
         return provider;
@@ -124,6 +134,41 @@ public final class PermissionResolverAdapterFactory {
     }
 
     return Optional.empty();
+  }
+
+  /**
+   * Reads the embedded integration jar resource paths from {@link #INTEGRATIONS_INDEX_RESOURCE}.
+   * Returns an empty list when the index is absent (e.g. a build with no integrations embedded).
+   *
+   * @return the integration jar resource paths, in declaration order
+   */
+  private static List<String> readIntegrationResources() {
+    ClassLoader cl = PermissionResolverAdapterFactory.class.getClassLoader();
+    if (cl == null) {
+      cl = ClassLoader.getSystemClassLoader();
+    }
+
+    try (InputStream in = cl.getResourceAsStream(INTEGRATIONS_INDEX_RESOURCE)) {
+      if (in == null) {
+        return List.of();
+      }
+
+      List<String> resources = new ArrayList<>();
+      try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          String trimmed = line.strip();
+          if (!trimmed.isEmpty() && !trimmed.startsWith("#")) {
+            resources.add(trimmed);
+          }
+        }
+      }
+
+      return resources;
+    } catch (IOException e) {
+      LOGGER.debug("Could not read permission integrations index {}.", INTEGRATIONS_INDEX_RESOURCE, e);
+      return List.of();
+    }
   }
 
   private static Optional<PermissionResolverProvider> tryLoadProvider(String resourceName) {

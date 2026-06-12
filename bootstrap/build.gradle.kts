@@ -19,6 +19,7 @@ application {
 val proxyProject = project(":velocity-proxy")
 val apiProject = project(":velocity-api")
 val nativeProject = project(":velocity-native")
+val permissionIntegrationSpiProject = project(":velocity-permission-integration-spi")
 val configurate3Project = project(":deprecated-configurate3")
 
 evaluationDependsOn(proxyProject.path)
@@ -69,13 +70,14 @@ val generateLibraries by tasks.registering {
     val relocatedLibraries = proxyProject.configurations.getByName("relocatedLibraries")
     val apiJar = apiProject.tasks.named<Jar>("jar")
     val nativeJar = nativeProject.tasks.named<Jar>("jar")
+    val permissionIntegrationSpiJar = permissionIntegrationSpiProject.tasks.named<Jar>("jar")
     val configurate3Jar = configurate3Project.tasks.named<Jar>("shadowJar")
 
-    dependsOn(proxyJar, apiJar, nativeJar, configurate3Jar)
+    dependsOn(proxyJar, apiJar, nativeJar, permissionIntegrationSpiJar, configurate3Jar)
 
     inputs.files(proxyRuntimeClasspath)
     inputs.files(relocatedLibraries)
-    inputs.files(proxyJar, apiJar, nativeJar, configurate3Jar)
+    inputs.files(proxyJar, apiJar, nativeJar, permissionIntegrationSpiJar, configurate3Jar)
     inputs.property("version", project.version.toString())
     inputs.property("repositories", runtimeRepositories)
     inputs.property("mainClass", proxyMainClass)
@@ -86,6 +88,7 @@ val generateLibraries by tasks.registering {
     val proxyArchive = proxyJar.flatMap { it.archiveFile }
     val apiArchive = apiJar.flatMap { it.archiveFile }
     val nativeArchive = nativeJar.flatMap { it.archiveFile }
+    val permissionIntegrationSpiArchive = permissionIntegrationSpiJar.flatMap { it.archiveFile }
     val configurate3Archive = configurate3Jar.flatMap { it.archiveFile }
     val projectVersion = project.version.toString()
     val mainClassProvider = proxyMainClass
@@ -118,6 +121,10 @@ val generateLibraries by tasks.registering {
         embed("com.velocityctd", "velocity-proxy", projectVersion, proxyArchive.get().asFile)
         embed("com.velocityctd", "velocity-api", projectVersion, apiArchive.get().asFile)
         embed("com.velocityctd", "velocity-native", projectVersion, nativeArchive.get().asFile)
+        embed(
+            "com.velocityctd", "velocity-permission-integration-spi", projectVersion,
+            permissionIntegrationSpiArchive.get().asFile
+        )
         embed(
             "com.velocityctd", "velocity-deprecated-configurate3", projectVersion,
             configurate3Archive.get().asFile

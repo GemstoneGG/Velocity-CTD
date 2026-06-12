@@ -127,6 +127,13 @@ public class CtdConfigMigrations {
 
         // [advanced]
         migration(
+            "How long (in milliseconds) to wait for a backend to complete login before giving up and moving\n"
+                + "the player on through the fallback chain. Unlike read-timeout this only bounds connection\n"
+                + "establishment, so it can be kept short for fast failover. The default is 6 seconds.",
+            "advanced.login-timeout",
+            6000
+        ),
+        migration(
             "Enables the execution of illegal characters in chat and only allows\n"
                 + " or denies illegal characters that are executed through the proxy.",
             "advanced.allow-illegal-characters-in-chat",

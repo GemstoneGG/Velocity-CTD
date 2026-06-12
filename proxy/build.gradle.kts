@@ -25,6 +25,31 @@ val relocatedLibraries: Configuration by configurations.creating {
 // and the fat shadowJar continues to bundle them.
 configurations.named("implementation") { extendsFrom(relocatedLibraries) }
 
+// Permission integration modules embedded as jar-in-jar resources. Each is shipped at
+// `<permissionIntegrationsResourceDir>/<module-dir-name>.jar` and listed in `integrations.index`,
+// which `PermissionResolverAdapterFactory` reads at runtime to discover and load them. Adding an
+// integration only requires appending its project path here.
+val permissionIntegrations = listOf(
+    ":velocity-permission-integration-luckperms",
+)
+val permissionIntegrationsResourceDir = "META-INF/velocityctd/permission-integration"
+
+// Generates the integrations index listing each embedded integration jar resource (one per line).
+val generatePermissionIntegrationsIndex by tasks.registering {
+    val resourceDir = permissionIntegrationsResourceDir
+    val entries = permissionIntegrations.map { project(it).projectDir.name }
+    inputs.property("entries", entries)
+
+    val outputDir = layout.buildDirectory.dir("generated/permission-integrations")
+    outputs.dir(outputDir)
+
+    doLast {
+        val indexFile = outputDir.get().asFile.resolve("$resourceDir/integrations.index")
+        indexFile.parentFile.mkdirs()
+        indexFile.writeText(entries.joinToString("\n", postfix = "\n") { "$resourceDir/$it.jar" })
+    }
+}
+
 tasks {
     jar {
         manifest {
@@ -37,14 +62,17 @@ tasks {
     }
 
     processResources {
-        // Embed :velocity-luckperms-integration as META-INF/velocityctd/integrations/velocity-luckperms-integration.jar
-        val lpJar = project(":velocity-luckperms-integration")
-            .tasks
-            .named<Jar>("jar")
-        from(lpJar.flatMap { it.archiveFile }) {
-            into("META-INF/velocityctd/integrations")
-            rename { "velocity-luckperms-integration.jar" }
+        // Embed each permission integration module as a jar-in-jar at
+        // `<permissionIntegrationsResourceDir>/<module-dir-name>.jar`, alongside the generated index.
+        permissionIntegrations.forEach { path ->
+            val integrationProject = project(path)
+            val integrationJar = integrationProject.tasks.named<Jar>("jar")
+            from(integrationJar.flatMap { it.archiveFile }) {
+                into(permissionIntegrationsResourceDir)
+                rename { "${integrationProject.projectDir.name}.jar" }
+            }
         }
+        from(generatePermissionIntegrationsIndex)
     }
 
     shadowJar {
@@ -157,6 +185,7 @@ tasks {
 dependencies {
     implementation(project(":velocity-api"))
     implementation(project(":velocity-native"))
+    implementation(project(":velocity-permission-integration-spi"))
 
     implementation(libs.bundles.log4j)
     implementation(libs.kyori.ansi)
