@@ -174,7 +174,45 @@ public class VelocityQueueManager implements QueueManager {
 
   @Override
   public void reload() {
+    reconcileQueues();
     rescheduleTasks();
+  }
+
+  protected void reconcileQueues() {
+    Set<String> registered = new HashSet<>();
+    for (VelocityRegisteredServer rs : server.getAllServers()) {
+      registered.add(rs.getServerInfo().getName());
+    }
+
+    // Drop queues whose backing server no longer exists.
+    for (Map.Entry<String, VelocityQueue<?>> entry : new HashMap<>(queues).entrySet()) {
+      if (registered.contains(entry.getKey())) {
+        continue;
+      }
+
+      entry.getValue().teardown();
+      queues.remove(entry.getKey());
+      LAST_TURNED_ONLINE_TIME.remove(entry.getKey());
+      onQueueRemoved(entry.getKey());
+    }
+
+    // Create queues for newly-added servers.
+    for (VelocityRegisteredServer rs : server.getAllServers()) {
+      String name = rs.getServerInfo().getName();
+      queues.computeIfAbsent(name, n -> {
+        boolean inactive = server.getConfiguration().getQueue().getNoQueueServers().contains(n);
+        return createQueue(rs, inactive ? QueueState.INACTIVE : QueueState.ACTIVE);
+      });
+    }
+  }
+
+  /**
+   * Called after a queue has been removed during {@link #reconcileQueues()}.
+   *
+   * @param serverName the name of the server whose queue was removed
+   */
+  protected void onQueueRemoved(@NotNull String serverName) {
+    // no-op
   }
 
   @Override

@@ -160,6 +160,13 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
   }
 
   @Override
+  protected void onQueueRemoved(@NotNull String serverName) {
+    if (isMasterProxy() && !server.getRedis().isShutdown()) {
+      server.getRedis().getQueueService().removeQueue(serverName);
+    }
+  }
+
+  @Override
   public @NotNull RedisVelocityQueue getQueue(@NotNull String serverName) {
     return (RedisVelocityQueue) super.getQueue(serverName);
   }

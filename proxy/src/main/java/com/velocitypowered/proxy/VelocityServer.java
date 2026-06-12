@@ -74,6 +74,7 @@ import com.velocitypowered.proxy.command.builtin.VelocityCommand;
 import com.velocitypowered.proxy.config.DynamicProxyFilterMode;
 import com.velocitypowered.proxy.config.ProxyAddress;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
+import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.connection.client.PlayerRegistry;
 import com.velocitypowered.proxy.connection.player.resourcepack.TransferPackSecret;
@@ -121,6 +122,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -601,57 +603,13 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
     this.configuration = newConfiguration;
 
-    reloadServerList();
+    reconcileServers(newConfiguration);
 
     registerCommands();
 
     translationRegistryManager.unregisterTranslations();
 
     translationRegistryManager.registerTranslations();
-
-    // Re-register servers. If a server is being replaced, make sure to note what players need to
-    // move back to a fallback server.
-    Collection<ConnectedPlayer> evacuate = new ArrayList<>();
-    for (Map.Entry<String, BackendServerConfig> entry : newConfiguration.getBackendServers().entrySet()) {
-      ServerInfo newInfo = new ServerInfo(entry.getKey(), AddressUtil.parseAddress(entry.getValue().address()), entry.getValue().forwardingMode());
-      Optional<VelocityRegisteredServer> rs = servers.getServer(entry.getKey());
-      if (rs.isEmpty()) {
-        servers.register(newInfo);
-      } else if (!rs.get().getServerInfo().equals(newInfo)) {
-        evacuate.addAll(rs.get().getPlayersConnected());
-
-        servers.unregister(rs.get().getServerInfo());
-        servers.register(newInfo);
-      }
-    }
-
-    // If we had any players to evacuate, let's move them now. Wait until they are all moved off.
-    if (!evacuate.isEmpty()) {
-      CountDownLatch latch = new CountDownLatch(evacuate.size());
-      for (ConnectedPlayer player : evacuate) {
-        Optional<VelocityRegisteredServer> next = player.currentServerRetrySession().getNextServerToTry();
-        if (next.isPresent()) {
-          player.createConnectionRequest(next.get()).connectWithIndication()
-              .whenComplete((success, ex) -> {
-                if (ex != null || success == null || !success) {
-                  player.disconnect(Component.text("Your server has been changed, but we could "
-                      + "not move you to any fallback servers."));
-                }
-                latch.countDown();
-              });
-        } else {
-          latch.countDown();
-          player.disconnect(Component.text("Your server has been changed, but we could "
-              + "not move you to any fallback servers."));
-        }
-      }
-      try {
-        latch.await();
-      } catch (InterruptedException e) {
-        LOGGER.error("Interrupted whilst moving players", e);
-        Thread.currentThread().interrupt();
-      }
-    }
 
     // If we have a new bind address, bind to it
     if (!configuration.getBind().equals(newConfiguration.getBind())) {
@@ -837,45 +795,155 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     return aliases.toArray(String[]::new);
   }
 
-  /**
-   * Reloads the list of servers based on the updated configuration.
-   *
-   * <p>This is exclusively implemented within VelocityServer as it
-   * is not a function necessary and present for generic purposes
-   * within ServerCommand and is exclusive to reload's functionality.</p>
-   */
-  public void reloadServerList() {
-    VelocityConfiguration config = getConfiguration();
-    List<ServerInfo> newConfigServers = loadServersFromNewList(config);
+  private void reconcileServers(VelocityConfiguration newConfiguration) {
+    List<ServerInfo> desired = new ArrayList<>();
+    for (Map.Entry<String, BackendServerConfig> entry : newConfiguration.getBackendServers().entrySet()) {
+      desired.add(new ServerInfo(entry.getKey(),
+          AddressUtil.parseAddress(entry.getValue().address()),
+          entry.getValue().forwardingMode()));
+    }
 
-    getAllServers().forEach(server -> {
-      if (!newConfigServers.contains(server.getServerInfo())) {
-        unregisterServer(server.getServerInfo());
+    // Servers registered now but absent from the new configuration: removed, renamed, or with a
+    // changed address/forwarding mode.
+    List<VelocityRegisteredServer> stale = new ArrayList<>();
+    for (VelocityRegisteredServer registered : getAllServers()) {
+      if (!desired.contains(registered.getServerInfo())) {
+        stale.add(registered);
       }
-    });
+    }
 
-    newConfigServers.forEach(serverInfo -> {
-      if (getServer(serverInfo.getName()).isEmpty()) {
-        registerServer(serverInfo);
+    Collection<ConnectedPlayer> evacuate = new ArrayList<>();
+    Set<ServerInfo> claimedRenames = new HashSet<>();
+    for (VelocityRegisteredServer old : stale) {
+      ServerInfo renameTarget = findRenameTarget(old.getServerInfo(), desired, claimedRenames);
+      if (renameTarget != null) {
+        // Pure rename: stand up the new server and move connected players onto it in place.
+        claimedRenames.add(renameTarget);
+        migratePlayers(old, registerServer(renameTarget));
+      } else {
+        // Removed or had its address/forwarding changed: evacuate the players to a fallback.
+        evacuate.addAll(old.getPlayersConnected());
       }
-    });
+      unregisterServer(old.getServerInfo());
+    }
+
+    // Register newly-added servers, plus any whose address/forwarding changed and whose old
+    // registration was just removed above.
+    for (ServerInfo info : desired) {
+      if (getServer(info.getName()).isEmpty()) {
+        registerServer(info);
+      }
+    }
+
+    evacuatePlayers(evacuate);
   }
 
-  /**
-   * Loads servers from the [servers] section of the configuration.
-   *
-   * @param config the Velocity configuration
-   * @return list of configured ServerInfo objects
-   */
-  private static List<ServerInfo> loadServersFromNewList(VelocityConfiguration config) {
-    List<ServerInfo> serverList = new ArrayList<>();
+  private @Nullable ServerInfo findRenameTarget(ServerInfo oldInfo, List<ServerInfo> desired, Set<ServerInfo> claimed) {
+    for (ServerInfo info : desired) {
+      if (claimed.contains(info) || info.getName().equalsIgnoreCase(oldInfo.getName())) {
+        continue;
+      }
+      if (getServer(info.getName()).isPresent()) {
+        continue;
+      }
+      if (info.getAddress().equals(oldInfo.getAddress())
+          && Objects.equals(info.getPlayerInfoForwardingMode(), oldInfo.getPlayerInfoForwardingMode())) {
+        return info;
+      }
+    }
+    return null;
+  }
 
-    config.getBackendServers().forEach((serverName, backendConfig) -> {
-      InetSocketAddress socketAddress = AddressUtil.parseAddress(backendConfig.address());
-      serverList.add(new ServerInfo(serverName, socketAddress, backendConfig.forwardingMode()));
-    });
+  private void migratePlayers(VelocityRegisteredServer from, VelocityRegisteredServer to) {
+    String fromName = from.getServerInfo().getName();
+    String toName = to.getServerInfo().getName();
 
-    return serverList;
+    Collection<ConnectedPlayer> players = from.getPlayersConnected();
+    if (players.isEmpty()) {
+      return;
+    }
+
+    CountDownLatch latch = new CountDownLatch(players.size());
+    for (ConnectedPlayer player : players) {
+      try {
+        player.getConnection().eventLoop().execute(() -> {
+          try {
+            VelocityServerConnection connected = player.getConnectedServer();
+            if (connected != null && connected.getServer() == from) {
+              from.removePlayer(player);
+              connected.migrateRegisteredServer(to);
+              to.addPlayer(player);
+
+              getClusterPlayerService().onPlayerSwitchServer(player, fromName, toName);
+            }
+
+            VelocityServerConnection inFlight = player.getConnectionInFlight();
+            if (inFlight != null && inFlight.getServer() == from) {
+              inFlight.migrateRegisteredServer(to);
+            }
+          } finally {
+            latch.countDown();
+          }
+        });
+      } catch (RejectedExecutionException e) {
+        latch.countDown();
+      }
+    }
+
+    try {
+      latch.await();
+    } catch (InterruptedException e) {
+      LOGGER.error("Interrupted whilst migrating players to renamed server {}", toName, e);
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  private void evacuatePlayers(Collection<ConnectedPlayer> evacuate) {
+    if (evacuate.isEmpty()) {
+      return;
+    }
+
+    CountDownLatch latch = new CountDownLatch(evacuate.size());
+    for (ConnectedPlayer player : evacuate) {
+      // Skip any fallback that resolves to the same backend the player is already connected to
+      // (e.g. a server that was renamed but kept its address).
+      InetSocketAddress currentAddress = player.getCurrentServer()
+          .map(conn -> conn.getServerInfo().getAddress())
+          .orElse(null);
+
+      var retrySession = player.currentServerRetrySession();
+      VelocityRegisteredServer target = null;
+      Optional<VelocityRegisteredServer> next;
+      while ((next = retrySession.getNextServerToTry()).isPresent()) {
+        if (currentAddress != null
+            && currentAddress.equals(next.get().getServerInfo().getAddress())) {
+          continue;
+        }
+        target = next.get();
+        break;
+      }
+
+      if (target != null) {
+        player.createConnectionRequest(target).connectWithIndication()
+            .whenComplete((success, ex) -> {
+              if (ex != null || success == null || !success) {
+                player.disconnect(Component.text(
+                    "Your server has been changed, but we could not move you to any fallback servers."));
+              }
+              latch.countDown();
+            });
+      } else {
+        latch.countDown();
+        player.disconnect(Component.text(
+            "Your server has been changed, but we could not move you to any fallback servers."));
+      }
+    }
+    try {
+      latch.await();
+    } catch (InterruptedException e) {
+      LOGGER.error("Interrupted whilst moving players", e);
+      Thread.currentThread().interrupt();
+    }
   }
 
   /**

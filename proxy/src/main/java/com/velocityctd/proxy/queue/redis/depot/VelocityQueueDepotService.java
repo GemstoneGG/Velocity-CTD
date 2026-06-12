@@ -49,4 +49,13 @@ public final class VelocityQueueDepotService
   public void upsertQueue(@NotNull RedisVelocityQueue queue) {
     this.depot.upsert(new VelocityQueueDepotEntry(queue));
   }
+
+  /**
+   * Removes the persisted snapshot for the given server's queue from Redis.
+   *
+   * @param serverName the name of the server whose queue snapshot should be removed
+   */
+  public void removeQueue(@NotNull String serverName) {
+    this.depot.remove(serverName);
+  }
 }
