@@ -2552,6 +2552,26 @@ public final class VelocityConfiguration implements ProxyConfig {
     private int maxSendRetries = 10;
 
     /**
+     * If true, players gain extra effective priority the longer they wait, so low-priority
+     * players cannot be starved forever by a stream of higher-priority joiners.
+     */
+    @Expose
+    private boolean dynamicPriority;
+
+    /**
+     * Minutes a player must wait in a queue to gain +1 effective priority.
+     */
+    @Expose
+    private int minutesPerPriorityIncrease = 30;
+
+    /**
+     * The cap on effective priority gained from waiting. Players whose configured priority
+     * is already at or above this value are unaffected by dynamic priority.
+     */
+    @Expose
+    private int maxDynamicPriority = 99;
+
+    /**
      * If true, removes the player from the queue after successfully switching servers.
      */
     @Expose
@@ -2631,6 +2651,14 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.messageDelay = config.getOrElse("message-delay", 1.0);
       this.backendPingInterval = config.getOrElse("backend-ping-interval", 5.0);
       this.maxSendRetries = config.getOrElse("max-send-retries", 10);
+      this.dynamicPriority = config.getOrElse("dynamic-priority", false);
+      this.minutesPerPriorityIncrease = config.getOrElse("minutes-per-priority-increase", 30);
+      this.maxDynamicPriority = config.getOrElse("max-dynamic-priority", 99);
+
+      if (this.minutesPerPriorityIncrease < 1) {
+        LOGGER.warn("'minutes-per-priority-increase' must be at least 1; using 1.");
+        this.minutesPerPriorityIncrease = 1;
+      }
       this.removePlayerOnServerSwitch = config.getOrElse("remove-player-on-server-switch", true);
       this.allowPausedQueueJoining = config.getOrElse("allow-paused-queue-joining", false);
       this.queueOnShutdown = config.getOrElse("queue-on-shutdown", true);
@@ -2736,6 +2764,18 @@ public final class VelocityConfiguration implements ProxyConfig {
      */
     public int getMaxSendRetries() {
       return maxSendRetries;
+    }
+
+    public boolean isDynamicPriority() {
+      return dynamicPriority;
+    }
+
+    public int getMinutesPerPriorityIncrease() {
+      return minutesPerPriorityIncrease;
+    }
+
+    public int getMaxDynamicPriority() {
+      return maxDynamicPriority;
     }
 
     /**

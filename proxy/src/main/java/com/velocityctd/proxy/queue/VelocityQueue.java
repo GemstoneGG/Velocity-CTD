@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -107,10 +107,6 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
   @Override
   public @NotNull @Unmodifiable Collection<E> getEntries() {
     return playerList.snapshot();
-  }
-
-  public @Nullable E findFirst(@NotNull Predicate<? super E> filter) {
-    return playerList.findFirst(filter);
   }
 
   @Override
@@ -194,6 +190,13 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
   @ApiStatus.Internal
   void removeEntry(VelocityQueueEntry entry) {
     playerList.remove(entry.getUniqueId());
+  }
+
+  /**
+   * Stable-sorts the entries by descending rank, reassigning positions.
+   */
+  void sortByRankDescending(ToIntFunction<? super VelocityQueueEntry> rank) {
+    playerList.sortByRankDescending(rank);
   }
 
   /**

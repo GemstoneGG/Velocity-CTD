@@ -455,6 +455,8 @@ public class VelocityQueueManager implements QueueManager {
     }
 
     Set<UUID> transferredThisTick = new HashSet<>();
+    VelocityConfiguration.Queue config = server.getConfiguration().getQueue();
+    long now = System.currentTimeMillis();
 
     for (VelocityQueue<?> queue : queues.values()) {
       if (queue.getState() != ACTIVE
@@ -463,10 +465,12 @@ public class VelocityQueueManager implements QueueManager {
         continue;
       }
 
-      VelocityQueueEntry candidate = queue.findFirst(e ->
-          !transferredThisTick.contains(e.getUniqueId())
-              && (queue.getServerStatus() != FULL || e.isFullBypass())
-              && !e.isWaitingForConnection());
+      if (config.isDynamicPriority()) {
+        queue.sortByRankDescending(entry -> effectivePriority(entry.getPriority(), entry.getJoinedAtMs(),
+            now, config.getMinutesPerPriorityIncrease(), config.getMaxDynamicPriority()));
+      }
+
+      VelocityQueueEntry candidate = selectCandidate(queue, transferredThisTick);
 
       if (candidate == null) {
         continue;
@@ -479,6 +483,28 @@ public class VelocityQueueManager implements QueueManager {
         queue.removeEntry(candidate);
       }
     }
+  }
+
+  private @Nullable VelocityQueueEntry selectCandidate(VelocityQueue<?> queue, Set<UUID> transferredThisTick) {
+    for (VelocityQueueEntry entry : queue.getInternalEntries()) {
+      if (!transferredThisTick.contains(entry.getUniqueId())
+          && (queue.getServerStatus() != FULL || entry.isFullBypass())
+          && !entry.isWaitingForConnection()) {
+        return entry;
+      }
+    }
+
+    return null;
+  }
+
+  static int effectivePriority(int priority, long joinedAtMs, long nowMs,
+                               int minutesPerIncrease, int maxDynamicPriority) {
+    if (joinedAtMs <= 0 || joinedAtMs > nowMs) {
+      return priority;
+    }
+
+    long bonus = (nowMs - joinedAtMs) / TimeUnit.MINUTES.toMillis(minutesPerIncrease);
+    return (int) Math.clamp(maxDynamicPriority, priority, priority + bonus);
   }
 
   private void pingBackends() {
