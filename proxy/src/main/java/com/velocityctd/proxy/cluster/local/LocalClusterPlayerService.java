@@ -49,9 +49,13 @@ public final class LocalClusterPlayerService implements VelocityClusterPlayerSer
 
   @Override
   public int getPlayersOnServerCount(String serverName) {
-    return this.server.getServer(serverName)
-        .map(rs -> rs.getPlayersConnected().size())
-        .orElse(0);
+    int count = 0;
+    for (ConnectedPlayer player : this.server.getOnlinePlayers()) {
+      if (isOnServer(player, serverName)) {
+        count++;
+      }
+    }
+    return count;
   }
 
   @Override
@@ -61,10 +65,15 @@ public final class LocalClusterPlayerService implements VelocityClusterPlayerSer
 
   @Override
   public Collection<VelocityClusterPlayer> getPlayersOnServer(String serverName) {
-    return this.server.getServer(serverName)
-        .<Collection<VelocityClusterPlayer>>map(
-            rs -> Collections2.transform(rs.getPlayersConnected(), this::toLocalPlayer))
-        .orElse(List.of());
+    return Collections2.transform(
+        Collections2.filter(this.server.getOnlinePlayers(), player -> isOnServer(player, serverName)),
+        this::toLocalPlayer
+    );
+  }
+
+  private static boolean isOnServer(@Nullable ConnectedPlayer player, String serverName) {
+    VelocityServerConnection connection = player == null ? null : player.getConnectedServer();
+    return connection != null && connection.getServerInfo().getName().equalsIgnoreCase(serverName);
   }
 
   @Override

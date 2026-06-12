@@ -19,12 +19,14 @@ package com.velocitypowered.proxy.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.proxy.server.ServerMap;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
@@ -35,6 +37,12 @@ class ServerMapTest {
    */
   private static final InetSocketAddress TEST_ADDRESS = new InetSocketAddress(
       InetAddress.getLoopbackAddress(), 25565);
+
+  /**
+   * A second loopback socket address for tests that change a server's address.
+   */
+  private static final InetSocketAddress OTHER_ADDRESS = new InetSocketAddress(
+      InetAddress.getLoopbackAddress(), 25566);
 
   @Test
   void respectsCaseInsensitivity() {
@@ -63,5 +71,50 @@ class ServerMapTest {
     ServerInfo info = new ServerInfo("TestServer", TEST_ADDRESS);
     VelocityRegisteredServer connection = map.register(info);
     assertEquals(connection, map.register(info));
+  }
+
+  @Test
+  void renamesServersWhenReconciling() {
+    ServerMap map = new ServerMap(null);
+    map.register(new ServerInfo("TestServer", TEST_ADDRESS));
+
+    ServerInfo renamed = new ServerInfo("RenamedServer", TEST_ADDRESS);
+    assertTrue(map.reconcile(List.of(renamed), List.of("testserver")).isEmpty());
+
+    assertEquals(Optional.empty(), map.getServer("TestServer"));
+    assertEquals(renamed, map.getServer("RenamedServer").orElseThrow().getServerInfo());
+  }
+
+  @Test
+  void replacesChangedServersWhenReconciling() {
+    ServerMap map = new ServerMap(null);
+    map.register(new ServerInfo("TestServer", TEST_ADDRESS));
+
+    ServerInfo moved = new ServerInfo("TestServer", OTHER_ADDRESS);
+    map.reconcile(List.of(moved), List.of("TestServer"));
+
+    assertEquals(moved, map.getServer("TestServer").orElseThrow().getServerInfo());
+  }
+
+  @Test
+  void keepsUnchangedServersWhenReconciling() {
+    ServerMap map = new ServerMap(null);
+    ServerInfo info = new ServerInfo("TestServer", TEST_ADDRESS);
+    VelocityRegisteredServer connection = map.register(info);
+
+    map.reconcile(List.of(info), List.of("TestServer"));
+
+    assertEquals(Optional.of(connection), map.getServer("TestServer"));
+  }
+
+  @Test
+  void ignoresThirdPartyServersWhenReconciling() {
+    ServerMap map = new ServerMap(null);
+    VelocityRegisteredServer pluginServer = map.register(new ServerInfo("PluginServer", TEST_ADDRESS));
+
+    map.reconcile(List.of(new ServerInfo("TestServer", OTHER_ADDRESS)), List.of("TestServer", "RemovedServer"));
+
+    assertEquals(Optional.of(pluginServer), map.getServer("PluginServer"));
+    assertTrue(map.getServer("TestServer").isPresent());
   }
 }

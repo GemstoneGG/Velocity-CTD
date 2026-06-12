@@ -66,6 +66,7 @@ import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.api.proxy.player.ResourcePackInfo;
 import com.velocitypowered.api.proxy.server.PlayerInfoForwarding;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.api.util.ModInfo;
@@ -2100,11 +2101,19 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
         return Optional.of(ConnectionRequestBuilder.Status.CONNECTION_IN_PROGRESS);
       }
 
-      if (connectedServer != null && connectedServer.getServer().getServerInfo().equals(server.getServerInfo())) {
-        return Optional.of(ALREADY_CONNECTED);
+      if (connectedServer != null) {
+        ServerInfo current = connectedServer.getServer().getServerInfo();
+        if (current.equals(server.getServerInfo()) || isSameUnregisteredBackend(current, server.getServerInfo())) {
+          return Optional.of(ALREADY_CONNECTED);
+        }
       }
 
       return Optional.empty();
+    }
+
+    private boolean isSameUnregisteredBackend(ServerInfo current, ServerInfo target) {
+      return current.getAddress().equals(target.getAddress())
+          && ConnectedPlayer.this.server.getServer(current.getName()).isEmpty();
     }
 
     private CompletableFuture<Optional<Status>> getInitialStatus() {

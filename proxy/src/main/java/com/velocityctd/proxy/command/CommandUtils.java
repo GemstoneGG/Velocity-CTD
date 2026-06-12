@@ -25,6 +25,7 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.velocityctd.api.queue.QueueState;
+import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocityctd.proxy.util.ComponentUtils;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
@@ -42,6 +43,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
@@ -229,6 +232,29 @@ public class CommandUtils {
     List<VelocityRegisteredServer> servers = new ArrayList<>(proxy.getAllServers());
     servers.sort(Comparator.comparing(VelocityRegisteredServer::getServerInfo));
     return Collections.unmodifiableList(servers);
+  }
+
+  /**
+   * Returns the names of all registered servers plus any servers that cluster players are
+   * still connected to (servers a reload removed or renamed), sorted alphabetically.
+   *
+   * @param proxy the proxy server instance
+   * @return the sorted server names
+   */
+  public static Collection<String> sortedServerNames(VelocityServer proxy) {
+    Set<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+    for (VelocityRegisteredServer registered : proxy.getAllServers()) {
+      names.add(registered.getServerInfo().getName());
+    }
+
+    for (VelocityClusterPlayer player : proxy.getClusterPlayerService().getAllPlayers()) {
+      String serverName = player.getServerName();
+      if (serverName != null) {
+        names.add(serverName);
+      }
+    }
+
+    return names;
   }
 
   /**

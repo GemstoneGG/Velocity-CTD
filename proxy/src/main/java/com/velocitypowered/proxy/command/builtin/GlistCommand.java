@@ -31,10 +31,8 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
-import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -91,19 +89,19 @@ public class GlistCommand implements BuiltinCommandDefinition {
     CommandSource source = context.getSource();
     String serverName = getString(context, SERVER_ARG);
     if (serverName.equalsIgnoreCase(SERVER_ALL)) {
-      for (VelocityRegisteredServer server : CommandUtils.sortedServerList(server)) {
-        sendServerPlayers(source, true, server);
+      for (String name : CommandUtils.sortedServerNames(server)) {
+        sendServerPlayers(source, true, name);
       }
       sendTotalProxyCount(source);
     } else {
-      Optional<VelocityRegisteredServer> registeredServer = server.getServer(serverName);
-      if (registeredServer.isEmpty()) {
+      if (server.getServer(serverName).isEmpty()
+              && server.getClusterPlayerService().getPlayersOnServerCount(serverName) == 0) {
         source.sendMessage(
                 CommandMessages.SERVER_DOES_NOT_EXIST
                         .arguments(Component.text(serverName)));
         return 0;
       }
-      sendServerPlayers(source, false, registeredServer.get());
+      sendServerPlayers(source, false, serverName);
     }
 
     return SINGLE_SUCCESS;
@@ -127,12 +125,12 @@ public class GlistCommand implements BuiltinCommandDefinition {
     target.sendMessage(msg.build());
   }
 
-  private void sendServerPlayers(CommandSource target, boolean fromAll, VelocityRegisteredServer server) {
+  private void sendServerPlayers(CommandSource target, boolean fromAll, String serverName) {
     int totalPlayers = 0;
     List<Component> players = new ArrayList<>();
     String selfProxyId = this.server.getClusterProxyService().getSelfProxyId();
 
-    for (VelocityClusterPlayer player : this.server.getClusterPlayerService().getPlayersOnServer(server.getServerInfo().getName())) {
+    for (VelocityClusterPlayer player : this.server.getClusterPlayerService().getPlayersOnServer(serverName)) {
       String proxyId = player.getProxyId();
       String key = proxyId.equals(selfProxyId)
           ? "velocity.command.glist.proxy-self"
@@ -151,7 +149,7 @@ public class GlistCommand implements BuiltinCommandDefinition {
             .orElse(Component.text(""));
     target.sendMessage(Component.translatable("velocity.command.glist-server")
             .arguments(
-                    Argument.string("server", server.getServerInfo().getName()),
+                    Argument.string("server", serverName),
                     Argument.numeric("count", totalPlayers),
                     Argument.component("players", playerList)
             )

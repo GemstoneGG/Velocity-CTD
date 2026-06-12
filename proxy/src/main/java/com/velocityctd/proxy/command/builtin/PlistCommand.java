@@ -32,7 +32,6 @@ import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.command.builtin.BuiltinCommandDefinition;
-import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -132,8 +131,8 @@ public class PlistCommand implements BuiltinCommandDefinition {
 
     if (serverName.equalsIgnoreCase(SERVER_ALL)) {
       int totalPlayers = 0;
-      for (VelocityRegisteredServer registeredServer : server.getAllServers()) {
-        int serverTotalPlayers = sendServerPlayers(context.getSource(), validatedProxy, registeredServer, true);
+      for (String name : CommandUtils.sortedServerNames(server)) {
+        int serverTotalPlayers = sendServerPlayers(context.getSource(), validatedProxy, name, true);
         totalPlayers += serverTotalPlayers;
       }
 
@@ -141,7 +140,7 @@ public class PlistCommand implements BuiltinCommandDefinition {
       return SINGLE_SUCCESS;
     }
 
-    VelocityRegisteredServer validatedServer = validateServer(serverName, context.getSource()).orElse(null);
+    String validatedServer = validateServer(serverName, context.getSource()).orElse(null);
     if (validatedServer == null) {
       return 0;
     }
@@ -166,15 +165,15 @@ public class PlistCommand implements BuiltinCommandDefinition {
     return SINGLE_SUCCESS;
   }
 
-  private Optional<VelocityRegisteredServer> validateServer(String serverName, CommandSource source) {
-    return server.getAllServers().stream()
-            .filter(registeredServer -> registeredServer.getServerInfo().getName().equalsIgnoreCase(serverName))
-            .findFirst()
-            .or(() -> {
-              source.sendMessage(Component.translatable("velocity.command.server-does-not-exist", NamedTextColor.RED)
-                      .arguments(Component.text(serverName)));
-              return Optional.empty();
-            });
+  private Optional<String> validateServer(String serverName, CommandSource source) {
+    if (server.getServer(serverName).isPresent()
+            || server.getClusterPlayerService().getPlayersOnServerCount(serverName) > 0) {
+      return Optional.of(serverName);
+    }
+
+    source.sendMessage(Component.translatable("velocity.command.server-does-not-exist", NamedTextColor.RED)
+            .arguments(Component.text(serverName)));
+    return Optional.empty();
   }
 
   private void sendTotalProxyCount(CommandSource target, @Nullable String proxyId, int online) {
@@ -206,12 +205,12 @@ public class PlistCommand implements BuiltinCommandDefinition {
   // Returns total player count
   private int sendServerPlayers(CommandSource target,
                                 @Nullable String proxyId,
-                                VelocityRegisteredServer server,
+                                String serverName,
                                 boolean ignoreEmpty) {
     List<Component> players = new ArrayList<>();
     int totalPlayers = 0;
 
-    for (VelocityClusterPlayer player : this.server.getClusterPlayerService().getPlayersOnServer(server.getServerInfo().getName())) {
+    for (VelocityClusterPlayer player : this.server.getClusterPlayerService().getPlayersOnServer(serverName)) {
       if (proxyId == null || player.getProxyId().equalsIgnoreCase(proxyId)) {
         players.add(Component.text(player.getUsername()));
         totalPlayers++;
@@ -227,7 +226,7 @@ public class PlistCommand implements BuiltinCommandDefinition {
             .orElse(Component.text(""));
     target.sendMessage(Component.translatable("velocity.command.plist-server")
             .arguments(
-                    Argument.string("server", server.getServerInfo().getName()),
+                    Argument.string("server", serverName),
                     Argument.numeric("count", totalPlayers),
                     Argument.component("players", playerList)
             )

@@ -23,10 +23,15 @@ import com.velocitypowered.api.event.proxy.server.ServerRegisteredEvent;
 import com.velocitypowered.api.event.proxy.server.ServerUnregisteredEvent;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -94,6 +99,50 @@ public class ServerMap {
     } else {
       return existing;
     }
+  }
+
+  /**
+   * Updates the registry to match the given server list: registers new servers, replaces
+   * servers whose info changed, and unregisters servers from {@code previousNames} that are
+   * no longer listed. Servers registered outside the list (e.g. by plugins) are left alone.
+   * Players stay on their current connection even if its server was unregistered; players on
+   * a replaced server are returned so the caller can move them to a fallback.
+   *
+   * @param newServers the desired server list
+   * @param previousNames the names the previous server list contained
+   * @return the players connected to servers that were replaced
+   */
+  public Collection<ConnectedPlayer> reconcile(Collection<ServerInfo> newServers, Collection<String> previousNames) {
+    Map<String, ServerInfo> wanted = new HashMap<>();
+    for (ServerInfo info : newServers) {
+      wanted.put(info.getName().toLowerCase(Locale.US), info);
+    }
+
+    Set<String> removable = new HashSet<>();
+    for (String name : previousNames) {
+      removable.add(name.toLowerCase(Locale.US));
+    }
+
+    Collection<ConnectedPlayer> displaced = new ArrayList<>();
+    for (VelocityRegisteredServer registered : getAllServers()) {
+      ServerInfo current = registered.getServerInfo();
+      ServerInfo replacement = wanted.get(current.getName().toLowerCase(Locale.US));
+      if (replacement == null) {
+        if (removable.contains(current.getName().toLowerCase(Locale.US))) {
+          unregister(current);
+        }
+      } else if (!replacement.equals(current)) {
+        displaced.addAll(registered.getPlayersConnected());
+        unregister(current);
+        register(replacement);
+      }
+    }
+
+    for (ServerInfo info : wanted.values()) {
+      register(info);
+    }
+
+    return displaced;
   }
 
   /**

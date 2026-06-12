@@ -55,7 +55,6 @@ import com.velocitypowered.api.plugin.PluginContainer;
 import com.velocitypowered.api.plugin.PluginDescription;
 import com.velocitypowered.api.plugin.PluginManager;
 import com.velocitypowered.api.proxy.ProxyServer;
-import com.velocitypowered.api.proxy.config.BackendServerConfig;
 import com.velocitypowered.api.proxy.player.ResourcePackInfo;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.api.util.Favicon;
@@ -413,9 +412,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     }
 
     if (!options.isIgnoreConfigServers()) {
-      for (Map.Entry<String, BackendServerConfig> entry : configuration.getBackendServers().entrySet()) {
-        servers.register(new ServerInfo(entry.getKey(), AddressUtil.parseAddress(entry.getValue().address()), entry.getValue().forwardingMode()));
-      }
+      loadServersFromNewList(configuration).forEach(servers::register);
     }
 
     if (configuration.getRedis().isEnabled()) {
@@ -589,7 +586,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
    * @return {@code true} if successful, {@code false} if we can't read the configuration
    * @throws IOException if we can't read {@code velocity.toml}
    */
-  public boolean reloadConfiguration() throws IOException {
+  public synchronized boolean reloadConfiguration() throws IOException {
     Path configPath = Path.of("velocity.toml");
     VelocityConfiguration newConfiguration = VelocityConfiguration.read(configPath);
 
@@ -597,11 +594,11 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       return false;
     }
 
+    final VelocityConfiguration oldConfiguration = this.configuration;
+
     unregisterCommands();
 
     this.configuration = newConfiguration;
-
-    reloadServerList();
 
     registerCommands();
 
@@ -609,21 +606,13 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
     translationRegistryManager.registerTranslations();
 
-    // Re-register servers. If a server is being replaced, make sure to note what players need to
-    // move back to a fallback server.
-    Collection<ConnectedPlayer> evacuate = new ArrayList<>();
-    for (Map.Entry<String, BackendServerConfig> entry : newConfiguration.getBackendServers().entrySet()) {
-      ServerInfo newInfo = new ServerInfo(entry.getKey(), AddressUtil.parseAddress(entry.getValue().address()), entry.getValue().forwardingMode());
-      Optional<VelocityRegisteredServer> rs = servers.getServer(entry.getKey());
-      if (rs.isEmpty()) {
-        servers.register(newInfo);
-      } else if (!rs.get().getServerInfo().equals(newInfo)) {
-        evacuate.addAll(rs.get().getPlayersConnected());
-
-        servers.unregister(rs.get().getServerInfo());
-        servers.register(newInfo);
-      }
-    }
+    // Reconcile the server list. Servers that disappeared from the configuration (removals and
+    // renames) stop being offered while players already on them stay connected; players on
+    // servers whose address or forwarding mode changed are moved to a fallback below. Servers
+    // registered by plugins or the CLI are not touched.
+    Collection<ConnectedPlayer> evacuate = servers.reconcile(
+        loadServersFromNewList(newConfiguration), oldConfiguration.getBackendServers().keySet()
+    );
 
     // If we had any players to evacuate, let's move them now. Wait until they are all moved off.
     if (!evacuate.isEmpty()) {
@@ -835,30 +824,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     }
 
     return aliases.toArray(String[]::new);
-  }
-
-  /**
-   * Reloads the list of servers based on the updated configuration.
-   *
-   * <p>This is exclusively implemented within VelocityServer as it
-   * is not a function necessary and present for generic purposes
-   * within ServerCommand and is exclusive to reload's functionality.</p>
-   */
-  public void reloadServerList() {
-    VelocityConfiguration config = getConfiguration();
-    List<ServerInfo> newConfigServers = loadServersFromNewList(config);
-
-    getAllServers().forEach(server -> {
-      if (!newConfigServers.contains(server.getServerInfo())) {
-        unregisterServer(server.getServerInfo());
-      }
-    });
-
-    newConfigServers.forEach(serverInfo -> {
-      if (getServer(serverInfo.getName()).isEmpty()) {
-        registerServer(serverInfo);
-      }
-    });
   }
 
   /**
