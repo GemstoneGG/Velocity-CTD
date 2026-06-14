@@ -504,7 +504,7 @@ public class VelocityQueueManager implements QueueManager {
     }
 
     long bonus = (nowMs - joinedAtMs) / TimeUnit.MINUTES.toMillis(minutesPerIncrease);
-    return (int) Math.clamp(maxDynamicPriority, priority, priority + bonus);
+    return (int) Math.max(priority, Math.min(priority + bonus, maxDynamicPriority));
   }
 
   private void pingBackends() {
