@@ -209,18 +209,18 @@ public final class ArgumentPropertyRegistry {
     empty(id("minecraft:block_predicate", mapSet(MINECRAFT_1_19, 13)));
     empty(id("minecraft:item_stack", mapSet(MINECRAFT_1_19, 14)));
     empty(id("minecraft:item_predicate", mapSet(MINECRAFT_1_19, 15)));
-    empty(id("minecraft:color", mapSet(MINECRAFT_1_19, 16)));
+    empty(id("minecraft:color", mapSet(MINECRAFT_26_2, -1), mapSet(MINECRAFT_1_19, 16))); // Renamed to team_color in 26.2
     empty(id("minecraft:component", mapSet(MINECRAFT_1_21_6, 18), mapSet(MINECRAFT_1_19, 17)));
-    empty(id("minecraft:style", mapSet(MINECRAFT_1_21_6, 19), mapSet(MINECRAFT_1_20_3, 18))); // added 1.20.3
+    empty(id("minecraft:style", mapSet(MINECRAFT_1_21_6, 19), mapSet(MINECRAFT_1_20_3, 18))); // Added 1.20.3
     empty(id("minecraft:message", mapSet(MINECRAFT_1_21_6, 20), mapSet(MINECRAFT_1_20_3, 19), mapSet(MINECRAFT_1_19, 18)));
-    empty(id("minecraft:nbt_compound_tag", mapSet(MINECRAFT_1_21_6, 21), mapSet(MINECRAFT_1_20_3, 20), mapSet(MINECRAFT_1_19, 19))); // added in 1.14
-    empty(id("minecraft:nbt_tag", mapSet(MINECRAFT_1_21_6, 22), mapSet(MINECRAFT_1_20_3, 21), mapSet(MINECRAFT_1_19, 20))); // added in 1.14
+    empty(id("minecraft:nbt_compound_tag", mapSet(MINECRAFT_1_21_6, 21), mapSet(MINECRAFT_1_20_3, 20), mapSet(MINECRAFT_1_19, 19))); // Added in 1.14
+    empty(id("minecraft:nbt_tag", mapSet(MINECRAFT_1_21_6, 22), mapSet(MINECRAFT_1_20_3, 21), mapSet(MINECRAFT_1_19, 20))); // Added in 1.14
     empty(id("minecraft:nbt_path", mapSet(MINECRAFT_1_21_6, 23), mapSet(MINECRAFT_1_20_3, 22), mapSet(MINECRAFT_1_19, 21)));
     empty(id("minecraft:objective", mapSet(MINECRAFT_1_21_6, 24), mapSet(MINECRAFT_1_20_3, 23), mapSet(MINECRAFT_1_19, 22)));
     empty(id("minecraft:objective_criteria", mapSet(MINECRAFT_1_21_6, 25), mapSet(MINECRAFT_1_20_3, 24), mapSet(MINECRAFT_1_19, 23)));
     empty(id("minecraft:operation", mapSet(MINECRAFT_1_21_6, 26), mapSet(MINECRAFT_1_20_3, 25), mapSet(MINECRAFT_1_19, 24)));
     empty(id("minecraft:particle", mapSet(MINECRAFT_1_21_6, 27), mapSet(MINECRAFT_1_20_3, 26), mapSet(MINECRAFT_1_19, 25)));
-    empty(id("minecraft:angle", mapSet(MINECRAFT_1_21_6, 28), mapSet(MINECRAFT_1_20_3, 27), mapSet(MINECRAFT_1_19, 26))); // added in 1.16.2
+    empty(id("minecraft:angle", mapSet(MINECRAFT_1_21_6, 28), mapSet(MINECRAFT_1_20_3, 27), mapSet(MINECRAFT_1_19, 26))); // Added in 1.16.2
     empty(id("minecraft:rotation", mapSet(MINECRAFT_1_21_6, 29), mapSet(MINECRAFT_1_20_3, 28), mapSet(MINECRAFT_1_19, 27)));
     empty(id("minecraft:scoreboard_slot", mapSet(MINECRAFT_1_21_6, 30), mapSet(MINECRAFT_1_20_3, 29), mapSet(MINECRAFT_1_19, 28)));
     empty(id("minecraft:score_holder", mapSet(MINECRAFT_1_21_6, 31), mapSet(MINECRAFT_1_20_3, 30), mapSet(MINECRAFT_1_19, 29)),
@@ -248,7 +248,7 @@ public final class ArgumentPropertyRegistry {
         mapSet(MINECRAFT_1_19_3, 39))); // 1.19.3
 
     empty(id("minecraft:time", mapSet(MINECRAFT_1_21_6, 43), mapSet(MINECRAFT_1_20_5, 42), mapSet(MINECRAFT_1_20_3, 41),
-        mapSet(MINECRAFT_1_19_3, 40), mapSet(MINECRAFT_1_19, 42)), TimeArgumentSerializer.TIME); // added in 1.14
+        mapSet(MINECRAFT_1_19_3, 40), mapSet(MINECRAFT_1_19, 42)), TimeArgumentSerializer.TIME); // Added in 1.14
 
     register(id("minecraft:resource_or_tag", mapSet(MINECRAFT_1_21_6, 44), mapSet(MINECRAFT_1_20_5, 43), mapSet(MINECRAFT_1_20_3, 42),
         mapSet(MINECRAFT_1_19_3, 41), mapSet(MINECRAFT_1_19, 43)), RegistryKeyArgument.class, RegistryKeyArgumentSerializer.REGISTRY);
@@ -275,15 +275,15 @@ public final class ArgumentPropertyRegistry {
         mapSet(MINECRAFT_1_19_4, 47))); // 1.19.4
 
     empty(id("minecraft:uuid", mapSet(MINECRAFT_1_21_6, 56), mapSet(MINECRAFT_1_21_5, 54), mapSet(MINECRAFT_1_20_5, 53), mapSet(MINECRAFT_1_20_3, 48),
-        mapSet(MINECRAFT_1_19_4, 48), mapSet(MINECRAFT_1_19, 47))); // added in 1.16
+        mapSet(MINECRAFT_1_19_4, 48), mapSet(MINECRAFT_1_19, 47))); // Added in 1.16
 
     empty(id("minecraft:loot_table", mapSet(MINECRAFT_1_21_6, 52), mapSet(MINECRAFT_1_21_5, 51), mapSet(MINECRAFT_1_20_5, 50)));
     empty(id("minecraft:loot_predicate", mapSet(MINECRAFT_1_21_6, 53), mapSet(MINECRAFT_1_21_5, 52), mapSet(MINECRAFT_1_20_5, 51)));
     empty(id("minecraft:loot_modifier", mapSet(MINECRAFT_1_21_6, 54), mapSet(MINECRAFT_1_21_5, 53), mapSet(MINECRAFT_1_20_5, 52)));
 
-    empty(id("minecraft:hex_color", mapSet(MINECRAFT_1_21_6, 17))); // added in 1.21.6
-    empty(id("minecraft:dialog", mapSet(MINECRAFT_1_21_6, 55))); // added in 1.21.6
-    empty(id("minecraft:team_color", mapSet(MINECRAFT_26_2, 16))); // added in 26.2
+    empty(id("minecraft:hex_color", mapSet(MINECRAFT_1_21_6, 17))); // Added in 1.21.6
+    empty(id("minecraft:dialog", mapSet(MINECRAFT_1_21_6, 55))); // Added in 1.21.6
+    empty(id("minecraft:team_color", mapSet(MINECRAFT_26_2, 16))); // Renamed from color in 26.2
 
     // Cross-stitch support
     register(id("crossstitch:mod_argument", mapSet(MINECRAFT_1_19, -256)), ModArgumentProperty.class, MOD);
