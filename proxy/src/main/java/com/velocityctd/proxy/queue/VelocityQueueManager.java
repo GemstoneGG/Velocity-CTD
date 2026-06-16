@@ -499,7 +499,7 @@ public class VelocityQueueManager implements QueueManager {
 
   static int effectivePriority(int priority, long joinedAtMs, long nowMs,
                                int minutesPerIncrease, int maxDynamicPriority) {
-    if (joinedAtMs <= 0 || joinedAtMs > nowMs) {
+    if (joinedAtMs <= 0 || joinedAtMs > nowMs || minutesPerIncrease < 1) {
       return priority;
     }
 

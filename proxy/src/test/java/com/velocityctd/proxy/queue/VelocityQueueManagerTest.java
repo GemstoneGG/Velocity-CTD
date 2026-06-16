@@ -64,4 +64,12 @@ class VelocityQueueManagerTest {
     assertEquals(5, effectivePriority(5, 0, now, MINUTES_PER_INCREASE, MAX_DYNAMIC_PRIORITY));
     assertEquals(5, effectivePriority(5, now + 1, now, MINUTES_PER_INCREASE, MAX_DYNAMIC_PRIORITY));
   }
+
+  @Test
+  void keepsPriorityForNonPositiveInterval() {
+    long now = TimeUnit.DAYS.toMillis(365);
+    long joinedAt = now - TimeUnit.DAYS.toMillis(1);
+    assertEquals(5, effectivePriority(5, joinedAt, now, 0, MAX_DYNAMIC_PRIORITY));
+    assertEquals(5, effectivePriority(5, joinedAt, now, -1, MAX_DYNAMIC_PRIORITY));
+  }
 }
