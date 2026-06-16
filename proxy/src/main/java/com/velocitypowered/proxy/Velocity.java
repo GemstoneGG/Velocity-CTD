@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy;
 
+import com.velocityctd.proxy.util.VersionChecker;
 import com.velocitypowered.proxy.util.VelocityProperties;
 import io.netty.util.ResourceLeakDetector;
 import io.netty.util.ResourceLeakDetector.Level;
@@ -86,6 +87,9 @@ public class Velocity {
 
     double bootTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime) / 1000d;
     LOGGER.info("Done ({}s)!", new DecimalFormat("#.##").format(bootTime));
+
+    VersionChecker.checkOnStartup(server.getVersion());
+
     server.getConsoleCommandSource().start();
 
     // If we don't have a console available (because SimpleTerminalConsole returned), then we still

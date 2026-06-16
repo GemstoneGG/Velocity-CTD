@@ -17,11 +17,14 @@
 
 package com.velocitypowered.proxy.command.builtin;
 
+import static com.velocityctd.proxy.util.VersionChecker.DISTANCE_ERROR;
+import static com.velocityctd.proxy.util.VersionChecker.DISTANCE_LATEST;
+import static com.velocityctd.proxy.util.VersionChecker.DISTANCE_UNKNOWN;
+import static com.velocityctd.proxy.util.VersionChecker.fetchDistanceFromGitHub;
+
 import com.google.common.base.Suppliers;
-import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonSyntaxException;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
@@ -45,16 +48,12 @@ import com.velocitypowered.proxy.config.ConfigDetector;
 import com.velocitypowered.proxy.config.ConfigDetector.ConfigAnalysis;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import com.velocitypowered.proxy.util.InformationUtils;
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.management.ManagementFactory;
-import java.net.HttpURLConnection;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -70,8 +69,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
@@ -399,21 +396,6 @@ public class VelocityCommand implements BuiltinCommandDefinition {
     private static final TextColor VELOCITY_COLOR = TextColor.color(0xff3a4c);
 
     /**
-     * Version distance constant indicating the current version is up to date with GitHub.
-     */
-    private static final int DISTANCE_LATEST = 0;
-
-    /**
-     * Version distance constant indicating an error occurred during GitHub comparison.
-     */
-    private static final int DISTANCE_ERROR = -1;
-
-    /**
-     * Version distance constant indicating the specified commit hash was not found.
-     */
-    private static final int DISTANCE_UNKNOWN = -2;
-
-    /**
      * Memoized supplier that builds the {@code /velocity info} output component.
      */
     private final Supplier<Component> infoSupplier;
@@ -477,46 +459,6 @@ public class VelocityCommand implements BuiltinCommandDefinition {
 
         return infoBuilder.build();
       }, 10, TimeUnit.MINUTES);
-    }
-
-    private static final Pattern GIT_HASH = Pattern.compile("-git-([0-9a-fA-F]+)");
-
-    private static final Gson VERSION_GSON = new Gson();
-
-    private static int fetchDistanceFromGitHub(String version) {
-      Matcher matcher = GIT_HASH.matcher(version);
-      if (!matcher.find()) {
-        return DISTANCE_UNKNOWN;
-      }
-
-      String hash = matcher.group(1);
-      try {
-        HttpURLConnection connection = (HttpURLConnection) URI.create("https://api.github.com/repos/GemstoneGG/Velocity-CTD/compare/libdeflate..." + hash).toURL().openConnection();
-        connection.setConnectTimeout(5000);
-        connection.setReadTimeout(5000);
-        connection.setRequestProperty("User-Agent", "Velocity-CTD/" + version + " (+https://github.com/GemstoneGG/Velocity-CTD)");
-        connection.setRequestProperty("Accept", "application/vnd.github+json");
-        connection.connect();
-        if (connection.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-          return DISTANCE_UNKNOWN; // Unidentifiable commit
-        }
-
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
-          JsonObject obj = VERSION_GSON.fromJson(reader, JsonObject.class);
-          String status = obj.get("status").getAsString();
-          return switch (status) {
-            case "identical" -> DISTANCE_LATEST;
-            case "behind" -> obj.get("behind_by").getAsInt();
-            default -> DISTANCE_ERROR;
-          };
-        } catch (JsonSyntaxException | NumberFormatException e) {
-          LOGGER.error("Error parsing version-comparison response from GitHub for hash {}", hash, e);
-          return DISTANCE_ERROR;
-        }
-      } catch (IOException e) {
-        LOGGER.error("Error contacting GitHub for version comparison of hash {}", hash, e);
-        return DISTANCE_ERROR;
-      }
     }
 
     @Override
