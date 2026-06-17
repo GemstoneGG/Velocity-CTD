@@ -17,11 +17,12 @@
 
 package com.velocitypowered.proxy.connection.util;
 
-import static com.velocityctd.proxy.util.ParsingUtils.parseVariables;
+import static com.velocityctd.proxy.util.PlaceholderSubstitutor.substitute;
 
 import com.github.f4b6a3.uuid.UuidCreator;
 import com.spotify.futures.CompletableFutures;
 import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
+import com.velocityctd.proxy.util.PlaceholderSubstitutor;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.server.PingOptions;
 import com.velocitypowered.api.proxy.server.ServerPing;
@@ -34,10 +35,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Common utilities for handling server list ping results.
@@ -103,7 +106,8 @@ public class ServerListPingHandler {
     }
 
     return new ServerPing(
-        new ServerPing.Version(responseProtocol, formatVersionString(serverPingVersion, displayVersion)),
+        new ServerPing.Version(responseProtocol,
+            substitute(serverPingVersion, new ServerListMessageResolver(displayVersion))),
         new ServerPing.Players(server.getClusterPlayerService().getTotalPlayerCount(),
             configuration.getShowMaxPlayers(), samplePlayers),
         configuration.getMotd(),
@@ -111,23 +115,6 @@ public class ServerListPingHandler {
         configuration.isAnnounceForge() ? ModInfo.DEFAULT : null,
         configuration.doesPreventChatReports()
     );
-  }
-
-  private String formatVersionString(String raw, ProtocolVersion version) {
-    return parseVariables(raw, (variable) -> switch (variable) {
-      case "protocol-min" -> ProtocolVersion.getVersionByName(
-          server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn();
-      case "protocol-max" -> server.getConfiguration().getMaximumVersion()
-          .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
-      case "protocol" -> version.getVersionIntroducedIn();
-      case "proxy-brand" -> server.getVersion().getName();
-      case "proxy-brand-custom" -> server.getConfiguration().getProxyBrandCustom();
-      case "proxy-version" -> server.getVersion().getVersion();
-      case "proxy-vendor" -> server.getVersion().getVendor();
-      case "player-count" -> String.valueOf(server.getClusterPlayerService().getTotalPlayerCount());
-      case "max-players" -> String.valueOf(server.getConfiguration().getShowMaxPlayers());
-      default -> null;
-    });
   }
 
   private CompletableFuture<ServerPing> attemptPingPassthrough(VelocityInboundConnection connection,
@@ -260,5 +247,32 @@ public class ServerListPingHandler {
           : ServerPing.SamplePlayer.ANONYMOUS);
     }
     return result;
+  }
+
+  private class ServerListMessageResolver implements PlaceholderSubstitutor.Resolver {
+
+    private final ProtocolVersion displayVersion;
+
+    private ServerListMessageResolver(ProtocolVersion displayVersion) {
+      this.displayVersion = displayVersion;
+    }
+
+    @Override
+    public @Nullable String resolve(String name, Map<String, String> arguments) {
+      return switch (name) {
+        case "protocol-min" -> ProtocolVersion.getVersionByName(
+            server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn();
+        case "protocol-max" -> server.getConfiguration().getMaximumVersion()
+            .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
+        case "protocol" -> displayVersion.getVersionIntroducedIn();
+        case "proxy-brand" -> server.getVersion().getName();
+        case "proxy-brand-custom" -> server.getConfiguration().getProxyBrandCustom();
+        case "proxy-version" -> server.getVersion().getVersion();
+        case "proxy-vendor" -> server.getVersion().getVendor();
+        case "player-count" -> String.valueOf(server.getClusterPlayerService().getTotalPlayerCount());
+        case "max-players" -> String.valueOf(server.getConfiguration().getShowMaxPlayers());
+        default -> null;
+      };
+    }
   }
 }
