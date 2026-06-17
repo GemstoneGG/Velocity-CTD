@@ -680,15 +680,6 @@ public final class VelocityConfiguration implements ProxyConfig {
   }
 
   /**
-   * Returns whether the <code>/gkickall</code> command is enabled.
-   *
-   * @return {@code true} if enabled
-   */
-  public boolean isGkickAllEnabled() {
-    return commands.isGkickAllEnabled();
-  }
-
-  /**
    * Returns whether the <code>/gip</code> command is enabled.
    *
    * @return {@code true} if enabled
@@ -1817,13 +1808,6 @@ public final class VelocityConfiguration implements ProxyConfig {
     private boolean gkickCommand = true;
 
     /**
-     * Whether the /gkickall command is enabled.
-     * Allows operators to kick players across the entire network.
-     */
-    @Expose
-    private boolean gkickallCommand = true;
-
-    /**
      * Whether the /gip command is enabled.
      * Allows operators to retrieve the IP address of an online player.
      */
@@ -1888,7 +1872,6 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.alertRawCommand = config.getOrElse("alertraw-enabled", true);
         this.findCommand = config.getOrElse("find-enabled", true);
         this.gkickCommand = config.getOrElse("gkick-enabled", true);
-        this.gkickallCommand = config.getOrElse("gkickall-enabled", true);
         this.gipCommand = config.getOrElse("gip-enabled", true);
         this.glistCommand = config.getOrElse("glist-enabled", true);
         this.plistCommand = config.getOrElse("plist-enabled", true);
@@ -1918,10 +1901,6 @@ public final class VelocityConfiguration implements ProxyConfig {
 
     public boolean isGkickEnabled() {
       return gkickCommand;
-    }
-
-    public boolean isGkickAllEnabled() {
-      return gkickallCommand;
     }
 
     public boolean isGipEnabled() {
@@ -1964,7 +1943,6 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("alertRawCommand", alertRawCommand)
           .add("findCommand", findCommand)
           .add("gkickCommand", gkickCommand)
-          .add("gkickallCommand", gkickallCommand)
           .add("gipCommand", gipCommand)
           .add("glistCommand", glistCommand)
           .add("plistCommand", plistCommand)
