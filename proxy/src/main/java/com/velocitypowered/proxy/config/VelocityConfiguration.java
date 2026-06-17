@@ -2027,22 +2027,10 @@ public final class VelocityConfiguration implements ProxyConfig {
     private String serverBrand = "{backend-brand} ({proxy-brand})";
 
     /**
-     * Legacy-formatted string of {@link #serverBrand}, generated at runtime.
-     * Not {@code @Expose}d to the dump: it is a derived value, not a configuration option.
-     */
-    private String serverBrandAsString;
-
-    /**
      * The version string shown in the ping response when a backend is unavailable.
      */
     @Expose
     private String fallbackVersionPing = "{proxy-brand} {protocol-min}-{protocol-max}";
-
-    /**
-     * Legacy-formatted version of {@link #fallbackVersionPing}, generated at runtime.
-     * Not {@code @Expose}d to the dump: it is a derived value, not a configuration option.
-     */
-    private String fallbackVersionPingAsString;
 
     /**
      * Whether to always display the fallback version in ping, even if backends respond normally.
@@ -2093,17 +2081,14 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.tabCompleteRateLimit = config.getIntOrElse("tab-complete-rate-limit", 10);
         this.kickAfterRateLimitedTabCompletes = config.getIntOrElse("kick-after-rate-limited-tab-completes", 0);
         this.allowIllegalCharactersInChat = config.getOrElse("allow-illegal-characters-in-chat", false);
-        this.serverBrand = config.getOrElse("server-brand", "{backend-brand} ({proxy-brand})");
-        this.fallbackVersionPing = config.getOrElse("fallback-version-ping", "{proxy-brand} {protocol-min}-{protocol-max}");
+        this.serverBrand = reserializeToLegacy(
+            config.getOrElse("server-brand", "{backend-brand} ({proxy-brand})"));
+        this.fallbackVersionPing = reserializeToLegacy(
+            config.getOrElse("fallback-version-ping", "{proxy-brand} {protocol-min}-{protocol-max}"));
         this.alwaysFallBackPing = config.getOrElse("always-fallback-ping", false);
         this.proxyBrandCustom = config.getOrElse("custom-brand-proxy", "Velocity-CTD");
         this.backendBrandCustom = config.getOrElse("custom-brand-backend", "Paper");
       }
-
-      this.serverBrandAsString = LegacyComponentSerializer.legacySection()
-          .serialize(ComponentUtils.parse(this.serverBrand));
-      this.fallbackVersionPingAsString = LegacyComponentSerializer.legacySection()
-          .serialize(ComponentUtils.parse(this.fallbackVersionPing));
     }
 
     public int getCompressionThreshold() {
@@ -2163,7 +2148,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     }
 
     public boolean isAcceptTransfers() {
-      return this.acceptTransfers;
+      return acceptTransfers;
     }
 
     public boolean isEnableReusePort() {
@@ -2195,23 +2180,23 @@ public final class VelocityConfiguration implements ProxyConfig {
     }
 
     public String getServerBrand() {
-      return this.serverBrandAsString;
+      return serverBrand;
     }
 
     public String getFallbackVersionPing() {
-      return this.fallbackVersionPingAsString;
+      return fallbackVersionPing;
     }
 
     public boolean isAlwaysFallBackPing() {
-      return this.alwaysFallBackPing;
+      return alwaysFallBackPing;
     }
 
     public String getProxyBrandCustom() {
-      return this.proxyBrandCustom;
+      return proxyBrandCustom;
     }
 
     public String getBackendBrandCustom() {
-      return this.backendBrandCustom;
+      return backendBrandCustom;
     }
 
     @Override
@@ -2244,6 +2229,11 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("proxyBrandCustom", proxyBrandCustom)
           .add("backendBrandCustom", backendBrandCustom)
           .toString();
+    }
+
+    private static String reserializeToLegacy(String input) {
+      Component deserialized = ComponentUtils.parse(input);
+      return LegacyComponentSerializer.legacySection().serialize(deserialized);
     }
   }
 
