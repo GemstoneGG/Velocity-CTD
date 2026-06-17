@@ -49,6 +49,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -60,7 +61,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -74,15 +74,13 @@ public final class VelocityConfiguration implements ProxyConfig {
   private static final String UNBOUNDED = "UNBOUNDED";
 
   // Cached fields
-  private @MonotonicNonNull Component motdAsComponent;
-  private List<@MonotonicNonNull Component> motdHoverComponents;
   private @Nullable Favicon favicon;
 
   @Expose
   private final String bind;
 
   @Expose
-  private final String motd;
+  private final List<String> motd;
 
   @Expose
   private final List<String> motdHover;
@@ -112,9 +110,6 @@ public final class VelocityConfiguration implements ProxyConfig {
 
   @Expose
   private final PingPassthroughMode pingPassthrough;
-
-  @Expose
-  private final boolean samplePlayersInPing;
 
   @Expose
   private final Servers servers;
@@ -253,13 +248,13 @@ public final class VelocityConfiguration implements ProxyConfig {
   @Expose
   private final Map<String, Integer> playerCaps;
 
-  private VelocityConfiguration(String bind, String motd, List<String> motdHover,
+  private VelocityConfiguration(String bind, List<String> motd, List<String> motdHover,
                                 int showMaxPlayers, boolean onlineMode,
                                 boolean preventClientProxyConnections, boolean announceForge,
                                 PlayerInfoForwarding playerInfoForwardingMode, byte[] forwardingSecret,
                                 boolean kickExistingPlayers, boolean kickExistingPlayersCheckIp,
                                 PingPassthroughMode pingPassthrough,
-                                boolean samplePlayersInPing, boolean enablePlayerAddressLogging,
+                                boolean enablePlayerAddressLogging,
                                 Servers servers, ForcedHosts forcedHosts,
                                 Map<String, List<String>> commandAliases,
                                 Map<String, List<String>> proxyCommandAliases,
@@ -286,7 +281,6 @@ public final class VelocityConfiguration implements ProxyConfig {
     this.kickExistingPlayers = kickExistingPlayers;
     this.kickExistingPlayersCheckIp = kickExistingPlayersCheckIp;
     this.pingPassthrough = pingPassthrough;
-    this.samplePlayersInPing = samplePlayersInPing;
     this.enablePlayerAddressLogging = enablePlayerAddressLogging;
     this.servers = servers;
     this.forcedHosts = forcedHosts;
@@ -498,22 +492,22 @@ public final class VelocityConfiguration implements ProxyConfig {
 
   @Override
   public Component getMotd() {
-    if (motdAsComponent == null) {
-      motdAsComponent = ComponentUtils.parse(motd);
-    }
+    return ComponentUtils.parse(String.join("\n", motd));
+  }
 
-    return motdAsComponent;
+  public List<String> getMotdLines() {
+    return motd;
   }
 
   @Override
   public List<Component> getMotdHover() {
-    if (motdHoverComponents == null) {
-      motdHoverComponents = motdHover.stream()
-          .map(ComponentUtils::parse)
-          .toList();
-    }
+    return motdHover.stream()
+        .map(ComponentUtils::parse)
+        .toList();
+  }
 
-    return motdHoverComponents;
+  public List<String> getMotdHoverLines() {
+    return motdHover;
   }
 
   @Override
@@ -802,10 +796,6 @@ public final class VelocityConfiguration implements ProxyConfig {
     return pingPassthrough;
   }
 
-  public boolean getSamplePlayersInPing() {
-    return samplePlayersInPing;
-  }
-
   public boolean isPlayerAddressLoggingEnabled() {
     return enablePlayerAddressLogging;
   }
@@ -1005,7 +995,6 @@ public final class VelocityConfiguration implements ProxyConfig {
         .add("kickExistingPlayers", kickExistingPlayers)
         .add("kickExistingPlayersCheckIp", kickExistingPlayersCheckIp)
         .add("pingPassthrough", pingPassthrough)
-        .add("samplePlayersInPing", samplePlayersInPing)
         .add("servers", servers)
         .add("forcedHosts", forcedHosts)
         .add("commands", commands)
@@ -1120,8 +1109,19 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
 
       byte[] forwardingSecret = forwardingSecretString.getBytes(StandardCharsets.UTF_8);
-      String motd = config.getOrElse("motd", "<#09add3>A Velocity Server");
-      List<String> motdHover = config.getOrElse("motd-hover", new ArrayList<>());
+
+      Object rawMotd = config.get("motd");
+      List<String> motd;
+      if (rawMotd instanceof String) {
+        motd = Collections.singletonList((String) rawMotd);
+      } else if (rawMotd instanceof List) {
+        motd = ImmutableList.copyOf((List<String>) rawMotd);
+      } else {
+        motd = Collections.emptyList();
+      }
+
+      List<String> motdHover = ImmutableList.copyOf(
+          config.getOrElse("motd-hover", new ArrayList<>()));
 
       // Read the rest of the config
       CommentedConfig serversConfig = config.get("servers");
@@ -1139,7 +1139,6 @@ public final class VelocityConfiguration implements ProxyConfig {
       CommentedConfig playerCapsConfig = config.get("playercaps");
       PlayerInfoForwarding forwardingMode = config.getEnumOrElse("player-info-forwarding-mode", PlayerInfoForwarding.NONE);
       PingPassthroughMode pingPassthroughMode = config.getEnumOrElse("ping-passthrough", PingPassthroughMode.DISABLED);
-      boolean samplePlayersInPing = config.getOrElse("sample-players-in-ping", false);
       String bind = config.getOrElse("bind", "0.0.0.0:25565");
       int maxPlayers = config.getIntOrElse("show-max-players", 500);
       boolean onlineMode = config.getOrElse("online-mode", true);
@@ -1249,7 +1248,6 @@ public final class VelocityConfiguration implements ProxyConfig {
           kickExisting,
           kickExistingCheckIp,
           pingPassthroughMode,
-          samplePlayersInPing,
           enablePlayerAddressLogging,
           new Servers(serversConfig),
           new ForcedHosts(forcedHostsConfig),

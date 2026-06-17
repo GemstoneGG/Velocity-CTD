@@ -17,12 +17,12 @@
 
 package com.velocitypowered.proxy.connection.util;
 
-import static com.velocityctd.proxy.util.PlaceholderSubstitutor.substitute;
-
 import com.github.f4b6a3.uuid.UuidCreator;
 import com.spotify.futures.CompletableFutures;
-import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
+import com.velocityctd.proxy.util.ComponentUtils;
 import com.velocityctd.proxy.util.PlaceholderSubstitutor;
+import com.velocityctd.proxy.util.SamplePlayersPicker;
+import com.velocityctd.proxy.util.SamplePlayersPlaceholderResolver;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.server.PingOptions;
 import com.velocitypowered.api.proxy.server.ServerPing;
@@ -32,22 +32,17 @@ import com.velocitypowered.proxy.config.PingPassthroughMode;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Common utilities for handling server list ping results.
  */
 public class ServerListPingHandler {
-
-  public static final int SAMPLE_SIZE = 12;
 
   private final VelocityServer server;
 
@@ -92,25 +87,55 @@ public class ServerListPingHandler {
       responseProtocol = clientVersion.getProtocol();
     }
 
-    List<ServerPing.SamplePlayer> samplePlayers;
-    if (configuration.getSamplePlayersInPing()) {
-      samplePlayers = sampleClusterPlayers(server.getClusterPlayerService().getAllPlayers());
-    } else {
-      samplePlayers = new ArrayList<>();
-    }
+    PlaceholderSubstitutor.Resolver basicResolver = new ServerListPingPlaceholderResolver(displayVersion);
 
-    String serverPingVersion = configuration.getFallbackVersionPing();
+    SamplePlayersPlaceholderResolver.Builder samplePlayersResolverBuilder =
+        SamplePlayersPlaceholderResolver.builder(
+            new SamplePlayersPicker(server.getClusterPlayerService()::getAllPlayers));
 
-    for (Component s : server.getConfiguration().getMotdHover()) {
-      samplePlayers.add(new ServerPing.SamplePlayer(s, UuidCreator.getTimeOrderedEpochFast()));
-    }
+    List<String> motd = PlaceholderSubstitutor.substitute(
+        server.getConfiguration().getMotdLines(),
+        basicResolver,
+        SamplePlayersPlaceholderResolver.builder(SamplePlayersPicker.create(server))
+            .defaultMax(8)
+            .defaultMaxPerLine(4)
+            .defaultSeparator(", ")
+            .build());
+
+    List<String> motdHover = PlaceholderSubstitutor.substitute(
+        server.getConfiguration().getMotdHoverLines(),
+        basicResolver,
+        SamplePlayersPlaceholderResolver.builder(SamplePlayersPicker.create(server))
+            .defaultMax(12)
+            .defaultMaxPerLine(1)
+            .defaultSeparator("")
+            .build());
+
+    String versionName = PlaceholderSubstitutor.substitute(
+        configuration.getFallbackVersionPing(),
+        basicResolver,
+        SamplePlayersPlaceholderResolver.builder(SamplePlayersPicker.create(server))
+            .defaultMax(2)
+            .defaultMaxPerLine(Integer.MAX_VALUE)
+            .defaultSeparator(", ")
+            .build());
 
     return new ServerPing(
-        new ServerPing.Version(responseProtocol,
-            substitute(serverPingVersion, new ServerListMessageResolver(displayVersion))),
-        new ServerPing.Players(server.getClusterPlayerService().getTotalPlayerCount(),
-            configuration.getShowMaxPlayers(), samplePlayers),
-        configuration.getMotd(),
+        new ServerPing.Version(
+            responseProtocol,
+            versionName),
+        new ServerPing.Players(
+            server.getClusterPlayerService().getTotalPlayerCount(),
+            configuration.getShowMaxPlayers(),
+            motdHover.stream()
+                .map(ComponentUtils::parse)
+                .map(line -> new ServerPing.SamplePlayer(line, UuidCreator.getTimeOrderedEpochFast()))
+                .toList()
+        ),
+        motd.stream()
+            .map(ComponentUtils::parse)
+            .reduce((a, b) -> a.appendNewline().append(b))
+            .orElseGet(Component::empty),
         configuration.getFavicon().orElse(null),
         configuration.isAnnounceForge() ? ModInfo.DEFAULT : null,
         configuration.doesPreventChatReports()
@@ -223,37 +248,11 @@ public class ServerListPingHandler {
     }
   }
 
-  /**
-   * Picks up to {@link #SAMPLE_SIZE} players uniformly at random from {@code players} and maps
-   * them to {@link ServerPing.SamplePlayer} entries.
-   */
-  private static List<ServerPing.SamplePlayer> sampleClusterPlayers(Collection<VelocityClusterPlayer> players) {
-    List<VelocityClusterPlayer> snapshot = new ArrayList<>(players);
-    int total = snapshot.size();
-
-    if (total > SAMPLE_SIZE) {
-      ThreadLocalRandom rng = ThreadLocalRandom.current();
-      for (int i = 0; i < SAMPLE_SIZE; i++) {
-        Collections.swap(snapshot, i, i + rng.nextInt(total - i));
-      }
-      total = SAMPLE_SIZE;
-    }
-
-    List<ServerPing.SamplePlayer> result = new ArrayList<>(total);
-    for (int i = 0; i < total; i++) {
-      VelocityClusterPlayer player = snapshot.get(i);
-      result.add(player.isClientListingAllowed()
-          ? new ServerPing.SamplePlayer(player.getUsername(), player.getUniqueId())
-          : ServerPing.SamplePlayer.ANONYMOUS);
-    }
-    return result;
-  }
-
-  private class ServerListMessageResolver implements PlaceholderSubstitutor.Resolver {
+  private class ServerListPingPlaceholderResolver implements PlaceholderSubstitutor.Resolver {
 
     private final ProtocolVersion displayVersion;
 
-    private ServerListMessageResolver(ProtocolVersion displayVersion) {
+    private ServerListPingPlaceholderResolver(ProtocolVersion displayVersion) {
       this.displayVersion = displayVersion;
     }
 
