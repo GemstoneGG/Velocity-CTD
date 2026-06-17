@@ -45,6 +45,11 @@ public class PlaceholderSubstitutor {
    * @return the input with all known variables substituted
    */
   public static @NonNull String substitute(@NonNull String input, @NonNull Resolver... resolvers) {
+    if (input.indexOf('{') < 0 && input.indexOf('\\') < 0) {
+      // nothing to substitute or unescape; avoid allocating
+      return input;
+    }
+
     StringBuilder out = new StringBuilder(input.length());
     StringBuilder variable = new StringBuilder();
     boolean inVariable = false;
