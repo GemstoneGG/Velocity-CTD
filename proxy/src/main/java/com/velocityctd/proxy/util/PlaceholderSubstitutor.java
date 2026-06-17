@@ -39,11 +39,12 @@ public class PlaceholderSubstitutor {
    * <code>\}</code>, <code>\:</code>, <code>\=</code>); a literal backslash is written as <code>\\</code>.
    *
    * @param input the string to process
-   * @param resolver resolves a variable name and its parsed arguments to a replacement,
-   *                 or {@code null} to leave the literal in the output
+   * @param resolvers resolve a variable name and its parsed arguments to a replacement,
+   *                  or {@code null} to leave the literal in the output. first non-null return
+   *                  value is used.
    * @return the input with all known variables substituted
    */
-  public static @NonNull String substitute(@NonNull String input, @NonNull Resolver resolver) {
+  public static @NonNull String substitute(@NonNull String input, @NonNull Resolver... resolvers) {
     StringBuilder out = new StringBuilder(input.length());
     StringBuilder variable = new StringBuilder();
     boolean inVariable = false;
@@ -73,7 +74,7 @@ public class PlaceholderSubstitutor {
           variable.append(c);
           escaped = true;
         } else if (c == '}') {
-          String value = safeParseVariable(variable.toString(), resolver);
+          String value = safeParseVariable(variable.toString(), resolvers);
 
           if (value == null) {
             // pass-through unknown variables as-is
@@ -103,17 +104,23 @@ public class PlaceholderSubstitutor {
     return out.toString();
   }
 
-  private static @Nullable String safeParseVariable(String rawVariable, Resolver resolver) {
+  private static @Nullable String safeParseVariable(String rawVariable, Resolver... resolvers) {
     List<String> variableParts = splitUnescaped(rawVariable, ':');
     String variableName = unescape(variableParts.getFirst());
     Map<String, String> arguments = parseArguments(variableParts.subList(1, variableParts.size()));
 
     try {
-      return resolver.resolve(variableName, arguments);
+      for (Resolver resolver : resolvers) {
+        String resolved = resolver.resolve(variableName, arguments);
+        if (resolved != null) {
+          return resolved;
+        }
+      }
     } catch (Exception e) {
       LOGGER.error("Exception during variable parsing in '{}'.", rawVariable, e);
-      return null;
     }
+
+    return null;
   }
 
   private static Map<String, String> parseArguments(List<String> rawArguments) {
