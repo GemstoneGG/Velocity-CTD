@@ -215,7 +215,7 @@ public final class PluginMessageUtil {
     checkArgument(isMcBrand(message), "message is not a brand plugin message");
 
     String rewrittenBrand = substitute(brand,
-        new BrandResolver(message, version, proxyBrandCustom,
+        new BrandPlaceholderResolver(message, version, proxyBrandCustom,
             backendBrandCustom, connectedServer, minimumVersion));
 
     rewrittenBrand += "§r"; // Ensures brand coloration remains within bounds
@@ -282,7 +282,7 @@ public final class PluginMessageUtil {
     };
   }
 
-  private static class BrandResolver implements PlaceholderSubstitutor.Resolver {
+  private static class BrandPlaceholderResolver implements PlaceholderSubstitutor.Resolver {
 
     private final PluginMessagePacket original;
     private final ProxyVersion version;
@@ -291,12 +291,12 @@ public final class PluginMessageUtil {
     private final String connectedServer;
     private final String minimumVersion;
 
-    private BrandResolver(PluginMessagePacket original,
-                          ProxyVersion version,
-                          String proxyBrandCustom,
-                          String backendBrandCustom,
-                          String connectedServer,
-                          String minimumVersion) {
+    private BrandPlaceholderResolver(PluginMessagePacket original,
+                                     ProxyVersion version,
+                                     String proxyBrandCustom,
+                                     String backendBrandCustom,
+                                     String connectedServer,
+                                     String minimumVersion) {
       this.original = original;
       this.version = version;
       this.proxyBrandCustom = proxyBrandCustom;
