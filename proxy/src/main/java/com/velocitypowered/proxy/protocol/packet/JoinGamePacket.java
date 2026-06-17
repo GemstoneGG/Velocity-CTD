@@ -39,7 +39,7 @@ public class JoinGamePacket implements MinecraftPacket {
 
   private int dimension;
 
-  private long partialHashedSeed;
+  private long partialHashedSeed; // 1.15+
 
   private short difficulty;
 
@@ -49,33 +49,35 @@ public class JoinGamePacket implements MinecraftPacket {
 
   private @Nullable String levelType;
 
-  private int viewDistance;
+  private int viewDistance; // 1.14+
 
   private boolean reducedDebugInfo;
 
   private boolean showRespawnScreen;
 
-  private boolean doLimitedCrafting;
+  private boolean doLimitedCrafting; // 1.20.2+
 
-  private ImmutableSet<String> levelNames;
+  private ImmutableSet<String> levelNames; // 1.16+
 
-  private CompoundBinaryTag registry;
+  private CompoundBinaryTag registry; // 1.16+
 
-  private DimensionInfo dimensionInfo;
+  private DimensionInfo dimensionInfo; // 1.16+
 
-  private CompoundBinaryTag currentDimensionData;
+  private CompoundBinaryTag currentDimensionData; // 1.16.2+
 
-  private short previousGamemode;
+  private short previousGamemode; // 1.16+
 
-  private int simulationDistance;
+  private int simulationDistance; // 1.18+
 
-  private @Nullable Pair<String, Long> lastDeathPosition;
+  private @Nullable Pair<String, Long> lastDeathPosition; // 1.19+
 
-  private int portalCooldown;
+  private int portalCooldown; // 1.20+
 
-  private int seaLevel;
+  private int seaLevel; // 1.21.2+
 
-  private boolean enforcesSecureChat;
+  private boolean onlineMode; // 26.2+
+
+  private boolean enforcesSecureChat; // 1.20.5+
 
   public int getEntityId() {
     return entityId;
@@ -213,6 +215,10 @@ public class JoinGamePacket implements MinecraftPacket {
     this.seaLevel = seaLevel;
   }
 
+  public void setOnlineMode(boolean onlineMode) {
+    this.onlineMode = onlineMode;
+  }
+
   public boolean getEnforcesSecureChat() {
     return this.enforcesSecureChat;
   }
@@ -249,6 +255,7 @@ public class JoinGamePacket implements MinecraftPacket {
         + ", lastDeathPosition='" + lastDeathPosition + '\''
         + ", portalCooldown=" + portalCooldown
         + ", seaLevel=" + seaLevel
+        + ", onlineMode=" + onlineMode
         + '}';
   }
 
@@ -411,6 +418,10 @@ public class JoinGamePacket implements MinecraftPacket {
       this.seaLevel = ProtocolUtils.readVarInt(buf);
     }
 
+    if (version.noLessThan(ProtocolVersion.MINECRAFT_26_2)) {
+      this.onlineMode = buf.readBoolean();
+    }
+
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
       this.enforcesSecureChat = buf.readBoolean();
     }
@@ -569,6 +580,10 @@ public class JoinGamePacket implements MinecraftPacket {
 
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_21_2)) {
       ProtocolUtils.writeVarInt(buf, seaLevel);
+    }
+
+    if (version.noLessThan(ProtocolVersion.MINECRAFT_26_2)) {
+      buf.writeBoolean(this.onlineMode);
     }
 
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20_5)) {

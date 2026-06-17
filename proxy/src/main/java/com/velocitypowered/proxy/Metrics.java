@@ -170,6 +170,16 @@ public final class Metrics {
           new SimplePie("queue_enabled",
               () -> server.getConfiguration().getQueue().isEnabled() ? "enabled" : "disabled")
       );
+
+      metrics.addCustomChart(
+          new SimplePie("using_bootstrap",
+              () -> isBootstrap() ? "yes" : "no")
+      );
+    }
+
+    private static boolean isBootstrap() {
+      ClassLoader cl = Metrics.class.getClassLoader();
+      return cl != null && "velocity-bootstrap".equals(cl.getName());
     }
   }
 }

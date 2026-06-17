@@ -201,7 +201,7 @@ public interface Player extends
    *
    * @param reason component with the reason
    */
-  void disconnect(Component reason);
+  void disconnect(@NotNull Component reason);
 
   /**
    * Sends chat input onto the player's current server as if they typed it into the client chat box.

@@ -43,6 +43,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.UnmodifiableView;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Owns the registry of {@link ConnectedPlayer} instances and serializes registration,
@@ -83,6 +84,9 @@ public final class PlayerRegistry {
   private final PlayerIdentityLock identityLock = new PlayerIdentityLock();
 
   private final VelocityServer server;
+
+  private final Object sessionIdLock = new Object();
+  private volatile @Nullable UUID sessionId;
 
   public PlayerRegistry(@NonNull VelocityServer server) {
     this.server = server;
@@ -317,6 +321,14 @@ public final class PlayerRegistry {
       LOGGER.error("Exception during cleanup of {} {}", label, player, t);
     }
     player.completeTeardown(error);
+
+    if (this.sessionId != null && byUuid.isEmpty()) {
+      synchronized (this.sessionIdLock) {
+        if (byUuid.isEmpty()) {
+          this.sessionId = null;
+        }
+      }
+    }
   }
 
   private void removeFromMaps(ConnectedPlayer player) {
@@ -346,5 +358,27 @@ public final class PlayerRegistry {
 
   public void shutdown() {
     loginTimeoutScheduler.shutdownNow();
+  }
+
+  /**
+   * Returns the metrics session ID for this proxy, generating one if none is currently active. The
+   * ID is shared by every player connected during a populated period and is regenerated once the
+   * proxy empties.
+   *
+   * @return the current session ID
+   */
+  public UUID getSessionId() {
+    UUID uuid = this.sessionId;
+    if (uuid != null) {
+      return uuid;
+    }
+    synchronized (this.sessionIdLock) {
+      uuid = this.sessionId;
+      if (uuid == null) {
+        uuid = UUID.randomUUID();
+        this.sessionId = uuid;
+      }
+      return uuid;
+    }
   }
 }

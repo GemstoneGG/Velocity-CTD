@@ -38,6 +38,8 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
 
   private @Nullable List<GameProfile.Property> properties;
 
+  private @Nullable UUID sessionId;
+
   private static final boolean strictErrorHandling = VelocityProperties
           .readBoolean("velocity.strictErrorHandling", true);
 
@@ -73,6 +75,10 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
     this.properties = properties;
   }
 
+  public void setSessionId(@Nullable UUID sessionId) {
+    this.sessionId = sessionId;
+  }
+
   @Override
   public String toString() {
     return "ServerLoginSuccess{"
@@ -102,6 +108,10 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
 
     if (version == ProtocolVersion.MINECRAFT_1_20_5 || version == ProtocolVersion.MINECRAFT_1_21) {
       buf.readBoolean();
+    }
+
+    if (version.noLessThan(ProtocolVersion.MINECRAFT_26_2)) {
+      this.sessionId = ProtocolUtils.readUuid(buf);
     }
   }
 
@@ -137,6 +147,10 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
 
     if (version == ProtocolVersion.MINECRAFT_1_20_5 || version == ProtocolVersion.MINECRAFT_1_21) {
       buf.writeBoolean(strictErrorHandling);
+    }
+
+    if (version.noLessThan(ProtocolVersion.MINECRAFT_26_2)) {
+      ProtocolUtils.writeUuid(buf, this.sessionId);
     }
   }
 

@@ -18,10 +18,13 @@
 package com.velocityctd.proxy.queue;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -111,6 +114,25 @@ public final class QueuePlayerList<E extends VelocityQueueEntry> {
   }
 
   /**
+   * Stable-sorts the entries by descending rank and reassigns all positions. Each entry's
+   * rank is computed once before sorting, so concurrent mutation of the fields a rank is
+   * derived from cannot destabilize the sort.
+   */
+  public synchronized void sortByRankDescending(ToIntFunction<? super E> rank) {
+    if (players.size() < 2) {
+      return;
+    }
+
+    Map<E, Integer> ranks = new IdentityHashMap<>(players.size());
+    for (E entry : players) {
+      ranks.put(entry, rank.applyAsInt(entry));
+    }
+
+    players.sort(Comparator.<E>comparingInt(ranks::get).reversed());
+    renumberFrom(0);
+  }
+
+  /**
    * Returns {@code true} if an entry with the given UUID is present.
    */
   public boolean contains(UUID uniqueId) {
@@ -136,20 +158,6 @@ public final class QueuePlayerList<E extends VelocityQueueEntry> {
    */
   public synchronized List<E> snapshot() {
     return List.copyOf(players);
-  }
-
-  /**
-   * Returns the first entry, in queue order, that matches the given predicate, or
-   * {@code null} if none match. Evaluates the predicate against the live list under
-   * the lock - no snapshot copy is made.
-   */
-  public synchronized @Nullable E findFirst(Predicate<? super E> filter) {
-    for (E entry : players) {
-      if (filter.test(entry)) {
-        return entry;
-      }
-    }
-    return null;
   }
 
   /**

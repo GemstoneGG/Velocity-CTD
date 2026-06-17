@@ -134,6 +134,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -865,7 +866,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   @Override
-  public void disconnect(Component reason) {
+  public void disconnect(@NotNull Component reason) {
+    Objects.requireNonNull(reason, "reason");
     if (connection.eventLoop().inEventLoop()) {
       disconnect0(reason, false);
     } else {

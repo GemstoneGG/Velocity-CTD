@@ -48,6 +48,12 @@ public class VelocityQueueEntry implements QueueEntry {
   protected boolean queueBypass;
 
   /**
+   * Epoch-millisecond timestamp when this entry was created, i.e. when the player joined the
+   * queue. 0 when restored from a depot snapshot that predates this field.
+   */
+  protected long joinedAtMs = System.currentTimeMillis();
+
+  /**
    * Epoch-millisecond timestamp when this player disconnected while queued, or 0 if the
    * player is currently online or if the disconnect was not recorded (e.g. force-kill).
    */
@@ -127,6 +133,10 @@ public class VelocityQueueEntry implements QueueEntry {
   @Override
   public synchronized int getPriority() {
     return priority;
+  }
+
+  public long getJoinedAtMs() {
+    return joinedAtMs;
   }
 
   @Override

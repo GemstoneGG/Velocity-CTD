@@ -263,6 +263,26 @@ public class CtdConfigMigrations {
             10
         ),
         migration(
+            "Whether players slowly gain extra \"effective\" priority the longer they wait in a queue,\n"
+                + " so that low-priority players cannot be starved forever by higher-priority joiners.\n"
+                + " Only affects the order players are sent in; the configured velocity.queue.priority.<n>\n"
+                + " permission value is never changed.",
+            "queue.dynamic-priority",
+            false
+        ),
+        migration(
+            "How many minutes a player must wait in a queue to gain +1 effective priority.",
+            "queue.minutes-per-priority-increase",
+            30
+        ),
+        migration(
+            "The cap on effective priority gained from waiting. Players whose configured priority is\n"
+                + " already at or above this value always keep their configured priority, so staff with e.g.\n"
+                + " priority 100 stay ahead of everyone aged up to 99.",
+            "queue.max-dynamic-priority",
+            99
+        ),
+        migration(
             "Whether the player should be removed from their previous queue when switching servers.",
             "queue.remove-player-on-server-switch",
             true

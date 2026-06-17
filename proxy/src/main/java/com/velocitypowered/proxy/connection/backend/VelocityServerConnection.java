@@ -63,7 +63,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class VelocityServerConnection implements MinecraftConnectionAssociation, ServerConnection {
 
-  private final VelocityRegisteredServer registeredServer;
+  private volatile VelocityRegisteredServer registeredServer;
 
   private final @Nullable VelocityRegisteredServer previousServer;
 
@@ -237,6 +237,16 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
   @Override
   public VelocityRegisteredServer getServer() {
     return registeredServer;
+  }
+
+  /**
+   * Re-points this connection at a different {@link VelocityRegisteredServer} without reconnecting.
+   * Should only be used when a backend server is renamed during a configuration reload.
+   *
+   * @param registeredServer the server this connection should now be associated with
+   */
+  public void migrateRegisteredServer(VelocityRegisteredServer registeredServer) {
+    this.registeredServer = registeredServer;
   }
 
   @Override

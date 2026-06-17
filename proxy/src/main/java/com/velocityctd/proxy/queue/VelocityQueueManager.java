@@ -174,7 +174,45 @@ public class VelocityQueueManager implements QueueManager {
 
   @Override
   public void reload() {
+    reconcileQueues();
     rescheduleTasks();
+  }
+
+  protected void reconcileQueues() {
+    Set<String> registered = new HashSet<>();
+    for (VelocityRegisteredServer rs : server.getAllServers()) {
+      registered.add(rs.getServerInfo().getName());
+    }
+
+    // Drop queues whose backing server no longer exists.
+    for (Map.Entry<String, VelocityQueue<?>> entry : new HashMap<>(queues).entrySet()) {
+      if (registered.contains(entry.getKey())) {
+        continue;
+      }
+
+      entry.getValue().teardown();
+      queues.remove(entry.getKey());
+      LAST_TURNED_ONLINE_TIME.remove(entry.getKey());
+      onQueueRemoved(entry.getKey());
+    }
+
+    // Create queues for newly-added servers.
+    for (VelocityRegisteredServer rs : server.getAllServers()) {
+      String name = rs.getServerInfo().getName();
+      queues.computeIfAbsent(name, n -> {
+        boolean inactive = server.getConfiguration().getQueue().getNoQueueServers().contains(n);
+        return createQueue(rs, inactive ? QueueState.INACTIVE : QueueState.ACTIVE);
+      });
+    }
+  }
+
+  /**
+   * Called after a queue has been removed during {@link #reconcileQueues()}.
+   *
+   * @param serverName the name of the server whose queue was removed
+   */
+  protected void onQueueRemoved(@NotNull String serverName) {
+    // no-op
   }
 
   @Override
@@ -417,6 +455,8 @@ public class VelocityQueueManager implements QueueManager {
     }
 
     Set<UUID> transferredThisTick = new HashSet<>();
+    VelocityConfiguration.Queue config = server.getConfiguration().getQueue();
+    long now = System.currentTimeMillis();
 
     for (VelocityQueue<?> queue : queues.values()) {
       if (queue.getState() != ACTIVE
@@ -425,10 +465,12 @@ public class VelocityQueueManager implements QueueManager {
         continue;
       }
 
-      VelocityQueueEntry candidate = queue.findFirst(e ->
-          !transferredThisTick.contains(e.getUniqueId())
-              && (queue.getServerStatus() != FULL || e.isFullBypass())
-              && !e.isWaitingForConnection());
+      if (config.isDynamicPriority()) {
+        queue.sortByRankDescending(entry -> effectivePriority(entry.getPriority(), entry.getJoinedAtMs(),
+            now, config.getMinutesPerPriorityIncrease(), config.getMaxDynamicPriority()));
+      }
+
+      VelocityQueueEntry candidate = selectCandidate(queue, transferredThisTick);
 
       if (candidate == null) {
         continue;
@@ -441,6 +483,28 @@ public class VelocityQueueManager implements QueueManager {
         queue.removeEntry(candidate);
       }
     }
+  }
+
+  private @Nullable VelocityQueueEntry selectCandidate(VelocityQueue<?> queue, Set<UUID> transferredThisTick) {
+    for (VelocityQueueEntry entry : queue.getInternalEntries()) {
+      if (!transferredThisTick.contains(entry.getUniqueId())
+          && (queue.getServerStatus() != FULL || entry.isFullBypass())
+          && !entry.isWaitingForConnection()) {
+        return entry;
+      }
+    }
+
+    return null;
+  }
+
+  static int effectivePriority(int priority, long joinedAtMs, long nowMs,
+                               int minutesPerIncrease, int maxDynamicPriority) {
+    if (joinedAtMs <= 0 || joinedAtMs > nowMs || minutesPerIncrease < 1) {
+      return priority;
+    }
+
+    long bonus = (nowMs - joinedAtMs) / TimeUnit.MINUTES.toMillis(minutesPerIncrease);
+    return (int) Math.max(priority, Math.min(priority + bonus, maxDynamicPriority));
   }
 
   private void pingBackends() {

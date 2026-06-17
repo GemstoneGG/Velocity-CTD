@@ -34,6 +34,7 @@ public final class DependencyClassLoader extends URLClassLoader {
   }
 
   private DependencyClassLoader(URL[] urls) {
+    // ClassLoader name referenced in com.velocitypowered.proxy.Metrics.VelocityMetrics#isBootstrap
     super("velocity-bootstrap", urls, ClassLoader.getSystemClassLoader().getParent());
   }
 

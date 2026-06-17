@@ -488,6 +488,20 @@ backend-ping-interval = 5.0
 # The number tries should a user be sent to a server before it removes the user from a queue.
 max-send-retries = 10
 
+# Whether players slowly gain extra "effective" priority the longer they wait in a queue,
+# so that low-priority players cannot be starved forever by higher-priority joiners.
+# Only affects the order players are sent in; the configured velocity.queue.priority.<n>
+# permission value is never changed.
+dynamic-priority = false
+
+# How many minutes a player must wait in a queue to gain +1 effective priority.
+minutes-per-priority-increase = 30
+
+# The cap on effective priority gained from waiting. Players whose configured priority is
+# already at or above this value always keep their configured priority, so staff with e.g.
+# priority 100 stay ahead of everyone aged up to 99.
+max-dynamic-priority = 99
+
 # Whether the player should be removed from their previous queue when switching servers.
 remove-player-on-server-switch = true
 

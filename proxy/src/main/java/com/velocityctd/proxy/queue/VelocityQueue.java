@@ -21,7 +21,6 @@ import com.velocityctd.api.queue.Queue;
 import com.velocityctd.api.queue.QueueEntryData;
 import com.velocityctd.api.queue.QueueState;
 import com.velocityctd.api.queue.ServerStatus;
-import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotEntry;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -31,7 +30,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -108,10 +107,6 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
   @Override
   public @NotNull @Unmodifiable Collection<E> getEntries() {
     return playerList.snapshot();
-  }
-
-  public @Nullable E findFirst(@NotNull Predicate<? super E> filter) {
-    return playerList.findFirst(filter);
   }
 
   @Override
@@ -198,8 +193,14 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
   }
 
   /**
-   * Returns the raw internal list. Used by
-   * {@link VelocityQueueDepotEntry} for snapshotting.
+   * Stable-sorts the entries by descending rank, reassigning positions.
+   */
+  void sortByRankDescending(ToIntFunction<? super VelocityQueueEntry> rank) {
+    playerList.sortByRankDescending(rank);
+  }
+
+  /**
+   * Returns a snapshot of the internal player list.
    */
   @ApiStatus.Internal
   public List<E> getInternalEntries() {
