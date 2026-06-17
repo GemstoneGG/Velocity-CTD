@@ -47,8 +47,6 @@ dependencies, useful performance improvements, and more.
 * Configurable `/find` command that locates yourself and other users.
 * Configurable `/gkick` command that kicks a player from the network, supporting
   both local and cross-proxy (Redis) players.
-* Configurable `/gkickall` command that kicks all players from network, supporting
-  both local and cross-proxy (Redis) players.
 * Configurable `/gip` command that retrieves the IP address of an online player,
   supporting both local and cross-proxy (Redis) players.
 * `/hub` with `/lobby` alias that sends you to the/a fallback server,
@@ -97,9 +95,12 @@ dependencies, useful performance improvements, and more.
   actively connected to on the network).
 * `velocity.command.gkick` [/gkick] (Allows you to kick a player from the network,
   including players connected to a different proxy in a Redis multi-proxy setup).
-* `velocity.command.gkickall` [/gkickall] (Allows you to kick all players from the network,
+* `velocity.command.gkick.all` [/gkick] (Allows you to kick everyone from the network,
   including players connected to a different proxy in a Redis multi-proxy setup).
-* `velocity.command.gkickall.bypass` [/gkickall] (Allows you to bypass the /gkickall command).
+* `velocity.command.gkick.all.bypass` [/gkick] (Allows you to bypass the /gkick all command).
+* `velocity.command.gkick.server` [/gkick] (Allows you to kick everyone from the specified server,
+  including players connected to a different proxy in a Redis multi-proxy setup).
+* `velocity.command.gkick.server.bypass` [/gkick] (Allows you to bypass the /gkick server command).
 * `velocity.command.hub` [/hub & /lobby] (Allows you to be sent to the hub/lobby or
   your fallback server(s), depending on your setup).
 * `velocity.command.gip` [/gip] (Allows you to retrieve the IP address of an online player,
