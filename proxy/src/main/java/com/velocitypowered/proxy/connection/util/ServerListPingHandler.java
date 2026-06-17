@@ -89,10 +89,6 @@ public class ServerListPingHandler {
 
     PlaceholderSubstitutor.Resolver basicResolver = new ServerListPingPlaceholderResolver(displayVersion);
 
-    SamplePlayersPlaceholderResolver.Builder samplePlayersResolverBuilder =
-        SamplePlayersPlaceholderResolver.builder(
-            new SamplePlayersPicker(server.getClusterPlayerService()::getAllPlayers));
-
     List<String> motd = PlaceholderSubstitutor.substitute(
         server.getConfiguration().getMotdLines(),
         basicResolver,
