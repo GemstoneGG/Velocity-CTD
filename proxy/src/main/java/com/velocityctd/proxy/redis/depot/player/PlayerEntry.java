@@ -71,6 +71,11 @@ public final class PlayerEntry extends DepotEntry<UUID, PlayerEntry> {
   private final String ipAddress;
 
   /**
+   * The timestamp, in milliseconds since the epoch, at which the player joined the proxy.
+   */
+  private final long joinedAt;
+
+  /**
    * Whether this player entry may be listed in the server list ping MOTD hover, generated in
    * {@link com.velocitypowered.proxy.connection.util.ServerListPingHandler}.
    * Reflects {@link ClientSettingsPacket#isClientListingAllowed()}.
@@ -97,6 +102,7 @@ public final class PlayerEntry extends DepotEntry<UUID, PlayerEntry> {
         .orElse(null);
     this.ipAddress = player.getRemoteAddress().getAddress().getHostAddress();
     this.clientListingAllowed = player.getPlayerSettings().isClientListingAllowed();
+    this.joinedAt = player.getJoinedAt();
   }
 
   /**
@@ -169,6 +175,15 @@ public final class PlayerEntry extends DepotEntry<UUID, PlayerEntry> {
    */
   public @Nullable String getIpAddress() {
     return ipAddress;
+  }
+
+  /**
+   * Gets the timestamp, in milliseconds since the epoch, at which the player joined the proxy.
+   *
+   * @return the join timestamp
+   */
+  public long getJoinedAt() {
+    return joinedAt;
   }
 
   /**

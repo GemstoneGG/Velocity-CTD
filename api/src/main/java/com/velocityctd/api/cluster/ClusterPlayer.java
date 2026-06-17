@@ -67,6 +67,14 @@ public interface ClusterPlayer {
   boolean isClientListingAllowed();
 
   /**
+   * Gets the timestamp, in milliseconds since the epoch, at which the player connected
+   * to the proxy they are currently on.
+   *
+   * @return the join timestamp in milliseconds since the epoch
+   */
+  long getJoinedAt();
+
+  /**
    * Kicks the player from the proxy with the given reason.
    *
    * @param reason the kick reason displayed to the player

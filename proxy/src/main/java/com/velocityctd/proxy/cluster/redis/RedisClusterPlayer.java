@@ -81,6 +81,11 @@ public final class RedisClusterPlayer implements VelocityClusterPlayer {
   }
 
   @Override
+  public long getJoinedAt() {
+    return redisEntry.getJoinedAt();
+  }
+
+  @Override
   public void kick(Component reason) {
     redis.publish(new VelocityKick(redisEntry.getUniqueId(), reason));
   }

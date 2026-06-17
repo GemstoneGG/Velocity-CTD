@@ -78,6 +78,11 @@ public final class LocalClusterPlayer implements VelocityClusterPlayer {
   }
 
   @Override
+  public long getJoinedAt() {
+    return player.getJoinedAt();
+  }
+
+  @Override
   public void kick(Component reason) {
     player.disconnect0(reason, true);
   }
