@@ -86,30 +86,25 @@ public class GkickCommand implements BuiltinCommandDefinition {
     }
 
     return switch (result.type()) {
-      case PLAYER -> kickPlayers(context, result, reason);
+      case PLAYER -> kickPlayer(context, result, reason);
       case SERVER, CURRENT_SERVER -> kickFromServer(context, result, reason);
-      default -> kickBulk(context, result, reason);
+      case PROXY -> kickFromProxy(context, result, reason);
+      default -> kickAll(context, result, reason);
     };
   }
 
-  private int kickPlayers(CommandContext<CommandSource> context, PlayerIdentifier.Result result, Component reason) {
-    Collection<VelocityClusterPlayer> players = result.players();
-
-    if (players.size() == 1) {
-      VelocityClusterPlayer player = players.iterator().next();
-      if (player.isKickBypass()) {
-        context.getSource().sendMessage(Component.translatable("velocity.command.gkick.exempt")
-            .arguments(Argument.string("player", player.getUsername())));
-        return 0;
-      }
-
-      player.kick(reason);
-      context.getSource().sendMessage(Component.translatable("velocity.command.gkick.message")
+  private int kickPlayer(CommandContext<CommandSource> context, PlayerIdentifier.Result result, Component reason) {
+    VelocityClusterPlayer player = result.players().iterator().next();
+    if (player.isKickBypass()) {
+      context.getSource().sendMessage(Component.translatable("velocity.command.gkick.exempt")
           .arguments(Argument.string("player", player.getUsername())));
-      return SINGLE_SUCCESS;
+      return 0;
     }
 
-    return kickBulk(context, result, reason);
+    player.kick(reason);
+    context.getSource().sendMessage(Component.translatable("velocity.command.gkick.message")
+        .arguments(Argument.string("player", player.getUsername())));
+    return SINGLE_SUCCESS;
   }
 
   private int kickFromServer(CommandContext<CommandSource> context, PlayerIdentifier.Result result, Component reason) {
@@ -122,16 +117,7 @@ public class GkickCommand implements BuiltinCommandDefinition {
       return 0;
     }
 
-    int kicked = 0;
-    for (VelocityClusterPlayer player : players) {
-      if (player.isKickBypass()) {
-        continue;
-      }
-
-      player.kick(reason);
-      kicked++;
-    }
-
+    int kicked = kickEach(players, reason);
     if (kicked == 0) {
       context.getSource().sendMessage(Component.translatable("velocity.command.gkick.server-exempt")
           .arguments(Argument.string("server", fromName)));
@@ -148,9 +134,54 @@ public class GkickCommand implements BuiltinCommandDefinition {
     return kicked;
   }
 
-  private int kickBulk(CommandContext<CommandSource> context, PlayerIdentifier.Result result, Component reason) {
-    Collection<VelocityClusterPlayer> players = result.players();
+  private int kickFromProxy(CommandContext<CommandSource> context, PlayerIdentifier.Result result, Component reason) {
+    String proxyId = result.name();
 
+    Collection<VelocityClusterPlayer> players = result.players();
+    if (players.isEmpty()) {
+      context.getSource().sendMessage(Component.translatable("velocity.command.gkick.proxy-none")
+          .arguments(Argument.string("proxy", proxyId)));
+      return 0;
+    }
+
+    int kicked = kickEach(players, reason);
+    if (kicked == 0) {
+      context.getSource().sendMessage(Component.translatable("velocity.command.gkick.proxy-exempt")
+          .arguments(Argument.string("proxy", proxyId)));
+      return 0;
+    }
+
+    context.getSource().sendMessage(
+        Component.translatable(kicked == 1 ? "velocity.command.gkick.proxy-singular" : "velocity.command.gkick.proxy-plural")
+            .arguments(
+                Argument.numeric("count", kicked),
+                Argument.string("proxy", proxyId)
+            )
+    );
+    return kicked;
+  }
+
+  private int kickAll(CommandContext<CommandSource> context, PlayerIdentifier.Result result, Component reason) {
+    Collection<VelocityClusterPlayer> players = result.players();
+    if (players.isEmpty()) {
+      context.getSource().sendMessage(Component.translatable("velocity.command.gkick.all-none"));
+      return 0;
+    }
+
+    int kicked = kickEach(players, reason);
+    if (kicked == 0) {
+      context.getSource().sendMessage(Component.translatable("velocity.command.gkick.all-exempt"));
+      return 0;
+    }
+
+    context.getSource().sendMessage(
+        Component.translatable(kicked == 1 ? "velocity.command.gkick.all-singular" : "velocity.command.gkick.all-plural")
+            .arguments(Argument.numeric("count", kicked))
+    );
+    return kicked;
+  }
+
+  private int kickEach(Collection<VelocityClusterPlayer> players, Component reason) {
     int kicked = 0;
     for (VelocityClusterPlayer player : players) {
       if (player.isKickBypass()) {
@@ -161,15 +192,6 @@ public class GkickCommand implements BuiltinCommandDefinition {
       kicked++;
     }
 
-    if (kicked == 0 && !players.isEmpty()) {
-      context.getSource().sendMessage(Component.translatable("velocity.command.gkick.all-exempt"));
-      return 0;
-    }
-
-    context.getSource().sendMessage(
-        Component.translatable(kicked == 1 ? "velocity.command.gkick.all-singular" : "velocity.command.gkick.all-plural")
-            .arguments(Argument.numeric("count", kicked))
-    );
     return kicked;
   }
 
