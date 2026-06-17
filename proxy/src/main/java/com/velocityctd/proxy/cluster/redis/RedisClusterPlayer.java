@@ -81,6 +81,11 @@ public final class RedisClusterPlayer implements VelocityClusterPlayer {
   }
 
   @Override
+  public boolean isKickBypass() {
+    return redisEntry.isKickBypass();
+  }
+
+  @Override
   public void kick(Component reason) {
     redis.publish(new VelocityKick(redisEntry.getUniqueId(), reason));
   }

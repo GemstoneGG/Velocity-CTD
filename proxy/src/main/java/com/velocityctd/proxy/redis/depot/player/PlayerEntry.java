@@ -60,6 +60,11 @@ public final class PlayerEntry extends DepotEntry<UUID, PlayerEntry> {
   private final boolean queueBypass;
 
   /**
+   * Whether this player is permitted to bypass being kicked from the network.
+   */
+  private final boolean kickBypass;
+
+  /**
    * The name of the backend server the player is currently connected to,
    * or {@code null} if the player is not on any server.
    */
@@ -91,6 +96,7 @@ public final class PlayerEntry extends DepotEntry<UUID, PlayerEntry> {
     this.queuePriority = new HashMap<>(player.getQueuePriorities());
     this.fullServerBypass = player.hasPermission("velocity.queue.full.bypass");
     this.queueBypass = player.hasPermission("velocity.queue.bypass");
+    this.kickBypass = player.hasPermission("velocity.command.gkick.bypass");
     this.serverName = player.getCurrentServer()
         .map(VelocityServerConnection::getServerInfo)
         .map(ServerInfo::getName)
@@ -142,6 +148,15 @@ public final class PlayerEntry extends DepotEntry<UUID, PlayerEntry> {
    */
   public boolean isQueueBypass() {
     return queueBypass;
+  }
+
+  /**
+   * Checks whether the player bypasses network kicks.
+   *
+   * @return {@code true} if the player bypasses network kicks, {@code false} otherwise
+   */
+  public boolean isKickBypass() {
+    return kickBypass;
   }
 
   /**

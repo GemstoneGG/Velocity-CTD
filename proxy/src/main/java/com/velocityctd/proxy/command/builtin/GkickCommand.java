@@ -97,6 +97,12 @@ public class GkickCommand implements BuiltinCommandDefinition {
 
     if (players.size() == 1) {
       VelocityClusterPlayer player = players.iterator().next();
+      if (player.isKickBypass()) {
+        context.getSource().sendMessage(Component.translatable("velocity.command.gkick.exempt")
+            .arguments(Argument.string("player", player.getUsername())));
+        return 0;
+      }
+
       player.kick(reason);
       context.getSource().sendMessage(Component.translatable("velocity.command.gkick.message")
           .arguments(Argument.string("player", player.getUsername())));
@@ -116,11 +122,22 @@ public class GkickCommand implements BuiltinCommandDefinition {
       return 0;
     }
 
+    int kicked = 0;
     for (VelocityClusterPlayer player : players) {
+      if (player.isKickBypass()) {
+        continue;
+      }
+
       player.kick(reason);
+      kicked++;
     }
 
-    int kicked = players.size();
+    if (kicked == 0) {
+      context.getSource().sendMessage(Component.translatable("velocity.command.gkick.server-exempt")
+          .arguments(Argument.string("server", fromName)));
+      return 0;
+    }
+
     context.getSource().sendMessage(
         Component.translatable(kicked == 1 ? "velocity.command.gkick.server-singular" : "velocity.command.gkick.server-plural")
             .arguments(
@@ -134,11 +151,21 @@ public class GkickCommand implements BuiltinCommandDefinition {
   private int kickBulk(CommandContext<CommandSource> context, PlayerIdentifier.Result result, Component reason) {
     Collection<VelocityClusterPlayer> players = result.players();
 
+    int kicked = 0;
     for (VelocityClusterPlayer player : players) {
+      if (player.isKickBypass()) {
+        continue;
+      }
+
       player.kick(reason);
+      kicked++;
     }
 
-    int kicked = players.size();
+    if (kicked == 0 && !players.isEmpty()) {
+      context.getSource().sendMessage(Component.translatable("velocity.command.gkick.all-exempt"));
+      return 0;
+    }
+
     context.getSource().sendMessage(
         Component.translatable(kicked == 1 ? "velocity.command.gkick.all-singular" : "velocity.command.gkick.all-plural")
             .arguments(Argument.numeric("count", kicked))

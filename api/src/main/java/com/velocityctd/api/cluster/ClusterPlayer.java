@@ -67,6 +67,14 @@ public interface ClusterPlayer {
   boolean isClientListingAllowed();
 
   /**
+   * Checks whether this player is permitted to bypass being kicked from the network
+   * by the {@code /gkick} command.
+   *
+   * @return {@code true} if the player bypasses network kicks
+   */
+  boolean isKickBypass();
+
+  /**
    * Kicks the player from the proxy with the given reason.
    *
    * @param reason the kick reason displayed to the player
