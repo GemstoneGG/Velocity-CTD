@@ -32,6 +32,37 @@ public class PlaceholderSubstitutor {
   private static final Logger LOGGER = LogManager.getLogger(PlaceholderSubstitutor.class);
 
   /**
+   * Substitutes variables in each element of the input list, as described by
+   * {@link #substitute(String, Resolver...)}. Each line is processed independently, so a
+   * <code>{...}</code> variable never spans across list elements. A replacement value may itself
+   * contain <code>\n</code>, in which case it is expanded into additional output lines.
+   *
+   * @param input the lines to process
+   * @param resolvers resolve a variable name and its parsed arguments to a replacement,
+   *                  or {@code null} to leave the literal in the output. first non-null return
+   *                  value is used.
+   * @return the input lines with all known variables substituted, with any replacement-introduced
+   *         line breaks expanded into separate elements
+   */
+  public static @NonNull List<String> substitute(@NonNull List<String> input, @NonNull Resolver... resolvers) {
+    List<String> output = new ArrayList<>(input.size());
+    for (String line : input) {
+      String substituted = substitute(line, resolvers);
+
+      // a resolver may introduce '\n's, which expand into additional output lines
+      int start = 0;
+      int newline;
+      while ((newline = substituted.indexOf('\n', start)) >= 0) {
+        output.add(substituted.substring(start, newline));
+        start = newline + 1;
+      }
+      output.add(substituted.substring(start));
+    }
+
+    return output;
+  }
+
+  /**
    * Replaces variables of the form <code>{name}</code> or <code>{name:key=value:...}</code> in the
    * input with values produced by the given mapper. Unknown variables and mapper exceptions leave
    * the original <code>{...}</code> literal intact. A <code>{</code>, <code>}</code>, <code>:</code>
