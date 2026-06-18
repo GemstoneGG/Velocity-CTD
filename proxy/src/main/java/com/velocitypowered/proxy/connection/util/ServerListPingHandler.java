@@ -96,6 +96,7 @@ public class ServerListPingHandler {
             .defaultMax(8)
             .defaultMaxPerLine(4)
             .defaultSeparator(", ")
+            .ignoreAnonymousPlayerRequest(configuration.isIgnoreAnonymousPlayerRequest())
             .build());
 
     List<String> motdHover = PlaceholderSubstitutor.substitute(
@@ -105,6 +106,7 @@ public class ServerListPingHandler {
             .defaultMax(12)
             .defaultMaxPerLine(1)
             .defaultSeparator("")
+            .ignoreAnonymousPlayerRequest(configuration.isIgnoreAnonymousPlayerRequest())
             .build());
 
     String versionName = PlaceholderSubstitutor.substitute(
@@ -114,6 +116,7 @@ public class ServerListPingHandler {
             .defaultMax(2)
             .defaultMaxPerLine(Integer.MAX_VALUE)
             .defaultSeparator(", ")
+            .ignoreAnonymousPlayerRequest(configuration.isIgnoreAnonymousPlayerRequest())
             .build());
 
     return new ServerPing(

@@ -16,6 +16,7 @@ public class SamplePlayersPlaceholderResolver implements PlaceholderSubstitutor.
   private final String defaultEmpty;
   private final String defaultPrefix;
   private final String defaultSeparator;
+  private final boolean ignoreAnonymousPlayerRequest;
 
   private SamplePlayersPlaceholderResolver(Builder builder) {
     this.samplePlayersPicker = builder.samplePlayersPicker;
@@ -25,6 +26,7 @@ public class SamplePlayersPlaceholderResolver implements PlaceholderSubstitutor.
     this.defaultEmpty = builder.defaultEmpty;
     this.defaultPrefix = builder.defaultPrefix;
     this.defaultSeparator = builder.defaultSeparator;
+    this.ignoreAnonymousPlayerRequest = builder.ignoreAnonymousPlayerRequest;
   }
 
   public static Builder builder(SamplePlayersPicker samplePlayersPicker) {
@@ -38,7 +40,8 @@ public class SamplePlayersPlaceholderResolver implements PlaceholderSubstitutor.
         .defaultOrdering(defaultOrdering)
         .defaultEmpty(defaultEmpty)
         .defaultPrefix(defaultPrefix)
-        .defaultSeparator(defaultSeparator);
+        .defaultSeparator(defaultSeparator)
+        .ignoreAnonymousPlayerRequest(ignoreAnonymousPlayerRequest);
   }
 
   @Override
@@ -68,7 +71,7 @@ public class SamplePlayersPlaceholderResolver implements PlaceholderSubstitutor.
       VelocityClusterPlayer player = sample.get(i);
 
       String name;
-      if (!player.isClientListingAllowed()) {
+      if (!ignoreAnonymousPlayerRequest && !player.isClientListingAllowed()) {
         name = ServerPing.SamplePlayer.ANONYMOUS.getName();
       } else {
         name = player.getUsername();
@@ -116,6 +119,7 @@ public class SamplePlayersPlaceholderResolver implements PlaceholderSubstitutor.
     private String defaultEmpty = "None";
     private String defaultPrefix = "";
     private String defaultSeparator = ", ";
+    private boolean ignoreAnonymousPlayerRequest = false;
 
     private Builder(SamplePlayersPicker samplePlayersPicker) {
       this.samplePlayersPicker = samplePlayersPicker;
@@ -148,6 +152,11 @@ public class SamplePlayersPlaceholderResolver implements PlaceholderSubstitutor.
 
     public Builder defaultSeparator(String defaultSeparator) {
       this.defaultSeparator = defaultSeparator;
+      return this;
+    }
+
+    public Builder ignoreAnonymousPlayerRequest(boolean ignoreAnonymousPlayerRequest) {
+      this.ignoreAnonymousPlayerRequest = ignoreAnonymousPlayerRequest;
       return this;
     }
 

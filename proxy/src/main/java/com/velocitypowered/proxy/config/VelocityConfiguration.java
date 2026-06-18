@@ -879,6 +879,19 @@ public final class VelocityConfiguration implements ProxyConfig {
   }
 
   /**
+   * Returns whether a client's request to be anonymized in the server list ping should be ignored.
+   *
+   * <p>When a player disables "Allow Server Listings" in their client options, they are normally
+   * shown as "Anonymous Player" in the {@code {players}} sample. When this returns {@code true},
+   * their real username is shown regardless.
+   *
+   * @return {@code true} if the client's anonymization request should be ignored
+   */
+  public boolean isIgnoreAnonymousPlayerRequest() {
+    return advanced.isIgnoreAnonymousPlayerRequest();
+  }
+
+  /**
    * Gets the dynamic fallback filter mode configured for server selection.
    *
    * @return the fallback filter identifier
@@ -2048,6 +2061,15 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private String backendBrandCustom = "Paper";
 
+    /**
+     * Whether to ignore a client's request to be anonymized in the server list ping. When a player
+     * disables "Allow Server Listings" in their client options, they normally show up as
+     * "Anonymous Player" in the {@code {players}} sample. Enabling this displays their real username
+     * regardless.
+     */
+    @Expose
+    private boolean ignoreAnonymousPlayerRequest = false;
+
     private Advanced() {
     }
 
@@ -2086,6 +2108,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.alwaysFallBackPing = config.getOrElse("always-fallback-ping", false);
         this.proxyBrandCustom = config.getOrElse("custom-brand-proxy", "Velocity-CTD");
         this.backendBrandCustom = config.getOrElse("custom-brand-backend", "Paper");
+        this.ignoreAnonymousPlayerRequest = config.getOrElse("ignore-anonymous-player-request", false);
       }
     }
 
@@ -2197,6 +2220,10 @@ public final class VelocityConfiguration implements ProxyConfig {
       return backendBrandCustom;
     }
 
+    public boolean isIgnoreAnonymousPlayerRequest() {
+      return ignoreAnonymousPlayerRequest;
+    }
+
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
@@ -2226,6 +2253,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("alwaysFallBackPing", alwaysFallBackPing)
           .add("proxyBrandCustom", proxyBrandCustom)
           .add("backendBrandCustom", backendBrandCustom)
+          .add("ignoreAnonymousPlayerRequest", ignoreAnonymousPlayerRequest)
           .toString();
     }
 
