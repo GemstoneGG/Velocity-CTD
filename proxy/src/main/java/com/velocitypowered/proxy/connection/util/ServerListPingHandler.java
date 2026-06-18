@@ -92,13 +92,16 @@ public class ServerListPingHandler {
     SamplePlayersPicker sharedPicker = configuration.isPoolPlayersAcrossSections() ? SamplePlayersPicker.create(server) : null;
 
     List<String> motd = PlaceholderSubstitutor.substitute(configuration.getMotdLines(), basicResolver,
-            samplePlayersResolver(sharedPicker, 8, 4, ", "));
+            samplePlayersResolver(sharedPicker, 8, 4, "None", ", "));
 
     List<String> motdHover = PlaceholderSubstitutor.substitute(configuration.getMotdHoverLines(), basicResolver,
-            samplePlayersResolver(sharedPicker, 12, 1, ""));
+            samplePlayersResolver(sharedPicker, 12, 1, "", ""));
+    if (motdHover.size() == 1 && motdHover.getFirst().isEmpty()) {
+      motdHover.clear();
+    }
 
     String versionName = PlaceholderSubstitutor.substitute(configuration.getFallbackVersionPing(), basicResolver,
-            samplePlayersResolver(sharedPicker, 2, Integer.MAX_VALUE, ", "));
+            samplePlayersResolver(sharedPicker, 2, Integer.MAX_VALUE, "None", ", "));
 
     return new ServerPing(
         new ServerPing.Version(
@@ -124,11 +127,12 @@ public class ServerListPingHandler {
 
   private SamplePlayersPlaceholderResolver samplePlayersResolver(
           @Nullable SamplePlayersPicker sharedPicker, int defaultMax,
-          int defaultMaxPerLine, String defaultSeparator) {
+          int defaultMaxPerLine, String defaultEmpty, String defaultSeparator) {
     SamplePlayersPicker picker = sharedPicker != null ? sharedPicker : SamplePlayersPicker.create(server);
     return SamplePlayersPlaceholderResolver.builder(picker)
         .defaultMax(defaultMax)
         .defaultMaxPerLine(defaultMaxPerLine)
+        .defaultEmpty(defaultEmpty)
         .defaultSeparator(defaultSeparator)
         .ignoreAnonymousPlayerRequest(server.getConfiguration().isIgnoreAnonymousPlayerRequest())
         .build();
