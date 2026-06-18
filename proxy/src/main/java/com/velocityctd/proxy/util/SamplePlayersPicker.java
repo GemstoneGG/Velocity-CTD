@@ -55,6 +55,10 @@ public class SamplePlayersPicker {
       pool = new ArrayList<>(poolSupplier.get());
     }
 
+    if (sampleSize < 0) {
+      sampleSize = 0;
+    }
+
     if (ordering == Ordering.RANDOM) {
       return pollRandom(pool, sampleSize);
     } else {
@@ -65,6 +69,10 @@ public class SamplePlayersPicker {
   private static <E> List<E> pollRandom(List<E> pool, int sampleSize) {
     if (sampleSize > pool.size()) {
       sampleSize = pool.size();
+    }
+
+    if (sampleSize <= 0) {
+      return new ArrayList<>(0);
     }
 
     List<E> result = new ArrayList<>(sampleSize);

@@ -78,6 +78,10 @@ public class SamplePlayersPlaceholderResolver implements PlaceholderSubstitutor.
   }
 
   private String samplePlayers(int max, int maxPerLine, SamplePlayersPicker.Ordering ordering, String emptyString, String prefix, String separator) {
+    if (maxPerLine < 1) {
+      maxPerLine = 1;
+    }
+
     List<VelocityClusterPlayer> sample = samplePlayersPicker.samplePlayers(max, ordering);
     if (sample.isEmpty()) {
       return emptyString;
