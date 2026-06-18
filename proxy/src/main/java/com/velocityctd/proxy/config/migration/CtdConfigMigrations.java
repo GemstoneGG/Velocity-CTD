@@ -28,6 +28,30 @@ public class CtdConfigMigrations {
     return List.of(
         // root
         migration(
+            "Shown when hovering over the player count in the server list. Accepts a list of lines, and\n"
+                + " supports the same placeholders as \"fallback-version-ping\" plus the \"{players}\" placeholder.\n"
+                + "\n"
+                + " \"{players}\" lists online players. By default it shows a random selection, which is the Notchian\n"
+                + " (vanilla) behavior. Setting motd-hover = [\"{players}\"] reproduces the vanilla player tooltip.\n"
+                + " It accepts optional arguments written as \"{players:arg=value:arg2=value}\":\n"
+                + " - max:        maximum number of players to list.\n"
+                + " - maxPerLine: maximum number of players listed per line.\n"
+                + " - ordering:   how players are picked and ordered. One of:\n"
+                + "   - RANDOM:                a random selection (Notchian behavior).\n"
+                + "   - ALPHABETICAL:          sorted A-Z by name.\n"
+                + "   - ALPHABETICAL_REVERSED: sorted Z-A by name.\n"
+                + "   - LAST_JOINED:           most recently joined players first.\n"
+                + "   - FIRST_JOINED:          longest-connected players first.\n"
+                + " - empty:      text shown when no players are online.\n"
+                + " - prefix:     text inserted before each player name.\n"
+                + " - separator:  text inserted between player names (trimmed at the end of each line).\n"
+                + " Example: \"{players:max=10:maxPerLine=2:ordering=ALPHABETICAL:separator=<gray>, }\"",
+            "motd-hover",
+            List.of(
+                "<gray>Players online: <white>{player-count}</white>/<white>{max-players}</white></gray>",
+                "{players}")
+        ),
+        migration(
             "Whether chat signing should be enforced. If disabled, backend servers MUST disable chat signing.",
             "enforce-chat-signing",
             true
@@ -160,7 +184,9 @@ public class CtdConfigMigrations {
         migration(
             "Modifies the brand and server version that displays in the multiplayer menu and status pingers.\n"
                 + " Supports placeholders: {protocol-min}, {protocol-max}, {protocol}, {proxy-brand},\n"
-                + " {proxy-brand-custom}, {proxy-version}, {proxy-vendor}, {player-count}, {max-players}.",
+                + " {proxy-brand-custom}, {proxy-version}, {proxy-vendor}, {player-count}, {max-players}.\n"
+                + " These placeholders are also available in \"motd\" and \"motd-hover\", and the\n"
+                + " \"{players}\" placeholder (documented under \"motd-hover\") may be used here as well.",
             "advanced.fallback-version-ping",
             "{proxy-brand} {protocol-min}-{protocol-max}"
         ),

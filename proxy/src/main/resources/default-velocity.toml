@@ -4,16 +4,34 @@ config-version = "2.9"
 # What port should the proxy be bound to? By default, we'll bind to all addresses on port 25565.
 bind = "0.0.0.0:25565"
 
-# What should be the MOTD? This gets displayed when the player adds your server to
-# their server list.
-motd = "<#ff3a4c>A Velocity-CTD Server"
+# The MOTD shown in the server list when a player adds your server. Accepts a list of lines.
+# Supports the "{players}" placeholder (documented under "motd-hover") as well as the other
+# placeholders listed under "fallback-version-ping".
+motd = [
+    "<#ff3a4c>A Velocity-CTD Server"
+]
 
-# What should it look like when you hover over the player count? This is
-# displayed when hovering over the player count/max players' tooltip and
-# only supports the legacy colors due to Minecraft limitations.
+# Shown when hovering over the player count in the server list. Accepts a list of lines, and
+# supports the same placeholders as "fallback-version-ping" plus the "{players}" placeholder.
+#
+# "{players}" lists online players. By default it shows a random selection, which is the Notchian
+# (vanilla) behavior. Setting motd-hover = ["{players}"] reproduces the vanilla player tooltip.
+# It accepts optional arguments written as "{players:arg=value:arg2=value}":
+# - max:        maximum number of players to list.
+# - maxPerLine: maximum number of players listed per line.
+# - ordering:   how players are picked and ordered. One of:
+#   - RANDOM:                a random selection (Notchian behavior).
+#   - ALPHABETICAL:          sorted A-Z by name.
+#   - ALPHABETICAL_REVERSED: sorted Z-A by name.
+#   - LAST_JOINED:           most recently joined players first.
+#   - FIRST_JOINED:          longest-connected players first.
+# - empty:      text shown when no players are online.
+# - prefix:     text inserted before each player name.
+# - separator:  text inserted between player names (trimmed at the end of each line).
+# Example: "{players:max=10:maxPerLine=2:ordering=ALPHABETICAL:separator=<gray>, }"
 motd-hover = [
-    "<red>A Velocity-CTD Tooltip",
-    "<aqua>that shows more information!"
+    "<gray>Players online: <white>{player-count}</white>/<white>{max-players}</white></gray>",
+    "{players}"
 ]
 
 # What should we display for the maximum number of players? (Velocity does not support a cap
@@ -377,6 +395,8 @@ custom-brand-backend = "Paper"
 #                              the proxy or to all available proxies on Redis.
 # - "{max-players}":           Returns the total number of players that displays
 #                              to the proxy or to all available proxies on Redis.
+# These placeholders are also available in "motd" and "motd-hover". The "{players}" placeholder
+# (documented under "motd-hover") may be used here as well.
 fallback-version-ping = "{proxy-brand} {protocol-min}-{protocol-max}"
 
 # Instead of "fallback-version-ping" exclusively returning when the
