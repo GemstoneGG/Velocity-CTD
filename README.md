@@ -95,12 +95,6 @@ dependencies, useful performance improvements, and more.
   actively connected to on the network).
 * `velocity.command.gkick` [/gkick] (Allows you to kick a player from the network,
   including players connected to a different proxy in a Redis multi-proxy setup).
-* `velocity.command.gkick.all` [/gkick] (Allows you to kick everyone from the network,
-  including players connected to a different proxy in a Redis multi-proxy setup).
-* `velocity.command.gkick.all.bypass` [/gkick] (Allows you to bypass the /gkick all command).
-* `velocity.command.gkick.server` [/gkick] (Allows you to kick everyone from the specified server,
-  including players connected to a different proxy in a Redis multi-proxy setup).
-* `velocity.command.gkick.server.bypass` [/gkick] (Allows you to bypass the /gkick server command).
 * `velocity.command.hub` [/hub & /lobby] (Allows you to be sent to the hub/lobby or
   your fallback server(s), depending on your setup).
 * `velocity.command.gip` [/gip] (Allows you to retrieve the IP address of an online player,
