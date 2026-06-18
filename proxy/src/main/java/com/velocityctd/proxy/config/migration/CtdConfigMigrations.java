@@ -26,6 +26,8 @@ public class CtdConfigMigrations {
 
   public static List<ConfigurationMigration> createCtdMigrations() {
     return List.of(
+        new CtdMotdHoverMigration(),
+
         // root
         migration(
             "Shown when hovering over the player count in the server list. Accepts a list of lines, and\n"
