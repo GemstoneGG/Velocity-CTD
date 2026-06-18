@@ -89,35 +89,16 @@ public class ServerListPingHandler {
 
     PlaceholderSubstitutor.Resolver basicResolver = new ServerListPingPlaceholderResolver(displayVersion);
 
-    List<String> motd = PlaceholderSubstitutor.substitute(
-        server.getConfiguration().getMotdLines(),
-        basicResolver,
-        SamplePlayersPlaceholderResolver.builder(SamplePlayersPicker.create(server))
-            .defaultMax(8)
-            .defaultMaxPerLine(4)
-            .defaultSeparator(", ")
-            .ignoreAnonymousPlayerRequest(configuration.isIgnoreAnonymousPlayerRequest())
-            .build());
+    SamplePlayersPicker sharedPicker = configuration.isPoolPlayersAcrossSections() ? SamplePlayersPicker.create(server) : null;
 
-    List<String> motdHover = PlaceholderSubstitutor.substitute(
-        server.getConfiguration().getMotdHoverLines(),
-        basicResolver,
-        SamplePlayersPlaceholderResolver.builder(SamplePlayersPicker.create(server))
-            .defaultMax(12)
-            .defaultMaxPerLine(1)
-            .defaultSeparator("")
-            .ignoreAnonymousPlayerRequest(configuration.isIgnoreAnonymousPlayerRequest())
-            .build());
+    List<String> motd = PlaceholderSubstitutor.substitute(configuration.getMotdLines(), basicResolver,
+            samplePlayersResolver(sharedPicker, 8, 4, ", "));
 
-    String versionName = PlaceholderSubstitutor.substitute(
-        configuration.getFallbackVersionPing(),
-        basicResolver,
-        SamplePlayersPlaceholderResolver.builder(SamplePlayersPicker.create(server))
-            .defaultMax(2)
-            .defaultMaxPerLine(Integer.MAX_VALUE)
-            .defaultSeparator(", ")
-            .ignoreAnonymousPlayerRequest(configuration.isIgnoreAnonymousPlayerRequest())
-            .build());
+    List<String> motdHover = PlaceholderSubstitutor.substitute(configuration.getMotdHoverLines(), basicResolver,
+            samplePlayersResolver(sharedPicker, 12, 1, ""));
+
+    String versionName = PlaceholderSubstitutor.substitute(configuration.getFallbackVersionPing(), basicResolver,
+            samplePlayersResolver(sharedPicker, 2, Integer.MAX_VALUE, ", "));
 
     return new ServerPing(
         new ServerPing.Version(
@@ -139,6 +120,18 @@ public class ServerListPingHandler {
         configuration.isAnnounceForge() ? ModInfo.DEFAULT : null,
         configuration.doesPreventChatReports()
     );
+  }
+
+  private SamplePlayersPlaceholderResolver samplePlayersResolver(
+          @Nullable SamplePlayersPicker sharedPicker, int defaultMax,
+          int defaultMaxPerLine, String defaultSeparator) {
+    SamplePlayersPicker picker = sharedPicker != null ? sharedPicker : SamplePlayersPicker.create(server);
+    return SamplePlayersPlaceholderResolver.builder(picker)
+        .defaultMax(defaultMax)
+        .defaultMaxPerLine(defaultMaxPerLine)
+        .defaultSeparator(defaultSeparator)
+        .ignoreAnonymousPlayerRequest(server.getConfiguration().isIgnoreAnonymousPlayerRequest())
+        .build();
   }
 
   private CompletableFuture<ServerPing> attemptPingPassthrough(VelocityInboundConnection connection,

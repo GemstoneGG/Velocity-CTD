@@ -892,6 +892,19 @@ public final class VelocityConfiguration implements ProxyConfig {
   }
 
   /**
+   * Returns whether the {@code {players}} sample of the motd, motd hover and fallback version ping
+   * should draw from a single shared pool.
+   *
+   * <p>When {@code true}, a player never appears more than once across those sections. When
+   * {@code false}, each section samples players independently.
+   *
+   * @return {@code true} if a single pool is shared across all ping sections
+   */
+  public boolean isPoolPlayersAcrossSections() {
+    return advanced.isPoolPlayersAcrossSections();
+  }
+
+  /**
    * Gets the dynamic fallback filter mode configured for server selection.
    *
    * @return the fallback filter identifier
@@ -2070,6 +2083,14 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private boolean ignoreAnonymousPlayerRequest = false;
 
+    /**
+     * Whether the {@code {players}} sample of the motd, motd hover and fallback version ping should
+     * draw from a single shared pool. When enabled, a player never appears more than once across
+     * those sections; when disabled, each section samples independently.
+     */
+    @Expose
+    private boolean poolPlayersAcrossSections = false;
+
     private Advanced() {
     }
 
@@ -2109,6 +2130,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.proxyBrandCustom = config.getOrElse("custom-brand-proxy", "Velocity-CTD");
         this.backendBrandCustom = config.getOrElse("custom-brand-backend", "Paper");
         this.ignoreAnonymousPlayerRequest = config.getOrElse("ignore-anonymous-player-request", false);
+        this.poolPlayersAcrossSections = config.getOrElse("pool-players-across-sections", false);
       }
     }
 
@@ -2224,6 +2246,10 @@ public final class VelocityConfiguration implements ProxyConfig {
       return ignoreAnonymousPlayerRequest;
     }
 
+    public boolean isPoolPlayersAcrossSections() {
+      return poolPlayersAcrossSections;
+    }
+
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
@@ -2254,6 +2280,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("proxyBrandCustom", proxyBrandCustom)
           .add("backendBrandCustom", backendBrandCustom)
           .add("ignoreAnonymousPlayerRequest", ignoreAnonymousPlayerRequest)
+          .add("poolPlayersAcrossSections", poolPlayersAcrossSections)
           .toString();
     }
 

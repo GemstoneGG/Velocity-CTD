@@ -389,6 +389,12 @@ custom-brand-backend = "Paper"
 # that request and always show their real username.
 ignore-anonymous-player-request = false
 
+# Whether the {players} sample of the motd, motd-hover and fallback-version-ping should draw from a
+# single shared pool. When true, a player never appears more than once across those three sections.
+# When false (default), each section samples players independently and the same player may appear in
+# more than one section.
+pool-players-across-sections = false
+
 [slash-servers]
 # Defines "/<name>" aliases for servers - here "/faction" and "/factions" would both send you to the server named
 # "factions", for example.
