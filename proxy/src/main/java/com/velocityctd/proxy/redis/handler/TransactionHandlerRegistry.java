@@ -23,6 +23,7 @@ import com.velocityctd.proxy.redis.data.VelocityGetPlayerPing;
 import com.velocityctd.proxy.redis.data.VelocityReload;
 import com.velocityctd.proxy.redis.data.VelocityTransferRemote;
 import com.velocityctd.proxy.redis.data.VelocityUptime;
+import com.velocityctd.proxy.redis.data.VelocityVerifyPlayer;
 import com.velocityctd.proxy.redis.transaction.TransactionData;
 import com.velocityctd.proxy.redis.transaction.TransactionHandler;
 import com.velocitypowered.api.network.ProtocolVersion;
@@ -109,6 +110,18 @@ public enum TransactionHandlerRegistry {
     }).delay(100, TimeUnit.MILLISECONDS).schedule();
 
     return fut;
+  }),
+
+  /**
+   * Handles the {@link VelocityVerifyPlayer} transaction by replying with whether the targeted
+   * proxy still has the given player connected.
+   */
+  VELOCITY_VERIFY_PLAYER(VelocityVerifyPlayer.class, (server, data) -> {
+    if (!data.proxyId().equalsIgnoreCase(server.getProxyId())) {
+      return null;
+    }
+
+    return completedFuture(server.getPlayer(data.uniqueId()).isPresent());
   }),
   ;
 

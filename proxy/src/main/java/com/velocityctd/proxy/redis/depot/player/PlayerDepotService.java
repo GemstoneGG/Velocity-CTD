@@ -19,6 +19,7 @@ package com.velocityctd.proxy.redis.depot.player;
 
 import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.data.VelocityKick;
+import com.velocityctd.proxy.redis.data.VelocityVerifyPlayer;
 import com.velocityctd.proxy.redis.depot.AbstractDepotService;
 import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.api.scheduler.ScheduledTask;
@@ -28,7 +29,12 @@ import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import net.kyori.adventure.text.Component;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -38,6 +44,15 @@ import org.jetbrains.annotations.Unmodifiable;
  * functionality to track certain information about a single player, or multiple players.
  */
 public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerEntry> {
+
+  private static final Logger LOGGER = LogManager.getLogger(PlayerDepotService.class);
+
+  /**
+   * How long to wait for the owning proxy to confirm a player is still connected before treating
+   * an existing depot entry as stale. Only applies on connect when a player appears to already be
+   * online on another proxy.
+   */
+  private static final Duration LIVENESS_TIMEOUT = Duration.ofMillis(800L);
 
   /**
    * The Redis manager used to coordinate multi-proxy player synchronization.
@@ -124,14 +139,45 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
           this.redis.publish(new VelocityKick(player.getUniqueId(), component, existingEntry.getProxyId()));
         }
       } else {
-        Component component = Component.translatable("velocity.error.already-connected-proxy.remote");
-        player.disconnect0(component, true);
-        return false;
+        PlayerEntry existingEntry = this.depot.get(player.getUniqueId());
+        if (existingEntry != null && isPlayerActuallyOnline(player.getUniqueId(), existingEntry)) {
+          Component component = Component.translatable("velocity.error.already-connected-proxy.remote");
+          player.disconnect0(component, true);
+          return false;
+        }
+
+        // Delete stale entry
+        this.depot.remove(player.getUniqueId());
       }
     }
 
     this.upsertPlayerEntry(player);
     return true;
+  }
+
+  /**
+   * Returns whether the player behind an existing depot entry is genuinely still connected, as
+   * opposed to the entry being stale.
+   */
+  private boolean isPlayerActuallyOnline(UUID uniqueId, @NotNull PlayerEntry entry) {
+    if (entry.getProxyId().equalsIgnoreCase(this.redis.getProxyId())) {
+      return this.server.getPlayer(uniqueId).isPresent();
+    }
+
+    try {
+      Boolean online = this.redis.publishTransaction(new VelocityVerifyPlayer(uniqueId, entry.getProxyId()))
+              .get(LIVENESS_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+      return Boolean.TRUE.equals(online);
+    } catch (TimeoutException e) {
+      return false;
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return true;
+    } catch (ExecutionException e) {
+      LOGGER.warn("Failed to verify whether {} is still connected to proxy {}.",
+              uniqueId, entry.getProxyId(), e);
+      return true;
+    }
   }
 
   /**
