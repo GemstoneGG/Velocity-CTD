@@ -50,7 +50,7 @@ public final class MotdMigration implements ConfigurationMigration {
     config.set("motd", migratedMotd);
     config.setComment("motd",
             " What should be the MOTD? This gets displayed when the player adds your server to\n"
-                    + " their server list. Only MiniMessage format is accepted.");
+                    + " their server list.");
     config.set("config-version", "2.6");
   }
 }

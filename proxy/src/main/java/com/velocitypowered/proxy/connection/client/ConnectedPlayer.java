@@ -317,6 +317,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   private final BossBarManager bossBarManager;
 
+  private final long joinedAt = System.currentTimeMillis();
+
   /**
    * The currently active server retry session, or `null` if there is no active session.
    * Used for choosing fallback servers with consistent ordering.
@@ -475,6 +477,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   void setPing(long ping) {
     this.ping = ping;
+  }
+
+  public long getJoinedAt() {
+    return this.joinedAt;
   }
 
   @Override

@@ -93,12 +93,25 @@ jobs:
     - name: Upload as GitHub Release
       if: github.ref == env.RELEASE_BRANCH
       continue-on-error: true
-      uses: marvinpinto/action-automatic-releases@master
+      uses: softprops/action-gh-release@v3
       with:
-        title: "Velocity-CTD"
-        automatic_release_tag: "${{ steps.release_tag.outputs.tag }}"
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        name: "Velocity-CTD"
+        tag_name: "${{ steps.release_tag.outputs.tag }}"
+        token: "${{ secrets.GITHUB_TOKEN }}"
+        prerelease: false
+        generate_release_notes: true
+        body: |
+          ## Which jar should I download?
+
+          **Recommended — `velocity-ctd-<version>-<build>.jar` (bootstrap jar)**
+          This is the bootstrap jar. It downloads the required dependencies only once, keeping the download small. Use this one.
+
+          **Fallback — `velocity-ctd-fatjar-<version>-<build>.jar`**
+          Only download the fatjar if the bootstrap jar is causing issues for you. If it is, please [open an issue](https://github.com/${{ github.repository }}/issues) describing the problem so we can fix it.
+
+          > ⚠️ The fatjar will be removed soon — please migrate to the bootstrap jar.
+
+          ---
         files: |
           proxy/build/libs/velocity-ctd-fatjar-*-${{ steps.release_tag.outputs.build_nr }}.jar
           bootstrap/build/libs/velocity-ctd-*-${{ steps.release_tag.outputs.build_nr }}.jar
-        prerelease: false
