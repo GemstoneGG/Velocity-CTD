@@ -148,6 +148,16 @@ public class CtdConfigMigrations {
             "{backend-brand} ({proxy-brand})"
         ),
         migration(
+            "Replaces what is returned for both the server brand and fallback version pinger.",
+            "advanced.custom-brand-proxy",
+            "Velocity-CTD"
+        ),
+        migration(
+            "Replaces what is returned as the server brand for the user's client.",
+            "advanced.custom-brand-backend",
+            "Paper"
+        ),
+        migration(
             "Modifies the brand and server version that displays in the multiplayer menu and status pingers.\n"
                 + " Supports placeholders: {protocol-min}, {protocol-max}, {protocol}, {proxy-brand},\n"
                 + " {proxy-brand-custom}, {proxy-version}, {proxy-vendor}, {player-count}, {max-players}.",
@@ -162,14 +172,19 @@ public class CtdConfigMigrations {
             false
         ),
         migration(
-            "Replaces what is returned for both the server brand and fallback version pinger.",
-            "advanced.custom-brand-proxy",
-            "Velocity-CTD"
+            "When a player disables \"Allow Server Listings\" in their client options, they are shown as\n"
+                + " \"Anonymous Player\" in the {players} sample of the server list ping. Set this to true to ignore\n"
+                + " that request and always show their real username.",
+            "advanced.ignore-anonymous-player-request",
+            false
         ),
         migration(
-            "Replaces what is returned as the server brand for the user's client.",
-            "advanced.custom-brand-backend",
-            "Paper"
+            "Whether the {players} sample of the motd, motd-hover and fallback-version-ping should draw from a\n"
+                + " single shared pool. When true, a player never appears more than once across those three sections.\n"
+                + " When false (default), each section samples players independently and the same player may appear in\n"
+                + " more than one section.",
+            "advanced.pool-players-across-sections",
+            false
         ),
 
         // [redis]

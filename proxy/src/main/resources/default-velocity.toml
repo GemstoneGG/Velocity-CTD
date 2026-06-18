@@ -347,6 +347,12 @@ allow-illegal-characters-in-chat = false
 #                              to of your proxy with case-sensitivity."
 server-brand = "{backend-brand} ({proxy-brand})"
 
+# Replaces what is returned for both the server brand and fallback version pinger.
+custom-brand-proxy = "Velocity-CTD"
+
+# Replaces what is returned as the server brand for the user's client.
+custom-brand-backend = "Paper"
+
 # Modifies the brand and server version that displays in the multiplayer menu and status pingers.
 # Available options:
 # - "{protocol-min}":          Returns the lowest compatible version from the
@@ -377,12 +383,6 @@ fallback-version-ping = "{proxy-brand} {protocol-min}-{protocol-max}"
 # user is on an unsupported version, it is returned regardless of their
 # version and can be used to customize the player count/max line freely.
 always-fallback-ping = false
-
-# Replaces what is returned for both the server brand and fallback version pinger.
-custom-brand-proxy = "Velocity-CTD"
-
-# Replaces what is returned as the server brand for the user's client.
-custom-brand-backend = "Paper"
 
 # When a player disables "Allow Server Listings" in their client options, they are shown as
 # "Anonymous Player" in the {players} sample of the server list ping. Set this to true to ignore
