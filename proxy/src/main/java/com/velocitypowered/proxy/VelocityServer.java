@@ -30,6 +30,7 @@ import com.velocityctd.proxy.cluster.redis.RedisClusterProxyService;
 import com.velocityctd.proxy.command.builtin.AlertCommand;
 import com.velocityctd.proxy.command.builtin.AlertRawCommand;
 import com.velocityctd.proxy.command.builtin.FindCommand;
+import com.velocityctd.proxy.command.builtin.GhelpCommand;
 import com.velocityctd.proxy.command.builtin.GipCommand;
 import com.velocityctd.proxy.command.builtin.GkickCommand;
 import com.velocityctd.proxy.command.builtin.HubCommand;
@@ -704,6 +705,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     registerCommand(configuration.isAlertEnabled(), AlertCommand::new);
     registerCommand(configuration.isAlertRawEnabled(), AlertRawCommand::new);
     registerCommand(configuration.isFindEnabled(), FindCommand::new);
+    registerCommand(configuration.isGhelpEnabled(), GhelpCommand::new);
     registerCommand(configuration.isGkickEnabled(), GkickCommand::new);
     registerCommand(configuration.isGipEnabled(), GipCommand::new);
     registerCommand(configuration.isTransferEnabled(), TransferCommand::new);
