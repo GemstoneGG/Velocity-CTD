@@ -78,8 +78,8 @@ public final class LocalClusterPlayer implements VelocityClusterPlayer {
   }
 
   @Override
-  public boolean isKickBypass() {
-    return player.hasPermission("velocity.command.gkick.bypass");
+  public long getJoinedAt() {
+    return player.getJoinedAt();
   }
 
   @Override

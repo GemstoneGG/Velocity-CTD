@@ -81,8 +81,8 @@ public final class RedisClusterPlayer implements VelocityClusterPlayer {
   }
 
   @Override
-  public boolean isKickBypass() {
-    return redisEntry.isKickBypass();
+  public long getJoinedAt() {
+    return redisEntry.getJoinedAt();
   }
 
   @Override

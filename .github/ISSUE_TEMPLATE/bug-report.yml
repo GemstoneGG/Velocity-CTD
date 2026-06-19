@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report issues with Velocity not working properly.
+description: Report issues with Velocity-CTD not working properly.
 labels: ["type: bug"]
 body:
   - type: textarea
@@ -19,7 +19,7 @@ body:
   - type: textarea
     attributes:
       label: Steps to Reproduce
-      description: Information on how we can reproduce this bug on our own, this can be e.g. just an explanation, a video or your Velocity config.
+      description: Information on how we can reproduce this bug on our own, this can be e.g. just an explanation, a video or your Velocity-CTD config.
     validations:
       required: true
 
@@ -28,13 +28,13 @@ body:
       label: Plugin List
       description: |
         All plugins running on your proxy and the backend server you're experiencing this issue on.
-        Use `/velocity plugins` to list plugins on Velocity and `/plugins` to list plugins on your backend server.
+        Use `/velocity plugins` to list plugins on Velocity-CTD and `/plugins` to list plugins on your backend server.
     validations:
       required: true
 
   - type: textarea
     attributes:
-      label: Velocity Version
+      label: Velocity-CTD Version
       description: |
         The full, unmodified output of running `/velocity info`.
         *"Latest"* is not a version. We require you to paste the text, not a screenshot.
@@ -42,9 +42,9 @@ body:
         <summary>Example</summary>
         
         ```
-        [17:44:10 INFO]: Velocity 3.4.0-SNAPSHOT (git-6e80f577-b534)  
-        [17:44:10 INFO]: Copyright 2018-2026 Velocity Contributors. Velocity is licensed under the terms of the GNU General Public License v3.  
-        [17:44:10 INFO]: PaperMC - GitHub  
+        [17:44:10 INFO]: Velocity-CTD 3.5.0-SNAPSHOT (git-1d1bfa7a-b313)  
+        [17:44:10 INFO]: Copyright 2018-2026 Velocity(-CTD) Contributors. Velocity-CTD is licensed under the terms of the GNU General Public License v3.  
+        [17:44:10 INFO]: discord.gg/beer - GitHub
         ```
         </details>
     validations:
@@ -62,8 +62,7 @@ body:
       value: |
         Before submitting this issue, please ensure the following:
 
-        1. You are running the latest version of Velocity from [our downloads page](https://papermc.io/downloads/velocity).
+        1. You are running the latest version of Velocity-CTD from [the releases tab](https://github.com/GemstoneGG/Velocity-CTD/releases/latest).
         2. You searched for and ensured there isn't already an open issue regarding this.
 
-        If you think you have a bug, but are not sure, feel free to ask in the `#velocity-help` channel on our
-        [Discord](https://discord.gg/papermc).
+        If you think you have a bug, but are not sure, feel free to ask on our [Discord](https://discord.gg/beer).

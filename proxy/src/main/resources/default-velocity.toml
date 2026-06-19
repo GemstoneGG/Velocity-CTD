@@ -4,17 +4,34 @@ config-version = "2.9"
 # What port should the proxy be bound to? By default, we'll bind to all addresses on port 25565.
 bind = "0.0.0.0:25565"
 
-# What should be the MOTD? This gets displayed when the player adds your server to
-# their server list. Only MiniMessage format is accepted.
-motd = "<#ff3a4c>A Velocity-CTD Server"
+# The MOTD shown in the server list when a player adds your server. Accepts a list of lines.
+# Supports the "{players}" placeholder (documented under "motd-hover") as well as the other
+# placeholders listed under "fallback-version-ping".
+motd = [
+    "<#ff3a4c>A Velocity-CTD Server"
+]
 
-# What should it look like when you hover over the player count? This is
-# displayed when hovering over the player count/max players' tooltip and
-# only supports the legacy colors due to Minecraft limitations.
-# Only MiniMessage format is accepted.
+# Shown when hovering over the player count in the server list. Accepts a list of lines, and
+# supports the same placeholders as "fallback-version-ping" plus the "{players}" placeholder.
+#
+# "{players}" lists online players. By default it shows a random selection, which is the Notchian
+# (vanilla) behavior. Setting motd-hover = ["{players}"] reproduces the vanilla player tooltip.
+# It accepts optional arguments written as "{players:arg=value:arg2=value}":
+# - max:        maximum number of players to list.
+# - maxPerLine: maximum number of players listed per line.
+# - ordering:   how players are picked and ordered. One of:
+#   - RANDOM:                a random selection (Notchian behavior).
+#   - ALPHABETICAL:          sorted A-Z by name.
+#   - ALPHABETICAL_REVERSED: sorted Z-A by name.
+#   - LAST_JOINED:           most recently joined players first.
+#   - FIRST_JOINED:          longest-connected players first.
+# - empty:      text shown when no players are online.
+# - prefix:     text inserted before each player name.
+# - separator:  text inserted between player names (trimmed at the end of each line).
+# Example: "{players:max=10:maxPerLine=2:ordering=ALPHABETICAL:separator=<gray>, }"
 motd-hover = [
-    "<red>A Velocity-CTD Tooltip",
-    "<aqua>that shows more information!"
+    "<gray>Players online: <white>{player-count}</white>/<white>{max-players}</white></gray>",
+    "{players}"
 ]
 
 # What should we display for the maximum number of players? (Velocity does not support a cap
@@ -110,11 +127,6 @@ kick-existing-players-check-ip = false
 # - "all":         Uses the backend server's response as the proxy response. The Velocity
 #                  configuration is used if no servers could be contacted.
 ping-passthrough = "disabled"
-
-# If enabled (default is false), then a sample of the online players on the proxy will be visible
-# when hovering over the player count in the server list.
-# This doesn't have any effect when ping passthrough is set to either "description" or "all".
-sample-players-in-ping = false
 
 # If not enabled (default is true) player IP addresses will be replaced by <ip address withheld> in logs.
 enable-player-address-logging = true
@@ -353,6 +365,12 @@ allow-illegal-characters-in-chat = false
 #                              to of your proxy with case-sensitivity."
 server-brand = "{backend-brand} ({proxy-brand})"
 
+# Replaces what is returned for both the server brand and fallback version pinger.
+custom-brand-proxy = "Velocity-CTD"
+
+# Replaces what is returned as the server brand for the user's client.
+custom-brand-backend = "Paper"
+
 # Modifies the brand and server version that displays in the multiplayer menu and status pingers.
 # Available options:
 # - "{protocol-min}":          Returns the lowest compatible version from the
@@ -377,6 +395,8 @@ server-brand = "{backend-brand} ({proxy-brand})"
 #                              the proxy or to all available proxies on Redis.
 # - "{max-players}":           Returns the total number of players that displays
 #                              to the proxy or to all available proxies on Redis.
+# These placeholders are also available in "motd" and "motd-hover". The "{players}" placeholder
+# (documented under "motd-hover") may be used here as well.
 fallback-version-ping = "{proxy-brand} {protocol-min}-{protocol-max}"
 
 # Instead of "fallback-version-ping" exclusively returning when the
@@ -384,11 +404,16 @@ fallback-version-ping = "{proxy-brand} {protocol-min}-{protocol-max}"
 # version and can be used to customize the player count/max line freely.
 always-fallback-ping = false
 
-# Replaces what is returned for both the server brand and fallback version pinger.
-custom-brand-proxy = "Velocity-CTD"
+# When a player disables "Allow Server Listings" in their client options, they are shown as
+# "Anonymous Player" in the {players} sample of the server list ping. Set this to true to ignore
+# that request and always show their real username.
+ignore-anonymous-player-request = false
 
-# Replaces what is returned as the server brand for the user's client.
-custom-brand-backend = "Paper"
+# Whether the {players} sample of the motd, motd-hover and fallback-version-ping should draw from a
+# single shared pool. When true, a player never appears more than once across those three sections.
+# When false (default), each section samples players independently and the same player may appear in
+# more than one section.
+pool-players-across-sections = false
 
 [slash-servers]
 # Defines "/<name>" aliases for servers - here "/faction" and "/factions" would both send you to the server named

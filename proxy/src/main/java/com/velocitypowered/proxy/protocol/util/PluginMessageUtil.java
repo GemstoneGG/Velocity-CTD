@@ -19,9 +19,10 @@ package com.velocitypowered.proxy.protocol.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.velocityctd.proxy.util.ParsingUtils.parseVariables;
+import static com.velocityctd.proxy.util.PlaceholderSubstitutor.substitute;
 
 import com.google.common.collect.ImmutableList;
+import com.velocityctd.proxy.util.PlaceholderSubstitutor;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.LegacyChannelIdentifier;
@@ -40,7 +41,9 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Pattern;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Utilities for handling plugin messages.
@@ -211,21 +214,9 @@ public final class PluginMessageUtil {
     checkNotNull(brand, "brand");
     checkArgument(isMcBrand(message), "message is not a brand plugin message");
 
-    String rewrittenBrand = parseVariables(brand, (variable) -> {
-      return switch (variable) {
-        case "protocol-min" -> minimumVersion;
-        case "protocol-max" -> ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion();
-        case "protocol" -> ProtocolVersion.MAXIMUM_VERSION.getVersionIntroducedIn();
-        case "backend-brand" -> readBrandMessage(message.content());
-        case "backend-brand-custom" -> backendBrandCustom;
-        case "proxy-brand" -> version.getName();
-        case "proxy-brand-custom" -> proxyBrandCustom;
-        case "proxy-version" -> version.getVersion();
-        case "proxy-vendor" -> version.getVendor();
-        case "server-connected" -> connectedServer;
-        default -> null;
-      };
-    });
+    String rewrittenBrand = substitute(brand,
+        new BrandPlaceholderResolver(message, version, proxyBrandCustom,
+            backendBrandCustom, connectedServer, minimumVersion));
 
     rewrittenBrand += "§r"; // Ensures brand coloration remains within bounds
 
@@ -289,5 +280,46 @@ public final class PluginMessageUtil {
         yield "legacy:" + INVALID_IDENTIFIER_REGEX.matcher(lower).replaceAll("");
       }
     };
+  }
+
+  private static class BrandPlaceholderResolver implements PlaceholderSubstitutor.Resolver {
+
+    private final PluginMessagePacket original;
+    private final ProxyVersion version;
+    private final String proxyBrandCustom;
+    private final String backendBrandCustom;
+    private final String connectedServer;
+    private final String minimumVersion;
+
+    private BrandPlaceholderResolver(PluginMessagePacket original,
+                                     ProxyVersion version,
+                                     String proxyBrandCustom,
+                                     String backendBrandCustom,
+                                     String connectedServer,
+                                     String minimumVersion) {
+      this.original = original;
+      this.version = version;
+      this.proxyBrandCustom = proxyBrandCustom;
+      this.backendBrandCustom = backendBrandCustom;
+      this.connectedServer = connectedServer;
+      this.minimumVersion = minimumVersion;
+    }
+
+    @Override
+    public @Nullable String resolve(String name, Map<String, String> arguments) {
+      return switch (name) {
+        case "protocol-min" -> minimumVersion;
+        case "protocol-max" -> ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion();
+        case "protocol" -> ProtocolVersion.MAXIMUM_VERSION.getVersionIntroducedIn();
+        case "backend-brand" -> readBrandMessage(original.content());
+        case "backend-brand-custom" -> backendBrandCustom;
+        case "proxy-brand" -> version.getName();
+        case "proxy-brand-custom" -> proxyBrandCustom;
+        case "proxy-version" -> version.getVersion();
+        case "proxy-vendor" -> version.getVendor();
+        case "server-connected" -> connectedServer;
+        default -> null;
+      };
+    }
   }
 }

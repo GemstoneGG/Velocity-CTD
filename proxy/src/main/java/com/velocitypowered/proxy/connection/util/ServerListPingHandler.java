@@ -17,11 +17,12 @@
 
 package com.velocitypowered.proxy.connection.util;
 
-import static com.velocityctd.proxy.util.ParsingUtils.parseVariables;
-
 import com.github.f4b6a3.uuid.UuidCreator;
 import com.spotify.futures.CompletableFutures;
-import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
+import com.velocityctd.proxy.util.ComponentUtils;
+import com.velocityctd.proxy.util.PlaceholderSubstitutor;
+import com.velocityctd.proxy.util.SamplePlayersPicker;
+import com.velocityctd.proxy.util.SamplePlayersPlaceholderResolver;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.server.PingOptions;
 import com.velocitypowered.api.proxy.server.ServerPing;
@@ -31,20 +32,17 @@ import com.velocitypowered.proxy.config.PingPassthroughMode;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Common utilities for handling server list ping results.
  */
 public class ServerListPingHandler {
-
-  public static final int SAMPLE_SIZE = 12;
 
   private final VelocityServer server;
 
@@ -89,45 +87,55 @@ public class ServerListPingHandler {
       responseProtocol = clientVersion.getProtocol();
     }
 
-    List<ServerPing.SamplePlayer> samplePlayers;
-    if (configuration.getSamplePlayersInPing()) {
-      samplePlayers = sampleClusterPlayers(server.getClusterPlayerService().getAllPlayers());
-    } else {
-      samplePlayers = new ArrayList<>();
+    PlaceholderSubstitutor.Resolver basicResolver = new ServerListPingPlaceholderResolver(displayVersion);
+
+    SamplePlayersPicker sharedPicker = configuration.isPoolPlayersAcrossSections() ? SamplePlayersPicker.create(server) : null;
+
+    List<String> motd = PlaceholderSubstitutor.substitute(configuration.getMotdLines(), basicResolver,
+            samplePlayersResolver(sharedPicker, 8, 4, "None", ", "));
+
+    List<String> motdHover = PlaceholderSubstitutor.substitute(configuration.getMotdHoverLines(), basicResolver,
+            samplePlayersResolver(sharedPicker, 12, 1, "", ""));
+    if (motdHover.size() == 1 && motdHover.getFirst().isEmpty()) {
+      motdHover.clear();
     }
 
-    String serverPingVersion = configuration.getFallbackVersionPing();
-
-    for (Component s : server.getConfiguration().getMotdHover()) {
-      samplePlayers.add(new ServerPing.SamplePlayer(s, UuidCreator.getTimeOrderedEpochFast()));
-    }
+    String versionName = PlaceholderSubstitutor.substitute(configuration.getFallbackVersionPing(), basicResolver,
+            samplePlayersResolver(sharedPicker, 2, Integer.MAX_VALUE, "None", ", "));
 
     return new ServerPing(
-        new ServerPing.Version(responseProtocol, formatVersionString(serverPingVersion, displayVersion)),
-        new ServerPing.Players(server.getClusterPlayerService().getTotalPlayerCount(),
-            configuration.getShowMaxPlayers(), samplePlayers),
-        configuration.getMotd(),
+        new ServerPing.Version(
+            responseProtocol,
+            versionName),
+        new ServerPing.Players(
+            server.getClusterPlayerService().getTotalPlayerCount(),
+            configuration.getShowMaxPlayers(),
+            motdHover.stream()
+                .map(ComponentUtils::parse)
+                .map(line -> new ServerPing.SamplePlayer(line, UuidCreator.getTimeOrderedEpochFast()))
+                .toList()
+        ),
+        motd.stream()
+            .map(ComponentUtils::parse)
+            .reduce((a, b) -> a.appendNewline().append(b))
+            .orElseGet(Component::empty),
         configuration.getFavicon().orElse(null),
         configuration.isAnnounceForge() ? ModInfo.DEFAULT : null,
         configuration.doesPreventChatReports()
     );
   }
 
-  private String formatVersionString(String raw, ProtocolVersion version) {
-    return parseVariables(raw, (variable) -> switch (variable) {
-      case "protocol-min" -> ProtocolVersion.getVersionByName(
-          server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn();
-      case "protocol-max" -> server.getConfiguration().getMaximumVersion()
-          .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
-      case "protocol" -> version.getVersionIntroducedIn();
-      case "proxy-brand" -> server.getVersion().getName();
-      case "proxy-brand-custom" -> server.getConfiguration().getProxyBrandCustom();
-      case "proxy-version" -> server.getVersion().getVersion();
-      case "proxy-vendor" -> server.getVersion().getVendor();
-      case "player-count" -> String.valueOf(server.getClusterPlayerService().getTotalPlayerCount());
-      case "max-players" -> String.valueOf(server.getConfiguration().getShowMaxPlayers());
-      default -> null;
-    });
+  private SamplePlayersPlaceholderResolver samplePlayersResolver(
+          @Nullable SamplePlayersPicker sharedPicker, int defaultMax,
+          int defaultMaxPerLine, String defaultEmpty, String defaultSeparator) {
+    SamplePlayersPicker picker = sharedPicker != null ? sharedPicker : SamplePlayersPicker.create(server);
+    return SamplePlayersPlaceholderResolver.builder(picker)
+        .defaultMax(defaultMax)
+        .defaultMaxPerLine(defaultMaxPerLine)
+        .defaultEmpty(defaultEmpty)
+        .defaultSeparator(defaultSeparator)
+        .ignoreAnonymousPlayerRequest(server.getConfiguration().isIgnoreAnonymousPlayerRequest())
+        .build();
   }
 
   private CompletableFuture<ServerPing> attemptPingPassthrough(VelocityInboundConnection connection,
@@ -236,29 +244,30 @@ public class ServerListPingHandler {
     }
   }
 
-  /**
-   * Picks up to {@link #SAMPLE_SIZE} players uniformly at random from {@code players} and maps
-   * them to {@link ServerPing.SamplePlayer} entries.
-   */
-  private static List<ServerPing.SamplePlayer> sampleClusterPlayers(Collection<VelocityClusterPlayer> players) {
-    List<VelocityClusterPlayer> snapshot = new ArrayList<>(players);
-    int total = snapshot.size();
+  private class ServerListPingPlaceholderResolver implements PlaceholderSubstitutor.Resolver {
 
-    if (total > SAMPLE_SIZE) {
-      ThreadLocalRandom rng = ThreadLocalRandom.current();
-      for (int i = 0; i < SAMPLE_SIZE; i++) {
-        Collections.swap(snapshot, i, i + rng.nextInt(total - i));
-      }
-      total = SAMPLE_SIZE;
+    private final ProtocolVersion displayVersion;
+
+    private ServerListPingPlaceholderResolver(ProtocolVersion displayVersion) {
+      this.displayVersion = displayVersion;
     }
 
-    List<ServerPing.SamplePlayer> result = new ArrayList<>(total);
-    for (int i = 0; i < total; i++) {
-      VelocityClusterPlayer player = snapshot.get(i);
-      result.add(player.isClientListingAllowed()
-          ? new ServerPing.SamplePlayer(player.getUsername(), player.getUniqueId())
-          : ServerPing.SamplePlayer.ANONYMOUS);
+    @Override
+    public @Nullable String resolve(String name, Map<String, String> arguments) {
+      return switch (name) {
+        case "protocol-min" -> ProtocolVersion.getVersionByName(
+            server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn();
+        case "protocol-max" -> server.getConfiguration().getMaximumVersion()
+            .orElse(ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion());
+        case "protocol" -> displayVersion.getVersionIntroducedIn();
+        case "proxy-brand" -> server.getVersion().getName();
+        case "proxy-brand-custom" -> server.getConfiguration().getProxyBrandCustom();
+        case "proxy-version" -> server.getVersion().getVersion();
+        case "proxy-vendor" -> server.getVersion().getVendor();
+        case "player-count" -> String.valueOf(server.getClusterPlayerService().getTotalPlayerCount());
+        case "max-players" -> String.valueOf(server.getConfiguration().getShowMaxPlayers());
+        default -> null;
+      };
     }
-    return result;
   }
 }
