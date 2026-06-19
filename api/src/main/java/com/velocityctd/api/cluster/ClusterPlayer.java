@@ -67,6 +67,14 @@ public interface ClusterPlayer {
   boolean isClientListingAllowed();
 
   /**
+   * Checks whether this player is permitted to bypass being kicked from the network
+   * by the {@code /gkick} command.
+   *
+   * @return {@code true} if the player bypasses network kicks
+   */
+  boolean isKickBypass();
+
+  /**
    * Gets the timestamp, in milliseconds since the epoch, at which the player connected
    * to the proxy they are currently on.
    *
