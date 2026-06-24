@@ -292,7 +292,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * that were registered but then immediately rejected (e.g. duplicate login on a
    * remote proxy).
    */
-  private boolean fullyConnected = false;
+  private volatile boolean fullyConnected = false;
 
   /**
    * Whether the player has fully connected to the first server it's connecting to.
@@ -869,6 +869,16 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     if (this.server.isQueueEnabled()) {
       this.server.getQueueManager().onLocalPlayerConnect(this);
     }
+  }
+
+  /**
+   * Returns whether this player is fully connected, meaning the login success packet has been sent
+   * and the player is considered truly online on this proxy.
+   *
+   * @return {@code true} if the player is fully connected, {@code false} otherwise
+   */
+  public boolean isFullyConnected() {
+    return this.fullyConnected;
   }
 
   @Override

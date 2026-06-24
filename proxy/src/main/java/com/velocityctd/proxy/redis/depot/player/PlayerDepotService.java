@@ -311,6 +311,10 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
     }
 
     for (ConnectedPlayer player : this.server.getOnlinePlayers()) {
+      if (!player.isFullyConnected()) {
+        continue;
+      }
+
       if (this.depot.contains(player.getUniqueId())) {
         continue;
       }
