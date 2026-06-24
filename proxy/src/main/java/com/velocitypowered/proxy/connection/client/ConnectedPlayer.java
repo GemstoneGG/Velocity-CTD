@@ -1488,6 +1488,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       connectedServer.disconnect();
     }
 
+    if (this.fullyConnected) {
+      this.server.getClusterPlayerService().onPlayerDisconnect(this);
+    }
+
     server.getPlayerRegistry().unregisterConnection(this);
   }
 

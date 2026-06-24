@@ -311,6 +311,10 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
     }
 
     for (ConnectedPlayer player : this.server.getOnlinePlayers()) {
+      if (player.getConnection().isClosed()) {
+        continue;
+      }
+
       if (this.depot.contains(player.getUniqueId())) {
         continue;
       }
@@ -323,7 +327,8 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
         continue;
       }
 
-      if (this.server.getPlayer(playerEntry.getUniqueId()).isPresent()) {
+      ConnectedPlayer player = this.server.getPlayer(playerEntry.getUniqueId()).orElse(null);
+      if (player != null && !player.getConnection().isClosed()) {
         continue;
       }
 
