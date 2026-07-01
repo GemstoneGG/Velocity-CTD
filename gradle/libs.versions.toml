@@ -5,11 +5,11 @@ flare = "2.0.1"
 log4j = "2.26.0"
 netty = "4.2.15.Final"
 lettuce = "7.6.0.RELEASE"
-jline = "4.2.1"
+jline = "4.3.1"
 
 [plugins]
-shadow = "com.gradleup.shadow:9.4.2"
-spotless = "com.diffplug.spotless:8.7.0"
+shadow = "com.gradleup.shadow:9.4.3"
+spotless = "com.diffplug.spotless:8.8.0"
 
 [libraries]
 adventure-bom = "net.kyori:adventure-bom:4.26.1"
@@ -22,7 +22,7 @@ brigadier = "com.velocitypowered:velocity-brigadier:1.0.0-SNAPSHOT"
 bstats = "org.bstats:bstats-base:3.2.1"
 caffeine = "com.github.ben-manes.caffeine:caffeine:3.2.4"
 checker-qual = "org.checkerframework:checker-qual:4.2.0"
-checkstyle = "com.puppycrawl.tools:checkstyle:13.6.0"
+checkstyle = "com.puppycrawl.tools:checkstyle:13.7.0"
 completablefutures = "com.spotify:completable-futures:0.3.6"
 component = "gg.gemstone:component:1.0.2"
 configurate3-hocon = { module = "org.spongepowered:configurate-hocon", version.ref = "configurate3" }
@@ -41,13 +41,13 @@ jline-terminal-jni = { module = "org.jline:jline-terminal-jni", version.ref = "j
 jline-terminal-ffm = { module = "org.jline:jline-terminal-ffm", version.ref = "jline" }
 lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
 jopt = "net.sf.jopt-simple:jopt-simple:5.0.4"
-junit = "org.junit.jupiter:junit-jupiter:6.1.0"
+junit = "org.junit.jupiter:junit-jupiter:6.1.1"
 jspecify = "org.jspecify:jspecify:1.0.0"
 kyori-ansi = "net.kyori:ansi:1.1.1"
 guava = "com.google.guava:guava:33.6.0-jre"
 gson = "com.google.code.gson:gson:2.14.0"
 guice = "com.google.inject:guice:7.0.0"
-httpclient5 = "org.apache.httpcomponents.client5:httpclient5:5.6.1"
+httpclient5 = "org.apache.httpcomponents.client5:httpclient5:5.6.2"
 lmbda = "org.lanternpowered:lmbda:3.0.0"
 log4j-api = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
 log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }

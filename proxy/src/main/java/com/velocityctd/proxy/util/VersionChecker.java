@@ -33,11 +33,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * Compares the running build of Velocity-CTD against the latest commit on GitHub.
+ * Compares the running build of Velocity-CTD against the latest release on GitHub.
  *
- * <p>The comparison is performed by resolving the {@code -git-<hash>} suffix of the proxy version
- * against the GitHub compare API. This is used both by {@code /velocity info} and by the
- * non-blocking startup version check.</p>
+ * <p>The comparison is performed by resolving the {@code -b<build>} suffix of the proxy version
+ * against the latest {@code build-<n>} GitHub release. This is used both by {@code /velocity info}
+ * and by the non-blocking startup version check.</p>
  */
 public final class VersionChecker {
 
@@ -54,11 +54,13 @@ public final class VersionChecker {
   public static final int DISTANCE_ERROR = -1;
 
   /**
-   * Version distance constant indicating the specified commit hash was not found.
+   * Version distance constant indicating the build number could not be resolved.
    */
   public static final int DISTANCE_UNKNOWN = -2;
 
-  private static final Pattern GIT_HASH = Pattern.compile("-git-([0-9a-fA-F]+)");
+  private static final Pattern BUILD_NUMBER = Pattern.compile("-b(\\d+)$");
+
+  private static final Pattern RELEASE_TAG = Pattern.compile("^build-(\\d+)$");
 
   private static final Gson VERSION_GSON = new Gson();
 
@@ -66,43 +68,44 @@ public final class VersionChecker {
   }
 
   /**
-   * Determines how many commits the given proxy version is behind the latest GitHub commit.
+   * Determines how many releases the given proxy version is behind the latest GitHub release.
    *
-   * @param version the proxy version string (expected to contain a {@code -git-<hash>} suffix)
-   * @return the number of commits behind, or one of {@link #DISTANCE_LATEST}, {@link #DISTANCE_ERROR} or {@link #DISTANCE_UNKNOWN}
+   * @param version the proxy version string (expected to contain a {@code -b<build>} suffix)
+   * @return the number of releases behind, or one of {@link #DISTANCE_LATEST}, {@link #DISTANCE_ERROR} or {@link #DISTANCE_UNKNOWN}
    */
   public static int fetchDistanceFromGitHub(String version) {
-    Matcher matcher = GIT_HASH.matcher(version);
+    Matcher matcher = BUILD_NUMBER.matcher(version);
     if (!matcher.find()) {
       return DISTANCE_UNKNOWN;
     }
 
-    String hash = matcher.group(1);
+    int currentBuild = Integer.parseInt(matcher.group(1));
     try {
-      HttpURLConnection connection = (HttpURLConnection) URI.create("https://api.github.com/repos/GemstoneGG/Velocity-CTD/compare/libdeflate..." + hash).toURL().openConnection();
+      HttpURLConnection connection = (HttpURLConnection) URI.create("https://api.github.com/repos/GemstoneGG/Velocity-CTD/releases/latest").toURL().openConnection();
       connection.setConnectTimeout(5000);
       connection.setReadTimeout(5000);
       connection.setRequestProperty("User-Agent", "Velocity-CTD/" + version + " (+https://github.com/GemstoneGG/Velocity-CTD)");
       connection.setRequestProperty("Accept", "application/vnd.github+json");
       connection.connect();
       if (connection.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-        return DISTANCE_UNKNOWN; // Unidentifiable commit
+        return DISTANCE_UNKNOWN; // No releases published
       }
 
       try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
         JsonObject obj = VERSION_GSON.fromJson(reader, JsonObject.class);
-        String status = obj.get("status").getAsString();
-        return switch (status) {
-          case "identical" -> DISTANCE_LATEST;
-          case "behind" -> obj.get("behind_by").getAsInt();
-          default -> DISTANCE_ERROR;
-        };
+        Matcher tagMatcher = RELEASE_TAG.matcher(obj.get("tag_name").getAsString());
+        if (!tagMatcher.matches()) {
+          return DISTANCE_ERROR;
+        }
+
+        int latestBuild = Integer.parseInt(tagMatcher.group(1));
+        return Math.max(latestBuild - currentBuild, DISTANCE_LATEST);
       } catch (JsonSyntaxException | NumberFormatException e) {
-        LOGGER.error("Error parsing version-comparison response from GitHub for hash {}", hash, e);
+        LOGGER.error("Error parsing latest-release response from GitHub", e);
         return DISTANCE_ERROR;
       }
     } catch (IOException e) {
-      LOGGER.error("Error contacting GitHub for version comparison of hash {}", hash, e);
+      LOGGER.error("Error contacting GitHub for version comparison", e);
       return DISTANCE_ERROR;
     }
   }
@@ -140,7 +143,7 @@ public final class VersionChecker {
       case DISTANCE_ERROR -> LOGGER.warn("There was an error when attempting to fetch Velocity-CTD's version information.");
       case DISTANCE_UNKNOWN -> LOGGER.warn("Unable to fetch Velocity-CTD's version information.");
       case DISTANCE_LATEST -> LOGGER.info("You are running the latest version of Velocity-CTD.");
-      default -> LOGGER.warn("You are {} version(s) behind. Consider updating Velocity-CTD.", dist);
+      default -> LOGGER.warn("You are {} release(s) behind. Consider updating Velocity-CTD.", dist);
     }
   }
 }
