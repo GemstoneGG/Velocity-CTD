@@ -31,6 +31,7 @@ import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
 import io.netty.buffer.ByteBufUtil;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,6 +60,8 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
   protected final VelocityServer server;
 
   private final Map<UUID, ResourcePackCallback> packCallbacks = new ConcurrentHashMap<>();
+
+  private final Set<PackAwait> packAwaits = ConcurrentHashMap.newKeySet();
 
   protected ResourcePackHandler(ConnectedPlayer player, VelocityServer server) {
     this.player = player;
@@ -137,6 +140,36 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
 
       queueResourcePack(resourcePackInfo);
     }
+  }
+
+  /**
+   * Queues a resource-pack request and returns a future that completes once every pack has reached
+   * a terminal status, or completes exceptionally if the packs could not be queued.
+   *
+   * @param request the resource pack request to queue
+   * @return a future completing when all packs reach a terminal status
+   */
+  public CompletableFuture<Void> queueResourcePackAndAwait(@NotNull ResourcePackRequest request) {
+    Set<UUID> remaining = ConcurrentHashMap.newKeySet();
+    for (net.kyori.adventure.resource.ResourcePackInfo pack : request.packs()) {
+      remaining.add(pack.id());
+    }
+
+    CompletableFuture<Void> future = new CompletableFuture<>();
+    if (remaining.isEmpty()) {
+      future.complete(null);
+      return future;
+    }
+
+    PackAwait await = new PackAwait(remaining, future);
+    packAwaits.add(await);
+    future.whenComplete((v, t) -> packAwaits.remove(await));
+    try {
+      queueResourcePack(request);
+    } catch (RuntimeException e) {
+      future.completeExceptionally(e);
+    }
+    return future;
   }
 
   protected void sendResourcePackRequestPacket(@NotNull ResourcePackInfo queued) {
@@ -224,6 +257,12 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
       return CompletableFuture.completedFuture(null);
     }
 
+    if (!status.isIntermediate()) {
+      for (PackAwait await : packAwaits) {
+        await.resolve(uuid);
+      }
+    }
+
     ResourcePackCallback callback = status.isIntermediate()
         ? packCallbacks.get(uuid)
         : packCallbacks.remove(uuid);
@@ -251,6 +290,24 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
   public void checkAlreadyAppliedPack(byte[] hash) {
     if (this.hasPackAppliedByHash(hash)) {
       throw new IllegalStateException("Cannot apply a resource pack already applied");
+    }
+  }
+
+  private static final class PackAwait {
+
+    private final Set<UUID> remaining;
+
+    private final CompletableFuture<Void> future;
+
+    private PackAwait(Set<UUID> remaining, CompletableFuture<Void> future) {
+      this.remaining = remaining;
+      this.future = future;
+    }
+
+    private void resolve(UUID uuid) {
+      if (remaining.remove(uuid) && remaining.isEmpty()) {
+        future.complete(null);
+      }
     }
   }
 }

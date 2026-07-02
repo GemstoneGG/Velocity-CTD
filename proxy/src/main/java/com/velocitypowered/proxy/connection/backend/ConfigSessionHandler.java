@@ -64,6 +64,8 @@ import io.netty.channel.Channel;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.key.Key;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -398,6 +400,12 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public void disconnected() {
+    ConnectedPlayer player = serverConn.getPlayer();
+    if (player.getConnection().getActiveSessionHandler() instanceof ClientConfigSessionHandler configHandler
+        && configHandler.isAwaitingConfigurationResourcePack()) {
+      player.disconnect(Component.translatable("velocity.error.resource-pack-configuration-timeout", NamedTextColor.RED));
+    }
+
     resultFuture.complete(ConnectionRequestResults.forDisconnect(
         ConnectionMessages.INTERNAL_SERVER_CONNECTION_ERROR, serverConn.getServer()));
   }

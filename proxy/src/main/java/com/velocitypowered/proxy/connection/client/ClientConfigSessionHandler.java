@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.connection.client;
 
+import com.velocityctd.api.event.player.configuration.PlayerConfigurationResourcePackEvent;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.player.CookieReceiveEvent;
 import com.velocitypowered.api.event.player.PlayerClientBrandEvent;
@@ -50,12 +51,15 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.key.Key;
+import net.kyori.adventure.resource.ResourcePackRequest;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Handles the client config stage.
@@ -66,6 +70,14 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
 
   private static final Logger LOGGER = LogManager.getLogger(ClientConfigSessionHandler.class);
 
+  // Backends don't send keepalives during configuration, so the proxy pings the client itself
+  // while holding it to apply a pack.
+  private static final long RESOURCE_PACK_KEEP_ALIVE_INTERVAL_SECONDS = 1L;
+
+  // Advance an unsettled optional pack to PLAY before the backend's ~15s config timeout. Kept below
+  // that budget minus the following PlayerFinishConfigurationEvent (up to 5s) and the client ack.
+  private static final long OPTIONAL_RESOURCE_PACK_HOLD_TIMEOUT_SECONDS = 9L;
+
   private final VelocityServer server;
 
   private final ConnectedPlayer player;
@@ -75,6 +87,12 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   private CompletableFuture<?> configurationFuture;
 
   private CompletableFuture<Void> configSwitchFuture;
+
+  private boolean configuredOnce;
+
+  // Active resource pack hold and its keepalive task, or null when no hold is in progress.
+  private volatile @Nullable CompletableFuture<Void> resourcePackHold;
+  private @Nullable ScheduledFuture<?> resourcePackKeepAlive;
 
   /**
    * Constructs a client config session handler.
@@ -268,6 +286,12 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public void disconnected() {
+    stopResourcePackKeepAlive();
+    CompletableFuture<Void> hold = this.resourcePackHold;
+    if (hold != null) {
+      hold.complete(null);
+    }
+
     player.teardown();
   }
 
@@ -347,8 +371,17 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
       smc.write(brandPacket);
     }
 
-    callConfigurationEvent().thenCompose(v -> server.getEventManager().fire(new PlayerFinishConfigurationEvent(player, serverConn))
+    boolean firstJoin = !configuredOnce;
+    configuredOnce = true;
+
+    callConfigurationEvent()
+        .thenCompose(v -> applyConfigurationResourcePack(serverConn, firstJoin))
+        .thenCompose(v -> server.getEventManager().fire(new PlayerFinishConfigurationEvent(player, serverConn))
         .completeOnTimeout(null, 5, TimeUnit.SECONDS)).thenRunAsync(() -> {
+          if (player.getConnection().isClosed()) {
+            return;
+          }
+
           player.getConnection().write(FinishedUpdatePacket.INSTANCE);
           player.getConnection().getChannel().pipeline().get(MinecraftEncoder.class).setState(StateRegistry.PLAY);
           server.getEventManager().fireAndForget(new PlayerFinishedConfigurationEvent(player, serverConn));
@@ -358,5 +391,66 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
         });
 
     return configSwitchFuture;
+  }
+
+  /**
+   * Fires the {@link PlayerConfigurationResourcePackEvent} and, if a pack was set, holds the player
+   * in configuration until it settles. A {@link ResourcePackRequest#required() required} pack is
+   * held indefinitely until the client acks; an optional pack is held only until
+   * {@link #OPTIONAL_RESOURCE_PACK_HOLD_TIMEOUT_SECONDS}, then advances to play as if declined.
+   *
+   * @param serverConn the server (re-)configuring the player
+   * @param firstJoin  whether this is the initial configuration following login
+   * @return a future completing once the pack(s) settle, or immediately if none were set
+   */
+  private CompletableFuture<Void> applyConfigurationResourcePack(VelocityServerConnection serverConn,
+                                                                 boolean firstJoin) {
+    PlayerConfigurationResourcePackEvent event =
+        new PlayerConfigurationResourcePackEvent(player, serverConn, firstJoin);
+    return server.getEventManager().fire(event).thenComposeAsync(result -> {
+      ResourcePackRequest request = result.getResourcePack();
+      if (request == null || player.getConnection().isClosed()) {
+        return CompletableFuture.completedFuture(null);
+      }
+
+      CompletableFuture<Void> hold = player.resourcePackHandler().queueResourcePackAndAwait(request);
+      this.resourcePackHold = hold;
+      startResourcePackKeepAlive();
+
+      CompletableFuture<Void> gate = request.required()
+          ? hold
+          : hold.completeOnTimeout(null, OPTIONAL_RESOURCE_PACK_HOLD_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+      return gate.whenCompleteAsync((v, t) -> {
+        stopResourcePackKeepAlive();
+        this.resourcePackHold = null;
+      }, player.getConnection().eventLoop()).exceptionally(t -> {
+        LOGGER.error("Couldn't apply configuration resource pack for {}", player, t);
+        return null;
+      });
+    }, player.getConnection().eventLoop());
+  }
+
+  public boolean isAwaitingConfigurationResourcePack() {
+    return resourcePackHold != null;
+  }
+
+  private void startResourcePackKeepAlive() {
+    if (resourcePackKeepAlive == null) {
+      resourcePackKeepAlive = player.getConnection().eventLoop().scheduleAtFixedRate(
+          () -> {
+            player.sendKeepAlive();
+          },
+          RESOURCE_PACK_KEEP_ALIVE_INTERVAL_SECONDS,
+          RESOURCE_PACK_KEEP_ALIVE_INTERVAL_SECONDS,
+          TimeUnit.SECONDS);
+    }
+  }
+
+  private void stopResourcePackKeepAlive() {
+    if (resourcePackKeepAlive != null) {
+      resourcePackKeepAlive.cancel(false);
+      resourcePackKeepAlive = null;
+    }
   }
 }
