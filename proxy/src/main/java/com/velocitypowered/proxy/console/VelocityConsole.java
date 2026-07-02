@@ -26,6 +26,7 @@ import com.velocitypowered.api.permission.PermissionProvider;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.ConsoleCommandSource;
 import com.velocitypowered.proxy.VelocityServer;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -141,6 +142,7 @@ public final class VelocityConsole extends SimpleTerminalConsole implements Cons
   protected LineReader buildReader(LineReaderBuilder builder) {
     return super.buildReader(builder
         .appName("Velocity-CTD")
+        .variable(LineReader.HISTORY_FILE, Path.of(".console_history"))
         // Explicitly disable mouse support on the builder
         .option(LineReader.Option.MOUSE, false)
         .completer((reader, parsedLine, list) -> {
