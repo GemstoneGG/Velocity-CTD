@@ -25,6 +25,8 @@ import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -73,6 +75,21 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
    * Scheduled task that checks for proxies whose heartbeat has expired and reaps their stale data.
    */
   private final ScheduledTask reapDeadProxiesTask;
+
+  /**
+   * A token unique to this proxy process.
+   */
+  private final String instanceId = UUID.randomUUID().toString();
+
+  /**
+   * Whether we have published our heartbeat at least once.
+   */
+  private volatile boolean heartbeatPublished = false;
+
+  /**
+   * Whether the duplicate-{@code proxy-id} error has been logged once.
+   */
+  private final AtomicBoolean duplicateWarned = new AtomicBoolean(false);
 
   /**
    * Constructs a new {@link ProxyDepotService}.
@@ -131,7 +148,8 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
   }
 
   /**
-   * Publishes this proxy's heartbeat key to Redis with a TTL of {@link #HEARTBEAT_TTL}.
+   * Publishes this proxy's heartbeat key to Redis with a TTL of {@link #HEARTBEAT_TTL}, and
+   * warns if another live proxy shares this {@code proxy-id}.
    * Called every {@link #HEARTBEAT_INTERVAL} by the scheduler.
    */
   private void publishHeartbeat() {
@@ -139,11 +157,26 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
       return;
     }
 
+    String heartbeatKey = this.heartbeatKeyPrefix + this.redis.getProxyId();
+
+    // Skip the first publish: the key may still hold our own token from a crash within the TTL.
+    if (this.heartbeatPublished) {
+      String owner = this.redis.getProvider().get(heartbeatKey);
+      if (owner != null && !owner.equals(this.instanceId) && this.duplicateWarned.compareAndSet(false, true)) {
+        LOGGER.error("Another proxy is publishing heartbeats under proxy-id '{}'. Every proxy sharing "
+                + "a Redis instance must have a unique proxy-id; running multiple with the same id causes "
+                + "undefined behavior. Fix proxy-id in velocity.toml on the conflicting proxies.",
+                this.redis.getProxyId());
+      }
+    }
+
     this.redis.getProvider().setWithExpiry(
-            this.heartbeatKeyPrefix + this.redis.getProxyId(),
-            "1",
+            heartbeatKey,
+            this.instanceId,
             HEARTBEAT_TTL.toSeconds()
     );
+
+    this.heartbeatPublished = true;
   }
 
   /**
