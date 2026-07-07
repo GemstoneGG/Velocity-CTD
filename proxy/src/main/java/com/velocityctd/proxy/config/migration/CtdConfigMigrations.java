@@ -59,6 +59,12 @@ public class CtdConfigMigrations {
             true
         ),
         migration(
+            "If true, offline-mode connections still use the vanilla encryption handshake without Mojang auth."
+                + " Only works on Minecraft 1.20.5+ clients.",
+            "offline-mode-encryption",
+            false
+        ),
+        migration(
             "Should tell client that proxy doesn't report chat messages? (useful for NoChatReports mod).",
             "prevents-chat-reports",
             false

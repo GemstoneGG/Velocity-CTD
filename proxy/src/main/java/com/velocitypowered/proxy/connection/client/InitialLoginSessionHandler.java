@@ -87,6 +87,8 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
 
   private byte[] verify = EMPTY_BYTE_ARRAY;
 
+  private boolean authenticateWithMojang;
+
   private LoginState currentState = LoginState.LOGIN_PACKET_EXPECTED;
 
   private final boolean forceKeyAuthentication;
@@ -168,10 +170,16 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
         }
 
         mcConnection.eventLoop().execute(() -> {
-          if (!result.isForceOfflineMode()
-              && (server.getConfiguration().isOnlineMode() || result.isOnlineModeAllowed())) {
+          boolean onlineAuth = !result.isForceOfflineMode()
+              && (server.getConfiguration().isOnlineMode() || result.isOnlineModeAllowed());
+          boolean offlineEncryption = !onlineAuth
+              && server.getConfiguration().isOfflineModeEncryptionEnabled()
+              && mcConnection.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_5);
+
+          if (onlineAuth || offlineEncryption) {
             // Request encryption.
-            EncryptionRequestPacket request = generateEncryptionRequest();
+            EncryptionRequestPacket request = generateEncryptionRequest(onlineAuth);
+            this.authenticateWithMojang = onlineAuth;
             this.verify = Arrays.copyOf(request.getVerifyToken(), 4);
             mcConnection.write(request);
             this.currentState = LoginState.ENCRYPTION_REQUEST_SENT;
@@ -229,6 +237,13 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
       // Go ahead and enable encryption. Once the client sends EncryptionResponse, encryption
       // is enabled.
       mcConnection.enableEncryption(decryptedSharedSecret);
+
+      if (!authenticateWithMojang) {
+        mcConnection.setActiveSessionHandler(StateRegistry.LOGIN,
+            new AuthSessionHandler(server, inbound,
+                GameProfile.forOfflinePlayer(login.getUsername()), false, null, appliedResourcePacksFuture));
+        return true;
+      }
 
       String serverId = generateServerId(decryptedSharedSecret, serverKeyPair.getPublic());
       String playerIp = ((InetSocketAddress) mcConnection.getRemoteAddress()).getHostString();
@@ -298,13 +313,14 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
     return false;
   }
 
-  private EncryptionRequestPacket generateEncryptionRequest() {
+  private EncryptionRequestPacket generateEncryptionRequest(boolean shouldAuthenticate) {
     byte[] verify = new byte[4];
     SECURE_RANDOM.nextBytes(verify);
 
     EncryptionRequestPacket request = new EncryptionRequestPacket();
     request.setPublicKey(server.getServerKeyPair().getPublic().getEncoded());
     request.setVerifyToken(verify);
+    request.setShouldAuthenticate(shouldAuthenticate);
     return request;
   }
 
