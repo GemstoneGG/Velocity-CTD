@@ -37,6 +37,7 @@ import com.velocitypowered.proxy.connection.player.resourcepack.handler.Resource
 import com.velocitypowered.proxy.connection.util.ConnectionMessages;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults.Impl;
+import com.velocitypowered.proxy.network.Connections;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
@@ -61,11 +62,12 @@ import com.velocitypowered.proxy.protocol.util.PluginMessageUtil;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import io.netty.handler.timeout.ReadTimeoutHandler;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.key.Key;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -80,6 +82,10 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
   private static final Logger LOGGER = LogManager.getLogger(ConfigSessionHandler.class);
 
+  // Advance the backend to PLAY this long after it finishes configuring, decoupling it from a client
+  // still held in config (e.g. applying a resource pack) before the backend times out.
+  private static final long SPLIT_PHASE_DELAY_SECONDS = 9L;
+
   private final VelocityServer server;
 
   private final VelocityServerConnection serverConn;
@@ -89,6 +95,9 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
   private ResourcePackInfo resourcePackToApply;
 
   private final State state;
+
+  // Guards advanceBackendToPlay; only touched on the backend event loop.
+  private boolean backendAdvancedToPlay;
 
   /**
    * Creates the new transition handler.
@@ -249,27 +258,31 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
     smc.getChannel().pipeline().get(MinecraftVarintFrameDecoder.class).setState(StateRegistry.PLAY);
     smc.getChannel().pipeline().get(MinecraftDecoder.class).setState(StateRegistry.PLAY);
-    // noinspection DataFlowIssue
-    configHandler.handleBackendFinishUpdate(serverConn).thenRunAsync(() -> {
-      smc.write(FinishedUpdatePacket.INSTANCE);
-      if (serverConn == player.getConnectedServer()) {
-        smc.setActiveSessionHandler(StateRegistry.PLAY);
-        player.sendPlayerListHeaderAndFooter(player.getPlayerListHeader(), player.getPlayerListFooter());
-        // The client cleared the tab list. TODO: Restore changes done via TabList API
-        player.getTabList().clearAllSilent();
-      } else {
-        smc.setActiveSessionHandler(StateRegistry.PLAY, new TransitionSessionHandler(server, serverConn, resultFuture));
-      }
 
-      if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_21)) {
-        String target = serverConn.getServerInfo().getName();
-        player.setServerLinks(server.getConfiguration().getServerLinksFor(target));
-      }
+    // Start client-side configuration; may hold the player to apply a resource pack.
+    // noinspection DataFlowIssue
+    CompletableFuture<Void> clientFinished = configHandler.handleBackendFinishUpdate(serverConn);
+
+    // Advance the backend to PLAY on whichever comes first: the client finishing, or the timeout.
+    // If the timeout wins, buffer the backend's PLAY packets until the client catches up.
+    ScheduledFuture<?> splitTask = smc.eventLoop().schedule(
+        () -> advanceBackendToPlay(true), SPLIT_PHASE_DELAY_SECONDS, TimeUnit.SECONDS);
+
+    clientFinished.thenRunAsync(() -> {
+      splitTask.cancel(false);
+      // Client won the race: advance now (already in PLAY, no buffering) and drain anything the
+      // timeout may have buffered.
+      advanceBackendToPlay(false);
+      smc.removePlayPacketQueueInboundHandler();
 
       if (player.resourcePackHandler().getFirstAppliedPack() == null && resourcePackToApply != null) {
         player.resourcePackHandler().queueResourcePack(resourcePackToApply);
       }
-    }, smc.eventLoop());
+    }, smc.eventLoop()).exceptionally(ex -> {
+      LOGGER.error("Error advancing backend {} to play for {}",
+          serverConn.getServerInfo().getName(), player.getUsername(), ex);
+      return null;
+    });
     return true;
   }
 
@@ -398,14 +411,51 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
-  @Override
-  public void disconnected() {
+  /**
+   * Acknowledges the backend and advances it to PLAY, decoupled from the client. Runs at most once.
+   *
+   * @param buffer whether to buffer the backend's inbound PLAY packets until the client enters PLAY
+   */
+  private void advanceBackendToPlay(boolean buffer) {
+    MinecraftConnection smc = serverConn.getConnection();
+    if (backendAdvancedToPlay || smc == null || smc.isClosed()) {
+      return;
+    }
+    backendAdvancedToPlay = true;
+
     ConnectedPlayer player = serverConn.getPlayer();
-    if (player.getConnection().getActiveSessionHandler() instanceof ClientConfigSessionHandler configHandler
-        && configHandler.isAwaitingConfigurationResourcePack()) {
-      player.disconnect(Component.translatable("velocity.error.resource-pack-configuration-timeout", NamedTextColor.RED));
+
+    smc.write(FinishedUpdatePacket.INSTANCE);
+    if (serverConn == player.getConnectedServer()) {
+      smc.setActiveSessionHandler(StateRegistry.PLAY);
+      player.sendPlayerListHeaderAndFooter(player.getPlayerListHeader(), player.getPlayerListFooter());
+      // The client cleared the tab list. TODO: Restore changes done via TabList API
+      player.getTabList().clearAllSilent();
+    } else {
+      smc.setActiveSessionHandler(StateRegistry.PLAY, new TransitionSessionHandler(server, serverConn, resultFuture));
     }
 
+    if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_21)) {
+      String target = serverConn.getServerInfo().getName();
+      player.setServerLinks(server.getConfiguration().getServerLinksFor(target));
+    }
+
+    // Must follow setActiveSessionHandler: switching to PLAY strips any inbound queue handler.
+    if (buffer) {
+      smc.addPlayPacketQueueInboundHandler();
+
+      // Swap the short login read-timeout for the in-play one now; otherwise a quiet backend could
+      // be dropped before the deferred JoinGame processing does the swap.
+      final var backendPipeline = smc.getChannel().pipeline();
+      if (backendPipeline.context(Connections.READ_TIMEOUT) != null) {
+        backendPipeline.replace(Connections.READ_TIMEOUT, Connections.READ_TIMEOUT,
+            new ReadTimeoutHandler(server.getConfiguration().getReadTimeout(), TimeUnit.MILLISECONDS));
+      }
+    }
+  }
+
+  @Override
+  public void disconnected() {
     resultFuture.complete(ConnectionRequestResults.forDisconnect(
         ConnectionMessages.INTERNAL_SERVER_CONNECTION_ERROR, serverConn.getServer()));
   }

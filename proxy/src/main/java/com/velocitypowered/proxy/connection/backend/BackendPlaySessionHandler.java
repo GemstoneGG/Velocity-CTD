@@ -164,6 +164,13 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(KeepAlivePacket packet) {
+    // Backend advanced to PLAY early while the client is still held in config: echo the keepalive
+    // back to keep the backend alive instead of forwarding it to the still-configuring client.
+    if (serverConn.getPlayer().getConnection().getState() == StateRegistry.CONFIG) {
+      serverConn.ensureConnected().write(packet);
+      return true;
+    }
+
     serverConn.getPendingPings().put(packet.getRandomId(), System.nanoTime());
     return false; // forwards on
   }

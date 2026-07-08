@@ -510,6 +510,27 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     }
   }
 
+  /**
+   * Buffers inbound PLAY packets (letting CONFIG packets such as keepalives through) until {@link
+   * #removePlayPacketQueueInboundHandler()} drains them.
+   */
+  public void addPlayPacketQueueInboundHandler() {
+    if (this.channel.pipeline().get(Connections.PLAY_PACKET_QUEUE_INBOUND) == null) {
+      this.channel.pipeline().addAfter(Connections.MINECRAFT_DECODER, Connections.PLAY_PACKET_QUEUE_INBOUND,
+           new PlayPacketQueueInboundHandler(this.protocolVersion,
+               channel.pipeline().get(MinecraftDecoder.class).getDirection(), false));
+    }
+  }
+
+  /**
+   * Removes the inbound play packet queue handler, draining buffered packets back into the pipeline.
+   */
+  public void removePlayPacketQueueInboundHandler() {
+    if (this.channel.pipeline().get(Connections.PLAY_PACKET_QUEUE_INBOUND) != null) {
+      this.channel.pipeline().remove(Connections.PLAY_PACKET_QUEUE_INBOUND);
+    }
+  }
+
   public ProtocolVersion getProtocolVersion() {
     return protocolVersion;
   }

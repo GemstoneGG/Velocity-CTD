@@ -34,6 +34,7 @@ import com.velocitypowered.proxy.connection.util.ConnectionMessages;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults.Impl;
 import com.velocitypowered.proxy.network.Connections;
+import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
 import com.velocitypowered.proxy.protocol.packet.JoinGamePacket;
@@ -41,6 +42,9 @@ import com.velocitypowered.proxy.protocol.packet.KeepAlivePacket;
 import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import io.netty.handler.timeout.ReadTimeoutHandler;
+import io.netty.util.ReferenceCountUtil;
+import java.util.ArrayDeque;
+import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
@@ -60,6 +64,11 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
   private final CompletableFuture<Impl> resultFuture;
 
   private final BungeeCordMessageResponder bungeecordMessageResponder;
+
+  // Backend packets arriving while JoinGame is processed (async) are held and replayed after it, so
+  // the client never gets world data before JoinGame. Empty in the normal flow (autoReading off).
+  private boolean joinGameProcessing;
+  private final Queue<MinecraftPacket> deferredPackets = new ArrayDeque<>();
 
   /**
    * Creates the new transition handler.
@@ -96,6 +105,9 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(JoinGamePacket packet) {
+    // Hold packets that follow JoinGame until it's processed, then replay in order.
+    this.joinGameProcessing = true;
+
     final MinecraftConnection smc = serverConn.ensureConnected();
     final VelocityRegisteredServer previousServer = serverConn.getPreviousServer().orElse(null);
     final ConnectedPlayer player = serverConn.getPlayer();
@@ -155,6 +167,9 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
           // Now set the connected server.
           serverConn.getPlayer().setConnectedServer(serverConn);
 
+          // JoinGame processed: replay any packets held behind it before resuming reads.
+          flushDeferredPackets();
+
           // Clean up disabling auto-read while the connected event was being processed.
           // Do this after setting the connection, so no incoming packets are processed before
           // the API knows which server the player is connected to.
@@ -184,6 +199,7 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
           LOGGER.error("Unable to switch to new server {} for {}",
               serverConn.getServerInfo().getName(),
               player.getUsername(), exc);
+          releaseDeferredPackets();
           player.disconnect(ConnectionMessages.INTERNAL_SERVER_CONNECTION_ERROR);
           resultFuture.completeExceptionally(exc);
           return null;
@@ -210,6 +226,13 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(PluginMessagePacket packet) {
+    // Hold plugin messages during JoinGame processing so they reach the client after it.
+    if (joinGameProcessing) {
+      ReferenceCountUtil.retain(packet);
+      deferredPackets.add(packet);
+      return true;
+    }
+
     if (bungeecordMessageResponder.process(packet)) {
       return true;
     }
@@ -236,7 +259,39 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
+  public void handleGeneric(MinecraftPacket packet) {
+    // Hold packets during JoinGame processing to replay in order; otherwise drop (the default).
+    if (joinGameProcessing) {
+      ReferenceCountUtil.retain(packet);
+      deferredPackets.add(packet);
+    }
+  }
+
+  private void flushDeferredPackets() {
+    joinGameProcessing = false;
+    if (deferredPackets.isEmpty()) {
+      return;
+    }
+
+    final MinecraftConnection clientConn = serverConn.getPlayer().getConnection();
+    MinecraftPacket packet;
+    while ((packet = deferredPackets.poll()) != null) {
+      clientConn.delayedWrite(packet);
+    }
+    clientConn.flush();
+  }
+
+  private void releaseDeferredPackets() {
+    joinGameProcessing = false;
+    MinecraftPacket packet;
+    while ((packet = deferredPackets.poll()) != null) {
+      ReferenceCountUtil.release(packet);
+    }
+  }
+
+  @Override
   public void disconnected() {
+    releaseDeferredPackets();
     resultFuture.complete(ConnectionRequestResults.forDisconnect(
         ConnectionMessages.INTERNAL_SERVER_CONNECTION_ERROR, serverConn.getServer()));
   }

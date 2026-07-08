@@ -74,9 +74,10 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   // while holding it to apply a pack.
   private static final long RESOURCE_PACK_KEEP_ALIVE_INTERVAL_SECONDS = 1L;
 
-  // Advance an unsettled optional pack to PLAY before the backend's ~15s config timeout. Kept below
-  // that budget minus the following PlayerFinishConfigurationEvent (up to 5s) and the client ack.
-  private static final long OPTIONAL_RESOURCE_PACK_HOLD_TIMEOUT_SECONDS = 9L;
+  // Disconnect an unresponsive client after this long, so it can't hold the decoupled backend (and
+  // its growing packet buffer) open forever. A flat deadline, not reset by progress, so keep it
+  // generous for slow large-pack downloads.
+  private static final long RESOURCE_PACK_HOLD_CAP_SECONDS = 180L;
 
   private final VelocityServer server;
 
@@ -395,9 +396,9 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
 
   /**
    * Fires the {@link PlayerConfigurationResourcePackEvent} and, if a pack was set, holds the player
-   * in configuration until it settles. A {@link ResourcePackRequest#required() required} pack is
-   * held indefinitely until the client acks; an optional pack is held only until
-   * {@link #OPTIONAL_RESOURCE_PACK_HOLD_TIMEOUT_SECONDS}, then advances to play as if declined.
+   * in configuration until every pack settles, or disconnects after
+   * {@link #RESOURCE_PACK_HOLD_CAP_SECONDS}. The backend is advanced to PLAY separately (see
+   * {@code ConfigSessionHandler}) so it doesn't time out during the hold.
    *
    * @param serverConn the server (re-)configuring the player
    * @param firstJoin  whether this is the initial configuration following login
@@ -417,11 +418,16 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
       this.resourcePackHold = hold;
       startResourcePackKeepAlive();
 
-      CompletableFuture<Void> gate = request.required()
-          ? hold
-          : hold.completeOnTimeout(null, OPTIONAL_RESOURCE_PACK_HOLD_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+      // Disconnect a player who never responds within the cap.
+      ScheduledFuture<?> holdCap = player.getConnection().eventLoop().schedule(() -> {
+        if (!hold.isDone()) {
+          player.disconnect(Component.translatable(
+              "velocity.error.resource-pack-configuration-timeout", NamedTextColor.RED));
+        }
+      }, RESOURCE_PACK_HOLD_CAP_SECONDS, TimeUnit.SECONDS);
 
-      return gate.whenCompleteAsync((v, t) -> {
+      return hold.whenCompleteAsync((v, t) -> {
+        holdCap.cancel(false);
         stopResourcePackKeepAlive();
         this.resourcePackHold = null;
       }, player.getConnection().eventLoop()).exceptionally(t -> {
@@ -431,16 +437,10 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
     }, player.getConnection().eventLoop());
   }
 
-  public boolean isAwaitingConfigurationResourcePack() {
-    return resourcePackHold != null;
-  }
-
   private void startResourcePackKeepAlive() {
     if (resourcePackKeepAlive == null) {
       resourcePackKeepAlive = player.getConnection().eventLoop().scheduleAtFixedRate(
-          () -> {
-            player.sendKeepAlive();
-          },
+          player::sendKeepAlive,
           RESOURCE_PACK_KEEP_ALIVE_INTERVAL_SECONDS,
           RESOURCE_PACK_KEEP_ALIVE_INTERVAL_SECONDS,
           TimeUnit.SECONDS);
