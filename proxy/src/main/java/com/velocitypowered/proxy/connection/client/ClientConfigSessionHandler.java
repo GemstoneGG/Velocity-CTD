@@ -77,7 +77,8 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   // Disconnect an unresponsive client after this long, so it can't hold the decoupled backend (and
   // its growing packet buffer) open forever. A flat deadline, not reset by progress, so keep it
   // generous for slow large-pack downloads.
-  private static final long RESOURCE_PACK_HOLD_CAP_SECONDS = 180L;
+  private static final long RESOURCE_PACK_HOLD_CAP_SECONDS =
+      Long.getLong("velocity-ctd.resource-pack-hold-cap-seconds", 60L);
 
   private final VelocityServer server;
 
