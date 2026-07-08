@@ -83,8 +83,10 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
   private static final Logger LOGGER = LogManager.getLogger(ConfigSessionHandler.class);
 
   // Advance the backend to PLAY this long after it finishes configuring, decoupling it from a client
-  // still held in config (e.g. applying a resource pack) before the backend times out.
-  private static final long SPLIT_PHASE_DELAY_SECONDS = 9L;
+  // still held in config (e.g. applying a resource pack) before the backend times out. When 0 or
+  // less, advance immediately without ever holding the backend in config.
+  private static final long SPLIT_PHASE_DELAY_SECONDS =
+      Long.getLong("velocity-ctd.split-phase-delay-seconds", 9L);
 
   private final VelocityServer server;
 
@@ -264,12 +266,20 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
     CompletableFuture<Void> clientFinished = configHandler.handleBackendFinishUpdate(serverConn);
 
     // Advance the backend to PLAY on whichever comes first: the client finishing, or the timeout.
-    // If the timeout wins, buffer the backend's PLAY packets until the client catches up.
-    ScheduledFuture<?> splitTask = smc.eventLoop().schedule(
-        () -> advanceBackendToPlay(true), SPLIT_PHASE_DELAY_SECONDS, TimeUnit.SECONDS);
+    // If the timeout wins, buffer the backend's PLAY packets until the client catches up. A delay of
+    // 0 or less advances immediately, buffering from the start without holding the backend in config.
+    final ScheduledFuture<?> splitTask = SPLIT_PHASE_DELAY_SECONDS > 0
+        ? smc.eventLoop().schedule(
+            () -> advanceBackendToPlay(true), SPLIT_PHASE_DELAY_SECONDS, TimeUnit.SECONDS)
+        : null;
+    if (splitTask == null) {
+      advanceBackendToPlay(true);
+    }
 
     clientFinished.thenRunAsync(() -> {
-      splitTask.cancel(false);
+      if (splitTask != null) {
+        splitTask.cancel(false);
+      }
       // Client won the race: advance now (already in PLAY, no buffering) and drain anything the
       // timeout may have buffered.
       advanceBackendToPlay(false);
