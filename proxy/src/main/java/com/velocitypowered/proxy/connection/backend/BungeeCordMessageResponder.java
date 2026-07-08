@@ -37,6 +37,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.UUID;
@@ -276,6 +277,33 @@ public class BungeeCordMessageResponder {
       out.writeUTF("QueuedPausedChannel");
       out.writeUTF(playerUuid.toString());
       out.writeBoolean(paused);
+    }
+
+    if (buf.isReadable()) {
+      sendResponseOnConnection(buf);
+    } else {
+      buf.release();
+    }
+  }
+
+  private void queueStates(ByteBufDataInput in) {
+    UUID playerUuid = UUID.fromString(in.readUTF());
+
+    ByteBuf buf = Unpooled.buffer();
+
+    List<VelocityQueue<?>> queues = getQueues(playerUuid).toList();
+
+    try (ByteBufDataOutput out = new ByteBufDataOutput(buf)) {
+      out.writeUTF("QueueStates");
+      out.writeUTF(playerUuid.toString());
+
+      out.writeInt(queues.size());
+      for (VelocityQueue<?> queue : queues) {
+        out.writeUTF(queue.getName());
+        out.writeInt(queue.getPosition(playerUuid).orElse(-1));
+        out.writeInt(queue.size());
+        out.writeBoolean(queue.getState() == QueueState.PAUSED);
+      }
     }
 
     if (buf.isReadable()) {
@@ -557,6 +585,7 @@ public class BungeeCordMessageResponder {
       case "QueuedPosition" -> this.queuedPosition(in);
       case "MaxQueuedPosition" -> this.queuedMaxPosition(in);
       case "QueuedPausedChannel" -> this.queuedPaused(in);
+      case "QueueStates" -> this.queueStates(in);
       default -> {
         // Do nothing, unknown command
       }
