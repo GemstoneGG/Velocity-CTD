@@ -63,13 +63,6 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
 
   private static final Component MODERN_IP_FORWARDING_FAILURE = Component.translatable("velocity.error.modern-forwarding-failed");
 
-  /**
-   * Enables the Velocity-CTD fast-transition server-switch path: when a 1.20.2+ player moves between
-   * backends with compatible registries, the client-visible CONFIG phase is skipped and the switch
-   * happens entirely in PLAY, falling back to the standard CONFIG switch otherwise.
-   */
-  public static final boolean FAST_TRANSITION = Boolean.getBoolean("velocity-ctd.fast-transition");
-
   private final VelocityServer server;
 
   private final VelocityServerConnection serverConn;
@@ -179,7 +172,8 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
       // Velocity-CTD fast transition: when switching an already-playing client, configure the target
       // ourselves while the client stays in PLAY. The fast handler skips CONFIG when the registries
       // are compatible and otherwise falls back to a standard reconfiguration.
-      boolean fastTransition = FAST_TRANSITION && player.getConnection().getActiveSessionHandler() instanceof ClientPlaySessionHandler;
+      boolean fastTransition = server.getConfiguration().isFastServerSwitch()
+          && player.getConnection().getActiveSessionHandler() instanceof ClientPlaySessionHandler;
 
       if (fastTransition) {
         smc.setActiveSessionHandler(StateRegistry.CONFIG,
