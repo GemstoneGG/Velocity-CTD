@@ -200,6 +200,12 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(KnownPacksPacket packet) {
+    player.setClientKnownPacks(packet.getPacks());
+
+    if (player.consumeDropKnownPacksResponseToBackend()) {
+      return true;
+    }
+
     callConfigurationEvent().thenRun(() -> {
       VelocityServerConnection targetServer = player.getConnectionInFlightOrConnectedServer();
       if (targetServer != null) {

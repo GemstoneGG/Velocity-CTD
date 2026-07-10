@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.connection.backend;
 
+import com.velocityctd.proxy.connection.fasttransition.FastBackendConfigSessionHandler;
 import com.velocitypowered.api.event.player.CookieRequestEvent;
 import com.velocitypowered.api.event.player.ServerLoginPluginMessageEvent;
 import com.velocitypowered.api.event.player.configuration.PlayerEnteredConfigurationEvent;
@@ -61,6 +62,13 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
   }
 
   private static final Component MODERN_IP_FORWARDING_FAILURE = Component.translatable("velocity.error.modern-forwarding-failed");
+
+  /**
+   * Enables the Velocity-CTD fast-transition server-switch path: when a 1.20.2+ player moves between
+   * backends with compatible registries, the client-visible CONFIG phase is skipped and the switch
+   * happens entirely in PLAY, falling back to the standard CONFIG switch otherwise.
+   */
+  public static final boolean FAST_TRANSITION = Boolean.getBoolean("velocity-ctd.fast-transition");
 
   private final VelocityServer server;
 
@@ -166,18 +174,32 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
       smc.setActiveSessionHandler(StateRegistry.PLAY, new TransitionSessionHandler(server, serverConn, resultFuture));
     } else {
       smc.write(new LoginAcknowledgedPacket());
-      smc.setActiveSessionHandler(StateRegistry.CONFIG, new ConfigSessionHandler(server, serverConn, resultFuture));
       ConnectedPlayer player = serverConn.getPlayer();
-      if (player.getClientSettingsPacket() != null) {
-        smc.write(player.getClientSettingsPacket());
-      }
 
-      if (player.getConnection().getActiveSessionHandler() instanceof ClientPlaySessionHandler clientPlaySessionHandler) {
-        smc.setAutoReading(false);
-        clientPlaySessionHandler.doSwitch().thenRunAsync(() -> smc.setAutoReading(true), smc.eventLoop());
+      // Velocity-CTD fast transition: when switching an already-playing client, configure the target
+      // ourselves while the client stays in PLAY. The fast handler skips CONFIG when the registries
+      // are compatible and otherwise falls back to a standard reconfiguration.
+      boolean fastTransition = FAST_TRANSITION && player.getConnection().getActiveSessionHandler() instanceof ClientPlaySessionHandler;
+
+      if (fastTransition) {
+        smc.setActiveSessionHandler(StateRegistry.CONFIG,
+            new FastBackendConfigSessionHandler(server, serverConn, resultFuture));
+        if (player.getClientSettingsPacket() != null) {
+          smc.write(player.getClientSettingsPacket());
+        }
       } else {
-        // Initial login - the player is already in configuration state.
-        server.getEventManager().fireAndForget(new PlayerEnteredConfigurationEvent(player, serverConn));
+        smc.setActiveSessionHandler(StateRegistry.CONFIG, new ConfigSessionHandler(server, serverConn, resultFuture));
+        if (player.getClientSettingsPacket() != null) {
+          smc.write(player.getClientSettingsPacket());
+        }
+
+        if (player.getConnection().getActiveSessionHandler() instanceof ClientPlaySessionHandler clientPlaySessionHandler) {
+          smc.setAutoReading(false);
+          clientPlaySessionHandler.doSwitch().thenRunAsync(() -> smc.setAutoReading(true), smc.eventLoop());
+        } else {
+          // Initial login - the player is already in configuration state.
+          server.getEventManager().fireAndForget(new PlayerEnteredConfigurationEvent(player, serverConn));
+        }
       }
     }
 
