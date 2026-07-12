@@ -27,12 +27,27 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.CRC32;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public final class ConfigStateSnapshot {
+
+  private static final Set<String> IGNORED_REGISTRIES = Set.of(
+      "minecraft:chat_type",
+      "minecraft:test_environment",
+      "minecraft:test_instance");
+
+  /**
+   * Whether tag data is excluded from the fingerprint. Tag sets (block/item/etc.) commonly differ
+   * between server implementations and only affect client-side prediction, not world decoding.
+   * Override with {@code -Dvelocityctd.fasttransition.ignoreTags=false}.
+   */
+  private static final boolean IGNORE_TAGS = Boolean.parseBoolean(System.getProperty(
+          "velocityctd.fasttransition.ignoreTags", "true"));
 
   private final byte[] fingerprint;
   private final List<String> entries;
@@ -56,15 +71,10 @@ public final class ConfigStateSnapshot {
 
   public static final class Builder {
 
-    private final MessageDigest digest;
-    private final List<String> entries = new ArrayList<>();
+    private final Map<String, byte[]> registryData = new LinkedHashMap<>();
+    private byte @Nullable [] tagsData;
 
     private Builder() {
-      try {
-        this.digest = MessageDigest.getInstance("SHA-256");
-      } catch (NoSuchAlgorithmException e) {
-        throw new AssertionError("SHA-256 not available", e);
-      }
     }
 
     /**
@@ -73,7 +83,8 @@ public final class ConfigStateSnapshot {
     public void addRegistrySync(ByteBuf content) {
       // Copies the readable bytes without advancing the reader index.
       byte[] data = ByteBufUtil.getBytes(content);
-      update((byte) 'R', peekRegistryName(content), data);
+      String name = peekRegistryName(content);
+      registryData.put(name, data);
     }
 
     public void addTags(Map<String, Map<String, int[]>> tags) {
@@ -98,13 +109,13 @@ public final class ConfigStateSnapshot {
             buf.writeByte(1);
           }
         }
-        update((byte) 'T', "tags", ByteBufUtil.getBytes(buf));
+        tagsData = ByteBufUtil.getBytes(buf);
       } finally {
         buf.release();
       }
     }
 
-    private void update(byte tag, String name, byte[] data) {
+    private static void hashInto(MessageDigest digest, byte tag, byte[] data) {
       digest.update(tag);
       // Length-prefix so concatenation boundaries can't collide.
       digest.update((byte) (data.length >>> 24));
@@ -112,10 +123,13 @@ public final class ConfigStateSnapshot {
       digest.update((byte) (data.length >>> 8));
       digest.update((byte) data.length);
       digest.update(data);
+    }
 
+    private static String describe(byte tag, String name, byte[] data, boolean ignored) {
       CRC32 crc = new CRC32();
       crc.update(data);
-      entries.add((char) tag + ":" + name + " len=" + data.length + " crc=" + Long.toHexString(crc.getValue()));
+      return (char) tag + ":" + name + " len=" + data.length
+          + " crc=" + Long.toHexString(crc.getValue()) + (ignored ? "  [IGNORED]" : "");
     }
 
     private static String peekRegistryName(ByteBuf content) {
@@ -127,6 +141,30 @@ public final class ConfigStateSnapshot {
     }
 
     public ConfigStateSnapshot build() {
+      MessageDigest digest;
+      try {
+        digest = MessageDigest.getInstance("SHA-256");
+      } catch (NoSuchAlgorithmException e) {
+        throw new AssertionError("SHA-256 not available", e);
+      }
+
+      List<String> entries = new ArrayList<>();
+      List<String> names = new ArrayList<>(registryData.keySet());
+      Collections.sort(names); // order-insensitive fingerprint
+      for (String name : names) {
+        byte[] data = registryData.get(name);
+        boolean ignored = IGNORED_REGISTRIES.contains(name);
+        entries.add(describe((byte) 'R', name, data, ignored));
+        if (!ignored) {
+          hashInto(digest, (byte) 'R', data);
+        }
+      }
+      if (tagsData != null) {
+        entries.add(describe((byte) 'T', "tags", tagsData, IGNORE_TAGS));
+        if (!IGNORE_TAGS) {
+          hashInto(digest, (byte) 'T', tagsData);
+        }
+      }
       return new ConfigStateSnapshot(digest.digest(), List.copyOf(entries));
     }
   }
