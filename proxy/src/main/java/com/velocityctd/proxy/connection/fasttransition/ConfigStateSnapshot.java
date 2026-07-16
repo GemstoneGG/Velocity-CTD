@@ -21,7 +21,10 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -29,12 +32,24 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.zip.CRC32;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public final class ConfigStateSnapshot {
+
+  private static final Logger LOGGER = LogManager.getLogger(ConfigStateSnapshot.class);
+
+  /**
+   * When set to a directory path, every registry-sync / tags payload fed into a labelled builder is
+   * written there as {@code <dumpDir>/<label>/NN-<tag>-<name>.bin}, for byte-level diffing of what
+   * each backend sends during configuration. Debug-only; unset in normal operation.
+   */
+  private static final @Nullable String DUMP_DIR = System.getProperty("velocityctd.fasttransition.dumpDir");
 
   private static final Set<String> IGNORED_REGISTRIES = Set.of(
       "minecraft:chat_type",
@@ -65,16 +80,31 @@ public final class ConfigStateSnapshot {
     return entries;
   }
 
+  public String fingerprintHex() {
+    return ByteBufUtil.hexDump(fingerprint);
+  }
+
   public static Builder builder() {
-    return new Builder();
+    return new Builder(null);
+  }
+
+  /**
+   * Creates a builder that, when {@code -Dvelocityctd.fasttransition.dumpDir=...} is set, also writes
+   * each captured payload to disk under the given label (e.g. the backend server name).
+   */
+  public static Builder builder(@Nullable String dumpLabel) {
+    return new Builder(dumpLabel);
   }
 
   public static final class Builder {
 
     private final Map<String, byte[]> registryData = new LinkedHashMap<>();
     private byte @Nullable [] tagsData;
+    private final @Nullable String dumpLabel;
+    private int seq;
 
-    private Builder() {
+    private Builder(@Nullable String dumpLabel) {
+      this.dumpLabel = dumpLabel;
     }
 
     /**
@@ -85,6 +115,7 @@ public final class ConfigStateSnapshot {
       byte[] data = ByteBufUtil.getBytes(content);
       String name = peekRegistryName(content);
       registryData.put(name, data);
+      dumpPayload((byte) 'R', name, data);
     }
 
     public void addTags(Map<String, Map<String, int[]>> tags) {
@@ -110,8 +141,24 @@ public final class ConfigStateSnapshot {
           }
         }
         tagsData = ByteBufUtil.getBytes(buf);
+        dumpPayload((byte) 'T', "tags", tagsData);
       } finally {
         buf.release();
+      }
+    }
+
+    private void dumpPayload(byte tag, String name, byte[] data) {
+      if (DUMP_DIR == null || dumpLabel == null) {
+        return;
+      }
+      String safeName = name.replaceAll("[^a-zA-Z0-9._-]", "_");
+      String file = String.format(Locale.ROOT, "%02d-%c-%s.bin", seq++, (char) tag, safeName);
+      try {
+        Path dir = Path.of(DUMP_DIR, dumpLabel);
+        Files.createDirectories(dir);
+        Files.write(dir.resolve(file), data);
+      } catch (IOException e) {
+        LOGGER.warn("Failed to dump config payload {} for label {}", file, dumpLabel, e);
       }
     }
 

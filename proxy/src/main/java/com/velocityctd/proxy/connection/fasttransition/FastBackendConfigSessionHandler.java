@@ -79,7 +79,7 @@ public class FastBackendConfigSessionHandler implements MinecraftSessionHandler 
   private final VelocityServerConnection serverConn;
   private final CompletableFuture<Impl> resultFuture;
 
-  private final ConfigStateSnapshot.Builder snapshot = ConfigStateSnapshot.builder();
+  private final ConfigStateSnapshot.Builder snapshot;
 
   // Clientbound config packets, retained in arrival order, replayed to the client only on fallback.
   private final List<MinecraftPacket> buffered = new ArrayList<>();
@@ -95,6 +95,7 @@ public class FastBackendConfigSessionHandler implements MinecraftSessionHandler 
     this.server = server;
     this.serverConn = serverConn;
     this.resultFuture = resultFuture;
+    this.snapshot = ConfigStateSnapshot.builder("backend-" + serverConn.getServerInfo().getName());
   }
 
   @Override
@@ -197,6 +198,10 @@ public class FastBackendConfigSessionHandler implements MinecraftSessionHandler 
     ConfigStateSnapshot clientSnapshot = player.getClientConfigSnapshot();
     boolean compatible = backendSnapshot.matches(clientSnapshot);
 
+    if (!compatible) {
+      logSnapshotDiff(player, clientSnapshot, backendSnapshot);
+    }
+
     if (fastTrackable && compatible && clientPlay != null) {
       LOGGER.info("Fast transition for {} to {}: switching in PLAY (compatible registries)",
           player.getUsername(), serverConn.getServerInfo().getName());
@@ -207,6 +212,34 @@ public class FastBackendConfigSessionHandler implements MinecraftSessionHandler 
           player.getUsername(), serverConn.getServerInfo().getName(),
           fastTrackable, compatible, clientPlay != null);
       fallbackReconfigure(clientPlay);
+    }
+  }
+
+  /**
+   * Logs, line by line, how the client's held configuration (from its current backend) differs from
+   * the target backend's configuration. Ordering matters for the fingerprint, so entries are compared
+   * position-by-position. Set {@code -Dvelocityctd.fasttransition.dumpDir=<dir>} to also dump the raw
+   * payloads for byte-level diffing.
+   */
+  private void logSnapshotDiff(ConnectedPlayer player, @Nullable ConfigStateSnapshot clientSnapshot,
+                               ConfigStateSnapshot backendSnapshot) {
+    if (clientSnapshot == null) {
+      LOGGER.warn("Fast-transition diff for {}: client has no config snapshot", player.getUsername());
+      return;
+    }
+    List<String> client = clientSnapshot.entries();
+    List<String> backend = backendSnapshot.entries();
+    LOGGER.info("Fast-transition config mismatch for {} -> {}: client(fp={}, {} entries) vs backend(fp={}, {} entries)",
+        player.getUsername(), serverConn.getServerInfo().getName(),
+        clientSnapshot.fingerprintHex(), client.size(),
+        backendSnapshot.fingerprintHex(), backend.size());
+    int max = Math.max(client.size(), backend.size());
+    for (int i = 0; i < max; i++) {
+      String c = i < client.size() ? client.get(i) : "<none>";
+      String b = i < backend.size() ? backend.get(i) : "<none>";
+      if (!c.equals(b)) {
+        LOGGER.info("  [{}] client={} | backend={}", i, c, b);
+      }
     }
   }
 
