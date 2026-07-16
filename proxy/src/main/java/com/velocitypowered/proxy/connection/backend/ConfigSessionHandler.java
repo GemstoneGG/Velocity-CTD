@@ -362,7 +362,7 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(RegistrySyncPacket packet) {
-    configSnapshot.addRegistrySync(packet.content());
+    configSnapshot.addRegistrySync(packet.content(), serverConn.getPlayer().getProtocolVersion());
     serverConn.getPlayer().getConnection().write(packet.retain());
     return true;
   }

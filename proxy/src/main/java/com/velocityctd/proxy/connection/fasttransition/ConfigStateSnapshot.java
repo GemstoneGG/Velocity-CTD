@@ -17,6 +17,7 @@
 
 package com.velocityctd.proxy.connection.fasttransition;
 
+import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
@@ -36,6 +37,20 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.zip.CRC32;
+import net.kyori.adventure.nbt.BinaryTag;
+import net.kyori.adventure.nbt.BinaryTagType;
+import net.kyori.adventure.nbt.ByteArrayBinaryTag;
+import net.kyori.adventure.nbt.ByteBinaryTag;
+import net.kyori.adventure.nbt.CompoundBinaryTag;
+import net.kyori.adventure.nbt.DoubleBinaryTag;
+import net.kyori.adventure.nbt.FloatBinaryTag;
+import net.kyori.adventure.nbt.IntArrayBinaryTag;
+import net.kyori.adventure.nbt.IntBinaryTag;
+import net.kyori.adventure.nbt.ListBinaryTag;
+import net.kyori.adventure.nbt.LongArrayBinaryTag;
+import net.kyori.adventure.nbt.LongBinaryTag;
+import net.kyori.adventure.nbt.ShortBinaryTag;
+import net.kyori.adventure.nbt.StringBinaryTag;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -62,7 +77,7 @@ public final class ConfigStateSnapshot {
    * Override with {@code -Dvelocityctd.fasttransition.ignoreTags=false}.
    */
   private static final boolean IGNORE_TAGS = Boolean.parseBoolean(System.getProperty(
-          "velocityctd.fasttransition.ignoreTags", "true"));
+      "velocityctd.fasttransition.ignoreTags", "true"));
 
   private final byte[] fingerprint;
   private final List<String> entries;
@@ -110,12 +125,115 @@ public final class ConfigStateSnapshot {
     /**
      * Doesn't consume the buffer.
      */
-    public void addRegistrySync(ByteBuf content) {
+    public void addRegistrySync(ByteBuf content, ProtocolVersion version) {
       // Copies the readable bytes without advancing the reader index.
-      byte[] data = ByteBufUtil.getBytes(content);
+      byte[] raw = ByteBufUtil.getBytes(content);
       String name = peekRegistryName(content);
-      registryData.put(name, data);
-      dumpPayload((byte) 'R', name, data);
+      // Fingerprint the canonical form (NBT compound keys are unordered, so different server
+      // implementations serialize them in different orders while being fully compatible); dump the raw
+      // bytes so the on-disk capture stays a faithful copy of the wire.
+      registryData.put(name, canonicalize(content, version, raw));
+      dumpPayload((byte) 'R', name, raw);
+    }
+
+    /**
+     * Returns a canonicalized copy of a registry-sync payload in which every entry's NBT has been
+     * re-serialized with compound keys sorted recursively. NBT compounds are unordered maps, so two
+     * server implementations can emit the same registry with different key orderings while being fully
+     * compatible; sorting removes that noise so equal registries fingerprint equal. Falls back to the
+     * raw bytes for pre-1.20.5 formats or on any parse error.
+     */
+    private static byte[] canonicalize(ByteBuf content, ProtocolVersion version, byte[] raw) {
+      if (version.lessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
+        return raw;
+      }
+      ByteBuf in = content.duplicate();
+      ByteBuf out = Unpooled.buffer(raw.length);
+      try {
+        ProtocolUtils.writeString(out, ProtocolUtils.readString(in));
+        int count = ProtocolUtils.readVarInt(in);
+        ProtocolUtils.writeVarInt(out, count);
+        for (int i = 0; i < count; i++) {
+          ProtocolUtils.writeString(out, ProtocolUtils.readString(in));
+          boolean hasData = in.readBoolean();
+          out.writeBoolean(hasData);
+          if (hasData) {
+            canonicalizeTag(ProtocolUtils.readBinaryTag(in, version, null), out);
+          }
+        }
+        return ByteBufUtil.getBytes(out);
+      } catch (Exception e) {
+        LOGGER.debug("Failed to canonicalize registry-sync payload; fingerprinting raw bytes", e);
+        return raw;
+      } finally {
+        out.release();
+      }
+    }
+
+    /**
+     * Writes {@code tag} to {@code out} in a deterministic form: compound keys are emitted in sorted
+     * order and every value is written verbatim, so semantically equal NBT always produces identical
+     * bytes regardless of the source's key ordering. This is a fingerprint form, not valid wire NBT.
+     */
+    private static void canonicalizeTag(BinaryTag tag, ByteBuf out) {
+      BinaryTagType<?> type = tag.type();
+      out.writeByte(type.id());
+      if (tag instanceof CompoundBinaryTag compound) {
+        List<String> keys = new ArrayList<>(compound.keySet());
+        Collections.sort(keys);
+        for (String childKey : keys) {
+          writeUtf(out, childKey);
+          canonicalizeTag(compound.get(childKey), out);
+        }
+        out.writeByte(0); // terminator so key lists of differing length can't collide
+      } else if (tag instanceof ListBinaryTag list) {
+        out.writeByte(list.elementType().id());
+        out.writeInt(list.size());
+        for (BinaryTag element : list) {
+          canonicalizeTag(element, out);
+        }
+      } else if (tag instanceof ByteBinaryTag value) {
+        out.writeByte(value.value());
+      } else if (tag instanceof ShortBinaryTag value) {
+        out.writeShort(value.value());
+      } else if (tag instanceof IntBinaryTag value) {
+        out.writeInt(value.value());
+      } else if (tag instanceof LongBinaryTag value) {
+        out.writeLong(value.value());
+      } else if (tag instanceof FloatBinaryTag value) {
+        out.writeFloat(value.value());
+      } else if (tag instanceof DoubleBinaryTag value) {
+        out.writeDouble(value.value());
+      } else if (tag instanceof StringBinaryTag value) {
+        writeUtf(out, value.value());
+      } else if (tag instanceof ByteArrayBinaryTag value) {
+        byte[] array = value.value();
+        out.writeInt(array.length);
+        out.writeBytes(array);
+      } else if (tag instanceof IntArrayBinaryTag value) {
+        int[] array = value.value();
+        out.writeInt(array.length);
+        for (int element : array) {
+          out.writeInt(element);
+        }
+      } else if (tag instanceof LongArrayBinaryTag value) {
+        long[] array = value.value();
+        out.writeInt(array.length);
+        for (long element : array) {
+          out.writeLong(element);
+        }
+      } else {
+        // EndBinaryTag and any unknown type carry no payload.
+        if (type.id() != 0) {
+          throw new IllegalStateException("Unhandled NBT tag type " + type.id());
+        }
+      }
+    }
+
+    private static void writeUtf(ByteBuf out, String value) {
+      byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+      out.writeShort(bytes.length);
+      out.writeBytes(bytes);
     }
 
     public void addTags(Map<String, Map<String, int[]>> tags) {

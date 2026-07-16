@@ -132,7 +132,7 @@ public class FastBackendConfigSessionHandler implements MinecraftSessionHandler 
 
   @Override
   public boolean handle(RegistrySyncPacket packet) {
-    snapshot.addRegistrySync(packet.content());
+    snapshot.addRegistrySync(packet.content(), serverConn.getPlayer().getProtocolVersion());
     bufferRetained(packet);
     return true;
   }
