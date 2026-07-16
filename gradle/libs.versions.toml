@@ -8,7 +8,7 @@ lettuce = "7.6.0.RELEASE"
 jline = "4.3.1"
 
 [plugins]
-shadow = "com.gradleup.shadow:9.5.1"
+shadow = "com.gradleup.shadow:9.6.0"
 spotless = "com.diffplug.spotless:8.8.0"
 
 [libraries]
