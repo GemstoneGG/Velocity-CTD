@@ -101,7 +101,7 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
   // Fingerprints the registry/tag data forwarded to the client, committed as its snapshot when the
   // backend finishes, feeding the fast-transition decision.
-  private final ConfigStateSnapshot.Builder configSnapshot = ConfigStateSnapshot.builder();
+  private final ConfigStateSnapshot.Builder configSnapshot;
 
   // Guards advanceBackendToPlay; only touched on the backend event loop.
   private boolean backendAdvancedToPlay;
@@ -119,6 +119,7 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
     this.serverConn = serverConn;
     this.resultFuture = resultFuture;
     this.state = State.START;
+    this.configSnapshot = ConfigStateSnapshot.builder("client-" + serverConn.getServerInfo().getName());
   }
 
   @Override
