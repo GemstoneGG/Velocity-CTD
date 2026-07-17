@@ -2461,7 +2461,14 @@ public final class VelocityConfiguration implements ProxyConfig {
 
       this.password = config.get("password");
       this.useSsl = config.getOrElse("use-ssl", true);
-      this.proxyId = config.get("proxy-id");
+
+      String proxyIdEnv = System.getenv("PROXY_ID");
+      if (proxyIdEnv != null && !proxyIdEnv.isBlank()) {
+        this.proxyId = proxyIdEnv;
+        LOGGER.info("Using proxy ID from environment variable PROXY_ID");
+      } else {
+        this.proxyId = config.get("proxy-id");
+      }
 
       if (this.proxyId == null || this.proxyId.isEmpty()) {
         this.proxyId = null;

@@ -456,6 +456,9 @@ use-ssl = false
 # Leave blank if you do not use Redis and is left blank by
 # default to ensure you assign a qualitative proxy ID.
 #
+# You can override this value with setting PROXY_ID
+# environment variable
+#
 # Your server will not start if this is blank and Redis is on.
 proxy-id = ""
 
