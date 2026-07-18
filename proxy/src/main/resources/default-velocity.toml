@@ -456,8 +456,8 @@ use-ssl = false
 # Leave blank if you do not use Redis and is left blank by
 # default to ensure you assign a qualitative proxy ID.
 #
-# You can override this value with setting PROXY_ID
-# environment variable
+# You can override this value with the velocityctd.redis.id
+# system property, e.g. java -Dvelocityctd.redis.id=proxy-1 -jar ...
 #
 # Your server will not start if this is blank and Redis is on.
 proxy-id = ""
