@@ -91,6 +91,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   private CompletableFuture<Void> configSwitchFuture;
 
   private boolean configuredOnce;
+  private boolean knownPacksResponseForwarded;
 
   // Active resource pack hold and its keepalive task, or null when no hold is in progress.
   private volatile @Nullable CompletableFuture<Void> resourcePackHold;
@@ -205,6 +206,11 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
     if (player.consumeDropKnownPacksResponseToBackend()) {
       return true;
     }
+
+    if (knownPacksResponseForwarded) {
+      return true;
+    }
+    knownPacksResponseForwarded = true;
 
     callConfigurationEvent().thenRun(() -> {
       VelocityServerConnection targetServer = player.getConnectionInFlightOrConnectedServer();
