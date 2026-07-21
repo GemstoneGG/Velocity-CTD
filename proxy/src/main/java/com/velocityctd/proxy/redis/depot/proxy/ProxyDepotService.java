@@ -23,6 +23,7 @@ import com.velocityctd.proxy.redis.depot.player.PlayerEntry;
 import com.velocityctd.proxy.redis.provider.LettuceProvider;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import io.lettuce.core.RedisCommandInterruptedException;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
@@ -153,30 +154,28 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
    * Called every {@link #HEARTBEAT_INTERVAL} by the scheduler.
    */
   private void publishHeartbeat() {
-    if (this.redis.isShutdown()) {
-      return;
-    }
+    runDepotTick(() -> {
+      String heartbeatKey = this.heartbeatKeyPrefix + this.redis.getProxyId();
 
-    String heartbeatKey = this.heartbeatKeyPrefix + this.redis.getProxyId();
-
-    // Skip the first publish: the key may still hold our own token from a crash within the TTL.
-    if (this.heartbeatPublished) {
-      String owner = this.redis.getProvider().get(heartbeatKey);
-      if (owner != null && !owner.equals(this.instanceId) && this.duplicateWarned.compareAndSet(false, true)) {
-        LOGGER.error("Another proxy is publishing heartbeats under proxy-id '{}'. Every proxy sharing "
-                + "a Redis instance must have a unique proxy-id; running multiple with the same id causes "
-                + "undefined behavior. Fix proxy-id in velocity.toml on the conflicting proxies.",
-                this.redis.getProxyId());
+      // Skip the first publish: the key may still hold our own token from a crash within the TTL.
+      if (this.heartbeatPublished) {
+        String owner = this.redis.getProvider().get(heartbeatKey);
+        if (owner != null && !owner.equals(this.instanceId) && this.duplicateWarned.compareAndSet(false, true)) {
+          LOGGER.error("Another proxy is publishing heartbeats under proxy-id '{}'. Every proxy sharing "
+                  + "a Redis instance must have a unique proxy-id; running multiple with the same id causes "
+                  + "undefined behavior. Fix proxy-id in velocity.toml on the conflicting proxies.",
+                  this.redis.getProxyId());
+        }
       }
-    }
 
-    this.redis.getProvider().setWithExpiry(
-            heartbeatKey,
-            this.instanceId,
-            HEARTBEAT_TTL.toSeconds()
-    );
+      this.redis.getProvider().setWithExpiry(
+              heartbeatKey,
+              this.instanceId,
+              HEARTBEAT_TTL.toSeconds()
+      );
 
-    this.heartbeatPublished = true;
+      this.heartbeatPublished = true;
+    });
   }
 
   /**
@@ -185,20 +184,37 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
    * Called every {@link #HEARTBEAT_INTERVAL} by the scheduler.
    */
   private void reapDeadProxies() {
+    runDepotTick(() -> {
+      for (String proxyId : this.getAllProxyIds()) {
+        if (proxyId.equalsIgnoreCase(this.redis.getProxyId())) {
+          continue; // Never reap ourselves.
+        }
+
+        if (this.redis.getProvider().existsKey(this.heartbeatKeyPrefix + proxyId)) {
+          continue; // Proxy is alive.
+        }
+
+        reapProxy(proxyId);
+      }
+    });
+  }
+
+  /**
+   * Runs a periodic Redis depot tick, ignoring command interrupts from task cancellation
+   * during proxy shutdown (the scheduler may interrupt before {@link VelocityRedis#shutdown()}).
+   *
+   * @param tick the depot work to run
+   */
+  private void runDepotTick(@NotNull Runnable tick) {
     if (this.redis.isShutdown()) {
       return;
     }
 
-    for (String proxyId : this.getAllProxyIds()) {
-      if (proxyId.equalsIgnoreCase(this.redis.getProxyId())) {
-        continue; // Never reap ourselves.
-      }
-
-      if (this.redis.getProvider().existsKey(this.heartbeatKeyPrefix + proxyId)) {
-        continue; // Proxy is alive.
-      }
-
-      reapProxy(proxyId);
+    try {
+      tick.run();
+    } catch (RedisCommandInterruptedException ignored) {
+      // Expected when the scheduler interrupts this task during proxy shutdown.
+      Thread.currentThread().interrupt();
     }
   }
 

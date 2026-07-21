@@ -25,6 +25,7 @@ import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
+import io.lettuce.core.RedisCommandInterruptedException;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
@@ -293,11 +294,7 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    * Updates the total player count by recalculating the number of entries in the depot.
    */
   private void updateTotalPlayerCount() {
-    if (this.redis.isShutdown()) {
-      return;
-    }
-
-    this.totalPlayerCount = this.depot.size();
+    runDepotTick(() -> this.totalPlayerCount = this.depot.size());
   }
 
   /**
@@ -306,32 +303,49 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    * the server.
    */
   private void syncPlayerEntries() {
+    runDepotTick(() -> {
+      for (ConnectedPlayer player : this.server.getOnlinePlayers()) {
+        if (!player.isFullyConnected()) {
+          continue;
+        }
+
+        if (this.depot.contains(player.getUniqueId())) {
+          continue;
+        }
+
+        this.upsertPlayerEntry(player);
+      }
+
+      for (PlayerEntry playerEntry : this.depot.values()) {
+        if (!playerEntry.getProxyId().equalsIgnoreCase(this.redis.getProxyId())) {
+          continue;
+        }
+
+        if (this.server.getPlayer(playerEntry.getUniqueId()).isPresent()) {
+          continue;
+        }
+
+        playerEntry.remove();
+      }
+    });
+  }
+
+  /**
+   * Runs a periodic Redis depot tick, ignoring command interrupts from task cancellation
+   * during proxy shutdown (the scheduler may interrupt before {@link VelocityRedis#shutdown()}).
+   *
+   * @param tick the depot work to run
+   */
+  private void runDepotTick(@NotNull Runnable tick) {
     if (this.redis.isShutdown()) {
       return;
     }
 
-    for (ConnectedPlayer player : this.server.getOnlinePlayers()) {
-      if (!player.isFullyConnected()) {
-        continue;
-      }
-
-      if (this.depot.contains(player.getUniqueId())) {
-        continue;
-      }
-
-      this.upsertPlayerEntry(player);
-    }
-
-    for (PlayerEntry playerEntry : this.depot.values()) {
-      if (!playerEntry.getProxyId().equalsIgnoreCase(this.redis.getProxyId())) {
-        continue;
-      }
-
-      if (this.server.getPlayer(playerEntry.getUniqueId()).isPresent()) {
-        continue;
-      }
-
-      playerEntry.remove();
+    try {
+      tick.run();
+    } catch (RedisCommandInterruptedException ignored) {
+      // Expected when the scheduler interrupts this task during proxy shutdown.
+      Thread.currentThread().interrupt();
     }
   }
 }
