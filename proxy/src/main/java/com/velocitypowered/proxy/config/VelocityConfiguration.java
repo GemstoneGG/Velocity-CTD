@@ -2484,7 +2484,14 @@ public final class VelocityConfiguration implements ProxyConfig {
 
       this.password = config.get("password");
       this.useSsl = config.getOrElse("use-ssl", true);
-      this.proxyId = config.get("proxy-id");
+
+      String proxyIdOverride = System.getProperty("velocityctd.redis.id");
+      if (proxyIdOverride != null && !proxyIdOverride.isBlank()) {
+        this.proxyId = proxyIdOverride;
+        LOGGER.info("Using proxy ID from system property velocityctd.redis.id");
+      } else {
+        this.proxyId = config.get("proxy-id");
+      }
 
       if (this.proxyId == null || this.proxyId.isEmpty()) {
         this.proxyId = null;
