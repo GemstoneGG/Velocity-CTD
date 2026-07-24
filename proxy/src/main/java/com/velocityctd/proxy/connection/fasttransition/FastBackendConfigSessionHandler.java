@@ -17,6 +17,7 @@
 
 package com.velocityctd.proxy.connection.fasttransition;
 
+import com.velocitypowered.api.event.player.configuration.PlayerBackendConfigurationEvent;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
@@ -213,6 +214,17 @@ public class FastBackendConfigSessionHandler implements MinecraftSessionHandler 
           fastTrackable, compatible, clientPlay != null);
       fallbackReconfigure(clientPlay);
     }
+  }
+
+  public CompletableFuture<Void> fireBackendConfigurationEvent() {
+    ConnectedPlayer player = serverConn.getPlayer();
+    return server.getEventManager().fire(new PlayerBackendConfigurationEvent(player, serverConn))
+        .handle((ignored, ex) -> {
+          if (ex != null) {
+            LOGGER.error("Error running fast-transition backend configuration event for {}", player, ex);
+          }
+          return null;
+        });
   }
 
   /**

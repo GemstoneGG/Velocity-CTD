@@ -25,6 +25,7 @@ import com.velocitypowered.api.event.player.CookieStoreEvent;
 import com.velocitypowered.api.event.player.PlayerResourcePackStatusEvent;
 import com.velocitypowered.api.event.player.ServerResourcePackRemoveEvent;
 import com.velocitypowered.api.event.player.ServerResourcePackSendEvent;
+import com.velocitypowered.api.event.player.configuration.PlayerBackendConfigurationEvent;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.player.ResourcePackInfo;
@@ -120,6 +121,17 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
     this.resultFuture = resultFuture;
     this.state = State.START;
     this.configSnapshot = ConfigStateSnapshot.builder("client-" + serverConn.getServerInfo().getName());
+  }
+
+  public CompletableFuture<Void> fireBackendConfigurationEvent() {
+    ConnectedPlayer player = serverConn.getPlayer();
+    return server.getEventManager().fire(new PlayerBackendConfigurationEvent(player, serverConn))
+        .handle((ignored, ex) -> {
+          if (ex != null) {
+            LOGGER.error("Error running backend configuration event for {}", player, ex);
+          }
+          return null;
+        });
   }
 
   @Override
