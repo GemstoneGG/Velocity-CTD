@@ -166,7 +166,6 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
     if (smc.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
       smc.setActiveSessionHandler(StateRegistry.PLAY, new TransitionSessionHandler(server, serverConn, resultFuture));
     } else {
-      smc.write(new LoginAcknowledgedPacket());
       ConnectedPlayer player = serverConn.getPlayer();
 
       // Velocity-CTD fast transition: when switching an already-playing client, configure the target
@@ -175,24 +174,33 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
       boolean fastTransition = server.getConfiguration().isFastServerSwitch()
           && player.getConnection().getActiveSessionHandler() instanceof ClientPlaySessionHandler;
 
+      smc.setAutoReading(false);
       if (fastTransition) {
-        smc.setActiveSessionHandler(StateRegistry.CONFIG,
-            new FastBackendConfigSessionHandler(server, serverConn, resultFuture));
+        smc.write(new LoginAcknowledgedPacket());
+        FastBackendConfigSessionHandler fastHandler =
+            new FastBackendConfigSessionHandler(server, serverConn, resultFuture);
+        smc.setActiveSessionHandler(StateRegistry.CONFIG, fastHandler);
+        CompletableFuture<Void> backendConfigEvent = fastHandler.fireBackendConfigurationEvent();
         if (player.getClientSettingsPacket() != null) {
           smc.write(player.getClientSettingsPacket());
         }
+        backendConfigEvent.thenRunAsync(() -> smc.setAutoReading(true), smc.eventLoop());
       } else {
-        smc.setActiveSessionHandler(StateRegistry.CONFIG, new ConfigSessionHandler(server, serverConn, resultFuture));
+        smc.write(new LoginAcknowledgedPacket());
+        ConfigSessionHandler configHandler = new ConfigSessionHandler(server, serverConn, resultFuture);
+        smc.setActiveSessionHandler(StateRegistry.CONFIG, configHandler);
+        CompletableFuture<Void> backendConfigEvent = configHandler.fireBackendConfigurationEvent();
         if (player.getClientSettingsPacket() != null) {
           smc.write(player.getClientSettingsPacket());
         }
 
         if (player.getConnection().getActiveSessionHandler() instanceof ClientPlaySessionHandler clientPlaySessionHandler) {
-          smc.setAutoReading(false);
-          clientPlaySessionHandler.doSwitch().thenRunAsync(() -> smc.setAutoReading(true), smc.eventLoop());
+          CompletableFuture.allOf(backendConfigEvent, clientPlaySessionHandler.doSwitch())
+              .thenRunAsync(() -> smc.setAutoReading(true), smc.eventLoop());
         } else {
           // Initial login - the player is already in configuration state.
           server.getEventManager().fireAndForget(new PlayerEnteredConfigurationEvent(player, serverConn));
+          backendConfigEvent.thenRunAsync(() -> smc.setAutoReading(true), smc.eventLoop());
         }
       }
     }
