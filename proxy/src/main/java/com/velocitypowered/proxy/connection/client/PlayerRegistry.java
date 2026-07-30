@@ -136,15 +136,13 @@ public final class PlayerRegistry {
   public @NonNull CompletableFuture<Void> unregisterConnection(@NonNull ConnectedPlayer player) {
     LockHandle held = player.consumeIdentityLock();
     if (held != null) {
-      return withLockReleasedOnFailure(held, () -> doUnregisterLocked(player))
-          .whenComplete((v, ex) -> held.release());
+      return doUnregisterLocked(player, held);
     }
 
     UUID uuid = player.getUniqueId();
     String name = player.getUsername().toLowerCase(Locale.ROOT);
     return identityLock.acquire(uuid, name)
-        .thenCompose(lock -> withLockReleasedOnFailure(lock, () -> doUnregisterLocked(player))
-            .whenComplete((v, ex) -> lock.release()));
+            .thenCompose(lock -> doUnregisterLocked(player, lock));
   }
 
   private static <T> CompletableFuture<T> withLockReleasedOnFailure(LockHandle lock, Supplier<CompletableFuture<T>> function) {
@@ -262,14 +260,27 @@ public final class PlayerRegistry {
     return fireDisconnectAndCleanup(existing, "kicked player", LoginStatus.CONFLICTING_LOGIN);
   }
 
-  private CompletableFuture<Void> doUnregisterLocked(ConnectedPlayer player) {
-    if (!player.markDisconnectFired()) {
-      // DisconnectEvent was already fired (e.g. by the kick path). Cleanup has already run
-      // and teardownFuture has already been completed by the kicker; nothing more to do.
-      return completedFuture(null);
+  private CompletableFuture<Void> doUnregisterLocked(ConnectedPlayer player, LockHandle lock) {
+    LoginStatus status;
+    try {
+      if (!player.markDisconnectFired()) {
+        return completedFuture(null);
+      }
+
+      status = computeDisconnectStatus(player);
+      removeFromMaps(player);
+    } catch (Throwable t) {
+      return failedFuture(t);
+    } finally {
+      lock.release();
     }
 
-    return fireDisconnectAndCleanup(player, "player", computeDisconnectStatus(player));
+    try {
+      return fireDisconnectAndCleanup(player, "player", status);
+    } catch (Throwable t) {
+      runCleanup(player, t, "player");
+      return failedFuture(t);
+    }
   }
 
   /**
