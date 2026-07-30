@@ -123,7 +123,6 @@ tasks {
         exclude("it/unimi/dsi/fastutil/ints/*BigList*")
 
         // Try to exclude everything BUT Object2Int{LinkedOpen,Open,CustomOpen}HashMap
-        exclude("it/unimi/dsi/fastutil/objects/*ObjectArray*")
         exclude("it/unimi/dsi/fastutil/objects/*ObjectAVL*")
         exclude("it/unimi/dsi/fastutil/objects/*Object*Big*")
         exclude("it/unimi/dsi/fastutil/objects/*Object2Boolean*")
