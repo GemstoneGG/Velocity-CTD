@@ -385,6 +385,13 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
     }
 
+    for (String s : servers.getHubServers()) {
+      if (!servers.getBackendServers().containsKey(s)) {
+        LOGGER.error("Hub server {} is not registered in your configuration!", s);
+        valid = false;
+      }
+    }
+
     Map<String, ForcedHostEntry> configuredForcedHosts = forcedHosts.getForcedHostEntries();
     if (!configuredForcedHosts.isEmpty()) {
       for (Map.Entry<String, ForcedHostEntry> entry : configuredForcedHosts.entrySet()) {
@@ -1547,6 +1554,18 @@ public final class VelocityConfiguration implements ProxyConfig {
     return servers.getServerAliases();
   }
 
+  /**
+   * Gets the list of servers the {@code /hub} command sends players to.
+   *
+   * <p>If this list is empty, {@code /hub} uses the regular fallback chain
+   * ({@code attempt-connection-order}, or the matching forced host) instead.
+   *
+   * @return the configured hub servers, possibly empty
+   */
+  public List<String> getHubServers() {
+    return servers.getHubServers();
+  }
+
   private static final class Servers {
 
     @Expose
@@ -1583,6 +1602,15 @@ public final class VelocityConfiguration implements ProxyConfig {
      */
     @Expose
     private List<String> serverAliases = List.of("joinqueue", "queue", "server");
+
+    /**
+     * The servers the {@code /hub} command sends players to, in order of preference.
+     *
+     * <p>When empty, {@code /hub} falls back to {@code attemptConnectionOrder} (or the forced
+     * host matching the player's virtual host).
+     */
+    @Expose
+    private List<String> hubServers = ImmutableList.of();
 
     private Servers() {
     }
@@ -1633,7 +1661,8 @@ public final class VelocityConfiguration implements ProxyConfig {
           } else {
             if (!entry.getKey().equalsIgnoreCase("try")
                 && !entry.getKey().equalsIgnoreCase("dynamic-fallbacks-filter")
-                && !entry.getKey().equalsIgnoreCase("server-aliases")) {
+                && !entry.getKey().equalsIgnoreCase("server-aliases")
+                && !entry.getKey().equalsIgnoreCase("hub-servers")) {
               throw new IllegalArgumentException(
                   "Server entry " + entry.getKey() + " is not a server!");
             }
@@ -1646,11 +1675,16 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.attemptConnectionOrder = config.getOrElse("try", attemptConnectionOrder).stream().toList();
         this.dynamicFallbackFilter = config.getEnumOrElse("dynamic-fallbacks-filter", DynamicFallbackFilter.FIRST_AVAILABLE);
         this.serverAliases = config.getOrElse("server-aliases", List.of("joinqueue", "queue", "server"));
+        this.hubServers = config.getOrElse("hub-servers", hubServers).stream().toList();
       }
     }
 
     public List<String> getServerAliases() {
       return serverAliases;
+    }
+
+    public List<String> getHubServers() {
+      return hubServers;
     }
 
     private Map<String, BackendServerConfig> getBackendServers() {
@@ -1693,6 +1727,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("serverMaximumVersions", serverMaximumVersions)
           .add("dynamicFallbackFilter", dynamicFallbackFilter)
           .add("serverAliases", serverAliases)
+          .add("hubServers", hubServers)
           .toString();
     }
   }

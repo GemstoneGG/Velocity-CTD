@@ -156,6 +156,16 @@ public class CtdConfigMigrations {
             "servers.server-aliases",
             List.of("joinqueue", "queue")
         ),
+        migration(
+            "The servers the \"/hub\" command sends players to, in order of preference.\n"
+                + " The same dynamic fallback principles apply here: \"dynamic-fallbacks-filter\" decides\n"
+                + " which of these servers is picked, and players already on the picked server are told\n"
+                + " they are already connected.\n"
+                + " Leave this empty (the default) to have \"/hub\" use the regular fallback chain instead,\n"
+                + " meaning the forced host matching the player's virtual host, or \"try\" if there is none.",
+            "servers.hub-servers",
+            List.of()
+        ),
 
         // [advanced]
         migration(

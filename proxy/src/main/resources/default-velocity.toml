@@ -216,6 +216,14 @@ server-aliases = [
     "queue"
 ]
 
+# The servers the "/hub" command sends players to, in order of preference.
+# The same dynamic fallback principles apply here: "dynamic-fallbacks-filter" decides
+# which of these servers is picked, and players already on the picked server are told
+# they are already connected.
+# Leave this empty (the default) to have "/hub" use the regular fallback chain instead,
+# meaning the forced host matching the player's virtual host, or "try" if there is none.
+hub-servers = []
+
 [forced-hosts]
 # Configure your forced hosts here.
 # Each entry can be specified in two ways:

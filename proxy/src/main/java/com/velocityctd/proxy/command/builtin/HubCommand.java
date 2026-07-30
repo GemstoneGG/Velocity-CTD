@@ -32,6 +32,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.connection.util.FallbackServers;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Deque;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import net.kyori.adventure.text.Component;
@@ -74,13 +75,7 @@ public class HubCommand implements BuiltinCommandDefinition {
     VelocityRegisteredServer currentServer = con.getServer();
     requireNonNull(currentServer);
 
-    Deque<String> serversToTry = FallbackServers.resolveFallbackServers(server.getConfiguration(), player)
-        .calculateRetryDeque(server);
-    if (serversToTry.contains(currentServer.getServerInfo().getName())) {
-      player.sendMessage(Component.translatable("velocity.command.hub.fallback-already-connected")
-              .arguments(Component.text(currentServer.getServerInfo().getName())));
-      return 0;
-    }
+    Deque<String> serversToTry = resolveHubServers(player).calculateRetryDeque(server);
 
     VelocityRegisteredServer nextServer = serversToTry.stream()
         .map(server::getServer)
@@ -92,6 +87,14 @@ public class HubCommand implements BuiltinCommandDefinition {
       return 0;
     }
 
+    // Only the server the player would actually be sent to counts as "already connected":
+    // being on any other server of the hub chain is a perfectly good reason to use /hub.
+    if (nextServer.getServerInfo().getName().equals(currentServer.getServerInfo().getName())) {
+      player.sendMessage(Component.translatable("velocity.command.hub.fallback-already-connected")
+              .arguments(Component.text(currentServer.getServerInfo().getName())));
+      return 0;
+    }
+
     if (fallbackConnectingTranslationExists(player)) {
       player.sendMessage(Component.translatable("velocity.command.hub.fallback-connecting")
               .arguments(Component.text(nextServer.getServerInfo().getName())));
@@ -100,6 +103,25 @@ public class HubCommand implements BuiltinCommandDefinition {
     CommandUtils.sendOrQueue(server, player, nextServer);
 
     return SINGLE_SUCCESS;
+  }
+
+  /**
+   * Resolves the servers {@code /hub} should consider for the given player. When
+   * {@code servers.hub-servers} is configured, that list is used with the global dynamic fallback
+   * filter. Otherwise the player's regular fallback chain (forced host or
+   * {@code attempt-connection-order}) is used.
+   */
+  private FallbackServers resolveHubServers(ConnectedPlayer player) {
+    List<String> hubServers = server.getConfiguration().getHubServers();
+    if (hubServers.isEmpty()) {
+      return FallbackServers.resolveFallbackServers(server.getConfiguration(), player);
+    }
+
+    return new FallbackServers(
+        hubServers,
+        server.getConfiguration().getDynamicFallbackFilter(),
+        null
+    );
   }
 
   private static boolean fallbackConnectingTranslationExists(ConnectedPlayer player) {
