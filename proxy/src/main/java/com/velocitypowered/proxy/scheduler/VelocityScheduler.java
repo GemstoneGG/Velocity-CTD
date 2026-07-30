@@ -303,7 +303,7 @@ public class VelocityScheduler implements Scheduler {
           }
         } catch (Throwable e) {
           // noinspection ConstantConditions
-          if (e instanceof InterruptedException) {
+          if (e instanceof InterruptedException || wasInterruptedByCancel()) {
             Thread.currentThread().interrupt();
           } else {
             String friendlyPluginName = container.getDescription().getName()
@@ -319,6 +319,20 @@ public class VelocityScheduler implements Scheduler {
           currentTaskThread = null;
         }
       });
+    }
+
+    /**
+     * Determines whether this task threw because {@link #cancel()} interrupted it, rather
+     * than because it genuinely failed. Blocking libraries often surface an interrupt as an
+     * unchecked exception of their own instead of an {@link InterruptedException}.
+     *
+     * @return {@code true} if this task was cancelled and its thread interrupted
+     */
+    private boolean wasInterruptedByCancel() {
+      ScheduledFuture<?> scheduledFuture = this.future;
+      return Thread.currentThread().isInterrupted()
+          && scheduledFuture != null
+          && scheduledFuture.isCancelled();
     }
 
     private void onFinish() {

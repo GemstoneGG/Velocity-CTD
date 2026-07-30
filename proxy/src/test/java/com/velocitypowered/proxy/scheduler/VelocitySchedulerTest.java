@@ -18,6 +18,7 @@
 package com.velocitypowered.proxy.scheduler;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.velocitypowered.api.scheduler.ScheduledTask;
@@ -29,6 +30,12 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
 import org.junit.jupiter.api.Test;
 
 class VelocitySchedulerTest {
@@ -150,5 +157,100 @@ class VelocitySchedulerTest {
     assertTrue(latch.await(5, TimeUnit.SECONDS));
 
     assertEquals(consumerTask.get(), initialTask.get());
+  }
+
+  @Test
+  void cancelDoesNotReportInterruptAsError() throws Exception {
+    DeterministicSchedulerBackend backend = new DeterministicSchedulerBackend();
+    VelocityScheduler scheduler = new VelocityScheduler(new FakePluginManager(), backend);
+
+    CountDownLatch running = new CountDownLatch(1);
+    CountDownLatch thrown = new CountDownLatch(1);
+
+    ScheduledTask task = scheduler.buildTask(FakePluginManager.PLUGIN_A, () -> {
+      running.countDown();
+      try {
+        Thread.sleep(Duration.ofMinutes(1));
+      } catch (InterruptedException e) {
+        // Mirrors a blocking library such as Lettuce, which restores the interrupt flag and
+        // surfaces the interrupt as an unchecked exception of its own instead.
+        Thread.currentThread().interrupt();
+        thrown.countDown();
+        throw new IllegalStateException("interrupted", e);
+      }
+    }).repeat(Duration.ofMillis(50)).schedule();
+
+    ErrorCapture errors = ErrorCapture.attach();
+    try {
+      backend.runUntilIdle();
+      assertTrue(running.await(5, TimeUnit.SECONDS));
+
+      task.cancel();
+      assertTrue(thrown.await(5, TimeUnit.SECONDS));
+
+      assertFalse(errors.await(1, TimeUnit.SECONDS),
+          "cancelling a task should not report its interrupt as an error");
+    } finally {
+      errors.detach();
+    }
+  }
+
+  @Test
+  void failingTaskIsStillReportedAsError() throws Exception {
+    DeterministicSchedulerBackend backend = new DeterministicSchedulerBackend();
+    VelocityScheduler scheduler = new VelocityScheduler(new FakePluginManager(), backend);
+
+    ErrorCapture errors = ErrorCapture.attach();
+    try {
+      scheduler.buildTask(FakePluginManager.PLUGIN_A, () -> {
+        throw new IllegalStateException("expected failure");
+      }).schedule();
+
+      backend.runUntilIdle();
+
+      assertTrue(errors.await(5, TimeUnit.SECONDS),
+          "a task that fails on its own should still report an error");
+    } finally {
+      errors.detach();
+    }
+  }
+
+  /**
+   * Captures {@link Level#ERROR} events logged by {@link VelocityTask}.
+   */
+  private static final class ErrorCapture extends AbstractAppender {
+
+    private final CountDownLatch captured = new CountDownLatch(1);
+
+    private ErrorCapture() {
+      super("ErrorCapture", null, null, true, Property.EMPTY_ARRAY);
+    }
+
+    static ErrorCapture attach() {
+      ErrorCapture capture = new ErrorCapture();
+      capture.start();
+      taskLogger().addAppender(capture);
+      return capture;
+    }
+
+    void detach() {
+      taskLogger().removeAppender(this);
+      stop();
+    }
+
+    boolean await(long timeout, TimeUnit unit) throws InterruptedException {
+      return captured.await(timeout, unit);
+    }
+
+    @Override
+    public void append(LogEvent event) {
+      if (event.getLevel() == Level.ERROR) {
+        captured.countDown();
+      }
+    }
+
+    private static Logger taskLogger() {
+      return (Logger) LogManager.getLogger(VelocityTask.class);
+    }
   }
 }
