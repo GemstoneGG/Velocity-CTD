@@ -91,7 +91,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   private CompletableFuture<Void> configSwitchFuture;
 
   private boolean configuredOnce;
-  private boolean knownPacksResponseForwarded;
+  private boolean knownPacksAnswered;
 
   // Active resource pack hold and its keepalive task, or null when no hold is in progress.
   private volatile @Nullable CompletableFuture<Void> resourcePackHold;
@@ -111,11 +111,13 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   @Override
   public void activated() {
     configSwitchFuture = new CompletableFuture<>();
+    knownPacksAnswered = false;
   }
 
   @Override
   public void deactivated() {
     configurationFuture = null;
+    player.setDropKnownPacksResponseToBackend(false);
   }
 
   @Override
@@ -203,21 +205,41 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   public boolean handle(KnownPacksPacket packet) {
     player.setClientKnownPacks(packet.getPacks());
 
-    if (player.consumeDropKnownPacksResponseToBackend()) {
-      return true;
-    }
+    boolean dropped = player.consumeDropKnownPacksResponseToBackend();
+    boolean duplicate = knownPacksAnswered;
+    knownPacksAnswered = true;
 
-    if (knownPacksResponseForwarded) {
-      return true;
-    }
-    knownPacksResponseForwarded = true;
-
-    callConfigurationEvent().thenRun(() -> {
+    if (dropped || duplicate) {
       VelocityServerConnection targetServer = player.getConnectionInFlightOrConnectedServer();
-      if (targetServer != null) {
-        targetServer.ensureConnected().write(packet);
+      LOGGER.warn("Suppressing known packs response from {} (reason={}, target={})", player,
+          duplicate ? "duplicate-in-configuration" : "already-answered-by-fast-transition",
+          targetServer == null ? "<none>" : targetServer.getServerInfo().getName());
+      return true;
+    }
+
+    VelocityServerConnection targetServer = player.getConnectionInFlightOrConnectedServer();
+    if (targetServer == null) {
+      return true;
+    }
+
+    MinecraftConnection smc = targetServer.getConnection();
+    if (smc == null) {
+      return true;
+    }
+
+    callConfigurationEvent().thenRunAsync(() -> {
+      if (smc.isClosed()) {
+        return;
       }
-    }).exceptionally(ex -> {
+
+      if (smc.getState() != StateRegistry.CONFIG) {
+        LOGGER.warn("Dropping late known packs response from {}: {} left the configuration state",
+            player, targetServer.getServerInfo().getName());
+        return;
+      }
+
+      smc.write(packet);
+    }, smc.eventLoop()).exceptionally(ex -> {
       LOGGER.error("Error forwarding known packs response to backend:", ex);
       return null;
     });

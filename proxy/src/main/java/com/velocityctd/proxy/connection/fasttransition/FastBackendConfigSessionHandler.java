@@ -89,6 +89,10 @@ public class FastBackendConfigSessionHandler implements MinecraftSessionHandler 
   // cookies, transfers, code of conduct), which forces the fallback reconfiguration.
   private boolean fastTrackable = true;
 
+  // Set when this handler answered the backend's known-packs offer itself, so a fallback knows the
+  // backend is already satisfied and the client's response has to be dropped.
+  private boolean answeredKnownPacks;
+
   private boolean decided;
 
   public FastBackendConfigSessionHandler(VelocityServer server, VelocityServerConnection serverConn,
@@ -124,6 +128,7 @@ public class FastBackendConfigSessionHandler implements MinecraftSessionHandler 
     List<KnownPacksPacket.KnownPack> clientKnown = serverConn.getPlayer().getClientKnownPacks();
     serverConn.ensureConnected().write(
         clientKnown != null ? new KnownPacksPacket(clientKnown) : packet);
+    answeredKnownPacks = true;
 
     // Buffer the offer: on fallback the client needs it to resolve the registry entries the backend
     // omitted for known packs. The client's response is dropped so the backend isn't answered twice.
@@ -308,8 +313,11 @@ public class FastBackendConfigSessionHandler implements MinecraftSessionHandler 
     // doSwitch() moves the client into CONFIG; once it resolves the client can receive the
     // backend's buffered configuration.
     clientPlay.doSwitch().thenRunAsync(() -> {
-      // The backend already got its known-packs answer, so drop the client's response.
-      serverConn.getPlayer().setDropKnownPacksResponseToBackend(true);
+      // Only if we answered on the client's behalf: otherwise the backend is still waiting for the
+      // response and an armed drop would leave it stuck in synchronize_registries.
+      if (answeredKnownPacks) {
+        serverConn.getPlayer().setDropKnownPacksResponseToBackend(true);
+      }
       for (MinecraftPacket packet : buffered) {
         replay(normal, packet);
       }
