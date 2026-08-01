@@ -229,7 +229,7 @@ server-aliases = [
 #   "lobby.example.com" = ["lobby1", "lobby2"]
 #
 # Table format - allows setting per-host options:
-#   "lobby.example.com" = { servers = ["lobby1", "lobby2"], dynamic-fallbacks-filter = "least_populated", forced-host-as-fallback = true }
+#   "lobby.example.com" = { servers = ["lobby1", "lobby2"], dynamic-fallbacks-filter = "least_populated", forced-host-as-fallback = true, session-server = "https://sessionserver.mojang.com/session/minecraft/hasJoined" }
 #
 "lobby.example.com" = [
     "lobby"

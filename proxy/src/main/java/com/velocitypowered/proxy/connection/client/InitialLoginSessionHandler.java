@@ -35,6 +35,7 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.connection.player.resourcepack.ResourcePackTransfer;
+import com.velocitypowered.proxy.connection.util.FallbackServers;
 import com.velocitypowered.proxy.crypto.IdentifiedKeyImpl;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
@@ -52,6 +53,7 @@ import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -72,10 +74,12 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
 
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
+  /**
+   * Server-Wide Session Server URL. Can be overriden by {@link com.velocitypowered.proxy.config.VelocityConfiguration.ForcedHostEntry}.
+   */
   private static final String MOJANG_HASJOINED_URL =
       System.getProperty("mojang.sessionserver",
-              "https://sessionserver.mojang.com/session/minecraft/hasJoined")
-          .concat("?username=%s&serverId=%s");
+              "https://sessionserver.mojang.com/session/minecraft/hasJoined");
 
   private final VelocityServer server;
 
@@ -102,6 +106,11 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
     this.inbound = Preconditions.checkNotNull(inbound, "inbound");
     this.forceKeyAuthentication = VelocityProperties.readBoolean(
         "auth.forceSecureProfiles", server.getConfiguration().isForceKeyAuthentication());
+  }
+
+  private String resolveHasJoinedBaseUrl() {
+    String sessionServer = FallbackServers.resolveFallbackServers(server, inbound).sessionServer();
+    return Objects.requireNonNullElse(sessionServer, MOJANG_HASJOINED_URL);
   }
 
   @Override
@@ -247,7 +256,8 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
 
       String serverId = generateServerId(decryptedSharedSecret, serverKeyPair.getPublic());
       String playerIp = ((InetSocketAddress) mcConnection.getRemoteAddress()).getHostString();
-      String url = String.format(MOJANG_HASJOINED_URL, urlFormParameterEscaper().escape(login.getUsername()), serverId);
+      String sessionServer = resolveHasJoinedBaseUrl();
+      String url = String.format(sessionServer.concat("?username=%s&serverId=%s"), urlFormParameterEscaper().escape(login.getUsername()), serverId);
 
       if (server.getConfiguration().shouldPreventClientProxyConnections()) {
         url += "&ip=" + urlFormParameterEscaper().escape(playerIp);

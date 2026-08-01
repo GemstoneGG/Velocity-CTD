@@ -54,7 +54,8 @@ public record FallbackServers(
     @NotNull List<String> serversToTry,
     @NotNull DynamicFallbackFilter dynamicFallbackFilter,
     @Nullable String virtualHost,
-    @Nullable String matchedVirtualHostPattern
+    @Nullable String matchedVirtualHostPattern,
+    @Nullable String sessionServer
 ) {
 
   /**
@@ -156,7 +157,8 @@ public record FallbackServers(
         Optional.ofNullable(entry.getDynamicFallbackFilter())
             .orElseGet(config::getDynamicFallbackFilter),
         virtualHost,
-        pattern.toLowerCase(Locale.ROOT)
+        pattern.toLowerCase(Locale.ROOT),
+        entry.getSessionServer()
     ));
   }
 
@@ -189,6 +191,7 @@ public record FallbackServers(
         server.getConfiguration().getAttemptConnectionOrder(),
         server.getConfiguration().getDynamicFallbackFilter(),
         virtualHost,
+        null,
         null
     );
   }
