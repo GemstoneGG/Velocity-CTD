@@ -151,8 +151,20 @@ public record FallbackServers(
       return Optional.empty();
     }
 
+    List<String> serversToTry;
+    if (entry.getFallbackServers() != null && !entry.getFallbackServers().isEmpty()) {
+      serversToTry = new ArrayList<>(entry.getServers());
+      for (String fb : entry.getFallbackServers()) {
+        if (!serversToTry.contains(fb)) {
+          serversToTry.add(fb);
+        }
+      }
+    } else {
+      serversToTry = entry.getServers();
+    }
+
     return Optional.of(new FallbackServers(
-        entry.getServers(),
+        serversToTry,
         Optional.ofNullable(entry.getDynamicFallbackFilter())
             .orElseGet(config::getDynamicFallbackFilter),
         virtualHost,

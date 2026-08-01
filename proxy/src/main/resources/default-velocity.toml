@@ -228,8 +228,9 @@ server-aliases = [
 #   "lobby.example.com" = "lobby"
 #   "lobby.example.com" = ["lobby1", "lobby2"]
 #
-# Table format - allows setting per-host options:
-#   "lobby.example.com" = { servers = ["lobby1", "lobby2"], dynamic-fallbacks-filter = "least_populated", forced-host-as-fallback = true }
+# Table format - allows setting per-host options including custom fallback paths, custom MOTD,
+# custom MOTD hover tooltip, and custom server icon (favicon 64x64 PNG):
+#   "lobby.example.com" = { servers = ["lobby1", "lobby2"], fallback-servers = ["lobby-limbo"], motd = ["<#ff3a4c>Custom Lobby MOTD</#ff3a4c>"], motd-hover = ["<gray>Welcome!</gray>"], icon = "server-icon.png", dynamic-fallbacks-filter = "least_populated", forced-host-as-fallback = true }
 #
 "lobby.example.com" = [
     "lobby"
@@ -237,7 +238,7 @@ server-aliases = [
 "factions.example.com" = [
     "factions"
 ]
-# "minigames.example.com" = { servers = ["minigames-limbo", "minigames-1", "minigames-2"], dynamic-fallbacks-filter = "first_available", forced-host-as-fallback = true }
+# "minigames.example.com" = { servers = ["minigames-limbo", "minigames-1", "minigames-2"], fallback-servers = ["lobby"], motd = ["<#ff3a4c>Minigames Network</#ff3a4c>"], icon = "minigames-icon.png", dynamic-fallbacks-filter = "first_available", forced-host-as-fallback = true }
 
 [command-aliases]
 # What commands should have aliases for simpler execution that

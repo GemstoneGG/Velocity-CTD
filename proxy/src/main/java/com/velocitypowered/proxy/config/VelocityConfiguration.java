@@ -399,6 +399,15 @@ public final class VelocityConfiguration implements ProxyConfig {
             valid = false;
           }
         }
+
+        if (entry.getValue().getFallbackServers() != null) {
+          for (String fallbackServer : entry.getValue().getFallbackServers()) {
+            if (!servers.getBackendServers().containsKey(fallbackServer)) {
+              LOGGER.error("Fallback server '{}' for forced host '{}' does not exist", fallbackServer, entry.getKey());
+              valid = false;
+            }
+          }
+        }
       }
     }
 
@@ -1697,18 +1706,33 @@ public final class VelocityConfiguration implements ProxyConfig {
 
   /**
    * Represents a single forced host entry, containing the list of servers to try
-   * and an optional per-host dynamic fallbacks filter that overrides the global one.
+   * and optional per-host settings such as custom dynamic fallbacks filter, custom MOTD,
+   * custom server icon, and custom fallback path.
    */
   public static final class ForcedHostEntry {
 
     private final List<String> servers;
     private final DynamicFallbackFilter dynamicFallbackFilter;
     private final boolean forcedHostAsFallback;
+    private final @Nullable List<String> fallbackServers;
+    private final @Nullable List<String> motd;
+    private final @Nullable List<String> motdHover;
+    private final @Nullable Favicon favicon;
 
-    private ForcedHostEntry(List<String> servers, DynamicFallbackFilter dynamicFallbackFilter, boolean forcedHostAsFallback) {
+    private ForcedHostEntry(List<String> servers,
+                            @Nullable DynamicFallbackFilter dynamicFallbackFilter,
+                            boolean forcedHostAsFallback,
+                            @Nullable List<String> fallbackServers,
+                            @Nullable List<String> motd,
+                            @Nullable List<String> motdHover,
+                            @Nullable Favicon favicon) {
       this.servers = servers;
       this.dynamicFallbackFilter = dynamicFallbackFilter;
       this.forcedHostAsFallback = forcedHostAsFallback;
+      this.fallbackServers = fallbackServers;
+      this.motd = motd;
+      this.motdHover = motdHover;
+      this.favicon = favicon;
     }
 
     public List<String> getServers() {
@@ -1727,12 +1751,44 @@ public final class VelocityConfiguration implements ProxyConfig {
       return forcedHostAsFallback;
     }
 
+    /**
+     * Returns the custom fallback servers for this forced host, or {@code null} if none configured.
+     */
+    public @Nullable List<String> getFallbackServers() {
+      return fallbackServers;
+    }
+
+    /**
+     * Returns the custom MOTD lines for pings targeting this forced host, or {@code null} if default should be used.
+     */
+    public @Nullable List<String> getMotd() {
+      return motd;
+    }
+
+    /**
+     * Returns the custom MOTD hover tooltip lines for pings targeting this forced host, or {@code null} if default should be used.
+     */
+    public @Nullable List<String> getMotdHover() {
+      return motdHover;
+    }
+
+    /**
+     * Returns the custom server icon (favicon) for pings targeting this forced host, or {@code null} if default should be used.
+     */
+    public @Nullable Favicon getFavicon() {
+      return favicon;
+    }
+
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
           .add("servers", servers)
           .add("dynamicFallbackFilter", dynamicFallbackFilter)
           .add("forcedHostAsFallback", forcedHostAsFallback)
+          .add("fallbackServers", fallbackServers)
+          .add("motd", motd)
+          .add("motdHover", motdHover)
+          .add("favicon", favicon)
           .toString();
     }
   }
@@ -1751,17 +1807,17 @@ public final class VelocityConfiguration implements ProxyConfig {
         for (UnmodifiableConfig.Entry entry : config.entrySet()) {
           String key = entry.getKey().toLowerCase(Locale.ROOT);
 
-          if (entry.getValue() instanceof String) {
-            entries.put(key, new ForcedHostEntry(ImmutableList.of(entry.getValue()), null, true));
-          } else if (entry.getValue() instanceof List) {
-            entries.put(key, new ForcedHostEntry(ImmutableList.copyOf((List<String>) entry.getValue()), null, true));
+          if (entry.getValue() instanceof String str) {
+            entries.put(key, new ForcedHostEntry(ImmutableList.of(str), null, true, null, null, null, null));
+          } else if (entry.getValue() instanceof List<?> list) {
+            entries.put(key, new ForcedHostEntry(ImmutableList.copyOf((List<String>) list), null, true, null, null, null, null));
           } else if (entry.getValue() instanceof UnmodifiableConfig tableConfig) {
             Object serversValue = tableConfig.get("servers");
             List<String> servers;
-            if (serversValue instanceof String) {
-              servers = ImmutableList.of((String) serversValue);
-            } else if (serversValue instanceof List) {
-              servers = ImmutableList.copyOf((List<String>) serversValue);
+            if (serversValue instanceof String str) {
+              servers = ImmutableList.of(str);
+            } else if (serversValue instanceof List<?> list) {
+              servers = ImmutableList.copyOf((List<String>) list);
             } else {
               LOGGER.warn("Invalid or missing 'servers' in forced host '{}'!", key);
               continue;
@@ -1772,7 +1828,37 @@ public final class VelocityConfiguration implements ProxyConfig {
             boolean forcedHostAsFallback = tableConfig.getOrElse("forced-host-as-fallback",
                 config.getOrElse("forced-host-as-fallback", true));
 
-            entries.put(key, new ForcedHostEntry(servers, filter, forcedHostAsFallback));
+            List<String> fallbackServers = parseStringList(tableConfig,
+                "fallback-servers", "fallback_servers", "fallback-path", "fallback_path",
+                "fallbacks", "attempt-connection-order");
+            List<String> motd = parseStringList(tableConfig, "motd");
+            List<String> motdHover = parseStringList(tableConfig, "motd-hover", "motd_hover");
+
+            Favicon favicon = null;
+            String iconPathStr = tableConfig.get("icon");
+            if (iconPathStr == null) {
+              iconPathStr = tableConfig.get("server-icon");
+            }
+            if (iconPathStr == null) {
+              iconPathStr = tableConfig.get("server_icon");
+            }
+            if (iconPathStr == null) {
+              iconPathStr = tableConfig.get("favicon");
+            }
+            if (iconPathStr != null && !iconPathStr.isBlank()) {
+              Path iconPath = Path.of(iconPathStr);
+              if (Files.exists(iconPath)) {
+                try {
+                  favicon = Favicon.create(iconPath);
+                } catch (Exception e) {
+                  LOGGER.warn("Unable to load forced host icon '{}' for '{}'", iconPathStr, key, e);
+                }
+              } else {
+                LOGGER.warn("Forced host icon file '{}' for '{}' does not exist", iconPathStr, key);
+              }
+            }
+
+            entries.put(key, new ForcedHostEntry(servers, filter, forcedHostAsFallback, fallbackServers, motd, motdHover, favicon));
           } else {
             LOGGER.warn("Invalid value of type {} in forced hosts!", entry.getValue().getClass());
           }
@@ -1780,6 +1866,18 @@ public final class VelocityConfiguration implements ProxyConfig {
 
         this.entries = ImmutableMap.copyOf(entries);
       }
+    }
+
+    private static @Nullable List<String> parseStringList(UnmodifiableConfig tableConfig, String... keys) {
+      for (String key : keys) {
+        Object val = tableConfig.get(key);
+        if (val instanceof String str) {
+          return ImmutableList.of(str);
+        } else if (val instanceof List<?> list && !list.isEmpty()) {
+          return ImmutableList.copyOf(list.stream().map(Object::toString).toList());
+        }
+      }
+      return null;
     }
 
     private Map<String, List<String>> getForcedHosts() {
