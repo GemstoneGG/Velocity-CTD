@@ -32,6 +32,7 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.crypto.IdentifiedKey;
 import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.connection.player.resourcepack.ResourcePackTransfer;
@@ -53,7 +54,6 @@ import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -109,8 +109,9 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
   }
 
   private String resolveHasJoinedBaseUrl() {
-    String sessionServer = FallbackServers.resolveFallbackServers(server, inbound).sessionServer();
-    return Objects.requireNonNullElse(sessionServer, MOJANG_HASJOINED_URL);
+    return FallbackServers.getForcedHostEntry(server.getConfiguration(), inbound)
+        .map(VelocityConfiguration.ForcedHostEntry::getSessionServer)
+        .orElse(MOJANG_HASJOINED_URL);
   }
 
   @Override

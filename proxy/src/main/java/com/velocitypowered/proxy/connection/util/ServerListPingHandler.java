@@ -237,7 +237,7 @@ public class ServerListPingHandler {
     if (passthroughMode == PingPassthroughMode.DISABLED) {
       return CompletableFuture.completedFuture(constructLocalPing(connection.getProtocolVersion()));
     } else {
-      FallbackServers fallbackServers = FallbackServers.resolveFallbackServers(server, connection);
+      FallbackServers fallbackServers = FallbackServers.resolveFallbackServers(server.getConfiguration(), connection);
 
       return attemptPingPassthrough(connection, passthroughMode, fallbackServers.serversToTry(),
           shownVersion, fallbackServers.virtualHost());
