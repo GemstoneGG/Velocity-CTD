@@ -108,7 +108,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
         "auth.forceSecureProfiles", server.getConfiguration().isForceKeyAuthentication());
   }
 
-  private String resolveHasJoinedBaseUrl() {
+  private String resolveHasJoinedUrl() {
     return FallbackServers.getForcedHostEntry(server.getConfiguration(), inbound)
         .map(VelocityConfiguration.ForcedHostEntry::getSessionServer)
         .map(baseUrl -> baseUrl.concat(MOJANG_HASJOINED_GET_PARAMS))
@@ -258,7 +258,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
 
       String serverId = generateServerId(decryptedSharedSecret, serverKeyPair.getPublic());
       String playerIp = ((InetSocketAddress) mcConnection.getRemoteAddress()).getHostString();
-      String url = String.format(resolveHasJoinedBaseUrl(), urlFormParameterEscaper().escape(login.getUsername()), serverId);
+      String url = String.format(resolveHasJoinedUrl(), urlFormParameterEscaper().escape(login.getUsername()), serverId);
 
       if (server.getConfiguration().shouldPreventClientProxyConnections()) {
         url += "&ip=" + urlFormParameterEscaper().escape(playerIp);
