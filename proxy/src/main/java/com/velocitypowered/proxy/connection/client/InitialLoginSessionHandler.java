@@ -74,12 +74,12 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
 
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
-  /**
-   * Server-Wide Session Server URL. Can be overriden by {@link com.velocitypowered.proxy.config.VelocityConfiguration.ForcedHostEntry}.
-   */
+  private static final String MOJANG_HASJOINED_GET_PARAMS = "?username=%s&serverId=%s";
+
   private static final String MOJANG_HASJOINED_URL =
       System.getProperty("mojang.sessionserver",
-              "https://sessionserver.mojang.com/session/minecraft/hasJoined");
+              "https://sessionserver.mojang.com/session/minecraft/hasJoined")
+          .concat(MOJANG_HASJOINED_GET_PARAMS);
 
   private final VelocityServer server;
 
@@ -111,6 +111,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
   private String resolveHasJoinedBaseUrl() {
     return FallbackServers.getForcedHostEntry(server.getConfiguration(), inbound)
         .map(VelocityConfiguration.ForcedHostEntry::getSessionServer)
+        .map(baseUrl -> baseUrl.concat(MOJANG_HASJOINED_GET_PARAMS))
         .orElse(MOJANG_HASJOINED_URL);
   }
 
@@ -257,8 +258,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
 
       String serverId = generateServerId(decryptedSharedSecret, serverKeyPair.getPublic());
       String playerIp = ((InetSocketAddress) mcConnection.getRemoteAddress()).getHostString();
-      String sessionServer = resolveHasJoinedBaseUrl();
-      String url = String.format(sessionServer.concat("?username=%s&serverId=%s"), urlFormParameterEscaper().escape(login.getUsername()), serverId);
+      String url = String.format(resolveHasJoinedBaseUrl(), urlFormParameterEscaper().escape(login.getUsername()), serverId);
 
       if (server.getConfiguration().shouldPreventClientProxyConnections()) {
         url += "&ip=" + urlFormParameterEscaper().escape(playerIp);
