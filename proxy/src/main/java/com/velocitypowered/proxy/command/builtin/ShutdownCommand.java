@@ -54,18 +54,22 @@ public class ShutdownCommand implements BuiltinCommandDefinition {
   @Override
   public BrigadierCommand build() {
     return new BrigadierCommand(LiteralArgumentBuilder.<CommandSource>literal(label())
-            .requires(source -> source instanceof ConsoleCommandSource)
-            .executes(context -> {
-              server.shutdown(true);
-              return SINGLE_SUCCESS;
-            })
-            .then(RequiredArgumentBuilder.<CommandSource, String>argument("reason",
-                            StringArgumentType.greedyString())
-                    .executes(context -> {
-                      String reason = context.getArgument("reason", String.class);
-                      server.shutdown(true, CommandUtils.deserializeComponent(reason));
-                      return SINGLE_SUCCESS;
-                    })
-            ).build());
+              .requires(source ->
+                      source instanceof ConsoleCommandSource
+                              || (server.getConfiguration().isShutdownInGameEnabled()
+                              && source.hasPermission("velocity.command.shutdown"))
+              )
+              .executes(context -> {
+                server.shutdown(true);
+                return SINGLE_SUCCESS;
+              })
+              .then(RequiredArgumentBuilder.<CommandSource, String>argument("reason",
+                              StringArgumentType.greedyString())
+                      .executes(context -> {
+                        String reason = context.getArgument("reason", String.class);
+                        server.shutdown(true, CommandUtils.deserializeComponent(reason));
+                        return SINGLE_SUCCESS;
+                      })
+              ).build());
   }
 }
