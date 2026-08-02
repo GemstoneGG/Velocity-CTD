@@ -38,8 +38,8 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Holds the resolved fallback server configuration for an inbound connection, including the ordered
- * list of backend servers to try, the applicable dynamic fallback filter, the connection's virtual
- * host, and the session server to authenticate against (if any).
+ * list of backend servers to try, the applicable dynamic fallback filter, and the connection's
+ * virtual host.
  *
  * <p>Use {@link #resolveFallbackServers(VelocityConfiguration, InboundConnection)} to obtain an
  * instance.
@@ -48,14 +48,11 @@ import org.jetbrains.annotations.Nullable;
  * @param dynamicFallbackFilter      the dynamic fallback filter to apply when selecting a server
  * @param virtualHost                the lowercase virtual host from the connection, or {@code null}
  *                                   if none could be found
- * @param sessionServer              the {@code hasJoined} base URL from the matched forced host, or
- *                                   {@code null} if the global one should be used
  */
 public record FallbackServers(
     @NotNull List<String> serversToTry,
     @NotNull DynamicFallbackFilter dynamicFallbackFilter,
-    @Nullable String virtualHost,
-    @Nullable String sessionServer
+    @Nullable String virtualHost
 ) {
 
   /**
@@ -168,8 +165,7 @@ public record FallbackServers(
         entry.getServers(),
         Optional.ofNullable(entry.getDynamicFallbackFilter())
             .orElseGet(config::getDynamicFallbackFilter),
-        virtualHost,
-        entry.getSessionServer()
+        virtualHost
     ));
   }
 
@@ -198,8 +194,7 @@ public record FallbackServers(
     return new FallbackServers(
         config.getAttemptConnectionOrder(),
         config.getDynamicFallbackFilter(),
-        virtualHost,
-        null
+        virtualHost
     );
   }
 
