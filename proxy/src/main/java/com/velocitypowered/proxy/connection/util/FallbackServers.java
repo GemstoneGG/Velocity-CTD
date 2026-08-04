@@ -38,23 +38,21 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Holds the resolved fallback server configuration for an inbound connection, including the ordered
- * list of backend servers to try, the applicable dynamic fallback filter, the connection's virtual
- * host, and the forced-host pattern that was matched (if any).
+ * list of backend servers to try, the applicable dynamic fallback filter, and the connection's
+ * virtual host.
  *
- * <p>Use {@link #resolveFallbackServers(VelocityServer, InboundConnection)} to obtain an instance.
+ * <p>Use {@link #resolveFallbackServers(VelocityConfiguration, InboundConnection)} to obtain an
+ * instance.
  *
  * @param serversToTry               the ordered list of backend server names to attempt
  * @param dynamicFallbackFilter      the dynamic fallback filter to apply when selecting a server
  * @param virtualHost                the lowercase virtual host from the connection, or {@code null}
  *                                   if none could be found
- * @param matchedVirtualHostPattern  the forced-host pattern (exact or wildcard) that was matched,
- *                                   or {@code null} if the default connection order is used
  */
 public record FallbackServers(
     @NotNull List<String> serversToTry,
     @NotNull DynamicFallbackFilter dynamicFallbackFilter,
-    @Nullable String virtualHost,
-    @Nullable String matchedVirtualHostPattern
+    @Nullable String virtualHost
 ) {
 
   /**
@@ -114,29 +112,41 @@ public record FallbackServers(
     return result;
   }
 
+  public static Optional<ForcedHostEntry> getForcedHostEntry(VelocityConfiguration config, @Nullable InboundConnection connection) {
+    if (connection == null) {
+      return Optional.empty();
+    }
+
+    return getForcedHostEntry(config, normalizedVirtualHost(connection));
+  }
+
   /**
    * Looks up a forced-host entry for the given {@code virtualHost}, trying an exact
    * case-insensitive match first, then a wildcard match (e.g. {@code *.example.com}).
    *
-   * @return the matching {@link FallbackServers}, or {@link Optional#empty()} if no rule matches
-   *     (or the matched rule opted out of fallback behavior)
+   * @return the matching {@link ForcedHostEntry}.
    */
-  private static Optional<FallbackServers> getForcedHostFallbacks(VelocityConfiguration config, String virtualHost) {
+  private static Optional<ForcedHostEntry> getForcedHostEntry(VelocityConfiguration config, String virtualHost) {
     Map<String, ForcedHostEntry> forcedHosts = config.getForcedHostEntries();
     ForcedHostEntry exactMatch = forcedHosts.get(virtualHost);
     if (exactMatch != null) {
-      return forcedHostFallbacks(config, virtualHost, virtualHost, exactMatch);
+      return Optional.of(exactMatch);
     }
 
     // Check for wildcard ("*.example.com" matches "anything.example.com")
     for (Map.Entry<String, ForcedHostEntry> entry : forcedHosts.entrySet()) {
       String pattern = entry.getKey().toLowerCase(Locale.ROOT);
       if (pattern.startsWith("*.") && virtualHost.endsWith(pattern.substring(1))) {
-        return forcedHostFallbacks(config, virtualHost, entry.getKey(), entry.getValue());
+        return Optional.of(entry.getValue());
       }
     }
 
     return Optional.empty();
+  }
+
+  private static Optional<FallbackServers> getForcedHostFallbacks(VelocityConfiguration config, String virtualHost) {
+    return getForcedHostEntry(config, virtualHost)
+        .flatMap(entry -> forcedHostFallbacks(config, virtualHost, entry));
   }
 
   /**
@@ -146,7 +156,7 @@ public record FallbackServers(
    * the global {@code attempt-connection-order}.
    */
   private static Optional<FallbackServers> forcedHostFallbacks(VelocityConfiguration config,
-                                                               String virtualHost, String pattern, ForcedHostEntry entry) {
+                                                               String virtualHost, ForcedHostEntry entry) {
     if (!entry.isForcedHostAsFallback()) {
       return Optional.empty();
     }
@@ -155,8 +165,7 @@ public record FallbackServers(
         entry.getServers(),
         Optional.ofNullable(entry.getDynamicFallbackFilter())
             .orElseGet(config::getDynamicFallbackFilter),
-        virtualHost,
-        pattern.toLowerCase(Locale.ROOT)
+        virtualHost
     ));
   }
 
@@ -166,30 +175,34 @@ public record FallbackServers(
    * <p>If the connection supplies a virtual host that matches a forced-host rule (exact or
    * wildcard), the servers and filter from that rule are used. Otherwise, the global
    * {@code attempt-connection-order} and dynamic fallback filter from the proxy configuration
-   * are used, with {@link #matchedVirtualHostPattern()} left as {@code null}.
+   * are used.
    *
-   * @param server     the Velocity server instance providing configuration access
+   * @param config     the active configuration
    * @param connection the inbound connection whose virtual host is used for forced-host resolution
    * @return the resolved {@link FallbackServers} for this connection
    */
-  public static FallbackServers resolveFallbackServers(VelocityServer server, InboundConnection connection) {
-    String virtualHost = connection.getVirtualHost()
-        .map(InetSocketAddress::getHostString)
-        .map(host -> host.toLowerCase(Locale.ROOT))
-        .orElse(null);
+  public static FallbackServers resolveFallbackServers(VelocityConfiguration config, InboundConnection connection) {
+    String virtualHost = normalizedVirtualHost(connection);
 
     if (virtualHost != null) {
-      FallbackServers fromVirtualHost = getForcedHostFallbacks(server.getConfiguration(), virtualHost).orElse(null);
+      FallbackServers fromVirtualHost = getForcedHostFallbacks(config, virtualHost).orElse(null);
       if (fromVirtualHost != null) {
         return fromVirtualHost;
       }
     }
 
     return new FallbackServers(
-        server.getConfiguration().getAttemptConnectionOrder(),
-        server.getConfiguration().getDynamicFallbackFilter(),
-        virtualHost,
-        null
+        config.getAttemptConnectionOrder(),
+        config.getDynamicFallbackFilter(),
+        virtualHost
     );
+  }
+
+  @Nullable
+  private static String normalizedVirtualHost(InboundConnection connection) {
+    return connection.getVirtualHost()
+        .map(InetSocketAddress::getHostString)
+        .map(host -> host.toLowerCase(Locale.ROOT))
+        .orElse(null);
   }
 }

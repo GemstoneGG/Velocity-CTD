@@ -1704,11 +1704,13 @@ public final class VelocityConfiguration implements ProxyConfig {
     private final List<String> servers;
     private final DynamicFallbackFilter dynamicFallbackFilter;
     private final boolean forcedHostAsFallback;
+    private final String sessionServer;
 
-    private ForcedHostEntry(List<String> servers, DynamicFallbackFilter dynamicFallbackFilter, boolean forcedHostAsFallback) {
+    private ForcedHostEntry(List<String> servers, DynamicFallbackFilter dynamicFallbackFilter, boolean forcedHostAsFallback, String sessionServer) {
       this.servers = servers;
       this.dynamicFallbackFilter = dynamicFallbackFilter;
       this.forcedHostAsFallback = forcedHostAsFallback;
+      this.sessionServer = sessionServer;
     }
 
     public List<String> getServers() {
@@ -1727,12 +1729,22 @@ public final class VelocityConfiguration implements ProxyConfig {
       return forcedHostAsFallback;
     }
 
+    /**
+     * Determines the Mojang Compatible Session Server URL {@code hasJoined} for this session.
+     *
+     * @return base url, no query parameters.
+     */
+    public @Nullable String getSessionServer() {
+      return sessionServer;
+    }
+
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
           .add("servers", servers)
           .add("dynamicFallbackFilter", dynamicFallbackFilter)
           .add("forcedHostAsFallback", forcedHostAsFallback)
+          .add("sessionServer", sessionServer)
           .toString();
     }
   }
@@ -1752,9 +1764,9 @@ public final class VelocityConfiguration implements ProxyConfig {
           String key = entry.getKey().toLowerCase(Locale.ROOT);
 
           if (entry.getValue() instanceof String) {
-            entries.put(key, new ForcedHostEntry(ImmutableList.of(entry.getValue()), null, true));
+            entries.put(key, new ForcedHostEntry(ImmutableList.of(entry.getValue()), null, true, null));
           } else if (entry.getValue() instanceof List) {
-            entries.put(key, new ForcedHostEntry(ImmutableList.copyOf((List<String>) entry.getValue()), null, true));
+            entries.put(key, new ForcedHostEntry(ImmutableList.copyOf((List<String>) entry.getValue()), null, true, null));
           } else if (entry.getValue() instanceof UnmodifiableConfig tableConfig) {
             Object serversValue = tableConfig.get("servers");
             List<String> servers;
@@ -1772,7 +1784,9 @@ public final class VelocityConfiguration implements ProxyConfig {
             boolean forcedHostAsFallback = tableConfig.getOrElse("forced-host-as-fallback",
                 config.getOrElse("forced-host-as-fallback", true));
 
-            entries.put(key, new ForcedHostEntry(servers, filter, forcedHostAsFallback));
+            String sessionServer = tableConfig.get("session-server");
+
+            entries.put(key, new ForcedHostEntry(servers, filter, forcedHostAsFallback, sessionServer));
           } else {
             LOGGER.warn("Invalid value of type {} in forced hosts!", entry.getValue().getClass());
           }

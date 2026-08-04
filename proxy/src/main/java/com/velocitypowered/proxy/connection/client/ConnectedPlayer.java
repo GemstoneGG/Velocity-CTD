@@ -2223,7 +2223,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     private final Deque<String> serversToTry;
 
     private ServerRetrySession() {
-      serversToTry = FallbackServers.resolveFallbackServers(server, ConnectedPlayer.this).calculateRetryDeque(server);
+      serversToTry = FallbackServers.resolveFallbackServers(server.getConfiguration(), ConnectedPlayer.this)
+          .calculateRetryDeque(server);
     }
 
     /**
