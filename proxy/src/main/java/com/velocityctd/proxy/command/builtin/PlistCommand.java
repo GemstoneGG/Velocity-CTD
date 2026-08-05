@@ -36,7 +36,9 @@ import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -152,8 +154,8 @@ public class PlistCommand implements BuiltinCommandDefinition {
 
   private int proxyCount(CommandContext<CommandSource> context) {
     String proxyName = getString(context, PROXY_ARG);
-    if (proxyName.equals(PROXY_ALL)) {
-      return totalCount(context);
+    if (proxyName.equalsIgnoreCase(PROXY_ALL)) {
+      return networkMap(context);
     }
 
     Optional<String> validatedProxy = validateProxy(proxyName, context.getSource());
@@ -163,6 +165,30 @@ public class PlistCommand implements BuiltinCommandDefinition {
 
     Collection<VelocityClusterPlayer> proxyPlayers = server.getClusterPlayerService().getPlayersOnProxy(validatedProxy.get());
     sendTotalProxyCount(context.getSource(), validatedProxy.get(), proxyPlayers.size());
+    return SINGLE_SUCCESS;
+  }
+
+  private int networkMap(CommandContext<CommandSource> context) {
+    CommandSource source = context.getSource();
+    String selfProxyId = server.getProxyId();
+
+    Map<String, Integer> proxyCounts = new TreeMap<>();
+    int totalPlayers = 0;
+
+    for (VelocityClusterPlayer player : server.getClusterPlayerService().getAllPlayers()) {
+      proxyCounts.merge(player.getProxyId(), 1, Integer::sum);
+      totalPlayers++;
+    }
+
+    for (Map.Entry<String, Integer> entry : proxyCounts.entrySet()) {
+      String label = entry.getKey();
+      if (label.equalsIgnoreCase(selfProxyId)) {
+        label += " (*)";
+      }
+      source.sendMessage(Component.text(label + ": " + entry.getValue(), NamedTextColor.YELLOW));
+    }
+
+    sendTotalProxyCount(source, null, totalPlayers);
     return SINGLE_SUCCESS;
   }
 
