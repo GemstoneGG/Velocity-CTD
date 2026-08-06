@@ -39,20 +39,32 @@ public class ServerMap {
 
   private final Map<String, VelocityRegisteredServer> servers = new ConcurrentHashMap<>();
 
+  /**
+   * Maps configured {@code custom-id} aliases (lower-cased) to their registered server. A custom
+   * id lets players refer to a server by an alternate name in commands; the real server name always
+   * takes priority on lookup.
+   */
+  private final Map<String, VelocityRegisteredServer> customIds = new ConcurrentHashMap<>();
+
   public ServerMap(@Nullable VelocityServer server) {
     this.server = server;
   }
 
   /**
-   * Returns the server associated with the given name.
+   * Returns the server associated with the given name, or with a configured {@code custom-id}
+   * alias if no server has that exact name.
    *
-   * @param name the name to look up
+   * @param name the name or custom id to look up
    * @return the server, if it exists
    */
   public Optional<VelocityRegisteredServer> getServer(String name) {
     Preconditions.checkNotNull(name, "server");
     String lowerName = name.toLowerCase(Locale.US);
-    return Optional.ofNullable(servers.get(lowerName));
+    VelocityRegisteredServer registered = servers.get(lowerName);
+    if (registered == null) {
+      registered = customIds.get(lowerName);
+    }
+    return Optional.ofNullable(registered);
   }
 
   public Collection<VelocityRegisteredServer> getAllServers() {
@@ -86,6 +98,7 @@ public class ServerMap {
       throw new IllegalArgumentException(
           "Server with name " + serverInfo.getName() + " already registered");
     } else if (existing == null) {
+      registerCustomId(serverInfo, rs);
       if (server != null) {
         server.getEventManager().fireAndForget(new ServerRegisteredEvent(rs));
       }
@@ -94,6 +107,21 @@ public class ServerMap {
     } else {
       return existing;
     }
+  }
+
+  private void registerCustomId(ServerInfo serverInfo, VelocityRegisteredServer rs) {
+    String customId = serverInfo.getCustomId();
+    if (customId == null || customId.isBlank()) {
+      return;
+    }
+
+    String lowerCustomId = customId.toLowerCase(Locale.US);
+    // Never let a custom id shadow a real server name.
+    if (servers.containsKey(lowerCustomId)) {
+      return;
+    }
+
+    customIds.putIfAbsent(lowerCustomId, rs);
   }
 
   /**
@@ -114,6 +142,11 @@ public class ServerMap {
         "Trying to remove server %s with differing information", serverInfo.getName());
     Preconditions.checkState(servers.remove(lowerName, rs),
         "Server with name %s replaced whilst unregistering", serverInfo.getName());
+
+    String customId = serverInfo.getCustomId();
+    if (customId != null && !customId.isBlank()) {
+      customIds.remove(customId.toLowerCase(Locale.US), rs);
+    }
 
     if (server != null) {
       server.getEventManager().fireAndForget(new ServerUnregisteredEvent(rs));

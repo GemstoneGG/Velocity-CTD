@@ -265,7 +265,7 @@ public class VelocityQueueEntry implements QueueEntry {
     if (attempts >= config.getMaxSendRetries()) {
       Component message = Component.translatable("velocity.queue.error.max-send-retries-reached")
           .arguments(
-              Component.text(this.queue.getName()),
+              Component.text(this.queue.getDisplayName()),
               Component.text(config.getMaxSendRetries()));
       this.server.getScheduler()
           .buildTask(VelocityVirtualPlugin.INSTANCE,

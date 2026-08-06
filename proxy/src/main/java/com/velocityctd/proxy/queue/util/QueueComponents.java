@@ -53,11 +53,11 @@ public class QueueComponents {
           .arguments(
               Component.text(position),
               Component.text(queue.size()),
-              Component.text(queue.getName()),
+              Component.text(queue.getDisplayName()),
               formatEta(queue, position));
     } else if (entry.isWaitingForConnection()) {
       return Component.translatable("velocity.queue.player-status.connecting", NamedTextColor.YELLOW)
-          .arguments(Component.text(queue.getName()));
+          .arguments(Component.text(queue.getDisplayName()));
     } else if (queue.getState() == PAUSED) {
       return Component.translatable("velocity.queue.player-status.paused", NamedTextColor.YELLOW);
     } else if (queue.getServerStatus().isActive()) {
@@ -65,14 +65,14 @@ public class QueueComponents {
           .arguments(
               Component.text(position),
               Component.text(queue.size()),
-              Component.text(queue.getName()),
+              Component.text(queue.getDisplayName()),
               formatEta(queue, position));
     } else {
       return Component.translatable("velocity.queue.player-status.offline", NamedTextColor.YELLOW)
           .arguments(
               Component.text(position),
               Component.text(queue.size()),
-              Component.text(queue.getName()));
+              Component.text(queue.getDisplayName()));
     }
   }
 

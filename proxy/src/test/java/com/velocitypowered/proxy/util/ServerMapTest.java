@@ -64,4 +64,39 @@ class ServerMapTest {
     VelocityRegisteredServer connection = map.register(info);
     assertEquals(connection, map.register(info));
   }
+
+  @Test
+  void resolvesServerByCustomId() {
+    ServerMap map = new ServerMap(null);
+    ServerInfo info = new ServerInfo("bedwars-lobby", TEST_ADDRESS, null, "BedWars", "bedwars", false);
+    VelocityRegisteredServer connection = map.register(info);
+
+    // Reachable by its real name...
+    assertEquals(Optional.of(connection), map.getServer("bedwars-lobby"));
+    // ...and by its custom id, case-insensitively.
+    assertEquals(Optional.of(connection), map.getServer("bedwars"));
+    assertEquals(Optional.of(connection), map.getServer("BEDWARS"));
+  }
+
+  @Test
+  void realServerNameTakesPriorityOverCustomId() {
+    ServerMap map = new ServerMap(null);
+    // "hub" is both a real server and another server's custom id.
+    ServerInfo hub = new ServerInfo("hub", TEST_ADDRESS);
+    ServerInfo other = new ServerInfo("lobby", TEST_ADDRESS, null, null, "hub", false);
+    VelocityRegisteredServer hubConnection = map.register(hub);
+    map.register(other);
+
+    assertEquals(Optional.of(hubConnection), map.getServer("hub"));
+  }
+
+  @Test
+  void customIdIsReleasedOnUnregister() {
+    ServerMap map = new ServerMap(null);
+    ServerInfo info = new ServerInfo("bedwars-lobby", TEST_ADDRESS, null, "BedWars", "bedwars", false);
+    map.register(info);
+    map.unregister(info);
+
+    assertEquals(Optional.empty(), map.getServer("bedwars"));
+  }
 }
