@@ -74,7 +74,11 @@ public final class PlayerIdentityLock {
     }
   }
 
-  @NonNull CompletableFuture<LockHandle> acquire(@NonNull UUID uuid, @NonNull String name, long timeout, @NonNull TimeUnit unit, @NonNull ScheduledExecutorService scheduler) {
+  @NonNull CompletableFuture<LockHandle> acquire(@NonNull UUID uuid,
+                                                 @NonNull String name,
+                                                 long timeout,
+                                                 @NonNull TimeUnit unit,
+                                                 @NonNull ScheduledExecutorService scheduler) {
     synchronized (monitor) {
       if (!isLocked(uuid, name)) {
         lockedUuids.add(uuid);
