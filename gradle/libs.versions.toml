@@ -9,7 +9,7 @@ jline = "4.4.0"
 
 [plugins]
 shadow = "com.gradleup.shadow:9.6.1"
-spotless = "com.diffplug.spotless:8.10.0"
+spotless = "com.diffplug.spotless:8.10.1"
 
 [libraries]
 adventure-bom = "net.kyori:adventure-bom:5.2.0"
