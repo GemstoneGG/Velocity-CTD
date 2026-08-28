@@ -750,6 +750,10 @@ public final class VelocityConfiguration implements ProxyConfig {
     return commands.isOverrideServerCommandUsage();
   }
 
+  public boolean isCallbackPermission() {
+    return commands.isCallbackPermission();
+  }
+
   @Override
   public int getReadTimeout() {
     return advanced.getReadTimeout();
@@ -1908,6 +1912,13 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private boolean transferEnabled = true;
 
+    /**
+     * Whether a permission node is used for the /velocity:callback command.
+     * Allows advanced users to control execution of ClickEvent callbacks.
+     */
+    @Expose
+    private boolean callbackPermission = true;
+
     private Commands() {
     }
 
@@ -1926,6 +1937,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.sendCommand = config.getOrElse("send-enabled", true);
         this.overrideServerCommandUsage = config.getOrElse("override-server-command-usage", false);
         this.transferEnabled = config.getOrElse("transfer-enabled", true);
+        this.callbackPermission = config.getOrElse("callback-permission", false);
       }
     }
 
@@ -1981,6 +1993,10 @@ public final class VelocityConfiguration implements ProxyConfig {
       return transferEnabled;
     }
 
+    public boolean isCallbackPermission() {
+      return callbackPermission;
+    }
+
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
@@ -1997,6 +2013,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("sendCommand", sendCommand)
           .add("overrideServerCommandUsage", overrideServerCommandUsage)
           .add("transferEnabled", transferEnabled)
+          .add("callbackPermission", callbackPermission)
           .toString();
     }
   }
