@@ -91,6 +91,7 @@ dependencies, useful performance improvements, and more.
   to all users on the proxy or proxies, depending on your setup).
 * `velocity.command.alertraw` [/alertraw] (Allows you to display public non-formatted
   alerts to all users on the proxy or proxies, depending on your setup).
+* `velocity.command.callback` [/velocity:callback] (Controls execution of ClickEvent callbacks, depending on your configuration).
 * `velocity.command.find` [/find] (Allows you to find the specific server a user is
   actively connected to on the network).
 * `velocity.command.gkick` [/gkick] (Allows you to kick a player from the network,
