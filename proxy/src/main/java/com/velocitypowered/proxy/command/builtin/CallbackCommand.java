@@ -24,13 +24,17 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.adventure.ClickCallbackManager;
 import java.util.UUID;
 
 public class CallbackCommand implements BuiltinCommandDefinition {
 
+  private final VelocityServer server;
+
   public CallbackCommand(VelocityServer server) {
+    this.server = server;
   }
 
   @Override
@@ -42,6 +46,8 @@ public class CallbackCommand implements BuiltinCommandDefinition {
   public BrigadierCommand build() {
     LiteralCommandNode<CommandSource> node = BrigadierCommand
             .literalArgumentBuilder(label())
+            .requires(source -> !server.getConfiguration().isCallbackPermission()
+                    || source.getPermissionValue("velocity.command.callback") != Tristate.FALSE)
             .then(BrigadierCommand.requiredArgumentBuilder("id", StringArgumentType.word())
                     .executes(this::execute))
             .build();
