@@ -58,7 +58,6 @@ public record PingPassthroughMode(boolean version, boolean players,
   }
 
   public boolean enabled() {
-    return this.version || this.players || this.description || this.favicon
-      || this.modinfo;
+    return this.version || this.players || this.description || this.favicon || this.modinfo;
   }
 }
