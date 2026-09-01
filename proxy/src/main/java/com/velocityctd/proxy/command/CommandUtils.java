@@ -34,6 +34,7 @@ import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
+import com.velocitypowered.proxy.util.TranslatableMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -48,9 +49,17 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.translation.Argument;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class CommandUtils {
+
+  private static final Logger LOGGER = LogManager.getLogger(CommandUtils.class);
+  private static final PlainTextComponentSerializer PLAIN_TEXT =
+      PlainTextComponentSerializer.builder().flattener(TranslatableMapper.FLATTENER).build();
 
   private CommandUtils() {
     throw new AssertionError();
@@ -250,12 +259,52 @@ public class CommandUtils {
       throw new IllegalArgumentException("Player is already on target server.");
     }
 
-    if (proxyServer.getConfiguration().getQueue().getNoQueueServers().contains(target.getServerInfo().getName())
-        || !proxyServer.isQueueEnabled()
-        || player.hasPermission("velocity.queue.bypass")) {
-      player.createConnectionRequest(target).connectWithIndication();
-    } else {
+    if (shouldQueue(proxyServer, player, target)) {
       proxyServer.getQueueManager().queue(player, target);
+    } else {
+      player.createConnectionRequest(target).connectWithIndication();
+    }
+  }
+
+  /**
+   * Determines whether a player being sent to `target` should be enqueued for it instead of
+   * connected to it directly.
+   */
+  public static boolean shouldQueue(VelocityServer proxyServer, ConnectedPlayer player, VelocityRegisteredServer target) {
+    return proxyServer.isQueueEnabled()
+        && !proxyServer.getConfiguration().getQueue().getNoQueueServers().contains(target.getServerInfo().getName())
+        && !player.hasPermission("velocity.queue.bypass");
+  }
+
+  /**
+   * Handles a failed attempt to send a player to a server without telling the player about it: logs
+   * the failure and, when the backend turned them away with a configured banned reason, drops them
+   * from every queue. For callers that walk a chain of servers themselves and only want to report
+   * its final outcome; {@code connectWithIndication} does this and more on its own.
+   *
+   * @param reason    the reason the backend gave, or {@code null} if it gave none
+   * @param throwable the failure that aborted the attempt, or {@code null} if it completed normally
+   */
+  public static void reportConnectionFailure(VelocityServer proxyServer, ConnectedPlayer player,
+                                             VelocityRegisteredServer target, @Nullable Component reason,
+                                             @Nullable Throwable throwable) {
+    String targetName = target.getServerInfo().getName();
+    if (throwable != null) {
+      LOGGER.error("{}: unable to connect to server {}", player, targetName, throwable);
+    } else if (proxyServer.getConfiguration().isLogPlayerConnections()) {
+      LOGGER.error("{}: disconnected while connecting to {}: {}", player, targetName,
+          reason == null ? "" : PLAIN_TEXT.serialize(reason));
+    }
+
+    if (reason == null || !proxyServer.isQueueEnabled()) {
+      return;
+    }
+
+    for (String bannedReason : proxyServer.getConfiguration().getQueue().getBannedReason()) {
+      if (ComponentUtils.containsString(reason, bannedReason)) {
+        proxyServer.getQueueManager().removePlayerEntirely(player);
+        break;
+      }
     }
   }
 
