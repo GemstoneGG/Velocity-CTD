@@ -751,7 +751,7 @@ public final class VelocityConfiguration implements ProxyConfig {
   }
 
   /**
-   * Returns whether the <code>/shutdown</code> command can be used in-game.
+   * Returns whether the <code>/shutdown</code> command can be used by a player.
    *
    * @return {@code true} if enabled
    */
