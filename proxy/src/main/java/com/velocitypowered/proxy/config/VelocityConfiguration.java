@@ -755,8 +755,8 @@ public final class VelocityConfiguration implements ProxyConfig {
    *
    * @return {@code true} if enabled
    */
-  public boolean isShutdownInGameEnabled() {
-    return commands.allowShutdownInGame;
+  public boolean isShutdownEnabledAsPlayer() {
+    return commands.shutdownEnabledAsPlayer;
   }
 
   @Override
@@ -1922,7 +1922,7 @@ public final class VelocityConfiguration implements ProxyConfig {
      * If enabled, players with "velocity.command.shutdown" can use the command.
      */
     @Expose
-    private boolean allowShutdownInGame = false;
+    private boolean shutdownEnabledAsPlayer = false;
 
     private Commands() {
     }
@@ -1942,7 +1942,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.sendCommand = config.getOrElse("send-enabled", true);
         this.overrideServerCommandUsage = config.getOrElse("override-server-command-usage", false);
         this.transferEnabled = config.getOrElse("transfer-enabled", true);
-        this.allowShutdownInGame = config.getOrElse("allow-shutdown-in-game", false);
+        this.shutdownEnabledAsPlayer = config.getOrElse("allow-shutdown-in-game", false);
       }
     }
 
@@ -2014,7 +2014,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("sendCommand", sendCommand)
           .add("overrideServerCommandUsage", overrideServerCommandUsage)
           .add("transferEnabled", transferEnabled)
-          .add("allowShutdownInGame", allowShutdownInGame)
+          .add("shutdownEnabledAsPlayer", shutdownEnabledAsPlayer)
           .toString();
     }
   }
