@@ -563,9 +563,15 @@ public class VelocityCommand implements BuiltinCommandDefinition {
         connectOrder.add(s);
       }
 
+      JsonArray hubServers = new JsonArray();
+      for (String s : server.getConfiguration().getHubServers()) {
+        hubServers.add(s);
+      }
+
       JsonObject proxyConfig = InformationUtils.collectProxyConfig(server.getConfiguration());
       proxyConfig.add("servers", servers);
       proxyConfig.add("connectOrder", connectOrder);
+      proxyConfig.add("hubServers", hubServers);
       proxyConfig.add("forcedHosts",
               InformationUtils.collectForcedHosts(server.getConfiguration()));
 
