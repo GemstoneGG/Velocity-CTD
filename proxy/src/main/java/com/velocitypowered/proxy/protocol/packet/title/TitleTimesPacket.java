@@ -21,6 +21,7 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
+import org.jetbrains.annotations.NotNull;
 
 public class TitleTimesPacket extends GenericTitlePacket {
 
@@ -30,8 +31,9 @@ public class TitleTimesPacket extends GenericTitlePacket {
 
   private int fadeOut;
 
-  public TitleTimesPacket() {
-    setAction(ActionType.SET_TIMES);
+  @Override
+  public @NotNull ActionType getAction() {
+    return ActionType.SET_TIMES;
   }
 
   @Override
