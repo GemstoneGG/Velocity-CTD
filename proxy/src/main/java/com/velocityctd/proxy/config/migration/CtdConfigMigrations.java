@@ -158,9 +158,11 @@ public class CtdConfigMigrations {
         ),
         migration(
             "The servers the \"/hub\" command sends players to, in order of preference.\n"
-                + " The same dynamic fallback principles apply here: \"dynamic-fallbacks-filter\" decides\n"
-                + " which of these servers is picked, and players already on the picked server are told\n"
-                + " they are already connected.\n"
+                + " The same dynamic fallback principles apply here: \"dynamic-fallbacks-filter\" decides the\n"
+                + " order, and \"/hub\" walks that order until a server accepts the player, so an unreachable\n"
+                + " hub drops down to the next one instead of failing the command.\n"
+                + " The walk stops at the server the player is already on: they are told they are already\n"
+                + " connected rather than being moved to a hub they like less.\n"
                 + " Leave this empty (the default) to have \"/hub\" use the regular fallback chain instead,\n"
                 + " meaning the forced host matching the player's virtual host, or \"try\" if there is none.",
             "servers.hub-servers",
