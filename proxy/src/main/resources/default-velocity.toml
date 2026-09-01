@@ -173,6 +173,7 @@ hub-enabled = true
 ping-enabled = true
 plist-enabled = true
 transfer-enabled = true
+allow-shutdown-in-game = false
 
 # Whether to use the default "/server" output, or whether to override it with the "velocity.command.server.usage" key.
 override-server-command-usage = false
