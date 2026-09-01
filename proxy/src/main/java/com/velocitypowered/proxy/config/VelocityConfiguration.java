@@ -750,7 +750,7 @@ public final class VelocityConfiguration implements ProxyConfig {
     return commands.isOverrideServerCommandUsage();
   }
 
-    /**
+  /**
    * Returns whether the <code>/shutdown</code> command can be used in-game.
    *
    * @return {@code true} if enabled
@@ -2014,6 +2014,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("sendCommand", sendCommand)
           .add("overrideServerCommandUsage", overrideServerCommandUsage)
           .add("transferEnabled", transferEnabled)
+          .add("allowShutdownInGame", allowShutdownInGame)
           .toString();
     }
   }
