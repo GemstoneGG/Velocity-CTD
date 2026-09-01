@@ -123,27 +123,32 @@ public final class PlayerRegistry {
   }
 
   /**
-   * Fires {@link DisconnectEvent} (if not already fired by a kick path), removes the connection
-   * from the registry maps, and releases the identity lock.
+   * Removes the connection from the registry maps, then fires {@link DisconnectEvent} (if not
+   * already fired by a kick path) and releases the identity lock.
    *
    * <p>This is the disconnect/unregister counterpart to {@link #registerConnection}. It is safe
    * to call multiple times: {@link ConnectedPlayer#markDisconnectFired()} ensures the event is
    * fired only once.
    *
    * @return a future that completes once {@code DisconnectEvent} handlers have run and the
-   *         player has been removed from the registry
+   *         player's cleanup has finished
    */
   public @NonNull CompletableFuture<Void> unregisterConnection(@NonNull ConnectedPlayer player) {
+    // Drop the player before anything that can block: acquiring the identity lock waits on its
+    // current holder, and DisconnectEvent handlers may run inline on this thread indefinitely.
+    // Neither may keep a dead connection visible to getPlayer() (issue GemstoneGG#1055).
+    boolean wasRegistered = removeFromMaps(player);
+
     LockHandle held = player.consumeIdentityLock();
     if (held != null) {
-      return withLockReleasedOnFailure(held, () -> doUnregisterLocked(player))
+      return withLockReleasedOnFailure(held, () -> doUnregisterLocked(player, wasRegistered))
           .whenComplete((v, ex) -> held.release());
     }
 
     UUID uuid = player.getUniqueId();
     String name = player.getUsername().toLowerCase(Locale.ROOT);
     return identityLock.acquire(uuid, name)
-        .thenCompose(lock -> withLockReleasedOnFailure(lock, () -> doUnregisterLocked(player))
+        .thenCompose(lock -> withLockReleasedOnFailure(lock, () -> doUnregisterLocked(player, wasRegistered))
             .whenComplete((v, ex) -> lock.release()));
   }
 
@@ -262,14 +267,14 @@ public final class PlayerRegistry {
     return fireDisconnectAndCleanup(existing, "kicked player", LoginStatus.CONFLICTING_LOGIN);
   }
 
-  private CompletableFuture<Void> doUnregisterLocked(ConnectedPlayer player) {
+  private CompletableFuture<Void> doUnregisterLocked(ConnectedPlayer player, boolean wasRegistered) {
     if (!player.markDisconnectFired()) {
       // DisconnectEvent was already fired (e.g. by the kick path). Cleanup has already run
       // and teardownFuture has already been completed by the kicker; nothing more to do.
       return completedFuture(null);
     }
 
-    return fireDisconnectAndCleanup(player, "player", computeDisconnectStatus(player));
+    return fireDisconnectAndCleanup(player, "player", computeDisconnectStatus(player, wasRegistered));
   }
 
   /**
@@ -302,9 +307,9 @@ public final class PlayerRegistry {
   /**
    * Resolves to all {@link LoginStatus} values except for {@link LoginStatus#CONFLICTING_LOGIN}.
    */
-  private LoginStatus computeDisconnectStatus(ConnectedPlayer player) {
-    ConnectedPlayer registered = byUuid.get(player.getUniqueId());
-    if (registered != player) {
+  private LoginStatus computeDisconnectStatus(ConnectedPlayer player, boolean wasRegistered) {
+    if (!wasRegistered) {
+      // Rejected, or another connection had already taken over the slot.
       return player.isKnownDisconnect() ? LoginStatus.CANCELLED_BY_PROXY : LoginStatus.CANCELLED_BY_USER;
     }
     if (!player.isLoginCompleted() && !player.isKnownDisconnect()) {
@@ -314,6 +319,7 @@ public final class PlayerRegistry {
   }
 
   private void runCleanup(ConnectedPlayer player, Throwable error, String label) {
+    // No-op for the unregister path, which removes up front; this is the removal for forciblyEvict.
     removeFromMaps(player);
     try {
       player.disconnected();
@@ -331,9 +337,14 @@ public final class PlayerRegistry {
     }
   }
 
-  private void removeFromMaps(ConnectedPlayer player) {
+  /**
+   * Removes the player from the registry maps, leaving entries owned by a newer connection alone.
+   *
+   * @return {@code true} if the player owned the uuid entry and it was removed
+   */
+  private boolean removeFromMaps(ConnectedPlayer player) {
     byName.remove(player.getUsername().toLowerCase(Locale.ROOT), player);
-    byUuid.remove(player.getUniqueId(), player);
+    return byUuid.remove(player.getUniqueId(), player);
   }
 
   public Optional<ConnectedPlayer> getPlayer(@NonNull UUID uuid) {
