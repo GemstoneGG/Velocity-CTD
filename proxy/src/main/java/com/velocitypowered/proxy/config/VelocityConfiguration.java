@@ -37,6 +37,7 @@ import com.velocitypowered.proxy.config.migration.KeyAuthenticationMigration;
 import com.velocitypowered.proxy.config.migration.MiniMessageTranslationsMigration;
 import com.velocitypowered.proxy.config.migration.MotdMigration;
 import com.velocitypowered.proxy.config.migration.PacketLimiterMigration;
+import com.velocitypowered.proxy.config.migration.PingPassthroughMigration;
 import com.velocitypowered.proxy.config.migration.ReadTimeoutMigration;
 import com.velocitypowered.proxy.config.migration.TransferIntegrationMigration;
 import com.velocitypowered.proxy.util.AddressUtil;
@@ -112,7 +113,7 @@ public final class VelocityConfiguration implements ProxyConfig {
   private final boolean kickExistingPlayersCheckIp;
 
   @Expose
-  private final PingPassthroughMode pingPassthrough;
+  private PingPassthroughMode pingPassthrough = PingPassthroughMode.DEFAULT;
 
   @Expose
   private final Servers servers;
@@ -1112,7 +1113,8 @@ public final class VelocityConfiguration implements ProxyConfig {
           new MiniMessageTranslationsMigration(),
           new TransferIntegrationMigration(),
           new PacketLimiterMigration(),
-          new ReadTimeoutMigration()
+          new ReadTimeoutMigration(),
+          new PingPassthroughMigration()
       ));
 
       migrations.addAll(CtdConfigMigrations.createCtdMigrations());
@@ -1174,7 +1176,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       CommentedConfig proxyAddressesConfig = config.get("proxy-addresses");
       CommentedConfig playerCapsConfig = config.get("playercaps");
       PlayerInfoForwarding forwardingMode = config.getEnumOrElse("player-info-forwarding-mode", PlayerInfoForwarding.NONE);
-      PingPassthroughMode pingPassthroughMode = config.getEnumOrElse("ping-passthrough", PingPassthroughMode.DISABLED);
+      PingPassthroughMode pingPassthrough = PingPassthroughMode.fromConfig(config.get("ping-passthrough"));
       String bind = config.getOrElse("bind", "0.0.0.0:25565");
       int maxPlayers = config.getIntOrElse("show-max-players", 500);
       boolean onlineMode = config.getOrElse("online-mode", true);
@@ -1285,7 +1287,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           forwardingSecret,
           kickExisting,
           kickExistingCheckIp,
-          pingPassthroughMode,
+          pingPassthrough,
           enablePlayerAddressLogging,
           new Servers(serversConfig),
           new ForcedHosts(forcedHostsConfig),
