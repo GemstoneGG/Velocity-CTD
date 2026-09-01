@@ -66,7 +66,8 @@ public class LegacyTitlePacket extends GenericTitlePacket {
         buf.writeInt(stay);
         buf.writeInt(fadeOut);
       }
-      case HIDE, RESET -> {}
+      case HIDE, RESET -> {
+      }
       default -> throw new UnsupportedOperationException("Unknown action " + this.action);
     }
   }
