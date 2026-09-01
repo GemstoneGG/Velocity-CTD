@@ -35,10 +35,10 @@ import com.velocitypowered.proxy.command.builtin.BuiltinCommandDefinition;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.TreeMap;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -170,9 +170,9 @@ public class PlistCommand implements BuiltinCommandDefinition {
 
   private int networkMap(CommandContext<CommandSource> context) {
     CommandSource source = context.getSource();
-    String selfProxyId = server.getProxyId();
+    String selfProxyId = server.getClusterProxyService().getSelfProxyId();
 
-    Map<String, Integer> proxyCounts = new TreeMap<>();
+    Map<String, Integer> proxyCounts = new HashMap<>();
     int totalPlayers = 0;
 
     for (VelocityClusterPlayer player : server.getClusterPlayerService().getAllPlayers()) {
@@ -180,12 +180,17 @@ public class PlistCommand implements BuiltinCommandDefinition {
       totalPlayers++;
     }
 
-    for (Map.Entry<String, Integer> entry : proxyCounts.entrySet()) {
-      String label = entry.getKey();
-      if (label.equalsIgnoreCase(selfProxyId)) {
-        label += " (*)";
-      }
-      source.sendMessage(Component.text(label + ": " + entry.getValue(), NamedTextColor.YELLOW));
+    for (String proxyId : server.getClusterProxyService().getAllProxyIds()) {
+      int count = proxyCounts.getOrDefault(proxyId, 0);
+      source.sendMessage(Component.translatable()
+          .key(proxyId.equalsIgnoreCase(selfProxyId)
+              ? "velocity.command.plist-proxy-entry-self"
+              : "velocity.command.plist-proxy-entry")
+          .arguments(
+              Argument.string("proxy", proxyId),
+              Argument.numeric("count", count)
+          )
+          .build());
     }
 
     sendTotalProxyCount(source, null, totalPlayers);
