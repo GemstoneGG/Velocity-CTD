@@ -56,7 +56,7 @@ public class ShutdownCommand implements BuiltinCommandDefinition {
     return new BrigadierCommand(LiteralArgumentBuilder.<CommandSource>literal(label())
               .requires(source ->
                       source instanceof ConsoleCommandSource
-                              || (server.getConfiguration().isShutdownInGameEnabled()
+                              || (server.getConfiguration().isShutdownEnabledAsPlayer()
                               && source.hasPermission("velocity.command.shutdown"))
               )
               .executes(context -> {
