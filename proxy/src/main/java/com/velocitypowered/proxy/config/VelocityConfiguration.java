@@ -1942,7 +1942,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.sendCommand = config.getOrElse("send-enabled", true);
         this.overrideServerCommandUsage = config.getOrElse("override-server-command-usage", false);
         this.transferEnabled = config.getOrElse("transfer-enabled", true);
-        this.shutdownEnabledAsPlayer = config.getOrElse("allow-shutdown-in-game", false);
+        this.shutdownEnabledAsPlayer = config.getOrElse("shutdown-enabled-as-player", false);
       }
     }
 
