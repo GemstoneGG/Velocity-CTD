@@ -48,6 +48,7 @@ import com.velocitypowered.proxy.protocol.packet.BossBarPacket;
 import com.velocitypowered.proxy.protocol.packet.ClientSettingsPacket;
 import com.velocitypowered.proxy.protocol.packet.JoinGamePacket;
 import com.velocitypowered.proxy.protocol.packet.KeepAlivePacket;
+import com.velocitypowered.proxy.protocol.packet.ObjectivePacket;
 import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
 import com.velocitypowered.proxy.protocol.packet.ResourcePackResponsePacket;
 import com.velocitypowered.proxy.protocol.packet.RespawnPacket;
@@ -56,6 +57,7 @@ import com.velocitypowered.proxy.protocol.packet.ServerboundPlayerLoadedPacket;
 import com.velocitypowered.proxy.protocol.packet.TabCompleteRequestPacket;
 import com.velocitypowered.proxy.protocol.packet.TabCompleteResponsePacket;
 import com.velocitypowered.proxy.protocol.packet.TabCompleteResponsePacket.Offer;
+import com.velocitypowered.proxy.protocol.packet.TeamPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatAcknowledgementPacket;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatHandler;
 import com.velocitypowered.proxy.protocol.packet.chat.ChatTimeKeeper;
@@ -84,8 +86,10 @@ import io.netty.util.ReferenceCountUtil;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -123,6 +127,8 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
   private boolean spawned = false;
 
   private final List<UUID> serverBossBars = new ArrayList<>();
+  private final Set<String> serverObjectives = new HashSet<>();
+  private final Set<String> serverTeams = new HashSet<>();
 
   private final Queue<PluginMessagePacket> loginPluginMessages = new ConcurrentLinkedQueue<>();
 
@@ -638,10 +644,11 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
       spawned = false;
       player.clearPlayerListHeaderAndFooterSilent();
       player.getTabList().clearAllSilent();
+      serverObjectives.clear();
+      serverTeams.clear();
+      serverBossBars.clear();
       if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
         player.getBossBarManager().dropPackets();
-      } else {
-        serverBossBars.clear();
       }
     }
 
@@ -684,18 +691,34 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
 
     if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
       player.getBossBarManager().sendBossBars();
-    } else {
-      // Remove previous boss bars. These don't get cleared when sending JoinGame (up until 1.20.2),
-      // thus the need to track them.
-      for (UUID serverBossBar : serverBossBars) {
-        BossBarPacket deletePacket = new BossBarPacket();
-        deletePacket.setUuid(serverBossBar);
-        deletePacket.setAction(BossBarPacket.REMOVE);
-        player.getConnection().delayedWrite(deletePacket);
-      }
-
-      serverBossBars.clear();
     }
+
+    // Remove previous server-created boss bars. Pre-1.20.2 these are never cleared by JoinGame; on
+    // 1.20.2+ the configuration phase clears them (and the set is emptied in doSwitch), so this is a
+    // no-op there EXCEPT on a fast transition that stays in PLAY, where it is what removes them.
+    for (UUID serverBossBar : serverBossBars) {
+      BossBarPacket deletePacket = new BossBarPacket();
+      deletePacket.setUuid(serverBossBar);
+      deletePacket.setAction(BossBarPacket.REMOVE);
+      player.getConnection().delayedWrite(deletePacket);
+    }
+    serverBossBars.clear();
+
+    for (String serverObjective : serverObjectives) {
+      ObjectivePacket deletePacket = new ObjectivePacket();
+      deletePacket.setName(serverObjective);
+      deletePacket.setAction(ObjectivePacket.REMOVE);
+      player.getConnection().delayedWrite(deletePacket);
+    }
+
+    serverObjectives.clear();
+    for (String serverTeam : serverTeams) {
+      TeamPacket deletePacket = new TeamPacket();
+      deletePacket.setName(serverTeam);
+      deletePacket.setMode(TeamPacket.REMOVE);
+      player.getConnection().delayedWrite(deletePacket);
+    }
+    serverTeams.clear();
 
     // Tell the server about the proxy's plugin message channels.
     ProtocolVersion serverVersion = serverMc.getProtocolVersion();
@@ -773,6 +796,14 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
 
   public List<UUID> getServerBossBars() {
     return serverBossBars;
+  }
+
+  public Set<String> getServerObjectives() {
+    return serverObjectives;
+  }
+
+  public Set<String> getServerTeams() {
+    return serverTeams;
   }
 
   private boolean handleCommandTabComplete(TabCompleteRequestPacket packet) {

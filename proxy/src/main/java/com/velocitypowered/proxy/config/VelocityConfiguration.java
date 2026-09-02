@@ -924,6 +924,16 @@ public final class VelocityConfiguration implements ProxyConfig {
   }
 
   /**
+   * Returns whether 1.20.2+ players switching backends skip the client-visible configuration phase
+   * when the registries are compatible, completing the switch entirely in the PLAY state.
+   *
+   * @return {@code true} if the fast server-switch path is enabled
+   */
+  public boolean isFastServerSwitch() {
+    return advanced.isFastServerSwitch();
+  }
+
+  /**
    * Gets the dynamic fallback filter mode configured for server selection.
    *
    * @return the fallback filter identifier
@@ -2177,6 +2187,13 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private boolean poolPlayersAcrossSections = false;
 
+    /**
+     * Whether 1.20.2+ players switching backends skip the client-visible configuration phase when the
+     * registries are compatible, completing the switch entirely in the PLAY state.
+     */
+    @Expose
+    private boolean fastServerSwitch = false;
+
     private Advanced() {
     }
 
@@ -2217,6 +2234,7 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.backendBrandCustom = config.getOrElse("custom-brand-backend", "Paper");
         this.ignoreAnonymousPlayerRequest = config.getOrElse("ignore-anonymous-player-request", false);
         this.poolPlayersAcrossSections = config.getOrElse("pool-players-across-sections", false);
+        this.fastServerSwitch = config.getOrElse("fast-server-switch", false);
       }
     }
 
@@ -2336,6 +2354,10 @@ public final class VelocityConfiguration implements ProxyConfig {
       return poolPlayersAcrossSections;
     }
 
+    public boolean isFastServerSwitch() {
+      return fastServerSwitch;
+    }
+
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
@@ -2367,6 +2389,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("backendBrandCustom", backendBrandCustom)
           .add("ignoreAnonymousPlayerRequest", ignoreAnonymousPlayerRequest)
           .add("poolPlayersAcrossSections", poolPlayersAcrossSections)
+          .add("fastServerSwitch", fastServerSwitch)
           .toString();
     }
 

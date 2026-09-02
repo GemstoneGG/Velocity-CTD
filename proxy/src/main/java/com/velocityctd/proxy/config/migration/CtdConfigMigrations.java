@@ -232,6 +232,13 @@ public class CtdConfigMigrations {
             "advanced.pool-players-across-sections",
             false
         ),
+        migration(
+            "When a 1.20.2+ player switches backends and the registries are compatible, skip the\n"
+                + " client-visible configuration phase and complete the switch entirely in the PLAY state,\n"
+                + " which avoids the reconfiguration flicker. Falls back to a normal switch when incompatible.",
+            "advanced.fast-server-switch",
+            false
+        ),
 
         // [redis]
         migration(

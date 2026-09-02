@@ -32,6 +32,7 @@ import com.mojang.brigadier.tree.RootCommandNode;
 import com.velocityctd.api.event.permission.PermissionsChangeEvent;
 import com.velocityctd.api.permission.PermissionResolver;
 import com.velocityctd.api.queue.QueueState;
+import com.velocityctd.proxy.connection.fasttransition.ConfigStateSnapshot;
 import com.velocityctd.proxy.permission.PermissionUtils;
 import com.velocityctd.proxy.queue.VelocityQueue;
 import com.velocityctd.proxy.util.ComponentUtils;
@@ -110,6 +111,7 @@ import com.velocitypowered.proxy.protocol.packet.chat.builder.ChatBuilderFactory
 import com.velocitypowered.proxy.protocol.packet.chat.builder.ChatBuilderV2;
 import com.velocitypowered.proxy.protocol.packet.chat.legacy.LegacyChatPacket;
 import com.velocitypowered.proxy.protocol.packet.config.ClientboundServerLinksPacket;
+import com.velocitypowered.proxy.protocol.packet.config.KnownPacksPacket;
 import com.velocitypowered.proxy.protocol.packet.config.StartUpdatePacket;
 import com.velocitypowered.proxy.protocol.packet.title.GenericTitlePacket;
 import com.velocitypowered.proxy.protocol.util.ByteBufDataOutput;
@@ -305,6 +307,14 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   private @Nullable ClientSettingsPacket clientSettingsPacket;
 
+  private @Nullable ConfigStateSnapshot clientConfigSnapshot;
+
+  private @Nullable List<KnownPacksPacket.KnownPack> clientKnownPacks;
+
+  // Set by the fast-transition fallback: the backend was already answered, so the client's next
+  // known-packs response must be dropped. Only touched on the client event loop.
+  private boolean dropKnownPacksResponseToBackend;
+
   private volatile ChatQueue chatQueue;
 
   private final ChatBuilderFactory chatBuilderFactory;
@@ -490,6 +500,44 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   @Nullable
   public ClientSettingsPacket getClientSettingsPacket() {
     return clientSettingsPacket;
+  }
+
+  /**
+   * Returns the fingerprint of the registry/tag data the client currently holds, or {@code null}
+   * if the client has not yet completed a configuration.
+   */
+  public @Nullable ConfigStateSnapshot getClientConfigSnapshot() {
+    return clientConfigSnapshot;
+  }
+
+  public void setClientConfigSnapshot(@Nullable ConfigStateSnapshot clientConfigSnapshot) {
+    this.clientConfigSnapshot = clientConfigSnapshot;
+  }
+
+  /**
+   * Returns the known packs the client last advertised during configuration, or {@code null} if the
+   * client never negotiated known packs (pre-1.20.5).
+   */
+  public @Nullable List<KnownPacksPacket.KnownPack> getClientKnownPacks() {
+    return clientKnownPacks;
+  }
+
+  public void setClientKnownPacks(@Nullable List<KnownPacksPacket.KnownPack> clientKnownPacks) {
+    this.clientKnownPacks = clientKnownPacks;
+  }
+
+  public void setDropKnownPacksResponseToBackend(boolean drop) {
+    this.dropKnownPacksResponseToBackend = drop;
+  }
+
+  /**
+   * Returns whether the client's next known-packs response should be dropped instead of forwarded to
+   * the backend (fast-transition fallback), clearing the flag.
+   */
+  public boolean consumeDropKnownPacksResponseToBackend() {
+    boolean drop = this.dropKnownPacksResponseToBackend;
+    this.dropKnownPacksResponseToBackend = false;
+    return drop;
   }
 
   @Override
