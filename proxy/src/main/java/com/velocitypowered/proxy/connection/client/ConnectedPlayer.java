@@ -235,6 +235,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   private final CompletableFuture<Void> teardownFuture = new CompletableFuture<>();
 
+  private final @Nullable ScheduledFuture<?> clientKeepAliveTask;
+  private final long clientKeepAliveIntervalNanos;
+  private long lastClientKeepAliveNanos;
+
   /**
    * Per-identity lock held while this connection is in the registration/login pipeline.
    * Transferred to this player by {@code PlayerRegistry.registerConnection} and released by
@@ -353,6 +357,18 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     this.chatBuilderFactory = new ChatBuilderFactory(this.getProtocolVersion());
     this.resourcePackHandler = ResourcePackHandler.create(this, server);
     this.bossBarManager = new BossBarManager(this);
+
+    int readTimeout = server.getConfiguration().getReadTimeout();
+    if (readTimeout > 0) {
+      long interval = Math.max(1L, readTimeout / 3L);
+      this.clientKeepAliveIntervalNanos = TimeUnit.MILLISECONDS.toNanos(interval);
+      this.lastClientKeepAliveNanos = System.nanoTime();
+      this.clientKeepAliveTask = connection.eventLoop().scheduleWithFixedDelay(
+              this::runClientKeepAlive, interval, interval, TimeUnit.MILLISECONDS);
+    } else {
+      this.clientKeepAliveIntervalNanos = 0L;
+      this.clientKeepAliveTask = null;
+    }
   }
 
   /**
@@ -360,6 +376,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    */
   public void disconnected() {
     closePermissionSubscription();
+
+    if (clientKeepAliveTask != null) {
+      clientKeepAliveTask.cancel(false);
+    }
 
     for (VelocityBossBarImplementation bar : this.bossBars) {
       bar.viewerDisconnected(this);
@@ -1959,6 +1979,24 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       KeepAlivePacket keepAlive = new KeepAlivePacket();
       keepAlive.setRandomId(ThreadLocalRandom.current().nextLong());
       connection.write(keepAlive);
+    }
+  }
+
+  private void runClientKeepAlive() {
+    long now = System.nanoTime();
+    long elapsed = now - lastClientKeepAliveNanos;
+    lastClientKeepAliveNanos = now;
+    if (elapsed > clientKeepAliveIntervalNanos * 2L) {
+      refreshReadTimeout();
+    }
+    sendKeepAlive();
+  }
+
+  private void refreshReadTimeout() {
+    final var pipeline = connection.getChannel().pipeline();
+    if (pipeline.context(Connections.READ_TIMEOUT) != null) {
+      pipeline.replace(Connections.READ_TIMEOUT, Connections.READ_TIMEOUT, new ReadTimeoutHandler(
+              server.getConfiguration().getReadTimeout(), TimeUnit.MILLISECONDS));
     }
   }
 
