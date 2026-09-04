@@ -112,16 +112,17 @@ public class LeaveQueueCommand implements BuiltinCommandDefinition {
     }
 
     VelocityQueue<?> queue = this.server.getQueueManager().getQueue(registeredServer.getServerInfo().getName());
+    String display = registeredServer.getServerInfo().getDisplayName();
     if (queue.contains(player)) {
       queue.dequeue(player);
       player.sendMessage(
           Component.translatable("velocity.queue.command.left-queue")
-              .arguments(Component.text(registeredServer.getServerInfo().getName())));
+              .arguments(Component.text(display)));
       return SINGLE_SUCCESS;
     } else {
       player.sendMessage(
           Component.translatable("velocity.queue.error.not-in-queue")
-              .arguments(Component.text(registeredServer.getServerInfo().getName())));
+              .arguments(Component.text(display)));
       return 0;
     }
   }

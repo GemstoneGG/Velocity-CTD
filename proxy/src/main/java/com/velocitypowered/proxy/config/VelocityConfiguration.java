@@ -1636,6 +1636,9 @@ public final class VelocityConfiguration implements ProxyConfig {
           if (entry.getValue() instanceof CommentedConfig c) {
             String address = null;
             PlayerInfoForwarding forwardingMode = null;
+            String displayName = null;
+            String customId = null;
+            boolean hiddenFromServerList = false;
             for (UnmodifiableConfig.Entry entry2 : c.entrySet()) {
               if (entry2.getKey().equalsIgnoreCase("address")) {
                 address = entry2.getValue();
@@ -1654,13 +1657,26 @@ public final class VelocityConfiguration implements ProxyConfig {
               if (entry2.getKey().equalsIgnoreCase("maximum-version")) {
                 serverMaximumVersions.put(cleanValue(entry.getKey()), entry2.getValue());
               }
+
+              if (entry2.getKey().equalsIgnoreCase("display-name")) {
+                displayName = entry2.getValue();
+              }
+
+              if (entry2.getKey().equalsIgnoreCase("custom-id")) {
+                customId = cleanValue(entry2.getValue());
+              }
+
+              if (entry2.getKey().equalsIgnoreCase("hidden-from-server-list")) {
+                hiddenFromServerList = entry2.getValue();
+              }
             }
 
             if (address == null) {
               throw new IllegalArgumentException("Server entry " + entry.getKey() + " is missing address!");
             }
 
-            servers.put(cleanValue(entry.getKey()), new BackendServerConfig(address, forwardingMode));
+            servers.put(cleanValue(entry.getKey()),
+                new BackendServerConfig(address, forwardingMode, displayName, customId, hiddenFromServerList));
             // Support for old server config system (forwarding mode will be null)
           } else if (entry.getValue() instanceof String v) {
             servers.put(cleanValue(entry.getKey()), new BackendServerConfig(v));

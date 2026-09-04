@@ -70,6 +70,16 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
     return backend.getServerInfo().getName();
   }
 
+  /**
+   * Returns the cosmetic name of this queue's backend server, to be shown to players in place of
+   * {@link #getName()}. Falls back to the server name when no display name is configured.
+   *
+   * @return the display name of the backend server
+   */
+  public String getDisplayName() {
+    return backend.getServerInfo().getDisplayName();
+  }
+
   @Override
   public VelocityRegisteredServer getServer() {
     return backend;
