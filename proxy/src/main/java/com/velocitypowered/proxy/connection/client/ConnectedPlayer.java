@@ -1293,7 +1293,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * window, so its read-timeout must not fire -- otherwise a backend that stalls after accepting
    * the TCP connection times the idle client out before the backend connection's own timeout can
    * drive the fallback chain, dropping the player instead of moving them on. Restored by
-   * {@link #resumeReadTimeout()} once a server is reached (issue GemstoneGG#938).
+   * {@link #resumeReadTimeout()} once a server is reached, or once the attempt fails
+   * (issues GemstoneGG#938 and GemstoneGG#1055).
    */
   private void pauseReadTimeout() {
     final var pipeline = connection.getChannel().pipeline();
@@ -2159,6 +2160,13 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
             }
 
             this.resetIfInFlightIs(con);
+
+            if (connectedServer == null) {
+              // The attempt reached no server, so setConnectedServer never restored the read-timeout
+              // suspended above. Callers that don't kick on failure would otherwise leave this
+              // connection unable to ever time out (issue GemstoneGG#1055).
+              resumeReadTimeout();
+            }
           }, connection.eventLoop());
         }, connection.eventLoop());
       });
