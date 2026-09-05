@@ -26,6 +26,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
@@ -70,6 +74,33 @@ public final class PlayerIdentityLock {
     }
   }
 
+  @NonNull CompletableFuture<LockHandle> acquire(@NonNull UUID uuid,
+                                                 @NonNull String name,
+                                                 long timeout,
+                                                 @NonNull TimeUnit unit,
+                                                 @NonNull ScheduledExecutorService scheduler) {
+    synchronized (monitor) {
+      if (!isLocked(uuid, name)) {
+        lockedUuids.add(uuid);
+        lockedNames.add(name);
+        return CompletableFuture.completedFuture(new LockHandle(uuid, name));
+      }
+
+      CompletableFuture<LockHandle> future = new CompletableFuture<>();
+
+      Waiter waiter = new Waiter(uuid, name, future);
+      waiters.add(waiter);
+      try {
+        waiter.timeout = scheduler.schedule(() -> timeout(waiter), timeout, unit);
+      } catch (RuntimeException exception) {
+        waiters.remove(waiter);
+        future.completeExceptionally(exception);
+      }
+
+      return future;
+    }
+  }
+
   private boolean isLocked(UUID uuid, String name) {
     return lockedUuids.contains(uuid) || lockedNames.contains(name);
   }
@@ -87,6 +118,7 @@ public final class PlayerIdentityLock {
           lockedUuids.add(w.uuid);
           lockedNames.add(w.name);
           it.remove();
+          w.cancelTimeout();
           if (granted == null) {
             granted = new ArrayList<>(2);
           }
@@ -94,11 +126,26 @@ public final class PlayerIdentityLock {
         }
       }
     }
+
     if (granted != null) {
       for (Waiter w : granted) {
-        w.future.complete(new LockHandle(w.uuid, w.name));
+        LockHandle lock = new LockHandle(w.uuid, w.name);
+
+        if (!w.future.complete(lock)) {
+          lock.release();
+        }
       }
     }
+  }
+
+  private void timeout(Waiter waiter) {
+    synchronized (monitor) {
+      if (!waiters.remove(waiter)) {
+        return;
+      }
+    }
+
+    waiter.future.completeExceptionally(new LockAcquisitionTimeoutException());
   }
 
   /**
@@ -131,6 +178,33 @@ public final class PlayerIdentityLock {
     }
   }
 
-  private record Waiter(UUID uuid, String name, CompletableFuture<LockHandle> future) {
+  static final class LockAcquisitionTimeoutException extends TimeoutException {
+
+    private static final long serialVersionUID = 1L;
+
   }
+
+  private static final class Waiter {
+
+    private final UUID uuid;
+    private final String name;
+    private final CompletableFuture<LockHandle> future;
+    private volatile ScheduledFuture<?> timeout;
+
+    private Waiter(UUID uuid, String name, CompletableFuture<LockHandle> future) {
+      this.uuid = uuid;
+      this.name = name;
+      this.future = future;
+    }
+
+    private void cancelTimeout() {
+      ScheduledFuture<?> currentTimeout = timeout;
+
+      if (currentTimeout != null) {
+        currentTimeout.cancel(false);
+      }
+    }
+
+  }
+
 }

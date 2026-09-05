@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -64,7 +65,9 @@ public final class PlayerRegistry {
    * Maximum time to wait for {@link DisconnectEvent} handlers to complete before unregistering
    * the player and continuing.
    */
-  private static final long DISCONNECT_EVENT_TIMEOUT_SECONDS = 30;
+  private static final long DISCONNECT_EVENT_TIMEOUT_SECONDS = 10;
+
+  private static final long IDENTITY_LOCK_ACQUIRE_TIMEOUT_SECONDS = 10;
 
   /**
    * Maximum time the identity lock may be held while a connection completes its login sequence.
@@ -105,8 +108,21 @@ public final class PlayerRegistry {
   public @NonNull CompletableFuture<Boolean> registerConnection(@NonNull ConnectedPlayer player) {
     UUID uuid = player.getUniqueId();
     String name = player.getUsername().toLowerCase(Locale.ROOT);
-    return identityLock.acquire(uuid, name)
-        .thenCompose(lock -> withLockReleasedOnFailure(lock, () -> tryRegisterLocked(player, lock)));
+
+    return identityLock.acquire(uuid, name, IDENTITY_LOCK_ACQUIRE_TIMEOUT_SECONDS,
+            TimeUnit.SECONDS, loginTimeoutScheduler)
+        .thenCompose(lock -> withLockReleasedOnFailure(lock, () -> tryRegisterLocked(player, lock)))
+        .exceptionallyCompose(error -> {
+          if (isLockAcquisitionTimeout(error)) {
+            LOGGER.warn("Player {} waited over {}s for the identity lock; closing the connection.",
+                player, IDENTITY_LOCK_ACQUIRE_TIMEOUT_SECONDS);
+
+            player.disconnect(Component.translatable("multiplayer.disconnect.slow_login"));
+            return completedFuture(false);
+          }
+
+          return failedFuture(error);
+        });
   }
 
   /**
@@ -264,12 +280,18 @@ public final class PlayerRegistry {
 
   private CompletableFuture<Void> doUnregisterLocked(ConnectedPlayer player) {
     if (!player.markDisconnectFired()) {
-      // DisconnectEvent was already fired (e.g. by the kick path). Cleanup has already run
-      // and teardownFuture has already been completed by the kicker; nothing more to do.
       return completedFuture(null);
     }
 
-    return fireDisconnectAndCleanup(player, "player", computeDisconnectStatus(player));
+    LoginStatus status;
+    try {
+      status = computeDisconnectStatus(player);
+    } catch (Throwable t) {
+      runCleanup(player, t, "player");
+      return failedFuture(t);
+    }
+
+    return fireDisconnectAndCleanup(player, "player", status);
   }
 
   /**
@@ -287,13 +309,23 @@ public final class PlayerRegistry {
       return completedFuture(null);
     }
 
-    DisconnectEvent event = new DisconnectEvent(player, status);
-    return server.getEventManager().fire(event)
+    DisconnectEvent event;
+    CompletableFuture<DisconnectEvent> eventFuture;
+    try {
+      event = new DisconnectEvent(player, status);
+      eventFuture = server.getEventManager().fire(event);
+    } catch (Throwable t) {
+      runCleanup(player, t, label);
+      return failedFuture(t);
+    }
+
+    return eventFuture
         .completeOnTimeout(event, DISCONNECT_EVENT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .handle((v, ex) -> {
           if (ex != null) {
             LOGGER.error("Exception firing DisconnectEvent for {} {}", label, player, ex);
           }
+
           runCleanup(player, ex, label);
           return null;
         });
@@ -334,6 +366,15 @@ public final class PlayerRegistry {
   private void removeFromMaps(ConnectedPlayer player) {
     byName.remove(player.getUsername().toLowerCase(Locale.ROOT), player);
     byUuid.remove(player.getUniqueId(), player);
+  }
+
+  private static boolean isLockAcquisitionTimeout(Throwable error) {
+    Throwable cause = error;
+    while (cause instanceof CompletionException && cause.getCause() != null) {
+      cause = cause.getCause();
+    }
+
+    return cause instanceof PlayerIdentityLock.LockAcquisitionTimeoutException;
   }
 
   public Optional<ConnectedPlayer> getPlayer(@NonNull UUID uuid) {
