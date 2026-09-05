@@ -35,7 +35,9 @@ import com.velocitypowered.proxy.command.builtin.BuiltinCommandDefinition;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
@@ -152,8 +154,8 @@ public class PlistCommand implements BuiltinCommandDefinition {
 
   private int proxyCount(CommandContext<CommandSource> context) {
     String proxyName = getString(context, PROXY_ARG);
-    if (proxyName.equals(PROXY_ALL)) {
-      return totalCount(context);
+    if (proxyName.equalsIgnoreCase(PROXY_ALL)) {
+      return networkMap(context);
     }
 
     Optional<String> validatedProxy = validateProxy(proxyName, context.getSource());
@@ -163,6 +165,35 @@ public class PlistCommand implements BuiltinCommandDefinition {
 
     Collection<VelocityClusterPlayer> proxyPlayers = server.getClusterPlayerService().getPlayersOnProxy(validatedProxy.get());
     sendTotalProxyCount(context.getSource(), validatedProxy.get(), proxyPlayers.size());
+    return SINGLE_SUCCESS;
+  }
+
+  private int networkMap(CommandContext<CommandSource> context) {
+    CommandSource source = context.getSource();
+    String selfProxyId = server.getClusterProxyService().getSelfProxyId();
+
+    Map<String, Integer> proxyCounts = new HashMap<>();
+    int totalPlayers = 0;
+
+    for (VelocityClusterPlayer player : server.getClusterPlayerService().getAllPlayers()) {
+      proxyCounts.merge(player.getProxyId(), 1, Integer::sum);
+      totalPlayers++;
+    }
+
+    for (String proxyId : server.getClusterProxyService().getAllProxyIds()) {
+      int count = proxyCounts.getOrDefault(proxyId, 0);
+      source.sendMessage(Component.translatable()
+          .key(proxyId.equalsIgnoreCase(selfProxyId)
+              ? "velocity.command.plist-proxy-entry-self"
+              : "velocity.command.plist-proxy-entry")
+          .arguments(
+              Argument.string("proxy", proxyId),
+              Argument.numeric("count", count)
+          )
+          .build());
+    }
+
+    sendTotalProxyCount(source, null, totalPlayers);
     return SINGLE_SUCCESS;
   }
 
