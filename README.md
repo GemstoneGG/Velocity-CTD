@@ -103,6 +103,7 @@ dependencies, useful performance improvements, and more.
   connected to and not the latency of the backend server).
 * `velocity.command.plist` [/plist] (Returns the total users on your proxy
   or from a defined proxy scope).
+* `velocity.command.shutdown` [/shutdown] (Shut downs the proxy, depending on if you've enabled running /shutdown as a player).
 * `velocity.command.sudo` [/velocity sudo] (Allows you to run a message or a command
   for a player).
 * `velocity.command.transfer` [/transfer] (Allows you to transfer a player, "current" players,
