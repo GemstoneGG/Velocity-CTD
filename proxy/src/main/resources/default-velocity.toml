@@ -426,6 +426,11 @@ ignore-anonymous-player-request = false
 # more than one section.
 pool-players-across-sections = false
 
+# When a 1.20.2+ player switches backends and the registries are compatible, skip the
+# client-visible configuration phase and complete the switch entirely in the PLAY state,
+# which avoids the reconfiguration flicker. Falls back to a normal switch when incompatible.
+fast-server-switch = false
+
 [slash-servers]
 # Defines "/<name>" aliases for servers - here "/faction" and "/factions" would both send you to the server named
 # "factions", for example.

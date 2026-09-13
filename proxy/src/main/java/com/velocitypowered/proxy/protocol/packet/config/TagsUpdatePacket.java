@@ -39,6 +39,10 @@ public class TagsUpdatePacket implements MinecraftPacket {
     this.tags = Map.of();
   }
 
+  public Map<String, Map<String, int[]>> getTags() {
+    return tags;
+  }
+
   @Override
   public void decode(ByteBuf buf, ProtocolUtils.Direction direction,
                      ProtocolVersion protocolVersion) {
