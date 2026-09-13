@@ -205,6 +205,8 @@ public class VelocityQueueEntry implements QueueEntry {
           return;
         }
 
+        player.handleServerDisconnectResult(foundServer, result);
+
         Component reason = result.getReasonComponent().orElse(null);
         if (reason != null) {
           for (String banned : config.getBannedReason()) {
