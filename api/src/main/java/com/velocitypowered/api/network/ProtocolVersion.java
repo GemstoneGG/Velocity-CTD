@@ -306,7 +306,12 @@ public enum ProtocolVersion implements Ordered<@NotNull ProtocolVersion> {
   /**
    * Minecraft 26.2.
    */
-  MINECRAFT_26_2(776, "26.2");
+  MINECRAFT_26_2(776, "26.2"),
+
+  /**
+   * Minecraft 26.3.
+   */
+  MINECRAFT_26_3(777, "26.3");
 
   /**
    * Bitmask shift used to encode snapshot protocol versions.
