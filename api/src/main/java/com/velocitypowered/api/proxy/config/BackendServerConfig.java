@@ -25,26 +25,47 @@ import org.jspecify.annotations.Nullable;
  * Additionally, if the forwarding mode is null it means that the server is using the
  * "player-info-forwarding-mode", set in the configuration.</p>
  *
- * @param address        the hostname or address of the backend server
- * @param forwardingMode the forwarding mode to use when forwarding player information
- *                       to this backend server
+ * @param address              the hostname or address of the backend server
+ * @param forwardingMode       the forwarding mode to use when forwarding player information
+ *                             to this backend server
+ * @param displayName          the cosmetic name shown to players in place of the server's id,
+ *                             or {@code null} to show the id as-is
+ * @param customId             an additional identifier players may use in commands to refer to
+ *                             this server, or {@code null} for none
+ * @param hiddenFromServerList whether to hide this server from player-facing listings and
+ *                             tab-completions
  * @since 3.4.0
  * @see PlayerInfoForwarding
  * @see com.velocitypowered.api.proxy.server.ServerInfo#ServerInfo(String, java.net.InetSocketAddress,
  *     PlayerInfoForwarding)
  */
 @NullMarked
-public record BackendServerConfig(String address, @Nullable PlayerInfoForwarding forwardingMode) {
+public record BackendServerConfig(String address, @Nullable PlayerInfoForwarding forwardingMode,
+    @Nullable String displayName, @Nullable String customId, boolean hiddenFromServerList) {
+
+  /**
+   * Creates a new {@link BackendServerConfig}.
+   *
+   * @param address              the hostname or address of the backend server
+   * @param forwardingMode       the forwarding mode for this backend server
+   * @param displayName          the cosmetic name shown to players, or {@code null}
+   * @param customId             an additional identifier players may use in commands, or {@code null}
+   * @param hiddenFromServerList whether to hide this server from player-facing listings
+   * @throws NullPointerException if {@code address} is null
+   */
+  public BackendServerConfig {
+    requireNonNull(address);
+  }
 
   /**
    * Creates a new {@link BackendServerConfig}.
    *
    * @param address        the hostname or address of the backend server
    * @param forwardingMode the forwarding mode for this backend server
-   * @throws NullPointerException if {@code address} or {@code forwardingMode} is null
+   * @throws NullPointerException if {@code address} is null
    */
-  public BackendServerConfig {
-    requireNonNull(address);
+  public BackendServerConfig(String address, @Nullable PlayerInfoForwarding forwardingMode) {
+    this(address, forwardingMode, null, null, false);
   }
 
   /**
@@ -54,6 +75,6 @@ public record BackendServerConfig(String address, @Nullable PlayerInfoForwarding
    * @throws NullPointerException if {@code address} is null
    */
   public BackendServerConfig(String address) {
-    this(address, null);
+    this(address, null, null, null, false);
   }
 }

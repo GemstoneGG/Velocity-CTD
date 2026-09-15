@@ -259,6 +259,7 @@ public class VelocityQueueManager implements QueueManager {
 
   public void queue(@NotNull ConnectedPlayer player, @NotNull VelocityRegisteredServer targetServer) {
     String targetName = targetServer.getServerInfo().getName();
+    String targetDisplay = targetServer.getServerInfo().getDisplayName();
     VelocityQueue<?> queue = getQueue(targetName);
 
     VelocityConfiguration.Queue config = server.getConfiguration().getQueue();
@@ -269,7 +270,7 @@ public class VelocityQueueManager implements QueueManager {
 
     if (queue.contains(player)) {
       player.sendMessage(Component.translatable("velocity.queue.error.already-queued")
-          .arguments(Component.text(targetName)));
+          .arguments(Component.text(targetDisplay)));
       return;
     }
 
@@ -279,8 +280,8 @@ public class VelocityQueueManager implements QueueManager {
           q.dequeue(player);
           player.sendMessage(Component.translatable("velocity.queue.error.queued-swap")
               .arguments(
-                  Argument.string("from", q.getName()),
-                  Argument.string("to", targetName)));
+                  Argument.string("from", q.getDisplayName()),
+                  Argument.string("to", targetDisplay)));
           break;
         }
       }
@@ -288,7 +289,7 @@ public class VelocityQueueManager implements QueueManager {
 
     if (queue.getState() == PAUSED && !config.isAllowPausedQueueJoining()) {
       player.sendMessage(Component.translatable("velocity.queue.error.paused")
-          .arguments(Component.text(targetName)));
+          .arguments(Component.text(targetDisplay)));
       return;
     }
 
@@ -298,7 +299,7 @@ public class VelocityQueueManager implements QueueManager {
 
     queue.enqueue(player);
     player.sendMessage(Component.translatable("velocity.queue.command.queued")
-        .arguments(Component.text(targetName)));
+        .arguments(Component.text(targetDisplay)));
 
     // If a queue-server is configured, move the player there if they aren't already on it
     String queueServerName = config.getQueueServer();

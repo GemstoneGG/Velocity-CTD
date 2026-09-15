@@ -28,6 +28,7 @@ import com.velocityctd.api.queue.QueueState;
 import com.velocityctd.proxy.util.ComponentUtils;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
+import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.builtin.CommandMessages;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
@@ -44,7 +45,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.translation.Argument;
@@ -80,6 +80,25 @@ public class CommandUtils {
   public static SuggestionProvider<CommandSource> suggestServer(VelocityServer server, String argName,
                                                                 boolean allowNonQueueable, boolean performPermissionCheck,
                                                                 String... magicServers) {
+    return suggestServer(server, argName, allowNonQueueable, performPermissionCheck, true, magicServers);
+  }
+
+  /**
+   * Generates a suggestion provider to complete the name of a server, optionally excluding servers
+   * marked {@code hidden-from-server-list}.
+   *
+   * @param server the proxy server
+   * @param argName the name of the string argument to complete
+   * @param allowNonQueueable whether to suggest a server if the server has queueing disabled
+   * @param performPermissionCheck whether to perform permission checks before including a server as a suggestion
+   * @param includeHidden whether to include servers marked {@code hidden-from-server-list}. Admin
+   *                      commands should pass {@code true}; player-facing listings {@code false}.
+   * @param magicServers "magic servers" to add, if any. useful for including an "all" argument option.
+   * @return a suggestion provider that completes a server name
+   */
+  public static SuggestionProvider<CommandSource> suggestServer(VelocityServer server, String argName,
+                                                                boolean allowNonQueueable, boolean performPermissionCheck,
+                                                                boolean includeHidden, String... magicServers) {
     return (ctx, builder) -> {
       String argument = ctx.getArguments().containsKey(argName)
           ? StringArgumentType.getString(ctx, argName)
@@ -87,25 +106,59 @@ public class CommandUtils {
 
       VelocityConfiguration.Queue queueConfig = server.getConfiguration().getQueue();
 
-      List<String> possibilities = server.getAllServers().stream()
-          .map(s -> s.getServerInfo().getName())
-          .filter(s -> allowNonQueueable || !queueConfig.isEnabled() || !queueConfig.getNoQueueServers().contains(s))
-          .collect(Collectors.toList());
+      for (VelocityRegisteredServer candidate : server.getAllServers()) {
+        String realName = candidate.getServerInfo().getName();
 
-      possibilities.addAll(Arrays.asList(magicServers));
-
-      for (String possibility : possibilities) {
-        if (possibility.regionMatches(true, 0, argument, 0, argument.length())) {
-          if (performPermissionCheck && ctx.getSource().getPermissionValue("velocity.command.server." + possibility) == Tristate.FALSE) {
-            continue;
-          }
-
-          builder.suggest(possibility);
+        if (!includeHidden && candidate.getServerInfo().isHiddenFromServerList()) {
+          continue;
         }
+
+        if (!allowNonQueueable && queueConfig.isEnabled()
+            && queueConfig.getNoQueueServers().contains(realName)) {
+          continue;
+        }
+
+        // Permissions are always keyed on the real server name, never the custom id.
+        if (performPermissionCheck
+            && ctx.getSource().getPermissionValue("velocity.command.server." + realName) == Tristate.FALSE) {
+          continue;
+        }
+
+        // Surface the custom id to players when configured, so the internal id stays hidden.
+        String token = publicServerId(candidate.getServerInfo());
+        if (token.regionMatches(true, 0, argument, 0, argument.length())) {
+          builder.suggest(token);
+        }
+      }
+
+      for (String magic : magicServers) {
+        if (!magic.regionMatches(true, 0, argument, 0, argument.length())) {
+          continue;
+        }
+
+        if (performPermissionCheck
+            && ctx.getSource().getPermissionValue("velocity.command.server." + magic) == Tristate.FALSE) {
+          continue;
+        }
+
+        builder.suggest(magic);
       }
 
       return builder.buildFuture();
     };
+  }
+
+  /**
+   * Returns the identifier that should be shown to players for the given server: its configured
+   * {@code custom-id} when present, otherwise its real name. The proxy resolves either form back to
+   * the same server, so this only affects what players see and type.
+   *
+   * @param info the server info
+   * @return the custom id if configured and non-blank, otherwise the real server name
+   */
+  public static String publicServerId(ServerInfo info) {
+    String customId = info.getCustomId();
+    return customId != null && !customId.isBlank() ? customId : info.getName();
   }
 
   /**
