@@ -389,7 +389,8 @@ public class CtdConfigMigrations {
             "most_empty"
         ),
 
-        new CtdAutoQueueServersMigration()
+        new CtdAutoQueueServersMigration(),
+        new CtdForcedHostPingMigration()
     );
   }
 

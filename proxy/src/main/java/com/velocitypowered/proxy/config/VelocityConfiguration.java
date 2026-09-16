@@ -1766,7 +1766,8 @@ public final class VelocityConfiguration implements ProxyConfig {
 
   /**
    * Represents a single forced host entry, containing the list of servers to try
-   * and an optional per-host dynamic fallbacks filter that overrides the global one.
+   * and optional per-host settings (dynamic fallbacks filter, session server, MOTD,
+   * MOTD hover and server icon) that override the global ones.
    */
   public static final class ForcedHostEntry {
 
@@ -1774,12 +1775,19 @@ public final class VelocityConfiguration implements ProxyConfig {
     private final DynamicFallbackFilter dynamicFallbackFilter;
     private final boolean forcedHostAsFallback;
     private final String sessionServer;
+    private final @Nullable List<String> motd;
+    private final @Nullable List<String> motdHover;
+    private final @Nullable Favicon favicon;
 
-    private ForcedHostEntry(List<String> servers, DynamicFallbackFilter dynamicFallbackFilter, boolean forcedHostAsFallback, String sessionServer) {
+    private ForcedHostEntry(List<String> servers, DynamicFallbackFilter dynamicFallbackFilter, boolean forcedHostAsFallback, String sessionServer,
+                            @Nullable List<String> motd, @Nullable List<String> motdHover, @Nullable Favicon favicon) {
       this.servers = servers;
       this.dynamicFallbackFilter = dynamicFallbackFilter;
       this.forcedHostAsFallback = forcedHostAsFallback;
       this.sessionServer = sessionServer;
+      this.motd = motd;
+      this.motdHover = motdHover;
+      this.favicon = favicon;
     }
 
     public List<String> getServers() {
@@ -1807,6 +1815,30 @@ public final class VelocityConfiguration implements ProxyConfig {
       return sessionServer;
     }
 
+    /**
+     * Returns the MOTD lines shown to pings targeting this forced host, or {@code null} if the
+     * global {@code motd} should be used.
+     */
+    public @Nullable List<String> getMotd() {
+      return motd;
+    }
+
+    /**
+     * Returns the MOTD hover lines shown to pings targeting this forced host, or {@code null} if
+     * the global {@code motd-hover} should be used.
+     */
+    public @Nullable List<String> getMotdHover() {
+      return motdHover;
+    }
+
+    /**
+     * Returns the server icon shown to pings targeting this forced host, or {@code null} if the
+     * global {@code server-icon.png} should be used.
+     */
+    public @Nullable Favicon getFavicon() {
+      return favicon;
+    }
+
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
@@ -1814,6 +1846,9 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("dynamicFallbackFilter", dynamicFallbackFilter)
           .add("forcedHostAsFallback", forcedHostAsFallback)
           .add("sessionServer", sessionServer)
+          .add("motd", motd)
+          .add("motdHover", motdHover)
+          .add("favicon", favicon != null)
           .toString();
     }
   }
@@ -1833,9 +1868,11 @@ public final class VelocityConfiguration implements ProxyConfig {
           String key = entry.getKey().toLowerCase(Locale.ROOT);
 
           if (entry.getValue() instanceof String) {
-            entries.put(key, new ForcedHostEntry(ImmutableList.of(entry.getValue()), null, true, null));
+            entries.put(key, new ForcedHostEntry(ImmutableList.of(entry.getValue()), null,
+                true, null, null, null, null));
           } else if (entry.getValue() instanceof List) {
-            entries.put(key, new ForcedHostEntry(ImmutableList.copyOf((List<String>) entry.getValue()), null, true, null));
+            entries.put(key, new ForcedHostEntry(ImmutableList.copyOf((List<String>) entry.getValue()), null,
+                true, null, null, null, null));
           } else if (entry.getValue() instanceof UnmodifiableConfig tableConfig) {
             Object serversValue = tableConfig.get("servers");
             List<String> servers;
@@ -1855,13 +1892,56 @@ public final class VelocityConfiguration implements ProxyConfig {
 
             String sessionServer = tableConfig.get("session-server");
 
-            entries.put(key, new ForcedHostEntry(servers, filter, forcedHostAsFallback, sessionServer));
+            List<String> motd = readLines(tableConfig, "motd", key);
+            List<String> motdHover = readLines(tableConfig, "motd-hover", key);
+            Favicon favicon = readFavicon(tableConfig, key);
+
+            entries.put(key, new ForcedHostEntry(servers, filter, forcedHostAsFallback, sessionServer,
+                motd, motdHover, favicon));
           } else {
             LOGGER.warn("Invalid value of type {} in forced hosts!", entry.getValue().getClass());
           }
         }
 
         this.entries = ImmutableMap.copyOf(entries);
+      }
+    }
+
+    /**
+     * Reads an optional string-or-list-of-strings option, mirroring how the global {@code motd}
+     * is parsed. Returns {@code null} when the option is absent so the global value applies.
+     */
+    private static @Nullable List<String> readLines(UnmodifiableConfig tableConfig, String option, String host) {
+      Object value = tableConfig.get(option);
+      if (value == null) {
+        return null;
+      } else if (value instanceof String line) {
+        return ImmutableList.of(line);
+      } else if (value instanceof List) {
+        return ImmutableList.copyOf((List<String>) value);
+      }
+
+      LOGGER.warn("Invalid '{}' in forced host '{}', expected a string or a list of strings!", option, host);
+      return null;
+    }
+
+    private static @Nullable Favicon readFavicon(UnmodifiableConfig tableConfig, String host) {
+      String iconPath = tableConfig.get("server-icon");
+      if (iconPath == null) {
+        return null;
+      }
+
+      Path path = Path.of(iconPath);
+      if (!Files.exists(path)) {
+        LOGGER.warn("Server icon '{}' for forced host '{}' does not exist, continuing without it.", iconPath, host);
+        return null;
+      }
+
+      try {
+        return Favicon.create(path);
+      } catch (Exception e) {
+        LOGGER.warn("Unable to load server icon '{}' for forced host '{}', continuing without it.", iconPath, host, e);
+        return null;
       }
     }
 

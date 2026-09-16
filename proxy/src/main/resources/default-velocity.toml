@@ -239,6 +239,11 @@ hub-servers = []
 # Table format - allows setting per-host options:
 #   "lobby.example.com" = { servers = ["lobby1", "lobby2"], dynamic-fallbacks-filter = "least_populated", forced-host-as-fallback = true, session-server = "https://sessionserver.mojang.com/session/minecraft/hasJoined" }
 #
+# The table format can also override the server list ping for players who added this host.
+# "motd" and "motd-hover" work like the global options, and "server-icon" is a path to a 64x64 PNG.
+# Any of them may be omitted to keep the global "motd", "motd-hover" or "server-icon.png":
+#   "lobby.example.com" = { servers = ["lobby"], motd = ["<#ff3a4c>Lobby"], motd-hover = ["{players}"], server-icon = "lobby-icon.png" }
+#
 "lobby.example.com" = [
     "lobby"
 ]

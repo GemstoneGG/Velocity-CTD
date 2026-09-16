@@ -31,6 +31,7 @@ import com.velocitypowered.api.util.ModInfo;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.config.PingPassthroughMode;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
+import com.velocitypowered.proxy.config.VelocityConfiguration.ForcedHostEntry;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,9 +62,19 @@ public class ServerListPingHandler {
     return clientVersion.lessThan(minimumVersion) || clientVersion.greaterThan(maximumVersion);
   }
 
-  private ServerPing constructLocalPing(ProtocolVersion clientVersion) {
+  private ServerPing constructLocalPing(VelocityInboundConnection connection) {
     VelocityConfiguration configuration = server.getConfiguration();
+    ProtocolVersion clientVersion = connection.getProtocolVersion();
     boolean outOfRange = displayFallbackPing(clientVersion);
+
+    // A forced host may override the MOTD, MOTD hover and server icon for pings targeting it.
+    ForcedHostEntry forcedHost = FallbackServers.getForcedHostEntry(configuration, connection).orElse(null);
+    List<String> motdLines = forcedHost != null && forcedHost.getMotd() != null
+        ? forcedHost.getMotd() : configuration.getMotdLines();
+    List<String> motdHoverLines = forcedHost != null && forcedHost.getMotdHover() != null
+        ? forcedHost.getMotdHover() : configuration.getMotdHoverLines();
+    Favicon favicon = forcedHost != null && forcedHost.getFavicon() != null
+        ? forcedHost.getFavicon() : configuration.getFavicon().orElse(null);
 
     ProtocolVersion displayVersion =
         (clientVersion == ProtocolVersion.UNKNOWN || outOfRange)
@@ -92,10 +103,10 @@ public class ServerListPingHandler {
 
     SamplePlayersPicker sharedPicker = configuration.isPoolPlayersAcrossSections() ? SamplePlayersPicker.create(server) : null;
 
-    List<String> motd = PlaceholderSubstitutor.substitute(configuration.getMotdLines(), basicResolver,
+    List<String> motd = PlaceholderSubstitutor.substitute(motdLines, basicResolver,
             samplePlayersResolver(sharedPicker, 8, 4, "None", ", "));
 
-    List<String> motdHover = PlaceholderSubstitutor.substitute(configuration.getMotdHoverLines(), basicResolver,
+    List<String> motdHover = PlaceholderSubstitutor.substitute(motdHoverLines, basicResolver,
             samplePlayersResolver(sharedPicker, 12, 1, "", ""));
     if (motdHover.size() == 1 && motdHover.getFirst().isEmpty()) {
       motdHover.clear();
@@ -120,7 +131,7 @@ public class ServerListPingHandler {
             .map(ComponentUtils::parse)
             .reduce((a, b) -> a.appendNewline().append(b))
             .orElseGet(Component::empty),
-        configuration.getFavicon().orElse(null),
+        favicon,
         configuration.isAnnounceForge() ? ModInfo.DEFAULT : null,
         configuration.doesPreventChatReports()
     );
@@ -143,7 +154,7 @@ public class ServerListPingHandler {
                                                                PingPassthroughMode mode, List<String> servers,
                                                                ProtocolVersion responseProtocolVersion,
                                                                String virtualHostStr) {
-    ServerPing fallback = constructLocalPing(connection.getProtocolVersion());
+    ServerPing fallback = constructLocalPing(connection);
     List<CompletableFuture<ServerPing>> pings = new ArrayList<>();
     for (String s : servers) {
       Optional<VelocityRegisteredServer> rs = server.getServer(s);
@@ -240,7 +251,7 @@ public class ServerListPingHandler {
     PingPassthroughMode passthroughMode = configuration.getPingPassthrough();
 
     if (!passthroughMode.enabled()) {
-      return CompletableFuture.completedFuture(constructLocalPing(connection.getProtocolVersion()));
+      return CompletableFuture.completedFuture(constructLocalPing(connection));
     } else {
       FallbackServers fallbackServers = FallbackServers.resolveFallbackServers(server.getConfiguration(), connection);
 
