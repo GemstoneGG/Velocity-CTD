@@ -55,8 +55,7 @@ public final class CtdForcedHostPingMigration implements ConfigurationMigration 
       return;
     }
 
-    CommentedConfig forcedHosts = config.get(FORCED_HOSTS_KEY);
-    forcedHosts.setComment(List.of(entry.getKey()),
+    config.setComment(List.of(FORCED_HOSTS_KEY, entry.getKey()),
         entry.getComment().stripTrailing() + "\n\n" + PING_OVERRIDES_COMMENT);
   }
 
