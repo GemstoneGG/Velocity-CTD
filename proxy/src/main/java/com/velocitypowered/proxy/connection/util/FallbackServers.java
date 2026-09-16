@@ -117,7 +117,12 @@ public record FallbackServers(
       return Optional.empty();
     }
 
-    return getForcedHostEntry(config, normalizedVirtualHost(connection));
+    String virtualHost = normalizedVirtualHost(connection);
+    if (virtualHost == null) {
+      return Optional.empty();
+    }
+
+    return getForcedHostEntry(config, virtualHost);
   }
 
   /**
