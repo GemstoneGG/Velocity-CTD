@@ -1003,7 +1003,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     Component friendlyError;
     if (connectedServer != null && connectedServer.getServerInfo().equals(server.getServerInfo())) {
       friendlyError = Component.translatable("velocity.error.connected-server-error",
-          Argument.string("server", server.getServerInfo().getName()));
+          Argument.string("server", server.getServerInfo().getDisplayName()));
     } else {
       if (Boolean.getBoolean("velocity.suppress-connection-timeout-logs")) {
         LOGGER.error("{}: unable to connect to server {}", this, server.getServerInfo().getName());
@@ -1012,7 +1012,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       }
 
       friendlyError = Component.translatable("velocity.error.connecting-server-error",
-          Argument.string("server", server.getServerInfo().getName()));
+          Argument.string("server", server.getServerInfo().getDisplayName()));
     }
 
     handleConnectionException(server, null, friendlyError.color(NamedTextColor.RED), safe);
@@ -1043,7 +1043,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       handleConnectionException(server, disconnectReason,
           Component.translatable("velocity.error.moved-to-new-server", NamedTextColor.RED)
               .arguments(
-                  Argument.string("server", server.getServerInfo().getName()),
+                  Argument.string("server", server.getServerInfo().getDisplayName()),
                   Argument.component("reason", disconnectReason)), safe);
     } else {
       if (this.server.getConfiguration().isLogPlayerConnections()) {
@@ -1054,7 +1054,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
       handleConnectionException(server, disconnectReason,
           Component.translatable("velocity.error.cant-connect", NamedTextColor.RED)
               .arguments(
-                  Argument.string("server", server.getServerInfo().getName()),
+                  Argument.string("server", server.getServerInfo().getDisplayName()),
                   Argument.component("reason", disconnectReason)), safe);
     }
 

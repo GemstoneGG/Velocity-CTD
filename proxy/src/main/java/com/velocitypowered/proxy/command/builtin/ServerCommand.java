@@ -84,7 +84,7 @@ public class ServerCommand implements BuiltinCommandDefinition {
           return SINGLE_SUCCESS;
         })
         .then(BrigadierCommand.requiredArgumentBuilder(SERVER_ARG, StringArgumentType.word())
-            .suggests(CommandUtils.suggestServer(server, SERVER_ARG, true, true))
+            .suggests(CommandUtils.suggestServer(server, SERVER_ARG, true, true, false))
             .executes(ctx -> {
               ConnectedPlayer player = (ConnectedPlayer) ctx.getSource();
               VelocityRegisteredServer registeredServer = CommandUtils.getServer(server, ctx, SERVER_ARG, true);
@@ -108,13 +108,15 @@ public class ServerCommand implements BuiltinCommandDefinition {
   }
 
   private static void outputServerInformation(ConnectedPlayer executor, VelocityServer server) {
-    String currentServer = executor.getCurrentServer()
+    ServerInfo currentServerInfo = executor.getCurrentServer()
         .map(VelocityServerConnection::getServerInfo)
-        .map(ServerInfo::getName)
-        .orElse("<unknown>");
+        .orElse(null);
+    String currentServerName = currentServerInfo != null ? currentServerInfo.getName() : null;
+    String currentServerDisplay = currentServerInfo != null
+        ? currentServerInfo.getDisplayName() : "<unknown>";
     executor.sendMessage(Component.translatable(
         "velocity.command.server-current-server", NamedTextColor.YELLOW)
-            .arguments(Component.text(currentServer)));
+            .arguments(Component.text(currentServerDisplay)));
 
     List<VelocityRegisteredServer> servers = CommandUtils.sortedServerList(server);
     if (servers.size() > MAX_SERVERS_TO_LIST) {
@@ -123,8 +125,9 @@ public class ServerCommand implements BuiltinCommandDefinition {
       return;
     }
 
-    // Filter servers based on player permissions
+    // Filter servers based on player permissions, hiding those marked hidden-from-server-list.
     List<VelocityRegisteredServer> accessibleServers = servers.stream()
+        .filter(rs -> !rs.getServerInfo().isHiddenFromServerList())
         .filter(rs -> executor.getPermissionValue("velocity.command.server."
             + rs.getServerInfo().getName()) != Tristate.FALSE)
         .toList();
@@ -141,7 +144,7 @@ public class ServerCommand implements BuiltinCommandDefinition {
         .appendSpace();
     for (int i = 0; i < accessibleServers.size(); i++) {
       VelocityRegisteredServer rs = accessibleServers.get(i);
-      serverListBuilder.append(formatServerComponent(currentServer, rs));
+      serverListBuilder.append(formatServerComponent(currentServerName, rs));
       if (i != accessibleServers.size() - 1) {
         serverListBuilder.append(Component.text(", ", NamedTextColor.GRAY));
       }
@@ -153,7 +156,7 @@ public class ServerCommand implements BuiltinCommandDefinition {
   private static TextComponent formatServerComponent(String currentPlayerServer, VelocityRegisteredServer server) {
     ServerInfo serverInfo = server.getServerInfo();
     TextComponent.Builder serverTextComponent = Component.text()
-            .content(serverInfo.getName());
+            .content(serverInfo.getDisplayName());
 
     int connectedPlayers = server.getPlayersConnected().size();
     TranslatableComponent.Builder playersTextComponent = Component.translatable();
@@ -173,7 +176,7 @@ public class ServerCommand implements BuiltinCommandDefinition {
           );
     } else {
       serverTextComponent.color(NamedTextColor.GRAY)
-          .clickEvent(ClickEvent.runCommand("/server " + serverInfo.getName()))
+          .clickEvent(ClickEvent.runCommand("/server " + CommandUtils.publicServerId(serverInfo)))
           .hoverEvent(
               showText(
                   Component.translatable("velocity.command.server-tooltip-offer-connect-server")

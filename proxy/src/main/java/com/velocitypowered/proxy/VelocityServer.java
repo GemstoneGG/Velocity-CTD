@@ -417,7 +417,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
     if (!options.isIgnoreConfigServers()) {
       for (Map.Entry<String, BackendServerConfig> entry : configuration.getBackendServers().entrySet()) {
-        servers.register(new ServerInfo(entry.getKey(), AddressUtil.parseAddress(entry.getValue().address()), entry.getValue().forwardingMode()));
+        servers.register(toServerInfo(entry.getKey(), entry.getValue()));
       }
     }
 
@@ -796,12 +796,15 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     return aliases.toArray(String[]::new);
   }
 
+  private static ServerInfo toServerInfo(String name, BackendServerConfig config) {
+    return new ServerInfo(name, AddressUtil.parseAddress(config.address()), config.forwardingMode(),
+        config.displayName(), config.customId(), config.hiddenFromServerList());
+  }
+
   private void reconcileServers(VelocityConfiguration newConfiguration) {
     List<ServerInfo> desired = new ArrayList<>();
     for (Map.Entry<String, BackendServerConfig> entry : newConfiguration.getBackendServers().entrySet()) {
-      desired.add(new ServerInfo(entry.getKey(),
-          AddressUtil.parseAddress(entry.getValue().address()),
-          entry.getValue().forwardingMode()));
+      desired.add(toServerInfo(entry.getKey(), entry.getValue()));
     }
 
     // Servers registered now but absent from the new configuration: removed, renamed, or with a
