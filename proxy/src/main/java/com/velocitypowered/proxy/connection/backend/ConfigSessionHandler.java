@@ -38,6 +38,7 @@ import com.velocitypowered.proxy.connection.util.ConnectionMessages;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults.Impl;
 import com.velocitypowered.proxy.network.Connections;
+import com.velocitypowered.proxy.network.netty.StallSafeReadTimeoutHandler;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
@@ -62,7 +63,6 @@ import com.velocitypowered.proxy.protocol.util.PluginMessageUtil;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-import io.netty.handler.timeout.ReadTimeoutHandler;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledFuture;
@@ -449,7 +449,8 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
       final var backendPipeline = smc.getChannel().pipeline();
       if (backendPipeline.context(Connections.READ_TIMEOUT) != null) {
         backendPipeline.replace(Connections.READ_TIMEOUT, Connections.READ_TIMEOUT,
-            new ReadTimeoutHandler(server.getConfiguration().getReadTimeout(), TimeUnit.MILLISECONDS));
+            new StallSafeReadTimeoutHandler(server.getConfiguration().getReadTimeout(),
+                TimeUnit.MILLISECONDS));
       }
     }
   }

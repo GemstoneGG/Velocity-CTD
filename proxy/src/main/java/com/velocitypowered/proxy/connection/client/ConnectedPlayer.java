@@ -87,6 +87,7 @@ import com.velocitypowered.proxy.connection.util.ConnectionRequestResults.Impl;
 import com.velocitypowered.proxy.connection.util.FallbackServers;
 import com.velocitypowered.proxy.connection.util.VelocityInboundConnection;
 import com.velocitypowered.proxy.network.Connections;
+import com.velocitypowered.proxy.network.netty.StallSafeReadTimeoutHandler;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
@@ -123,7 +124,6 @@ import com.velocitypowered.proxy.util.TranslatableMapper;
 import com.velocitypowered.proxy.util.collect.CappedSet;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.handler.timeout.ReadTimeoutHandler;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.Collection;
@@ -170,7 +170,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
 
-@SuppressWarnings("UnstableApiUsage")
 public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, KeyIdentifiable, VelocityInboundConnection {
 
   public static final int MAX_CLIENTSIDE_PLUGIN_CHANNELS = Integer.getInteger("velocity.max-clientside-plugin-channels", 1024);
@@ -1304,8 +1303,9 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private void resumeReadTimeout() {
     final var pipeline = connection.getChannel().pipeline();
     if (pipeline.context(Connections.READ_TIMEOUT) == null && pipeline.context(Connections.FRAME_DECODER) != null) {
-      pipeline.addAfter(Connections.FRAME_DECODER, Connections.READ_TIMEOUT, new ReadTimeoutHandler(
-          server.getConfiguration().getReadTimeout(), TimeUnit.MILLISECONDS));
+      pipeline.addAfter(Connections.FRAME_DECODER, Connections.READ_TIMEOUT,
+          new StallSafeReadTimeoutHandler(server.getConfiguration().getReadTimeout(),
+              TimeUnit.MILLISECONDS));
     }
   }
 

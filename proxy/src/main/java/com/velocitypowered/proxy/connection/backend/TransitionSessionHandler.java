@@ -34,6 +34,7 @@ import com.velocitypowered.proxy.connection.util.ConnectionMessages;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults.Impl;
 import com.velocitypowered.proxy.network.Connections;
+import com.velocitypowered.proxy.network.netty.StallSafeReadTimeoutHandler;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
@@ -41,7 +42,6 @@ import com.velocitypowered.proxy.protocol.packet.JoinGamePacket;
 import com.velocitypowered.proxy.protocol.packet.KeepAlivePacket;
 import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
-import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.ReferenceCountUtil;
 import java.util.ArrayDeque;
 import java.util.Queue;
@@ -159,7 +159,8 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
           final var backendPipeline = smc.getChannel().pipeline();
           if (backendPipeline.context(Connections.READ_TIMEOUT) != null) {
             backendPipeline.replace(Connections.READ_TIMEOUT, Connections.READ_TIMEOUT,
-                new ReadTimeoutHandler(server.getConfiguration().getReadTimeout(), TimeUnit.MILLISECONDS));
+                new StallSafeReadTimeoutHandler(server.getConfiguration().getReadTimeout(),
+                    TimeUnit.MILLISECONDS));
           }
 
           // Now set the connected server.

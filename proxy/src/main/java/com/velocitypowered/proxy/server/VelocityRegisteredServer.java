@@ -40,6 +40,7 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
+import com.velocitypowered.proxy.network.netty.StallSafeReadTimeoutHandler;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
@@ -53,7 +54,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoop;
-import io.netty.handler.timeout.ReadTimeoutHandler;
 import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
@@ -174,7 +174,7 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
       @Override
       protected void initChannel(@NotNull Channel ch) {
         ch.pipeline().addLast(FRAME_DECODER, new MinecraftVarintFrameDecoder(ProtocolUtils.Direction.CLIENTBOUND))
-            .addLast(READ_TIMEOUT, new ReadTimeoutHandler(
+            .addLast(READ_TIMEOUT, new StallSafeReadTimeoutHandler(
                 pingOptions.getTimeout() == 0
                     ? server.getConfiguration().getReadTimeout()
                     : pingOptions.getTimeout(), TimeUnit.MILLISECONDS))
