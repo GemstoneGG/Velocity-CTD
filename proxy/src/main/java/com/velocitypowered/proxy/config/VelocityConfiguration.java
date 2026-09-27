@@ -2862,10 +2862,11 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.enabled = config.getOrElse("enabled", false);
       this.noQueueServers = config.getOrElse("no-queue-servers", List.of());
       this.allowMultiQueue = config.getOrElse("allow-multi-queue", false);
-      this.sendDelay = config.getOrElse("send-delay", 1.0);
-      this.queueDelay = config.getOrElse("queue-delay", 0.0);
-      this.messageDelay = config.getOrElse("message-delay", 1.0);
-      this.backendPingInterval = config.getOrElse("backend-ping-interval", 5.0);
+      this.sendDelay = config.<Number>getOrElse("send-delay", 1.0).doubleValue();
+      this.queueDelay = config.<Number>getOrElse("queue-delay", 0.0).doubleValue();
+      this.messageDelay = config.<Number>getOrElse("message-delay", 1.0).doubleValue();
+      this.backendPingInterval = config.<Number>getOrElse("backend-ping-interval", 5.0)
+          .doubleValue();
       this.maxSendRetries = config.getOrElse("max-send-retries", 10);
       this.dynamicPriority = config.getOrElse("dynamic-priority", false);
       this.minutesPerPriorityIncrease = config.getOrElse("minutes-per-priority-increase", 30);
