@@ -1045,8 +1045,9 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         this.queueManager.teardown();
       }
 
-      // Disable Redis if we have it enabled
-      if (this.configuration.getRedis().isEnabled()) {
+      // Disable Redis if it was started. A reload can flip the setting either way without
+      // starting or stopping Redis, so the running instance decides, not the configuration.
+      if (this.redis != null) {
         this.redis.shutdown();
       }
 
