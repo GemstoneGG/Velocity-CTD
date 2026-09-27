@@ -47,7 +47,7 @@ public abstract non-sealed class AbstractDepotService<K, V extends DepotEntry<K,
    * Constructs a new {@link AbstractDepotService}.
    *
    * @param valueClass the class type of the value in the depot
-   * @param provider the redis provider implementation instance
+   * @param provider the Redis provider implementation instance
    */
   public AbstractDepotService(Class<V> valueClass, @NotNull RedisProvider provider) {
     this.depot = provider.createDepot(valueClass);

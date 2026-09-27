@@ -158,7 +158,7 @@ public final class VelocityRedis {
   /**
    * Gets the {@link RedisProvider} instance for Redis communication.
    *
-   * @return the redis provider
+   * @return the Redis provider
    */
   public RedisProvider getProvider() {
     return provider;

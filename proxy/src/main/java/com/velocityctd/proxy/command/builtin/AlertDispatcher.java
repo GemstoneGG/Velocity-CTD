@@ -47,7 +47,7 @@ final class AlertDispatcher {
    * upstream means callers can include characters that Brigadier's {@code word()} parser
    * rejects (notably {@code &} colour codes).
    *
-   * <p>Behaviour after the split:</p>
+   * <p>Behavior after the split:</p>
    * <ul>
    *   <li>If the first token resolves as a {@link PlayerIdentifier}, the rest of the input
    *       is sent to those players.</li>

@@ -39,7 +39,7 @@ import org.jetbrains.annotations.NotNull;
  * Registry that holds all {@link TransactionHandler} entries for the VelocityRedis module.
  *
  * <p>This registry is used to register the 'handle' section of transactions only. The
- * completing and timeout behaviours are processed in the
+ * completing and timeout behaviors are processed in the
  * {@link com.velocityctd.proxy.redis.transaction.Transaction Transaction} class itself.</p>
  */
 public enum TransactionHandlerRegistry {
