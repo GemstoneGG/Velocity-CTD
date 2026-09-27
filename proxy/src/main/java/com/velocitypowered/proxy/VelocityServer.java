@@ -114,6 +114,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -589,7 +590,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
     this.configuration = newConfiguration;
 
-    reconcileServers(newConfiguration);
+    reconcileServers(oldConfiguration, newConfiguration);
 
     registerCommands();
 
@@ -781,7 +782,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     return aliases.toArray(String[]::new);
   }
 
-  private void reconcileServers(VelocityConfiguration newConfiguration) {
+  private void reconcileServers(VelocityConfiguration oldConfiguration,
+      VelocityConfiguration newConfiguration) {
     List<ServerInfo> desired = new ArrayList<>();
     for (Map.Entry<String, BackendServerConfig> entry : newConfiguration.getBackendServers().entrySet()) {
       desired.add(new ServerInfo(entry.getKey(),
@@ -789,11 +791,18 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
           entry.getValue().forwardingMode()));
     }
 
-    // Servers registered now but absent from the new configuration: removed, renamed, or with a
-    // changed address/forwarding mode.
+    // Servers the old configuration registered that the new one no longer describes: removed,
+    // renamed, or with a changed address/forwarding mode. A server registered any other way (by a
+    // plugin, or with --add-server) is not the configuration's to remove.
+    Set<String> configured = new HashSet<>();
+    for (String name : oldConfiguration.getBackendServers().keySet()) {
+      configured.add(name.toLowerCase(Locale.ROOT));
+    }
+
     List<VelocityRegisteredServer> stale = new ArrayList<>();
     for (VelocityRegisteredServer registered : getAllServers()) {
-      if (!desired.contains(registered.getServerInfo())) {
+      if (configured.contains(registered.getServerInfo().getName().toLowerCase(Locale.ROOT))
+          && !desired.contains(registered.getServerInfo())) {
         stale.add(registered);
       }
     }
