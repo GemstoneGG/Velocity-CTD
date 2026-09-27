@@ -22,6 +22,7 @@ import com.velocitypowered.api.proxy.server.ServerPing;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class SamplePlayersPlaceholderResolver implements PlaceholderSubstitutor.Resolver {
@@ -62,7 +63,7 @@ public class SamplePlayersPlaceholderResolver implements PlaceholderSubstitutor.
   }
 
   @Override
-  public @Nullable String resolve(String name, Map<String, String> arguments) {
+  public @Nullable String resolve(@NonNull String name, @NonNull Map<String, String> arguments) {
     if (!name.equals("players")) {
       return null;
     }

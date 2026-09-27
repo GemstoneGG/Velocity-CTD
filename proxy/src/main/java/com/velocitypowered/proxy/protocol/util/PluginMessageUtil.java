@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -296,7 +297,7 @@ public final class PluginMessageUtil {
     }
 
     @Override
-    public @Nullable String resolve(String name, Map<String, String> arguments) {
+    public @Nullable String resolve(@NonNull String name, @NonNull Map<String, String> arguments) {
       return switch (name) {
         case "protocol-min" -> minimumVersion;
         case "protocol-max" -> ProtocolVersion.MAXIMUM_VERSION.getMostRecentSupportedVersion();

@@ -131,7 +131,7 @@ public class SamplePlayersPicker {
 
     private final @Nullable Comparator<VelocityClusterPlayer> comparator;
 
-    Ordering(Comparator<VelocityClusterPlayer> comparator) {
+    Ordering(@Nullable Comparator<VelocityClusterPlayer> comparator) {
       this.comparator = comparator;
     }
 

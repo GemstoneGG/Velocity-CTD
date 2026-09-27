@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.text.Component;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -268,7 +269,7 @@ public class ServerListPingHandler {
     }
 
     @Override
-    public @Nullable String resolve(String name, Map<String, String> arguments) {
+    public @Nullable String resolve(@NonNull String name, @NonNull Map<String, String> arguments) {
       return switch (name) {
         case "protocol-min" -> ProtocolVersion.getVersionByName(
             server.getConfiguration().getMinimumVersion()).getVersionIntroducedIn();
