@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.connection.player.resourcepack.handler;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import com.velocitypowered.api.event.player.PlayerResourcePackStatusEvent;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.player.ResourcePackInfo;
@@ -25,6 +26,7 @@ import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.connection.player.resourcepack.ResourcePackResponseBundle;
 import com.velocitypowered.proxy.connection.player.resourcepack.VelocityResourcePackInfo;
+import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.protocol.packet.ResourcePackRequestPacket;
 import com.velocitypowered.proxy.protocol.packet.ResourcePackResponsePacket;
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder;
@@ -35,6 +37,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import net.kyori.adventure.resource.ResourcePackCallback;
 import net.kyori.adventure.resource.ResourcePackRequest;
 import org.apache.logging.log4j.LogManager;
@@ -60,11 +63,15 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
 
   private final Map<UUID, ResourcePackCallback> packCallbacks = new ConcurrentHashMap<>();
 
+  private final Executor packCallbackExecutor;
+
   private final Set<PackAwait> packAwaits = ConcurrentHashMap.newKeySet();
 
   protected ResourcePackHandler(ConnectedPlayer player, VelocityServer server) {
     this.player = player;
     this.server = server;
+    this.packCallbackExecutor = MoreExecutors.newSequentialExecutor(server.getPluginManager()
+        .ensurePluginContainer(VelocityVirtualPlugin.INSTANCE).getExecutorService());
   }
 
   /**
@@ -101,7 +108,6 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
    * Clears the applied resource pack field.
    */
   public final void clearAppliedResourcePacks() {
-    packCallbacks.clear();
     doClearAppliedResourcePacks();
   }
 
@@ -236,20 +242,15 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
   /**
    * Invokes the Adventure {@link ResourcePackCallback} (if any) registered for the given pack
    * UUID via {@code sendResourcePacks(ResourcePackRequest)}, then evicts the entry on a terminal
-   * status. Called by the per-version handlers when a {@code ResourcePackResponsePacket} arrives,
-   * before the {@link PlayerResourcePackStatusEvent} fire so the two cannot observe each other
-   * mid-flight. Callback execution is dispatched asynchronously off the player's connection event
-   * loop, since slow plugin callback handlers would otherwise stall the player's IO thread.
+   * status. Callbacks run off the player's event loop, in the order the client responses arrived.
    *
-   * @param uuid   the pack UUID from the client response
-   * @param status the Velocity-side status reported by the client
-   * @return a future that completes once the registered callback returns, or an already-completed
-   *         future when no callback was registered
+   * @param uuid   the pack UUID, or {@code null} if it is unknown
+   * @param status the status reported by the client
    */
-  protected CompletableFuture<Void> dispatchPackCallback(@Nullable UUID uuid,
-                                                         @NotNull PlayerResourcePackStatusEvent.Status status) {
+  protected void dispatchPackCallback(@Nullable UUID uuid,
+                                      @NotNull PlayerResourcePackStatusEvent.Status status) {
     if (uuid == null) {
-      return CompletableFuture.completedFuture(null);
+      return;
     }
 
     if (!status.isIntermediate()) {
@@ -262,14 +263,15 @@ public abstract sealed class ResourcePackHandler permits LegacyResourcePackHandl
         ? packCallbacks.get(uuid)
         : packCallbacks.remove(uuid);
     if (callback == null) {
-      return CompletableFuture.completedFuture(null);
+      return;
     }
 
-    return CompletableFuture.runAsync(() -> {
+    packCallbackExecutor.execute(() -> {
       try {
         callback.packEventReceived(uuid, status.adventureStatus(), player);
       } catch (Throwable t) {
-        LOGGER.error("Couldn't pass resource pack callback for pack {} to {}", uuid, player, t);
+        LOGGER.error("Couldn't pass resource pack callback {} for pack {} to {}",
+            callback.getClass().getName(), uuid, player, t);
       }
     });
   }

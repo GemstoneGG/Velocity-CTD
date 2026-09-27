@@ -139,9 +139,10 @@ public sealed class LegacyResourcePackHandler extends ResourcePackHandler
             ? outstandingResourcePacks.peek() : outstandingResourcePacks.poll();
 
     UUID callbackId = queued != null ? queued.getId() : bundle.uuid();
-    dispatchPackCallback(callbackId, bundle.status())
-            .thenCompose(v -> server.getEventManager()
-                  .fire(new PlayerResourcePackStatusEvent(this.player, bundle.uuid(), bundle.status(), queued)))
+    dispatchPackCallback(callbackId, bundle.status());
+    server.getEventManager()
+            .fire(new PlayerResourcePackStatusEvent(
+                this.player, bundle.uuid(), bundle.status(), queued))
             .thenAcceptAsync(event -> {
               if (shouldDisconnectForForcePack(event)) {
                 event.getPlayer().disconnect(Component
