@@ -21,7 +21,6 @@ import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
-import io.netty.channel.ChannelFuture;
 import java.time.Instant;
 import java.util.BitSet;
 import java.util.concurrent.CompletableFuture;
@@ -125,26 +124,14 @@ public class ChatQueue implements AutoCloseable {
   }
 
   private <T extends MinecraftPacket> CompletableFuture<Void> writePacket(T packet, MinecraftConnection smc) {
-    CompletableFuture<Void> result = new CompletableFuture<>();
-    smc.eventLoop().execute(() -> {
-      try {
-        if (closed || smc.isClosed()) {
-          result.complete(null);
-          return;
-        }
-        ChannelFuture future = smc.write(packet);
-        if (future != null) {
-          // Advance the queue once the write completes; a failed write means the
-          // connection is already dying, so draining the queue regardless is fine.
-          future.addListener(f -> result.complete(null));
-        } else {
-          result.complete(null);
-        }
-      } catch (Throwable t) {
-        result.completeExceptionally(t);
+    // Netty sends a channel's writes in the order they are issued on its event loop, so the next
+    // packet only needs this one issued. Waiting for the flush held every queued chat message and
+    // command behind a backend that was slow to read.
+    return CompletableFuture.runAsync(() -> {
+      if (!closed && !smc.isClosed()) {
+        smc.write(packet);
       }
-    });
-    return result;
+    }, smc.eventLoop());
   }
 
   @Override
