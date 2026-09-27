@@ -583,6 +583,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       return false;
     }
 
+    final VelocityConfiguration oldConfiguration = this.configuration;
+
     unregisterCommands();
 
     this.configuration = newConfiguration;
@@ -596,17 +598,17 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     translationRegistryManager.registerTranslations();
 
     // If we have a new bind address, bind to it
-    if (!configuration.getBind().equals(newConfiguration.getBind())) {
+    if (!oldConfiguration.getBind().equals(newConfiguration.getBind())) {
       this.cm.bind(newConfiguration.getBind());
-      this.cm.close(configuration.getBind());
+      this.cm.close(oldConfiguration.getBind());
     }
 
-    boolean queryPortChanged = newConfiguration.getQueryPort() != configuration.getQueryPort();
-    boolean queryAlreadyEnabled = configuration.isQueryEnabled();
+    boolean queryPortChanged = newConfiguration.getQueryPort() != oldConfiguration.getQueryPort();
+    boolean queryAlreadyEnabled = oldConfiguration.isQueryEnabled();
     boolean queryEnabled = newConfiguration.isQueryEnabled();
     if (queryAlreadyEnabled && (!queryEnabled || queryPortChanged)) {
       this.cm.close(new InetSocketAddress(
-          configuration.getBind().getHostString(), configuration.getQueryPort()));
+          oldConfiguration.getBind().getHostString(), oldConfiguration.getQueryPort()));
     }
     if (queryEnabled && (!queryAlreadyEnabled || queryPortChanged)) {
       this.cm.queryBind(newConfiguration.getBind().getHostString(),
