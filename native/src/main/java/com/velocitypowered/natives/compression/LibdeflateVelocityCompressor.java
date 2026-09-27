@@ -35,7 +35,7 @@ public class LibdeflateVelocityCompressor implements VelocityCompressor {
 
   private LibdeflateVelocityCompressor(int level) {
     int correctedLevel = level == -1 ? 6 : level;
-    if (correctedLevel > 12 || correctedLevel < 1) {
+    if (correctedLevel > 12 || correctedLevel < 0) {
       throw new IllegalArgumentException("Invalid compression level " + level);
     }
 

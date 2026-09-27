@@ -64,6 +64,12 @@ class VelocityCompressorTest {
   }
 
   @Test
+  @EnabledOnOs({LINUX})
+  void nativeSupportsLevelZero() throws DataFormatException {
+    check(Natives.compress.get().create(0), () -> Unpooled.directBuffer(TEST_DATA.length + 32));
+  }
+
+  @Test
   void javaIntegrityCheckDirect() throws DataFormatException {
     VelocityCompressor compressor = JavaVelocityCompressor.FACTORY
         .create(Deflater.DEFAULT_COMPRESSION);
