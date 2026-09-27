@@ -185,11 +185,6 @@ public class ServerLoginPacket implements MinecraftPacket {
     return handler.handle(this);
   }
 
-  /**
-   * Whether the name contains a control character, such as a line break, tab or NUL. Those can
-   * forge log lines and cause protocol issues, and never occur in a real name. Printable symbols
-   * stay allowed, since integrations such as Geyser prefix names with characters like {@code .}.
-   */
   private static boolean containsControlCharacter(String username) {
     for (int i = 0; i < username.length(); i++) {
       if (Character.isISOControl(username.charAt(i))) {
