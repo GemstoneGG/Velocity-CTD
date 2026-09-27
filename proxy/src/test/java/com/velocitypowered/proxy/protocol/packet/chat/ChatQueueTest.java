@@ -83,7 +83,6 @@ class ChatQueueTest {
   @Test
   void pendingPacketStillHoldsUpLaterPackets() {
     CompletableFuture<MinecraftPacket> commandEvent = new CompletableFuture<>();
-    MinecraftPacket first = new ChatAcknowledgementPacket(1);
     MinecraftPacket second = new ChatAcknowledgementPacket(2);
 
     queue.queuePacket(lastSeenMessages -> commandEvent, null, null);
@@ -92,6 +91,7 @@ class ChatQueueTest {
 
     assertTrue(written.isEmpty());
 
+    MinecraftPacket first = new ChatAcknowledgementPacket(1);
     commandEvent.complete(first);
     backendChannel.runPendingTasks();
 
