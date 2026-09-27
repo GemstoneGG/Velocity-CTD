@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,20 +34,11 @@ import org.jetbrains.annotations.NotNull;
 public final class VelocityResourcePackInfo implements ResourcePackInfo {
 
   private final UUID id;
-
   private final String url;
-
-  /**
-   * The SHA-1 hash of the resource pack contents (optional, may be {@code null}).
-   */
   private final byte @Nullable [] hash;
-
   private final boolean shouldForce;
-
-  private final @Nullable Component prompt;
-
+  private final @Nullable Component prompt; // 1.17+ only
   private final Origin origin;
-
   private Origin originalOrigin;
 
   private VelocityResourcePackInfo(UUID id, String url, byte @Nullable [] hash, boolean shouldForce,
@@ -121,24 +112,24 @@ public final class VelocityResourcePackInfo implements ResourcePackInfo {
   @Override
   public @NotNull ResourcePackRequest asResourcePackRequest() {
     return ResourcePackRequest.resourcePackRequest()
-        .packs(net.kyori.adventure.resource.ResourcePackInfo.resourcePackInfo()
-            .id(this.id)
-            .uri(URI.create(this.url))
-            .hash(this.hash == null ? "" : ByteBufUtil.hexDump(this.hash))
-            .build())
-        .required(this.shouldForce)
-        .prompt(this.prompt)
-        .build();
+            .packs(net.kyori.adventure.resource.ResourcePackInfo.resourcePackInfo()
+                    .id(this.id)
+                    .uri(URI.create(this.url))
+                    .hash(this.hash == null ? "" : ByteBufUtil.hexDump(this.hash))
+                    .build())
+            .required(this.shouldForce)
+            .prompt(this.prompt)
+            .build();
   }
 
   public static ResourcePackInfo fromAdventureRequest(ResourcePackRequest request,
                                                       net.kyori.adventure.resource.ResourcePackInfo pack) {
     return new BuilderImpl(pack.uri().toString())
-        .setHash(pack.hash().isEmpty() ? null : ByteBufUtil.decodeHexDump(pack.hash()))
-        .setId(pack.id())
-        .setShouldForce(request.required())
-        .setPrompt(request.prompt())
-        .build();
+            .setHash(pack.hash().isEmpty() ? null : ByteBufUtil.decodeHexDump(pack.hash()))
+            .setId(pack.id())
+            .setShouldForce(request.required())
+            .setPrompt(request.prompt())
+            .build();
   }
 
   /**
@@ -147,18 +138,10 @@ public final class VelocityResourcePackInfo implements ResourcePackInfo {
   public static final class BuilderImpl implements ResourcePackInfo.Builder {
 
     private UUID id;
-
     private final String url;
-
     private boolean shouldForce;
-
-    /**
-     * The optional SHA-1 hash of the resource pack, or {@code null} if not specified.
-     */
     private byte @Nullable [] hash;
-
     private @Nullable Component prompt;
-
     private Origin origin = Origin.PLUGIN_ON_PROXY;
 
     public BuilderImpl(String url) {
@@ -179,14 +162,13 @@ public final class VelocityResourcePackInfo implements ResourcePackInfo {
     }
 
     @Override
-    public BuilderImpl setHash(byte @Nullable [] hash) {
+    public BuilderImpl setHash(final byte @Nullable [] hash) {
       if (hash != null) {
         Preconditions.checkArgument(hash.length == 20, "Hash length is not 20");
         this.hash = hash.clone(); // Thanks spotbugs, very helpful.
       } else {
         this.hash = null;
       }
-
       return this;
     }
 

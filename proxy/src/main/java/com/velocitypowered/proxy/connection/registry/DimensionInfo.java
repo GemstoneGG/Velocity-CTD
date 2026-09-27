@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2020-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,11 +27,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public final class DimensionInfo {
 
   private final String registryIdentifier;
-
   private final String levelName;
-
   private final boolean isFlat;
-
   private final boolean isDebugType;
 
   /**
@@ -41,8 +38,7 @@ public final class DimensionInfo {
    * @param levelName          the level name as displayed in the F3 menu and logs
    * @param isFlat             if true will set world lighting below surface-level to not display
    *                           fog
-   * @param isDebugType        if true, constrains the world to the very limited debug-type world
-   * @param protocolVersion    the protocol version used to determine compatibility constraints (e.g., disallow empty registry keys pre-1.20.5)
+   * @param isDebugType        if true constrains the world to the very limited debug-type world
    */
   public DimensionInfo(String registryIdentifier, @Nullable String levelName,
                        boolean isFlat, boolean isDebugType, ProtocolVersion protocolVersion) {
@@ -50,7 +46,6 @@ public final class DimensionInfo {
     if (protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
       Preconditions.checkArgument(!registryIdentifier.isEmpty(), "registryIdentifier cannot be empty");
     }
-
     this.levelName = levelName;
     this.isFlat = isFlat;
     this.isDebugType = isDebugType;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,50 +22,23 @@ package com.velocitypowered.natives;
  */
 public class NativeSetupException extends RuntimeException {
 
-  /**
-   * Creates a new {@link NativeSetupException} with no message or cause.
-   */
   public NativeSetupException() {
   }
 
-  /**
-   * Creates a new {@link NativeSetupException} with the specified message.
-   *
-   * @param message the detail message
-   */
   public NativeSetupException(String message) {
     super(message);
   }
 
-  /**
-   * Creates a new {@link NativeSetupException} with the specified message and cause.
-   *
-   * @param message the detail message
-   * @param cause the cause of the exception
-   */
   public NativeSetupException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  /**
-   * Creates a new {@link NativeSetupException} with the specified cause.
-   *
-   * @param cause the cause of the exception
-   */
   public NativeSetupException(Throwable cause) {
     super(cause);
   }
 
-  /**
-   * Creates a new {@link NativeSetupException} with full customization.
-   *
-   * @param message the detail message
-   * @param cause the cause of the exception
-   * @param enableSuppression whether suppression is enabled
-   * @param writableStackTrace whether the stack trace should be writable
-   */
   public NativeSetupException(String message, Throwable cause, boolean enableSuppression,
-                              boolean writableStackTrace) {
+      boolean writableStackTrace) {
     super(message, cause, enableSuppression, writableStackTrace);
   }
 }

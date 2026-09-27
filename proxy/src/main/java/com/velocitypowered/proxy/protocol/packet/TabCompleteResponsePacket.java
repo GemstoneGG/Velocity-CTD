@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,11 +33,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class TabCompleteResponsePacket implements MinecraftPacket {
 
   private int transactionId;
-
   private int start;
-
   private int length;
-
   private final List<Offer> offers = new ArrayList<>();
 
   public int getTransactionId() {
@@ -128,7 +125,6 @@ public class TabCompleteResponsePacket implements MinecraftPacket {
   public static class Offer implements Comparable<Offer> {
 
     private final String text;
-
     private final @Nullable ComponentHolder tooltip;
 
     public Offer(String text) {
@@ -145,7 +141,6 @@ public class TabCompleteResponsePacket implements MinecraftPacket {
       if (this == o) {
         return true;
       }
-
       if (o == null || getClass() != o.getClass()) {
         return false;
       }

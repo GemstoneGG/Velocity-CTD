@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ import net.kyori.adventure.text.Component;
 /**
  * Common connection request results.
  */
-public final class ConnectionRequestResults {
+public class ConnectionRequestResults {
 
   private ConnectionRequestResults() {
     throw new AssertionError();
@@ -113,7 +113,7 @@ public final class ConnectionRequestResults {
     }
 
     /**
-     * Returns whether it is safe to attempt reconnecting.
+     * Returns whether or not it is safe to attempt a reconnect.
      *
      * @return whether we can try to reconnect
      */

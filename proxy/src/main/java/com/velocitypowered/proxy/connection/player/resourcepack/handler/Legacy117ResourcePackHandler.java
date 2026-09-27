@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2024 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,12 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
  * Legacy (Minecraft 1.17-1.20.2) ResourcePackHandler.
  */
 public final class Legacy117ResourcePackHandler extends LegacyResourcePackHandler {
-  Legacy117ResourcePackHandler(ConnectedPlayer player, VelocityServer server) {
+  Legacy117ResourcePackHandler(final ConnectedPlayer player, final VelocityServer server) {
     super(player, server);
   }
 
   @Override
-  protected boolean shouldDisconnectForForcePack(PlayerResourcePackStatusEvent event) {
+  protected boolean shouldDisconnectForForcePack(final PlayerResourcePackStatusEvent event) {
     return super.shouldDisconnectForForcePack(event) && !event.isOverwriteKick();
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,51 +32,28 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class JoinGamePacket implements MinecraftPacket {
 
   private static final BinaryTagIO.Reader JOINGAME_READER = BinaryTagIO.reader(4 * 1024 * 1024);
-
   private int entityId;
-
   private int gamemode;
-
   private int dimension;
-
   private long partialHashedSeed; // 1.15+
-
   private short difficulty;
-
   private boolean isHardcore;
-
   private int maxPlayers;
-
   private @Nullable String levelType;
-
   private int viewDistance; // 1.14+
-
   private boolean reducedDebugInfo;
-
   private boolean showRespawnScreen;
-
   private boolean doLimitedCrafting; // 1.20.2+
-
   private ImmutableSet<String> levelNames; // 1.16+
-
   private CompoundBinaryTag registry; // 1.16+
-
   private DimensionInfo dimensionInfo; // 1.16+
-
   private CompoundBinaryTag currentDimensionData; // 1.16.2+
-
   private int previousGamemode; // 1.16+
-
   private int simulationDistance; // 1.18+
-
   private @Nullable Pair<String, Long> lastDeathPosition; // 1.19+
-
   private int portalCooldown; // 1.20+
-
   private int seaLevel; // 1.21.2+
-
   private boolean onlineMode; // 26.2+
-
   private boolean enforcesSecureChat; // 1.20.5+
 
   public int getEntityId() {
@@ -223,7 +200,7 @@ public class JoinGamePacket implements MinecraftPacket {
     return this.enforcesSecureChat;
   }
 
-  public void setEnforcesSecureChat(boolean enforcesSecureChat) {
+  public void setEnforcesSecureChat(final boolean enforcesSecureChat) {
     this.enforcesSecureChat = enforcesSecureChat;
   }
 
@@ -284,26 +261,20 @@ public class JoinGamePacket implements MinecraftPacket {
     } else {
       this.dimension = buf.readByte();
     }
-
     if (version.noGreaterThan(ProtocolVersion.MINECRAFT_1_13_2)) {
       this.difficulty = buf.readUnsignedByte();
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_15)) {
       this.partialHashedSeed = buf.readLong();
     }
-
     this.maxPlayers = buf.readUnsignedByte();
     this.levelType = ProtocolUtils.readString(buf, 16);
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_14)) {
       this.viewDistance = ProtocolUtils.readVarInt(buf);
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
       this.reducedDebugInfo = buf.readBoolean();
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_15)) {
       this.showRespawnScreen = buf.readBoolean();
     }
@@ -319,15 +290,14 @@ public class JoinGamePacket implements MinecraftPacket {
       this.isHardcore = (this.gamemode & 0x08) != 0;
       this.gamemode &= ~0x08;
     }
-
     this.previousGamemode = buf.readByte();
 
     this.levelNames = ImmutableSet.copyOf(ProtocolUtils.readStringArray(buf));
     this.registry = ProtocolUtils.readCompoundTag(buf, version, JOINGAME_READER);
-
     String dimensionIdentifier;
     String levelName = null;
-    if (version.noLessThan(ProtocolVersion.MINECRAFT_1_16_2) && version.lessThan(ProtocolVersion.MINECRAFT_1_19)) {
+    if (version.noLessThan(ProtocolVersion.MINECRAFT_1_16_2)
+        && version.lessThan(ProtocolVersion.MINECRAFT_1_19)) {
       this.currentDimensionData = ProtocolUtils.readCompoundTag(buf, version, JOINGAME_READER);
       dimensionIdentifier = ProtocolUtils.readString(buf);
     } else {
@@ -386,7 +356,6 @@ public class JoinGamePacket implements MinecraftPacket {
     } else {
       dimensionKey = ProtocolUtils.readString(buf);
     }
-
     String levelName = ProtocolUtils.readString(buf);
     this.partialHashedSeed = buf.readLong();
 
@@ -444,34 +413,28 @@ public class JoinGamePacket implements MinecraftPacket {
     } else {
       buf.writeByte(isHardcore ? gamemode | 0x8 : gamemode);
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_9_1)) {
       buf.writeInt(dimension);
     } else {
       buf.writeByte(dimension);
     }
-
     if (version.noGreaterThan(ProtocolVersion.MINECRAFT_1_13_2)) {
       buf.writeByte(difficulty);
     }
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_15)) {
       buf.writeLong(partialHashedSeed);
     }
-
     buf.writeByte(maxPlayers);
     if (levelType == null) {
       throw new IllegalStateException("No level type specified.");
     }
-
     ProtocolUtils.writeString(buf, levelType);
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_14)) {
       ProtocolUtils.writeVarInt(buf, viewDistance);
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
       buf.writeBoolean(reducedDebugInfo);
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_15)) {
       buf.writeBoolean(showRespawnScreen);
     }
@@ -485,7 +448,6 @@ public class JoinGamePacket implements MinecraftPacket {
     } else {
       buf.writeByte(isHardcore ? gamemode | 0x8 : gamemode);
     }
-
     buf.writeByte(previousGamemode);
 
     ProtocolUtils.writeStringArray(buf, levelNames.toArray(String[]::new));
@@ -552,7 +514,6 @@ public class JoinGamePacket implements MinecraftPacket {
     } else {
       ProtocolUtils.writeString(buf, dimensionInfo.getRegistryIdentifier());
     }
-
     ProtocolUtils.writeString(buf, dimensionInfo.getLevelName());
     buf.writeLong(partialHashedSeed);
 

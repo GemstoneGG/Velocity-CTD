@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,36 +43,34 @@ public final class VelocityArgumentBuilder<S, T>
    * @param <T>  the type of the argument to parse
    * @return a builder
    */
-  public static <S, T> VelocityArgumentBuilder<S, T> velocityArgument(String name,
-                                                                      ArgumentType<T> type) {
+  public static <S, T> VelocityArgumentBuilder<S, T> velocityArgument(final String name,
+      final ArgumentType<T> type) {
     Preconditions.checkNotNull(name, "name");
     Preconditions.checkNotNull(type, "type");
     return new VelocityArgumentBuilder<>(name, type);
   }
 
   private final String name;
-
   private final ArgumentType<T> type;
-
   private SuggestionProvider<S> suggestionsProvider = null;
 
-  private VelocityArgumentBuilder(String name, ArgumentType<T> type) {
+  private VelocityArgumentBuilder(final String name, final ArgumentType<T> type) {
     this.name = name;
     this.type = type;
   }
 
-  public VelocityArgumentBuilder<S, T> suggests(@Nullable SuggestionProvider<S> provider) {
+  public VelocityArgumentBuilder<S, T> suggests(final @Nullable SuggestionProvider<S> provider) {
     this.suggestionsProvider = provider;
     return this;
   }
 
   @Override
-  public VelocityArgumentBuilder<S, T> then(ArgumentBuilder<S, ?> argument) {
+  public VelocityArgumentBuilder<S, T> then(final ArgumentBuilder<S, ?> argument) {
     throw new UnsupportedOperationException("Cannot add children to a greedy node");
   }
 
   @Override
-  public VelocityArgumentBuilder<S, T> then(CommandNode<S> argument) {
+  public VelocityArgumentBuilder<S, T> then(final CommandNode<S> argument) {
     throw new UnsupportedOperationException("Cannot add children to a greedy node");
   }
 

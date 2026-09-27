@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2024 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,6 @@ import net.kyori.adventure.key.Key;
 public class ClientboundStoreCookiePacket implements MinecraftPacket {
 
   private Key key;
-
   private byte[] payload;
 
   public Key getKey() {
@@ -42,7 +41,7 @@ public class ClientboundStoreCookiePacket implements MinecraftPacket {
   public ClientboundStoreCookiePacket() {
   }
 
-  public ClientboundStoreCookiePacket(Key key, byte[] payload) {
+  public ClientboundStoreCookiePacket(final Key key, final byte[] payload) {
     this.key = key;
     this.payload = payload;
   }

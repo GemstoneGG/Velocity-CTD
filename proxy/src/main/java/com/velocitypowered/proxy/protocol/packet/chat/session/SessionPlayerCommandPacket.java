@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,13 +33,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class SessionPlayerCommandPacket implements MinecraftPacket {
 
   protected String command;
-
   protected Instant timeStamp;
-
   protected long salt;
-
   protected ArgumentSignatures argumentSignatures;
-
   protected LastSeenMessages lastSeenMessages;
 
   @Override
@@ -101,7 +97,6 @@ public class SessionPlayerCommandPacket implements MinecraftPacket {
       packet.command = command;
       return packet;
     }
-
     SessionPlayerCommandPacket packet = new SessionPlayerCommandPacket();
     packet.command = command;
     packet.timeStamp = timeStamp;
@@ -154,7 +149,6 @@ public class SessionPlayerCommandPacket implements MinecraftPacket {
   public static class ArgumentSignature {
 
     private final String name;
-
     private final byte[] signature;
 
     public ArgumentSignature(ByteBuf buf) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -154,8 +154,6 @@ public interface Player extends
 
   /**
    * Returns the player's game profile.
-   *
-   * @return the player's profile
    */
   GameProfile getGameProfile();
 
@@ -204,7 +202,7 @@ public interface Player extends
   void disconnect(@NotNull Component reason);
 
   /**
-   * Sends chat input onto the player's current server as if they typed it into the client chat box.
+   * Sends chat input onto the players current server as if they typed it into the client chat box.
    *
    * @param input the chat input to send
    */
@@ -213,7 +211,7 @@ public interface Player extends
   /**
    * Sends the specified resource pack from {@code url} to the user. If at all possible, send the
    * resource pack using {@link #sendResourcePack(String, byte[])}. To monitor the status of the
-   * "sent" resource pack, subscribe to {@link PlayerResourcePackStatusEvent}.
+   * sent resource pack, subscribe to {@link PlayerResourcePackStatusEvent}.
    *
    * @param url the URL for the resource pack
    * @deprecated Use {@link #sendResourcePackOffer(ResourcePackInfo)} instead
@@ -223,7 +221,7 @@ public interface Player extends
 
   /**
    * Sends the specified resource pack from {@code url} to the user, using the specified 20-byte
-   * SHA-1 hash. To monitor the status of the "sent" resource pack, subscribe to
+   * SHA-1 hash. To monitor the status of the sent resource pack, subscribe to
    * {@link PlayerResourcePackStatusEvent}.
    *
    * @param url the URL for the resource pack
@@ -235,7 +233,7 @@ public interface Player extends
 
   /**
    * Queues and sends a new Resource-pack offer to the player.
-   * To monitor the status of the "sent" resource pack, subscribe to
+   * To monitor the status of the sent resource pack, subscribe to
    * {@link PlayerResourcePackStatusEvent}.
    * To create a {@link ResourcePackInfo} use the
    * {@link ProxyServer#createResourcePackBuilder(String)} builder.
@@ -251,7 +249,7 @@ public interface Player extends
    * <p>Note that since 1.20.3 it is no longer recommended to use
    * this method as it will only return the last applied
    * resource pack. To get all applied resource packs, use
-   * {@link #getAppliedResourcePacks()} instead.</p>
+   * {@link #getAppliedResourcePacks()} instead. </p>
    *
    * @return the applied resource pack or null if none.
    */
@@ -267,7 +265,7 @@ public interface Player extends
    * <p>Note that since 1.20.3 it is no longer recommended to use
    * this method as it will only return the last pending
    * resource pack. To get all pending resource packs, use
-   * {@link #getPendingResourcePacks()} instead.</p>
+   * {@link #getPendingResourcePacks()} instead. </p>
    *
    * @return the pending resource pack or null if none
    */
@@ -337,13 +335,16 @@ public interface Player extends
   }
 
   @Override
-  default @NotNull HoverEvent<HoverEvent.ShowEntity> asHoverEvent(@NotNull UnaryOperator<HoverEvent.ShowEntity> op) {
-    return HoverEvent.showEntity(op.apply(HoverEvent.ShowEntity.showEntity(this, getUniqueId(), Component.text(getUsername()))));
+  default @NotNull HoverEvent<HoverEvent.ShowEntity> asHoverEvent(
+          @NotNull UnaryOperator<HoverEvent.ShowEntity> op) {
+    return HoverEvent.showEntity(op.apply(HoverEvent.ShowEntity.showEntity(this, getUniqueId(),
+            Component.text(getUsername()))));
   }
 
-  @SuppressWarnings("UnstableApiUsage") // Permitted unstable implementation
+  @SuppressWarnings("UnstableApiUsage") // permitted implementation
   @Override
-  default void applySkinToPlayerHeadContents(PlayerHeadObjectContents.@NotNull Builder builder) {
+  default void applySkinToPlayerHeadContents(
+      final PlayerHeadObjectContents.@NotNull Builder builder) {
     builder.skin(this.getGameProfile());
     if (this.hasSentPlayerSettings()) {
       builder.hat(this.getPlayerSettings().getSkinParts().hasHat());
@@ -357,6 +358,10 @@ public interface Player extends
    */
   @Nullable String getClientBrand();
 
+  //
+  // Custom Chat Completions API
+  //
+
   /**
    * Add custom chat completion suggestions shown to the player while typing a message.
    *
@@ -367,7 +372,7 @@ public interface Player extends
   /**
    * Remove custom chat completion suggestions shown to the player while typing a message.
    *
-   * <p>Online player names can't be removed with this method; it will only affect
+   * <p>Online player names can't be removed with this method, it will only affect
    * custom completions added by {@link #addCustomChatCompletions(Collection)}
    * or {@link #setCustomChatCompletions(Collection)}.
    *
@@ -392,6 +397,7 @@ public interface Player extends
 
   /**
    * {@inheritDoc}
+   *
    *
    * @apiNote <b>This method is not currently implemented in Velocity
    *     and will not perform any actions.</b>
@@ -427,8 +433,8 @@ public interface Player extends
    * @param emitter the emitter of the sound; may be another player of this player's server
    * @since 3.4.0
    * @sinceMinecraft 1.19.3
-   * @apiNote This method is currently only implemented for players on 1.19.3+ and
-   *     requires a present {@link #getCurrentServer} for the emitting player as well as this player.
+   * @apiNote This method is currently only implemented for players on 1.19.3+
+   *     and requires a present {@link #getCurrentServer} for the emitting player as well as this player.
    */
   @Override
   default void playSound(@NotNull Sound sound, @NotNull Sound.Emitter emitter) {
@@ -501,7 +507,7 @@ public interface Player extends
    * @param data the data of the cookie
    * @throws IllegalArgumentException if the player is from a version lower than 1.20.5
    * @since 3.3.0
-   * @since Minecraft 1.20.5
+   * @sinceMinecraft 1.20.5
    */
   void storeCookie(Key key, byte[] data);
 
@@ -514,7 +520,7 @@ public interface Player extends
    * @param key the identifier of the cookie
    * @throws IllegalArgumentException if the player is from a version lower than 1.20.5
    * @since 3.3.0
-   * @since Minecraft 1.20.5
+   * @sinceMinecraft 1.20.5
    */
   void requestCookie(Key key);
 
@@ -526,7 +532,7 @@ public interface Player extends
    * @param links an ordered list of {@link ServerLink}s to send to the player
    * @throws IllegalArgumentException if the player is from a version lower than 1.21
    * @since 3.3.0
-   * @since Minecraft 1.21
+   * @sinceMinecraft 1.21
    */
   void setServerLinks(@NotNull List<ServerLink> links);
 

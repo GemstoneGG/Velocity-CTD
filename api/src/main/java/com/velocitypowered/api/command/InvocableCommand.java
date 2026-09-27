@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2020-2021 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -14,14 +14,15 @@ import java.util.concurrent.CompletableFuture;
 /**
  * A command that can be executed with arbitrary arguments.
  *
- * <p>Modifying the command tree (e.g., registering a command via
+ * <p>Modifying the command tree (e.g. registering a command via
  * {@link CommandManager#register(CommandMeta, Command)}) during
  * permission checking and suggestions provision results in
  * undefined behavior, which may include deadlocks.
  *
  * @param <I> the type of the command invocation object
  */
-public sealed interface InvocableCommand<I extends CommandInvocation<?>> extends Command permits RawCommand, SimpleCommand {
+public sealed interface InvocableCommand<I extends CommandInvocation<?>> extends Command
+        permits RawCommand, SimpleCommand {
 
   /**
    * Executes the command for the specified invocation.
@@ -36,7 +37,7 @@ public sealed interface InvocableCommand<I extends CommandInvocation<?>> extends
    * @param invocation the invocation context
    * @return the tab complete suggestions
    */
-  default List<String> suggest(I invocation) {
+  default List<String> suggest(final I invocation) {
     return ImmutableList.of();
   }
 
@@ -47,7 +48,7 @@ public sealed interface InvocableCommand<I extends CommandInvocation<?>> extends
    * @return the tab complete suggestions
    * @implSpec defaults to wrapping the value returned by {@link #suggest(CommandInvocation)}
    */
-  default CompletableFuture<List<String>> suggestAsync(I invocation) {
+  default CompletableFuture<List<String>> suggestAsync(final I invocation) {
     return CompletableFuture.completedFuture(suggest(invocation));
   }
 
@@ -55,12 +56,12 @@ public sealed interface InvocableCommand<I extends CommandInvocation<?>> extends
    * Tests to check if the source has permission to perform the specified invocation.
    *
    * <p>If the method returns {@code false}, the handling is forwarded onto
-   * the player's current server.
+   * the players current server.
    *
    * @param invocation the invocation context
    * @return {@code true} if the source has permission
    */
-  default boolean hasPermission(I invocation) {
+  default boolean hasPermission(final I invocation) {
     return true;
   }
 }

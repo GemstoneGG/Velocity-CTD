@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2020-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@ import org.jetbrains.annotations.NotNull;
 @AutoService(BossBarImplementation.Provider.class)
 @SuppressWarnings("UnstableApiUsage")
 public class BossBarImplementationProvider implements BossBarImplementation.Provider {
-
   @Override
   public @NotNull BossBarImplementation create(@NotNull BossBar bar) {
     VelocityBossBarImplementation impl = new VelocityBossBarImplementation(bar);

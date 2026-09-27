@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2019-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,9 +28,11 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
  */
 public class DeferredByteBufHolder implements ByteBufHolder {
 
-  @MonotonicNonNull private ByteBuf backing;
+  @MonotonicNonNull
+  private ByteBuf backing;
 
-  public DeferredByteBufHolder(@MonotonicNonNull ByteBuf backing) {
+  public DeferredByteBufHolder(
+      @MonotonicNonNull ByteBuf backing) {
     this.backing = backing;
   }
 
@@ -39,11 +41,9 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
-
     if (backing.refCnt() <= 0) {
       throw new IllegalReferenceCountException(backing.refCnt());
     }
-
     return backing;
   }
 
@@ -52,7 +52,6 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
-
     return new DeferredByteBufHolder(backing.copy());
   }
 
@@ -61,7 +60,6 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
-
     return new DeferredByteBufHolder(backing.duplicate());
   }
 
@@ -70,7 +68,6 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
-
     return new DeferredByteBufHolder(backing.retainedDuplicate());
   }
 
@@ -79,7 +76,6 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (content == null) {
       throw new NullPointerException("content");
     }
-
     this.backing = content;
     return this;
   }
@@ -89,7 +85,6 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
-
     return backing.refCnt();
   }
 
@@ -98,7 +93,6 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
-
     backing.retain();
     return this;
   }
@@ -108,7 +102,6 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
-
     backing.retain(increment);
     return this;
   }
@@ -118,7 +111,6 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
-
     backing.touch();
     return this;
   }
@@ -128,7 +120,6 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
-
     backing.touch(hint);
     return this;
   }
@@ -138,7 +129,6 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
-
     return backing.release();
   }
 
@@ -147,7 +137,6 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     if (backing == null) {
       throw new IllegalStateException("Trying to obtain contents of holder with a null buffer");
     }
-
     return backing.release(decrement);
   }
 
@@ -159,7 +148,6 @@ public class DeferredByteBufHolder implements ByteBufHolder {
     } else {
       str += backing.toString();
     }
-
     return str + "]";
   }
 }

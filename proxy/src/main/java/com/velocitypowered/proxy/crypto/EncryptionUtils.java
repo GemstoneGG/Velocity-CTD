@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,18 +48,16 @@ public enum EncryptionUtils {
 
   public static final Pair<String, String> PEM_RSA_PUBLIC_KEY_DESCRIPTOR =
       Pair.of("-----BEGIN RSA PUBLIC KEY-----", "-----END RSA PUBLIC KEY-----");
-
   public static final Pair<String, String> PEM_RSA_PRIVATE_KEY_DESCRIPTOR =
       Pair.of("-----BEGIN RSA PRIVATE KEY-----", "-----END RSA PRIVATE KEY-----");
 
   public static final String SHA1_WITH_RSA = "SHA1withRSA";
-
   public static final String SHA256_WITH_RSA = "SHA256withRSA";
 
-  public static final QuietDecoderException INVALID_SIGNATURE = new QuietDecoderException("Incorrectly signed chat message");
-
-  public static final QuietDecoderException PREVIEW_SIGNATURE_MISSING = new QuietDecoderException("Unsigned chat message requested signed preview");
-
+  public static final QuietDecoderException INVALID_SIGNATURE
+      = new QuietDecoderException("Incorrectly signed chat message");
+  public static final QuietDecoderException PREVIEW_SIGNATURE_MISSING
+      = new QuietDecoderException("Unsigned chat message requested signed preview");
   public static final byte[] EMPTY = new byte[0];
 
   private static final PublicKey YGGDRASIL_SESSION_KEY;
@@ -99,7 +97,7 @@ public enum EncryptionUtils {
    * @return validity of the signature
    */
   public static boolean verifySignature(String algorithm, PublicKey base, byte[] signature,
-                                        byte[]... toVerify) {
+      byte[]... toVerify) {
     Preconditions.checkArgument(toVerify.length > 0);
     try {
       Signature construct = Signature.getInstance(algorithm);
@@ -138,7 +136,9 @@ public enum EncryptionUtils {
       throw new IllegalArgumentException("Invalid key type");
     }
 
-    return encoder.first() + "\n" + encodeUrlEncoded(toEncode.getEncoded()) + "\n" + encoder.second() + "\n";
+    return encoder.first() + "\n"
+        + encodeUrlEncoded(toEncode.getEncoded()) + "\n"
+        + encoder.second() + "\n";
   }
 
   /**
@@ -161,12 +161,12 @@ public enum EncryptionUtils {
    * @param keysize the key size (in bits) for the RSA key pair
    * @return the generated key pair
    */
-  public static KeyPair createRsaKeyPair(int keysize) {
+  public static KeyPair createRsaKeyPair(final int keysize) {
     try {
-      KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+      final KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
       generator.initialize(keysize);
       return generator.generateKeyPair();
-    } catch (NoSuchAlgorithmException e) {
+    } catch (final NoSuchAlgorithmException e) {
       throw new RuntimeException("Unable to generate RSA keypair", e);
     }
   }

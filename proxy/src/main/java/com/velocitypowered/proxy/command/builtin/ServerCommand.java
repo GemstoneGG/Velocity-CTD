@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,7 +46,6 @@ import net.kyori.adventure.text.minimessage.translation.Argument;
 public class ServerCommand implements BuiltinCommandDefinition {
 
   private static final String SERVER_ARG = "server";
-
   public static final int MAX_SERVERS_TO_LIST = 50;
 
   private final VelocityServer server;
@@ -135,7 +134,7 @@ public class ServerCommand implements BuiltinCommandDefinition {
     }
 
     // Assemble the list of servers as components
-    TextComponent.Builder serverListBuilder = Component.text()
+    final TextComponent.Builder serverListBuilder = Component.text()
         .append(Component.translatable("velocity.command.server-available",
             NamedTextColor.YELLOW))
         .appendSpace();
@@ -155,8 +154,8 @@ public class ServerCommand implements BuiltinCommandDefinition {
     TextComponent.Builder serverTextComponent = Component.text()
             .content(serverInfo.getName());
 
-    int connectedPlayers = server.getPlayersConnected().size();
-    TranslatableComponent.Builder playersTextComponent = Component.translatable();
+    final int connectedPlayers = server.getPlayersConnected().size();
+    final TranslatableComponent.Builder playersTextComponent = Component.translatable();
     if (connectedPlayers == 1) {
       playersTextComponent.key("velocity.command.server-tooltip-player-online");
     } else {
@@ -181,7 +180,6 @@ public class ServerCommand implements BuiltinCommandDefinition {
                       .append(playersTextComponent))
           );
     }
-
     return serverTextComponent.build();
   }
 }

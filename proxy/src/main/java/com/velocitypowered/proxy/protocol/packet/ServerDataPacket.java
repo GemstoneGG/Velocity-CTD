@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,10 +31,8 @@ import org.jetbrains.annotations.Nullable;
 public class ServerDataPacket implements MinecraftPacket {
 
   private @Nullable ComponentHolder description;
-
   private @Nullable Favicon favicon;
-
-  private boolean secureChatEnforced;
+  private boolean secureChatEnforced; // Added in 1.19.1 - Removed in 1.20.5
 
   public ServerDataPacket() {
   }
@@ -47,11 +45,11 @@ public class ServerDataPacket implements MinecraftPacket {
   }
 
   @Override
-  public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
+  public void decode(ByteBuf buf, ProtocolUtils.Direction direction,
+      ProtocolVersion protocolVersion) {
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_19_4) || buf.readBoolean()) {
       this.description = ComponentHolder.read(buf, protocolVersion);
     }
-
     if (buf.readBoolean()) {
       String iconBase64;
       if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_19_4)) {
@@ -60,14 +58,11 @@ public class ServerDataPacket implements MinecraftPacket {
       } else {
         iconBase64 = ProtocolUtils.readString(buf);
       }
-
       this.favicon = new Favicon(iconBase64);
     }
-
     if (protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_19_3)) {
       buf.readBoolean();
     }
-
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_19_1)
             && protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
       this.secureChatEnforced = buf.readBoolean();
@@ -75,12 +70,12 @@ public class ServerDataPacket implements MinecraftPacket {
   }
 
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
+  public void encode(ByteBuf buf, ProtocolUtils.Direction direction,
+      ProtocolVersion protocolVersion) {
     boolean hasDescription = this.description != null;
     if (protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_19_4)) {
       buf.writeBoolean(hasDescription);
     }
-
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_19_4) || hasDescription) {
       this.description.write(buf);
     }
@@ -100,7 +95,6 @@ public class ServerDataPacket implements MinecraftPacket {
     if (protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_19_3)) {
       buf.writeBoolean(false);
     }
-
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_19_1)
             && protocolVersion.lessThan(ProtocolVersion.MINECRAFT_1_20_5)) {
       buf.writeBoolean(this.secureChatEnforced);

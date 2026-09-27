@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -74,8 +74,11 @@ public final class InitialInboundConnection implements VelocityInboundConnection
 
   @Override
   public String toString() {
-    boolean isPlayerAddressLoggingEnabled = connection.server.getConfiguration().isPlayerAddressLoggingEnabled();
-    String playerIp = isPlayerAddressLoggingEnabled ? connection.getRemoteAddress().toString() : "<ip address withheld>";
+    final boolean isPlayerAddressLoggingEnabled = connection.server.getConfiguration()
+        .isPlayerAddressLoggingEnabled();
+    final String playerIp =
+        isPlayerAddressLoggingEnabled
+            ? connection.getRemoteAddress().toString() : "<ip address withheld>";
     return "[initial connection] " + playerIp;
   }
 
@@ -108,7 +111,6 @@ public final class InitialInboundConnection implements VelocityInboundConnection
         LOGGER.info(Component.text(this + " has disconnected: ").append(translated));
       }
     }
-
     connection.closeWith(DisconnectPacket.create(translated, getProtocolVersion(), connection.getState()));
   }
 

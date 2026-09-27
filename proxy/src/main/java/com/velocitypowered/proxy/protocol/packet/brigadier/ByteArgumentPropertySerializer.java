@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2022 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,11 +20,12 @@ package com.velocitypowered.proxy.protocol.packet.brigadier;
 import com.velocitypowered.api.network.ProtocolVersion;
 import io.netty.buffer.ByteBuf;
 
-final class ByteArgumentPropertySerializer implements ArgumentPropertySerializer<Byte> {
+class ByteArgumentPropertySerializer implements ArgumentPropertySerializer<Byte> {
 
   static final ByteArgumentPropertySerializer BYTE = new ByteArgumentPropertySerializer();
 
   private ByteArgumentPropertySerializer() {
+
   }
 
   @Override

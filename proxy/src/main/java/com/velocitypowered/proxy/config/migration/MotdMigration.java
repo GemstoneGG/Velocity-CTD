@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,20 +27,20 @@ import org.apache.logging.log4j.Logger;
  * Migrates MOTD builtin configuration from legacy or JSON format to MiniMessage.
  */
 public final class MotdMigration implements ConfigurationMigration {
-
   @Override
-  public boolean shouldMigrate(CommentedFileConfig config) {
+  public boolean shouldMigrate(final CommentedFileConfig config) {
     return configVersion(config) < 2.6;
   }
 
   @Override
-  public void migrate(CommentedFileConfig config, Logger logger) {
-    String oldMotd = config.getOrElse("motd", "<#09add3>A Velocity Server");
-    String migratedMotd;
+  public void migrate(final CommentedFileConfig config, final Logger logger) {
+    final String oldMotd = config.getOrElse("motd", "<#09add3>A Velocity Server");
+    final String migratedMotd;
     // JSON Format Migration
     if (oldMotd.strip().startsWith("{")) {
       migratedMotd = MiniMessage.miniMessage().serialize(
-              GsonComponentSerializer.gson().deserialize(oldMotd)).replace("\\", "");
+                      GsonComponentSerializer.gson().deserialize(oldMotd))
+              .replace("\\", "");
     } else {
       // Legacy '&' Format Migration
       migratedMotd = MiniMessage.miniMessage().serialize(
@@ -48,6 +48,7 @@ public final class MotdMigration implements ConfigurationMigration {
     }
 
     config.set("motd", migratedMotd);
+
     config.setComment("motd",
             " What should be the MOTD? This gets displayed when the player adds your server to\n"
                     + " their server list.");

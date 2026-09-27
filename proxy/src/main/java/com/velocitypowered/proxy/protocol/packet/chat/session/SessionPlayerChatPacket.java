@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,15 +28,10 @@ import java.time.Instant;
 public class SessionPlayerChatPacket implements MinecraftPacket {
 
   protected String message;
-
   protected Instant timestamp;
-
   protected long salt;
-
   protected boolean signed;
-
   protected byte[] signature;
-
   protected LastSeenMessages lastSeenMessages;
 
   public SessionPlayerChatPacket() {
@@ -68,7 +63,7 @@ public class SessionPlayerChatPacket implements MinecraftPacket {
 
   @Override
   public void decode(ByteBuf buf, ProtocolUtils.Direction direction,
-                     ProtocolVersion protocolVersion) {
+      ProtocolVersion protocolVersion) {
     this.message = ProtocolUtils.readString(buf, 256);
     this.timestamp = Instant.ofEpochMilli(buf.readLong());
     this.salt = buf.readLong();
@@ -78,13 +73,12 @@ public class SessionPlayerChatPacket implements MinecraftPacket {
     } else {
       this.signature = new byte[0];
     }
-
     this.lastSeenMessages = new LastSeenMessages(buf, protocolVersion);
   }
 
   @Override
   public void encode(ByteBuf buf, ProtocolUtils.Direction direction,
-                     ProtocolVersion protocolVersion) {
+      ProtocolVersion protocolVersion) {
     ProtocolUtils.writeString(buf, this.message);
     buf.writeLong(this.timestamp.toEpochMilli());
     buf.writeLong(this.salt);
@@ -92,7 +86,6 @@ public class SessionPlayerChatPacket implements MinecraftPacket {
     if (this.signed) {
       buf.writeBytes(this.signature);
     }
-
     this.lastSeenMessages.encode(buf, protocolVersion);
   }
 

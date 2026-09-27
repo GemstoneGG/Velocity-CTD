@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,16 +29,9 @@ import javax.crypto.spec.IvParameterSpec;
 /**
  * Implements AES-CFB8 encryption/decryption using {@link Cipher}.
  */
-public final class JavaVelocityCipher implements VelocityCipher {
+public class JavaVelocityCipher implements VelocityCipher {
 
-  /**
-   * A {@link VelocityCipherFactory} for creating {@link JavaVelocityCipher} instances.
-   *
-   * <p>This factory provides instances configured for either encryption or decryption
-   * using AES/CFB8 with no padding, based on the given {@link SecretKey}.</p>
-   */
   public static final VelocityCipherFactory FACTORY = new VelocityCipherFactory() {
-
     @Override
     public VelocityCipher forEncryption(SecretKey key) throws GeneralSecurityException {
       return new JavaVelocityCipher(true, key);
@@ -50,27 +43,17 @@ public final class JavaVelocityCipher implements VelocityCipher {
     }
   };
 
-  /**
-   * The internal Java {@link Cipher} instance used for encryption or decryption.
-   */
   private final Cipher cipher;
-
-  /**
-   * Whether this cipher instance has been disposed.
-   */
   private boolean disposed = false;
 
   private JavaVelocityCipher(boolean encrypt, SecretKey key) throws GeneralSecurityException {
     this.cipher = Cipher.getInstance("AES/CFB8/NoPadding");
-    // But you're saying, *why* are we using the key as the IV?
-    // After all, reusing the key as
+    // But, you're saying, *why* are we using the key as the IV? After all, reusing the key as
     // the IV defeats the entire point - we might as well just initialize it to all zeroes.
     //
-    // You can blame Mojang.
-    // For the record, we also don't consider the Minecraft protocol
+    // You can blame Mojang. For the record, we also don't consider the Minecraft protocol
     // encryption scheme to be secure, and it has reached the point where any serious cryptographic
-    // protocol needs a refresh.
-    // There are multiple obvious weaknesses, and this is far from the
+    // protocol needs a refresh. There are multiple obvious weaknesses, and this is far from the
     // most serious.
     //
     // If you are using Minecraft in a security-sensitive application, *I don't know what to say.*
@@ -90,7 +73,7 @@ public final class JavaVelocityCipher implements VelocityCipher {
       cipher.update(source.array(), baseOffset, inBytes, source.array(), baseOffset);
     } catch (ShortBufferException ex) {
       /* This _really_ shouldn't happen - AES CFB8 will work in place.
-         If you run into this, that means that for whatever reason, the Java Runtime has determined
+         If you run into this, that means that for whatever reason the Java Runtime has determined
          that the output buffer needs more bytes than the input buffer. When we are working with
          AES-CFB8, the output size is equal to the input size. See the problem? */
       throw new AssertionError("Cipher update did not operate in place and requested a larger "

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,10 +24,9 @@ import java.util.HashMap;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-public final class ArgumentIdentifier {
+public class ArgumentIdentifier {
 
   private final String identifier;
-
   private final Map<ProtocolVersion, Integer> versionById;
 
   private ArgumentIdentifier(String identifier, VersionSet... versions) {
@@ -52,8 +51,8 @@ public final class ArgumentIdentifier {
           temp.putIfAbsent(v, current.getId());
         }
       }
-
       previous = current.getVersion();
+
     }
 
     this.versionById = ImmutableMap.copyOf(temp);
@@ -85,10 +84,9 @@ public final class ArgumentIdentifier {
   /**
    * This class is purely for convenience.
    */
-  public static final class VersionSet {
+  public static class VersionSet {
 
     private final ProtocolVersion version;
-
     private final int id;
 
     private VersionSet(ProtocolVersion version, int id) {
@@ -103,5 +101,7 @@ public final class ArgumentIdentifier {
     public ProtocolVersion getVersion() {
       return version;
     }
+
   }
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2024 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,10 +29,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class ServerboundCookieResponsePacket implements MinecraftPacket {
 
   private Key key;
-
-  /**
-   * The optional payload associated with the cookie, if any.
-   */
   private byte @Nullable [] payload;
 
   public Key getKey() {
@@ -46,7 +42,7 @@ public class ServerboundCookieResponsePacket implements MinecraftPacket {
   public ServerboundCookieResponsePacket() {
   }
 
-  public ServerboundCookieResponsePacket(Key key, byte @Nullable [] payload) {
+  public ServerboundCookieResponsePacket(final Key key, final byte @Nullable [] payload) {
     this.key = key;
     this.payload = payload;
   }
@@ -62,7 +58,7 @@ public class ServerboundCookieResponsePacket implements MinecraftPacket {
   @Override
   public void encode(ByteBuf buf, Direction direction, ProtocolVersion protocolVersion) {
     ProtocolUtils.writeKey(buf, key);
-    boolean hasPayload = payload != null && payload.length > 0;
+    final boolean hasPayload = payload != null && payload.length > 0;
     buf.writeBoolean(hasPayload);
     if (hasPayload) {
       ProtocolUtils.writeByteArray(buf, payload);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,38 +51,40 @@ public class VelocityArgumentCommandNode<S, T> extends ArgumentCommandNode<S, St
 
   private final ArgumentType<T> type;
 
-  VelocityArgumentCommandNode(String name, ArgumentType<T> type, Command<S> command,
-                              Predicate<S> requirement,
-                              BiPredicate<CommandContextBuilder<S>, ImmutableStringReader> contextRequirement,
-                              CommandNode<S> redirect, RedirectModifier<S> modifier, boolean forks,
-                              SuggestionProvider<S> customSuggestions) {
-    super(name, StringArgumentType.greedyString(), command, requirement, contextRequirement, redirect, modifier, forks, customSuggestions);
+  VelocityArgumentCommandNode(
+      final String name, final ArgumentType<T> type, final Command<S> command,
+      final Predicate<S> requirement,
+      final BiPredicate<CommandContextBuilder<S>, ImmutableStringReader> contextRequirement,
+      final CommandNode<S> redirect, final RedirectModifier<S> modifier, final boolean forks,
+      final SuggestionProvider<S> customSuggestions) {
+    super(name, StringArgumentType.greedyString(), command, requirement, contextRequirement,
+        redirect, modifier, forks, customSuggestions);
     this.type = Preconditions.checkNotNull(type, "type");
   }
 
   @Override
-  public void parse(StringReader reader, CommandContextBuilder<S> contextBuilder) throws CommandSyntaxException {
-    // Same as "super", except we use the rich ArgumentType
-    int start = reader.getCursor();
-    T result = this.type.parse(reader);
+  public void parse(final StringReader reader, final CommandContextBuilder<S> contextBuilder)
+      throws CommandSyntaxException {
+    // Same as super, except we use the rich ArgumentType
+    final int start = reader.getCursor();
+    final T result = this.type.parse(reader);
     if (reader.canRead()) {
       throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherParseException()
           .createWithContext(reader, "Expected greedy ArgumentType to parse all input");
     }
 
-    ParsedArgument<S, T> parsed = new ParsedArgument<>(start, reader.getCursor(), result);
+    final ParsedArgument<S, T> parsed = new ParsedArgument<>(start, reader.getCursor(), result);
     contextBuilder.withArgument(getName(), parsed);
     contextBuilder.withNode(this, parsed.getRange());
   }
 
   @Override
   public CompletableFuture<Suggestions> listSuggestions(
-      CommandContext<S> context, SuggestionsBuilder builder)
+      final CommandContext<S> context, final SuggestionsBuilder builder)
       throws CommandSyntaxException {
     if (getCustomSuggestions() == null) {
       return Suggestions.empty();
     }
-
     return getCustomSuggestions().getSuggestions(context, builder);
   }
 
@@ -102,17 +104,17 @@ public class VelocityArgumentCommandNode<S, T> extends ArgumentCommandNode<S, St
   }
 
   @Override
-  public boolean isValidInput(String input) {
+  public boolean isValidInput(final String input) {
     return true;
   }
 
   @Override
-  public void addChild(CommandNode<S> node) {
+  public void addChild(final CommandNode<S> node) {
     throw new UnsupportedOperationException("Cannot add children to a greedy node");
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -120,11 +122,9 @@ public class VelocityArgumentCommandNode<S, T> extends ArgumentCommandNode<S, St
     if (!(o instanceof VelocityArgumentCommandNode<?, ?> that)) {
       return false;
     }
-
     if (!super.equals(that)) {
       return false;
     }
-
     return this.type.equals(that.type);
   }
 

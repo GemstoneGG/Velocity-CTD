@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2020-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,9 +27,6 @@ import java.util.Map;
  */
 public class MockCommandSource implements CommandSource {
 
-  /**
-   * Singleton instance of the mock command source.
-   */
   public static final CommandSource INSTANCE = new MockCommandSource();
 
   /**
@@ -39,7 +36,7 @@ public class MockCommandSource implements CommandSource {
    * @return {@link Tristate#UNDEFINED}
    */
   @Override
-  public Tristate getPermissionValue(String permission) {
+  public Tristate getPermissionValue(final String permission) {
     return Tristate.UNDEFINED;
   }
 

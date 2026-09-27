@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
- * Decodes Minecraft 1.3 - 1.6.4 server ping requests.
+ * Decodes Minecraft 1.3-1.6.4 server ping requests.
  */
 public class LegacyPingDecoder extends ByteToMessageDecoder {
 
@@ -79,12 +79,12 @@ public class LegacyPingDecoder extends ByteToMessageDecoder {
     if (!channelName.equals(MC_1_6_CHANNEL)) {
       throw new IllegalArgumentException("Didn't find correct channel");
     }
-
     in.skipBytes(3);
     String hostname = readLegacyString(in);
     int port = in.readInt();
 
-    return new LegacyPingPacket(LegacyMinecraftPingVersion.MINECRAFT_1_6, InetSocketAddress.createUnresolved(hostname, port));
+    return new LegacyPingPacket(LegacyMinecraftPingVersion.MINECRAFT_1_6, InetSocketAddress
+        .createUnresolved(hostname, port));
   }
 
   private static String readLegacyString(ByteBuf buf) {

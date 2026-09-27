@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,19 +48,18 @@ public class RemovePlayerInfoPacket implements MinecraftPacket {
 
   @Override
   public void decode(ByteBuf buf, ProtocolUtils.Direction direction,
-                     ProtocolVersion protocolVersion) {
+      ProtocolVersion protocolVersion) {
     int length = ProtocolUtils.readVarInt(buf);
     Collection<UUID> profilesToRemove = ProtocolUtils.newList(length);
     for (int idx = 0; idx < length; idx++) {
       profilesToRemove.add(ProtocolUtils.readUuid(buf));
     }
-
     this.profilesToRemove = profilesToRemove;
   }
 
   @Override
   public void encode(ByteBuf buf, ProtocolUtils.Direction direction,
-                     ProtocolVersion protocolVersion) {
+      ProtocolVersion protocolVersion) {
     ProtocolUtils.writeVarInt(buf, this.profilesToRemove.size());
     for (UUID uuid : this.profilesToRemove) {
       ProtocolUtils.writeUuid(buf, uuid);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ public class KeyedChatBuilder extends ChatBuilderV2 {
 
   @Override
   public MinecraftPacket toClient() {
-    // This is temporary (but doesn't seem so temporary)
+    // This is temporary
     Component msg = component == null ? Component.text(message) : component;
     return new SystemChatPacket(new ComponentHolder(version, msg), type == ChatType.CHAT ? ChatType.SYSTEM : type);
   }

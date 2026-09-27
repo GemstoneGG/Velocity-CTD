@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -109,7 +109,6 @@ public class ServerMap {
       throw new IllegalArgumentException(
           "Server with name " + serverInfo.getName() + " is not registered!");
     }
-
     Preconditions.checkArgument(rs.getServerInfo().equals(serverInfo),
         "Trying to remove server %s with differing information", serverInfo.getName());
     Preconditions.checkState(servers.remove(lowerName, rs),

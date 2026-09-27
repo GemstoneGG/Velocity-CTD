@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 package com.velocitypowered.proxy.protocol;
 
 /**
- * Describes various events fired during a connection.
+ * Describes various events fired during the course of a connection.
  */
 public enum VelocityConnectionEvent {
   COMPRESSION_ENABLED,

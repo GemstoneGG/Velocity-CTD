@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class DisconnectPacket implements MinecraftPacket {
 
   private @Nullable ComponentHolder reason;
-
   private final StateRegistry state;
 
   public DisconnectPacket(StateRegistry state) {
@@ -47,7 +46,6 @@ public class DisconnectPacket implements MinecraftPacket {
     if (reason == null) {
       throw new IllegalStateException("No reason specified");
     }
-
     return reason;
   }
 
@@ -81,6 +79,6 @@ public class DisconnectPacket implements MinecraftPacket {
   public static DisconnectPacket create(Component component, ProtocolVersion version, StateRegistry state) {
     Preconditions.checkNotNull(component, "component");
     return new DisconnectPacket(state, new ComponentHolder(state == StateRegistry.LOGIN
-        ? ProtocolVersion.MINECRAFT_1_20_2 : version, component));
+            ? ProtocolVersion.MINECRAFT_1_20_2 : version, component));
   }
 }

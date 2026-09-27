@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,4 +47,5 @@ class CaffeineCacheRatelimiterTest {
     extra.addAndGet(TimeUnit.SECONDS.toNanos(2));
     assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
   }
+
 }

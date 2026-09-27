@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2024 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -21,19 +21,8 @@ import net.kyori.adventure.key.Key;
 @AwaitingEvent
 public final class CookieRequestEvent implements ResultedEvent<CookieRequestEvent.ForwardResult> {
 
-  /**
-   * The player from whom the cookie is being requested.
-   */
   private final Player player;
-
-  /**
-   * The original identifier of the cookie being requested.
-   */
   private final Key originalKey;
-
-  /**
-   * The result determining whether the cookie request should be forwarded or handled.
-   */
   private ForwardResult result;
 
   /**
@@ -42,7 +31,7 @@ public final class CookieRequestEvent implements ResultedEvent<CookieRequestEven
    * @param player the player from whom the cookies is requested
    * @param key the identifier of the cookie
    */
-  public CookieRequestEvent(Player player, Key key) {
+  public CookieRequestEvent(final Player player, final Key key) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.originalKey = Preconditions.checkNotNull(key, "key");
     this.result = ForwardResult.forward();
@@ -58,20 +47,10 @@ public final class CookieRequestEvent implements ResultedEvent<CookieRequestEven
     this.result = Preconditions.checkNotNull(result, "result");
   }
 
-  /**
-   * Returns the player from whom the cookie is being requested.
-   *
-   * @return the player
-   */
   public Player getPlayer() {
     return player;
   }
 
-  /**
-   * Returns the original identifier of the cookie being requested.
-   *
-   * @return the original cookie key
-   */
   public Key getOriginalKey() {
     return originalKey;
   }
@@ -85,31 +64,17 @@ public final class CookieRequestEvent implements ResultedEvent<CookieRequestEven
   }
 
   /**
-   * A result determining whether to forward the cookie request on.
+   * A result determining whether or not to forward the cookie request on.
    */
   public static final class ForwardResult implements Result {
 
-    /**
-     * A result indicating the cookie request should be forwarded to the client unchanged.
-     */
     private static final ForwardResult ALLOWED = new ForwardResult(true, null);
-
-    /**
-     * A result indicating the cookie request has been handled by the proxy and should not be forwarded.
-     */
     private static final ForwardResult DENIED = new ForwardResult(false, null);
 
-    /**
-     * Whether the cookie request should be forwarded to the client.
-     */
     private final boolean status;
-
-    /**
-     * A replacement key for the cookie request, or {@code null} if the original key should be used.
-     */
     private final Key key;
 
-    private ForwardResult(boolean status, Key key) {
+    private ForwardResult(final boolean status, final Key key) {
       this.status = status;
       this.key = key;
     }
@@ -119,11 +84,6 @@ public final class CookieRequestEvent implements ResultedEvent<CookieRequestEven
       return status;
     }
 
-    /**
-     * Returns the replacement key to use for the cookie request, if one was provided.
-     *
-     * @return the new key, or {@code null} if unchanged
-     */
     public Key getKey() {
       return key;
     }
@@ -159,7 +119,7 @@ public final class CookieRequestEvent implements ResultedEvent<CookieRequestEven
      * @param key the identifier to use instead
      * @return a result with a new key
      */
-    public static ForwardResult key(Key key) {
+    public static ForwardResult key(final Key key) {
       Preconditions.checkNotNull(key, "key");
       return new ForwardResult(true, key);
     }

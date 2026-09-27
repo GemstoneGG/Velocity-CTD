@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2019-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,11 +58,8 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
   private static final Logger LOGGER = LogManager.getLogger(TransitionSessionHandler.class);
 
   private final VelocityServer server;
-
   private final VelocityServerConnection serverConn;
-
   private final CompletableFuture<Impl> resultFuture;
-
   private final BungeeCordMessageResponder bungeecordMessageResponder;
 
   // Backend packets arriving while JoinGame is processed (async) are held and replayed after it, so
@@ -78,12 +75,13 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
    * @param resultFuture the result future
    */
   TransitionSessionHandler(VelocityServer server,
-                           VelocityServerConnection serverConn,
-                           CompletableFuture<Impl> resultFuture) {
+      VelocityServerConnection serverConn,
+      CompletableFuture<Impl> resultFuture) {
     this.server = server;
     this.serverConn = serverConn;
     this.resultFuture = resultFuture;
-    this.bungeecordMessageResponder = new BungeeCordMessageResponder(server, serverConn.getPlayer());
+    this.bungeecordMessageResponder = new BungeeCordMessageResponder(server,
+        serverConn.getPlayer());
   }
 
   @Override
@@ -93,7 +91,6 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
       serverConn.disconnect();
       return true;
     }
-
     return false;
   }
 
@@ -142,7 +139,8 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
 
           // Change the client to use the ClientPlaySessionHandler if required.
           ClientPlaySessionHandler playHandler;
-          if (player.getConnection().getActiveSessionHandler() instanceof ClientPlaySessionHandler sessionHandler) {
+          if (player.getConnection()
+              .getActiveSessionHandler() instanceof ClientPlaySessionHandler sessionHandler) {
             playHandler = sessionHandler;
           } else {
             playHandler = new ClientPlaySessionHandler(server, player);
@@ -193,7 +191,8 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
           }
 
           // We're done! :)
-          server.getEventManager().fireAndForget(new ServerPostConnectEvent(player, previousServer));
+          server.getEventManager().fireAndForget(new ServerPostConnectEvent(player,
+              previousServer));
           resultFuture.complete(ConnectionRequestResults.successful(serverConn.getServer()));
         }, smc.eventLoop()).exceptionally(exc -> {
           LOGGER.error("Unable to switch to new server {} for {}",
@@ -210,13 +209,15 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(DisconnectPacket packet) {
-    MinecraftConnection connection = serverConn.ensureConnected();
+    final MinecraftConnection connection = serverConn.ensureConnected();
     serverConn.disconnect();
 
     // If we were in the middle of the Forge handshake, it is not safe to proceed. We must kick
     // the client.
-    if (connection.getType() == ConnectionTypes.LEGACY_FORGE && !serverConn.getPhase().consideredComplete()) {
-      resultFuture.complete(ConnectionRequestResults.forUnsafeDisconnect(packet, serverConn.getServer()));
+    if (connection.getType() == ConnectionTypes.LEGACY_FORGE
+        && !serverConn.getPhase().consideredComplete()) {
+      resultFuture.complete(ConnectionRequestResults.forUnsafeDisconnect(packet,
+          serverConn.getServer()));
     } else {
       resultFuture.complete(ConnectionRequestResults.forDisconnect(packet, serverConn.getServer()));
     }
@@ -247,10 +248,10 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
           existingConnection.setConnectionPhase(IN_TRANSITION);
 
           // Tell the player that we're leaving and we just aren't coming back.
-          existingConnection.getPhase().onDepartForNewServer(existingConnection, serverConn.getPlayer());
+          existingConnection.getPhase().onDepartForNewServer(existingConnection,
+              serverConn.getPlayer());
         }
       }
-
       return true;
     }
 

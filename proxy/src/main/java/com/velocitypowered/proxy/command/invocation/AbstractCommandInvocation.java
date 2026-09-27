@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2020-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,10 +29,9 @@ import com.velocitypowered.api.command.CommandSource;
 abstract class AbstractCommandInvocation<T> implements CommandInvocation<T> {
 
   private final CommandSource source;
-
   private final T arguments;
 
-  protected AbstractCommandInvocation(CommandSource source, T arguments) {
+  protected AbstractCommandInvocation(final CommandSource source, final T arguments) {
     this.source = Preconditions.checkNotNull(source, "source");
     this.arguments = Preconditions.checkNotNull(arguments, "arguments");
   }
@@ -48,21 +47,19 @@ abstract class AbstractCommandInvocation<T> implements CommandInvocation<T> {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
-
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
 
-    AbstractCommandInvocation<?> that = (AbstractCommandInvocation<?>) o;
+    final AbstractCommandInvocation<?> that = (AbstractCommandInvocation<?>) o;
 
     if (!this.source.equals(that.source)) {
       return false;
     }
-
     return this.arguments.equals(that.arguments);
   }
 

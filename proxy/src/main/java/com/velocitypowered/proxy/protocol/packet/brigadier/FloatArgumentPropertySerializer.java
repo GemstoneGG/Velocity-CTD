@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2022 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,11 +25,12 @@ import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.velocitypowered.api.network.ProtocolVersion;
 import io.netty.buffer.ByteBuf;
 
-final class FloatArgumentPropertySerializer implements ArgumentPropertySerializer<FloatArgumentType> {
+class FloatArgumentPropertySerializer implements ArgumentPropertySerializer<FloatArgumentType> {
 
   static final FloatArgumentPropertySerializer FLOAT = new FloatArgumentPropertySerializer();
 
   private FloatArgumentPropertySerializer() {
+
   }
 
   @Override
@@ -50,7 +51,6 @@ final class FloatArgumentPropertySerializer implements ArgumentPropertySerialize
     if (hasMinimum) {
       buf.writeFloat(object.getMinimum());
     }
-
     if (hasMaximum) {
       buf.writeFloat(object.getMaximum());
     }

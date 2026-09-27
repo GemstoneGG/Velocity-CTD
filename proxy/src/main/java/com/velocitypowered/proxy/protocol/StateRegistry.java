@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -149,7 +149,6 @@ public enum StateRegistry {
           map(0x00, MINECRAFT_1_7_2, false));
     }
   },
-
   STATUS {
     {
       serverbound.register(
@@ -165,7 +164,6 @@ public enum StateRegistry {
           map(0x01, MINECRAFT_1_7_2, false));
     }
   },
-
   CONFIG {
     {
       serverbound.register(
@@ -201,7 +199,8 @@ public enum StateRegistry {
       serverbound.register(ServerboundCustomClickActionPacket.class, ServerboundCustomClickActionPacket::new,
           map(0x08, MINECRAFT_1_21_6, false));
       serverbound.register(
-          CodeOfConductAcceptPacket.class, () -> CodeOfConductAcceptPacket.INSTANCE,
+          CodeOfConductAcceptPacket.class,
+          () -> CodeOfConductAcceptPacket.INSTANCE,
           map(0x09, MINECRAFT_1_21_9, false));
 
       clientbound.register(
@@ -278,7 +277,6 @@ public enum StateRegistry {
           map(0x14, MINECRAFT_26_3, false));
     }
   },
-
   PLAY {
     {
       serverbound.fallback = false;
@@ -888,7 +886,6 @@ public enum StateRegistry {
           map(0x8C, MINECRAFT_26_3, false));
     }
   },
-
   LOGIN {
     {
       serverbound.register(ServerLoginPacket.class,
@@ -930,17 +927,13 @@ public enum StateRegistry {
   };
 
   public static final int STATUS_ID = 1;
-
   public static final int LOGIN_ID = 2;
-
   public static final int TRANSFER_ID = 3;
-
   protected final PacketRegistry clientbound = new PacketRegistry(CLIENTBOUND, this);
-
   protected final PacketRegistry serverbound = new PacketRegistry(SERVERBOUND, this);
 
   public StateRegistry.PacketRegistry.ProtocolRegistry getProtocolRegistry(Direction direction,
-                                                                           ProtocolVersion version) {
+      ProtocolVersion version) {
     return (direction == SERVERBOUND ? serverbound : clientbound).getProtocolRegistry(version);
   }
 
@@ -965,11 +958,8 @@ public enum StateRegistry {
   public static class PacketRegistry {
 
     private final Direction direction;
-
     private final StateRegistry registry;
-
     private final Map<ProtocolVersion, ProtocolRegistry> versions;
-
     private boolean fallback = true;
 
     PacketRegistry(Direction direction, StateRegistry registry) {
@@ -986,16 +976,14 @@ public enum StateRegistry {
       this.versions = Collections.unmodifiableMap(mutableVersions);
     }
 
-    final ProtocolRegistry getProtocolRegistry(ProtocolVersion version) {
+    ProtocolRegistry getProtocolRegistry(final ProtocolVersion version) {
       ProtocolRegistry registry = versions.get(version);
       if (registry == null) {
         if (fallback) {
           return getProtocolRegistry(MINIMUM_VERSION);
         }
-
         throw new IllegalArgumentException("Could not find data for protocol version " + version);
       }
-
       return registry;
     }
 
@@ -1016,13 +1004,11 @@ public enum StateRegistry {
           if (next != current) {
             throw new IllegalArgumentException("Cannot add a mapping after last valid mapping");
           }
-
           if (from.greaterThan(lastValid)) {
             throw new IllegalArgumentException(
                 "Last mapping version cannot be higher than highest mapping version");
           }
         }
-
         ProtocolVersion to = current == next ? lastValid != null
             ? lastValid : getLast(SUPPORTED_VERSIONS) : next.protocolVersion;
 
@@ -1037,7 +1023,6 @@ public enum StateRegistry {
           if (protocol == to && next != current) {
             break;
           }
-
           ProtocolRegistry registry = this.versions.get(protocol);
           if (registry == null) {
             throw new IllegalArgumentException(
@@ -1063,7 +1048,6 @@ public enum StateRegistry {
           if (!current.encodeOnly) {
             registry.packetIdToSupplier.put(current.id, packetSupplier);
           }
-
           registry.packetClassToId.put(clazz, current.id);
         }
       }
@@ -1075,30 +1059,27 @@ public enum StateRegistry {
     public class ProtocolRegistry {
 
       public final ProtocolVersion version;
-
       final IntObjectMap<Supplier<? extends MinecraftPacket>> packetIdToSupplier =
           new IntObjectHashMap<>(16, 0.5f);
-
       final Object2IntMap<Class<? extends MinecraftPacket>> packetClassToId =
           new Object2IntOpenHashMap<>(16, 0.5f);
 
-      ProtocolRegistry(ProtocolVersion version) {
+      ProtocolRegistry(final ProtocolVersion version) {
         this.version = version;
         this.packetClassToId.defaultReturnValue(Integer.MIN_VALUE);
       }
 
       /**
-       * Attempts to create a packet from the specified {@code proxyId}.
+       * Attempts to create a packet from the specified {@code id}.
        *
        * @param id the packet ID
        * @return the packet instance, or {@code null} if the ID is not registered
        */
-      public @Nullable MinecraftPacket createPacket(int id) {
-        Supplier<? extends MinecraftPacket> supplier = this.packetIdToSupplier.get(id);
+      public @Nullable MinecraftPacket createPacket(final int id) {
+        final Supplier<? extends MinecraftPacket> supplier = this.packetIdToSupplier.get(id);
         if (supplier == null) {
           return null;
         }
-
         return supplier.get();
       }
 
@@ -1109,8 +1090,8 @@ public enum StateRegistry {
        * @return the packet ID
        * @throws IllegalArgumentException if the packet ID is not found
        */
-      public int getPacketId(MinecraftPacket packet) {
-        int id = this.packetClassToId.getInt(packet.getClass());
+      public int getPacketId(final MinecraftPacket packet) {
+        final int id = this.packetClassToId.getInt(packet.getClass());
         if (id == Integer.MIN_VALUE) {
           throw new IllegalArgumentException(String.format(
               "Unable to find proxyId for packet of type %s in %s protocol %s phase %s",
@@ -1118,17 +1099,16 @@ public enum StateRegistry {
               this.version, PacketRegistry.this.registry
           ));
         }
-
         return id;
       }
 
       /**
-       * Checks if the registry contains a packet with the specified {@code proxyId}.
+       * Checks if the registry contains a packet with the specified {@code id}.
        *
        * @param packet the packet to check
        * @return {@code true} if the packet is registered, {@code false} otherwise
        */
-      public boolean containsPacket(MinecraftPacket packet) {
+      public boolean containsPacket(final MinecraftPacket packet) {
         return this.packetClassToId.containsKey(packet.getClass());
       }
     }
@@ -1140,11 +1120,8 @@ public enum StateRegistry {
   public static final class PacketMapping {
 
     private final int id;
-
     private final ProtocolVersion protocolVersion;
-
     private final boolean encodeOnly;
-
     private final @Nullable ProtocolVersion lastValidProtocolVersion;
 
     PacketMapping(int id, ProtocolVersion protocolVersion,
@@ -1170,11 +1147,9 @@ public enum StateRegistry {
       if (this == o) {
         return true;
       }
-
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-
       PacketMapping that = (PacketMapping) o;
       return id == that.id
           && protocolVersion == that.protocolVersion

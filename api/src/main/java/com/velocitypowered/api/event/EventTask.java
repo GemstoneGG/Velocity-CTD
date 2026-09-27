@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -36,7 +36,7 @@ public interface EventTask {
   boolean requiresAsync();
 
   /**
-   * Runs this event task with given {@link Continuation}. The continuation must be notified
+   * Runs this event task with the given {@link Continuation}. The continuation must be notified
    * when the task is completed, either with {@link Continuation#resume()} if the task was
    * successful or {@link Continuation#resumeWithException(Throwable)} if an exception occurred.
    *
@@ -57,7 +57,7 @@ public interface EventTask {
    * @param task The task
    * @return The async event task
    */
-  static EventTask async(Runnable task) {
+  static EventTask async(final Runnable task) {
     requireNonNull(task, "task");
     return new EventTask() {
 
@@ -82,12 +82,12 @@ public interface EventTask {
    * @param task The task to execute
    * @return The event task
    */
-  static EventTask withContinuation(Consumer<Continuation> task) {
+  static EventTask withContinuation(final Consumer<Continuation> task) {
     requireNonNull(task, "task");
     return new EventTask() {
 
       @Override
-      public void execute(Continuation continuation) {
+      public void execute(final Continuation continuation) {
         task.accept(continuation);
       }
 

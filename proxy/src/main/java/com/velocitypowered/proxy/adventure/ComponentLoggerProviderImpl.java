@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,13 +31,15 @@ import org.slf4j.LoggerFactory;
 @AutoService(ComponentLoggerProvider.class)
 @SuppressWarnings("UnstableApiUsage")
 public final class ComponentLoggerProviderImpl implements ComponentLoggerProvider {
-
   private static final ANSIComponentSerializer SERIALIZER = ANSIComponentSerializer.builder()
           .flattener(TranslatableMapper.FLATTENER)
           .build();
 
   @Override
-  public @NotNull ComponentLogger logger(@NotNull LoggerHelper helper, @NotNull String name) {
+  public @NotNull ComponentLogger logger(
+          final @NotNull LoggerHelper helper,
+          final @NotNull String name
+  ) {
     return helper.delegating(LoggerFactory.getLogger(name), SERIALIZER::serialize);
   }
 }

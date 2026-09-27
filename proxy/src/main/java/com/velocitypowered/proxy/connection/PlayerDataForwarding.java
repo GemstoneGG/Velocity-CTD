@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,13 +48,9 @@ public final class PlayerDataForwarding {
   public static final String CHANNEL = "velocity:player_info";
 
   public static final int MODERN_DEFAULT = 1;
-
   public static final int MODERN_WITH_KEY = 2;
-
   public static final int MODERN_WITH_KEY_V2 = 3;
-
   public static final int MODERN_LAZY_SESSION = 4;
-
   public static final int MODERN_MAX_VERSION = MODERN_LAZY_SESSION;
 
   private static final char LEGACY_SEPARATOR = '\0';
@@ -64,11 +60,17 @@ public final class PlayerDataForwarding {
   private PlayerDataForwarding() {
   }
 
-  public static ByteBuf createForwardingData(byte[] secret, String address, ProtocolVersion protocol,
-                                             GameProfile profile, @Nullable IdentifiedKey key, int requestedVersion) {
-    ByteBuf forwarded = Unpooled.buffer(2048);
+  public static ByteBuf createForwardingData(
+      final byte[] secret,
+      final String address,
+      final ProtocolVersion protocol,
+      final GameProfile profile,
+      final @Nullable IdentifiedKey key,
+      final int requestedVersion
+  ) {
+    final ByteBuf forwarded = Unpooled.buffer(2048);
     try {
-      int actualVersion = findForwardingVersion(requestedVersion, protocol, key);
+      final int actualVersion = findForwardingVersion(requestedVersion, protocol, key);
 
       ProtocolUtils.writeVarInt(forwarded, actualVersion);
       ProtocolUtils.writeString(forwarded, address);
@@ -84,7 +86,7 @@ public final class PlayerDataForwarding {
         ProtocolUtils.writePlayerKey(forwarded, key);
 
         // Provide the signer UUID since the UUID may differ from the
-        // assigned UUID. Doing that breaks the signatures anyway, but the server
+        // assigned UUID. Doing that breaks the signatures anyway but the server
         // should be able to verify the key independently.
         if (actualVersion >= MODERN_WITH_KEY_V2) {
           if (key.getSignatureHolder() != null) {
@@ -98,16 +100,16 @@ public final class PlayerDataForwarding {
         }
       }
 
-      Mac mac = Mac.getInstance(ALGORITHM);
+      final Mac mac = Mac.getInstance(ALGORITHM);
       mac.init(new SecretKeySpec(secret, ALGORITHM));
       mac.update(forwarded.array(), forwarded.arrayOffset(), forwarded.readableBytes());
-      byte[] sig = mac.doFinal();
+      final byte[] sig = mac.doFinal();
 
       return Unpooled.wrappedBuffer(Unpooled.wrappedBuffer(sig), forwarded);
-    } catch (InvalidKeyException e) {
+    } catch (final InvalidKeyException e) {
       forwarded.release();
       throw new RuntimeException("Unable to authenticate data", e);
-    } catch (NoSuchAlgorithmException e) {
+    } catch (final NoSuchAlgorithmException e) {
       // Should never happen
       forwarded.release();
       throw new AssertionError(e);
@@ -116,8 +118,9 @@ public final class PlayerDataForwarding {
 
   private static int findForwardingVersion(
       int requested,
-      ProtocolVersion protocol,
-      @Nullable IdentifiedKey key) {
+      final ProtocolVersion protocol,
+      final @Nullable IdentifiedKey key
+  ) {
     // Ensure we are in range
     requested = Math.min(requested, MODERN_MAX_VERSION);
     if (requested > MODERN_DEFAULT) {
@@ -129,7 +132,7 @@ public final class PlayerDataForwarding {
       if (key != null) {
         return switch (key.getKeyRevision()) {
           case GENERIC_V1 -> MODERN_WITH_KEY;
-          // Since V2 is not backwards compatible, we have to throw the key if v2 and requested is v1
+          // Since V2 is not backwards compatible we have to throw the key if v2 and requested is v1
           case LINKED_V2 -> requested >= MODERN_WITH_KEY_V2
                   ? MODERN_WITH_KEY_V2
                   : MODERN_DEFAULT;
@@ -138,12 +141,14 @@ public final class PlayerDataForwarding {
         return MODERN_DEFAULT;
       }
     }
-
     return MODERN_DEFAULT;
   }
 
-  public static String createLegacyForwardingAddress(String serverAddress, String playerAddress,
-                                                     GameProfile profile) {
+  public static String createLegacyForwardingAddress(
+      final String serverAddress,
+      final String playerAddress,
+      final GameProfile profile
+  ) {
     return createLegacyForwardingAddress(
         serverAddress,
         playerAddress,
@@ -152,29 +157,39 @@ public final class PlayerDataForwarding {
     );
   }
 
-  private static String createLegacyForwardingAddress(String serverAddress, String playerAddress, GameProfile profile,
-                                                      UnaryOperator<List<GameProfile.Property>> propertiesTransform) {
+  private static String createLegacyForwardingAddress(
+      final String serverAddress,
+      final String playerAddress,
+      final GameProfile profile,
+      final UnaryOperator<List<GameProfile.Property>> propertiesTransform
+  ) {
     // BungeeCord IP forwarding is simply a special injection after the "address" in the handshake,
     // separated by \0 (the null byte). In order, you send the original host, the player's IP, their
     // UUID (undashed), and if you are in online-mode, their login properties (from Mojang).
-    StringBuilder data = new StringBuilder()
+    final StringBuilder data = new StringBuilder()
         .append(serverAddress)
         .append(LEGACY_SEPARATOR)
         .append(playerAddress)
         .append(LEGACY_SEPARATOR)
         .append(profile.getUndashedId())
         .append(LEGACY_SEPARATOR);
-    GENERAL_GSON.toJson(propertiesTransform.apply(profile.getProperties()), data);
+    GENERAL_GSON
+        .toJson(propertiesTransform.apply(profile.getProperties()), data);
     return data.toString();
   }
 
-  public static String createBungeeGuardForwardingAddress(String serverAddress, String playerAddress,
-                                                          GameProfile profile, byte[] forwardingSecret) {
+  public static String createBungeeGuardForwardingAddress(
+      final String serverAddress,
+      final String playerAddress,
+      final GameProfile profile,
+      final byte[] forwardingSecret
+  ) {
     // Append forwarding secret as a BungeeGuard token.
-    GameProfile.Property property = new GameProfile.Property(
+    final GameProfile.Property property = new GameProfile.Property(
         BUNGEE_GUARD_TOKEN_PROPERTY_NAME,
         new String(forwardingSecret, StandardCharsets.UTF_8),
-        "");
+        ""
+    );
     return createLegacyForwardingAddress(
         serverAddress,
         playerAddress,

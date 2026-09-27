@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,11 +33,13 @@ public class LegacyChatBuilder extends ChatBuilderV2 {
 
   @Override
   public MinecraftPacket toClient() {
-    // This is temporary (this also has been here for a good while)
-    UUID identity = sender == null ? (senderIdentity == null ? Identity.nil().uuid() : senderIdentity.uuid()) : sender.getUniqueId();
+    // This is temporary
+    UUID identity = sender == null ? (senderIdentity == null ? Identity.nil().uuid()
+        : senderIdentity.uuid()) : sender.getUniqueId();
     Component msg = component == null ? Component.text(message) : component;
 
-    return new LegacyChatPacket(ProtocolUtils.getJsonChatSerializer(version).serialize(msg), type.getId(), identity);
+    return new LegacyChatPacket(ProtocolUtils.getJsonChatSerializer(version).serialize(msg), type.getId(),
+        identity);
   }
 
   @Override

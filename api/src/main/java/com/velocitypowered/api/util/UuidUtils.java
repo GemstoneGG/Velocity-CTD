@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -13,7 +13,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Provides a small, useful set of utilities for working with Minecraft UUIDs.
+ * Provides a small, useful selection of utilities for working with Minecraft UUIDs.
  */
 public final class UuidUtils {
 
@@ -27,7 +27,7 @@ public final class UuidUtils {
    * @param string the string to convert
    * @return the UUID object
    */
-  public static UUID fromUndashed(String string) {
+  public static UUID fromUndashed(final String string) {
     Objects.requireNonNull(string, "string");
     return FastUuidSansHyphens.parseUuid(string);
   }
@@ -38,7 +38,7 @@ public final class UuidUtils {
    * @param uuid the UUID to convert
    * @return the undashed UUID
    */
-  public static String toUndashed(UUID uuid) {
+  public static String toUndashed(final UUID uuid) {
     Preconditions.checkNotNull(uuid, "uuid");
     return FastUuidSansHyphens.toString(uuid);
   }

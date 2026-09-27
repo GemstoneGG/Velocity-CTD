@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,7 +50,6 @@ public class PluginMessagePacket extends DeferredByteBufHolder implements Minecr
     if (channel == null) {
       throw new IllegalStateException("Channel is not specified.");
     }
-
     return channel;
   }
 
@@ -85,12 +84,12 @@ public class PluginMessagePacket extends DeferredByteBufHolder implements Minecr
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_13)) {
       this.channel = transformLegacyToModernChannel(this.channel);
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
       this.replace(buf.readRetainedSlice(buf.readableBytes()));
     } else {
       this.replace(ProtocolUtils.readRetainedByteBufSlice17(buf));
     }
+
   }
 
   @Override
@@ -109,12 +108,12 @@ public class PluginMessagePacket extends DeferredByteBufHolder implements Minecr
     } else {
       ProtocolUtils.writeString(buf, this.channel);
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
       buf.writeBytes(content());
     } else {
       ProtocolUtils.writeByteBuf17(content(), buf, true); // True for Forge support
     }
+
   }
 
   @Override

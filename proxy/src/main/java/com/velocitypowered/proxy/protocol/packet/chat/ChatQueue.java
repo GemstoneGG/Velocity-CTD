@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,11 +40,8 @@ public class ChatQueue implements AutoCloseable {
   private static final Logger LOGGER = LogManager.getLogger(ChatQueue.class);
 
   private final Object internalLock = new Object();
-
   private final ConnectedPlayer player;
-
   private final ChatState chatState = new ChatState();
-
   private CompletableFuture<Void> head = CompletableFuture.completedFuture(null);
 
   private volatile boolean closed;
@@ -76,7 +73,6 @@ public class ChatQueue implements AutoCloseable {
         if (closed) {
           return CompletableFuture.completedFuture(null);
         }
-
         try {
           return task.update(chatState, smc).exceptionally(ignored -> null);
         } catch (Throwable ignored) {
@@ -124,7 +120,6 @@ public class ChatQueue implements AutoCloseable {
       if (ackCountToForward > 0) {
         return writePacket(new ChatAcknowledgementPacket(ackCountToForward), smc);
       }
-
       return CompletableFuture.completedFuture(null);
     });
   }
@@ -180,16 +175,12 @@ public class ChatQueue implements AutoCloseable {
    * <p>Note that this is effectively unused for 1.20.5+ clients, as commands without any signature do not send 'last seen'
    * updates.</p>
    */
-  public static final class ChatState {
-
+  public static class ChatState {
     private static final int MINIMUM_DELAYED_ACK_COUNT = LastSeenMessages.WINDOW_SIZE;
-
     private static final BitSet DUMMY_LAST_SEEN_MESSAGES = new BitSet();
 
     public volatile Instant lastTimestamp = Instant.EPOCH;
-
     private volatile BitSet lastSeenMessages = new BitSet();
-
     private final AtomicInteger delayedAckCount = new AtomicInteger();
 
     private ChatState() {
@@ -200,14 +191,12 @@ public class ChatQueue implements AutoCloseable {
       if (timestamp != null) {
         this.lastTimestamp = timestamp;
       }
-
       if (lastSeenMessages != null) {
         // We held back some acknowledged messages, so flush that out now that we have a known 'last seen' state again
         int delayedAckCount = this.delayedAckCount.getAndSet(0);
         this.lastSeenMessages = lastSeenMessages.getAcknowledged();
         return lastSeenMessages.offset(delayedAckCount);
       }
-
       return null;
     }
 
@@ -220,7 +209,6 @@ public class ChatQueue implements AutoCloseable {
         this.delayedAckCount.set(MINIMUM_DELAYED_ACK_COUNT);
         return ackCountToForward;
       }
-
       return 0;
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,6 @@ import java.util.UUID;
 public class SignaturePair {
 
   private final UUID signer;
-
   private final byte[] signature;
 
   public SignaturePair(UUID signer, byte[] signature) {
@@ -50,4 +49,3 @@ public class SignaturePair {
         + '}';
   }
 }
-

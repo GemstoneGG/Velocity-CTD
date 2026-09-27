@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,14 +29,13 @@ import org.apache.logging.log4j.Logger;
  * Migrate old forwarding secret settings to the modern version using an external file.
  */
 public final class ForwardingMigration implements ConfigurationMigration {
-
   @Override
-  public boolean shouldMigrate(CommentedFileConfig config) {
+  public boolean shouldMigrate(final CommentedFileConfig config) {
     return configVersion(config) < 2.0;
   }
 
   @Override
-  public void migrate(CommentedFileConfig config, Logger logger) throws IOException {
+  public void migrate(final CommentedFileConfig config, final Logger logger) throws IOException {
     logger.warn("""
             You are currently using a deprecated configuration version.
             The "forwarding-secret"  parameter is a security hazard and was removed in \
@@ -46,7 +45,7 @@ public final class ForwardingMigration implements ConfigurationMigration {
     String actualSecret = config.get("forwarding-secret");
     Path path = Path.of(config.getOrElse("forwarding-secret-file", "forwarding.secret"));
     if (Files.exists(path)) {
-      String fileContents = Files.readString(path);
+      final String fileContents = Files.readString(path);
       if (fileContents.isBlank()) {
         Files.writeString(path, actualSecret == null ? generateRandomString(12) : actualSecret);
       }
@@ -54,17 +53,14 @@ public final class ForwardingMigration implements ConfigurationMigration {
       Files.createFile(path);
       Files.writeString(path, actualSecret == null ? generateRandomString(12) : actualSecret);
     }
-
     if (actualSecret != null) {
       config.remove("forwarding-secret");
     }
-
     config.set("forwarding-secret-file", "forwarding.secret");
     config.setComment("forwarding-secret-file", """
                 If you are using modern or BungeeGuard IP forwarding, \
                 configure a file that contains a unique secret here.
-                The file is expected to be UTF-8 encoded and not empty."""
-    );
+                The file is expected to be UTF-8 encoded and not empty.""");
     config.set("config-version", "2.0");
   }
 }

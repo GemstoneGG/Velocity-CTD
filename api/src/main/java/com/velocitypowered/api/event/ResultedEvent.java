@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2022 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -40,10 +40,10 @@ public interface ResultedEvent<R extends ResultedEvent.Result> {
   interface Result {
 
     /**
-     * Returns whether the event is allowed to proceed. Plugins may choose to skip denied
+     * Returns whether or not the event is allowed to proceed. Plugins may choose to skip denied
      * events, and the proxy will respect the result of this method.
      *
-     * @return whether the event is allowed to proceed
+     * @return whether or not the event is allowed to proceed
      */
     boolean isAllowed();
   }
@@ -53,19 +53,9 @@ public interface ResultedEvent<R extends ResultedEvent.Result> {
    */
   final class GenericResult implements Result {
 
-    /**
-     * A shared instance representing an allowed result.
-     */
     private static final GenericResult ALLOWED = new GenericResult(true);
-
-    /**
-     * A shared instance representing a denied result.
-     */
     private static final GenericResult DENIED = new GenericResult(false);
 
-    /**
-     * Whether the event is allowed to proceed.
-     */
     private final boolean status;
 
     private GenericResult(boolean b) {
@@ -82,20 +72,10 @@ public interface ResultedEvent<R extends ResultedEvent.Result> {
       return status ? "allowed" : "denied";
     }
 
-    /**
-     * Returns a result indicating the event is allowed to proceed.
-     *
-     * @return an allowed {@link GenericResult}
-     */
     public static GenericResult allowed() {
       return ALLOWED;
     }
 
-    /**
-     * Returns a result indicating the event is denied.
-     *
-     * @return a denied {@link GenericResult}
-     */
     public static GenericResult denied() {
       return DENIED;
     }
@@ -106,19 +86,9 @@ public interface ResultedEvent<R extends ResultedEvent.Result> {
    */
   final class ComponentResult implements Result {
 
-    /**
-     * A shared instance representing an allowed result with no denial reason.
-     */
     private static final ComponentResult ALLOWED = new ComponentResult(true, null);
 
-    /**
-     * Whether the event is allowed to proceed.
-     */
     private final boolean status;
-
-    /**
-     * The denial reason as a rich {@link Component}, or {@code null} if allowed or no reason provided.
-     */
     private final @Nullable Component reason;
 
     private ComponentResult(boolean status, @Nullable Component reason) {
@@ -131,11 +101,6 @@ public interface ResultedEvent<R extends ResultedEvent.Result> {
       return status;
     }
 
-    /**
-     * Returns the denial reason component, if present.
-     *
-     * @return an {@link Optional} containing the reason component if the result is denied
-     */
     public Optional<Component> getReasonComponent() {
       return Optional.ofNullable(reason);
     }
@@ -145,30 +110,16 @@ public interface ResultedEvent<R extends ResultedEvent.Result> {
       if (status) {
         return "allowed";
       }
-
       if (reason != null) {
         return "denied: " + PlainTextComponentSerializer.plainText().serialize(reason);
       }
-
       return "denied";
     }
 
-    /**
-     * Returns a result indicating the event is allowed to proceed.
-     *
-     * @return an allowed {@link ComponentResult}
-     */
     public static ComponentResult allowed() {
       return ALLOWED;
     }
 
-    /**
-     * Returns a result indicating the event is denied, with the given reason component.
-     *
-     * @param reason the denial reason to show
-     * @return a denied {@link ComponentResult}
-     * @throws NullPointerException if the reason is null
-     */
     public static ComponentResult denied(Component reason) {
       Preconditions.checkNotNull(reason, "reason");
       return new ComponentResult(false, reason);

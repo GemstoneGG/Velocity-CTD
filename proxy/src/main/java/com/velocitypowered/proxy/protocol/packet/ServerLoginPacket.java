@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,13 +32,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class ServerLoginPacket implements MinecraftPacket {
 
-  private static final QuietDecoderException EMPTY_USERNAME = new QuietDecoderException("Empty username!");
+  private static final QuietDecoderException EMPTY_USERNAME = new QuietDecoderException(
+      "Empty username!");
 
   private @Nullable String username;
-
-  private @Nullable IdentifiedKey playerKey;
-
-  private @Nullable UUID holderUuid;
+  private @Nullable IdentifiedKey playerKey; // Introduced in 1.19.3
+  private @Nullable UUID holderUuid; // Used for key revision 2
 
   public ServerLoginPacket() {
   }
@@ -58,7 +57,6 @@ public class ServerLoginPacket implements MinecraftPacket {
     if (username == null) {
       throw new IllegalStateException("No username found!");
     }
-
     return username;
   }
 
@@ -77,10 +75,10 @@ public class ServerLoginPacket implements MinecraftPacket {
   @Override
   public String toString() {
     return "ServerLogin{"
-        + "username='" + username + '\''
-        + "playerKey='" + playerKey + '\''
-        + "holderUUID='" + holderUuid + '\''
-        + '}';
+            + "username='" + username + '\''
+            + "playerKey='" + playerKey + '\''
+            + "holderUUID='" + holderUuid + '\''
+            + '}';
   }
 
   @Override
@@ -121,7 +119,6 @@ public class ServerLoginPacket implements MinecraftPacket {
     if (username == null) {
       throw new IllegalStateException("No username found!");
     }
-
     ProtocolUtils.writeString(buf, username);
 
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19)) {
@@ -158,7 +155,7 @@ public class ServerLoginPacket implements MinecraftPacket {
     // Accommodate the rare (but likely malicious) use of UTF-8 usernames, since it is technically
     // legal on the protocol level.
     int base = 1 + (16 * 3);
-    // Adjustments for Key authentication
+    // Adjustments for Key-authentication
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19)) {
       if (version.lessThan(ProtocolVersion.MINECRAFT_1_19_3)) {
         // + 1 for the boolean present/ not present
@@ -169,14 +166,12 @@ public class ServerLoginPacket implements MinecraftPacket {
         // + 512 for signature
         base += 1 + 8 + 2 + 294 + 2 + 512;
       }
-
       if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19_1)) {
         // +1 boolean uuid optional
         // + 2 * 8 for the long msb/lsb
         base += 1 + 8 + 8;
       }
     }
-
     return base;
   }
 

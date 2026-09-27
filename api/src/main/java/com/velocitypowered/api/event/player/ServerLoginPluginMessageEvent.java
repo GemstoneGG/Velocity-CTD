@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -29,30 +29,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 @AwaitingEvent
 public class ServerLoginPluginMessageEvent implements ResultedEvent<ResponseResult> {
-
-  /**
-   * The connection from which the login plugin message was received.
-   */
   private final ServerConnection connection;
-
-  /**
-   * The identifier of the channel the message was sent on.
-   */
   private final ChannelIdentifier identifier;
-
-  /**
-   * The raw contents of the plugin message.
-   */
   private final byte[] contents;
-
-  /**
-   * The unique sequence ID of this plugin message, used for response routing.
-   */
   private final int sequenceId;
-
-  /**
-   * The result representing the response to this login plugin message.
-   */
   private ResponseResult result;
 
   /**
@@ -63,8 +43,9 @@ public class ServerLoginPluginMessageEvent implements ResultedEvent<ResponseResu
    * @param contents the contents of the message
    * @param sequenceId the ID of the message
    */
-  public ServerLoginPluginMessageEvent(ServerConnection connection, ChannelIdentifier identifier,
-                                       byte[] contents, int sequenceId) {
+  public ServerLoginPluginMessageEvent(
+      ServerConnection connection, ChannelIdentifier identifier,
+      byte[] contents, int sequenceId) {
     this.connection = checkNotNull(connection, "connection");
     this.identifier = checkNotNull(identifier, "identifier");
     this.contents = checkNotNull(contents, "contents");
@@ -72,53 +53,26 @@ public class ServerLoginPluginMessageEvent implements ResultedEvent<ResponseResu
     this.result = ResponseResult.UNKNOWN;
   }
 
-  /**
-   * Gets the current {@link ResponseResult} associated with this plugin message event.
-   *
-   * <p>If the result is {@link ResponseResult#unknown()}, the proxy will indicate that it did not handle
-   * the plugin message and will return a negative response to the backend server.</p>
-   *
-   * @return the result of this event
-   */
   @Override
   public ResponseResult getResult() {
     return this.result;
   }
 
-  /**
-   * Sets the {@link ResponseResult} for this plugin message event.
-   *
-   * <p>Use {@link ResponseResult#reply(byte[])} to respond with data, or {@link ResponseResult#unknown()}
-   * to indicate that the plugin message was not handled.</p>
-   *
-   * @param result the new result to apply to this event
-   * @throws NullPointerException if {@code result} is null
-   */
   @Override
   public void setResult(ResponseResult result) {
     this.result = checkNotNull(result, "result");
   }
 
-  /**
-   * Gets the connection from which the login plugin message was received.
-   *
-   * @return the server connection
-   */
   public ServerConnection getConnection() {
     return connection;
   }
 
-  /**
-   * Gets the identifier of the channel this login plugin message was sent on.
-   *
-   * @return the channel identifier
-   */
   public ChannelIdentifier getIdentifier() {
     return identifier;
   }
 
   /**
-   * Returns a copy of the contents contained in the login plugin message sent by the server.
+   * Returns a copy of the contents of the login plugin message sent by the server.
    *
    * @return the contents of the message
    */
@@ -146,23 +100,10 @@ public class ServerLoginPluginMessageEvent implements ResultedEvent<ResponseResu
     return ByteStreams.newDataInput(contents);
   }
 
-  /**
-   * Gets the sequence ID of the plugin message sent by the server.
-   *
-   * @return the sequence ID
-   */
   public int getSequenceId() {
     return sequenceId;
   }
 
-  /**
-   * Returns a string representation of this {@code ServerLoginPluginMessageEvent}.
-   *
-   * <p>The output includes the connection, message channel identifier, sequence ID,
-   * base-16 encoded message content, and the current response result.</p>
-   *
-   * @return a human-readable string describing the event state
-   */
   @Override
   public String toString() {
     return "ServerLoginPluginMessageEvent{"
@@ -177,17 +118,11 @@ public class ServerLoginPluginMessageEvent implements ResultedEvent<ResponseResu
   /**
    * The result class, containing a response to the login plugin message sent by the server.
    */
-  public static final class ResponseResult implements ResultedEvent.Result {
+  public static class ResponseResult implements ResultedEvent.Result {
 
-    /**
-     * A result indicating that no response was provided for the message.
-     */
     private static final ResponseResult UNKNOWN = new ResponseResult(null);
 
-    /**
-     * The response payload to be sent back to the server, or {@code null} if not handled.
-     */
-    private final byte @Nullable [] response;
+    private final byte@Nullable [] response;
 
     private ResponseResult(byte @Nullable [] response) {
       this.response = response;
@@ -208,25 +143,13 @@ public class ServerLoginPluginMessageEvent implements ResultedEvent<ResponseResu
       if (response == null) {
         throw new IllegalStateException("Fetching response of unknown message result");
       }
-
       return response.clone();
     }
 
-    /**
-     * Returns a result indicating that this login plugin message was not handled by the proxy.
-     *
-     * @return the unknown response result
-     */
     public static ResponseResult unknown() {
       return UNKNOWN;
     }
 
-    /**
-     * Returns a result with a reply to the server's login plugin message.
-     *
-     * @param response the response bytes to send
-     * @return a response result containing the response data
-     */
     public static ResponseResult reply(byte[] response) {
       checkNotNull(response, "response");
       return new ResponseResult(response);
@@ -237,11 +160,9 @@ public class ServerLoginPluginMessageEvent implements ResultedEvent<ResponseResu
       if (this == o) {
         return true;
       }
-
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-
       ResponseResult that = (ResponseResult) o;
       return Arrays.equals(response, that.response);
     }

@@ -1,7 +1,7 @@
 /*
  * This file is part of commons, licensed under the MIT License.
  *
- * Copyright (c) 2021-2026 Seiama
+ * Copyright (c) 2021-2024 Seiama
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 package com.velocitypowered.api.util;
 
 import org.jspecify.annotations.NullMarked;
@@ -35,7 +34,6 @@ import org.jspecify.annotations.NullMarked;
 @NullMarked
 @SuppressWarnings("ComparableType") // allows us to be more flexible
 public interface Ordered<T> extends Comparable<T> {
-
   /**
    * Checks if {@code this} is greater than {@code that}.
    *
@@ -43,7 +41,7 @@ public interface Ordered<T> extends Comparable<T> {
    * @return {@code true} if {@code this} is greater than {@code that}, {@code false} otherwise
    * @since 3.3.0
    */
-  default boolean greaterThan(T that) {
+  default boolean greaterThan(final T that) {
     return this.compareTo(that) > 0;
   }
 
@@ -55,7 +53,7 @@ public interface Ordered<T> extends Comparable<T> {
    *     equal to {@code that}, {@code false} otherwise
    * @since 3.3.0
    */
-  default boolean noLessThan(T that) {
+  default boolean noLessThan(final T that) {
     return this.compareTo(that) >= 0;
   }
 
@@ -66,7 +64,7 @@ public interface Ordered<T> extends Comparable<T> {
    * @return {@code true} if {@code this} is less than {@code that}, {@code false} otherwise
    * @since 3.3.0
    */
-  default boolean lessThan(T that) {
+  default boolean lessThan(final T that) {
     return this.compareTo(that) < 0;
   }
 
@@ -78,7 +76,7 @@ public interface Ordered<T> extends Comparable<T> {
    *     equal to {@code that}, {@code false} otherwise
    * @since 3.3.0
    */
-  default boolean noGreaterThan(T that) {
+  default boolean noGreaterThan(final T that) {
     return this.compareTo(that) <= 0;
   }
 
@@ -89,7 +87,7 @@ public interface Ordered<T> extends Comparable<T> {
    * @return {@code true} if {@code this} is equal to {@code that}, {@code false} otherwise
    * @since 3.3.0
    */
-  default boolean noGreaterOrLessThan(T that) {
+  default boolean noGreaterOrLessThan(final T that) {
     return this.compareTo(that) == 0;
   }
 }

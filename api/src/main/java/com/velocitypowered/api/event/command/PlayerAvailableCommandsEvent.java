@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2020-2023 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -22,42 +22,25 @@ import com.velocitypowered.api.proxy.Player;
 @AwaitingEvent
 public class PlayerAvailableCommandsEvent {
 
-  /**
-   * The player receiving the list of available commands.
-   */
   private final Player player;
-
-  /**
-   * The mutable Brigadier root command node representing the available commands.
-   */
   private final RootCommandNode<?> rootNode;
 
   /**
    * Constructs an available commands event.
    *
-   * @param player   the targeted player
+   * @param player the targeted player
    * @param rootNode the Brigadier root node
    */
   public PlayerAvailableCommandsEvent(Player player,
-                                      RootCommandNode<?> rootNode) {
+      RootCommandNode<?> rootNode) {
     this.player = checkNotNull(player, "player");
     this.rootNode = checkNotNull(rootNode, "rootNode");
   }
 
-  /**
-   * Gets the player that the available commands are being sent to.
-   *
-   * @return the targeted player
-   */
   public Player getPlayer() {
     return player;
   }
 
-  /**
-   * Gets the root command node that represents the available commands.
-   *
-   * @return the Brigadier root command node
-   */
   public RootCommandNode<?> getRootNode() {
     return rootNode;
   }

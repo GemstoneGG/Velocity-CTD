@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -331,8 +331,8 @@ public class VelocityCommand implements BuiltinCommandDefinition {
     private static final Logger LOGGER = LogManager.getLogger(Reload.class);
 
     @Override
-    public int run(CommandContext<CommandSource> context) {
-      CommandSource source = context.getSource();
+    public int run(final CommandContext<CommandSource> context) {
+      final CommandSource source = context.getSource();
       try {
         if (server.reloadConfiguration()) {
           source.sendMessage(Component.translatable("velocity.command.reload-success",
@@ -472,11 +472,11 @@ public class VelocityCommand implements BuiltinCommandDefinition {
   private record Plugins(VelocityServer server) implements Command<CommandSource> {
 
     @Override
-    public int run(CommandContext<CommandSource> context) {
-      CommandSource source = context.getSource();
+    public int run(final CommandContext<CommandSource> context) {
+      final CommandSource source = context.getSource();
 
-      List<PluginContainer> plugins = List.copyOf(server.getPluginManager().getPlugins());
-      int pluginCount = plugins.size();
+      final List<PluginContainer> plugins = List.copyOf(server.getPluginManager().getPlugins());
+      final int pluginCount = plugins.size();
 
       if (pluginCount == 0) {
         source.sendMessage(Component.translatable("velocity.command.no-plugins",
@@ -484,35 +484,35 @@ public class VelocityCommand implements BuiltinCommandDefinition {
         return SINGLE_SUCCESS;
       }
 
-      TextComponent.Builder listBuilder = Component.text();
+      final TextComponent.Builder listBuilder = Component.text();
       for (int i = 0; i < pluginCount; i++) {
-        PluginContainer plugin = plugins.get(i);
+        final PluginContainer plugin = plugins.get(i);
         listBuilder.append(componentForPlugin(plugin.getDescription()));
         if (i + 1 < pluginCount) {
           listBuilder.append(Component.text(", "));
         }
       }
 
-      TranslatableComponent output = Component.translatable()
-              .key("velocity.command.plugins-list")
-              .color(NamedTextColor.YELLOW)
-              .arguments(Argument.component("plugins", listBuilder.build()))
-              .build();
+      final TranslatableComponent output = Component.translatable()
+          .key("velocity.command.plugins-list")
+          .color(NamedTextColor.YELLOW)
+          .arguments(Argument.component("plugins", listBuilder.build()))
+          .build();
       source.sendMessage(output);
       return SINGLE_SUCCESS;
     }
 
     private TextComponent componentForPlugin(PluginDescription description) {
-      String pluginInfo = description.getName().orElse(description.getId())
-              + description.getVersion().map(v -> " " + v).orElse("");
+      final String pluginInfo = description.getName().orElse(description.getId())
+          + description.getVersion().map(v -> " " + v).orElse("");
 
-      TextComponent.Builder hoverText = Component.text().content(pluginInfo);
+      final TextComponent.Builder hoverText = Component.text().content(pluginInfo);
 
       description.getUrl().ifPresent(url -> {
         hoverText.append(Component.newline());
         hoverText.append(Component.translatable(
-                "velocity.command.plugin-tooltip-website",
-                Argument.component("url", Component.text(url))));
+            "velocity.command.plugin-tooltip-website",
+            Argument.component("url", Component.text(url))));
       });
       if (!description.getAuthors().isEmpty()) {
         hoverText.append(Component.newline());
@@ -547,19 +547,19 @@ public class VelocityCommand implements BuiltinCommandDefinition {
     private static final Logger LOGGER = LogManager.getLogger(Dump.class);
 
     @Override
-    public int run(CommandContext<CommandSource> context) {
-      CommandSource source = context.getSource();
+    public int run(final CommandContext<CommandSource> context) {
+      final CommandSource source = context.getSource();
 
       Collection<VelocityRegisteredServer> allServers = Set.copyOf(server.getAllServers());
       JsonObject servers = new JsonObject();
       for (VelocityRegisteredServer iter : allServers) {
         servers.add(iter.getServerInfo().getName(),
-                InformationUtils.collectServerInfo(iter));
+            InformationUtils.collectServerInfo(iter));
       }
-      JsonArray connectOrder = new JsonArray();
-      List<String> attemptedConnectionOrder = List.copyOf(
-              server.getConfiguration().getAttemptConnectionOrder());
-      for (String s : attemptedConnectionOrder) {
+      final JsonArray connectOrder = new JsonArray();
+      final List<String> attemptedConnectionOrder = List.copyOf(
+          server.getConfiguration().getAttemptConnectionOrder());
+      for (final String s : attemptedConnectionOrder) {
         connectOrder.add(s);
       }
 
@@ -573,19 +573,19 @@ public class VelocityCommand implements BuiltinCommandDefinition {
       proxyConfig.add("connectOrder", connectOrder);
       proxyConfig.add("hubServers", hubServers);
       proxyConfig.add("forcedHosts",
-              InformationUtils.collectForcedHosts(server.getConfiguration()));
+          InformationUtils.collectForcedHosts(server.getConfiguration()));
 
-      JsonObject dump = new JsonObject();
+      final JsonObject dump = new JsonObject();
       dump.add("versionInfo", InformationUtils.collectProxyInfo(server.getVersion()));
       dump.add("platform", InformationUtils.collectEnvironmentInfo());
       dump.add("config", proxyConfig);
       dump.add("plugins", InformationUtils.collectPluginInfo(server));
 
-      Path dumpPath = Path.of("velocity-dump-"
-              + new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(new Date())
-              + ".json");
-      try (BufferedWriter bw = Files.newBufferedWriter(
-              dumpPath, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW)) {
+      final Path dumpPath = Path.of("velocity-dump-"
+          + new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(new Date())
+          + ".json");
+      try (final BufferedWriter bw = Files.newBufferedWriter(
+          dumpPath, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW)) {
         bw.write(InformationUtils.toHumanReadableString(dump));
 
         source.sendMessage(
@@ -611,14 +611,12 @@ public class VelocityCommand implements BuiltinCommandDefinition {
     private static final Logger LOGGER = LogManager.getLogger(Heap.class);
 
     private MethodHandle heapGenerator;
-
     private Consumer<CommandSource> heapConsumer;
-
     private final Path dir = Path.of("./dumps");
 
     @Override
-    public int run(CommandContext<CommandSource> context) throws CommandSyntaxException {
-      CommandSource source = context.getSource();
+    public int run(final CommandContext<CommandSource> context) throws CommandSyntaxException {
+      final CommandSource source = context.getSource();
 
       try {
         if (Files.notExists(dir)) {
@@ -642,7 +640,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
               Path file = dir.resolve(name + ".phd");
               try {
                 Object openj9Mbean = ManagementFactory.newPlatformMXBeanProxy(
-                        server, "openj9.lang.management:type=OpenJ9Diagnostics", clazz);
+                    server, "openj9.lang.management:type=OpenJ9Diagnostics", clazz);
                 heapGenerator.invoke(openj9Mbean, "heap", file.toString());
               } catch (Throwable e) {
                 // This should not occur
@@ -663,7 +661,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
               Path file = dir.resolve(name + ".hprof");
               try {
                 Object hotspotMbean = ManagementFactory.newPlatformMXBeanProxy(
-                        server, "com.sun.management:type=HotSpotDiagnostic", clazz);
+                    server, "com.sun.management:type=HotSpotDiagnostic", clazz);
                 this.heapGenerator.invoke(hotspotMbean, file.toString(), true);
               } catch (Throwable e1) {
                 // This should not occur

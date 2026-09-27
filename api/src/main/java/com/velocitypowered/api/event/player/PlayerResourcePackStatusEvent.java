@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -25,36 +25,15 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @AwaitingEvent
 public class PlayerResourcePackStatusEvent {
 
-  /**
-   * The player affected by the resource pack status update.
-   */
   private final Player player;
-
-  /**
-   * The unique identifier of the resource pack, if known.
-   */
   private final @MonotonicNonNull UUID packId;
-
-  /**
-   * The status reported by the client regarding the resource pack.
-   */
   private final Status status;
-
-  /**
-   * Metadata about the resource pack being processed, or {@code null} if not available.
-   */
   private final @MonotonicNonNull ResourcePackInfo packInfo;
-
-  /**
-   * Whether to suppress the default kick behavior if the player declines a forced resource pack.
-   */
   private boolean overwriteKick;
 
   /**
    * Instantiates this event.
    *
-   * @param player the player affected by the status update
-   * @param status the status of the resource pack
    * @deprecated Use {@link PlayerResourcePackStatusEvent#PlayerResourcePackStatusEvent
    *             (Player, UUID, Status, ResourcePackInfo)} instead.
    */
@@ -66,9 +45,6 @@ public class PlayerResourcePackStatusEvent {
   /**
    * Instantiates this event.
    *
-   * @param player the player affected by the status update
-   * @param status the status of the resource pack
-   * @param packInfo the resource pack metadata
    * @deprecated Use {@link PlayerResourcePackStatusEvent#PlayerResourcePackStatusEvent
    *             (Player, UUID, Status, ResourcePackInfo)} instead.
    */
@@ -79,13 +55,9 @@ public class PlayerResourcePackStatusEvent {
 
   /**
    * Instantiates this event.
-   *
-   * @param player the player affected by the status update
-   * @param packId the unique ID of the resource pack
-   * @param status the status of the resource pack
-   * @param packInfo the resource pack metadata
    */
-  public PlayerResourcePackStatusEvent(Player player, UUID packId, Status status, ResourcePackInfo packInfo) {
+  public PlayerResourcePackStatusEvent(
+          Player player, UUID packId, Status status, ResourcePackInfo packInfo) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.packId = packId == null ? packInfo == null ? null : packInfo.getId() : packId;
     this.status = Preconditions.checkNotNull(status, "status");
@@ -148,7 +120,7 @@ public class PlayerResourcePackStatusEvent {
    * as the client or server will enforce this regardless. Cancelling the resulting
    * kick-events will not prevent the player from disconnecting from the proxy.
    *
-   * @param overwriteKick whether to cancel the kick
+   * @param overwriteKick whether or not to cancel the kick
    * @throws IllegalArgumentException if the player version is 1.17 or newer
    */
   public void setOverwriteKick(boolean overwriteKick) {
@@ -158,14 +130,6 @@ public class PlayerResourcePackStatusEvent {
     this.overwriteKick = overwriteKick;
   }
 
-  /**
-   * Returns a string representation of this {@code PlayerResourcePackStatusEvent}.
-   *
-   * <p>The output includes the player, current resource pack status, and the associated
-   * {@link ResourcePackInfo} (if available).</p>
-   *
-   * @return a human-readable string describing the event state
-   */
   @Override
   public String toString() {
     return "PlayerResourcePackStatusEvent{"
@@ -179,7 +143,6 @@ public class PlayerResourcePackStatusEvent {
    * Represents the possible statuses for the resource pack.
    */
   public enum Status {
-
     /**
      * The resource pack was applied successfully.
      */

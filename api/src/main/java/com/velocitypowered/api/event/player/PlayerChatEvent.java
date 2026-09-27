@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -22,19 +22,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @AwaitingEvent
 public final class PlayerChatEvent implements ResultedEvent<PlayerChatEvent.ChatResult> {
 
-  /**
-   * The player who sent the chat message.
-   */
   private final Player player;
-
-  /**
-   * The raw chat message sent by the player.
-   */
   private final String message;
-
-  /**
-   * The result determining whether the message should be forwarded to the server.
-   */
   private ChatResult result;
 
   /**
@@ -49,20 +38,10 @@ public final class PlayerChatEvent implements ResultedEvent<PlayerChatEvent.Chat
     this.result = ChatResult.allowed();
   }
 
-  /**
-   * Gets the player who sent the chat message.
-   *
-   * @return the player who sent the message
-   */
   public Player getPlayer() {
     return player;
   }
 
-  /**
-   * Gets the raw chat message the player sent.
-   *
-   * @return the original chat message
-   */
   public String getMessage() {
     return message;
   }
@@ -98,24 +77,10 @@ public final class PlayerChatEvent implements ResultedEvent<PlayerChatEvent.Chat
    */
   public static final class ChatResult implements ResultedEvent.Result {
 
-    /**
-     * A result allowing the chat message to be forwarded to the server unchanged.
-     */
     private static final ChatResult ALLOWED = new ChatResult(true, null);
-
-    /**
-     * A result preventing the chat message from being forwarded.
-     */
     private static final ChatResult DENIED = new ChatResult(false, null);
 
-    /**
-     * The message to send instead of the original, or {@code null} to use the original message.
-     */
-    private final @Nullable String message;
-
-    /**
-     * Whether the chat message is allowed to be forwarded.
-     */
+    private @Nullable String message;
     private final boolean status;
 
     private ChatResult(boolean status, @Nullable String message) {
@@ -123,11 +88,6 @@ public final class PlayerChatEvent implements ResultedEvent<PlayerChatEvent.Chat
       this.message = message;
     }
 
-    /**
-     * Gets the (possibly modified) chat message to be sent.
-     *
-     * @return an {@link Optional} containing the message, or empty if none
-     */
     public Optional<String> getMessage() {
       return Optional.ofNullable(message);
     }

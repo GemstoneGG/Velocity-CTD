@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,6 @@ public class KeyedCommandHandler extends RateLimitedCommandHandler<KeyedPlayerCo
   private static final Logger LOGGER = LogManager.getLogger(KeyedCommandHandler.class);
 
   private final ConnectedPlayer player;
-
   private final VelocityServer server;
 
   public KeyedCommandHandler(ConnectedPlayer player, VelocityServer server) {
@@ -68,7 +67,6 @@ public class KeyedCommandHandler extends RateLimitedCommandHandler<KeyedPlayerCo
             SignedChatViolations.alterSignableComponentError("deny", player, packet);
           }
         }
-
         return CompletableFuture.completedFuture(null);
       }
 
@@ -87,10 +85,8 @@ public class KeyedCommandHandler extends RateLimitedCommandHandler<KeyedPlayerCo
             SignedChatViolations.alterSignableComponentError("change", player, packet);
             return CompletableFuture.completedFuture(null);
           }
-
           write.message("/" + commandToRun);
         }
-
         return CompletableFuture.completedFuture(write.toServer());
       }
       return runCommand(this.server, this.player, commandToRun, hasRun -> {
@@ -112,7 +108,6 @@ public class KeyedCommandHandler extends RateLimitedCommandHandler<KeyedPlayerCo
               .message("/" + commandToRun)
               .toServer();
         }
-
         return null;
       });
     }, packet.getCommand(), packet.getTimestamp(), null, new CommandExecuteEvent.InvocationInfo(CommandExecuteEvent.SignedState.UNSUPPORTED,

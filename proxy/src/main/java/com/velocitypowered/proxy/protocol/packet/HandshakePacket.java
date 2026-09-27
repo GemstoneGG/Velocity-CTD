@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,17 +30,11 @@ public class HandshakePacket implements MinecraftPacket {
 
   // This size was chosen to ensure Forge clients can still connect even with very long hostnames.
   // While DNS technically allows any character to be used, in practice ASCII is used.
-
   private static final int MAXIMUM_HOSTNAME_LENGTH = 255 + HANDSHAKE_HOSTNAME_TOKEN.length() + 1;
-
   private ProtocolVersion protocolVersion;
-
   private String serverAddress = "";
-
   private int port;
-
   private HandshakeIntent intent;
-
   private int nextStatus;
 
   public ProtocolVersion getProtocolVersion() {
@@ -115,13 +109,13 @@ public class HandshakePacket implements MinecraftPacket {
 
   @Override
   public int decodeExpectedMinLength(ByteBuf buf, ProtocolUtils.Direction direction,
-                                     ProtocolVersion version) {
+                               ProtocolVersion version) {
     return 7;
   }
 
   @Override
   public int decodeExpectedMaxLength(ByteBuf buf, ProtocolUtils.Direction direction,
-                                     ProtocolVersion version) {
+                               ProtocolVersion version) {
     return 9 + (MAXIMUM_HOSTNAME_LENGTH * 3);
   }
 

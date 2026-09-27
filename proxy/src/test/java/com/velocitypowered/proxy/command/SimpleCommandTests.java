@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,9 +44,9 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testExecutesAlias() {
-    var callCount = new AtomicInteger();
+    final var callCount = new AtomicInteger();
 
-    var meta = manager.metaBuilder("hello").build();
+    final var meta = manager.metaBuilder("hello").build();
     manager.register(meta, (SimpleCommand) invocation -> {
       assertEquals(source, invocation.source());
       assertEquals("hello", invocation.alias());
@@ -60,9 +60,9 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testExecuteIgnoresAliasCase() {
-    var callCount = new AtomicInteger();
+    final var callCount = new AtomicInteger();
 
-    var meta = manager.metaBuilder("hello").build();
+    final var meta = manager.metaBuilder("hello").build();
     manager.register(meta, (SimpleCommand) invocation -> {
       assertEquals("hello", invocation.alias());
       callCount.incrementAndGet();
@@ -74,9 +74,9 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testExecuteInputIsTrimmed() {
-    var callCount = new AtomicInteger();
+    final var callCount = new AtomicInteger();
 
-    var meta = manager.metaBuilder("hello").build();
+    final var meta = manager.metaBuilder("hello").build();
     manager.register(meta, (SimpleCommand) invocation -> {
       assertEquals("hello", invocation.alias());
       assertArrayEquals(new String[0], invocation.arguments());
@@ -92,7 +92,7 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testExecuteAfterUnregisterForwards() {
-    var meta = manager.metaBuilder("hello").build();
+    final var meta = manager.metaBuilder("hello").build();
     manager.register(meta, (SimpleCommand) invocation -> fail());
     manager.unregister("hello");
 
@@ -101,17 +101,17 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testForwardsAndDoesNotExecuteImpermissibleAlias() {
-    var callCount = new AtomicInteger();
+    final var callCount = new AtomicInteger();
 
-    var meta = manager.metaBuilder("hello").build();
+    final var meta = manager.metaBuilder("hello").build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(Invocation invocation) {
+      public void execute(final Invocation invocation) {
         fail();
       }
 
       @Override
-      public boolean hasPermission(Invocation invocation) {
+      public boolean hasPermission(final Invocation invocation) {
         assertEquals(source, invocation.source());
         assertEquals("hello", invocation.alias());
         assertArrayEquals(new String[0], invocation.arguments());
@@ -126,9 +126,9 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testExecutesWithArguments() {
-    var callCount = new AtomicInteger();
+    final var callCount = new AtomicInteger();
 
-    var meta = manager.metaBuilder("hello").build();
+    final var meta = manager.metaBuilder("hello").build();
     manager.register(meta, (SimpleCommand) invocation -> {
       assertEquals("hello", invocation.alias());
       assertArrayEquals(new String[]{"dear", "world"}, invocation.arguments());
@@ -141,17 +141,17 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testHandlesAndDoesNotExecuteWithImpermissibleArgs() {
-    var callCount = new AtomicInteger();
+    final var callCount = new AtomicInteger();
 
-    var meta = manager.metaBuilder("color").build();
+    final var meta = manager.metaBuilder("color").build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(Invocation invocation) {
+      public void execute(final Invocation invocation) {
         fail();
       }
 
       @Override
-      public boolean hasPermission(Invocation invocation) {
+      public boolean hasPermission(final Invocation invocation) {
         assertEquals("color", invocation.alias());
         assertArrayEquals(new String[]{"red"}, invocation.arguments());
         callCount.incrementAndGet();
@@ -167,22 +167,22 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testDoesNotSuggestAliasIfImpermissible() {
-    var meta = manager.metaBuilder("hello").build();
+    final var meta = manager.metaBuilder("hello").build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(Invocation invocation) {
+      public void execute(final Invocation invocation) {
         fail();
       }
 
       @Override
-      public boolean hasPermission(Invocation invocation) {
+      public boolean hasPermission(final Invocation invocation) {
         assertEquals("hello", invocation.alias());
         assertArrayEquals(new String[0], invocation.arguments());
         return false;
       }
 
       @Override
-      public List<String> suggest(Invocation invocation) {
+      public List<String> suggest(final Invocation invocation) {
         return fail();
       }
     });
@@ -190,15 +190,15 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testDoesNotSuggestAliasAfterUnregister() {
-    var meta = manager.metaBuilder("hello").build();
+    final var meta = manager.metaBuilder("hello").build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(Invocation invocation) {
+      public void execute(final Invocation invocation) {
         fail();
       }
 
       @Override
-      public List<String> suggest(Invocation invocation) {
+      public List<String> suggest(final Invocation invocation) {
         return fail();
       }
     });
@@ -209,15 +209,15 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testSuggestsArgumentsAfterAlias() {
-    var meta = manager.metaBuilder("hello").build();
+    final var meta = manager.metaBuilder("hello").build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(Invocation invocation) {
+      public void execute(final Invocation invocation) {
         fail();
       }
 
       @Override
-      public List<String> suggest(Invocation invocation) {
+      public List<String> suggest(final Invocation invocation) {
         assertEquals("hello", invocation.alias());
         assertArrayEquals(new String[0], invocation.arguments());
         return ImmutableList.of("world", "people"); // ensures we don't mutate the user's list
@@ -229,15 +229,15 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testSuggestsArgumentsAfterAliasIgnoresAliasCase() {
-    var meta = manager.metaBuilder("hello").build();
+    final var meta = manager.metaBuilder("hello").build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(Invocation invocation) {
+      public void execute(final Invocation invocation) {
         fail();
       }
 
       @Override
-      public List<String> suggest(Invocation invocation) {
+      public List<String> suggest(final Invocation invocation) {
         assertEquals("hello", invocation.alias());
         return ImmutableList.of("world");
       }
@@ -248,15 +248,15 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testSuggestsArgumentsAfterPartialArguments() {
-    var meta = manager.metaBuilder("numbers").build();
+    final var meta = manager.metaBuilder("numbers").build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(Invocation invocation) {
+      public void execute(final Invocation invocation) {
         fail();
       }
 
       @Override
-      public List<String> suggest(Invocation invocation) {
+      public List<String> suggest(final Invocation invocation) {
         assertArrayEquals(new String[]{"12345678"}, invocation.arguments());
         return Collections.singletonList("9");
       }
@@ -267,17 +267,17 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testDoesNotSuggestFirstArgumentIfImpermissibleAlias() {
-    var callCount = new AtomicInteger();
+    final var callCount = new AtomicInteger();
 
-    var meta = manager.metaBuilder("hello").build();
+    final var meta = manager.metaBuilder("hello").build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(Invocation invocation) {
+      public void execute(final Invocation invocation) {
         fail();
       }
 
       @Override
-      public boolean hasPermission(Invocation invocation) {
+      public boolean hasPermission(final Invocation invocation) {
         assertEquals("hello", invocation.alias());
         assertArrayEquals(new String[0], invocation.arguments());
         callCount.incrementAndGet();
@@ -285,7 +285,7 @@ public class SimpleCommandTests extends CommandTestSuite {
       }
 
       @Override
-      public List<String> suggest(Invocation invocation) {
+      public List<String> suggest(final Invocation invocation) {
         return fail();
       }
     });
@@ -296,17 +296,17 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testDoesNotSuggestArgumentsAfterPartialImpermissibleArguments() {
-    var callCount = new AtomicInteger();
+    final var callCount = new AtomicInteger();
 
-    var meta = manager.metaBuilder("foo").build();
+    final var meta = manager.metaBuilder("foo").build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(Invocation invocation) {
+      public void execute(final Invocation invocation) {
         fail();
       }
 
       @Override
-      public boolean hasPermission(Invocation invocation) {
+      public boolean hasPermission(final Invocation invocation) {
         assertEquals("foo", invocation.alias());
         assertArrayEquals(new String[]{"bar", "baz", ""}, invocation.arguments());
         callCount.incrementAndGet();
@@ -314,7 +314,7 @@ public class SimpleCommandTests extends CommandTestSuite {
       }
 
       @Override
-      public List<String> suggest(Invocation invocation) {
+      public List<String> suggest(final Invocation invocation) {
         return fail();
       }
     });
@@ -325,15 +325,15 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testDoesNotSuggestIfFutureCompletesExceptionally() {
-    var meta = manager.metaBuilder("hello").build();
+    final var meta = manager.metaBuilder("hello").build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(Invocation invocation) {
+      public void execute(final Invocation invocation) {
         fail();
       }
 
       @Override
-      public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
+      public CompletableFuture<List<String>> suggestAsync(final Invocation invocation) {
         return CompletableFuture.failedFuture(new RuntimeException());
       }
     });
@@ -343,15 +343,15 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testDoesNotSuggestIfSuggestAsyncThrows() {
-    var meta = manager.metaBuilder("hello").build();
+    final var meta = manager.metaBuilder("hello").build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(Invocation invocation) {
+      public void execute(final Invocation invocation) {
         fail();
       }
 
       @Override
-      public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
+      public CompletableFuture<List<String>> suggestAsync(final Invocation invocation) {
         throw new RuntimeException();
       }
     });
@@ -362,20 +362,20 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testSuggestCompletesExceptionallyIfHasPermissionThrows() {
-    var meta = manager.metaBuilder("hello").build();
+    final var meta = manager.metaBuilder("hello").build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(Invocation invocation) {
+      public void execute(final Invocation invocation) {
         fail();
       }
 
       @Override
-      public boolean hasPermission(Invocation invocation) {
+      public boolean hasPermission(final Invocation invocation) {
         throw new RuntimeException();
       }
 
       @Override
-      public CompletableFuture<List<String>> suggestAsync(Invocation invocation) {
+      public CompletableFuture<List<String>> suggestAsync(final Invocation invocation) {
         return fail();
       }
     });
@@ -390,20 +390,20 @@ public class SimpleCommandTests extends CommandTestSuite {
   // different parts of SuggestionsProvider.
   @Test
   void testDoesNotSuggestHintIfImpermissibleAlias() {
-    var hint = LiteralArgumentBuilder
+    final var hint = LiteralArgumentBuilder
         .<CommandSource>literal("hint")
         .build();
-    var meta = manager.metaBuilder("hello")
+    final var meta = manager.metaBuilder("hello")
         .hint(hint)
         .build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(Invocation invocation) {
+      public void execute(final Invocation invocation) {
         fail();
       }
 
       @Override
-      public boolean hasPermission(Invocation invocation) {
+      public boolean hasPermission(final Invocation invocation) {
         return false;
       }
     });
@@ -413,20 +413,20 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testDoesNotSuggestHintIfImpermissibleArguments() {
-    var hint = LiteralArgumentBuilder
+    final var hint = LiteralArgumentBuilder
         .<CommandSource>literal("hint")
         .build();
-    var meta = manager.metaBuilder("hello")
+    final var meta = manager.metaBuilder("hello")
         .hint(hint)
         .build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(Invocation invocation) {
+      public void execute(final Invocation invocation) {
         fail();
       }
 
       @Override
-      public boolean hasPermission(Invocation invocation) {
+      public boolean hasPermission(final Invocation invocation) {
         return false;
       }
     });
@@ -436,21 +436,21 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testSuggestsMergesIgnoringHintsWhoseCustomSuggestionProviderFutureCompletesExceptionally() {
-    var hint = RequiredArgumentBuilder
+    final var hint = RequiredArgumentBuilder
         .<CommandSource, String>argument("hint", word())
         .suggests((context, builder) -> CompletableFuture.failedFuture(new RuntimeException()))
         .build();
-    var meta = manager.metaBuilder("hello")
+    final var meta = manager.metaBuilder("hello")
         .hint(hint)
         .build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(Invocation invocation) {
+      public void execute(final Invocation invocation) {
         fail();
       }
 
       @Override
-      public List<String> suggest(Invocation invocation) {
+      public List<String> suggest(final Invocation invocation) {
         return ImmutableList.of("world");
       }
     });
@@ -460,23 +460,23 @@ public class SimpleCommandTests extends CommandTestSuite {
 
   @Test
   void testSuggestsMergesIgnoringHintsWhoseCustomSuggestionProviderThrows() {
-    var hint = RequiredArgumentBuilder
+    final var hint = RequiredArgumentBuilder
         .<CommandSource, String>argument("hint", word())
         .suggests((context, builder) -> {
           throw new RuntimeException();
         })
         .build();
-    var meta = manager.metaBuilder("hello")
+    final var meta = manager.metaBuilder("hello")
         .hint(hint)
         .build();
     manager.register(meta, new SimpleCommand() {
       @Override
-      public void execute(Invocation invocation) {
+      public void execute(final Invocation invocation) {
         fail();
       }
 
       @Override
-      public List<String> suggest(Invocation invocation) {
+      public List<String> suggest(final Invocation invocation) {
         return ImmutableList.of("world");
       }
     });

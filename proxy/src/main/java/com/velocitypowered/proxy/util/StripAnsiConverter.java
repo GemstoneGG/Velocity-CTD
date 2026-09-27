@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,15 +36,11 @@ import org.apache.logging.log4j.core.pattern.PatternParser;
 @Plugin(name = "stripAnsi", category = PatternConverter.CATEGORY)
 @ConverterKeys("stripAnsi")
 public class StripAnsiConverter extends LogEventPatternConverter {
-
   private static final Pattern ANSI_PATTERN = Pattern.compile("\u001B\\[[;\\d]*m");
-
   private final List<PatternFormatter> formatters;
 
   /**
-   * Constructs a new {@code StripAnsiConverter}.
-   *
-   * @param formatters the formatters that produce the original message content
+   * Constructs an instance of StripAnsiConverter.
    */
   protected StripAnsiConverter(List<PatternFormatter> formatters) {
     super("stripAnsi", null);
@@ -52,12 +48,11 @@ public class StripAnsiConverter extends LogEventPatternConverter {
   }
 
   @Override
-  public void format(LogEvent event, StringBuilder toAppendTo) {
+  public void format(final LogEvent event, final StringBuilder toAppendTo) {
     int start = toAppendTo.length();
-    for (PatternFormatter formatter : formatters) {
+    for (final PatternFormatter formatter : formatters) {
       formatter.format(event, toAppendTo);
     }
-
     String content = toAppendTo.substring(start);
     content = ANSI_PATTERN.matcher(content).replaceAll("");
 
@@ -79,7 +74,6 @@ public class StripAnsiConverter extends LogEventPatternConverter {
           options.length);
       return null;
     }
-
     PatternParser parser = PatternLayout.createPatternParser(config);
     List<PatternFormatter> formatters = parser.parse(options[0]);
     return new StripAnsiConverter(formatters);

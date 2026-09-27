@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,6 @@ public class KeyedChatHandler implements ChatHandler<KeyedPlayerChatPacket> {
   private static final Logger LOGGER = LogManager.getLogger(KeyedChatHandler.class);
 
   private final VelocityServer server;
-
   private final ConnectedPlayer player;
 
   public KeyedChatHandler(VelocityServer server, ConnectedPlayer player) {
@@ -80,7 +79,8 @@ public class KeyedChatHandler implements ChatHandler<KeyedPlayerChatPacket> {
           LOGGER.error("Exception while handling player chat for {}", player, ex);
           return null;
         }),
-        packet.getExpiry(), null
+        packet.getExpiry(),
+        null
     );
   }
 
@@ -94,7 +94,6 @@ public class KeyedChatHandler implements ChatHandler<KeyedPlayerChatPacket> {
           // Bad, very bad.
           SignedChatViolations.invalidCancel(player);
         }
-
         return null;
       }
 
@@ -105,12 +104,11 @@ public class KeyedChatHandler implements ChatHandler<KeyedPlayerChatPacket> {
         } else {
           LOGGER.warn("A plugin changed a signed chat message. The server may not accept it.");
           return player.getChatBuilderFactory().builder()
-              .message(chatResult.getMessage().get()) // Always present at this point
+              .message(chatResult.getMessage().get() /* always present at this point */)
               .setTimestamp(packet.getExpiry())
               .toServer();
         }
       }
-
       return packet;
     };
   }

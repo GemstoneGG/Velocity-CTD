@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,9 +35,7 @@ public class EncryptionResponsePacket implements MinecraftPacket {
       "Encryption response didn't contain salt");
 
   private byte[] sharedSecret = EMPTY_BYTE_ARRAY;
-
   private byte[] verifyToken = EMPTY_BYTE_ARRAY;
-
   private @Nullable Long salt;
 
   public byte[] getSharedSecret() {
@@ -52,7 +50,6 @@ public class EncryptionResponsePacket implements MinecraftPacket {
     if (salt == null) {
       throw NO_SALT;
     }
-
     return salt;
   }
 
@@ -87,7 +84,8 @@ public class EncryptionResponsePacket implements MinecraftPacket {
   public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
       ProtocolUtils.writeByteArray(buf, sharedSecret);
-      if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19) && version.lessThan(ProtocolVersion.MINECRAFT_1_19_3)) {
+      if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19)
+          && version.lessThan(ProtocolVersion.MINECRAFT_1_19_3)) {
         if (salt != null) {
           buf.writeBoolean(false);
           buf.writeLong(salt);
@@ -95,7 +93,6 @@ public class EncryptionResponsePacket implements MinecraftPacket {
           buf.writeBoolean(true);
         }
       }
-
       ProtocolUtils.writeByteArray(buf, verifyToken);
     } else {
       ProtocolUtils.writeByteArray17(sharedSecret, buf, false);
@@ -118,10 +115,9 @@ public class EncryptionResponsePacket implements MinecraftPacket {
     }
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19)) {
       // Verify token is twice as long on 1.19+
-      // Additional 1 byte for the left <> right and 8 bytes for salt
+      // Additional 1 byte for left <> right and 8 bytes for salt
       base += 128 + 8 + 1;
     }
-
     return base;
   }
 
@@ -132,7 +128,6 @@ public class EncryptionResponsePacket implements MinecraftPacket {
       // These are "optional"
       base -= 128 + 8;
     }
-
     return base;
   }
 }

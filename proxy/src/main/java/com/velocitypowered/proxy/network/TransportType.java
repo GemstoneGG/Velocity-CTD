@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,49 +48,37 @@ import java.util.concurrent.ThreadFactory;
 import java.util.function.Supplier;
 
 /**
- * Lists the supported transports for Velocity.
+ * Enumerates the supported transports for Velocity.
  */
 public enum TransportType {
-
-  NIO("NIO",
-      NioServerSocketChannel::new,
+  NIO("NIO", NioServerSocketChannel::new,
       NioSocketChannel::new,
       NioDatagramChannel::new,
       NioIoHandler::newFactory),
-
-  EPOLL("epoll",
-      EpollServerSocketChannel::new,
+  EPOLL("epoll", EpollServerSocketChannel::new,
       EpollSocketChannel::new,
       EpollDatagramChannel::new,
       EpollIoHandler::newFactory),
-
-  KQUEUE("kqueue",
-      KQueueServerSocketChannel::new,
+  KQUEUE("kqueue", KQueueServerSocketChannel::new,
       KQueueSocketChannel::new,
       KQueueDatagramChannel::new,
       KQueueIoHandler::newFactory),
-
-  IO_URING("io_uring",
-      IoUringServerSocketChannel::new,
+  IO_URING("io_uring", IoUringServerSocketChannel::new,
       IoUringSocketChannel::new,
       IoUringDatagramChannel::new,
       IoUringIoHandler::newFactory);
 
   final String name;
-
   final ChannelFactory<? extends ServerSocketChannel> serverSocketChannelFactory;
-
   final ChannelFactory<? extends SocketChannel> socketChannelFactory;
-
   final ChannelFactory<? extends DatagramChannel> datagramChannelFactory;
-
   final Supplier<IoHandlerFactory> ioHandlerFactorySupplier;
 
-  TransportType(String name,
-                ChannelFactory<? extends ServerSocketChannel> serverSocketChannelFactory,
-                ChannelFactory<? extends SocketChannel> socketChannelFactory,
-                ChannelFactory<? extends DatagramChannel> datagramChannelFactory,
-                Supplier<IoHandlerFactory> ioHandlerFactorySupplier) {
+  TransportType(final String name,
+      final ChannelFactory<? extends ServerSocketChannel> serverSocketChannelFactory,
+      final ChannelFactory<? extends SocketChannel> socketChannelFactory,
+      final ChannelFactory<? extends DatagramChannel> datagramChannelFactory,
+      final Supplier<IoHandlerFactory> ioHandlerFactorySupplier) {
     this.name = name;
     this.serverSocketChannelFactory = serverSocketChannelFactory;
     this.socketChannelFactory = socketChannelFactory;
@@ -109,11 +97,12 @@ public enum TransportType {
    * @param type the type of event loop group to create
    * @return the event loop group
    */
-  public EventLoopGroup createEventLoopGroup(Type type) {
-    return new MultiThreadIoEventLoopGroup(0, createThreadFactory(this.name, type), this.ioHandlerFactorySupplier.get());
+  public EventLoopGroup createEventLoopGroup(final Type type) {
+    return new MultiThreadIoEventLoopGroup(
+        0, createThreadFactory(this.name, type), this.ioHandlerFactorySupplier.get());
   }
 
-  private static ThreadFactory createThreadFactory(String name, Type type) {
+  private static ThreadFactory createThreadFactory(final String name, final Type type) {
     return new VelocityNettyThreadFactory("Netty " + name + ' ' + type.toString() + " #%d");
   }
 
@@ -146,12 +135,10 @@ public enum TransportType {
    * Event loop group types.
    */
   public enum Type {
-
     /**
      * Accepts connections and distributes them to workers.
      */
     BOSS("Boss"),
-
     /**
      * Thread that handles connections.
      */
@@ -159,7 +146,7 @@ public enum TransportType {
 
     private final String name;
 
-    Type(String name) {
+    Type(final String name) {
       this.name = name;
     }
 

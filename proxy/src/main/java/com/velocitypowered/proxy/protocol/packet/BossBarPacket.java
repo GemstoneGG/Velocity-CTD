@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,7 +41,6 @@ public class BossBarPacket implements MinecraftPacket {
           .put(BossBar.Color.PURPLE, 5)
           .put(BossBar.Color.WHITE, 6)
           .build();
-
   private static final Enum2IntMap<BossBar.Overlay> OVERLAY_TO_PROTOCOL =
       new Enum2IntMap.Builder<>(BossBar.Overlay.class)
           .put(BossBar.Overlay.PROGRESS, 0)
@@ -50,7 +49,6 @@ public class BossBarPacket implements MinecraftPacket {
           .put(BossBar.Overlay.NOTCHED_12, 3)
           .put(BossBar.Overlay.NOTCHED_20, 4)
           .build();
-
   private static final Enum2IntMap<BossBar.Flag> FLAG_BITS_TO_PROTOCOL =
       new Enum2IntMap.Builder<>(BossBar.Flag.class)
           .put(BossBar.Flag.DARKEN_SCREEN, 0x1)
@@ -59,34 +57,25 @@ public class BossBarPacket implements MinecraftPacket {
           .build();
 
   public static final int ADD = 0;
-
   public static final int REMOVE = 1;
-
   public static final int UPDATE_PERCENT = 2;
-
   public static final int UPDATE_NAME = 3;
-
   public static final int UPDATE_STYLE = 4;
-
   public static final int UPDATE_PROPERTIES = 5;
-
   private @Nullable UUID uuid;
-
   private int action;
-
   private @Nullable ComponentHolder name;
-
   private float percent;
-
   private int color;
-
   private int overlay;
-
   private short flags;
 
-  public static BossBarPacket createAddPacket(UUID id, BossBar bar,
-                                              ComponentHolder name) {
-    BossBarPacket packet = new BossBarPacket();
+  public static BossBarPacket createAddPacket(
+      final UUID id,
+      final BossBar bar,
+      final ComponentHolder name
+  ) {
+    final BossBarPacket packet = new BossBarPacket();
     packet.setUuid(id);
     packet.setAction(BossBarPacket.ADD);
     packet.setName(name);
@@ -104,8 +93,8 @@ public class BossBarPacket implements MinecraftPacket {
     return packet;
   }
 
-  public static BossBarPacket createUpdateProgressPacket(UUID id, BossBar bar) {
-    BossBarPacket packet = new BossBarPacket();
+  public static BossBarPacket createUpdateProgressPacket(final UUID id, final BossBar bar) {
+    final BossBarPacket packet = new BossBarPacket();
     packet.setUuid(id);
     packet.setAction(UPDATE_PERCENT);
     packet.setPercent(bar.progress());
@@ -121,8 +110,8 @@ public class BossBarPacket implements MinecraftPacket {
     return packet;
   }
 
-  public static BossBarPacket createUpdateStylePacket(UUID id, BossBar bar) {
-    BossBarPacket packet = new BossBarPacket();
+  public static BossBarPacket createUpdateStylePacket(final UUID id, final BossBar bar) {
+    final BossBarPacket packet = new BossBarPacket();
     packet.setUuid(id);
     packet.setAction(UPDATE_STYLE);
     packet.setColor(COLORS_TO_PROTOCOL.get(bar.color()));
@@ -130,8 +119,8 @@ public class BossBarPacket implements MinecraftPacket {
     return packet;
   }
 
-  public static BossBarPacket createUpdatePropertiesPacket(UUID id, BossBar bar) {
-    BossBarPacket packet = new BossBarPacket();
+  public static BossBarPacket createUpdatePropertiesPacket(final UUID id, final BossBar bar) {
+    final BossBarPacket packet = new BossBarPacket();
     packet.setUuid(id);
     packet.setAction(UPDATE_PROPERTIES);
     packet.setFlags(serializeFlags(bar.flags()));
@@ -142,7 +131,6 @@ public class BossBarPacket implements MinecraftPacket {
     if (uuid == null) {
       throw new IllegalStateException("No boss bar UUID specified");
     }
-
     return uuid;
   }
 
@@ -269,7 +257,6 @@ public class BossBarPacket implements MinecraftPacket {
         ProtocolUtils.writeVarInt(buf, color);
         ProtocolUtils.writeVarInt(buf, overlay);
       }
-
       case UPDATE_PROPERTIES -> buf.writeByte(flags);
       default -> throw new UnsupportedOperationException("Unknown action " + action);
     }
@@ -280,7 +267,6 @@ public class BossBarPacket implements MinecraftPacket {
     for (BossBar.Flag flag : flags) {
       val |= (byte) FLAG_BITS_TO_PROTOCOL.get(flag);
     }
-
     return val;
   }
 

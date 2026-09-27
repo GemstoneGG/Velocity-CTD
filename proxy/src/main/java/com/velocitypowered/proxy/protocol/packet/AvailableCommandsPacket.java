@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,23 +56,16 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class AvailableCommandsPacket implements MinecraftPacket {
 
   private static final Command<CommandSource> PLACEHOLDER_COMMAND = source -> 0;
-
   private static final Predicate<CommandSource> PLACEHOLDER_REQUIREMENT = source -> true;
 
   private static final byte NODE_TYPE_ROOT = 0x00;
-
   private static final byte NODE_TYPE_LITERAL = 0x01;
-
   private static final byte NODE_TYPE_ARGUMENT = 0x02;
 
   private static final byte FLAG_NODE_TYPE = 0x03;
-
   private static final byte FLAG_EXECUTABLE = 0x04;
-
   private static final byte FLAG_IS_REDIRECT = 0x08;
-
   private static final byte FLAG_HAS_SUGGESTIONS = 0x10;
-
   private static final byte FLAG_IS_RESTRICTED = 0x20;
 
   private @MonotonicNonNull RootCommandNode<CommandSource> rootNode;
@@ -93,7 +86,6 @@ public class AvailableCommandsPacket implements MinecraftPacket {
     if (rootNode == null) {
       throw new IllegalStateException("Packet not yet deserialized");
     }
-
     return rootNode;
   }
 
@@ -156,16 +148,14 @@ public class AvailableCommandsPacket implements MinecraftPacket {
   }
 
   private static void serializeNode(CommandNode<CommandSource> node, ByteBuf buf,
-                                    Object2IntMap<CommandNode<CommandSource>> idMappings, ProtocolVersion protocolVersion) {
+      Object2IntMap<CommandNode<CommandSource>> idMappings, ProtocolVersion protocolVersion) {
     byte flags = 0;
     if (node.getRedirect() != null) {
       flags |= FLAG_IS_REDIRECT;
     }
-
     if (node.getCommand() != null) {
       flags |= FLAG_EXECUTABLE;
     }
-
     if (node.getRequirement() == PLACEHOLDER_REQUIREMENT) {
       flags |= FLAG_IS_RESTRICTED;
     }
@@ -186,7 +176,6 @@ public class AvailableCommandsPacket implements MinecraftPacket {
     for (CommandNode<CommandSource> child : node.getChildren()) {
       ProtocolUtils.writeVarInt(buf, idMappings.getInt(child));
     }
-
     if (node.getRedirect() != null) {
       ProtocolUtils.writeVarInt(buf, idMappings.getInt(node.getRedirect()));
     }
@@ -199,7 +188,6 @@ public class AvailableCommandsPacket implements MinecraftPacket {
       if (((ArgumentCommandNode<CommandSource, ?>) node).getCustomSuggestions() != null) {
         SuggestionProvider<CommandSource> provider = ((ArgumentCommandNode<CommandSource, ?>) node)
             .getCustomSuggestions();
-
         String name = "minecraft:ask_server";
         if (provider instanceof ProtocolSuggestionProvider) {
           name = ((ProtocolSuggestionProvider) provider).name;
@@ -245,24 +233,18 @@ public class AvailableCommandsPacket implements MinecraftPacket {
     }
   }
 
-  private static final class WireNode {
+  private static class WireNode {
 
     private final int idx;
-
     private final byte flags;
-
     private final int[] children;
-
     private final int redirectTo;
-
     private final @Nullable ArgumentBuilder<CommandSource, ?> args;
-
     private @MonotonicNonNull CommandNode<CommandSource> built;
-
     private boolean validated;
 
     private WireNode(int idx, byte flags, int[] children, int redirectTo,
-                     @Nullable ArgumentBuilder<CommandSource, ?> args) {
+        @Nullable ArgumentBuilder<CommandSource, ?> args) {
       this.idx = idx;
       this.flags = flags;
       this.children = children;
@@ -368,17 +350,12 @@ public class AvailableCommandsPacket implements MinecraftPacket {
   /**
    * A placeholder {@link SuggestionProvider} used internally to preserve the suggestion provider
    * name.
-   *
-   * <p>This value is preserved from the original command graph and used when serializing
-   * the node back to the wire format.</p>
-   *
-   * @param name the suggestion provider identifier to retain
    */
   public record ProtocolSuggestionProvider(String name) implements SuggestionProvider<CommandSource> {
 
     @Override
     public CompletableFuture<Suggestions> getSuggestions(CommandContext<CommandSource> context,
-                                                         SuggestionsBuilder builder) {
+        SuggestionsBuilder builder) {
       return builder.buildFuture();
     }
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2020-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -67,40 +67,31 @@ public enum InformationUtils {
       if (desc.getName().isPresent()) {
         current.addProperty("name", desc.getName().get());
       }
-
       if (desc.getVersion().isPresent()) {
         current.addProperty("version", desc.getVersion().get());
       }
-
       if (!desc.getAuthors().isEmpty()) {
         JsonArray authorsArray = new JsonArray();
         for (String author : desc.getAuthors()) {
           authorsArray.add(author);
         }
-
         current.add("authors", authorsArray);
       }
-
       if (desc.getDescription().isPresent()) {
         current.addProperty("description", desc.getDescription().get());
       }
-
       if (desc.getUrl().isPresent()) {
         current.addProperty("url", desc.getUrl().get());
       }
-
       if (!desc.getDependencies().isEmpty()) {
         JsonArray dependencies = new JsonArray();
         for (PluginDependency dependency : desc.getDependencies()) {
           dependencies.add(dependency.getId());
         }
-
         current.add("dependencies", dependencies);
       }
-
       plugins.add(current);
     }
-
     return plugins;
   }
 
@@ -132,7 +123,6 @@ public enum InformationUtils {
    * Creates a {@link JsonObject} containing information about the forced hosts of the
    * {@link ProxyConfig} instance.
    *
-   * @param config the proxy configuration containing forced host mappings
    * @return {@link JsonArray} containing forced hosts
    */
   public static JsonObject collectForcedHosts(ProxyConfig config) {
@@ -144,10 +134,8 @@ public enum InformationUtils {
       for (int i = 0; i < entry.getValue().size(); i++) {
         host.add(entry.getValue().get(i));
       }
-
       forcedHosts.add(entry.getKey(), host);
     }
-
     return forcedHosts;
   }
 
@@ -161,18 +149,17 @@ public enum InformationUtils {
     return switch (address) {
       case Inet4Address v4 -> {
         if (v4.isAnyLocalAddress() || v4.isLoopbackAddress()
-              || v4.isLinkLocalAddress()
-              || v4.isSiteLocalAddress()) {
+                || v4.isLinkLocalAddress()
+                || v4.isSiteLocalAddress()) {
           yield address.getHostAddress();
         } else {
           byte[] addr = v4.getAddress();
           yield (addr[0] & 0xff) + "." + (addr[1] & 0xff) + ".XXX.XXX";
         }
-      }
-      case Inet6Address v6 -> {
+      } case Inet6Address v6 -> {
         if (v6.isAnyLocalAddress() || v6.isLoopbackAddress()
-            || v6.isSiteLocalAddress()
-            || v6.isSiteLocalAddress()) {
+                || v6.isSiteLocalAddress()
+                || v6.isSiteLocalAddress()) {
           yield address.getHostAddress();
         } else {
           yield getStringBuilder(v6).toString();
@@ -223,7 +210,6 @@ public enum InformationUtils {
     } else {
       info.addProperty("host", anonymizeInetAddress(iaddr.getAddress()));
     }
-
     info.addProperty("port", iaddr.getPort());
     return info;
   }
@@ -272,7 +258,8 @@ public enum InformationUtils {
 
   private static JsonElement serializeObject(Object toSerialize, boolean withExcludes) {
     return JsonParser.parseString(
-        withExcludes ? GSON_WITH_EXCLUDES.toJson(toSerialize) : GSON_WITHOUT_EXCLUDES.toJson(toSerialize));
+        withExcludes ? GSON_WITH_EXCLUDES.toJson(toSerialize) :
+            GSON_WITHOUT_EXCLUDES.toJson(toSerialize));
   }
 
   private static final Gson GSON_WITH_EXCLUDES = new GsonBuilder()
@@ -283,4 +270,6 @@ public enum InformationUtils {
   private static final Gson GSON_WITHOUT_EXCLUDES = new GsonBuilder()
       .setPrettyPrinting()
       .create();
+
+
 }

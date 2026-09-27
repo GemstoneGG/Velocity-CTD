@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2020-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,55 +29,30 @@ import java.util.Optional;
  */
 public class MockPluginManager implements PluginManager {
 
-  /**
-   * Singleton instance of the {@code MockPluginManager}.
-   */
   public static final PluginManager INSTANCE = new MockPluginManager();
 
-  /**
-   * Returns an empty {@link Optional}, as this mock manager does not track plugin instances.
-   *
-   * @param instance the plugin instance
-   * @return an empty optional
-   */
   @Override
-  public Optional<PluginContainer> fromInstance(Object instance) {
+  public Optional<PluginContainer> fromInstance(final Object instance) {
     return Optional.empty();
   }
 
-  /**
-   * Returns an empty {@link Optional}, as this mock manager has no registered plugins.
-   *
-   * @param id the plugin ID
-   * @return an empty optional
-   */
   @Override
-  public Optional<PluginContainer> getPlugin(String id) {
+  public Optional<PluginContainer> getPlugin(final String id) {
     return Optional.empty();
   }
 
-  /**
-   * Returns an empty immutable collection of plugins.
-   *
-   * @return an empty plugin collection
-   */
   @Override
   public Collection<PluginContainer> getPlugins() {
     return ImmutableList.of();
   }
 
-  /**
-   * Always returns {@code false}, as this mock manager does not track plugin load state.
-   *
-   * @param id the plugin ID
-   * @return {@code false}
-   */
   @Override
-  public boolean isLoaded(String id) {
+  public boolean isLoaded(final String id) {
     return false;
   }
 
   @Override
-  public void addToClasspath(Object plugin, Path path) {
+  public void addToClasspath(final Object plugin, final Path path) {
+
   }
 }

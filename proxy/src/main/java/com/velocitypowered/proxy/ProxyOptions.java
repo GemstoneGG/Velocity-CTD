@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,13 +42,9 @@ public final class ProxyOptions {
   private static final Logger LOGGER = LogManager.getLogger(ProxyOptions.class);
 
   private final boolean help;
-
   private final @Nullable Integer port;
-
   private final @Nullable Boolean haproxy;
-
   private final boolean ignoreConfigServers;
-
   private final List<ServerInfo> servers;
 
   /**
@@ -61,19 +57,19 @@ public final class ProxyOptions {
 
     OptionSpec<Void> help = parser.acceptsAll(Arrays.asList("h", "help"), "Print help")
         .forHelp();
-    OptionSpec<Integer> port = parser.acceptsAll(Arrays.asList("p", "port"),
+    final OptionSpec<Integer> port = parser.acceptsAll(Arrays.asList("p", "port"),
             "Specify the bind port to be used. The configuration bind port will be ignored.")
         .withRequiredArg().ofType(Integer.class);
-    OptionSpec<Boolean> haproxy = parser.acceptsAll(
+    final OptionSpec<Boolean> haproxy = parser.acceptsAll(
             Arrays.asList("haproxy", "haproxy-protocol"),
             "Choose whether to enable haproxy protocol. "
                     + "The configuration haproxy protocol will be ignored.")
         .withRequiredArg().ofType(Boolean.class);
-    OptionSpec<ServerInfo> servers = parser.accepts("add-server",
+    final OptionSpec<ServerInfo> servers = parser.accepts("add-server",
             "Define a server mapping. "
                     + "You must ensure that server name is not also registered in the config or use --ignore-config-servers.")
         .withRequiredArg().withValuesConvertedBy(new ServerInfoConverter());
-    OptionSpec<Void> ignoreConfigServers = parser.accepts("ignore-config-servers",
+    final OptionSpec<Void> ignoreConfigServers = parser.accepts("ignore-config-servers",
             "Skip registering servers from the config file. "
                     + "Useful in dynamic setups or with the --add-server flag.");
     OptionSpec<String> additionalPlugins = parser.acceptsAll(Arrays.asList("add-plugin", "add-extra-plugin-jar"),
@@ -135,7 +131,6 @@ public final class ProxyOptions {
       if (split.length < 2) {
         throw new ValueConversionException("Invalid server format. Use <name>:<host>:[port]:[forwardingmode]:[minimumversion]:[maximumversion]");
       }
-
       InetSocketAddress address;
       PlayerInfoForwarding mode = null;
       try {

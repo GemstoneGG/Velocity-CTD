@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2022 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,13 +24,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 class PassthroughProperty<T> implements ArgumentType<T> {
 
   private final ArgumentIdentifier identifier;
-
   private final ArgumentPropertySerializer<T> serializer;
-
   private final @Nullable T result;
 
   PassthroughProperty(ArgumentIdentifier identifier, ArgumentPropertySerializer<T> serializer,
-                      @Nullable T result) {
+      @Nullable T result) {
     this.identifier = identifier;
     this.serializer = serializer;
     this.result = result;

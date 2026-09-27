@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -28,29 +28,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class ServerPing {
 
-  /**
-   * The protocol version data shown to the client.
-   */
   private final Version version;
-
-  /**
-   * The player list data, or {@code null} if hidden.
-   */
   private final @Nullable Players players;
-
-  /**
-   * The MOTD (Message of the Day) component.
-   */
   private final @Nullable Component description;
-
-  /**
-   * The favicon shown to the client, or {@code null} if not set.
-   */
   private final @Nullable Favicon favicon;
-
-  /**
-   * The mod info sent in the ping response, or {@code null} if none.
-   */
   private final @Nullable ModInfo modinfo;
 
   /**
@@ -107,39 +88,19 @@ public final class ServerPing {
     this.preventsChatReports = preventsChatReports;
   }
 
-  /**
-   * Gets the version shown to the client during the ping.
-   *
-   * @return the version
-   */
   public Version getVersion() {
     return version;
   }
 
-  /**
-   * Gets the player information shown to the client.
-   *
-   * @return the player information, or empty if not shown
-   */
   public Optional<Players> getPlayers() {
     return Optional.ofNullable(players);
   }
 
-  /**
-   * Gets the description (MOTD) component shown in the ping response.
-   *
-   * @return the description component
-   */
   @Nullable
   public Component getDescriptionComponent() {
     return description;
   }
 
-  /**
-   * Gets the favicon sent to the client.
-   *
-   * @return the favicon, or empty if not present
-   */
   public Optional<Favicon> getFavicon() {
     return Optional.ofNullable(favicon);
   }
@@ -179,11 +140,9 @@ public final class ServerPing {
     if (this == o) {
       return true;
     }
-
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-
     ServerPing ping = (ServerPing) o;
     return Objects.equals(version, ping.version)
         && Objects.equals(players, ping.players)
@@ -216,7 +175,6 @@ public final class ServerPing {
     } else {
       builder.nullOutPlayers = true;
     }
-
     builder.description = description;
     builder.favicon = favicon;
     builder.nullOutModinfo = modinfo == null;
@@ -230,11 +188,6 @@ public final class ServerPing {
     return builder;
   }
 
-  /**
-   * Creates a new {@link Builder} for constructing a {@link ServerPing}.
-   *
-   * @return a new ServerPing builder
-   */
   public static Builder builder() {
     return new Builder();
   }
@@ -244,54 +197,15 @@ public final class ServerPing {
    */
   public static final class Builder {
 
-    /**
-     * The protocol version to report.
-     */
     private Version version = new Version(0, "Unknown");
-
-    /**
-     * The current number of online players.
-     */
     private int onlinePlayers;
-
-    /**
-     * The maximum number of allowed players.
-     */
     private int maximumPlayers;
-
-    /**
-     * The sample players to show in the player list.
-     */
     private final List<SamplePlayer> samplePlayers = new ArrayList<>();
-
-    /**
-     * The mod loader type (e.g., "FML", "fabric").
-     */
     private String modType = "FML";
-
-    /**
-     * The list of mods reported in the ping.
-     */
     private final List<ModInfo.Mod> mods = new ArrayList<>();
-
-    /**
-     * The MOTD component.
-     */
     private Component description;
-
-    /**
-     * The favicon to send in the response, or {@code null} if none.
-     */
     private @Nullable Favicon favicon;
-
-    /**
-     * Whether the player list should be hidden (nullified).
-     */
     private boolean nullOutPlayers;
-
-    /**
-     * Whether mod information should be omitted from the response.
-     */
     private boolean nullOutModinfo;
 
     /**
@@ -300,6 +214,7 @@ public final class ServerPing {
     private boolean preventsChatReports;
 
     private Builder() {
+
     }
 
     /**
@@ -383,7 +298,7 @@ public final class ServerPing {
     /**
      * Uses the modified {@code mods} list in the response.
      *
-     * @param mods the mod list to use
+     * @param mods the mods list to use
      * @return this builder, for chaining
      */
     public Builder mods(ModInfo mods) {
@@ -425,7 +340,7 @@ public final class ServerPing {
     }
 
     /**
-     * Enables nullifying Players in the response.
+     * Enables nulling Players in the response.
      * This will display the player count as {@code ???}.
      *
      * @return this builder, for chaining
@@ -488,75 +403,38 @@ public final class ServerPing {
       if (this.version == null) {
         throw new IllegalStateException("version not specified");
       }
-
       if (this.description == null) {
         throw new IllegalStateException("no server description supplied");
       }
-
       return new ServerPing(version,
           nullOutPlayers ? null : new Players(onlinePlayers, maximumPlayers, samplePlayers),
           description, favicon, nullOutModinfo ? null : new ModInfo(modType, mods), preventsChatReports);
     }
 
-    /**
-     * Gets the version currently set in the builder.
-     *
-     * @return the version
-     */
     public Version getVersion() {
       return version;
     }
 
-    /**
-     * Gets the number of players online.
-     *
-     * @return the online player count
-     */
     public int getOnlinePlayers() {
       return onlinePlayers;
     }
 
-    /**
-     * Gets the maximum player capacity.
-     *
-     * @return the max player count
-     */
     public int getMaximumPlayers() {
       return maximumPlayers;
     }
 
-    /**
-     * Gets the sample players shown in the ping.
-     *
-     * @return the sample player list
-     */
     public List<SamplePlayer> getSamplePlayers() {
       return samplePlayers;
     }
 
-    /**
-     * Gets the description component currently set in the builder.
-     *
-     * @return the server description, or empty if unset
-     */
     public Optional<Component> getDescriptionComponent() {
       return Optional.ofNullable(description);
     }
 
-    /**
-     * Gets the favicon currently set in the builder.
-     *
-     * @return the favicon, or empty if none
-     */
     public Optional<Favicon> getFavicon() {
       return Optional.ofNullable(favicon);
     }
 
-    /**
-     * Gets the type of mod loader (e.g., "FML").
-     *
-     * @return the mod type string
-     */
     public String getModType() {
       return modType;
     }
@@ -605,14 +483,7 @@ public final class ServerPing {
    */
   public static final class Version {
 
-    /**
-     * The numeric protocol version.
-     */
     private final int protocol;
-
-    /**
-     * The user-facing name of the protocol version.
-     */
     private final String name;
 
     /**
@@ -626,20 +497,10 @@ public final class ServerPing {
       this.name = Preconditions.checkNotNull(name, "name");
     }
 
-    /**
-     * Gets the protocol number associated with the server version.
-     *
-     * @return the protocol version number
-     */
     public int getProtocol() {
       return protocol;
     }
 
-    /**
-     * Gets the user-friendly name of the server version.
-     *
-     * @return the version name
-     */
     public String getName() {
       return name;
     }
@@ -657,11 +518,9 @@ public final class ServerPing {
       if (this == o) {
         return true;
       }
-
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-
       Version version = (Version) o;
       return protocol == version.protocol && Objects.equals(name, version.name);
     }
@@ -678,19 +537,8 @@ public final class ServerPing {
    */
   public static final class Players {
 
-    /**
-     * The number of online players.
-     */
     private final int online;
-
-    /**
-     * The maximum number of players the server claims to support.
-     */
     private final int max;
-
-    /**
-     * The sample player entries to show to the client.
-     */
     private final List<SamplePlayer> sample;
 
     /**
@@ -706,29 +554,14 @@ public final class ServerPing {
       this.sample = ImmutableList.copyOf(sample);
     }
 
-    /**
-     * Gets the number of online players.
-     *
-     * @return the number of online players
-     */
     public int getOnline() {
       return online;
     }
 
-    /**
-     * Gets the maximum number of players the server claims it can hold.
-     *
-     * @return the maximum number of players
-     */
     public int getMax() {
       return max;
     }
 
-    /**
-     * Gets a sample list of online players.
-     *
-     * @return the sample players
-     */
     public List<SamplePlayer> getSample() {
       return sample == null ? ImmutableList.of() : sample;
     }
@@ -747,11 +580,9 @@ public final class ServerPing {
       if (this == o) {
         return true;
       }
-
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-
       Players players = (Players) o;
       return Objects.equals(online, players.online) && Objects.equals(max, players.max)
           && Objects.equals(sample, players.sample);
@@ -768,19 +599,11 @@ public final class ServerPing {
    */
   public static final class SamplePlayer {
 
-    /**
-     * A constant representing an anonymous sample player with a null UUID and generic name.
-     */
-    public static final SamplePlayer ANONYMOUS = new SamplePlayer("Anonymous Player", new UUID(0L, 0L));
-
-    /**
-     * The legacy string name of the player.
-     */
+    public static final SamplePlayer ANONYMOUS = new SamplePlayer(
+        "Anonymous Player",
+        new UUID(0L, 0L)
+    );
     private final String name;
-
-    /**
-     * The unique identifier (UUID) of the player.
-     */
     private final UUID id;
 
     /**
@@ -845,11 +668,9 @@ public final class ServerPing {
       if (this == o) {
         return true;
       }
-
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-
       SamplePlayer that = (SamplePlayer) o;
       return Objects.equals(id, that.id);
     }

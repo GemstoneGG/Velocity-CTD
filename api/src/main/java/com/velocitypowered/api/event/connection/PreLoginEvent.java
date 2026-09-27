@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -31,24 +31,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @AwaitingEvent
 public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLoginComponentResult> {
 
-  /**
-   * The inbound connection associated with this pre-login attempt.
-   */
   private final InboundConnection connection;
-
-  /**
-   * The username provided by the connecting player.
-   */
   private final String username;
-
-  /**
-   * The UUID of the connecting player, if available.
-   */
   private final @Nullable UUID uuid;
-
-  /**
-   * The result of the pre-login event, indicating whether the player is allowed to proceed.
-   */
   private PreLoginComponentResult result;
 
   /**
@@ -59,7 +44,7 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
    * @deprecated use {@link #PreLoginEvent(InboundConnection, String, UUID)}
    */
   @Deprecated
-  public PreLoginEvent(InboundConnection connection, String username) {
+  public PreLoginEvent(final InboundConnection connection, final String username) {
     this(connection, username, null);
   }
 
@@ -70,27 +55,17 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
    * @param username the player's username
    * @param uuid the player's uuid, if known
    */
-  public PreLoginEvent(InboundConnection connection, String username, @Nullable UUID uuid) {
+  public PreLoginEvent(final InboundConnection connection, final String username, final @Nullable UUID uuid) {
     this.connection = Preconditions.checkNotNull(connection, "connection");
     this.username = Preconditions.checkNotNull(username, "username");
     this.uuid = uuid;
     this.result = PreLoginComponentResult.allowed();
   }
 
-  /**
-   * Gets the inbound connection associated with this login attempt.
-   *
-   * @return the inbound connection
-   */
   public InboundConnection getConnection() {
     return connection;
   }
 
-  /**
-   * Gets the username of the player attempting to connect.
-   *
-   * @return the player's username
-   */
   public String getUsername() {
     return username;
   }
@@ -102,7 +77,7 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
    * up to 1.20.1 it is optional and from 1.20.2 it will always be available.</p>
    *
    * @return the uuid
-   * @since Minecraft 1.19.3
+   * @sinceMinecraft 1.19.3
    */
   public @Nullable UUID getUniqueId() {
     return uuid;
@@ -114,7 +89,7 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
   }
 
   @Override
-  public void setResult(@NonNull PreLoginComponentResult result) {
+  public void setResult(final @NonNull PreLoginComponentResult result) {
     this.result = Preconditions.checkNotNull(result, "result");
   }
 
@@ -133,27 +108,13 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
    */
   public static final class PreLoginComponentResult implements ResultedEvent.Result {
 
-    /**
-     * A result allowing the player to connect normally.
-     */
     private static final PreLoginComponentResult ALLOWED = new PreLoginComponentResult(
         Result.ALLOWED, null);
-
-    /**
-     * A result allowing the player to connect and forcing online mode for authentication.
-     */
     private static final PreLoginComponentResult FORCE_ONLINEMODE = new PreLoginComponentResult(
         Result.FORCE_ONLINE, null);
-
-    /**
-     * A result allowing the player to connect and forcing offline mode.
-     */
     private static final PreLoginComponentResult FORCE_OFFLINEMODE = new PreLoginComponentResult(
         Result.FORCE_OFFLINE, null);
 
-    /**
-     * The login result type (e.g., allowed, denied, forced mode).
-     */
     private final Result result;
 
     /**
@@ -181,20 +142,10 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
       return Optional.ofNullable(reason);
     }
 
-    /**
-     * Checks if this result explicitly forces online mode for the connection.
-     *
-     * @return true if online mode is forced
-     */
     public boolean isOnlineModeAllowed() {
       return result == Result.FORCE_ONLINE;
     }
 
-    /**
-     * Checks if this result explicitly forces offline mode for the connection.
-     *
-     * @return true if offline mode is forced
-     */
     public boolean isForceOfflineMode() {
       return result == Result.FORCE_OFFLINE;
     }
@@ -220,7 +171,7 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
 
     /**
      * Returns a result indicating the connection will be allowed through the proxy, but the
-     * connection will be forced to use online mode if the proxy is in offline mode. This
+     * connection will be forced to use online mode provided that the proxy is in offline mode. This
      * acts similarly to {@link #allowed()} on an online-mode proxy.
      *
      * @return the result
@@ -251,26 +202,10 @@ public final class PreLoginEvent implements ResultedEvent<PreLoginEvent.PreLogin
     }
 
     private enum Result {
-
-    /**
-     * The connection is allowed without any modifications to the proxy’s default mode.
-     */
-    ALLOWED,
-
-    /**
-     * The connection is allowed, and the proxy will enforce online mode for this connection.
-     */
-    FORCE_ONLINE,
-
-    /**
-     * The connection is allowed, and the proxy will enforce offline mode for this connection.
-     */
-    FORCE_OFFLINE,
-
-    /**
-     * The connection is denied and will be disconnected.
-     */
-    DISALLOWED
+      ALLOWED,
+      FORCE_ONLINE,
+      FORCE_OFFLINE,
+      DISALLOWED
     }
   }
 }

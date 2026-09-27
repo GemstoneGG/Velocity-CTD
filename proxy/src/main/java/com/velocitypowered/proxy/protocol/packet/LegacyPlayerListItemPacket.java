@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2022 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,17 +36,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class LegacyPlayerListItemPacket implements MinecraftPacket {
 
   public static final int ADD_PLAYER = 0;
-
   public static final int UPDATE_GAMEMODE = 1;
-
   public static final int UPDATE_LATENCY = 2;
-
   public static final int UPDATE_DISPLAY_NAME = 3;
-
   public static final int REMOVE_PLAYER = 4;
-
   private int action;
-
   private final List<Item> items = new ArrayList<>();
 
   public LegacyPlayerListItemPacket(int action, List<Item> items) {
@@ -81,7 +75,6 @@ public class LegacyPlayerListItemPacket implements MinecraftPacket {
             item.setGameMode(ProtocolUtils.readVarInt(buf));
             item.setLatency(ProtocolUtils.readVarInt(buf));
             item.setDisplayName(readOptionalComponent(buf, version));
-
             if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19)) {
               if (buf.readBoolean()) {
                 item.setPlayerKey(ProtocolUtils.readPlayerKey(version, buf));
@@ -92,7 +85,7 @@ public class LegacyPlayerListItemPacket implements MinecraftPacket {
           case UPDATE_LATENCY -> item.setLatency(ProtocolUtils.readVarInt(buf));
           case UPDATE_DISPLAY_NAME -> item.setDisplayName(readOptionalComponent(buf, version));
           case REMOVE_PLAYER -> {
-            // Do nothing, all that is needed is the UUID
+              //Do nothing, all that is needed is the uuid
           }
           default -> throw new UnsupportedOperationException("Unknown action " + action);
         }
@@ -111,7 +104,6 @@ public class LegacyPlayerListItemPacket implements MinecraftPacket {
       return ProtocolUtils.getJsonChatSerializer(version)
           .deserialize(ProtocolUtils.readString(buf));
     }
-
     return null;
   }
 
@@ -145,7 +137,7 @@ public class LegacyPlayerListItemPacket implements MinecraftPacket {
           case UPDATE_LATENCY -> ProtocolUtils.writeVarInt(buf, item.getLatency());
           case UPDATE_DISPLAY_NAME -> writeDisplayName(buf, item.getDisplayName(), version);
           case REMOVE_PLAYER -> {
-            // Do nothing, all that is needed is the UUID
+            // Do nothing, all that is needed is the uuid
           }
           default -> throw new UnsupportedOperationException("Unknown action " + action);
         }
@@ -161,7 +153,6 @@ public class LegacyPlayerListItemPacket implements MinecraftPacket {
       } else {
         ProtocolUtils.writeString(buf, item.getName());
       }
-
       buf.writeBoolean(action != REMOVE_PLAYER);
       buf.writeShort(item.getLatency());
     }
@@ -173,7 +164,7 @@ public class LegacyPlayerListItemPacket implements MinecraftPacket {
   }
 
   private void writeDisplayName(ByteBuf buf, @Nullable Component displayName,
-                                ProtocolVersion version) {
+      ProtocolVersion version) {
     buf.writeBoolean(displayName != null);
     if (displayName != null) {
       ProtocolUtils.writeString(buf, ProtocolUtils.getJsonChatSerializer(version)
@@ -184,17 +175,11 @@ public class LegacyPlayerListItemPacket implements MinecraftPacket {
   public static class Item {
 
     private final UUID uuid;
-
     private String name = "";
-
     private List<GameProfile.Property> properties = ImmutableList.of();
-
     private int gameMode;
-
     private int latency;
-
     private @Nullable Component displayName;
-
     private @Nullable IdentifiedKey playerKey;
 
     public Item() {

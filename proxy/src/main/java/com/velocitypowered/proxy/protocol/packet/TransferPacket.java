@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2024 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,15 +26,13 @@ import java.net.InetSocketAddress;
 import org.jetbrains.annotations.Nullable;
 
 public class TransferPacket implements MinecraftPacket {
-
   private String host;
-
   private int port;
 
   public TransferPacket() {
   }
 
-  public TransferPacket(String host, int port) {
+  public TransferPacket(final String host, final int port) {
     this.host = host;
     this.port = port;
   }
@@ -44,7 +42,6 @@ public class TransferPacket implements MinecraftPacket {
     if (host == null) {
       return null;
     }
-
     return new InetSocketAddress(host, port);
   }
 

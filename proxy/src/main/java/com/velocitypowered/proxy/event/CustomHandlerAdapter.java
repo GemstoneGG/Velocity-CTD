@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,23 +35,20 @@ import org.lanternpowered.lmbda.LambdaType;
 final class CustomHandlerAdapter<F> {
 
   final String name;
-
   private final Function<F, BiFunction<Object, Object, EventTask>> handlerBuilder;
-
   final Predicate<Method> filter;
-
   final BiConsumer<Method, List<String>> validator;
-
   private final LambdaType<F> functionType;
-
   private final MethodHandles.Lookup methodHandlesLookup;
 
   @SuppressWarnings("unchecked")
-  CustomHandlerAdapter(String name, Predicate<Method> filter,
-                       BiConsumer<Method, List<String>> validator,
-                       TypeToken<F> invokeFunctionType,
-                       Function<F, BiFunction<Object, Object, EventTask>> handlerBuilder,
-                       MethodHandles.Lookup methodHandlesLookup) {
+  CustomHandlerAdapter(
+      final String name,
+      final Predicate<Method> filter,
+      final BiConsumer<Method, List<String>> validator,
+      final TypeToken<F> invokeFunctionType,
+      final Function<F, BiFunction<Object, Object, EventTask>> handlerBuilder,
+      final MethodHandles.Lookup methodHandlesLookup) {
     this.name = name;
     this.filter = filter;
     this.validator = validator;
@@ -60,11 +57,12 @@ final class CustomHandlerAdapter<F> {
     this.methodHandlesLookup = methodHandlesLookup;
   }
 
-  UntargetedEventHandler buildUntargetedHandler(Method method) throws IllegalAccessException {
-    MethodHandle methodHandle = methodHandlesLookup.unreflect(method);
-    LambdaType<F> lambdaType = functionType.defineClassesWith(methodHandlesLookup);
-    F invokeFunction = LambdaFactory.create(lambdaType, methodHandle);
-    BiFunction<Object, Object, EventTask> handlerFunction =
+  UntargetedEventHandler buildUntargetedHandler(final Method method)
+      throws IllegalAccessException {
+    final MethodHandle methodHandle = methodHandlesLookup.unreflect(method);
+    final LambdaType<F> lambdaType = functionType.defineClassesWith(methodHandlesLookup);
+    final F invokeFunction = LambdaFactory.create(lambdaType, methodHandle);
+    final BiFunction<Object, Object, EventTask> handlerFunction =
         handlerBuilder.apply(invokeFunction);
     return targetInstance -> new EventHandler<>() {
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2020-2023 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -13,46 +13,26 @@ import com.velocitypowered.api.event.ResultedEvent;
 import com.velocitypowered.api.event.annotation.AwaitingEvent;
 import com.velocitypowered.api.event.command.CommandExecuteEvent.CommandResult;
 import java.util.Optional;
-import net.kyori.adventure.text.event.ClickEvent;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * This event is fired when someone executes a command. Velocity will wait for this event to finish
  * firing before trying to handle the command and/or forwarding it to the server.
- *
- * <p><strong>Rate limiting:</strong> Depending on proxy configuration, excessively fast command
- * submissions may be dropped, forwarded directly to the backend, or cause the player to be kicked
- * before plugin handling. In those cases, this event may not fire.</p>
  */
 @AwaitingEvent
 public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
 
-  /**
-   * The source that initiated the command.
-   */
   private final CommandSource commandSource;
-
-  /**
-   * The raw command string without the leading slash.
-   */
   private final String command;
-
-  /**
-   * The result of the event, indicating whether the command should proceed.
-   */
   private CommandResult result;
-
-  /**
-   * Information about how the command was invoked.
-   */
-  private final InvocationInfo invocationInfo;
+  private InvocationInfo invocationInfo;
 
   /**
    * Constructs a CommandExecuteEvent.
    *
    * @param commandSource the source executing the command
-   * @param command the command being executed without a first slash
+   * @param command the command being executed without first slash
    */
   public CommandExecuteEvent(CommandSource commandSource, String command) {
     this(commandSource, command, new InvocationInfo(SignedState.UNSUPPORTED, Source.API));
@@ -62,7 +42,7 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
    * Constructs a CommandExecuteEvent.
    *
    * @param commandSource the source executing the command
-   * @param command the command being executed without a first slash
+   * @param command the command being executed without first slash
    * @param invocationInfo the invocation info of this command
    */
   public CommandExecuteEvent(CommandSource commandSource, String command, InvocationInfo invocationInfo) {
@@ -110,7 +90,7 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
   }
 
   @Override
-  public void setResult(@NonNull CommandResult result) {
+  public void setResult(final @NonNull CommandResult result) {
     this.result = Preconditions.checkNotNull(result, "result");
   }
 
@@ -126,8 +106,6 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
   /**
    * Represents information about a command invocation, including its signed state and source.
    *
-   * @param signedState the signed state of the command
-   * @param source the source of the command invocation
    * @since 3.4.0
    */
   public record InvocationInfo(SignedState signedState, Source source) {
@@ -139,7 +117,6 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
    * @since 3.4.0
    */
   public enum SignedState {
-
     /**
      * Indicates that the command was executed from a signed source with signed message arguments,
      * This is currently only possible by typing a command in chat with signed arguments.
@@ -149,25 +126,22 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
      * @since 3.4.0
      */
     SIGNED_WITH_ARGS,
-
     /**
-     * Indicates that the command was executed from a signed source with no signed message arguments,
+     * Indicates that the command was executed from an signed source with no signed message arguments,
      * This is currently only possible by typing a command in chat.
      *
      * @since 3.4.0
      */
     SIGNED_WITHOUT_ARGS,
-
     /**
      * Indicates that the command was executed from an unsigned source,
-     * such as clicking on a component with a {@link ClickEvent.Action#RUN_COMMAND}.
+     * such as clicking on a component with a {@link net.kyori.adventure.text.event.ClickEvent.Action#RUN_COMMAND}.
      *
      * <p>Clients running version 1.20.5 or later will send this state.</p>
      *
      * @since 3.4.0
      */
     UNSIGNED,
-
     /**
      * Indicates that the command invocation does not support signing.
      *
@@ -184,14 +158,12 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
    * @since 3.4.0
    */
   public enum Source {
-
     /**
      * Indicates that the command was invoked by a player.
      *
      * @since 3.4.0
      */
     PLAYER,
-
     /**
      * Indicates that the command was invoked programmatically through an API call.
      *
@@ -205,58 +177,24 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
    */
   public static final class CommandResult implements ResultedEvent.Result {
 
-    /**
-     * The default result allowing the command to proceed.
-     */
     private static final CommandResult ALLOWED = new CommandResult(true, false, null);
-
-    /**
-     * The default result denying the command execution.
-     */
     private static final CommandResult DENIED = new CommandResult(false, false, null);
-
-    /**
-     * The default result indicating the command should be forwarded to the backend server.
-     */
     private static final CommandResult FORWARD_TO_SERVER = new CommandResult(false, true, null);
 
-    /**
-     * The command string override, or {@code null} if none was provided.
-     */
     private final @Nullable String command;
-
-    /**
-     * Whether the command is allowed to execute.
-     */
     private final boolean status;
-
-    /**
-     * Whether the command should be forwarded to the backend server.
-     */
     private final boolean forward;
 
-    private CommandResult(boolean status, boolean forward, @Nullable String command) {
+    private CommandResult(final boolean status, final boolean forward, final @Nullable String command) {
       this.status = status;
       this.forward = forward;
       this.command = command;
     }
 
-    /**
-     * Returns the command to be executed, if it was overridden.
-     *
-     * @return an {@link Optional} containing the new command string (without leading slash),
-     *         or empty if no override is present
-     */
     public Optional<String> getCommand() {
       return Optional.ofNullable(command);
     }
 
-    /**
-     * Indicates whether this command should be forwarded directly to the backend server
-     * instead of being processed by the proxy.
-     *
-     * @return {@code true} if the command should be forwarded to the server, {@code false} otherwise
-     */
     public boolean isForwardToServer() {
       return forward;
     }
@@ -305,7 +243,7 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
      * @param newCommand the command without first slash to use instead
      * @return a result with a new command being forwarded to server
      */
-    public static CommandResult forwardToServer(@NonNull String newCommand) {
+    public static CommandResult forwardToServer(final @NonNull String newCommand) {
       Preconditions.checkNotNull(newCommand, "newCommand");
       return new CommandResult(false, true, newCommand);
     }
@@ -317,7 +255,7 @@ public final class CommandExecuteEvent implements ResultedEvent<CommandResult> {
      * @param newCommand the command to use instead without first slash
      * @return a result with a new command
      */
-    public static CommandResult command(@NonNull String newCommand) {
+    public static CommandResult command(final @NonNull String newCommand) {
       Preconditions.checkNotNull(newCommand, "newCommand");
       return new CommandResult(true, false, newCommand);
     }

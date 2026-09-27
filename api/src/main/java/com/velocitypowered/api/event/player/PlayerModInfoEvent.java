@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -18,41 +18,18 @@ import com.velocitypowered.api.util.ModInfo;
  */
 public final class PlayerModInfoEvent {
 
-  /**
-   * The player who sent their mod list to the proxy.
-   */
   private final Player player;
-
-  /**
-   * The mod information reported by the client.
-   */
   private final ModInfo modInfo;
 
-  /**
-   * Constructs a new {@code PlayerModInfoEvent}.
-   *
-   * @param player the player sending their mod list
-   * @param modInfo the mod list information
-   */
   public PlayerModInfoEvent(Player player, ModInfo modInfo) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.modInfo = Preconditions.checkNotNull(modInfo, "modInfo");
   }
 
-  /**
-   * Returns the player who sent their mod list.
-   *
-   * @return the player
-   */
   public Player getPlayer() {
     return player;
   }
 
-  /**
-   * Returns the mod information sent by the player.
-   *
-   * @return the mod information
-   */
   public ModInfo getModInfo() {
     return modInfo;
   }

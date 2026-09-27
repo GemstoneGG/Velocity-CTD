@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,36 +41,25 @@ import org.junit.jupiter.api.Test;
 @SuppressWarnings("unchecked")
 public class VelocityArgumentCommandNodeTests {
 
-  /**
-   * Singleton instance of {@link StringArrayArgumentType} used in all tests.
-   */
   private static final StringArrayArgumentType STRING_ARRAY = StringArrayArgumentType.INSTANCE;
 
-  /**
-   * The Brigadier {@link CommandContextBuilder} used to simulate parsing input.
-   * Initialized before each test method.
-   */
   private CommandContextBuilder<Object> contextBuilder;
 
-  /**
-   * Sets up the {@link CommandContextBuilder} used by each test by initializing a root
-   * context with a dummy source.
-   */
   @BeforeEach
   void setUp() {
-    CommandDispatcher<Object> dispatcher = new CommandDispatcher<>();
+    final CommandDispatcher<Object> dispatcher = new CommandDispatcher<>();
     this.contextBuilder = new CommandContextBuilder<>(dispatcher, new Object(),
         dispatcher.getRoot(), 0);
   }
 
   @Test
   void testParse() throws CommandSyntaxException {
-    VelocityArgumentCommandNode<Object, String[]> node =
+    final VelocityArgumentCommandNode<Object, String[]> node =
         velocityArgument("foo", STRING_ARRAY).build();
-    StringReader reader = new StringReader("hello world");
+    final StringReader reader = new StringReader("hello world");
     node.parse(reader, this.contextBuilder);
 
-    StringRange expectedRange = StringRange.between(0, reader.getTotalLength());
+    final StringRange expectedRange = StringRange.between(0, reader.getTotalLength());
 
     assertFalse(reader.canRead());
 
@@ -79,7 +68,7 @@ public class VelocityArgumentCommandNodeTests {
     assertEquals(expectedRange, this.contextBuilder.getNodes().getFirst().getRange());
 
     assertTrue(this.contextBuilder.getArguments().containsKey("foo"));
-    ParsedArgument<Object, String[]> parsed =
+    final ParsedArgument<Object, String[]> parsed =
         (ParsedArgument<Object, String[]>) this.contextBuilder.getArguments().get("foo");
     assertArrayEquals(new String[]{"hello", "world"}, parsed.getResult());
     assertEquals(expectedRange, parsed.getRange());
@@ -87,9 +76,9 @@ public class VelocityArgumentCommandNodeTests {
 
   @Test
   void testDefaultSuggestions() throws CommandSyntaxException {
-    VelocityArgumentCommandNode<Object, String[]> node =
+    final VelocityArgumentCommandNode<Object, String[]> node =
         velocityArgument("foo", STRING_ARRAY).build();
-    Suggestions result = node.listSuggestions(
+    final Suggestions result = node.listSuggestions(
         this.contextBuilder.build(""), new SuggestionsBuilder("", 0)).join();
 
     assertTrue(result.isEmpty());
@@ -99,7 +88,7 @@ public class VelocityArgumentCommandNodeTests {
   // and filtering is already tested in Brigadier.
   @Test
   void testCustomSuggestions() throws CommandSyntaxException {
-    VelocityArgumentCommandNode<Object, String[]> node =
+    final VelocityArgumentCommandNode<Object, String[]> node =
         velocityArgument("foo", STRING_ARRAY)
             .suggests((context, builder) -> {
               builder.suggest("bar");
@@ -107,7 +96,7 @@ public class VelocityArgumentCommandNodeTests {
               return builder.buildFuture();
             })
             .build();
-    Suggestions result = node.listSuggestions(
+    final Suggestions result = node.listSuggestions(
         this.contextBuilder.build(""), new SuggestionsBuilder("", 0)).join();
 
     assertEquals("bar", result.getList().get(0).getText());

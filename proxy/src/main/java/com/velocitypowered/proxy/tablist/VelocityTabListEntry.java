@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,39 +34,21 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class VelocityTabListEntry implements TabListEntry {
 
   private final VelocityTabList tabList;
-
   private final GameProfile profile;
-
   private Component displayName;
-
   private int latency;
-
   private int gameMode;
-
   private boolean listed;
-
   private int listOrder;
-
   private boolean showHat;
-
   private @Nullable ChatSession session;
 
   /**
-   * Constructs a new {@code VelocityTabListEntry} instance with all tab display attributes.
-   *
-   * @param tabList the parent tab list this entry belongs to
-   * @param profile the player profile to display
-   * @param displayName the optional display name component
-   * @param latency the player's latency (ping)
-   * @param gameMode the player's game mode
-   * @param session the chat session associated with this player (nullable)
-   * @param listed whether this entry should be visible
-   * @param listOrder the sort order in the tab list (1.21.2+)
-   * @param showHat whether to show the player's hat layer (1.21.4+)
+   * Constructs the instance.
    */
   public VelocityTabListEntry(VelocityTabList tabList, GameProfile profile, Component displayName,
-                              int latency, int gameMode, @Nullable ChatSession session,
-                              boolean listed, int listOrder, boolean showHat) {
+                              int latency,
+                              int gameMode, @Nullable ChatSession session, boolean listed, int listOrder, boolean showHat) {
     this.tabList = tabList;
     this.profile = profile;
     this.displayName = displayName;
@@ -102,7 +84,12 @@ public class VelocityTabListEntry implements TabListEntry {
   public TabListEntry setDisplayName(@Nullable Component displayName) {
     this.displayName = displayName;
     UpsertPlayerInfoPacket.Entry upsertEntry = this.tabList.createRawEntry(this);
-    upsertEntry.setDisplayName(displayName == null ? null : new ComponentHolder(this.tabList.getPlayer().getProtocolVersion(), displayName));
+    upsertEntry.setDisplayName(
+            displayName == null
+                    ?
+                    null :
+                    new ComponentHolder(this.tabList.getPlayer().getProtocolVersion(), displayName)
+    );
     this.tabList.emitActionRaw(UpsertPlayerInfoPacket.Action.UPDATE_DISPLAY_NAME, upsertEntry);
     return this;
   }
@@ -182,7 +169,6 @@ public class VelocityTabListEntry implements TabListEntry {
       upsertEntry.setListOrder(listOrder);
       tabList.emitActionRaw(UpsertPlayerInfoPacket.Action.UPDATE_LIST_ORDER, upsertEntry);
     }
-
     return this;
   }
 
@@ -203,7 +189,6 @@ public class VelocityTabListEntry implements TabListEntry {
       upsertEntry.setShowHat(showHat);
       tabList.emitActionRaw(UpsertPlayerInfoPacket.Action.UPDATE_HAT, upsertEntry);
     }
-
     return this;
   }
 

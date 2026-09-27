@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2022 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,11 +18,8 @@
 package com.velocitypowered.proxy.protocol.packet.chat;
 
 public enum ChatType {
-
   CHAT((byte) 0),
-
   SYSTEM((byte) 1),
-
   GAME_INFO((byte) 2);
 
   private final byte raw;

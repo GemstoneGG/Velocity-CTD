@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2019-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,6 @@ import org.jetbrains.annotations.NotNull;
 public class VelocityNettyThreadFactory extends DefaultThreadFactory {
 
   private final AtomicInteger threadNumber = new AtomicInteger();
-
   private final String nameFormat;
 
   public VelocityNettyThreadFactory(String nameFormat) {

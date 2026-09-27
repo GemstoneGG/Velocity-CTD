@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,13 +26,9 @@ import java.util.BitSet;
 public class LastSeenMessages {
 
   public static final int WINDOW_SIZE = 20;
-
   private static final int DIV_FLOOR = -Math.floorDiv(-WINDOW_SIZE, 8);
-
   private final int offset;
-
   private final BitSet acknowledged;
-
   private byte checksum;
 
   public LastSeenMessages() {
@@ -73,7 +69,7 @@ public class LastSeenMessages {
     return acknowledged;
   }
 
-  public LastSeenMessages offset(int offset) {
+  public LastSeenMessages offset(final int offset) {
     return new LastSeenMessages(this.offset + offset, acknowledged, checksum);
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2020-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,11 +23,12 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.jetbrains.annotations.NotNull;
 
-final class ModArgumentPropertySerializer implements ArgumentPropertySerializer<ModArgumentProperty> {
+class ModArgumentPropertySerializer implements ArgumentPropertySerializer<ModArgumentProperty> {
 
   static final ModArgumentPropertySerializer MOD = new ModArgumentPropertySerializer();
 
   private ModArgumentPropertySerializer() {
+
   }
 
   @Override

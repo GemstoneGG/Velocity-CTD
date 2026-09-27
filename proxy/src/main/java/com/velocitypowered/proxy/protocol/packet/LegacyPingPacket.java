@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class LegacyPingPacket implements MinecraftPacket {
 
   private final LegacyMinecraftPingVersion version;
-
   private final @Nullable InetSocketAddress vhost;
 
   public LegacyPingPacket(LegacyMinecraftPingVersion version) {

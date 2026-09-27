@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,22 +51,24 @@ public class ServerChannelInitializer extends ChannelInitializer<Channel> {
 
   private final VelocityServer server;
 
-  public ServerChannelInitializer(VelocityServer server) {
+  public ServerChannelInitializer(final VelocityServer server) {
     this.server = server;
   }
 
   @Override
-  protected void initChannel(Channel ch) {
+  protected void initChannel(final Channel ch) {
     ch.pipeline()
         .addLast(LEGACY_PING_DECODER, new LegacyPingDecoder())
         .addLast(FRAME_DECODER, new MinecraftVarintFrameDecoder(ProtocolUtils.Direction.SERVERBOUND))
-        .addLast(READ_TIMEOUT, new ReadTimeoutHandler(this.server.getConfiguration().getReadTimeout(), TimeUnit.MILLISECONDS))
+        .addLast(READ_TIMEOUT,
+            new ReadTimeoutHandler(this.server.getConfiguration().getReadTimeout(),
+                TimeUnit.MILLISECONDS))
         .addLast(LEGACY_PING_ENCODER, LegacyPingEncoder.INSTANCE)
         .addLast(FRAME_ENCODER, MinecraftVarintLengthEncoder.INSTANCE)
         .addLast(MINECRAFT_DECODER, new MinecraftDecoder(ProtocolUtils.Direction.SERVERBOUND))
         .addLast(MINECRAFT_ENCODER, new MinecraftEncoder(ProtocolUtils.Direction.CLIENTBOUND));
 
-    MinecraftConnection connection = new MinecraftConnection(ch, this.server);
+    final MinecraftConnection connection = new MinecraftConnection(ch, this.server);
     connection.setActiveSessionHandler(StateRegistry.HANDSHAKE,
         new HandshakeSessionHandler(connection, this.server));
     ch.pipeline().addLast(Connections.HANDLER, connection);

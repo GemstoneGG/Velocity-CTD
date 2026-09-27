@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2019-2023 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -24,14 +24,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @AwaitingEvent
 public class PlayerChooseInitialServerEvent {
 
-  /**
-   * The player for whom the initial server is being chosen.
-   */
   private final Player player;
-
-  /**
-   * The initial server the player will connect to, or {@code null} if not yet assigned.
-   */
   private @Nullable RegisteredServer initialServer;
 
   /**
@@ -51,20 +44,10 @@ public class PlayerChooseInitialServerEvent {
     this.reason = null;
   }
 
-  /**
-   * Gets the player who is choosing the initial server.
-   *
-   * @return the connected player
-   */
   public Player getPlayer() {
     return player;
   }
 
-  /**
-   * Gets the initial server the player will connect to.
-   *
-   * @return an {@link Optional} containing the selected server, or empty if none was set
-   */
   public Optional<RegisteredServer> getInitialServer() {
     return Optional.ofNullable(initialServer);
   }

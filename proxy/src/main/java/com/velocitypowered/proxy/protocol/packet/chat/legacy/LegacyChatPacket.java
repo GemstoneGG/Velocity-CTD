@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,25 +28,19 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class LegacyChatPacket implements MinecraftPacket {
 
   public static final byte CHAT_TYPE = (byte) 0;
-
   public static final byte SYSTEM_TYPE = (byte) 1;
-
   public static final byte GAME_INFO_TYPE = (byte) 2;
 
   public static final int MAX_SERVERBOUND_MESSAGE_LENGTH = 256;
-
   private static final int MAX_SERVERBOUND_MESSAGE_LENGTH_LEGACY = getMaxServerboundMessageLength();
-
   public static final UUID EMPTY_SENDER = new UUID(0, 0);
 
   private @Nullable String message;
-
   private byte type;
-
   private @Nullable UUID sender;
 
   private static int getMaxServerboundMessageLength() {
-    String value = System.getProperty("velocity.legacyChatMaxServerboundLength");
+    final String value = System.getProperty("velocity.legacyChatMaxServerboundLength");
     if (value != null) {
       try {
         return Integer.parseInt(value.trim());
@@ -54,7 +48,6 @@ public class LegacyChatPacket implements MinecraftPacket {
         // This instance is effectively voided
       }
     }
-
     return 100;
   }
 
@@ -75,16 +68,12 @@ public class LegacyChatPacket implements MinecraftPacket {
   }
 
   /**
-   * Returns the message content.
-   *
-   * @return the chat message
-   * @throws IllegalStateException if the message is not yet set
+   * Retrieves the Chat message.
    */
   public String getMessage() {
     if (message == null) {
       throw new IllegalStateException("Message is not specified");
     }
-
     return message;
   }
 
@@ -120,9 +109,12 @@ public class LegacyChatPacket implements MinecraftPacket {
   @Override
   public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
     message = ProtocolUtils.readString(buf, direction == ProtocolUtils.Direction.CLIENTBOUND
-        ? 262144 : version.noLessThan(ProtocolVersion.MINECRAFT_1_11) ? MAX_SERVERBOUND_MESSAGE_LENGTH
+        ? 262144
+        : version.noLessThan(ProtocolVersion.MINECRAFT_1_11)
+          ? MAX_SERVERBOUND_MESSAGE_LENGTH
           : MAX_SERVERBOUND_MESSAGE_LENGTH_LEGACY);
-    if (direction == ProtocolUtils.Direction.CLIENTBOUND && version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
+    if (direction == ProtocolUtils.Direction.CLIENTBOUND
+        && version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
       type = buf.readByte();
       if (version.noLessThan(ProtocolVersion.MINECRAFT_1_16)) {
         sender = ProtocolUtils.readUuid(buf);
@@ -135,9 +127,9 @@ public class LegacyChatPacket implements MinecraftPacket {
     if (message == null) {
       throw new IllegalStateException("Message is not specified");
     }
-
     ProtocolUtils.writeString(buf, message);
-    if (direction == ProtocolUtils.Direction.CLIENTBOUND && version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
+    if (direction == ProtocolUtils.Direction.CLIENTBOUND
+        && version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
       buf.writeByte(type);
       if (version.noLessThan(ProtocolVersion.MINECRAFT_1_16)) {
         ProtocolUtils.writeUuid(buf, sender == null ? EMPTY_SENDER : sender);

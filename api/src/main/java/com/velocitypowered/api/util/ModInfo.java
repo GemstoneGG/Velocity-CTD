@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -18,20 +18,9 @@ import java.util.Objects;
  */
 public final class ModInfo {
 
-  /**
-   * The default mod info used when no mods are present.
-   * Typically used for Forge-compatible connections that require a placeholder.
-   */
   public static final ModInfo DEFAULT = new ModInfo("FML", ImmutableList.of());
 
-  /**
-   * The type of mod list, typically "FML" for Forge-compatible clients.
-   */
   private final String type;
-
-  /**
-   * The list of mods to present to the client.
-   */
   private final List<Mod> modList;
 
   /**
@@ -45,20 +34,10 @@ public final class ModInfo {
     this.modList = ImmutableList.copyOf(modList);
   }
 
-  /**
-   * Returns the Forge mod list type (e.g., "FML").
-   *
-   * @return the mod list type
-   */
   public String getType() {
     return type;
   }
 
-  /**
-   * Returns an immutable list of all mods in this mod list.
-   *
-   * @return the list of mods
-   */
   public List<Mod> getMods() {
     return modList;
   }
@@ -93,19 +72,12 @@ public final class ModInfo {
    */
   public static final class Mod {
 
-    /**
-     * The identifier of the mod (e.g., "examplemod").
-     */
     @SerializedName("modid")
     private final String id;
-
-    /**
-     * The version string of the mod (e.g., "1.0.0").
-     */
     private final String version;
 
     /**
-     * Creates new mod info.
+     * Creates a new mod info.
      *
      * @param id the mod identifier
      * @param version the mod version
@@ -117,20 +89,10 @@ public final class ModInfo {
       Preconditions.checkArgument(version.length() < 128, "mod version is too long");
     }
 
-    /**
-     * Returns the mod ID (identifier string).
-     *
-     * @return the mod ID
-     */
     public String getId() {
       return id;
     }
 
-    /**
-     * Returns the mod version string.
-     *
-     * @return the mod version
-     */
     public String getVersion() {
       return version;
     }
@@ -148,11 +110,9 @@ public final class ModInfo {
       if (this == o) {
         return true;
       }
-
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-
       Mod mod = (Mod) o;
       return id.equals(mod.id) && version.equals(mod.version);
     }

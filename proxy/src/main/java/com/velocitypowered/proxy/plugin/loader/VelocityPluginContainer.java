@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,9 +30,7 @@ import java.util.concurrent.Executors;
 public class VelocityPluginContainer implements PluginContainer {
 
   private final PluginDescription description;
-
   private Object instance;
-
   private volatile ExecutorService service;
 
   public VelocityPluginContainer(PluginDescription description) {
@@ -60,10 +58,11 @@ public class VelocityPluginContainer implements PluginContainer {
         if (this.service == null) {
           String name = this.description.getName().orElse(this.description.getId());
           this.service = Executors.unconfigurableExecutorService(
-              Executors.newCachedThreadPool(new ThreadFactoryBuilder().setDaemon(true)
-                  .setNameFormat(name + " - Task Executor #%d")
-                  .setDaemon(true)
-                  .build()
+              Executors.newCachedThreadPool(
+                new ThreadFactoryBuilder().setDaemon(true)
+                    .setNameFormat(name + " - Task Executor #%d")
+                    .setDaemon(true)
+                    .build()
               )
           );
         }

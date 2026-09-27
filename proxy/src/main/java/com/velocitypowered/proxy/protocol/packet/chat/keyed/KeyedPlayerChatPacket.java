@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,11 +33,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class KeyedPlayerChatPacket implements MinecraftPacket {
 
   private String message;
-
   private boolean signedPreview;
-
   private boolean unsigned = false;
-
   private @Nullable Instant expiry;
 
   private byte[] signature;
@@ -45,7 +42,6 @@ public class KeyedPlayerChatPacket implements MinecraftPacket {
   private byte[] salt;
 
   private SignaturePair[] previousMessages = new SignaturePair[0];
-
   private @Nullable SignaturePair lastMessage;
 
   public static final int MAXIMUM_PREVIOUS_MESSAGE_COUNT = 5;
@@ -83,7 +79,7 @@ public class KeyedPlayerChatPacket implements MinecraftPacket {
 
   @Override
   public void decode(ByteBuf buf, ProtocolUtils.Direction direction,
-                     ProtocolVersion protocolVersion) {
+      ProtocolVersion protocolVersion) {
     message = ProtocolUtils.readString(buf, 256);
 
     long expiresAt = buf.readLong();
@@ -117,7 +113,6 @@ public class KeyedPlayerChatPacket implements MinecraftPacket {
         lastSignatures[i] = new SignaturePair(ProtocolUtils.readUuid(buf),
             ProtocolUtils.readByteArray(buf));
       }
-
       previousMessages = lastSignatures;
 
       if (buf.readBoolean()) {
@@ -129,7 +124,7 @@ public class KeyedPlayerChatPacket implements MinecraftPacket {
 
   @Override
   public void encode(ByteBuf buf, ProtocolUtils.Direction direction,
-                     ProtocolVersion protocolVersion) {
+      ProtocolVersion protocolVersion) {
     ProtocolUtils.writeString(buf, message);
 
     buf.writeLong(unsigned ? Instant.now().toEpochMilli() : Objects.requireNonNull(expiry).toEpochMilli());

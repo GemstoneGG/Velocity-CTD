@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2024 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,17 +34,17 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.NotNull;
 
-public sealed class LegacyResourcePackHandler extends ResourcePackHandler permits Legacy117ResourcePackHandler {
-
+/**
+ * Legacy (Minecraft &lt;1.17) ResourcePackHandler.
+ */
+public sealed class LegacyResourcePackHandler extends ResourcePackHandler
+        permits Legacy117ResourcePackHandler {
   protected @MonotonicNonNull Boolean previousResourceResponse;
-
   protected final Queue<ResourcePackInfo> outstandingResourcePacks = new ArrayDeque<>();
-
   private @Nullable ResourcePackInfo pendingResourcePack;
-
   private @Nullable ResourcePackInfo appliedResourcePack;
 
-  LegacyResourcePackHandler(ConnectedPlayer player, VelocityServer server) {
+  LegacyResourcePackHandler(final ConnectedPlayer player, final VelocityServer server) {
     super(player, server);
   }
 
@@ -65,7 +65,6 @@ public sealed class LegacyResourcePackHandler extends ResourcePackHandler permit
     if (appliedResourcePack == null) {
       return List.of();
     }
-
     return List.of(appliedResourcePack);
   }
 
@@ -80,7 +79,6 @@ public sealed class LegacyResourcePackHandler extends ResourcePackHandler permit
     if (pendingResourcePack == null) {
       return List.of();
     }
-
     return List.of(pendingResourcePack);
   }
 
@@ -91,7 +89,7 @@ public sealed class LegacyResourcePackHandler extends ResourcePackHandler permit
   }
 
   @Override
-  public boolean remove(@NotNull UUID id) throws UnsupportedOperationException {
+  public boolean remove(final @NotNull UUID id) throws UnsupportedOperationException {
     throw new UnsupportedOperationException("Cannot remove a ResourcePack from a legacy client");
   }
 
@@ -117,7 +115,6 @@ public sealed class LegacyResourcePackHandler extends ResourcePackHandler permit
                   .noLessThan(ProtocolVersion.MINECRAFT_1_17)) {
             break;
           }
-
           onResourcePackResponse(new ResourcePackResponseBundle(queued.getId(),
                   queued.getHash() == null ? "" : new String(queued.getHash()),
                   PlayerResourcePackStatusEvent.Status.DECLINED));
@@ -134,9 +131,12 @@ public sealed class LegacyResourcePackHandler extends ResourcePackHandler permit
   }
 
   @Override
-  public boolean onResourcePackResponse(@NotNull ResourcePackResponseBundle bundle) {
-    boolean peek = bundle.status().isIntermediate();
-    ResourcePackInfo queued = peek ? outstandingResourcePacks.peek() : outstandingResourcePacks.poll();
+  public boolean onResourcePackResponse(
+          final @NotNull ResourcePackResponseBundle bundle
+  ) {
+    final boolean peek = bundle.status().isIntermediate();
+    final ResourcePackInfo queued = peek
+            ? outstandingResourcePacks.peek() : outstandingResourcePacks.poll();
 
     UUID callbackId = queued != null ? queued.getId() : bundle.uuid();
     dispatchPackCallback(callbackId, bundle.status())
@@ -180,12 +180,13 @@ public sealed class LegacyResourcePackHandler extends ResourcePackHandler permit
   }
 
   @Override
-  public boolean hasPackAppliedByHash(byte[] hash) {
+  public boolean hasPackAppliedByHash(final byte[] hash) {
     if (hash == null) {
       return false;
     }
 
-    return this.appliedResourcePack != null && Arrays.equals(this.appliedResourcePack.getHash(), hash);
+    return this.appliedResourcePack != null
+            && Arrays.equals(this.appliedResourcePack.getHash(), hash);
   }
 
   @SuppressWarnings("checkstyle:DesignForExtension")

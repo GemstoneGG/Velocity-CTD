@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -27,60 +27,21 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class QueryResponse {
 
-  /**
-   * The hostname to display in the query response.
-   */
   private final String hostname;
-
-  /**
-   * The game version to display in the query response.
-   */
   private final String gameVersion;
-
-  /**
-   * The map name to display in the query response.
-   */
   private final String map;
-
-  /**
-   * The number of players currently online.
-   */
   private final int currentPlayers;
-
-  /**
-   * The maximum number of players the server reports it can support.
-   */
   private final int maxPlayers;
-
-  /**
-   * The proxy's externally visible hostname.
-   */
   private final String proxyHost;
-
-  /**
-   * The proxy's externally visible port.
-   */
   private final int proxyPort;
-
-  /**
-   * The list of player names to include in the query response.
-   */
   private final ImmutableCollection<String> players;
-
-  /**
-   * The reported proxy software version.
-   */
   private final String proxyVersion;
-
-  /**
-   * The list of plugins reported in the query response.
-   */
   private final ImmutableCollection<PluginInformation> plugins;
 
   @VisibleForTesting
   QueryResponse(String hostname, String gameVersion, String map, int currentPlayers,
-                int maxPlayers, String proxyHost, int proxyPort, ImmutableCollection<String> players,
-                String proxyVersion, ImmutableCollection<PluginInformation> plugins) {
+      int maxPlayers, String proxyHost, int proxyPort, ImmutableCollection<String> players,
+      String proxyVersion, ImmutableCollection<PluginInformation> plugins) {
     this.hostname = hostname;
     this.gameVersion = gameVersion;
     this.map = map;
@@ -94,8 +55,8 @@ public final class QueryResponse {
   }
 
   /**
-   * Get hostname which will be used to reply to the query. By default, it is {@link
-   * ProxyConfig#getMotd()} in plain text without color codes.
+   * Get hostname which will be used to reply to the query. By default it is {@link
+   * ProxyConfig#getMotd()} in plain text without colour codes.
    *
    * @return hostname
    */
@@ -104,7 +65,7 @@ public final class QueryResponse {
   }
 
   /**
-   * Get a game version which will be used to reply to the query. By default, supported Minecraft
+   * Get game version which will be used to reply to the query. By default supported Minecraft
    * versions range is sent.
    *
    * @return game version
@@ -124,7 +85,7 @@ public final class QueryResponse {
   }
 
   /**
-   * Get the current online player count which will be used to reply to the query.
+   * Get current online player count which will be used to reply to the query.
    *
    * @return online player count
    */
@@ -160,7 +121,7 @@ public final class QueryResponse {
   }
 
   /**
-   * Get a collection of players which will be used to reply to the query.
+   * Get collection of players which will be used to reply to the query.
    *
    * @return collection of players
    */
@@ -178,13 +139,14 @@ public final class QueryResponse {
   }
 
   /**
-   * Get a list of plugins which will be used to reply to the query.
+   * Get list of plugins which will be used to reply to the query.
    *
    * @return collection of plugins
    */
   public Collection<PluginInformation> getPlugins() {
     return plugins;
   }
+
 
   /**
    * Creates a new {@link Builder} instance from data represented by this response, so that you
@@ -222,11 +184,9 @@ public final class QueryResponse {
     if (this == o) {
       return true;
     }
-
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-
     QueryResponse response = (QueryResponse) o;
     return currentPlayers == response.currentPlayers
         && maxPlayers == response.maxPlayers
@@ -267,56 +227,18 @@ public final class QueryResponse {
    * A builder for {@link QueryResponse} objects.
    */
   public static final class Builder {
-
-    /**
-     * The hostname to return in the query response.
-     */
     private @MonotonicNonNull String hostname;
-
-    /**
-     * The game version string.
-     */
     private @MonotonicNonNull String gameVersion;
-
-    /**
-     * The map name for the query response.
-     */
     private @MonotonicNonNull String map;
-
-    /**
-     * The proxy hostname.
-     */
     private @MonotonicNonNull String proxyHost;
-
-    /**
-     * The proxy software version.
-     */
     private @MonotonicNonNull String proxyVersion;
 
-    /**
-     * The current number of players online.
-     */
     private int currentPlayers;
-
-    /**
-     * The maximum number of players the server reports.
-     */
     private int maxPlayers;
-
-    /**
-     * The proxy port to advertise in the response.
-     */
     private int proxyPort;
 
-    /**
-     * The list of player names to include in the response.
-     */
-    private final List<String> players = new ArrayList<>();
-
-    /**
-     * The list of plugins to include in the response.
-     */
-    private final List<PluginInformation> plugins = new ArrayList<>();
+    private List<String> players = new ArrayList<>();
+    private List<PluginInformation> plugins = new ArrayList<>();
 
     private Builder() {
     }
@@ -446,7 +368,7 @@ public final class QueryResponse {
     }
 
     /**
-     * Adds the specified plugins to the plugin list.
+     * Adds the specified plugins to the plugins list.
      *
      * @param plugins the plugins to add
      * @return this builder, for chaining
@@ -457,7 +379,7 @@ public final class QueryResponse {
     }
 
     /**
-     * Adds the specified plugins to the plugin list.
+     * Adds the specified plugins to the plugins list.
      *
      * @param plugins the plugins to add
      * @return this builder, for chaining
@@ -504,14 +426,7 @@ public final class QueryResponse {
    */
   public static final class PluginInformation {
 
-    /**
-     * The name of the plugin.
-     */
     private final String name;
-
-    /**
-     * The version of the plugin, or {@code null} if not present.
-     */
     private final @Nullable String version;
 
     PluginInformation(String name, @Nullable String version) {
@@ -519,31 +434,14 @@ public final class QueryResponse {
       this.version = version;
     }
 
-    /**
-     * Gets the name of the plugin.
-     *
-     * @return the plugin name
-     */
     public String getName() {
       return name;
     }
 
-    /**
-     * Gets the version of the plugin, if available.
-     *
-     * @return an {@link Optional} containing the version if present
-     */
     public Optional<String> getVersion() {
       return Optional.ofNullable(version);
     }
 
-    /**
-     * Creates a new {@link PluginInformation} instance with the given name and version.
-     *
-     * @param name the name of the plugin
-     * @param version the version of the plugin (nullable)
-     * @return a new {@link PluginInformation} instance
-     */
     public static PluginInformation of(String name, @Nullable String version) {
       return new PluginInformation(name, version);
     }
@@ -561,11 +459,9 @@ public final class QueryResponse {
       if (this == o) {
         return true;
       }
-
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-
       PluginInformation that = (PluginInformation) o;
       return name.equals(that.name) && Objects.equals(version, that.version);
     }

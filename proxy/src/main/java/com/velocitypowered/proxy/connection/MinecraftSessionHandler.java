@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -99,30 +99,39 @@ public interface MinecraftSessionHandler {
   }
 
   default void handleGeneric(MinecraftPacket packet) {
+
   }
 
   default void handleUnknown(ByteBuf buf) {
+
   }
 
   default void connected() {
+
   }
 
   default void disconnected() {
+
   }
 
   default void activated() {
+
   }
 
   default void deactivated() {
+
   }
 
   default void exception(Throwable throwable) {
+
   }
 
   default void writabilityChanged() {
+
   }
 
   default void readCompleted() {
+
   }
 
   default boolean handle(AvailableCommandsPacket commands) {

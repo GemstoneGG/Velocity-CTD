@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,20 +32,15 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class TabCompleteRequestPacket implements MinecraftPacket {
 
   private @Nullable String command;
-
   private int transactionId;
-
   private boolean assumeCommand;
-
   private boolean hasPosition;
-
   private long position;
 
   public String getCommand() {
     if (command == null) {
       throw new IllegalStateException("Command is not specified");
     }
-
     return command;
   }
 
@@ -109,7 +104,6 @@ public class TabCompleteRequestPacket implements MinecraftPacket {
       if (version.noLessThan(MINECRAFT_1_9)) {
         this.assumeCommand = buf.readBoolean();
       }
-
       if (version.noLessThan(MINECRAFT_1_8)) {
         this.hasPosition = buf.readBoolean();
         if (hasPosition) {
@@ -133,7 +127,6 @@ public class TabCompleteRequestPacket implements MinecraftPacket {
       if (version.noLessThan(MINECRAFT_1_9)) {
         buf.writeBoolean(assumeCommand);
       }
-
       if (version.noLessThan(MINECRAFT_1_8)) {
         buf.writeBoolean(hasPosition);
         if (hasPosition) {

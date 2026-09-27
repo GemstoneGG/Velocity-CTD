@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,26 +38,17 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class KeyedPlayerCommandPacket implements MinecraftPacket {
 
   private static final int MAX_NUM_ARGUMENTS = 8;
-
   private static final int MAX_LENGTH_ARGUMENTS = 16;
-
   private static final QuietDecoderException LIMITS_VIOLATION =
       new QuietDecoderException("Command arguments incorrect size");
 
   private boolean unsigned = false;
-
   private String command;
-
   private Instant timestamp;
-
   private long salt;
-
-  private boolean signedPreview;
-
+  private boolean signedPreview; // purely for pass through for 1.19 -> 1.19.2 - this will never be implemented
   private SignaturePair[] previousMessages = new SignaturePair[0];
-
   private @Nullable SignaturePair lastMessage;
-
   private Map<String, byte[]> arguments = ImmutableMap.of();
 
   public Instant getTimestamp() {
@@ -96,7 +87,7 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
 
   @Override
   public void decode(ByteBuf buf, ProtocolUtils.Direction direction,
-                     ProtocolVersion protocolVersion) {
+      ProtocolVersion protocolVersion) {
     command = ProtocolUtils.readString(buf, 256);
     timestamp = Instant.ofEpochMilli(buf.readLong());
 
@@ -106,14 +97,12 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
     if (mapSize > MAX_NUM_ARGUMENTS) {
       throw LIMITS_VIOLATION;
     }
-
-    // Mapped as "Argument : signature"
+    // Mapped as Argument : signature
     ImmutableMap.Builder<String, byte[]> entries = ImmutableMap.builderWithExpectedSize(mapSize);
     for (int i = 0; i < mapSize; i++) {
       entries.put(ProtocolUtils.readString(buf, MAX_LENGTH_ARGUMENTS),
           ProtocolUtils.readByteArray(buf, unsigned ? 0 : ProtocolUtils.DEFAULT_MAX_STRING_SIZE));
     }
-
     arguments = entries.build();
 
     this.signedPreview = buf.readBoolean();
@@ -132,7 +121,6 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
         lastSignatures[i] = new SignaturePair(ProtocolUtils.readUuid(buf),
             ProtocolUtils.readByteArray(buf));
       }
-
       previousMessages = lastSignatures;
 
       if (buf.readBoolean()) {
@@ -144,11 +132,12 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
     if (salt == 0L && previousMessages.length == 0) {
       unsigned = true;
     }
+
   }
 
   @Override
   public void encode(ByteBuf buf, ProtocolUtils.Direction direction,
-                     ProtocolVersion protocolVersion) {
+      ProtocolVersion protocolVersion) {
     ProtocolUtils.writeString(buf, command);
     buf.writeLong(timestamp.toEpochMilli());
 
@@ -158,7 +147,6 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
     if (size > MAX_NUM_ARGUMENTS) {
       throw LIMITS_VIOLATION;
     }
-
     ProtocolUtils.writeVarInt(buf, size);
     for (Map.Entry<String, byte[]> entry : arguments.entrySet()) {
       // What annoys me is that this isn't "sorted"
@@ -183,6 +171,7 @@ public class KeyedPlayerCommandPacket implements MinecraftPacket {
         buf.writeBoolean(false);
       }
     }
+
   }
 
   @Override

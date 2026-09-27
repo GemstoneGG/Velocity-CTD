@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2024 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,15 +40,12 @@ import org.jetbrains.annotations.Nullable;
  * Modern (Minecraft 1.20.3+) ResourcePackHandler.
  */
 public final class ModernResourcePackHandler extends ResourcePackHandler {
-
   private final ListMultimap<UUID, ResourcePackInfo> outstandingResourcePacks =
       Multimaps.newListMultimap(new ConcurrentHashMap<>(), LinkedList::new);
-
   private final Map<UUID, ResourcePackInfo> pendingResourcePacks = new ConcurrentHashMap<>();
-
   private final Map<UUID, ResourcePackInfo> appliedResourcePacks = new ConcurrentHashMap<>();
 
-  ModernResourcePackHandler(ConnectedPlayer player, VelocityServer server) {
+  ModernResourcePackHandler(final ConnectedPlayer player, final VelocityServer server) {
     super(player, server);
   }
 
@@ -57,7 +54,6 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
     if (appliedResourcePacks.isEmpty()) {
       return null;
     }
-
     return appliedResourcePacks.values().iterator().next();
   }
 
@@ -66,7 +62,6 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
     if (pendingResourcePacks.isEmpty()) {
       return null;
     }
-
     return pendingResourcePacks.values().iterator().next();
   }
 
@@ -96,14 +91,15 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
   }
 
   @Override
-  public boolean remove(@NotNull UUID uuid) {
+  public boolean remove(final @NotNull UUID uuid) {
     outstandingResourcePacks.removeAll(uuid);
     return appliedResourcePacks.remove(uuid) != null | pendingResourcePacks.remove(uuid) != null;
   }
 
   @Override
-  public void queueResourcePack(@NotNull ResourcePackInfo info) {
-    List<ResourcePackInfo> outstandingResourcePacks = this.outstandingResourcePacks.get(info.getId());
+  public void queueResourcePack(final @NotNull ResourcePackInfo info) {
+    final List<ResourcePackInfo> outstandingResourcePacks =
+        this.outstandingResourcePacks.get(info.getId());
     outstandingResourcePacks.add(info);
     if (outstandingResourcePacks.size() == 1) {
       tickResourcePackQueue(outstandingResourcePacks.getFirst().getId());
@@ -111,7 +107,7 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
   }
 
   @Override
-  public void queueResourcePack(@NotNull ResourcePackRequest request) {
+  public void queueResourcePack(final @NotNull ResourcePackRequest request) {
     if (request.packs().size() > 1) {
       player.getBundleHandler().bundlePackets(() -> super.queueResourcePack(request));
     } else {
@@ -119,20 +115,24 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
     }
   }
 
-  private void tickResourcePackQueue(@NotNull UUID uuid) {
-    List<ResourcePackInfo> outstandingResourcePacks = this.outstandingResourcePacks.get(uuid);
+  private void tickResourcePackQueue(final @NotNull UUID uuid) {
+    final List<ResourcePackInfo> outstandingResourcePacks =
+        this.outstandingResourcePacks.get(uuid);
     if (!outstandingResourcePacks.isEmpty()) {
       sendResourcePackRequestPacket(outstandingResourcePacks.getFirst());
     }
   }
 
   @Override
-  public boolean onResourcePackResponse(@NotNull ResourcePackResponseBundle bundle) {
-    UUID uuid = bundle.uuid();
-    List<ResourcePackInfo> outstandingResourcePacks = this.outstandingResourcePacks.get(uuid);
-    boolean peek = bundle.status().isIntermediate();
-    ResourcePackInfo queued = outstandingResourcePacks.isEmpty() ? null
-        : peek ? outstandingResourcePacks.getFirst() : outstandingResourcePacks.removeFirst();
+  public boolean onResourcePackResponse(
+          final @NotNull ResourcePackResponseBundle bundle
+  ) {
+    final UUID uuid = bundle.uuid();
+    final List<ResourcePackInfo> outstandingResourcePacks =
+        this.outstandingResourcePacks.get(uuid);
+    final boolean peek = bundle.status().isIntermediate();
+    final ResourcePackInfo queued = outstandingResourcePacks.isEmpty() ? null :
+        peek ? outstandingResourcePacks.getFirst() : outstandingResourcePacks.removeFirst();
 
     dispatchPackCallback(uuid, bundle.status())
             .thenCompose(v -> server.getEventManager()
@@ -165,7 +165,7 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
           // the player sends more than 1 SUCCESSFUL response to the backend server,
           // which results in the server receiving more resource pack responses
           // than the server has sent requests to the player
-          ResourcePackInfo appliedPack = appliedResourcePacks.get(uuid);
+          final ResourcePackInfo appliedPack = appliedResourcePacks.get(uuid);
           if (appliedPack != null) {
             return handleResponseResult(appliedPack, bundle);
           }
@@ -177,7 +177,7 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
         pendingResourcePacks.remove(uuid);
         appliedResourcePacks.remove(uuid);
       }
-      // The other cases in which no action is taken are documented in the Javadocs.
+      // The other cases in which no action is taken are documented in the javadocs.
       default -> {
       }
     }
@@ -190,16 +190,15 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
   }
 
   @Override
-  public boolean hasPackAppliedByHash(byte[] hash) {
+  public boolean hasPackAppliedByHash(final byte[] hash) {
     if (hash == null) {
       return false;
     }
-    for (Map.Entry<UUID, ResourcePackInfo> appliedPack : appliedResourcePacks.entrySet()) {
+    for (final Map.Entry<UUID, ResourcePackInfo> appliedPack : appliedResourcePacks.entrySet()) {
       if (Arrays.equals(appliedPack.getValue().getHash(), hash)) {
         return true;
       }
     }
-
     return false;
   }
 }

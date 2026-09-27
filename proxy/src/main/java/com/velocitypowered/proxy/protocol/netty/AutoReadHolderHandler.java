@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2020-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,7 +48,6 @@ public class AutoReadHolderHandler extends ChannelDuplexHandler {
       while ((queued = this.queuedMessages.poll()) != null) {
         ctx.fireChannelRead(queued);
       }
-
       ctx.fireChannelReadComplete();
     }
   }
@@ -78,7 +77,6 @@ public class AutoReadHolderHandler extends ChannelDuplexHandler {
     for (Object message : this.queuedMessages) {
       ReferenceCountUtil.release(message);
     }
-
     this.queuedMessages.clear();
   }
 }

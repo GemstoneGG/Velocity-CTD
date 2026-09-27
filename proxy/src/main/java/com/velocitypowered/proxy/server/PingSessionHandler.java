@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,11 +42,8 @@ public class PingSessionHandler implements MinecraftSessionHandler {
   private final VelocityRegisteredServer server;
 
   private final MinecraftConnection connection;
-
   private final ProtocolVersion version;
-
   private boolean completed = false;
-
   private final String virtualHostString;
 
   PingSessionHandler(CompletableFuture<ServerPing> result, VelocityRegisteredServer server,
@@ -63,7 +60,7 @@ public class PingSessionHandler implements MinecraftSessionHandler {
     HandshakePacket handshake = new HandshakePacket();
     handshake.setIntent(HandshakeIntent.STATUS);
     handshake.setServerAddress(this.virtualHostString == null || this.virtualHostString.isEmpty()
-        ? server.getServerInfo().getAddress().getHostString() : this.virtualHostString);
+            ? server.getServerInfo().getAddress().getHostString() : this.virtualHostString);
     handshake.setPort(server.getServerInfo().getAddress().getPort());
     handshake.setProtocolVersion(version);
     connection.delayedWrite(handshake);

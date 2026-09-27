@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -55,9 +55,9 @@ public interface ConnectionRequestBuilder {
   interface Result {
 
     /**
-     * Determines whether the connection request was successful.
+     * Determines whether or not the connection request was successful.
      *
-     * @return whether the request succeeded
+     * @return whether or not the request succeeded
      */
     default boolean isSuccessful() {
       return getStatus() == Status.SUCCESS;
@@ -89,30 +89,26 @@ public interface ConnectionRequestBuilder {
    * Represents the status of a connection request initiated by a {@link ConnectionRequestBuilder}.
    */
   enum Status {
-
     /**
      * The player was successfully connected to the server.
      */
     SUCCESS,
-
     /**
      * The player is already connected to this server.
      */
     ALREADY_CONNECTED,
-
     /**
      * The connection is already in progress.
      */
     CONNECTION_IN_PROGRESS,
-
     /**
-     * A plugin has canceled this connection.
+     * A plugin has cancelled this connection.
      */
     CONNECTION_CANCELLED,
-
     /**
      * The server disconnected the user. A reason may be provided in the {@link Result} object.
      */
     SERVER_DISCONNECTED
   }
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -16,18 +16,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Represents a Minecraft 1.13+ channel identifier. This class is immutable and safe for
- * multithreaded use.
+ * multi-threaded use.
  */
 public final class MinecraftChannelIdentifier implements ChannelIdentifier {
 
-  /**
-   * The namespace of the channel identifier (e.g., {@code Minecraft}, {@code MyPlugin}).
-   */
   private final String namespace;
-
-  /**
-   * The name of the channel within its namespace.
-   */
   private final String name;
 
   private MinecraftChannelIdentifier(String namespace, String name) {
@@ -64,7 +57,7 @@ public final class MinecraftChannelIdentifier implements ChannelIdentifier {
   }
 
   /**
-   * Creates a channel identifier from the specified Minecraft identifier.
+   * Creates an channel identifier from the specified Minecraft identifier.
    *
    * @param identifier the Minecraft identifier
    * @return a new channel identifier
@@ -76,14 +69,13 @@ public final class MinecraftChannelIdentifier implements ChannelIdentifier {
     } else if (colonPos == 0) {
       return create(Key.MINECRAFT_NAMESPACE, identifier.substring(1));
     }
-
     String namespace = identifier.substring(0, colonPos);
     String name = identifier.substring(colonPos + 1);
     return create(namespace, name);
   }
 
   /**
-   * Creates a channel identifier from the specified Minecraft identifier.
+   * Creates an channel identifier from the specified Minecraft identifier.
    *
    * @param key the Minecraft key to use
    * @return a new channel identifier
@@ -92,29 +84,14 @@ public final class MinecraftChannelIdentifier implements ChannelIdentifier {
     return create(key.namespace(), key.value());
   }
 
-  /**
-   * Returns the namespace of this channel identifier.
-   *
-   * @return the namespace string (e.g., {@code minecraft})
-   */
   public String getNamespace() {
     return namespace;
   }
 
-  /**
-   * Returns the name of the channel within its namespace.
-   *
-   * @return the channel name string
-   */
   public String getName() {
     return name;
   }
 
-  /**
-   * Converts this channel identifier to a {@link Key} object.
-   *
-   * @return a {@link Key} representing this identifier
-   */
   public Key asKey() {
     return Key.key(namespace, name);
   }
@@ -129,11 +106,9 @@ public final class MinecraftChannelIdentifier implements ChannelIdentifier {
     if (this == o) {
       return true;
     }
-
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-
     MinecraftChannelIdentifier that = (MinecraftChannelIdentifier) o;
     return Objects.equals(namespace, that.namespace)
         && Objects.equals(name, that.name);

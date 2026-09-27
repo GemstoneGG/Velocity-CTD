@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,46 +46,21 @@ public final class NativeCodeLoader<T> implements Supplier<T> {
       if (got == null) {
         continue;
       }
-
       return variant;
     }
     throw new IllegalArgumentException("Can't find any suitable variants");
   }
 
-  /**
-   * Returns the name of the successfully loaded variant.
-   *
-   * @return the variant name
-   */
   public String getLoadedVariant() {
     return selected.name;
   }
 
   static class Variant<T> {
 
-    /**
-     * Current status of this variant (available, setup complete, failed, etc.).
-     */
     private Status status;
-
-    /**
-     * The code to run during setup, usually used to initialize native libraries.
-     */
     private final Runnable setup;
-
-    /**
-     * The name of this variant (e.g., "libdeflate", "java").
-     */
     private final String name;
-
-    /**
-     * A factory to create the variant implementation.
-     */
     private final Supplier<T> object;
-
-    /**
-     * The instantiated result, after successful setup.
-     */
     private T constructed;
 
     Variant(BooleanSupplier possiblyAvailable, Runnable setup, String name, T object) {
@@ -93,7 +68,8 @@ public final class NativeCodeLoader<T> implements Supplier<T> {
     }
 
     Variant(BooleanSupplier possiblyAvailable, Runnable setup, String name, Supplier<T> object) {
-      this.status = possiblyAvailable.getAsBoolean() ? Status.POSSIBLY_AVAILABLE : Status.NOT_AVAILABLE;
+      this.status =
+          possiblyAvailable.getAsBoolean() ? Status.POSSIBLY_AVAILABLE : Status.NOT_AVAILABLE;
       this.setup = setup;
       this.name = name;
       this.object = object;
@@ -121,30 +97,11 @@ public final class NativeCodeLoader<T> implements Supplier<T> {
   }
 
   private enum Status {
-
-    /**
-     * Variant is not available on the current platform.
-     */
     NOT_AVAILABLE,
-
-    /**
-     * Variant may be available and needs setup.
-     */
     POSSIBLY_AVAILABLE,
-
-    /**
-     * Setup completed and variant is ready for use.
-     */
     SETUP,
-
-    /**
-     * Setup failed and the variant should be skipped.
-     */
     SETUP_FAILURE
   }
 
-  /**
-   * A {@link BooleanSupplier} that always returns {@code true}, indicating availability.
-   */
   static final BooleanSupplier ALWAYS = () -> true;
 }

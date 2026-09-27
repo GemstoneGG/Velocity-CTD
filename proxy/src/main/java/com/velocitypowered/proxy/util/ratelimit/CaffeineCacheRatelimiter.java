@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,6 @@ import org.jetbrains.annotations.NotNull;
 public class CaffeineCacheRatelimiter<T> implements Ratelimiter<T> {
 
   private final Cache<T, Long> expiringCache;
-
   private final long timeoutNanos;
 
   CaffeineCacheRatelimiter(long time, TimeUnit unit) {
@@ -58,7 +57,7 @@ public class CaffeineCacheRatelimiter<T> implements Ratelimiter<T> {
    * @return true if we should allow the object, false if we should rate-limit
    */
   @Override
-  public boolean attempt(@NotNull T key) {
+  public boolean attempt(@NotNull  T key) {
     long expectedNewValue = System.nanoTime() + timeoutNanos;
     Long last = expiringCache.get(key, (key1) -> expectedNewValue);
     return last != null && expectedNewValue == last;

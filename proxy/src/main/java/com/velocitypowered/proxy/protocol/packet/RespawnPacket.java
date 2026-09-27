@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,27 +31,16 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class RespawnPacket implements MinecraftPacket {
 
   private int dimension;
-
   private long partialHashedSeed;
-
   private short difficulty;
-
   private int gamemode;
-
   private String levelType = "";
-
   private byte dataToKeep; // 1.16+
-
   private DimensionInfo dimensionInfo; // 1.16-1.16.1
-
   private int previousGamemode; // 1.16+
-
   private CompoundBinaryTag currentDimensionData; // 1.16.2+
-
   private @Nullable Pair<String, Long> lastDeathPosition; // 1.19+
-
   private int portalCooldown; // 1.20+
-
   private int seaLevel; // 1.21.2+
 
   public RespawnPacket() {
@@ -77,19 +66,11 @@ public class RespawnPacket implements MinecraftPacket {
   }
 
   public static RespawnPacket fromJoinGame(JoinGamePacket joinGame) {
-    return new RespawnPacket(
-        joinGame.getDimension(),
-        joinGame.getPartialHashedSeed(),
-        joinGame.getDifficulty(),
-        joinGame.getGamemode(),
-        joinGame.getLevelType(),
-        (byte) 0,
-        joinGame.getDimensionInfo(),
-        joinGame.getPreviousGamemode(),
-        joinGame.getCurrentDimensionData(),
-        joinGame.getLastDeathPosition(),
-        joinGame.getPortalCooldown(),
-        joinGame.getSeaLevel());
+    return new RespawnPacket(joinGame.getDimension(), joinGame.getPartialHashedSeed(),
+        joinGame.getDifficulty(), joinGame.getGamemode(), joinGame.getLevelType(),
+        (byte) 0, joinGame.getDimensionInfo(), joinGame.getPreviousGamemode(),
+        joinGame.getCurrentDimensionData(), joinGame.getLastDeathPosition(),
+        joinGame.getPortalCooldown(), joinGame.getSeaLevel());
   }
 
   public int getDimension() {
@@ -205,27 +186,22 @@ public class RespawnPacket implements MinecraftPacket {
         } else {
           dimensionKey = ProtocolUtils.readString(buf);
         }
-
         levelName = ProtocolUtils.readString(buf);
       }
     } else {
       this.dimension = buf.readInt();
     }
-
     if (version.noGreaterThan(ProtocolVersion.MINECRAFT_1_13_2)) {
       this.difficulty = buf.readUnsignedByte();
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_15)) {
       this.partialHashedSeed = buf.readLong();
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_26_3)) {
       this.gamemode = ProtocolUtils.readVarInt(buf);
     } else {
       this.gamemode = buf.readByte();
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_16)) {
       if (version.noLessThan(ProtocolVersion.MINECRAFT_26_3)) {
         this.previousGamemode = ProtocolUtils.readVarInt(buf);
@@ -243,19 +219,15 @@ public class RespawnPacket implements MinecraftPacket {
     } else {
       this.levelType = ProtocolUtils.readString(buf, 16);
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19) && buf.readBoolean()) {
       this.lastDeathPosition = Pair.of(ProtocolUtils.readString(buf), buf.readLong());
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20)) {
       this.portalCooldown = ProtocolUtils.readVarInt(buf);
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_21_2)) {
       this.seaLevel = ProtocolUtils.readVarInt(buf);
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
       this.dataToKeep = buf.readByte();
     }
@@ -279,21 +251,17 @@ public class RespawnPacket implements MinecraftPacket {
     } else {
       buf.writeInt(dimension);
     }
-
     if (version.noGreaterThan(ProtocolVersion.MINECRAFT_1_13_2)) {
       buf.writeByte(difficulty);
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_15)) {
       buf.writeLong(partialHashedSeed);
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_26_3)) {
       ProtocolUtils.writeVarInt(buf, this.gamemode);
     } else {
       buf.writeByte(this.gamemode);
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_16)) {
       if (version.noLessThan(ProtocolVersion.MINECRAFT_26_3)) {
         ProtocolUtils.writeVarInt(buf, this.previousGamemode);

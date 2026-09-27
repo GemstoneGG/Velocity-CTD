@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,23 +26,19 @@ import java.util.stream.Collectors;
 
 class EventTypeTracker {
 
-  /**
-   * A cache mapping each known event class to a set of "friend" classes,
-   * which includes superclasses and interfaces that may receive the same event.
-   */
   private final ConcurrentMap<Class<?>, ImmutableSet<Class<?>>> friends;
 
   EventTypeTracker() {
     this.friends = new ConcurrentHashMap<>();
   }
 
-  public Collection<Class<?>> getFriendsOf(Class<?> eventType) {
+  public Collection<Class<?>> getFriendsOf(final Class<?> eventType) {
     ImmutableSet<Class<?>> existingFriends = friends.get(eventType);
     if (existingFriends != null) {
       return existingFriends;
     }
 
-    Collection<Class<?>> types = getEventTypes(eventType);
+    final Collection<Class<?>> types = getEventTypes(eventType);
     for (Class<?> type : types) {
       if (type == eventType) {
         continue;
@@ -57,11 +53,10 @@ class EventTypeTracker {
               .build()
       );
     }
-
     return types;
   }
 
-  private static Collection<Class<?>> getEventTypes(Class<?> eventType) {
+  private static Collection<Class<?>> getEventTypes(final Class<?> eventType) {
     return TypeToken.of(eventType).getTypes().rawTypes().stream()
         .filter(type -> type != Object.class)
         .collect(Collectors.toList());

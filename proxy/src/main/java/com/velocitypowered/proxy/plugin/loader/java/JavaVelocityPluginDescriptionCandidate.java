@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,10 +31,9 @@ class JavaVelocityPluginDescriptionCandidate extends VelocityPluginDescription {
   private final String mainClass;
 
   JavaVelocityPluginDescriptionCandidate(String id, @Nullable String name, @Nullable String version,
-                                         @Nullable String description, @Nullable String url,
-                                         @Nullable List<String> authors, Collection<PluginDependency> dependencies,
-                                         @Nullable Collection<String> providedIds, Path source,
-                                         String mainClass) {
+      @Nullable String description, @Nullable String url,
+      @Nullable List<String> authors, Collection<PluginDependency> dependencies,
+      @Nullable Collection<String> providedIds, Path source, String mainClass) {
     super(id, name, version, description, url, authors, dependencies, providedIds, source);
     this.mainClass = checkNotNull(mainClass);
   }

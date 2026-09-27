@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -80,7 +80,6 @@ public enum ProtocolUtils {
               .build()
           )
           .build();
-
   private static final GsonComponentSerializer PRE_1_20_3_SERIALIZER =
           GsonComponentSerializer.builder()
           .legacyHoverEventSerializer(NBTLegacyHoverEventSerializer.get())
@@ -102,7 +101,6 @@ public enum ProtocolUtils {
               .build()
           )
           .build();
-
   private static final GsonComponentSerializer PRE_1_21_5_SERIALIZER =
       GsonComponentSerializer.builder()
           .legacyHoverEventSerializer(NBTLegacyHoverEventSerializer.get())
@@ -124,7 +122,6 @@ public enum ProtocolUtils {
               .build()
           )
           .build();
-
   private static final GsonComponentSerializer MODERN_SERIALIZER =
       GsonComponentSerializer.builder()
           .legacyHoverEventSerializer(NBTLegacyHoverEventSerializer.get())
@@ -147,29 +144,22 @@ public enum ProtocolUtils {
           )
           .build();
 
-  public static final int DEFAULT_MAX_STRING_SIZE = 65536;
-
+  public static final int DEFAULT_MAX_STRING_SIZE = 65536; // 64KiB
   private static final int DEFAULT_MAX_KEY_ARRAY_SIZE = 1024;
-
   private static final int MAXIMUM_VARINT_SIZE = 5;
-
   private static final BinaryTagType<? extends BinaryTag>[] BINARY_TAG_TYPES = new BinaryTagType[] {
       BinaryTagTypes.END, BinaryTagTypes.BYTE, BinaryTagTypes.SHORT, BinaryTagTypes.INT,
       BinaryTagTypes.LONG, BinaryTagTypes.FLOAT, BinaryTagTypes.DOUBLE,
       BinaryTagTypes.BYTE_ARRAY, BinaryTagTypes.STRING, BinaryTagTypes.LIST,
-      BinaryTagTypes.COMPOUND, BinaryTagTypes.INT_ARRAY, BinaryTagTypes.LONG_ARRAY
-  };
-
+      BinaryTagTypes.COMPOUND, BinaryTagTypes.INT_ARRAY, BinaryTagTypes.LONG_ARRAY};
   private static final QuietDecoderException BAD_VARINT_CACHED =
       new QuietDecoderException("Bad VarInt decoded");
-
   private static final int[] VAR_INT_LENGTHS = new int[33];
 
   static {
     for (int i = 0; i <= 32; ++i) {
       VAR_INT_LENGTHS[i] = (int) Math.ceil((31d - (i - 1)) / 7d);
     }
-
     VAR_INT_LENGTHS[32] = 1; // Special case for the number 0.
   }
 
@@ -210,7 +200,6 @@ public enum ProtocolUtils {
         return i;
       }
     }
-
     throw badVarint();
   }
 
@@ -363,13 +352,6 @@ public enum ProtocolUtils {
     writeString(buf, key.asMinimalString());
   }
 
-  /**
-   * Reads a standard Mojang Text namespaced:key array from the buffer,
-   * with a cap of {@code DEFAULT_MAX_KEY_ARRAY_SIZE}.
-   *
-   * @param buf the buffer to read from
-   * @return the decoded key array
-   */
   public static Key[] readKeyArray(ByteBuf buf) {
     return readKeyArray(buf, DEFAULT_MAX_KEY_ARRAY_SIZE);
   }
@@ -378,7 +360,6 @@ public enum ProtocolUtils {
    * Reads a standard Mojang Text namespaced:key array from the buffer.
    *
    * @param buf the buffer to read from
-   * @param cap the maximum length to read
    * @return the decoded key array
    */
   public static Key[] readKeyArray(ByteBuf buf, int cap) {
@@ -393,7 +374,6 @@ public enum ProtocolUtils {
     for (int i = 0; i < ret.length; i++) {
       ret[i] = ProtocolUtils.readKey(buf);
     }
-
     return ret;
   }
 
@@ -455,12 +435,11 @@ public enum ProtocolUtils {
     for (int i = 0; i < len; i++) {
       array[i] = readVarInt(buf);
     }
-
     return array;
   }
 
   /**
-   * Reads a UUID from the {@code buf}.
+   * Reads an UUID from the {@code buf}.
    *
    * @param buf the buffer to read from
    * @return the UUID from the buffer
@@ -477,7 +456,7 @@ public enum ProtocolUtils {
   }
 
   /**
-   * Reads a UUID stored as an Integer Array from the {@code buf}.
+   * Reads an UUID stored as an Integer Array from the {@code buf}.
    *
    * @param buf the buffer to read from
    * @return the UUID from the buffer
@@ -493,7 +472,7 @@ public enum ProtocolUtils {
   }
 
   /**
-   * Writes a UUID as an Integer Array to the {@code buf}.
+   * Writes an UUID as an Integer Array to the {@code buf}.
    *
    * @param buf  the buffer to write to
    * @param uuid the UUID to write
@@ -506,13 +485,11 @@ public enum ProtocolUtils {
   }
 
   /**
-   * Reads a {@link CompoundBinaryTag} from the given {@link ByteBuf}.
+   * Reads a {@link net.kyori.adventure.nbt.CompoundBinaryTag} from the {@code buf}.
    *
-   * @param buf the buffer to read from
-   * @param version the protocol version used to determine tag parsing behavior
-   * @param reader the {@link BinaryTagIO.Reader} used to parse the tag (maybe ignored depending on version)
-   * @return the decoded {@link net.kyori.adventure.nbt.CompoundBinaryTag}
-   * @throws DecoderException if the root tag is not a compound tag
+   * @param buf    the buffer to read from
+   * @param reader the {@link BinaryTagIO.Reader} to use
+   * @return {@link net.kyori.adventure.nbt.CompoundBinaryTag} the CompoundTag from the buffer
    */
   public static CompoundBinaryTag readCompoundTag(ByteBuf buf, ProtocolVersion version,
                                                   BinaryTagIO.Reader reader) {
@@ -521,7 +498,6 @@ public enum ProtocolUtils {
       throw new DecoderException(
           "Expected root tag to be CompoundTag, but is " + binaryTag.getClass().getSimpleName());
     }
-
     return (CompoundBinaryTag) binaryTag;
   }
 
@@ -540,7 +516,6 @@ public enum ProtocolUtils {
     if (version.lessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
       buf.skipBytes(buf.readUnsignedShort());
     }
-
     try {
       return type.read(new ByteBufInputStream(buf));
     } catch (IOException thrown) {
@@ -567,7 +542,6 @@ public enum ProtocolUtils {
         // Empty name
         buf.writeShort(0);
       }
-
       type.write(tag, new ByteBufOutputStream(buf));
     } catch (IOException e) {
       throw new EncoderException("Unable to encode BinaryTag");
@@ -590,7 +564,6 @@ public enum ProtocolUtils {
     for (int i = 0; i < length; i++) {
       ret[i] = readString(buf);
     }
-
     return ret;
   }
 
@@ -623,7 +596,6 @@ public enum ProtocolUtils {
     for (int i = 0; i < length; i++) {
       ret[i] = readVarInt(buf);
     }
-
     return ret;
   }
 
@@ -678,17 +650,15 @@ public enum ProtocolUtils {
       if (hasSignature) {
         signature = readString(buf);
       }
-
       properties.add(new GameProfile.Property(name, value, signature));
     }
-
     return properties;
   }
 
   private static final int FORGE_MAX_ARRAY_LENGTH = Integer.MAX_VALUE & 0x1FFF9A;
 
   /**
-   * Reads a byte array for legacy version 1.7 from the specified {@code buf}.
+   * Reads an byte array for legacy version 1.7 from the specified {@code buf}.
    *
    * @param buf the buffer to read from
    * @return the read byte array
@@ -696,7 +666,7 @@ public enum ProtocolUtils {
   public static byte[] readByteArray17(ByteBuf buf) {
     // Read in a 2 or 3 byte number that represents the length of the packet. (3 byte "shorts" for
     // Forge only)
-    // No vanilla packet should give a 3-byte packet
+    // No vanilla packet should give a 3 byte packet
     int len = readExtendedForgeShort(buf);
 
     checkArgument(len <= FORGE_MAX_ARRAY_LENGTH,
@@ -711,7 +681,7 @@ public enum ProtocolUtils {
   }
 
   /**
-   * Reads a retained {@link ByteBuf} slice of the specified {@code buf} with the 1.7-style length.
+   * Reads a retained {@link ByteBuf} slice of the specified {@code buf} with the 1.7 style length.
    *
    * @param buf the buffer to read from
    * @return the retained slice
@@ -719,7 +689,7 @@ public enum ProtocolUtils {
   public static ByteBuf readRetainedByteBufSlice17(ByteBuf buf) {
     // Read in a 2 or 3 byte number that represents the length of the packet. (3 byte "shorts" for
     // Forge only)
-    // No vanilla packet should give a 3-byte packet
+    // No vanilla packet should give a 3 byte packet
     int len = readExtendedForgeShort(buf);
 
     checkFrame(len <= FORGE_MAX_ARRAY_LENGTH,
@@ -729,7 +699,7 @@ public enum ProtocolUtils {
   }
 
   /**
-   * Writes a byte array for legacy version 1.7 to the specified {@code buf}.
+   * Writes an byte array for legacy version 1.7 to the specified {@code buf}.
    *
    * @param b             array
    * @param buf           buf
@@ -744,11 +714,10 @@ public enum ProtocolUtils {
       checkFrame(b.length <= Short.MAX_VALUE,
           "Cannot send array longer than Short.MAX_VALUE (got %s bytes)", b.length);
     }
-
     // Write a 2 or 3 byte number that represents the length of the packet. (3 byte "shorts" for
     // Forge only)
-    // No vanilla packet should give a 3-byte packet, this method will still retain vanilla
-    // behavior.
+    // No vanilla packet should give a 3 byte packet, this method will still retain vanilla
+    // behaviour.
     writeExtendedForgeShort(buf, b.length);
     buf.writeBytes(b);
   }
@@ -769,11 +738,10 @@ public enum ProtocolUtils {
       checkFrame(b.readableBytes() <= Short.MAX_VALUE,
           "Cannot send array longer than Short.MAX_VALUE (got %s bytes)", b.readableBytes());
     }
-
     // Write a 2 or 3 byte number that represents the length of the packet. (3 byte "shorts" for
     // Forge only)
-    // No vanilla packet should give a 3-byte packet, this method will still retain vanilla
-    // behavior.
+    // No vanilla packet should give a 3 byte packet, this method will still retain vanilla
+    // behaviour.
     writeExtendedForgeShort(buf, b.readableBytes());
     buf.writeBytes(b);
   }
@@ -791,7 +759,6 @@ public enum ProtocolUtils {
       low = low & 0x7FFF;
       high = buf.readUnsignedByte();
     }
-
     return ((high & 0xFF) << 15) | low;
   }
 
@@ -807,7 +774,6 @@ public enum ProtocolUtils {
     if (high != 0) {
       low = low | 0x8000;
     }
-
     buf.writeShort(low);
     if (high != 0) {
       buf.writeByte(high);
@@ -815,9 +781,8 @@ public enum ProtocolUtils {
   }
 
   /**
-   * Reads a non-length-prefixed string from the {@code buf}.
-   * We need this for the legacy 1.7 version, being
-   * inconsistent when sending the brand.
+   * Reads a non length-prefixed string from the {@code buf}. We need this for the legacy 1.7
+   * version, being inconsistent when sending the brand.
    *
    * @param buf the buffer to read from
    * @return the decoded string
@@ -837,15 +802,12 @@ public enum ProtocolUtils {
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_21_5)) {
       return MODERN_SERIALIZER;
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       return PRE_1_21_5_SERIALIZER;
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_16)) {
       return PRE_1_20_3_SERIALIZER;
     }
-
     return PRE_1_16_SERIALIZER;
   }
 
@@ -864,9 +826,8 @@ public enum ProtocolUtils {
   /**
    * Reads a players {@link IdentifiedKey} from the buffer.
    *
-   * @param version the protocol version to determine key revision strategy
-   * @param buf the buffer to read from
-   * @return the decoded {@link IdentifiedKey}
+   * @param buf the buffer
+   * @return the key
    */
   public static IdentifiedKey readPlayerKey(ProtocolVersion version, ByteBuf buf) {
     long expiry = buf.readLong();
@@ -938,15 +899,7 @@ public enum ProtocolUtils {
    * Represents the direction in which a packet flows.
    */
   public enum Direction {
-
-    /**
-     * Indicates that the packet is sent from the client to the server.
-     */
     SERVERBOUND,
-
-    /**
-     * Indicates that the packet is sent from the server to the client.
-     */
     CLIENTBOUND
   }
 }

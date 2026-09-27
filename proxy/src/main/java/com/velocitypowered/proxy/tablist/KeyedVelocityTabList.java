@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,7 +45,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class KeyedVelocityTabList implements InternalTabList {
 
   protected final ConnectedPlayer player;
-
   protected final MinecraftConnection connection;
 
   protected final VelocityServer proxyServer;
@@ -136,12 +135,10 @@ public class KeyedVelocityTabList implements InternalTabList {
     if (listEntries.isEmpty()) {
       return;
     }
-
     List<LegacyPlayerListItemPacket.Item> items = new ArrayList<>(listEntries.size());
     for (TabListEntry value : listEntries) {
       items.add(LegacyPlayerListItemPacket.Item.from(value));
     }
-
     clearAllSilent();
     connection.delayedWrite(new LegacyPlayerListItemPacket(
             LegacyPlayerListItemPacket.REMOVE_PLAYER, items));
@@ -164,17 +161,15 @@ public class KeyedVelocityTabList implements InternalTabList {
   }
 
   @Override
-  public TabListEntry buildEntry(GameProfile profile, @Nullable Component displayName,
-                                 int latency, int gameMode, @Nullable ChatSession chatSession,
-                                 boolean listed) {
+  public TabListEntry buildEntry(GameProfile profile, @Nullable Component displayName, int latency,
+      int gameMode, @Nullable ChatSession chatSession, boolean listed) {
     return new KeyedVelocityTabListEntry(this, profile, displayName, latency, gameMode,
         chatSession == null ? null : chatSession.getIdentifiedKey());
   }
 
   @Override
-  public TabListEntry buildEntry(GameProfile profile, @Nullable Component displayName,
-                                 int latency, int gameMode, @Nullable ChatSession chatSession,
-                                 boolean listed, int listOrder, boolean showHat) {
+  public TabListEntry buildEntry(GameProfile profile, @Nullable Component displayName, int latency,
+                                 int gameMode, @Nullable ChatSession chatSession, boolean listed, int listOrder, boolean showHat) {
     return buildEntry(profile, displayName, latency, gameMode, chatSession, listed);
   }
 
@@ -185,7 +180,8 @@ public class KeyedVelocityTabList implements InternalTabList {
       UUID uuid = item.getUuid();
       assert uuid != null : "1.7 tab list entry given to modern tab list handler!";
 
-      if (packet.getAction() != LegacyPlayerListItemPacket.ADD_PLAYER && !entries.containsKey(uuid)) {
+      if (packet.getAction() != LegacyPlayerListItemPacket.ADD_PLAYER
+              && !entries.containsKey(uuid)) {
         // Sometimes UPDATE_GAMEMODE is sent before ADD_PLAYER so don't want to warn here
         continue;
       }

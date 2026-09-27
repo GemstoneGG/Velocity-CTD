@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,7 +73,7 @@ public class Velocity {
    * @param args the arguments to the proxy
    */
   public static void main(String... args) {
-    ProxyOptions options = new ProxyOptions(args);
+    final ProxyOptions options = new ProxyOptions(args);
     if (options.isHelp()) {
       return;
     }
@@ -93,7 +93,7 @@ public class Velocity {
     server.getConsoleCommandSource().start();
 
     // If we don't have a console available (because SimpleTerminalConsole returned), then we still
-    // need to wait; otherwise the JVM will reap us as no non-daemon threads will be active once the
+    // need to wait, otherwise the JVM will reap us as no non-daemon threads will be active once the
     // main thread exits.
     server.awaitProxyShutdown();
   }

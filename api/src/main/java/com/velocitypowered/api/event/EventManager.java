@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -48,7 +48,8 @@ public interface EventManager {
    * @deprecated use {@link #register(Object, Class, short, EventHandler)} instead
    */
   @Deprecated
-  <E> void register(Object plugin, Class<E> eventClass, PostOrder postOrder, EventHandler<E> handler);
+  <E> void register(Object plugin, Class<E> eventClass, PostOrder postOrder,
+      EventHandler<E> handler);
 
   /**
    * Requests that the specified {@code handler} listen for events and associate it with the {@code
@@ -59,18 +60,19 @@ public interface EventManager {
    *
    * @param plugin the plugin to associate with the handler
    * @param eventClass the class for the event handler to register
-   * @param postOrder the relative order of this handler; higher values are invoked earlier
+   * @param postOrder the relative order in which events should be posted to the handler. The higher
+   *     the priority, the earlier the event handler will be called
    * @param handler the handler to register
    * @param <E> the event type to handle
    */
-  <E> void register(Object plugin, Class<E> eventClass, short postOrder, EventHandler<E> handler);
+  <E> void register(Object plugin, Class<E> eventClass, short postOrder,
+      EventHandler<E> handler);
 
   /**
    * Fires the specified event to the event bus asynchronously. This allows Velocity to continue
    * servicing connections while a plugin handles a potentially long-running operation such as a
    * database query.
    *
-   * @param <E> the event type
    * @param event the event to fire
    * @return a {@link CompletableFuture} representing the posted event
    */

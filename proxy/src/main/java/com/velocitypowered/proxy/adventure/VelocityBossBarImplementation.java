@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2020-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,48 +35,48 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("UnstableApiUsage")
 public final class VelocityBossBarImplementation implements BossBar.Listener,
     BossBarImplementation {
-
-  private final Set<ConnectedPlayer> viewers = Collections.newSetFromMap(new MapMaker().weakKeys().makeMap());
-
+  private final Set<ConnectedPlayer> viewers = Collections.newSetFromMap(
+      new MapMaker().weakKeys().makeMap());
   private final UUID id = UUID.randomUUID();
-
   private final BossBar bar;
 
-  public static VelocityBossBarImplementation get(BossBar bar) {
+  public static VelocityBossBarImplementation get(final BossBar bar) {
     return BossBarImplementation.get(bar, VelocityBossBarImplementation.class);
   }
 
-  VelocityBossBarImplementation(BossBar bar) {
+  VelocityBossBarImplementation(final BossBar bar) {
     this.bar = bar;
   }
 
-  public boolean viewerAdd(ConnectedPlayer viewer) {
+  public boolean viewerAdd(final ConnectedPlayer viewer) {
     if (this.viewers.add(viewer)) {
-      ComponentHolder name = new ComponentHolder(viewer.getProtocolVersion(), viewer.translateMessage(this.bar.name()));
+      final ComponentHolder name = new ComponentHolder(
+          viewer.getProtocolVersion(),
+          viewer.translateMessage(this.bar.name())
+      );
       viewer.getBossBarManager().writeUpdate(this, BossBarPacket.createAddPacket(this.id, this.bar, name));
       return true;
     }
-
     return false;
   }
 
-  public void createDirect(ConnectedPlayer viewer) {
-    ComponentHolder name = new ComponentHolder(
+  public void createDirect(final ConnectedPlayer viewer) {
+    final ComponentHolder name = new ComponentHolder(
         viewer.getProtocolVersion(),
-        viewer.translateMessage(this.bar.name()));
+        viewer.translateMessage(this.bar.name())
+    );
     viewer.getConnection().write(BossBarPacket.createAddPacket(this.id, this.bar, name));
   }
 
-  public boolean viewerRemove(ConnectedPlayer viewer) {
+  public boolean viewerRemove(final ConnectedPlayer viewer) {
     if (this.viewers.remove(viewer)) {
       viewer.getBossBarManager().remove(this, BossBarPacket.createRemovePacket(this.id, this.bar));
       return true;
     }
-
     return false;
   }
 
-  public void viewerDisconnected(ConnectedPlayer viewer) {
+  public void viewerDisconnected(final ConnectedPlayer viewer) {
     this.viewers.remove(viewer);
   }
 

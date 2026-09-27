@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,6 @@ import org.jetbrains.annotations.NotNull;
 @AutoService(ClickCallback.Provider.class)
 @SuppressWarnings("UnstableApiUsage") // permitted provider
 public class ClickCallbackProviderImpl implements ClickCallback.Provider {
-
   @Override
   public final @NotNull ClickEvent create(@NotNull ClickCallback<Audience> callback, ClickCallback.@NotNull Options options) {
     UUID id = ClickCallbackManager.INSTANCE.register(callback, options);

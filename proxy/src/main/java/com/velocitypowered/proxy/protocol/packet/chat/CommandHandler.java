@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,13 +41,12 @@ public interface CommandHandler<T extends MinecraftPacket> {
       handlePlayerCommandInternal(packetClass().cast(packet));
       return true;
     }
-
     return false;
   }
 
   default CompletableFuture<MinecraftPacket> runCommand(VelocityServer server,
-                                                        ConnectedPlayer player, String command,
-                                                        Function<Boolean, MinecraftPacket> hasRunPacketFunction) {
+      ConnectedPlayer player, String command,
+      Function<Boolean, MinecraftPacket> hasRunPacketFunction) {
     return server.getCommandManager().executeImmediatelyAsync(player, command)
         .thenApply(hasRunPacketFunction);
   }
@@ -64,11 +63,11 @@ public interface CommandHandler<T extends MinecraftPacket> {
               if (server.getConfiguration().isLogCommandExecutions()) {
                 logger.info("{} -> executed command /{}", player, message);
               }
-
               return pkt;
             }).exceptionally(e -> {
               logger.info("Exception occurred while running command for {}", player.getUsername(), e);
-              player.sendMessage(Component.translatable("velocity.command.generic-error", NamedTextColor.RED));
+              player.sendMessage(
+                  Component.translatable("velocity.command.generic-error", NamedTextColor.RED));
               return null;
             }), timestamp, lastSeenMessages);
   }

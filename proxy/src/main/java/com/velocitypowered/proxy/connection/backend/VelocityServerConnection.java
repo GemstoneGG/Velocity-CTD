@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,23 +66,14 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
   private volatile VelocityRegisteredServer registeredServer;
 
   private final @Nullable VelocityRegisteredServer previousServer;
-
   private final ConnectedPlayer proxyPlayer;
-
   private final VelocityServer server;
-
   private @Nullable MinecraftConnection connection;
-
   private boolean hasCompletedJoin = false;
-
   private boolean clientLoaded = false; // 1.21.4+
-
   private boolean gracefulDisconnect = false;
-
   private BackendConnectionPhase connectionPhase = BackendConnectionPhases.UNKNOWN;
-
   private final Map<Long, Long> pendingPings = new HashMap<>();
-
   private @MonotonicNonNull Integer entityId;
 
   private volatile @Nullable RootCommandNode<CommandSource> backendCommandsNode;
@@ -96,8 +87,8 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
    * @param server           the Velocity proxy instance
    */
   public VelocityServerConnection(VelocityRegisteredServer registeredServer,
-                                  @Nullable VelocityRegisteredServer previousServer,
-                                  ConnectedPlayer proxyPlayer, VelocityServer server) {
+      @Nullable VelocityRegisteredServer previousServer,
+      ConnectedPlayer proxyPlayer, VelocityServer server) {
     this.registeredServer = registeredServer;
     this.previousServer = previousServer;
     this.proxyPlayer = proxyPlayer;
@@ -142,12 +133,11 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
             result.completeExceptionally(future.cause());
           }
         });
-
     return result;
   }
 
   String getPlayerRemoteAddressAsString() {
-    String addr = proxyPlayer.getRemoteAddress().getAddress().getHostAddress();
+    final String addr = proxyPlayer.getRemoteAddress().getAddress().getHostAddress();
     int ipv6ScopeIdx = addr.indexOf('%');
     if (ipv6ScopeIdx == -1) {
       return addr;
@@ -183,8 +173,8 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     // Initiate the handshake.
     ProtocolVersion protocolVersion = proxyPlayer.getConnection().getProtocolVersion();
     String playerVhost = proxyPlayer.getVirtualHost()
-        .orElseGet(() -> registeredServer.getServerInfo().getAddress())
-        .getHostString();
+                .orElseGet(() -> registeredServer.getServerInfo().getAddress())
+                .getHostString();
 
     HandshakePacket handshake = new HandshakePacket();
     handshake.setIntent(HandshakeIntent.LOGIN);
@@ -203,8 +193,8 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     }
 
     handshake.setPort(proxyPlayer.getVirtualHost()
-        .orElseGet(() -> registeredServer.getServerInfo().getAddress())
-        .getPort());
+            .orElseGet(() -> registeredServer.getServerInfo().getAddress())
+            .getPort());
     mc.delayedWrite(handshake);
 
     mc.setProtocolVersion(protocolVersion);
@@ -213,7 +203,8 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
         && proxyPlayer.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_19_3)) {
       mc.delayedWrite(new ServerLoginPacket(proxyPlayer.getUsername(), proxyPlayer.getUniqueId()));
     } else {
-      mc.delayedWrite(new ServerLoginPacket(proxyPlayer.getUsername(), proxyPlayer.getIdentifiedKey()));
+      mc.delayedWrite(new ServerLoginPacket(proxyPlayer.getUsername(),
+              proxyPlayer.getIdentifiedKey()));
     }
     mc.flush();
   }
@@ -232,7 +223,6 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
     if (connection == null) {
       throw new IllegalStateException("Not connected to server!");
     }
-
     return connection;
   }
 
@@ -283,33 +273,23 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
         + registeredServer.getServerInfo().getName();
   }
 
-  /**
-   * Sends a plugin message to the server using a raw byte array payload.
-   *
-   * @param identifier the plugin channel to send the message on
-   * @param data       the raw message payload
-   * @return {@code true} if the message was sent, {@code false} if the buffer was empty
-   */
   @Override
-  public boolean sendPluginMessage(@NotNull ChannelIdentifier identifier, byte @NotNull [] data) {
+  public boolean sendPluginMessage(
+          final @NotNull ChannelIdentifier identifier,
+          final byte @NotNull [] data
+  ) {
     return sendPluginMessage(identifier, Unpooled.wrappedBuffer(data));
   }
 
-  /**
-   * Sends a plugin message to the server using a {@link PluginMessageEncoder} to encode the payload.
-   *
-   * <p>If the resulting buffer is empty, the message will not be sent.</p>
-   *
-   * @param identifier   the plugin channel to send the message on
-   * @param dataEncoder  the encoder used to write the message payload
-   * @return {@code true} if the message was sent, {@code false} if the encoded payload was empty
-   */
   @Override
-  public boolean sendPluginMessage(@NotNull ChannelIdentifier identifier, @NotNull PluginMessageEncoder dataEncoder) {
+  public boolean sendPluginMessage(
+          final @NotNull ChannelIdentifier identifier,
+          final @NotNull PluginMessageEncoder dataEncoder
+  ) {
     requireNonNull(identifier);
     requireNonNull(dataEncoder);
-    ByteBuf buf = Unpooled.buffer();
-    ByteBufDataOutput dataOutput = new ByteBufDataOutput(buf);
+    final ByteBuf buf = Unpooled.buffer();
+    final ByteBufDataOutput dataOutput = new ByteBufDataOutput(buf);
     dataEncoder.encode(dataOutput);
     if (buf.isReadable()) {
       return sendPluginMessage(identifier, buf);
@@ -324,15 +304,15 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
    *
    * @param identifier the channel ID to use
    * @param data       the data
-   * @return whether the message was sent
+   * @return whether or not the message was sent
    */
   public boolean sendPluginMessage(ChannelIdentifier identifier, ByteBuf data) {
     Preconditions.checkNotNull(identifier, "identifier");
     Preconditions.checkNotNull(data, "data");
 
-    MinecraftConnection mc = ensureConnected();
+    final MinecraftConnection mc = ensureConnected();
 
-    PluginMessagePacket message = new PluginMessagePacket(identifier.getId(), data);
+    final PluginMessagePacket message = new PluginMessagePacket(identifier.getId(), data);
     mc.write(message);
     return true;
   }
@@ -382,15 +362,16 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
    * Ensures that this server connection remains "active": the connection is established and not
    * closed, the player is still connected to the server, and the player still remains online.
    *
-   * @return whether the player is online
+   * @return whether or not the player is online
    */
   public boolean isActive() {
-    return connection != null && !connection.isClosed() && !gracefulDisconnect && proxyPlayer.isActive();
+    return connection != null && !connection.isClosed() && !gracefulDisconnect
+        && proxyPlayer.isActive();
   }
 
   /**
    * Gets the current "phase" of the connection, mostly used for tracking modded negotiation for
-   * legacy forge servers and provides methods for performing phase-specific actions.
+   * legacy forge servers and provides methods for performing phase specific actions.
    *
    * @return The {@link BackendConnectionPhase}
    */

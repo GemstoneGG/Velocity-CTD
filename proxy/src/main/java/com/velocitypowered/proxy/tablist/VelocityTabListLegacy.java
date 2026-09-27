@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2019-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -75,7 +75,6 @@ public class VelocityTabListLegacy extends KeyedVelocityTabList {
           LegacyPlayerListItemPacket.REMOVE_PLAYER,
           Collections.singletonList(LegacyPlayerListItemPacket.Item.from(value))));
     }
-
     clearAllSilent();
   }
 
@@ -120,7 +119,7 @@ public class VelocityTabListLegacy extends KeyedVelocityTabList {
   }
 
   @Override
-  final void updateEntry(int action, TabListEntry entry) {
+  void updateEntry(int action, TabListEntry entry) {
     if (entries.containsKey(entry.getProfile().getId())) {
       switch (action) {
         // Add here because we removed beforehand
@@ -150,8 +149,7 @@ public class VelocityTabListLegacy extends KeyedVelocityTabList {
 
   @Override
   public TabListEntry buildEntry(GameProfile profile, @Nullable Component displayName, int latency,
-                                 int gameMode, @Nullable ChatSession chatSession, boolean listed, int listOrder,
-                                 boolean showHat) {
+                                 int gameMode, @Nullable ChatSession chatSession, boolean listed, int listOrder, boolean showHat) {
     return new VelocityTabListEntryLegacy(this, profile, displayName, latency, gameMode);
   }
 }

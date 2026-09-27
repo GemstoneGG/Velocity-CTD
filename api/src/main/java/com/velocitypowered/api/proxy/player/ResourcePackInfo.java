@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -41,10 +41,10 @@ public interface ResourcePackInfo extends ResourcePackRequestLike {
   Component getPrompt();
 
   /**
-   * Gets whether the acceptance of the resource-pack is enforced.
+   * Gets whether or not the acceptance of the resource-pack is enforced.
    * See {@link Builder#setShouldForce(boolean)} for more information.
    *
-   * @return whether to force usage of this resource-pack
+   * @return whether or not to force usage of this resource-pack
    */
   boolean getShouldForce();
 
@@ -89,7 +89,7 @@ public interface ResourcePackInfo extends ResourcePackRequestLike {
    * Returns a copy of this {@link ResourcePackInfo} instance as a builder, using the new URL.
    * It is <b>not</b> guaranteed that
    * {@code resourcePackInfo.asBuilder(resourcePackInfo.getUrl()).build().equals(resourcePackInfo)}
-   * Is true, because the {@link ResourcePackInfo#getOrigin()} and
+   * is true, because the {@link ResourcePackInfo#getOrigin()} and
    * {@link ResourcePackInfo#getOriginalOrigin()} fields are transient.
    *
    * @param newUrl The new URL to use in the updated builder.
@@ -106,8 +106,7 @@ public interface ResourcePackInfo extends ResourcePackRequestLike {
     /**
      * Sets the id of the resource pack.
      *
-     * @param id the id of the resource-pack
-     * @return this builder instance
+     * @param id the id the resource-pack
      */
     Builder setId(UUID id);
 
@@ -122,13 +121,12 @@ public interface ResourcePackInfo extends ResourcePackRequestLike {
      *    previously declined or disabled resource packs
      *  - The player will be disconnected from the network if they close/skip the prompt.
      * If the client is on a version older than 1.17:
-     *  - If the player accepts the resource pack or has previously accepted a resource-pack,
+     *  - If the player accepts the resource pack or has previously accepted a resource-pack
      *    then nothing else will happen.
      *  - If the player declines the resource pack or has previously declined a resource-pack
      *    the player will be disconnected from the network
      *
-     * @param shouldForce whether to force the client to accept the resource pack
-     * @return this builder instance
+     * @param shouldForce whether or not to force the client to accept the resource pack
      */
     Builder setShouldForce(boolean shouldForce);
 
@@ -150,7 +148,6 @@ public interface ResourcePackInfo extends ResourcePackRequestLike {
      * This will only display if the client version is 1.17 or newer.
      *
      * @param prompt the component to display
-     * @return this builder instance
      */
     Builder setPrompt(@Nullable Component prompt);
 
@@ -168,12 +165,10 @@ public interface ResourcePackInfo extends ResourcePackRequestLike {
    * Represents the origin of the resource-pack.
    */
   enum Origin {
-
     /**
      * Resource-pack originated from the downstream server.
      */
     DOWNSTREAM_SERVER,
-
     /**
      * The resource-pack originated from a plugin on this proxy.
      */

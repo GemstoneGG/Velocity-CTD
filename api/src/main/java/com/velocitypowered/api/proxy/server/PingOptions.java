@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -25,28 +25,15 @@ import org.jetbrains.annotations.Nullable;
  * @see RegisteredServer#ping(PingOptions)
  */
 public final class PingOptions {
-
   /**
    * Default PingOptions.
    */
   public static final PingOptions DEFAULT = PingOptions.builder().build();
-
-  /**
-   * The protocol version to emulate during the ping.
-   */
   private final ProtocolVersion protocolVersion;
-
-  /**
-   * The maximum time (in milliseconds) to wait for the ping response.
-   */
   private final long timeout;
-
-  /**
-   * The virtual hostname to use when pinging the server, or {@code null} if not set.
-   */
   private final String virtualHost;
 
-  private PingOptions(Builder builder) {
+  private PingOptions(final Builder builder) {
     this.protocolVersion = builder.protocolVersion;
     this.timeout = builder.timeout;
     this.virtualHost = builder.virtualHost;
@@ -64,7 +51,7 @@ public final class PingOptions {
   /**
    * The maximum period of time to wait for a response from the remote server.
    *
-   * @return the server ping's timeout in milliseconds
+   * @return the server ping timeout in milliseconds
    */
   public long getTimeout() {
     return this.timeout;
@@ -94,13 +81,11 @@ public final class PingOptions {
     if (o == null) {
       return false;
     }
-
-    if (!(o instanceof PingOptions other)) {
+    if (!(o instanceof final PingOptions other)) {
       return false;
     }
-
     return Objects.equals(this.protocolVersion, other.protocolVersion)
-        && Objects.equals(this.timeout, other.timeout);
+            && Objects.equals(this.timeout, other.timeout);
   }
 
   @Override
@@ -111,9 +96,9 @@ public final class PingOptions {
   @Override
   public String toString() {
     return "PingOptions{"
-        + "protocolVersion=" + protocolVersion
-        + ", timeout=" + timeout
-        + '}';
+            + "protocolVersion=" + protocolVersion
+            + ", timeout=" + timeout
+            + '}';
   }
 
   /**
@@ -122,20 +107,8 @@ public final class PingOptions {
    * @since 3.2.0
    */
   public static final class Builder implements AbstractBuilder<PingOptions> {
-
-    /**
-     * The protocol version to use when pinging the server.
-     */
     private ProtocolVersion protocolVersion = ProtocolVersion.UNKNOWN;
-
-    /**
-     * The ping timeout in milliseconds.
-     */
     private long timeout = 0;
-
-    /**
-     * The virtual host string to use in the ping request.
-     */
     private String virtualHost = null;
 
     private Builder() {
@@ -147,7 +120,7 @@ public final class PingOptions {
      * @param protocolVersion the specified protocol
      * @return this builder
      */
-    public Builder version(@NotNull ProtocolVersion protocolVersion) {
+    public Builder version(final @NotNull ProtocolVersion protocolVersion) {
       checkNotNull(protocolVersion, "protocolVersion cannot be null");
       this.protocolVersion = protocolVersion;
       return this;
@@ -163,7 +136,7 @@ public final class PingOptions {
      *                be no timeout.
      * @return this builder
      */
-    public Builder timeout(@NotNull Duration timeout) {
+    public Builder timeout(final @NotNull Duration timeout) {
       checkNotNull(timeout, "timeout cannot be null");
       this.timeout = timeout.toMillis();
       return this;
@@ -180,7 +153,7 @@ public final class PingOptions {
      * @param timeunit the unit of time to be used to provide the timeout duration
      * @return this builder
      */
-    public Builder timeout(long time, @NotNull TimeUnit timeunit) {
+    public Builder timeout(final long time, final @NotNull TimeUnit timeunit) {
       checkNotNull(timeunit, "timeunit cannot be null");
       this.timeout = timeunit.toMillis(time);
       return this;
@@ -193,7 +166,7 @@ public final class PingOptions {
      * @return this builder
      * @since 3.4.0
      */
-    public Builder virtualHost(@Nullable String virtualHost) {
+    public Builder virtualHost(final @Nullable String virtualHost) {
       this.virtualHost = virtualHost;
       return this;
     }

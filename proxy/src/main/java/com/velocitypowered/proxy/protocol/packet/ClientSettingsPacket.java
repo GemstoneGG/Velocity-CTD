@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2022 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,26 +27,16 @@ import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class ClientSettingsPacket implements MinecraftPacket {
-
   private @Nullable String locale;
-
   private byte viewDistance;
-
   private int chatVisibility;
-
   private boolean chatColors;
-
-  private byte difficulty;
-
+  private byte difficulty; // 1.7 Protocol
   private short skinParts;
-
   private int mainHand;
-
-  private boolean textFilteringEnabled;
-
-  private boolean clientListingAllowed;
-
-  private int particleStatus;
+  private boolean textFilteringEnabled; // Added in 1.17
+  private boolean clientListingAllowed; // Added in 1.18, overwrites server-list "anonymous" mode
+  private int particleStatus; // Added in 1.21.2
 
   public ClientSettingsPacket() {
   }
@@ -69,7 +59,6 @@ public class ClientSettingsPacket implements MinecraftPacket {
     if (locale == null) {
       throw new IllegalStateException("No locale specified");
     }
-
     return locale;
   }
 
@@ -191,7 +180,6 @@ public class ClientSettingsPacket implements MinecraftPacket {
     if (locale == null) {
       throw new IllegalStateException("No locale specified");
     }
-
     ProtocolUtils.writeString(buf, locale);
     buf.writeByte(viewDistance);
     ProtocolUtils.writeVarInt(buf, chatVisibility);
@@ -263,16 +251,14 @@ public class ClientSettingsPacket implements MinecraftPacket {
   }
 
   @Override
-  public boolean equals(@Nullable Object o) {
+  public boolean equals(@Nullable final Object o) {
     if (this == o) {
       return true;
     }
-
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-
-    ClientSettingsPacket that = (ClientSettingsPacket) o;
+    final ClientSettingsPacket that = (ClientSettingsPacket) o;
     return viewDistance == that.viewDistance
         && chatVisibility == that.chatVisibility
         && chatColors == that.chatColors
@@ -297,7 +283,6 @@ public class ClientSettingsPacket implements MinecraftPacket {
         mainHand,
         textFilteringEnabled,
         clientListingAllowed,
-        particleStatus
-    );
+        particleStatus);
   }
 }

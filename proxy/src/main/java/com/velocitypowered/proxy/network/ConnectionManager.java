@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,13 +73,9 @@ public final class ConnectionManager {
   private static final Logger LOGGER = LogManager.getLogger(ConnectionManager.class, new ParameterizedMessageFactory());
 
   private final Multimap<InetSocketAddress, Endpoint> endpoints = HashMultimap.create();
-
   private final TransportType transportType;
-
   private final EventLoopGroup bossGroup;
-
   private final EventLoopGroup workerGroup;
-
   private final VelocityServer server;
 
   public final ServerChannelInitializerHolder serverChannelInitializer;
@@ -106,8 +102,10 @@ public final class ConnectionManager {
     this.transportType = TransportType.bestType();
     this.bossGroup = this.transportType.createEventLoopGroup(TransportType.Type.BOSS);
     this.workerGroup = this.transportType.createEventLoopGroup(TransportType.Type.WORKER);
-    this.serverChannelInitializer = new ServerChannelInitializerHolder(new ServerChannelInitializer(this.server));
-    this.backendChannelInitializer = new BackendChannelInitializerHolder(new BackendChannelInitializer(this.server));
+    this.serverChannelInitializer = new ServerChannelInitializerHolder(
+        new ServerChannelInitializer(this.server));
+    this.backendChannelInitializer = new BackendChannelInitializerHolder(
+        new BackendChannelInitializer(this.server));
     this.resolver = new SeparatePoolInetNameResolver(GlobalEventExecutor.INSTANCE);
   }
 
@@ -121,8 +119,8 @@ public final class ConnectionManager {
    *
    * @param address the address to bind to
    */
-  public void bind(InetSocketAddress address) {
-    ServerBootstrap bootstrap = new ServerBootstrap()
+  public void bind(final InetSocketAddress address) {
+    final ServerBootstrap bootstrap = new ServerBootstrap()
         .channelFactory(this.transportType.serverSocketChannelFactory)
         .childOption(ChannelOption.WRITE_BUFFER_WATER_MARK, SERVER_WRITE_MARK)
         .childHandler(this.serverChannelInitializer.get())
@@ -136,12 +134,13 @@ public final class ConnectionManager {
 
     if (server.getConfiguration().isEnableReusePort()) {
       // We don't need a boss group, since each worker will bind to the socket
-      bootstrap.option(UnixChannelOption.SO_REUSEPORT, true).group(this.workerGroup);
+      bootstrap.option(UnixChannelOption.SO_REUSEPORT, true)
+          .group(this.workerGroup);
     } else {
       bootstrap.group(this.bossGroup, this.workerGroup);
     }
 
-    int binds = server.getConfiguration().isEnableReusePort()
+    final int binds = server.getConfiguration().isEnableReusePort()
         ? ((MultithreadEventExecutorGroup) this.workerGroup).executorCount() : 1;
 
     for (int bind = 0; bind < binds; bind++) {
@@ -149,7 +148,7 @@ public final class ConnectionManager {
       int finalBind = bind;
       ChannelFuture f = bootstrap.bind()
           .addListener((ChannelFutureListener) future -> {
-            Channel channel = future.channel();
+            final Channel channel = future.channel();
             if (future.isSuccess()) {
               this.endpoints.put(address, new Endpoint(channel, ListenerType.MINECRAFT));
 
@@ -164,13 +163,13 @@ public final class ConnectionManager {
                 }
 
                 // Fire the proxy bound event after the socket is bound
-                server.getEventManager().fireAndForget(new ListenerBoundEvent(address, ListenerType.MINECRAFT));
+                server.getEventManager().fireAndForget(
+                    new ListenerBoundEvent(address, ListenerType.MINECRAFT));
               }
             } else {
               LOGGER.error("Can't bind to {}", address, future.cause());
             }
           });
-
       f.syncUninterruptibly();
 
       if (!f.isSuccess()) {
@@ -185,16 +184,16 @@ public final class ConnectionManager {
    * @param hostname the hostname to bind to
    * @param port     the port to bind to
    */
-  public void queryBind(String hostname, int port) {
+  public void queryBind(final String hostname, final int port) {
     InetSocketAddress address = new InetSocketAddress(hostname, port);
-    Bootstrap bootstrap = new Bootstrap()
+    final Bootstrap bootstrap = new Bootstrap()
         .channelFactory(this.transportType.datagramChannelFactory)
         .group(this.workerGroup)
         .handler(new GameSpyQueryHandler(this.server))
         .localAddress(address);
     bootstrap.bind()
         .addListener((ChannelFutureListener) future -> {
-          Channel channel = future.channel();
+          final Channel channel = future.channel();
           if (future.isSuccess()) {
             this.endpoints.put(address, new Endpoint(channel, ListenerType.QUERY));
             LOGGER.info("Listening for GS4 query on {}", channel.localAddress());
@@ -225,7 +224,6 @@ public final class ConnectionManager {
     if (server.getConfiguration().useTcpFastOpen()) {
       bootstrap.option(ChannelOption.TCP_FASTOPEN_CONNECT, true);
     }
-
     return bootstrap;
   }
 
@@ -263,9 +261,10 @@ public final class ConnectionManager {
    * @param interrupt should closing forward interruptions
    */
   public void closeEndpoints(boolean interrupt) {
-    for (Map.Entry<InetSocketAddress, Collection<Endpoint>> entry : this.endpoints.asMap().entrySet()) {
-      InetSocketAddress address = entry.getKey();
-      Collection<Endpoint> endpoints = entry.getValue();
+    for (final Map.Entry<InetSocketAddress, Collection<Endpoint>> entry : this.endpoints.asMap()
+        .entrySet()) {
+      final InetSocketAddress address = entry.getKey();
+      final Collection<Endpoint> endpoints = entry.getValue();
       ListenerType type = endpoints.iterator().next().getType();
 
       // Fire proxy close event to notify plugins of socket close. We block since plugins
@@ -278,7 +277,7 @@ public final class ConnectionManager {
         if (interrupt) {
           try {
             endpoint.getChannel().close().sync();
-          } catch (InterruptedException e) {
+          } catch (final InterruptedException e) {
             LOGGER.info("Interrupted whilst closing endpoint", e);
             Thread.currentThread().interrupt();
           }
@@ -287,7 +286,6 @@ public final class ConnectionManager {
         }
       }
     }
-
     this.endpoints.clear();
   }
 

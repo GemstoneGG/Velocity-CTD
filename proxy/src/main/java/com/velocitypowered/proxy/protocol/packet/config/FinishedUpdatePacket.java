@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,23 +23,25 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
 
-public final class FinishedUpdatePacket implements MinecraftPacket {
-
+public class FinishedUpdatePacket implements MinecraftPacket {
   public static final FinishedUpdatePacket INSTANCE = new FinishedUpdatePacket();
 
   private FinishedUpdatePacket() {
   }
 
   @Override
-  public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
+  public void decode(ByteBuf buf, ProtocolUtils.Direction direction,
+                     ProtocolVersion protocolVersion) {
   }
 
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
+  public void encode(ByteBuf buf, ProtocolUtils.Direction direction,
+                     ProtocolVersion protocolVersion) {
   }
 
   @Override
-  public int decodeExpectedMaxLength(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion version) {
+  public int decodeExpectedMaxLength(ByteBuf buf, ProtocolUtils.Direction direction,
+                               ProtocolVersion version) {
     return 0;
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,24 +26,30 @@ import com.velocitypowered.proxy.command.VelocityCommands;
 import java.util.List;
 import java.util.Map;
 
-public final class RawCommandInvocation extends AbstractCommandInvocation<String> implements RawCommand.Invocation {
+/**
+ * Implements {@link RawCommand.Invocation}.
+ */
+public final class RawCommandInvocation extends AbstractCommandInvocation<String>
+    implements RawCommand.Invocation {
 
   public static final Factory FACTORY = new Factory();
 
   public static class Factory implements CommandInvocationFactory<RawCommand.Invocation> {
 
     @Override
-    public RawCommand.Invocation create(CommandSource source, List<? extends ParsedCommandNode<?>> nodes,
-                                        Map<String, ? extends ParsedArgument<?, ?>> arguments) {
-      String alias = VelocityCommands.readAlias(nodes);
-      String args = VelocityCommands.readArguments(arguments, String.class, "");
+    public RawCommand.Invocation create(
+        final CommandSource source, final List<? extends ParsedCommandNode<?>> nodes,
+        final Map<String, ? extends ParsedArgument<?, ?>> arguments) {
+      final String alias = VelocityCommands.readAlias(nodes);
+      final String args = VelocityCommands.readArguments(arguments, String.class, "");
       return new RawCommandInvocation(source, alias, args);
     }
   }
 
   private final String alias;
 
-  private RawCommandInvocation(CommandSource source, String alias, String arguments) {
+  private RawCommandInvocation(final CommandSource source,
+      final String alias, final String arguments) {
     super(source, arguments);
     this.alias = Preconditions.checkNotNull(alias, "alias");
   }
@@ -54,20 +60,18 @@ public final class RawCommandInvocation extends AbstractCommandInvocation<String
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
-
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-
     if (!super.equals(o)) {
       return false;
     }
 
-    RawCommandInvocation that = (RawCommandInvocation) o;
+    final RawCommandInvocation that = (RawCommandInvocation) o;
     return this.alias.equals(that.alias);
   }
 

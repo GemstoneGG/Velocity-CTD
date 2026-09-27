@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -62,12 +62,10 @@ final class SuggestionsProvider<S> {
   private static final StringRange ALIAS_SUGGESTION_RANGE = StringRange.at(0);
 
   private final @GuardedBy("lock") CommandDispatcher<S> dispatcher;
-
   private final Lock lock;
-
   private boolean announceProxyCommands;
 
-  SuggestionsProvider(CommandDispatcher<S> dispatcher, Lock lock) {
+  SuggestionsProvider(final CommandDispatcher<S> dispatcher, final Lock lock) {
     this.dispatcher = Preconditions.checkNotNull(dispatcher, "dispatcher");
     this.lock = Preconditions.checkNotNull(lock, "lock");
     this.announceProxyCommands = true;
@@ -80,8 +78,9 @@ final class SuggestionsProvider<S> {
    * @param source the command source invoking the command
    * @return a future that completes with the suggestions
    */
-  public CompletableFuture<Suggestions> provideSuggestions(String input, S source) {
-    CommandContextBuilder<S> context = new CommandContextBuilder<>(this.dispatcher, source, this.dispatcher.getRoot(), 0);
+  public CompletableFuture<Suggestions> provideSuggestions(final String input, final S source) {
+    final CommandContextBuilder<S> context = new CommandContextBuilder<>(
+        this.dispatcher, source, this.dispatcher.getRoot(), 0);
     return this.provideSuggestions(new StringReader(input), context);
   }
 
@@ -93,14 +92,15 @@ final class SuggestionsProvider<S> {
    * @return a future that completes with the suggestions
    */
   private CompletableFuture<Suggestions> provideSuggestions(
-      StringReader reader, CommandContextBuilder<S> context) {
+      final StringReader reader, final CommandContextBuilder<S> context) {
     lock.lock();
     try {
-      StringRange aliasRange = this.consumeAlias(reader);
-      String alias = aliasRange.get(reader).toLowerCase(Locale.ENGLISH);
-      LiteralCommandNode<S> literal = (LiteralCommandNode<S>) context.getRootNode().getChild(alias);
+      final StringRange aliasRange = this.consumeAlias(reader);
+      final String alias = aliasRange.get(reader).toLowerCase(Locale.ENGLISH);
+      final LiteralCommandNode<S> literal =
+          (LiteralCommandNode<S>) context.getRootNode().getChild(alias);
 
-      boolean hasArguments = reader.canRead();
+      final boolean hasArguments = reader.canRead();
       if (hasArguments) {
         if (literal == null) {
           // Input has arguments for non-registered alias
@@ -117,9 +117,11 @@ final class SuggestionsProvider<S> {
     }
   }
 
-  private StringRange consumeAlias(StringReader reader) {
-    int firstSep = reader.getString().indexOf(CommandDispatcher.ARGUMENT_SEPARATOR_CHAR, reader.getCursor());
-    StringRange range = StringRange.between(reader.getCursor(), firstSep == -1 ? reader.getTotalLength() : firstSep);
+  private StringRange consumeAlias(final StringReader reader) {
+    final int firstSep = reader.getString().indexOf(
+        CommandDispatcher.ARGUMENT_SEPARATOR_CHAR, reader.getCursor());
+    final StringRange range = StringRange.between(
+        reader.getCursor(), firstSep == -1 ? reader.getTotalLength() : firstSep);
     reader.setCursor(range.getEnd());
     return range;
   }
@@ -132,7 +134,7 @@ final class SuggestionsProvider<S> {
    * @param input the partial input
    * @return true if the literal should be considered; false otherwise
    */
-  private static boolean shouldConsider(String name, String input) {
+  private static boolean shouldConsider(final String name, final String input) {
     return name.regionMatches(false, 0, input, 0, input.length());
   }
 
@@ -143,37 +145,36 @@ final class SuggestionsProvider<S> {
    * @param contextSoFar an empty context
    * @return a future that completes with the suggestions
    */
-  private CompletableFuture<Suggestions> provideAliasSuggestions(StringReader reader, CommandContextBuilder<S> contextSoFar) {
-    S source = contextSoFar.getSource();
+  private CompletableFuture<Suggestions> provideAliasSuggestions(
+      final StringReader reader, final CommandContextBuilder<S> contextSoFar) {
+    final S source = contextSoFar.getSource();
     // Lowercase the alias here so all comparisons can be case-sensitive (cheaper)
     // TODO Is this actually faster? It may incur an allocation
-    String input = reader.getRead().toLowerCase(Locale.ENGLISH);
+    final String input = reader.getRead().toLowerCase(Locale.ENGLISH);
 
     if (source instanceof Player && !this.announceProxyCommands) {
       return new SuggestionsBuilder(input, 0).buildFuture();
     }
 
-    Collection<CommandNode<S>> aliases = contextSoFar.getRootNode().getChildren();
+    final Collection<CommandNode<S>> aliases = contextSoFar.getRootNode().getChildren();
     @SuppressWarnings("unchecked")
-    CompletableFuture<Suggestions>[] futures = new CompletableFuture[aliases.size()];
+    final CompletableFuture<Suggestions>[] futures = new CompletableFuture[aliases.size()];
     int i = 0;
-    for (CommandNode<S> node : aliases) {
+    for (final CommandNode<S> node : aliases) {
       CompletableFuture<Suggestions> future = Suggestions.empty();
-      String alias = node.getName();
+      final String alias = node.getName();
 
       if (shouldConsider(alias, input) && node.canUse(source)) {
-        CommandContextBuilder<S> context = contextSoFar.copy()
+        final CommandContextBuilder<S> context = contextSoFar.copy()
             .withNode(node, ALIAS_SUGGESTION_RANGE);
         if (node.canUse(context, reader)) {
           // LiteralCommandNode#listSuggestions is case insensitive
-          SuggestionsBuilder builder = new SuggestionsBuilder(input, 0);
+          final SuggestionsBuilder builder = new SuggestionsBuilder(input, 0);
           future = builder.suggest(alias).buildFuture();
         }
       }
-
       futures[i++] = future;
     }
-
     return this.merge(input, futures);
   }
 
@@ -188,18 +189,19 @@ final class SuggestionsProvider<S> {
    * @param contextSoFar the context, containing {@code alias}
    * @return a future that completes with the suggestions
    */
-  private CompletableFuture<Suggestions> provideArgumentsSuggestions(LiteralCommandNode<S> alias, StringReader reader,
-                                                                     CommandContextBuilder<S> contextSoFar) {
-    S source = contextSoFar.getSource();
-    String fullInput = reader.getString();
-    VelocityArgumentCommandNode<S, ?> argsNode = VelocityCommands.getArgumentsNode(alias);
+  private CompletableFuture<Suggestions> provideArgumentsSuggestions(
+      final LiteralCommandNode<S> alias, final StringReader reader,
+      final CommandContextBuilder<S> contextSoFar) {
+    final S source = contextSoFar.getSource();
+    final String fullInput = reader.getString();
+    final VelocityArgumentCommandNode<S, ?> argsNode = VelocityCommands.getArgumentsNode(alias);
     if (argsNode == null) {
       // This is a BrigadierCommand, fallback to regular suggestions
       reader.setCursor(0);
-      ParseResults<S> parse = this.dispatcher.parse(reader, source);
+      final ParseResults<S> parse = this.dispatcher.parse(reader, source);
       try {
         return this.dispatcher.getCompletionSuggestions(parse);
-      } catch (Throwable e) {
+      } catch (final Throwable e) {
         // Ugly, ugly swallowing of everything Throwable, because plugins are naughty.
         LOGGER.error("Command node cannot provide suggestions for {}", fullInput, e);
         return Suggestions.empty();
@@ -210,11 +212,11 @@ final class SuggestionsProvider<S> {
       return Suggestions.empty();
     }
 
-    int start = reader.getCursor();
-    CommandContextBuilder<S> context = contextSoFar.copy();
+    final int start = reader.getCursor();
+    final CommandContextBuilder<S> context = contextSoFar.copy();
     try {
       argsNode.parse(reader, context); // reads remaining input
-    } catch (CommandSyntaxException e) {
+    } catch (final CommandSyntaxException e) {
       throw new RuntimeException(e);
     }
 
@@ -222,17 +224,19 @@ final class SuggestionsProvider<S> {
       return Suggestions.empty();
     }
 
-    // Ask the command for suggestions via the argument's node
+    // Ask the command for suggestions via the arguments node
     reader.setCursor(start);
-    CompletableFuture<Suggestions> cmdSuggestions = this.getArgumentsNodeSuggestions(argsNode, reader, context);
-    boolean hasHints = alias.getChildren().size() > 1;
+    final CompletableFuture<Suggestions> cmdSuggestions =
+        this.getArgumentsNodeSuggestions(argsNode, reader, context);
+    final boolean hasHints = alias.getChildren().size() > 1;
     if (!hasHints) {
       return this.merge(fullInput, cmdSuggestions);
     }
 
     // Parse the hint nodes to get remaining suggestions
     reader.setCursor(start);
-    CompletableFuture<Suggestions> hintSuggestions = this.getHintSuggestions(alias, reader, contextSoFar);
+    final CompletableFuture<Suggestions> hintSuggestions =
+        this.getHintSuggestions(alias, reader, contextSoFar);
     return this.merge(fullInput, cmdSuggestions, hintSuggestions);
   }
 
@@ -242,19 +246,20 @@ final class SuggestionsProvider<S> {
    *
    * <p>The reader and context are not mutated by this method.
    *
-   * @param node    the argument's node of the command
+   * @param node    the arguments node of the command
    * @param reader  the input reader
    * @param context the context, containing an alias node and {@code node}
    * @return a future that completes with the suggestions
    */
-  private CompletableFuture<Suggestions> getArgumentsNodeSuggestions(VelocityArgumentCommandNode<S, ?> node, StringReader reader,
-                                                                     CommandContextBuilder<S> context) {
-    int start = reader.getCursor();
-    String fullInput = reader.getString();
-    CommandContext<S> built = context.build(fullInput);
+  private CompletableFuture<Suggestions> getArgumentsNodeSuggestions(
+      final VelocityArgumentCommandNode<S, ?> node, final StringReader reader,
+      final CommandContextBuilder<S> context) {
+    final int start = reader.getCursor();
+    final String fullInput = reader.getString();
+    final CommandContext<S> built = context.build(fullInput);
     try {
       return node.listSuggestions(built, new SuggestionsBuilder(fullInput, start));
-    } catch (Throwable e) {
+    } catch (final Throwable e) {
       // Again, plugins are naughty
       LOGGER.error("Arguments node cannot provide suggestions", e);
       return Suggestions.empty();
@@ -271,12 +276,13 @@ final class SuggestionsProvider<S> {
    * @param context the context, containing {@code alias}
    * @return a future that completes with the suggestions
    */
-  private CompletableFuture<Suggestions> getHintSuggestions(LiteralCommandNode<S> alias, StringReader reader,
-                                                            CommandContextBuilder<S> context) {
-    ParseResults<S> parse = this.parseHints(alias, reader, context);
+  private CompletableFuture<Suggestions> getHintSuggestions(
+      final LiteralCommandNode<S> alias, final StringReader reader,
+      final CommandContextBuilder<S> context) {
+    final ParseResults<S> parse = this.parseHints(alias, reader, context);
     try {
       return this.dispatcher.getCompletionSuggestions(parse);
-    } catch (Throwable e) {
+    } catch (final Throwable e) {
       // Yet again, plugins are naughty.
       LOGGER.error("Hint node cannot provide suggestions", e);
       return Suggestions.empty();
@@ -296,40 +302,36 @@ final class SuggestionsProvider<S> {
    * @see VelocityCommandMeta#copyHints(CommandMeta) for the conditions under which the returned
    *      hints can be suggested to a {@link CommandSource}.
    */
-  private ParseResults<S> parseHints(CommandNode<S> node, StringReader originalReader,
-                                     CommandContextBuilder<S> contextSoFar) {
+  private ParseResults<S> parseHints(final CommandNode<S> node, final StringReader originalReader,
+      final CommandContextBuilder<S> contextSoFar) {
     // This is a stripped-down version of CommandDispatcher#parseNodes that doesn't
     // check the requirements are satisfied and ignores redirects, neither of which
-    // is used by hint nodes.
-    // Parsing errors are ignored.
+    // are used by hint nodes. Parsing errors are ignored.
     List<ParseResults<S>> potentials = null;
-    for (CommandNode<S> child : node.getRelevantNodes(originalReader)) {
+    for (final CommandNode<S> child : node.getRelevantNodes(originalReader)) {
       if (VelocityCommands.isArgumentsNode(child)) {
         continue;
       }
-      CommandContextBuilder<S> context = contextSoFar.copy();
-      StringReader reader = new StringReader(originalReader);
+      final CommandContextBuilder<S> context = contextSoFar.copy();
+      final StringReader reader = new StringReader(originalReader);
       try {
         // We intentionally don't catch all unchecked exceptions
         child.parse(reader, context);
         if (reader.canRead() && reader.peek() != CommandDispatcher.ARGUMENT_SEPARATOR_CHAR) {
           continue;
         }
-      } catch (CommandSyntaxException e) {
+      } catch (final CommandSyntaxException e) {
         continue;
       }
-
       if (reader.canRead(2)) { // separator + string
         reader.skip(); // separator
-        ParseResults<S> parse = this.parseHints(child, reader, context);
+        final ParseResults<S> parse = this.parseHints(child, reader, context);
         if (potentials == null) {
           potentials = new ArrayList<>(1);
         }
-
         potentials.add(parse);
       }
     }
-
     if (potentials != null) {
       if (potentials.size() > 1) {
         potentials.sort((a, b) -> {
@@ -339,19 +341,16 @@ final class SuggestionsProvider<S> {
           if (a.getReader().canRead() && !b.getReader().canRead()) {
             return 1;
           }
-
           return 0;
         });
       }
-
       return potentials.getFirst();
     }
-
     return new ParseResults<>(contextSoFar, originalReader, Collections.emptyMap());
   }
 
   /**
-   * Returns a future completed with the result of merging the {@link Suggestions} the given
+   * Returns a future that is completed with the result of merging the {@link Suggestions} the given
    * futures complete with. The results of the futures that complete exceptionally are ignored.
    *
    * @param fullInput the command input
@@ -359,25 +358,25 @@ final class SuggestionsProvider<S> {
    * @return the future that completes with the merged suggestions
    */
   @SafeVarargs
-  private CompletableFuture<Suggestions> merge(String fullInput, CompletableFuture<Suggestions>... futures) {
+  private CompletableFuture<Suggestions> merge(
+      final String fullInput, final CompletableFuture<Suggestions>... futures) {
     // https://github.com/Mojang/brigadier/pull/81
     return CompletableFuture.allOf(futures).handle((unused, throwable) -> {
-      List<Suggestions> suggestions = new ArrayList<>(futures.length);
-      for (CompletableFuture<Suggestions> future : futures) {
+      final List<Suggestions> suggestions = new ArrayList<>(futures.length);
+      for (final CompletableFuture<Suggestions> future : futures) {
         if (future.isCompletedExceptionally()) {
-          Throwable exception = CompletableFutures.getException(future);
+          final Throwable exception = CompletableFutures.getException(future);
           LOGGER.error("Node cannot provide suggestions", exception);
         } else {
           suggestions.add(future.join());
         }
       }
-
       return Suggestions.merge(fullInput, suggestions);
     });
   }
 
   /**
-   * Sets a flag indicating whether alias suggestions shall be returned to the user.
+   * Sets a flag indicating whether or not alias suggestions shall be returned to the user.
    *
    * @param announceProxyCommands whether alias suggestions can be returned
    */

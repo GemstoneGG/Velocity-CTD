@@ -5,12 +5,12 @@ name: Java CI with Gradle
 on:
   push:
     branches:
-      - libdeflate
+      - dev/4.0.0
   pull_request:
   workflow_dispatch:
 
 env:
-  RELEASE_BRANCH: refs/heads/libdeflate
+  RELEASE_BRANCH: refs/heads/dev/4.0.0
 
 jobs:
   build:

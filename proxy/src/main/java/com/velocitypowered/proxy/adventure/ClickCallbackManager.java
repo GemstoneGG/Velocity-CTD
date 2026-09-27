@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,8 +33,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Click callback manager.
  */
-public final class ClickCallbackManager {
-
+public class ClickCallbackManager {
   public static final ClickCallbackManager INSTANCE = new ClickCallbackManager();
 
   public static final String COMMAND_LABEL = "velocity:callback";
@@ -61,7 +60,7 @@ public final class ClickCallbackManager {
         @Override
         public long expireAfterRead(@NotNull UUID key, @NotNull RegisteredCallback value, long currentTime,
                                     @NonNegative long currentDuration) {
-          AtomicInteger remainingUses = value.remainingUses();
+          final AtomicInteger remainingUses = value.remainingUses();
           if (remainingUses != null && remainingUses.get() <= 0) {
             return 0;
           }
@@ -103,13 +102,12 @@ public final class ClickCallbackManager {
    * @param id       the callback's ID
    * @return {@code true} if the callback was run, {@code false} if not
    */
-  public boolean runCallback(Audience audience, UUID id) {
-    RegisteredCallback callback = this.registrations.getIfPresent(id);
+  public boolean runCallback(final Audience audience, final UUID id) {
+    final RegisteredCallback callback = this.registrations.getIfPresent(id);
     if (callback != null && callback.tryUse()) {
       callback.callback().accept(audience);
       return true;
     }
-
     return false;
   }
 
@@ -120,10 +118,16 @@ public final class ClickCallbackManager {
    * @param options  associated options
    * @return the callback ID
    */
-  public UUID register(ClickCallback<Audience> callback,
-                       ClickCallback.Options options) {
-    UUID id = UUID.randomUUID();
-    RegisteredCallback registration = new RegisteredCallback(options.lifetime(), options.uses(), callback);
+  public UUID register(
+      final ClickCallback<Audience> callback,
+      final ClickCallback.Options options
+  ) {
+    final UUID id = UUID.randomUUID();
+    final RegisteredCallback registration = new RegisteredCallback(
+        options.lifetime(),
+        options.uses(),
+        callback
+    );
     this.registrations.put(id, registration);
 
     boolean alreadyHadRegistrations = hadRegistrations.getAndSet(true);

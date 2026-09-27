@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,12 +30,10 @@ import net.kyori.adventure.nbt.BinaryTagIO;
 public class DialogShowPacket implements MinecraftPacket {
 
   private final StateRegistry state;
-
   private int id;
-
   private BinaryTag nbt;
 
-  public DialogShowPacket(StateRegistry state) {
+  public DialogShowPacket(final StateRegistry state) {
     this.state = state;
   }
 

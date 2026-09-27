@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -19,19 +19,8 @@ import java.net.InetAddress;
 @AwaitingEvent
 public final class ProxyQueryEvent {
 
-  /**
-   * The type of query being performed (basic or full).
-   */
   private final QueryType queryType;
-
-  /**
-   * The IP address of the client that sent the query.
-   */
   private final InetAddress querierAddress;
-
-  /**
-   * The query response that will be sent back to the client.
-   */
   private QueryResponse response;
 
   /**
@@ -96,7 +85,6 @@ public final class ProxyQueryEvent {
    * Represents the type of query the client is asking for.
    */
   public enum QueryType {
-
     /**
      * Basic query asks only a subset of information, such as hostname, game type (hardcoded to
      * <pre>MINECRAFT</pre>), map, current players, max players, proxy port and proxy hostname.

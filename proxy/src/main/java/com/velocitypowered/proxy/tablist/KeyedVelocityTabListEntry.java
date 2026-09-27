@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,15 +34,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class KeyedVelocityTabListEntry implements TabListEntry {
 
   private final KeyedVelocityTabList tabList;
-
   private final GameProfile profile;
 
   private Component displayName;
 
   private int latency;
-
   private int gameMode;
-
   private @Nullable IdentifiedKey playerKey;
 
   KeyedVelocityTabListEntry(KeyedVelocityTabList tabList, GameProfile profile,

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,39 +35,23 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class IdentifiedKeyImpl implements IdentifiedKey {
 
   private final Revision revision;
-
   private final PublicKey publicKey;
-
   private final byte[] signature;
-
   private final Instant expiryTemporal;
-
   private @MonotonicNonNull Boolean isSignatureValid;
-
   private @MonotonicNonNull UUID holder;
 
-  /**
-   * Constructs a new identified key using the revision, raw public key bytes, expiration time, and signature.
-   *
-   * @param revision the revision of the key format
-   * @param keyBits the encoded key bytes
-   * @param expiry the epoch milliseconds at which the key expires
-   * @param signature the signature over the key
-   */
-  public IdentifiedKeyImpl(Revision revision, byte[] keyBits, long expiry, byte[] signature) {
-    this(revision, EncryptionUtils.parseRsaPublicKey(keyBits), Instant.ofEpochMilli(expiry), signature);
+  public IdentifiedKeyImpl(Revision revision, byte[] keyBits, long expiry,
+      byte[] signature) {
+    this(revision, EncryptionUtils.parseRsaPublicKey(keyBits),
+        Instant.ofEpochMilli(expiry), signature);
   }
 
   /**
-   * Constructs a new identified key using a {@link PublicKey}, expiration time, and signature.
-   *
-   * @param revision the revision of the key format
-   * @param publicKey the public key
-   * @param expiryTemporal the expiry time
-   * @param signature the signature for the key
+   * Creates an Identified key from data.
    */
-  public IdentifiedKeyImpl(Revision revision, PublicKey publicKey,
-                           Instant expiryTemporal, byte[] signature) {
+  public IdentifiedKeyImpl(
+      Revision revision, PublicKey publicKey, Instant expiryTemporal, byte[] signature) {
     this.revision = revision;
     this.publicKey = publicKey;
     this.expiryTemporal = expiryTemporal;
@@ -105,27 +89,21 @@ public class IdentifiedKeyImpl implements IdentifiedKey {
   }
 
   /**
-   * Attempts to assign a UUID as the holder of this key, verifying it if necessary.
-   *
-   * @param holder the UUID of the supposed key-holder
-   * @return {@code true} if the assignment and validation succeeded, {@code false} otherwise
+   * Sets the uuid for this key. Returns false if incorrect.
    */
   public boolean internalAddHolder(UUID holder) {
     if (holder == null) {
       return false;
     }
-
     if (this.holder == null) {
       Boolean result = validateData(holder);
       if (result == null || !result) {
         return false;
       }
-
       isSignatureValid = true;
       this.holder = holder;
       return true;
     }
-
     return this.holder.equals(holder) && isSignatureValid();
   }
 
@@ -134,7 +112,6 @@ public class IdentifiedKeyImpl implements IdentifiedKey {
     if (isSignatureValid == null) {
       isSignatureValid = validateData(holder);
     }
-
     return isSignatureValid != null && isSignatureValid;
   }
 
@@ -150,7 +127,6 @@ public class IdentifiedKeyImpl implements IdentifiedKey {
       if (verify == null) {
         return null;
       }
-
       byte[] keyBytes = publicKey.getEncoded();
       byte[] toVerify = new byte[keyBytes.length + 24]; // length long * 3
       ByteBuffer fixedDataSet = ByteBuffer.wrap(toVerify).order(ByteOrder.BIG_ENDIAN);
@@ -158,14 +134,16 @@ public class IdentifiedKeyImpl implements IdentifiedKey {
       fixedDataSet.putLong(verify.getLeastSignificantBits());
       fixedDataSet.putLong(expiryTemporal.toEpochMilli());
       fixedDataSet.put(keyBytes);
-      return EncryptionUtils.verifySignature(EncryptionUtils.SHA1_WITH_RSA, EncryptionUtils.getYggdrasilSessionKey(), signature, toVerify);
+      return EncryptionUtils.verifySignature(EncryptionUtils.SHA1_WITH_RSA,
+          EncryptionUtils.getYggdrasilSessionKey(), signature, toVerify);
     }
   }
 
   @Override
   public boolean verifyDataSignature(byte[] signature, byte[]... toVerify) {
     try {
-      return EncryptionUtils.verifySignature(EncryptionUtils.SHA256_WITH_RSA, publicKey, signature, toVerify);
+      return EncryptionUtils.verifySignature(EncryptionUtils.SHA256_WITH_RSA, publicKey, signature,
+          toVerify);
     } catch (IllegalArgumentException e) {
       return false;
     }
@@ -188,8 +166,7 @@ public class IdentifiedKeyImpl implements IdentifiedKey {
     if (this == o) {
       return true;
     }
-
-    if (!(o instanceof IdentifiedKey that)) {
+    if (!(o instanceof final IdentifiedKey that)) {
       return false;
     }
 

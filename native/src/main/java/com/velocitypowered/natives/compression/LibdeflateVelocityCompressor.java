@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,29 +25,12 @@ import java.util.zip.DataFormatException;
 /**
  * Implements deflate compression using the {@code libdeflate} native C library.
  */
-public final class LibdeflateVelocityCompressor implements VelocityCompressor {
+public class LibdeflateVelocityCompressor implements VelocityCompressor {
 
-  /**
-   * A {@link VelocityCompressorFactory} for creating {@link LibdeflateVelocityCompressor} instances.
-   *
-   * <p>This factory integrates the native libdeflate-backed compressor into the Velocity
-   * compression system.</p>
-   */
   public static final VelocityCompressorFactory FACTORY = LibdeflateVelocityCompressor::new;
 
-  /**
-   * Native handle to the libdeflate inflate context.
-   */
   private final long inflateCtx;
-
-  /**
-   * Native handle to the libdeflate deflate context.
-   */
   private final long deflateCtx;
-
-  /**
-   * Whether this compressor instance has been disposed.
-   */
   private boolean disposed = false;
 
   private LibdeflateVelocityCompressor(int level) {
@@ -65,7 +48,7 @@ public final class LibdeflateVelocityCompressor implements VelocityCompressor {
       throws DataFormatException {
     ensureNotDisposed();
 
-    // Libdeflate recommends we work with a known uncompressed size - so we work strictly within
+    // libdeflate recommends we work with a known uncompressed size - so we work strictly within
     // those parameters. If the uncompressed size doesn't match the compressed size, then we will
     // throw an exception from native code.
     destination.ensureWritable(uncompressedSize);
@@ -110,7 +93,6 @@ public final class LibdeflateVelocityCompressor implements VelocityCompressor {
       NativeZlibInflate.free(inflateCtx);
       NativeZlibDeflate.free(deflateCtx);
     }
-
     disposed = true;
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,8 +56,10 @@ public class BackendChannelInitializer extends ChannelInitializer<Channel> {
         // quickly for the fallback chain. Swapped for read-timeout at PLAY (TransitionSessionHandler).
         .addLast(READ_TIMEOUT, new ReadTimeoutHandler(server.getConfiguration().getLoginTimeout(), TimeUnit.MILLISECONDS))
         .addLast(FRAME_ENCODER, MinecraftVarintLengthEncoder.INSTANCE)
-        .addLast(MINECRAFT_DECODER, new MinecraftDecoder(ProtocolUtils.Direction.CLIENTBOUND))
+        .addLast(MINECRAFT_DECODER,
+            new MinecraftDecoder(ProtocolUtils.Direction.CLIENTBOUND))
         .addLast(FLOW_HANDLER, new AutoReadHolderHandler())
-        .addLast(MINECRAFT_ENCODER, new MinecraftEncoder(ProtocolUtils.Direction.SERVERBOUND));
+        .addLast(MINECRAFT_ENCODER,
+            new MinecraftEncoder(ProtocolUtils.Direction.SERVERBOUND));
   }
 }

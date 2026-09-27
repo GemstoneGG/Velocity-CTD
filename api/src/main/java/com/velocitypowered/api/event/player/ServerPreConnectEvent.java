@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -23,26 +23,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * finish firing before initiating the connection.
  */
 @AwaitingEvent
-public final class ServerPreConnectEvent implements ResultedEvent<ServerPreConnectEvent.ServerResult> {
+public final class ServerPreConnectEvent implements
+    ResultedEvent<ServerPreConnectEvent.ServerResult> {
 
-  /**
-   * The player who is attempting to connect to a server.
-   */
   private final Player player;
-
-  /**
-   * The original target server the player was trying to connect to.
-   */
   private final RegisteredServer originalServer;
-
-  /**
-   * The server the player is currently connected to, or {@code null} if none.
-   */
   private final RegisteredServer previousServer;
-
-  /**
-   * The result determining whether and where the player should connect.
-   */
   private ServerResult result;
 
   /**
@@ -52,7 +38,8 @@ public final class ServerPreConnectEvent implements ResultedEvent<ServerPreConne
    * @param originalServer the server the player was trying to connect to
    */
   public ServerPreConnectEvent(Player player, RegisteredServer originalServer) {
-    this(player, originalServer, player.getCurrentServer().map(ServerConnection::getServer).orElse(null));
+    this(player, originalServer,
+        player.getCurrentServer().map(ServerConnection::getServer).orElse(null));
   }
 
   /**
@@ -63,7 +50,7 @@ public final class ServerPreConnectEvent implements ResultedEvent<ServerPreConne
    * @param previousServer the server the player is connected to
    */
   public ServerPreConnectEvent(Player player, RegisteredServer originalServer,
-                               @Nullable RegisteredServer previousServer) {
+      @Nullable RegisteredServer previousServer) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.originalServer = Preconditions.checkNotNull(originalServer, "originalServer");
     this.previousServer = previousServer;
@@ -90,9 +77,9 @@ public final class ServerPreConnectEvent implements ResultedEvent<ServerPreConne
   }
 
   /**
-   * Returns the server that the player originally tried to connect to.
-   * To get the server, the player will connect to, see the {@link ServerResult} of this event.
-   * To get the server, the player is currently on when this event is fired, use {@link #getPreviousServer()}.
+   * Returns the server that the player originally tried to connect to. To get the server the
+   * player will connect to, see the {@link ServerResult} of this event. To get the server the
+   * player is currently on when this event is fired, use {@link #getPreviousServer()}.
    *
    * @return the server that the player originally tried to connect to
    */
@@ -124,16 +111,10 @@ public final class ServerPreConnectEvent implements ResultedEvent<ServerPreConne
   /**
    * Represents the result of the {@link ServerPreConnectEvent}.
    */
-  public static final class ServerResult implements ResultedEvent.Result {
+  public static class ServerResult implements ResultedEvent.Result {
 
-    /**
-     * A result indicating that the connection should be denied.
-     */
     private static final ServerResult DENIED = new ServerResult(null);
 
-    /**
-     * The server the player is allowed to connect to, or {@code null} if the connection is denied.
-     */
     private final @Nullable RegisteredServer server;
 
     private ServerResult(@Nullable RegisteredServer server) {
@@ -145,11 +126,6 @@ public final class ServerPreConnectEvent implements ResultedEvent<ServerPreConne
       return server != null;
     }
 
-    /**
-     * Returns the server the player will be connected to if the result is allowed.
-     *
-     * @return the server to connect to, or an empty Optional if the connection is denied
-     */
     public Optional<RegisteredServer> getServer() {
       return Optional.ofNullable(server);
     }
@@ -159,7 +135,6 @@ public final class ServerPreConnectEvent implements ResultedEvent<ServerPreConne
       if (server != null) {
         return "allowed: connect to " + server.getServerInfo().getName();
       }
-
       return "denied";
     }
 

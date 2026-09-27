@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2020-2021 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -26,12 +26,6 @@ public final class BrigadierCommand implements Command {
    */
   public static final int FORWARD = 0xF6287429;
 
-  /**
-   * The root literal node representing the command structure.
-   *
-   * <p>This node is registered with the command dispatcher and defines the syntax,
-   * execution logic, and suggestion behavior for the command.</p>
-   */
   private final LiteralCommandNode<CommandSource> node;
 
   /**
@@ -40,7 +34,7 @@ public final class BrigadierCommand implements Command {
    *
    * @param builder the {@link LiteralCommandNode} builder
    */
-  public BrigadierCommand(@NotNull LiteralArgumentBuilder<CommandSource> builder) {
+  public BrigadierCommand(final @NotNull LiteralArgumentBuilder<CommandSource> builder) {
     this(Preconditions.checkNotNull(builder, "builder").build());
   }
 
@@ -49,7 +43,7 @@ public final class BrigadierCommand implements Command {
    *
    * @param node the command node
    */
-  public BrigadierCommand(@NotNull LiteralCommandNode<CommandSource> node) {
+  public BrigadierCommand(final @NotNull LiteralCommandNode<CommandSource> node) {
     this.node = Preconditions.checkNotNull(node, "node");
   }
 
@@ -69,7 +63,7 @@ public final class BrigadierCommand implements Command {
    * @return a new LiteralArgumentBuilder.
    */
   public static LiteralArgumentBuilder<CommandSource> literalArgumentBuilder(
-          @NotNull String name) {
+          final @NotNull String name) {
     Preconditions.checkNotNull(name, "name");
     // Validation to avoid beginner's errors in case someone includes a space in the argument name
     Preconditions.checkArgument(name.indexOf(' ') == -1, "the argument name cannot contain spaces");
@@ -85,7 +79,7 @@ public final class BrigadierCommand implements Command {
    * @return a new RequiredArgumentBuilder
    */
   public static <T> RequiredArgumentBuilder<CommandSource, T> requiredArgumentBuilder(
-          @NotNull String name, @NotNull ArgumentType<T> argumentType) {
+          final @NotNull String name, @NotNull final ArgumentType<T> argumentType) {
     Preconditions.checkNotNull(name, "name");
     Preconditions.checkNotNull(argumentType, "argument type");
 

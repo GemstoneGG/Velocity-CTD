@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ import io.netty.handler.codec.MessageToByteEncoder;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Encodes {@code LegacyDisconnect} for Minecraft 1.3 - 1.6.4.
+ * Encodes {@code LegacyDisconnect} for Minecraft 1.3-1.6.4.
  */
 @Sharable
 public final class LegacyPingEncoder extends MessageToByteEncoder<LegacyDisconnect> {
@@ -37,7 +37,8 @@ public final class LegacyPingEncoder extends MessageToByteEncoder<LegacyDisconne
   }
 
   @Override
-  protected void encode(ChannelHandlerContext ctx, LegacyDisconnect msg, ByteBuf out) throws Exception {
+  protected void encode(ChannelHandlerContext ctx, LegacyDisconnect msg, ByteBuf out)
+      throws Exception {
     out.writeByte(0xff);
     writeLegacyString(out, msg.reason());
   }

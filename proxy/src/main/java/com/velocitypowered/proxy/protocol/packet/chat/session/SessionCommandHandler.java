@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,7 +34,6 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
   private static final Logger LOGGER = LogManager.getLogger(SessionCommandHandler.class);
 
   private final ConnectedPlayer player;
-
   private final VelocityServer server;
 
   public SessionCommandHandler(ConnectedPlayer player, VelocityServer server) {
@@ -60,14 +59,12 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
       SignedChatViolations.alterSignableComponentError("deny", player, packet);
       return null;
     }
-
     // An unsigned command with a 'last seen' update will not happen as of 1.20.5+, but for earlier versions - we still
     // need to pass through the acknowledgement
-    int offset = packet.lastSeenMessages.getOffset();
+    final int offset = packet.lastSeenMessages.getOffset();
     if (offset != 0) {
       return new ChatAcknowledgementPacket(offset);
     }
-
     return null;
   }
 
@@ -76,7 +73,6 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
     if (newCommand.equals(packet.command)) {
       return packet;
     }
-
     return modifyCommand(packet, newCommand);
   }
 
@@ -125,7 +121,6 @@ public class SessionCommandHandler extends RateLimitedCommandHandler<SessionPlay
         if (hasRun) {
           return consumeCommand(fixedPacket);
         }
-
         return forwardCommand(fixedPacket, commandToRun);
       });
     }, packet.command, packet.timeStamp, packet.lastSeenMessages,

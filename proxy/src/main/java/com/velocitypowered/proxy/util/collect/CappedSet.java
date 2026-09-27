@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2019-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,6 @@ import org.jetbrains.annotations.NotNull;
 public final class CappedSet<T> extends ForwardingSet<T> {
 
   private final Set<T> delegate;
-
   private final int upperSize;
 
   private CappedSet(Set<T> delegate, int upperSize) {
@@ -64,7 +63,6 @@ public final class CappedSet<T> extends ForwardingSet<T> {
           this.delegate.size(), this.upperSize);
       return false;
     }
-
     return this.delegate.add(element);
   }
 

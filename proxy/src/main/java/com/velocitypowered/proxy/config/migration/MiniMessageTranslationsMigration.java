@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2024 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,28 +33,26 @@ import org.apache.logging.log4j.Logger;
  * Also migrates possible use of legacy colors to MiniMessage format.
  */
 public final class MiniMessageTranslationsMigration implements ConfigurationMigration {
-
   @Override
-  public boolean shouldMigrate(CommentedFileConfig config) {
+  public boolean shouldMigrate(final CommentedFileConfig config) {
     // Checking whether translations should be migrated would be just as costly as attempting to migrate them directly.
     return true;
   }
 
   @Override
-  public void migrate(CommentedFileConfig config, Logger logger) throws IOException {
-    Path langFolder = Path.of("lang");
+  public void migrate(final CommentedFileConfig config, final Logger logger) throws IOException {
+    final Path langFolder = Path.of("lang");
     if (Files.notExists(langFolder)) {
       return;
     }
-
-    Pattern oldPlaceholderPattern = Pattern.compile("\\{(\\d+)}");
-    try (DirectoryStream<Path> stream = Files.newDirectoryStream(langFolder, Files::isRegularFile)) {
-      for (Path path : stream) {
+    final Pattern oldPlaceholderPattern = Pattern.compile("\\{(\\d+)}");
+    try (final DirectoryStream<Path> stream
+                 = Files.newDirectoryStream(langFolder, Files::isRegularFile)) {
+      for (final Path path : stream) {
         String content = Files.readString(path, StandardCharsets.UTF_8);
         if (content.indexOf('{') == -1) {
           continue;
         }
-
         // Migrate old arguments
         content = oldPlaceholderPattern.matcher(content).replaceAll("<arg:$1>");
         // Some setups use legacy color codes, this format is migrated to MiniMessage

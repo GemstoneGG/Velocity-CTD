@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,11 +31,9 @@ public class ClientboundSoundEntityPacket implements MinecraftPacket {
   private Sound sound;
 
   private @Nullable Float fixedRange;
-
   private int emitterEntityId;
 
-  public ClientboundSoundEntityPacket() {
-  }
+  public ClientboundSoundEntityPacket() {}
 
   public ClientboundSoundEntityPacket(Sound sound, @Nullable Float fixedRange, int emitterEntityId) {
     this.sound = sound;
@@ -50,7 +48,7 @@ public class ClientboundSoundEntityPacket implements MinecraftPacket {
 
   @Override
   public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
-    ProtocolUtils.writeVarInt(buf, 0); // Version-dependent, hardcoded sound ID
+    ProtocolUtils.writeVarInt(buf, 0); // version-dependent, hardcoded sound ID
 
     ProtocolUtils.writeMinimalKey(buf, sound.name());
 
@@ -98,4 +96,5 @@ public class ClientboundSoundEntityPacket implements MinecraftPacket {
   public void setEmitterEntityId(int emitterEntityId) {
     this.emitterEntityId = emitterEntityId;
   }
+
 }

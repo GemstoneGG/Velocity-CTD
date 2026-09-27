@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,11 +37,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class SignedChatCommand implements KeySigned {
 
   private final String command;
-
   private final PublicKey signer;
-
   private final Instant expiry;
-
   private final byte[] salt;
 
   public final UUID sender;
@@ -49,28 +46,17 @@ public class SignedChatCommand implements KeySigned {
   private final boolean isPreviewSigned;
 
   private final Map<String, byte[]> signatures;
-
   private final SignaturePair[] previousSignatures;
-
   private final @Nullable SignaturePair lastSignature;
 
+
   /**
-   * Constructs a {@link SignedChatCommand} from the given command signature metadata.
-   *
-   * @param command the raw command text
-   * @param signer the public key that signed the command
-   * @param sender the UUID of the player who issued the command
-   * @param expiry the expiration time of the signature
-   * @param signature a map of signed arguments
-   * @param salt the salt used in the signature
-   * @param isPreviewSigned whether the preview was signed
-   * @param previousSignatures any previously chained signature pairs
-   * @param lastSignature the last known signature pair, if present
+   * Create a signed command from data.
    */
   public SignedChatCommand(String command, PublicKey signer, UUID sender,
-                           Instant expiry, Map<String, byte[]> signature, byte[] salt,
-                           boolean isPreviewSigned, SignaturePair[] previousSignatures,
-                           @Nullable SignaturePair lastSignature) {
+      Instant expiry, Map<String, byte[]> signature, byte[] salt,
+      boolean isPreviewSigned, SignaturePair[] previousSignatures,
+      @Nullable SignaturePair lastSignature) {
     this.command = Preconditions.checkNotNull(command);
     this.signer = Preconditions.checkNotNull(signer);
     this.sender = Preconditions.checkNotNull(sender);
@@ -80,6 +66,7 @@ public class SignedChatCommand implements KeySigned {
     this.isPreviewSigned = isPreviewSigned;
     this.previousSignatures = previousSignatures;
     this.lastSignature = lastSignature;
+
   }
 
   @Override
@@ -105,6 +92,7 @@ public class SignedChatCommand implements KeySigned {
   public String getBaseCommand() {
     return command;
   }
+
 
   public Map<String, byte[]> getSignatures() {
     return signatures;

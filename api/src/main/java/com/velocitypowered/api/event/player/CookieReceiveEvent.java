@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2024 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -24,24 +24,9 @@ import org.jetbrains.annotations.Nullable;
 @AwaitingEvent
 public final class CookieReceiveEvent implements ResultedEvent<CookieReceiveEvent.ForwardResult> {
 
-  /**
-   * The player who sent the cookie response.
-   */
   private final Player player;
-
-  /**
-   * The original identifier of the cookie sent by the client.
-   */
   private final Key originalKey;
-
-  /**
-   * The original cookie payload sent by the client, or {@code null} if not present.
-   */
   private final byte @Nullable [] originalData;
-
-  /**
-   * The result determining how the cookie should be handled.
-   */
   private ForwardResult result;
 
   /**
@@ -51,7 +36,7 @@ public final class CookieReceiveEvent implements ResultedEvent<CookieReceiveEven
    * @param key the identifier of the cookie
    * @param data the data of the cookie
    */
-  public CookieReceiveEvent(Player player, Key key, byte @Nullable [] data) {
+  public CookieReceiveEvent(final Player player, final Key key, final byte @Nullable [] data) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.originalKey = Preconditions.checkNotNull(key, "key");
     this.originalData = data;
@@ -68,29 +53,14 @@ public final class CookieReceiveEvent implements ResultedEvent<CookieReceiveEven
     this.result = Preconditions.checkNotNull(result, "result");
   }
 
-  /**
-   * Returns the player who sent the cookie response.
-   *
-   * @return the player
-   */
   public Player getPlayer() {
     return player;
   }
 
-  /**
-   * Returns the original cookie identifier received from the client.
-   *
-   * @return the original cookie key
-   */
   public Key getOriginalKey() {
     return originalKey;
   }
 
-  /**
-   * Returns the original cookie data received from the client, if present.
-   *
-   * @return the original cookie data, or {@code null} if not present
-   */
   public byte @Nullable [] getOriginalData() {
     return originalData;
   }
@@ -105,36 +75,18 @@ public final class CookieReceiveEvent implements ResultedEvent<CookieReceiveEven
   }
 
   /**
-   * A result determining whether to forward the cookie response on.
+   * A result determining whether or not to forward the cookie response on.
    */
   public static final class ForwardResult implements ResultedEvent.Result {
 
-    /**
-     * A result indicating the cookie should be forwarded to the backend server unchanged.
-     */
     private static final ForwardResult ALLOWED = new ForwardResult(true, null, null);
-
-    /**
-     * A result indicating the cookie has been handled by the proxy and should not be forwarded.
-     */
     private static final ForwardResult DENIED = new ForwardResult(false, null, null);
 
-    /**
-     * Whether the cookie should be forwarded to the backend server.
-     */
     private final boolean status;
-
-    /**
-     * A replacement key to forward, or {@code null} to use the original key.
-     */
     private final Key key;
-
-    /**
-     * A replacement payload to forward, or {@code null} to use the original data.
-     */
     private final byte[] data;
 
-    private ForwardResult(boolean status, Key key, byte[] data) {
+    private ForwardResult(final boolean status, final Key key, final byte[] data) {
       this.status = status;
       this.key = key;
       this.data = data;
@@ -145,20 +97,10 @@ public final class CookieReceiveEvent implements ResultedEvent<CookieReceiveEven
       return status;
     }
 
-    /**
-     * Returns the replacement key to forward, if any.
-     *
-     * @return the key to forward, or {@code null} if unchanged
-     */
     public Key getKey() {
       return key;
     }
 
-    /**
-     * Returns the replacement data to forward, if any.
-     *
-     * @return the data to forward, or {@code null} if unchanged
-     */
     public byte[] getData() {
       return data;
     }
@@ -194,7 +136,7 @@ public final class CookieReceiveEvent implements ResultedEvent<CookieReceiveEven
      * @param key the identifier to use instead
      * @return a result with a new key
      */
-    public static ForwardResult key(Key key) {
+    public static ForwardResult key(final Key key) {
       Preconditions.checkNotNull(key, "key");
       return new ForwardResult(true, key, null);
     }
@@ -206,7 +148,7 @@ public final class CookieReceiveEvent implements ResultedEvent<CookieReceiveEven
      * @param data the data of the cookie to use instead
      * @return a result with new data
      */
-    public static ForwardResult data(byte[] data) {
+    public static ForwardResult data(final byte[] data) {
       return new ForwardResult(true, null, data);
     }
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2019-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,11 +58,8 @@ public class ComponentHolder {
   public static final int DEFAULT_MAX_STRING_SIZE = 262143;
 
   private final ProtocolVersion version;
-
   private @MonotonicNonNull Component component;
-
   private @MonotonicNonNull String json;
-
   private @MonotonicNonNull BinaryTag binaryTag;
 
   public ComponentHolder(ProtocolVersion version, Component component) {
@@ -95,7 +92,6 @@ public class ComponentHolder {
         }
       }
     }
-
     return component;
   }
 
@@ -103,7 +99,6 @@ public class ComponentHolder {
     if (json == null) {
       json = ProtocolUtils.getJsonChatSerializer(version).serialize(getComponent());
     }
-
     return json;
   }
 
@@ -112,14 +107,13 @@ public class ComponentHolder {
       // TODO: replace this with adventure-text-serializer-nbt
       binaryTag = serialize(ProtocolUtils.getJsonChatSerializer(version).serializeToTree(getComponent()));
     }
-
     return binaryTag;
   }
 
   public static BinaryTag serialize(JsonElement json) {
     if (json instanceof JsonPrimitive jsonPrimitive) {
       if (jsonPrimitive.isNumber()) {
-        Number number = json.getAsNumber();
+        final Number number = json.getAsNumber();
 
         return switch (number) {
           case Byte b -> ByteBinaryTag.byteBinaryTag(b);
@@ -213,19 +207,19 @@ public class ComponentHolder {
 
   public static JsonElement deserialize(BinaryTag tag) {
     return switch (tag.type().id()) {
-      // BinaryTagTypes.BYTE
+      //BinaryTagTypes.BYTE
       case 1 -> new JsonPrimitive(((ByteBinaryTag) tag).value());
-      // BinaryTagTypes.SHORT
+      //BinaryTagTypes.SHORT
       case 2 -> new JsonPrimitive(((ShortBinaryTag) tag).value());
-      // BinaryTagTypes.INT:
+      //BinaryTagTypes.INT:
       case 3 -> new JsonPrimitive(((IntBinaryTag) tag).value());
-      // BinaryTagTypes.LONG:
+      //BinaryTagTypes.LONG:
       case 4 -> new JsonPrimitive(((LongBinaryTag) tag).value());
-      // BinaryTagTypes.FLOAT:
+      //BinaryTagTypes.FLOAT:
       case 5 -> new JsonPrimitive(((FloatBinaryTag) tag).value());
-      // BinaryTagTypes.DOUBLE:
+      //BinaryTagTypes.DOUBLE:
       case 6 -> new JsonPrimitive(((DoubleBinaryTag) tag).value());
-      // BinaryTagTypes.BYTE_ARRAY:
+      //BinaryTagTypes.BYTE_ARRAY:
       case 7 -> {
         byte[] byteArray = ((ByteArrayBinaryTag) tag).value();
 
@@ -236,9 +230,9 @@ public class ComponentHolder {
 
         yield jsonByteArray;
       }
-      // BinaryTagTypes.STRING:
+      //BinaryTagTypes.STRING:
       case 8 -> new JsonPrimitive(((StringBinaryTag) tag).value());
-      // BinaryTagTypes.LIST:
+      //BinaryTagTypes.LIST:
       case 9 -> {
         ListBinaryTag items = (ListBinaryTag) tag;
         JsonArray jsonList = new JsonArray(items.size());
@@ -249,7 +243,7 @@ public class ComponentHolder {
 
         yield jsonList;
       }
-      // BinaryTagTypes.COMPOUND:
+      //BinaryTagTypes.COMPOUND:
       case 10 -> {
         CompoundBinaryTag compound = (CompoundBinaryTag) tag;
         JsonObject jsonObject = new JsonObject();
@@ -265,7 +259,7 @@ public class ComponentHolder {
 
         yield jsonObject;
       }
-      // BinaryTagTypes.INT_ARRAY:
+      //BinaryTagTypes.INT_ARRAY:
       case 11 -> {
         int[] intArray = ((IntArrayBinaryTag) tag).value();
 
@@ -276,7 +270,7 @@ public class ComponentHolder {
 
         yield jsonIntArray;
       }
-      // BinaryTagTypes.LONG_ARRAY:
+      //BinaryTagTypes.LONG_ARRAY:
       case 12 -> {
         long[] longArray = ((LongArrayBinaryTag) tag).value();
 

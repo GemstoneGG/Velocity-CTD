@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -109,7 +109,6 @@ public class ProtocolUtilsTest {
       varintNew.clear();
       varintOld.clear();
     }
-
     assertEquals(bytesNew, bytesOld, "byte sizes differ");
   }
 
@@ -128,7 +127,6 @@ public class ProtocolUtilsTest {
       varintNew.clear();
       varintOld.clear();
     }
-
     assertEquals(bytesNew, bytesOld, "byte sizes differ");
   }
 
@@ -142,7 +140,6 @@ public class ProtocolUtilsTest {
         return i;
       }
     }
-
     return Integer.MIN_VALUE;
   }
 

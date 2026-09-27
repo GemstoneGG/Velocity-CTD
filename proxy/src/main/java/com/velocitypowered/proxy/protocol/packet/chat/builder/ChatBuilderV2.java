@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,19 +31,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public abstract class ChatBuilderV2 {
 
   protected final ProtocolVersion version;
-
   protected @MonotonicNonNull Component component;
-
   protected @MonotonicNonNull String message;
 
   protected @Nullable ConnectedPlayer sender;
 
   protected @Nullable Identity senderIdentity;
-
   protected Instant timestamp;
-
   protected ChatType type = ChatType.CHAT;
-
   protected @Nullable LastSeenMessages lastSeenMessages;
 
   protected ChatBuilderV2(ProtocolVersion version) {

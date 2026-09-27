@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,14 +58,15 @@ public final class ArgumentPropertyRegistry {
     throw new AssertionError();
   }
 
-  private static final Map<ArgumentIdentifier, ArgumentPropertySerializer<?>> byIdentifier = new HashMap<>();
-
-  private static final Map<Class<? extends ArgumentType>, ArgumentPropertySerializer<?>> byClass = new HashMap<>();
-
-  private static final Map<Class<? extends ArgumentType>, ArgumentIdentifier> classToId = new HashMap<>();
+  private static final Map<ArgumentIdentifier, ArgumentPropertySerializer<?>> byIdentifier =
+      new HashMap<>();
+  private static final Map<Class<? extends ArgumentType>,
+      ArgumentPropertySerializer<?>> byClass = new HashMap<>();
+  private static final Map<Class<? extends ArgumentType>, ArgumentIdentifier> classToId =
+      new HashMap<>();
 
   private static <T extends ArgumentType<?>> void register(ArgumentIdentifier identifier,
-                                                           Class<T> klazz, ArgumentPropertySerializer<T> serializer) {
+      Class<T> klazz, ArgumentPropertySerializer<T> serializer) {
     byIdentifier.put(identifier, serializer);
     byClass.put(klazz, serializer);
     classToId.put(klazz, identifier);
@@ -76,7 +77,7 @@ public final class ArgumentPropertyRegistry {
   }
 
   private static <T> void empty(ArgumentIdentifier identifier,
-                                ArgumentPropertySerializer<T> serializer) {
+      ArgumentPropertySerializer<T> serializer) {
     byIdentifier.put(identifier, serializer);
   }
 
@@ -84,14 +85,12 @@ public final class ArgumentPropertyRegistry {
    * Deserializes the {@link ArgumentType}.
    *
    * @param buf the buffer to deserialize
-   * @param protocolVersion the protocol version used to resolve serializer compatibility
    * @return the deserialized {@link ArgumentType}
    */
   public static ArgumentType<?> deserialize(ByteBuf buf, ProtocolVersion protocolVersion) {
     ArgumentIdentifier identifier = readIdentifier(buf, protocolVersion);
 
     ArgumentPropertySerializer<?> serializer = byIdentifier.get(identifier);
-
     Object result = serializer.deserialize(buf, protocolVersion);
 
     if (result instanceof ArgumentType) {
@@ -109,7 +108,7 @@ public final class ArgumentPropertyRegistry {
    * @param type the type to serialize
    */
   public static void serialize(ByteBuf buf, ArgumentType<?> type,
-                               ProtocolVersion protocolVersion) {
+      ProtocolVersion protocolVersion) {
     if (type instanceof PassthroughProperty) {
       PassthroughProperty property = (PassthroughProperty) type;
       writeIdentifier(buf, property.getIdentifier(), protocolVersion);
@@ -123,9 +122,9 @@ public final class ArgumentPropertyRegistry {
       ArgumentPropertySerializer serializer = byClass.get(type.getClass());
       ArgumentIdentifier id = classToId.get(type.getClass());
       if (serializer == null || id == null) {
-        throw new IllegalArgumentException("Don't know how to serialize " + type.getClass().getName());
+        throw new IllegalArgumentException("Don't know how to serialize "
+            + type.getClass().getName());
       }
-
       writeIdentifier(buf, id, protocolVersion);
       serializer.serialize(type, buf, protocolVersion);
     }
@@ -139,7 +138,7 @@ public final class ArgumentPropertyRegistry {
    * @param protocolVersion the protocol version to use
    */
   public static void writeIdentifier(ByteBuf buf, ArgumentIdentifier identifier,
-                                     ProtocolVersion protocolVersion) {
+      ProtocolVersion protocolVersion) {
     if (protocolVersion.noLessThan(MINECRAFT_1_19)) {
       Integer id = identifier.getIdByProtocolVersion(protocolVersion);
       Preconditions.checkNotNull(id, "Don't know how to serialize type " + identifier);
@@ -148,6 +147,7 @@ public final class ArgumentPropertyRegistry {
     } else {
       ProtocolUtils.writeString(buf, identifier.getIdentifier());
     }
+
   }
 
   /**
@@ -166,7 +166,6 @@ public final class ArgumentPropertyRegistry {
           return i;
         }
       }
-
       throw new IllegalArgumentException("Argument type identifier " + id + " unknown.");
     } else {
       String identifier = ProtocolUtils.readString(buf);
@@ -175,7 +174,6 @@ public final class ArgumentPropertyRegistry {
           return i;
         }
       }
-
       throw new IllegalArgumentException("Argument type identifier " + identifier + " unknown.");
     }
   }
@@ -191,7 +189,8 @@ public final class ArgumentPropertyRegistry {
 
           @Override
           public void serialize(BoolArgumentType object, ByteBuf buf,
-                                ProtocolVersion protocolVersion) {
+              ProtocolVersion protocolVersion) {
+
           }
         });
     register(id("brigadier:float", mapSet(MINECRAFT_1_19, 1)), FloatArgumentType.class, FLOAT);
@@ -291,7 +290,7 @@ public final class ArgumentPropertyRegistry {
     empty(id("minecraft:feature", mapSet(MINECRAFT_26_3, 59))); // added in 26.3
     empty(id("minecraft:swing_animation", mapSet(MINECRAFT_26_3, 60))); // added in 26.3
 
-    // Cross-stitch support
+    // Crossstitch support
     register(id("crossstitch:mod_argument", mapSet(MINECRAFT_1_19, -256)), ModArgumentProperty.class, MOD);
 
     empty(id("minecraft:nbt")); // No longer in 1.19+

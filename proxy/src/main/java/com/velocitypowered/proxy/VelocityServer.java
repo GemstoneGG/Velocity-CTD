@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -159,50 +159,39 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       .registerTypeHierarchyAdapter(Favicon.class, FaviconSerializer.INSTANCE)
       .registerTypeHierarchyAdapter(GameProfile.class, GameProfileSerializer.INSTANCE)
       .create();
-
   private static final Gson PRE_1_16_PING_SERIALIZER = new GsonBuilder()
       .registerTypeHierarchyAdapter(
           Component.class,
           ProtocolUtils.getJsonChatSerializer(ProtocolVersion.MINECRAFT_1_15_2)
-              .serializer().getAdapter(Component.class)
+                  .serializer().getAdapter(Component.class)
       )
       .registerTypeHierarchyAdapter(Favicon.class, FaviconSerializer.INSTANCE)
       .create();
-
   private static final Gson PRE_1_20_3_PING_SERIALIZER = new GsonBuilder()
       .registerTypeHierarchyAdapter(
           Component.class,
           ProtocolUtils.getJsonChatSerializer(ProtocolVersion.MINECRAFT_1_20_2)
-              .serializer().getAdapter(Component.class)
+                  .serializer().getAdapter(Component.class)
       )
       .registerTypeHierarchyAdapter(Favicon.class, FaviconSerializer.INSTANCE)
       .create();
-
   private static final Gson MODERN_PING_SERIALIZER = new GsonBuilder()
       .registerTypeHierarchyAdapter(
           Component.class,
           ProtocolUtils.getJsonChatSerializer(ProtocolVersion.MINECRAFT_1_20_3)
-              .serializer().getAdapter(Component.class)
+                  .serializer().getAdapter(Component.class)
       )
       .registerTypeHierarchyAdapter(Favicon.class, FaviconSerializer.INSTANCE)
       .create();
 
   private final ConnectionManager cm;
-
   private final ProxyOptions options;
-
   private @MonotonicNonNull VelocityConfiguration configuration;
-
   private @MonotonicNonNull KeyPair serverKeyPair;
-
   private final ServerMap servers;
-
   private final VelocityCommandManager commandManager;
-
   private final AtomicBoolean shutdownInProgress = new AtomicBoolean(false);
-
   private boolean shutdown = false;
-
   private final VelocityPluginManager pluginManager;
 
   private final PlayerRegistry playerRegistry = new PlayerRegistry(this);
@@ -213,19 +202,12 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private final Set<BuiltinCommandDefinition> registeredBuiltinCommands = new HashSet<>();
 
   private final VelocityConsole console;
-
   private @MonotonicNonNull Ratelimiter<InetAddress> ipAttemptLimiter;
-
   private @MonotonicNonNull Ratelimiter<UUID> commandRateLimiter;
-
   private @MonotonicNonNull Ratelimiter<UUID> tabCompleteRateLimiter;
-
   private final VelocityEventManager eventManager;
-
   private final VelocityScheduler scheduler;
-
   private final VelocityChannelRegistrar channelRegistrar = new VelocityChannelRegistrar();
-
   private final ServerListPingHandler serverListPingHandler;
 
   /**
@@ -470,7 +452,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     // init console permissions after plugins are loaded
     console.setupPermissions();
 
-    Integer port = this.options.getPort();
+    final Integer port = this.options.getPort();
     if (port != null) {
       LOGGER.debug("Overriding bind port to {} from command line option", port);
       this.cm.bind(new InetSocketAddress(configuration.getBind().getHostString(), port));
@@ -478,7 +460,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       this.cm.bind(configuration.getBind());
     }
 
-    Boolean haproxy = this.options.isHaproxy();
+    final Boolean haproxy = this.options.isHaproxy();
     if (haproxy != null) {
       LOGGER.debug("Overriding HAProxy protocol to {} from command line option", haproxy);
       configuration.setProxyProtocol(haproxy);
@@ -488,7 +470,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       this.cm.queryBind(configuration.getBind().getHostString(), configuration.getQueryPort());
     }
 
-    String defaultPackage = new String(new byte[] {'o', 'r', 'g', '.', 'b', 's', 't', 'a', 't', 's' });
+    final String defaultPackage = new String(
+        new byte[] { 'o', 'r', 'g', '.', 'b', 's', 't', 'a', 't', 's' });
     if (!MetricsBase.class.getPackage().getName().startsWith(defaultPackage)) {
       Metrics.VelocityMetrics.startMetrics(this, configuration.getMetrics());
     } else {
@@ -971,8 +954,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
       try {
         eventManager.fire(new ProxyPreShutdownEvent())
-            .toCompletableFuture()
-            .get(PRE_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS);
+                .toCompletableFuture()
+                .get(PRE_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS);
       } catch (TimeoutException ignored) {
         LOGGER.warn("Your plugins took over {} seconds during pre shutdown.", PRE_SHUTDOWN_TIMEOUT);
       } catch (ExecutionException ee) {
@@ -1077,7 +1060,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   }
 
   /**
-   * Calls {@link #shutdown(boolean, Component)} with the default reason "Proxy shutting down.".
+   * Calls {@link #shutdown(boolean, Component)} with the default reason "Proxy shutting down".
    *
    * @param explicitExit whether the user explicitly shut down the proxy
    */
@@ -1317,7 +1300,6 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       throw new IllegalStateException(
           "No configuration"); // even though you'll never get the chance... heh, heh
     }
-
     return configuration.getBind();
   }
 
@@ -1343,11 +1325,9 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         || version.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       return MODERN_PING_SERIALIZER;
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_16)) {
       return PRE_1_20_3_PING_SERIALIZER;
     }
-
     return PRE_1_16_PING_SERIALIZER;
   }
 

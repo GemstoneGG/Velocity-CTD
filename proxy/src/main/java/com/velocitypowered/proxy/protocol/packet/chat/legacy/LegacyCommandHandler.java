@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,6 @@ public class LegacyCommandHandler extends RateLimitedCommandHandler<LegacyChatPa
   private static final Logger LOGGER = LogManager.getLogger(LegacyCommandHandler.class);
 
   private final ConnectedPlayer player;
-
   private final VelocityServer server;
 
   public LegacyCommandHandler(ConnectedPlayer player, VelocityServer server) {
@@ -59,14 +58,12 @@ public class LegacyCommandHandler extends RateLimitedCommandHandler<LegacyChatPa
       if (result == CommandExecuteEvent.CommandResult.denied()) {
         return CompletableFuture.completedFuture(null);
       }
-
       String commandToRun = result.getCommand().orElse(command);
       if (result.isForwardToServer()) {
         return CompletableFuture.completedFuture(this.player.getChatBuilderFactory().builder()
             .message("/" + commandToRun)
             .toServer());
       }
-
       return runCommand(this.server, this.player, commandToRun, hasRun -> {
         if (!hasRun) {
           return this.player.getChatBuilderFactory().builder()
@@ -74,7 +71,6 @@ public class LegacyCommandHandler extends RateLimitedCommandHandler<LegacyChatPa
               .asPlayer(this.player)
               .toServer();
         }
-
         return null;
       });
     }, command, Instant.now(), null, new CommandExecuteEvent.InvocationInfo(CommandExecuteEvent.SignedState.UNSUPPORTED,

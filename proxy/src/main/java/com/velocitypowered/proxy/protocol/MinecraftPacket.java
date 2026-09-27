@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,16 +33,17 @@ public interface MinecraftPacket {
   boolean handle(MinecraftSessionHandler handler);
 
   default int decodeExpectedMaxLength(ByteBuf buf, ProtocolUtils.Direction direction,
-                                      ProtocolVersion version) {
+      ProtocolVersion version) {
     return -1;
   }
 
   default int decodeExpectedMinLength(ByteBuf buf, ProtocolUtils.Direction direction,
-                                      ProtocolVersion version) {
+      ProtocolVersion version) {
     return 0;
   }
 
-  default int encodeSizeHint(ProtocolUtils.Direction direction, ProtocolVersion version) {
+  default int encodeSizeHint(ProtocolUtils.Direction direction,
+      ProtocolVersion version) {
     return -1;
   }
 }

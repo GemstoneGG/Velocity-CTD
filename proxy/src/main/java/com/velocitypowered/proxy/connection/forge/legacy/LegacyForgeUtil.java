@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import java.util.List;
 
-final class LegacyForgeUtil {
+class LegacyForgeUtil {
 
   private LegacyForgeUtil() {
     throw new AssertionError();
@@ -39,7 +39,7 @@ final class LegacyForgeUtil {
   /**
    * Gets the discriminator from the FML|HS packet (the first byte in the data).
    *
-   * @param message The message to analyze
+   * @param message The message to analyse
    * @return The discriminator
    */
   static byte getHandshakePacketDiscriminator(PluginMessagePacket message) {
@@ -52,7 +52,7 @@ final class LegacyForgeUtil {
    * Gets the mod list from the mod list packet and parses it.
    *
    * @param message The message
-   * @return The list of mods. Maybe empty.
+   * @return The list of mods. May be empty.
    */
   static List<ModInfo.Mod> readModList(PluginMessagePacket message) {
     Preconditions.checkNotNull(message, "message");

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,6 @@ import java.util.zip.DataFormatException;
 public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<ByteBuf> {
 
   private int threshold;
-
   private final VelocityCompressor compressor;
 
   public MinecraftCompressorAndLengthEncoder(int threshold, VelocityCompressor compressor) {
@@ -54,7 +53,8 @@ public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<By
     }
   }
 
-  private void handleCompressed(ChannelHandlerContext ctx, ByteBuf msg, ByteBuf out) throws DataFormatException {
+  private void handleCompressed(ChannelHandlerContext ctx, ByteBuf msg, ByteBuf out)
+      throws DataFormatException {
     int uncompressed = msg.readableBytes();
 
     out.writeMedium(0); // Reserve the packet length
@@ -67,7 +67,6 @@ public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<By
     } finally {
       compatibleIn.release();
     }
-
     int compressedLength = out.writerIndex() - startCompressed;
     if (compressedLength >= 1 << 21) {
       throw new DataFormatException("The server sent a very large (over 2MiB compressed) packet.");
@@ -88,7 +87,7 @@ public class MinecraftCompressorAndLengthEncoder extends MessageToByteEncoder<By
           : ctx.alloc().directBuffer(finalBufferSize);
     }
 
-    // (maximum data length after compression) + packet length varInt + uncompressed data varInt
+    // (maximum data length after compression) + packet length varint + uncompressed data varint
     int initialBufferSize = (uncompressed - 1) + 3 + ProtocolUtils.varIntBytes(uncompressed);
     return MoreByteBufUtils.preferredBuffer(ctx.alloc(), compressor, initialBufferSize);
   }

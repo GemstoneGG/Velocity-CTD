@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2022 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,9 +30,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 public class ResourcePackResponsePacket implements MinecraftPacket {
 
   private UUID id;
-
   private String hash = "";
-
   private @MonotonicNonNull Status status;
 
   public ResourcePackResponsePacket() {
@@ -48,7 +46,6 @@ public class ResourcePackResponsePacket implements MinecraftPacket {
     if (status == null) {
       throw new IllegalStateException("Packet not yet deserialized");
     }
-
     return status;
   }
 
@@ -65,11 +62,9 @@ public class ResourcePackResponsePacket implements MinecraftPacket {
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       this.id = ProtocolUtils.readUuid(buf);
     }
-
     if (protocolVersion.noGreaterThan(ProtocolVersion.MINECRAFT_1_9_4)) {
       this.hash = ProtocolUtils.readString(buf);
     }
-
     this.status = Status.values()[ProtocolUtils.readVarInt(buf)];
   }
 
@@ -78,11 +73,9 @@ public class ResourcePackResponsePacket implements MinecraftPacket {
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       ProtocolUtils.writeUuid(buf, id);
     }
-
     if (protocolVersion.noGreaterThan(ProtocolVersion.MINECRAFT_1_9_4)) {
       ProtocolUtils.writeString(buf, hash);
     }
-
     ProtocolUtils.writeVarInt(buf, status.ordinal());
   }
 

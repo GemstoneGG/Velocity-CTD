@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ import io.netty.buffer.ByteBufAllocator;
 /**
  * Additional utilities for {@link ByteBuf}.
  */
-public final class MoreByteBufUtils {
+public class MoreByteBufUtils {
   private MoreByteBufUtils() {
     throw new AssertionError();
   }
@@ -54,7 +54,7 @@ public final class MoreByteBufUtils {
     BufferPreference preferred = nativeStuff.preferredBufferType();
     return switch (preferred) {
       case DIRECT_PREFERRED, HEAP_PREFERRED ->
-          // The native prefers this type, but doesn't strictly require us to provide it.
+          // The native prefers this type, but doesn't strictly require we provide it.
           true;
       case DIRECT_REQUIRED -> buf.hasMemoryAddress();
       case HEAP_REQUIRED -> buf.hasArray();
@@ -70,7 +70,8 @@ public final class MoreByteBufUtils {
    * @param initialCapacity the initial capacity to allocate
    * @return a buffer compatible with the native
    */
-  public static ByteBuf preferredBuffer(ByteBufAllocator alloc, Native nativeStuff, int initialCapacity) {
+  public static ByteBuf preferredBuffer(ByteBufAllocator alloc, Native nativeStuff,
+      int initialCapacity) {
     return switch (nativeStuff.preferredBufferType()) {
       case HEAP_REQUIRED, HEAP_PREFERRED -> alloc.heapBuffer(initialCapacity);
       case DIRECT_PREFERRED, DIRECT_REQUIRED -> alloc.directBuffer(initialCapacity);

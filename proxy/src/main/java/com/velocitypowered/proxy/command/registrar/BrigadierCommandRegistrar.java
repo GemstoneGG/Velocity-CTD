@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,28 +30,28 @@ import java.util.concurrent.locks.Lock;
  */
 public final class BrigadierCommandRegistrar extends AbstractCommandRegistrar<BrigadierCommand> {
 
-  public BrigadierCommandRegistrar(RootCommandNode<CommandSource> root, Lock lock) {
+  public BrigadierCommandRegistrar(final RootCommandNode<CommandSource> root, final Lock lock) {
     super(root, lock);
   }
 
   @Override
-  public void register(CommandMeta meta, BrigadierCommand command) {
+  public void register(final CommandMeta meta, final BrigadierCommand command) {
     // The literal name might not match any aliases on the given meta.
-    // Register it (if valid); since it's probably what the user expects.
-    // If invalid, the metadata contains the same alias but in lowercase.
-    LiteralCommandNode<CommandSource> literal = command.getNode();
-    LiteralCommandNode<CommandSource> wrapped = (LiteralCommandNode<CommandSource>) VelocityCommands.wrap(literal, meta.getPlugin());
-    String primaryAlias = literal.getName();
+    // Register it (if valid), since it's probably what the user expects.
+    // If invalid, the metadata contains the same alias, but in lowercase.
+    final LiteralCommandNode<CommandSource> literal = command.getNode();
+    final LiteralCommandNode<CommandSource> wrapped =
+        (LiteralCommandNode<CommandSource>) VelocityCommands.wrap(literal, meta.getPlugin());
+    final String primaryAlias = literal.getName();
     if (VelocityCommands.isValidAlias(primaryAlias)) {
       // Register directly without copying
       this.register(wrapped);
     }
 
-    for (String alias : meta.getAliases()) {
+    for (final String alias : meta.getAliases()) {
       if (primaryAlias.equals(alias)) {
         continue;
       }
-
       this.register(wrapped, alias);
     }
 

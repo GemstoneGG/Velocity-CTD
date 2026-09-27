@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,7 +54,7 @@ public final class PluginDependencyUtils {
     sortedCandidates.sort(Comparator.comparing(PluginDescription::getId));
 
     // Create a graph and populate it with plugin dependencies. Specifically, each graph has plugin
-    // nodes and edges that represent the dependencies that plugin relies on. Non-existent plugins
+    // nodes, and edges that represent the dependencies that plugin relies on. Non-existent plugins
     // are ignored.
     MutableGraph<PluginDescription> graph = GraphBuilder.directed()
         .allowsSelfLoops(false)
@@ -89,7 +89,7 @@ public final class PluginDependencyUtils {
 
     // Now we do the depth-first search. The most accessible description of the algorithm is on
     // Wikipedia: https://en.wikipedia.org/w/index.php?title=Topological_sorting&oldid=1036420482,
-    // section "Depth-first search." Apparently, this algorithm originates from "Introduction to
+    // section "Depth-first search." Apparently this algorithm originates from "Introduction to
     // Algorithms" (2nd ed.)
     List<PluginDescription> sorted = new ArrayList<>();
     Map<PluginDescription, Mark> marks = new HashMap<>();
@@ -102,8 +102,8 @@ public final class PluginDependencyUtils {
   }
 
   private static void visitNode(Graph<PluginDescription> dependencyGraph, PluginDescription current,
-                                Map<PluginDescription, Mark> visited, List<PluginDescription> sorted,
-                                Deque<PluginDescription> currentDependencyScanStack) {
+      Map<PluginDescription, Mark> visited, List<PluginDescription> sorted,
+      Deque<PluginDescription> currentDependencyScanStack) {
     Mark mark = visited.getOrDefault(current, Mark.NOT_VISITED);
     if (mark == Mark.VISITED) {
       // Visited this node already, nothing to do.
@@ -114,7 +114,7 @@ public final class PluginDependencyUtils {
       // circular dependency, thus we do not have a directed acyclic graph and therefore no
       // topological sort is possible.)
       currentDependencyScanStack.addLast(current);
-      String loop = currentDependencyScanStack.stream().map(PluginDescription::getId)
+      final String loop = currentDependencyScanStack.stream().map(PluginDescription::getId)
           .collect(Collectors.joining(" -> "));
       throw new IllegalStateException("Circular dependency detected: " + loop);
     }
@@ -134,21 +134,8 @@ public final class PluginDependencyUtils {
   }
 
   private enum Mark {
-
-    /**
-     * The plugin has not been visited yet during the traversal.
-     */
     NOT_VISITED,
-
-    /**
-     * The plugin is currently being visited (part of the current recursion stack).
-     * This helps detect circular dependencies.
-     */
     VISITING,
-
-    /**
-     * The plugin and all its dependencies have been fully visited and sorted.
-     */
     VISITED
   }
 }

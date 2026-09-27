@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -111,25 +111,15 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
   private static final long HARD_CLOSE_TIMEOUT_SECONDS = 5;
 
   private final Channel channel;
-
   public boolean pendingConfigurationSwitch = false;
-
   private SocketAddress remoteAddress;
-
   private StateRegistry state;
-
   private Map<StateRegistry, MinecraftSessionHandler> sessionHandlers;
-
   private @Nullable MinecraftSessionHandler activeSessionHandler;
-
   private ProtocolVersion protocolVersion;
-
   private @Nullable MinecraftConnectionAssociation association;
-
   public final VelocityServer server;
-
   private ConnectionType connectionType = ConnectionTypes.UNDETERMINED;
-
   private boolean knownDisconnect = false;
 
   /**
@@ -283,7 +273,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
    * Writes and immediately flushes a message to the connection.
    *
    * @param msg the message to write
-   * @return A {@link ChannelFuture} that will complete when a packet is successfully sent
+   * @return A {@link ChannelFuture} that will complete when packet is successfully sent
    */
   @Nullable
   public ChannelFuture write(Object msg) {
@@ -328,10 +318,9 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
 
       boolean is17 = this.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_8)
           && this.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_7_2);
-
       if (is17 && this.getState() != StateRegistry.STATUS) {
         channel.eventLoop().execute(() -> {
-          // 1.7.x versions have a race condition with switching protocol states, so explicitly
+          // 1.7.x versions have a race condition with switching protocol states, so just explicitly
           // close the connection after a short while.
           this.setAutoReading(false);
           channel.eventLoop().schedule(() -> writeAndCloseChannel(msg), 250, TimeUnit.MILLISECONDS);
@@ -368,7 +357,6 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
         if (markKnown) {
           knownDisconnect = true;
         }
-
         channel.close();
       } else {
         channel.eventLoop().execute(() -> {
@@ -406,9 +394,9 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
   }
 
   /**
-   * Determines whether the channel should continue reading data automatically.
+   * Determines whether or not the channel should continue reading data automatically.
    *
-   * @param autoReading whether we should read data automatically
+   * @param autoReading whether or not we should read data automatically
    */
   public void setAutoReading(boolean autoReading) {
     ensureInEventLoop();
@@ -419,7 +407,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
       // is turned back on, even though toggling autoreading on should handle things automatically.
       // We will issue an explicit read after turning on autoread.
       //
-      // Many thanks to @creeper123123321.
+      // Much thanks to @creeper123123321.
       channel.read();
     }
   }
@@ -434,20 +422,20 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
   public void setState(StateRegistry state) {
     ensureInEventLoop();
 
-    StateRegistry previousState = this.state;
+    final StateRegistry previousState = this.state;
     this.state = state;
-    MinecraftVarintFrameDecoder frameDecoder = this.channel.pipeline()
+    final MinecraftVarintFrameDecoder frameDecoder = this.channel.pipeline()
         .get(MinecraftVarintFrameDecoder.class);
     if (frameDecoder != null) {
       frameDecoder.setState(state);
     }
     // If the connection is LEGACY (<1.6), the decoder and encoder are not set.
-    MinecraftEncoder minecraftEncoder = this.channel.pipeline()
+    final MinecraftEncoder minecraftEncoder = this.channel.pipeline()
         .get(MinecraftEncoder.class);
     if (minecraftEncoder != null) {
       minecraftEncoder.setState(state);
     }
-    MinecraftDecoder minecraftDecoder = this.channel.pipeline()
+    final MinecraftDecoder minecraftDecoder = this.channel.pipeline()
         .get(MinecraftDecoder.class);
     if (minecraftDecoder != null) {
       minecraftDecoder.setState(state);
@@ -581,7 +569,6 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     if (this.activeSessionHandler != null) {
       this.activeSessionHandler.deactivated();
     }
-
     this.sessionHandlers.put(registry, sessionHandler);
     this.activeSessionHandler = sessionHandler;
     setState(registry);
@@ -607,14 +594,12 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
           this.activeSessionHandler.deactivated();
         }
       }
-
       this.activeSessionHandler = handler;
       setState(registry);
       if (flag) {
         handler.activated();
       }
     }
-
     return handler != null;
   }
 
@@ -647,8 +632,8 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     ensureInEventLoop();
 
     if (threshold == -1) {
-      ChannelHandler removedDecoder = channel.pipeline().remove(COMPRESSION_DECODER);
-      ChannelHandler removedEncoder = channel.pipeline().remove(COMPRESSION_ENCODER);
+      final ChannelHandler removedDecoder = channel.pipeline().remove(COMPRESSION_DECODER);
+      final ChannelHandler removedEncoder = channel.pipeline().remove(COMPRESSION_ENCODER);
 
       if (removedDecoder != null && removedEncoder != null) {
         channel.pipeline().addBefore(MINECRAFT_DECODER, FRAME_ENCODER,
@@ -666,7 +651,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
       } else {
         int level = server.getConfiguration().getCompressionLevel();
         VelocityCompressor compressor = Natives.compress.get().create(level);
-        MinecraftDecoder minecraftDecoder = (MinecraftDecoder) channel.pipeline().get(MINECRAFT_DECODER);
+        final MinecraftDecoder minecraftDecoder = (MinecraftDecoder) channel.pipeline().get(MINECRAFT_DECODER);
 
         encoder = new MinecraftCompressorAndLengthEncoder(threshold, compressor);
         decoder = new MinecraftCompressDecoder(threshold, compressor, minecraftDecoder.getDirection());
@@ -703,8 +688,10 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     VelocityCipherFactory factory = Natives.cipher.get();
     VelocityCipher decryptionCipher = factory.forDecryption(key);
     VelocityCipher encryptionCipher = factory.forEncryption(key);
-    channel.pipeline().addBefore(FRAME_DECODER, CIPHER_DECODER, new MinecraftCipherDecoder(decryptionCipher));
-    channel.pipeline().addBefore(FRAME_ENCODER, CIPHER_ENCODER, new MinecraftCipherEncoder(encryptionCipher));
+    channel.pipeline()
+        .addBefore(FRAME_DECODER, CIPHER_DECODER, new MinecraftCipherDecoder(decryptionCipher));
+    channel.pipeline()
+        .addBefore(FRAME_ENCODER, CIPHER_ENCODER, new MinecraftCipherEncoder(encryptionCipher));
 
     channel.pipeline().fireUserEventTriggered(VelocityConnectionEvent.ENCRYPTION_ENABLED);
   }

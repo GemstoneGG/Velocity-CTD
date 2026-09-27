@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,20 +38,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class VelocityPluginDescription implements PluginDescription {
 
   private final String id;
-
   private final @Nullable String name;
-
   private final @Nullable String version;
-
   private final @Nullable String description;
-
   private final @Nullable String url;
-
   private final List<String> authors;
-
   private final Map<String, PluginDependency> dependencies;
   private final Collection<String> providedIds;
-
   private final Path source;
 
   /**
@@ -68,9 +61,9 @@ public class VelocityPluginDescription implements PluginDescription {
    * @param source       the original source for the plugin
    */
   public VelocityPluginDescription(String id, @Nullable String name, @Nullable String version,
-                                   @Nullable String description, @Nullable String url,
-                                   @Nullable List<String> authors, Collection<PluginDependency> dependencies,
-                                   @Nullable Collection<String> providedIds, Path source) {
+      @Nullable String description, @Nullable String url,
+      @Nullable List<String> authors, Collection<PluginDependency> dependencies,
+      @Nullable Collection<String> providedIds, Path source) {
     this.id = checkNotNull(id, "id");
     this.name = Strings.emptyToNull(name);
     this.version = Strings.emptyToNull(version);

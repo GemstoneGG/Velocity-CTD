@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,13 +48,14 @@ public class ResourceUtils {
    * @throws IOException if an I/O error occurs while reading resources
    */
   public static boolean visitResources(Class<?> target, Consumer<Path> consumer,
-                                       String firstPathComponent, String... remainingPathComponents) throws IOException {
-    URL knownResource = ResourceUtils.class.getClassLoader().getResource("default-velocity.toml");
+      String firstPathComponent, String... remainingPathComponents)
+      throws IOException {
+    final URL knownResource = ResourceUtils.class.getClassLoader()
+        .getResource("default-velocity.toml");
     if (knownResource == null) {
       throw new IllegalStateException(
           "default-velocity.toml does not exist, don't know where we are");
     }
-
     if (knownResource.getProtocol().equals("jar")) {
       // Running from a JAR
       String jarPathRaw = knownResource.toString().split("!")[0];
@@ -66,7 +67,6 @@ public class ResourceUtils {
           consumer.accept(toVisit);
           return true;
         }
-
         return false;
       }
     } else {
@@ -81,12 +81,10 @@ public class ResourceUtils {
         if (url == null) {
           return false;
         }
-
         uri = url.toURI();
       } catch (URISyntaxException e) {
         throw new IllegalStateException(e);
       }
-
       consumer.accept(Path.of(uri));
       return true;
     }

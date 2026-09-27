@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,19 +37,9 @@ import org.junit.jupiter.api.BeforeEach;
 
 abstract class CommandTestSuite {
 
-  /**
-   * Shared mock event manager used for command registration and dispatch during tests.
-   */
   private static VelocityEventManager eventManager;
 
-  /**
-   * The command manager under test, re-initialized before each test method.
-   */
   protected VelocityCommandManager manager;
-
-  /**
-   * The default {@link CommandSource} used when executing test commands.
-   */
   protected final CommandSource source = MockCommandSource.INSTANCE;
 
   @BeforeAll
@@ -62,30 +52,30 @@ abstract class CommandTestSuite {
     this.manager = new VelocityCommandManager(eventManager, new FakePluginManager());
   }
 
-  final void assertHandled(String input) {
+  final void assertHandled(final String input) {
     assertTrue(manager.executeAsync(source, input).join());
   }
 
-  final void assertForwarded(String input) {
+  final void assertForwarded(final String input) {
     assertFalse(manager.executeAsync(source, input).join());
   }
 
-  final void assertSuggestions(String input, String... expectedSuggestions) {
-    var actual = manager.offerSuggestions(source, input).join();
+  final void assertSuggestions(final String input, final String... expectedSuggestions) {
+    final var actual = manager.offerSuggestions(source, input).join();
     assertEquals(Arrays.asList(expectedSuggestions), actual);
   }
 
-  final void assertPlayerSuggestions(String input, String... expectedSuggestions) {
-    var player = mock(Player.class);
+  final void assertPlayerSuggestions(final String input, final String... expectedSuggestions) {
+    final var player = mock(Player.class);
     when(player.getPermissionValue(any())).thenReturn(Tristate.UNDEFINED);
-    var actual = manager.offerSuggestions(player, input).join();
+    final var actual = manager.offerSuggestions(player, input).join();
     assertEquals(Arrays.asList(expectedSuggestions), actual);
   }
 
-  final void assertRegisteredAliases(String... expected) {
-    Collection<String> actual = manager.getAliases();
+  final void assertRegisteredAliases(final String... expected) {
+    final Collection<String> actual = manager.getAliases();
     assertEquals(expected.length, actual.size());
-    Collection<String> asList = Arrays.asList(expected);
+    final Collection<String> asList = Arrays.asList(expected);
     assertTrue(asList.containsAll(actual));
     assertTrue(actual.containsAll(asList));
   }

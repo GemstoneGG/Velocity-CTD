@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2022 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -143,7 +143,7 @@ public interface ProxyServer extends Audience {
   RegisteredServer createRawRegisteredServer(ServerInfo server);
 
   /**
-   * Registers a server with this proxy. A server with this name should not exist.
+   * Registers a server with this proxy. A server with this name should not already exist.
    *
    * @param server the server to register
    * @return the newly registered server
@@ -261,13 +261,13 @@ public interface ProxyServer extends Audience {
    * - Use HTTPS with a valid certificate.
    * - Be in a crawler-accessible location. Having it behind Cloudflare or other DoS/Bot/crawler
    *   protection may cause issues in downloading.
-   * - Be on a web-server with enough bandwidth and reliable connection,
+   * - Be on a web-server with enough bandwidth and reliable connection
    *   so the download does not time out or fail.</p>
    *
    * <p>Do also make sure that the resource pack is in the correct format for the version
    * of the client. It is also highly recommended to always provide the resource-pack SHA-1 hash
    * of the resource pack with {@link ResourcePackInfo.Builder#setHash(byte[])}
-   * whenever possible to save bandwidth. If a hash is present, the client will first check
+   * whenever possible to save bandwidth. If a hash is present the client will first check
    * if it already has a resource pack by that hash cached.</p>
    *
    * @param url The url where the resource pack can be found

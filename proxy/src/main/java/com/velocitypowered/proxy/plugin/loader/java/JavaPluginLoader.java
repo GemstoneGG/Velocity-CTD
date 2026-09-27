@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -93,7 +93,8 @@ public class JavaPluginLoader implements PluginLoader {
     }
 
     URL pluginJarUrl = candidate.getSource().orElseThrow(
-        () -> new InvalidPluginException("Description provided does not have a source path")).toUri().toURL();
+        () -> new InvalidPluginException("Description provided does not have a source path")
+    ).toUri().toURL();
     PluginClassLoader loader = new PluginClassLoader(new URL[]{pluginJarUrl});
     loader.addToClassloaders();
 
@@ -109,6 +110,7 @@ public class JavaPluginLoader implements PluginLoader {
     }
 
     Optional<Path> source = javaDescription.getSource();
+
     if (source.isEmpty()) {
       throw new IllegalArgumentException("No path in plugin description");
     }
@@ -121,7 +123,6 @@ public class JavaPluginLoader implements PluginLoader {
     if (!(container instanceof VelocityPluginContainer pluginContainer)) {
       throw new IllegalArgumentException("Container provided isn't of the Java plugin loader");
     }
-
     PluginDescription description = pluginContainer.getDescription();
     if (!(description instanceof JavaVelocityPluginDescription javaPluginDescription)) {
       throw new IllegalArgumentException("Description provided isn't of the Java plugin loader");
@@ -131,7 +132,8 @@ public class JavaPluginLoader implements PluginLoader {
     Object instance = injector.getInstance(javaPluginDescription.getMainClass());
 
     if (instance == null) {
-      throw new IllegalStateException("Got nothing from injector for plugin " + description.getId());
+      throw new IllegalStateException(
+          "Got nothing from injector for plugin " + description.getId());
     }
 
     pluginContainer.setInstance(instance);
@@ -140,7 +142,8 @@ public class JavaPluginLoader implements PluginLoader {
   private Optional<SerializedPluginDescription> getSerializedPluginInfo(Path source)
       throws Exception {
     boolean foundBungeeBukkitPluginFile = false;
-    try (JarInputStream in = new JarInputStream(new BufferedInputStream(Files.newInputStream(source)))) {
+    try (JarInputStream in = new JarInputStream(
+        new BufferedInputStream(Files.newInputStream(source)))) {
       JarEntry entry;
       while ((entry = in.getNextJarEntry()) != null) {
         switch (entry.getName()) {
@@ -166,7 +169,9 @@ public class JavaPluginLoader implements PluginLoader {
     }
   }
 
-  private VelocityPluginDescription createCandidateDescription(SerializedPluginDescription description, Path source) {
+  private VelocityPluginDescription createCandidateDescription(
+      SerializedPluginDescription description,
+      Path source) {
     Set<PluginDependency> dependencies = new HashSet<>();
 
     for (SerializedPluginDescription.Dependency dependency : description.getDependencies()) {
@@ -187,7 +192,9 @@ public class JavaPluginLoader implements PluginLoader {
     );
   }
 
-  private VelocityPluginDescription createDescription(JavaVelocityPluginDescriptionCandidate description, Class<?> mainClass) {
+  private VelocityPluginDescription createDescription(
+      JavaVelocityPluginDescriptionCandidate description,
+      Class<?> mainClass) {
     return new JavaVelocityPluginDescription(
         description.getId(),
         description.getName().orElse(null),
@@ -202,7 +209,8 @@ public class JavaPluginLoader implements PluginLoader {
     );
   }
 
-  private static PluginDependency toDependencyMeta(SerializedPluginDescription.Dependency dependency) {
+  private static PluginDependency toDependencyMeta(
+      SerializedPluginDescription.Dependency dependency) {
     return new PluginDependency(
         dependency.getId(),
         null, // TODO Implement version matching in dependency annotation

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,14 +24,12 @@ import net.kyori.adventure.text.format.NamedTextColor;
 /**
  * Common messages that might be sent a client for various connection-related states.
  */
-public final class ConnectionMessages {
+public class ConnectionMessages {
 
   public static final TranslatableComponent ALREADY_CONNECTED = Component
       .translatable("velocity.error.already-connected", NamedTextColor.RED);
-
   public static final TranslatableComponent IN_PROGRESS = Component
       .translatable("velocity.error.already-connecting", NamedTextColor.RED);
-
   public static final TranslatableComponent INTERNAL_SERVER_CONNECTION_ERROR = Component
       .translatable("velocity.error.internal-server-connection-error", NamedTextColor.RED);
 

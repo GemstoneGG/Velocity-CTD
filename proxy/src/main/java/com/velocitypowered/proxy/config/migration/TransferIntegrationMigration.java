@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2024 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,19 +24,17 @@ import org.apache.logging.log4j.Logger;
  * Creation of the configuration option "accepts-transfers".
  */
 public final class TransferIntegrationMigration implements ConfigurationMigration {
-
   @Override
-  public boolean shouldMigrate(CommentedFileConfig config) {
+  public boolean shouldMigrate(final CommentedFileConfig config) {
     return configVersion(config) < 2.7;
   }
 
   @Override
-  public void migrate(CommentedFileConfig config, Logger logger) {
+  public void migrate(final CommentedFileConfig config, final Logger logger) {
     config.set("advanced.accepts-transfers", false);
     config.setComment("advanced.accepts-transfers", """
             Allows players transferred from other hosts via the
-            Transfer packet (Minecraft 1.20.5) to be received."""
-    );
+            Transfer packet (Minecraft 1.20.5) to be received.""");
     config.set("config-version", "2.7");
   }
 }

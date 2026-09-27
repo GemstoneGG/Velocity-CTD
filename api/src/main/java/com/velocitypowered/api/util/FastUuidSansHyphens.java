@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2019-2021 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -17,13 +17,13 @@ import java.util.UUID;
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * with the Software without restriction, including without limitation the rights
+ * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
- * copies or significant portions of the Software.
+ * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -39,23 +39,13 @@ import java.util.UUID;
  * UUIDs. As the native Java 9+ UUID.toString() implementation dashes its UUIDs, we use the FastUUID
  * methods, which ought to be faster than a String.replace().
  */
-final class FastUuidSansHyphens {
+class FastUuidSansHyphens {
 
-  /**
-   * The length of a Mojang UUID string (32 hex characters, no dashes).
-   */
   private static final int MOJANG_BROKEN_UUID_LENGTH = 32;
 
-  /**
-   * Hexadecimal characters used for UUID string encoding.
-   */
   private static final char[] HEX_DIGITS =
-      new char[] {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+      new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
-  /**
-   * A lookup table for converting ASCII characters to hexadecimal values.
-   * Initialized with -1 for invalid entries.
-   */
   private static final long[] HEX_VALUES = new long[128];
 
   static {
@@ -102,7 +92,7 @@ final class FastUuidSansHyphens {
    * @throws IllegalArgumentException if the given character sequence does not conform to the string
    *         representation of a Mojang UUID.
    */
-  static UUID parseUuid(CharSequence uuidSequence) {
+  static UUID parseUuid(final CharSequence uuidSequence) {
     if (uuidSequence.length() != MOJANG_BROKEN_UUID_LENGTH) {
       throw new IllegalArgumentException("Illegal UUID string: " + uuidSequence);
     }
@@ -155,11 +145,11 @@ final class FastUuidSansHyphens {
    *
    * @return a string representation of the given UUID
    */
-  public static String toString(UUID uuid) {
-    long mostSignificantBits = uuid.getMostSignificantBits();
-    long leastSignificantBits = uuid.getLeastSignificantBits();
+  public static String toString(final UUID uuid) {
+    final long mostSignificantBits = uuid.getMostSignificantBits();
+    final long leastSignificantBits = uuid.getLeastSignificantBits();
 
-    char[] uuidChars = new char[MOJANG_BROKEN_UUID_LENGTH];
+    final char[] uuidChars = new char[MOJANG_BROKEN_UUID_LENGTH];
 
     uuidChars[0]  = HEX_DIGITS[(int) ((mostSignificantBits & 0xf000000000000000L) >>> 60)];
     uuidChars[1]  = HEX_DIGITS[(int) ((mostSignificantBits & 0x0f00000000000000L) >>> 56)];
@@ -197,12 +187,12 @@ final class FastUuidSansHyphens {
     return new String(uuidChars);
   }
 
-  private static long getHexValueForChar(char c) {
+  private static long getHexValueForChar(final char c) {
     try {
       if (HEX_VALUES[c] < 0) {
         throw new IllegalArgumentException("Illegal hexadecimal digit: " + c);
       }
-    } catch (ArrayIndexOutOfBoundsException e) {
+    } catch (final ArrayIndexOutOfBoundsException e) {
       throw new IllegalArgumentException("Illegal hexadecimal digit: " + c);
     }
 

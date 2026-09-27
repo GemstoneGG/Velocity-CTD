@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -143,7 +143,7 @@ public final class VelocityConsole extends SimpleTerminalConsole implements Cons
           try {
             List<String> offers = this.server.getCommandManager()
                 .offerSuggestions(this, parsedLine.line())
-                .join(); // The console doesn't get harmed much by this...
+                .join(); // Console doesn't get harmed much by this...
             for (String offer : offers) {
               list.add(new Candidate(offer));
             }

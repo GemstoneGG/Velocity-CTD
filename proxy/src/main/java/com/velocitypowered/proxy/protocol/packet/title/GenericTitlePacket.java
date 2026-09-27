@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,15 +29,10 @@ public abstract class GenericTitlePacket implements MinecraftPacket {
   public enum ActionType {
 
     SET_TITLE(0),
-
     SET_SUBTITLE(1),
-
     SET_ACTION_BAR(2),
-
     SET_TIMES(3),
-
     HIDE(4),
-
     RESET(5);
 
     private final int action;
@@ -92,7 +87,7 @@ public abstract class GenericTitlePacket implements MinecraftPacket {
   }
 
   /**
-   * Creates a version and type-dependent TitlePacket.
+   * Creates a version and type dependent TitlePacket.
    *
    * @param type    Action the packet should invoke
    * @param version Protocol version of the target player

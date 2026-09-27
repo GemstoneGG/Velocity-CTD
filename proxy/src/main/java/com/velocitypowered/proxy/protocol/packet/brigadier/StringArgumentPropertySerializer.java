@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2022 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,23 +23,15 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import io.netty.buffer.ByteBuf;
 
 /**
- * Serializer for {@link StringArgumentType}, which supports multiple formats of string input
- * in Minecraft commands (e.g., single words, quoted phrases, or greedy strings).
- *
- * <p>This serializer handles encoding and decoding of the argument type format using a compact
- * integer representation. The encoded type is one of the following:</p>
- *
- * <ul>
- *   <li>{@code 0} - {@link StringArgumentType#word()} (single word)</li>
- *   <li>{@code 1} - {@link StringArgumentType#string()} (quotable phrase)</li>
- *   <li>{@code 2} - {@link StringArgumentType#greedyString()} (greedy/remaining input)</li>
- * </ul>
+ * Serializes properties for {@link StringArgumentType}.
  */
-final class StringArgumentPropertySerializer implements ArgumentPropertySerializer<StringArgumentType> {
+class StringArgumentPropertySerializer implements ArgumentPropertySerializer<StringArgumentType> {
 
-  public static final ArgumentPropertySerializer<StringArgumentType> STRING = new StringArgumentPropertySerializer();
+  public static final ArgumentPropertySerializer<StringArgumentType> STRING =
+      new StringArgumentPropertySerializer();
 
   private StringArgumentPropertySerializer() {
+
   }
 
   @Override

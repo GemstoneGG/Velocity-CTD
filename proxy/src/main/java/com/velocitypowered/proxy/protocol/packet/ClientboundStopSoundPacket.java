@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,11 +30,9 @@ import net.kyori.adventure.sound.SoundStop;
 public class ClientboundStopSoundPacket implements MinecraftPacket {
 
   private @Nullable Sound.Source source;
-
   private @Nullable Key soundName;
 
-  public ClientboundStopSoundPacket() {
-  }
+  public ClientboundStopSoundPacket() {}
 
   public ClientboundStopSoundPacket(SoundStop soundStop) {
     this(soundStop.source(), soundStop.sound());
@@ -69,7 +67,7 @@ public class ClientboundStopSoundPacket implements MinecraftPacket {
       flagsBitmask |= 1;
     } else if (soundName != null && source == null) {
       flagsBitmask |= 2;
-    } else if (source != null) {
+    } else if (source != null /*&& sound != null*/) {
       flagsBitmask |= 3;
     }
 
@@ -106,4 +104,5 @@ public class ClientboundStopSoundPacket implements MinecraftPacket {
   public void setSoundName(@Nullable Key soundName) {
     this.soundName = soundName;
   }
+
 }

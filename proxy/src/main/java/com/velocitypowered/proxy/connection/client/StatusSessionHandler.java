@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,11 +43,8 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
       "Expected connection to be awaiting status request");
 
   private final VelocityServer server;
-
   private final MinecraftConnection connection;
-
   private final VelocityInboundConnection inbound;
-
   private boolean pingReceived = false;
 
   StatusSessionHandler(VelocityServer server, VelocityInboundConnection inbound) {
@@ -69,9 +66,7 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
     if (this.pingReceived) {
       throw EXPECTED_AWAITING_REQUEST;
     }
-
     this.pingReceived = true;
-
     server.getServerListPingHandler().getInitialPing(this.inbound)
         .thenCompose(ping -> server.getEventManager().fire(new ProxyPingEvent(inbound, ping)))
         .thenAcceptAsync(event -> {
@@ -85,7 +80,6 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
           LOGGER.error("Exception while handling legacy ping {}", packet, ex);
           return null;
         });
-
     return true;
   }
 
@@ -100,7 +94,6 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
     if (this.pingReceived) {
       throw EXPECTED_AWAITING_REQUEST;
     }
-
     this.pingReceived = true;
 
     this.server.getServerListPingHandler().getInitialPing(inbound)
@@ -108,7 +101,7 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
         .thenAcceptAsync(
             (event) -> {
               if (event.getResult().isAllowed()) {
-                StringBuilder json = new StringBuilder();
+                final StringBuilder json = new StringBuilder();
                 VelocityServer.getPingGsonInstance(connection.getProtocolVersion())
                         .toJson(event.getPing(), json);
                 connection.write(new StatusResponsePacket(json));
@@ -121,26 +114,17 @@ public class StatusSessionHandler implements MinecraftSessionHandler {
           LOGGER.error("Exception while handling status request {}", packet, ex);
           return null;
         });
-
     return true;
   }
 
   @Override
   public void handleUnknown(ByteBuf buf) {
-    // What even is going on?
+    // what even is going on?
     connection.close(true);
   }
 
   private enum State {
-
-    /**
-     * Indicates that the server is waiting for a status request or legacy ping from the client.
-     */
     AWAITING_REQUEST,
-
-    /**
-     * Indicates that a status or legacy ping request has been received from the client.
-     */
     RECEIVED_REQUEST
   }
 }

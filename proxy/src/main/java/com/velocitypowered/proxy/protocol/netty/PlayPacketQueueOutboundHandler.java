@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,14 +43,12 @@ import org.jetbrains.annotations.NotNull;
 public class PlayPacketQueueOutboundHandler extends ChannelDuplexHandler {
 
   private final StateRegistry.PacketRegistry.ProtocolRegistry registry;
-
   private final Queue<MinecraftPacket> queue = new ArrayDeque<>();
 
   /**
-   * Provides registries for "client" &amp; server bound packets.
+   * Provides registries for client &amp; server bound packets.
    *
    * @param version the protocol version
-   * @param direction the direction of packet flow (typically {@code CLIENTBOUND})
    */
   public PlayPacketQueueOutboundHandler(ProtocolVersion version, ProtocolUtils.Direction direction) {
     this.registry = StateRegistry.CONFIG.getProtocolRegistry(direction, version);
@@ -58,7 +56,7 @@ public class PlayPacketQueueOutboundHandler extends ChannelDuplexHandler {
 
   @Override
   public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-    if (!(msg instanceof MinecraftPacket packet)) {
+    if (!(msg instanceof final MinecraftPacket packet)) {
       ctx.write(msg, promise);
       return;
     }

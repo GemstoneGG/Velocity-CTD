@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2022 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,15 +21,15 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.velocitypowered.api.network.ProtocolVersion;
 import io.netty.buffer.ByteBuf;
 
-final class IntegerArgumentPropertySerializer implements ArgumentPropertySerializer<IntegerArgumentType> {
+class IntegerArgumentPropertySerializer implements ArgumentPropertySerializer<IntegerArgumentType> {
 
   static final IntegerArgumentPropertySerializer INTEGER = new IntegerArgumentPropertySerializer();
 
   static final byte HAS_MINIMUM = 0x01;
-
   static final byte HAS_MAXIMUM = 0x02;
 
   private IntegerArgumentPropertySerializer() {
+
   }
 
   @Override
@@ -50,7 +50,6 @@ final class IntegerArgumentPropertySerializer implements ArgumentPropertySeriali
     if (hasMinimum) {
       buf.writeInt(object.getMinimum());
     }
-
     if (hasMaximum) {
       buf.writeInt(object.getMaximum());
     }
@@ -61,11 +60,9 @@ final class IntegerArgumentPropertySerializer implements ArgumentPropertySeriali
     if (hasMinimum) {
       flags |= HAS_MINIMUM;
     }
-
     if (hasMaximum) {
       flags |= HAS_MAXIMUM;
     }
-
     return flags;
   }
 }

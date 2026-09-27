@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2020-2022 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,6 @@ import java.util.concurrent.CompletableFuture;
 public class ModArgumentProperty implements ArgumentType<ByteBuf> {
 
   private final ArgumentIdentifier identifier;
-
   private final ByteBuf data;
 
   public ModArgumentProperty(ArgumentIdentifier identifier, ByteBuf data) {
@@ -54,7 +53,7 @@ public class ModArgumentProperty implements ArgumentType<ByteBuf> {
 
   @Override
   public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context,
-                                                            SuggestionsBuilder builder) {
+      SuggestionsBuilder builder) {
     throw new UnsupportedOperationException();
   }
 

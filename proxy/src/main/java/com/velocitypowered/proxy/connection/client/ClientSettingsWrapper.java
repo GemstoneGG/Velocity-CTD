@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,9 +33,7 @@ public class ClientSettingsWrapper implements PlayerSettings {
       new ClientSettingsPacket("en_us", (byte) 2, 0, true, (short) 0, 1, false, false, 0));
 
   private final ClientSettingsPacket settings;
-
   private final SkinParts parts;
-
   private @Nullable Locale locale;
 
   ClientSettingsWrapper(ClientSettingsPacket settings) {
@@ -48,7 +46,6 @@ public class ClientSettingsWrapper implements PlayerSettings {
     if (locale == null) {
       locale = Locale.forLanguageTag(settings.getLocale().replace('_', '-'));
     }
-
     return locale;
   }
 
@@ -101,17 +98,16 @@ public class ClientSettingsWrapper implements PlayerSettings {
   }
 
   @Override
-  public boolean equals(@Nullable Object o) {
+  public boolean equals(@Nullable final Object o) {
     if (this == o) {
       return true;
     }
-
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-
     ClientSettingsWrapper that = (ClientSettingsWrapper) o;
-    return Objects.equals(settings, that.settings) && Objects.equals(parts, that.parts) && Objects.equals(locale, that.locale);
+    return Objects.equals(settings, that.settings) && Objects.equals(parts, that.parts)
+        && Objects.equals(locale, that.locale);
   }
 
   @Override

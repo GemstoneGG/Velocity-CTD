@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,11 +29,8 @@ import java.util.Arrays;
 public class EncryptionRequestPacket implements MinecraftPacket {
 
   private String serverId = "";
-
   private byte[] publicKey = EMPTY_BYTE_ARRAY;
-
   private byte[] verifyToken = EMPTY_BYTE_ARRAY;
-
   private boolean shouldAuthenticate = true;
 
   public byte[] getPublicKey() {

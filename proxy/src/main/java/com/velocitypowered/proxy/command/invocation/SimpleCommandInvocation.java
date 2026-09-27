@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,24 +28,31 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public final class SimpleCommandInvocation extends AbstractCommandInvocation<String[]> implements SimpleCommand.Invocation {
+/**
+ * Implements {@link SimpleCommand.Invocation}.
+ */
+public final class SimpleCommandInvocation extends AbstractCommandInvocation<String[]>
+    implements SimpleCommand.Invocation {
 
   public static final Factory FACTORY = new Factory();
 
   public static class Factory implements CommandInvocationFactory<SimpleCommand.Invocation> {
 
     @Override
-    public SimpleCommand.Invocation create(CommandSource source, List<? extends ParsedCommandNode<?>> nodes,
-                                           Map<String, ? extends ParsedArgument<?, ?>> arguments) {
-      String alias = VelocityCommands.readAlias(nodes);
-      String[] args = VelocityCommands.readArguments(arguments, String[].class, StringArrayArgumentType.EMPTY);
+    public SimpleCommand.Invocation create(
+        final CommandSource source, final List<? extends ParsedCommandNode<?>> nodes,
+        final Map<String, ? extends ParsedArgument<?, ?>> arguments) {
+      final String alias = VelocityCommands.readAlias(nodes);
+      final String[] args = VelocityCommands.readArguments(
+          arguments, String[].class, StringArrayArgumentType.EMPTY);
       return new SimpleCommandInvocation(source, alias, args);
     }
   }
 
   private final String alias;
 
-  SimpleCommandInvocation(CommandSource source, String alias, String[] arguments) {
+  SimpleCommandInvocation(final CommandSource source, final String alias,
+      final String[] arguments) {
     super(source, arguments);
     this.alias = Preconditions.checkNotNull(alias, "alias");
   }
@@ -56,20 +63,18 @@ public final class SimpleCommandInvocation extends AbstractCommandInvocation<Str
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
-
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-
     if (!super.equals(o)) {
       return false;
     }
 
-    SimpleCommandInvocation that = (SimpleCommandInvocation) o;
+    final SimpleCommandInvocation that = (SimpleCommandInvocation) o;
     return this.alias.equals(that.alias);
   }
 

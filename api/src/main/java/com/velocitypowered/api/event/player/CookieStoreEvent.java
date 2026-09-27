@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2024 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -23,24 +23,9 @@ import net.kyori.adventure.key.Key;
 @AwaitingEvent
 public final class CookieStoreEvent implements ResultedEvent<CookieStoreEvent.ForwardResult> {
 
-  /**
-   * The player who should store the cookie.
-   */
   private final Player player;
-
-  /**
-   * The original key identifying the cookie to be stored.
-   */
   private final Key originalKey;
-
-  /**
-   * The original data payload of the cookie.
-   */
   private final byte[] originalData;
-
-  /**
-   * The result indicating how the cookie should be handled by the proxy.
-   */
   private ForwardResult result;
 
   /**
@@ -50,7 +35,7 @@ public final class CookieStoreEvent implements ResultedEvent<CookieStoreEvent.Fo
    * @param key the identifier of the cookie
    * @param data the data of the cookie
    */
-  public CookieStoreEvent(Player player, Key key, byte[] data) {
+  public CookieStoreEvent(final Player player, final Key key, final byte[] data) {
     this.player = Preconditions.checkNotNull(player, "player");
     this.originalKey = Preconditions.checkNotNull(key, "key");
     this.originalData = Preconditions.checkNotNull(data, "data");
@@ -67,29 +52,14 @@ public final class CookieStoreEvent implements ResultedEvent<CookieStoreEvent.Fo
     this.result = Preconditions.checkNotNull(result, "result");
   }
 
-  /**
-   * Returns the player who should store the cookie.
-   *
-   * @return the player
-   */
   public Player getPlayer() {
     return player;
   }
 
-  /**
-   * Returns the original key identifying the cookie to be stored.
-   *
-   * @return the cookie key
-   */
   public Key getOriginalKey() {
     return originalKey;
   }
 
-  /**
-   * Returns the original data of the cookie to be stored.
-   *
-   * @return the cookie data
-   */
   public byte[] getOriginalData() {
     return originalData;
   }
@@ -104,36 +74,18 @@ public final class CookieStoreEvent implements ResultedEvent<CookieStoreEvent.Fo
   }
 
   /**
-   * A result determining whether to forward the cookie on.
+   * A result determining whether or not to forward the cookie on.
    */
   public static final class ForwardResult implements Result {
 
-    /**
-     * A result indicating the cookie should be forwarded to the client unchanged.
-     */
     private static final ForwardResult ALLOWED = new ForwardResult(true, null, null);
-
-    /**
-     * A result indicating the cookie has been handled by the proxy and should not be forwarded.
-     */
     private static final ForwardResult DENIED = new ForwardResult(false, null, null);
 
-    /**
-     * Whether the cookie should be forwarded to the client.
-     */
     private final boolean status;
-
-    /**
-     * A replacement key to use when forwarding the cookie, or {@code null} to use the original key.
-     */
     private final Key key;
-
-    /**
-     * A replacement payload to use when forwarding the cookie, or {@code null} to use the original data.
-     */
     private final byte[] data;
 
-    private ForwardResult(boolean status, Key key, byte[] data) {
+    private ForwardResult(final boolean status, final Key key, final byte[] data) {
       this.status = status;
       this.key = key;
       this.data = data;
@@ -144,22 +96,10 @@ public final class CookieStoreEvent implements ResultedEvent<CookieStoreEvent.Fo
       return status;
     }
 
-    /**
-     * Returns the replacement key to use when forwarding the cookie,
-     * or {@code null} if the original key should be used.
-     *
-     * @return the new cookie key, or {@code null} if unchanged
-     */
     public Key getKey() {
       return key;
     }
 
-    /**
-     * Returns the replacement data to use when forwarding the cookie,
-     * or {@code null} if the original data should be used.
-     *
-     * @return the new cookie data, or {@code null} if unchanged
-     */
     public byte[] getData() {
       return data;
     }
@@ -194,7 +134,7 @@ public final class CookieStoreEvent implements ResultedEvent<CookieStoreEvent.Fo
      * @param key the identifier to use instead
      * @return a result with a new key
      */
-    public static ForwardResult key(Key key) {
+    public static ForwardResult key(final Key key) {
       Preconditions.checkNotNull(key, "key");
       return new ForwardResult(true, key, null);
     }
@@ -206,7 +146,7 @@ public final class CookieStoreEvent implements ResultedEvent<CookieStoreEvent.Fo
      * @param data the data of the cookie to use instead
      * @return a result with new data
      */
-    public static ForwardResult data(byte[] data) {
+    public static ForwardResult data(final byte[] data) {
       Preconditions.checkNotNull(data, "data");
       return new ForwardResult(true, null, data);
     }

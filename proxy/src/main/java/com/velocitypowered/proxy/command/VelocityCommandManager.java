@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,33 +70,27 @@ import org.jetbrains.annotations.VisibleForTesting;
 public class VelocityCommandManager implements CommandManager {
 
   private final @GuardedBy("lock") CommandDispatcher<CommandSource> dispatcher;
-
   private final ReadWriteLock lock;
 
   private final VelocityEventManager eventManager;
-
   private final List<CommandRegistrar<?>> registrars;
-
   private final SuggestionsProvider<CommandSource> suggestionsProvider;
-
   private final CommandGraphInjector<CommandSource> injector;
-
   private final Map<String, CommandMeta> commandMetas;
-
   private final PluginManager pluginManager;
 
   /**
    * Constructs a command manager.
    *
    * @param eventManager the event manager
-   * @param pluginManager the plugin manager
    */
-  public VelocityCommandManager(VelocityEventManager eventManager, PluginManager pluginManager) {
+  public VelocityCommandManager(final VelocityEventManager eventManager,
+      PluginManager pluginManager) {
     this.pluginManager = pluginManager;
     this.lock = new ReentrantReadWriteLock();
     this.dispatcher = new CommandDispatcher<>();
     this.eventManager = Preconditions.checkNotNull(eventManager);
-    RootCommandNode<CommandSource> root = this.dispatcher.getRoot();
+    final RootCommandNode<CommandSource> root = this.dispatcher.getRoot();
     this.registrars = ImmutableList.of(
         new BrigadierCommandRegistrar(root, this.lock.writeLock()),
         new SimpleCommandRegistrar(root, this.lock.writeLock()),
@@ -106,39 +100,39 @@ public class VelocityCommandManager implements CommandManager {
     this.commandMetas = new ConcurrentHashMap<>();
   }
 
-  public final void setAnnounceProxyCommands(boolean announceProxyCommands) {
+  public void setAnnounceProxyCommands(boolean announceProxyCommands) {
     this.suggestionsProvider.setAnnounceProxyCommands(announceProxyCommands);
   }
 
   @Override
-  public CommandMeta.Builder metaBuilder(String alias) {
+  public CommandMeta.Builder metaBuilder(final String alias) {
     Preconditions.checkNotNull(alias, "alias");
     return new VelocityCommandMeta.Builder(alias);
   }
 
   @Override
-  public CommandMeta.Builder metaBuilder(BrigadierCommand command) {
+  public CommandMeta.Builder metaBuilder(final BrigadierCommand command) {
     Preconditions.checkNotNull(command, "command");
     return new VelocityCommandMeta.Builder(command.getNode().getName());
   }
 
   @Override
-  public void register(BrigadierCommand command) {
+  public void register(final BrigadierCommand command) {
     Preconditions.checkNotNull(command, "command");
     register(metaBuilder(command).build(), command);
   }
 
   @Override
-  public void register(CommandMeta meta, Command command) {
+  public void register(final CommandMeta meta, final Command command) {
     Preconditions.checkNotNull(meta, "meta");
     Preconditions.checkNotNull(command, "command");
 
-    List<CommandRegistrar<?>> commandRegistrars = this.implementedRegistrars(command);
+    final List<CommandRegistrar<?>> commandRegistrars = this.implementedRegistrars(command);
     if (commandRegistrars.isEmpty()) {
       throw new IllegalArgumentException(
               command + " does not implement a registrable Command subinterface");
     } else if (commandRegistrars.size() > 1) {
-      String implementedInterfaces = commandRegistrars.stream()
+      final String implementedInterfaces = commandRegistrars.stream()
               .map(CommandRegistrar::registrableSuperInterface)
               .map(Class::getSimpleName)
               .collect(Collectors.joining(", "));
@@ -161,29 +155,28 @@ public class VelocityCommandManager implements CommandManager {
    * @param <T>       the type of the command
    * @throws IllegalArgumentException if the registrar cannot register the command
    */
-  private <T extends Command> void internalRegister(CommandRegistrar<T> registrar,
-                                                    Command command, CommandMeta meta) {
-    Class<T> superInterface = registrar.registrableSuperInterface();
+  private <T extends Command> void internalRegister(final CommandRegistrar<T> registrar,
+      final Command command, final CommandMeta meta) {
+    final Class<T> superInterface = registrar.registrableSuperInterface();
     registrar.register(meta, superInterface.cast(command));
     for (String alias : meta.getAliases()) {
       commandMetas.put(alias, meta);
     }
   }
 
-  private List<CommandRegistrar<?>> implementedRegistrars(Command command) {
-    List<CommandRegistrar<?>> registrarsFound = new ArrayList<>(2);
-    for (CommandRegistrar<?> registrar : this.registrars) {
-      Class<?> superInterface = registrar.registrableSuperInterface();
+  private List<CommandRegistrar<?>> implementedRegistrars(final Command command) {
+    final List<CommandRegistrar<?>> registrarsFound = new ArrayList<>(2);
+    for (final CommandRegistrar<?> registrar : this.registrars) {
+      final Class<?> superInterface = registrar.registrableSuperInterface();
       if (superInterface.isInstance(command)) {
         registrarsFound.add(registrar);
       }
     }
-
     return registrarsFound;
   }
 
   @Override
-  public void unregister(String alias) {
+  public void unregister(final String alias) {
     Preconditions.checkNotNull(alias, "alias");
     lock.writeLock().lock();
     try {
@@ -204,7 +197,7 @@ public class VelocityCommandManager implements CommandManager {
       // The literals of secondary aliases will preserve the children of
       // the removed literal in the graph.
       for (String alias : meta.getAliases()) {
-        String lowercased = alias.toLowerCase(Locale.ENGLISH);
+        final String lowercased = alias.toLowerCase(Locale.ENGLISH);
         if (commandMetas.remove(lowercased, meta)) {
           dispatcher.getRoot().removeChildByName(lowercased);
         }
@@ -228,14 +221,14 @@ public class VelocityCommandManager implements CommandManager {
    * @param invocationInfo the invocation info
    * @return the {@link CompletableFuture} of the event
    */
-  public CompletableFuture<CommandExecuteEvent> callCommandEvent(CommandSource source,
-                                                                 String cmdLine, CommandExecuteEvent.InvocationInfo invocationInfo) {
+  public CompletableFuture<CommandExecuteEvent> callCommandEvent(final CommandSource source,
+      final String cmdLine, final CommandExecuteEvent.InvocationInfo invocationInfo) {
     Preconditions.checkNotNull(source, "source");
     Preconditions.checkNotNull(cmdLine, "cmdLine");
     return eventManager.fire(new CommandExecuteEvent(source, cmdLine, invocationInfo));
   }
 
-  private boolean executeImmediately0(CommandSource source, ParseResults<CommandSource> parsed) {
+  private boolean executeImmediately0(final CommandSource source, final ParseResults<CommandSource> parsed) {
     Preconditions.checkNotNull(source, "source");
 
     CommandResult result = CommandResult.EXCEPTION;
@@ -244,11 +237,11 @@ public class VelocityCommandManager implements CommandManager {
       boolean executed = dispatcher.execute(parsed) != BrigadierCommand.FORWARD;
       result = executed ? CommandResult.EXECUTED : CommandResult.FORWARDED;
       return executed;
-    } catch (CommandSyntaxException e) {
+    } catch (final CommandSyntaxException e) {
       boolean isSyntaxError = !e.getType().equals(
           CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownCommand());
       if (isSyntaxError) {
-        Message message = e.getRawMessage();
+        final Message message = e.getRawMessage();
         if (message instanceof ComponentLike componentLike) {
           source.sendMessage(componentLike.asComponent().applyFallbackStyle(NamedTextColor.RED));
         } else {
@@ -262,9 +255,8 @@ public class VelocityCommandManager implements CommandManager {
         result = CommandResult.FORWARDED;
         return false;
       }
-    } catch (Throwable e) {
+    } catch (final Throwable e) {
       // Ugly, ugly swallowing of everything Throwable, because plugins are naughty.
-      // "Ugly indeed, but with proper spacing... umm... uhh... yeah still ugly..."
       throw new RuntimeException("Unable to invoke command " + parsed.getReader().getString() + " for " + source, e);
     } finally {
       eventManager.fireAndForget(new PostCommandInvocationEvent(source, parsed.getReader().getString(), result));
@@ -272,13 +264,13 @@ public class VelocityCommandManager implements CommandManager {
   }
 
   @Override
-  public CompletableFuture<Boolean> executeAsync(CommandSource source, String cmdLine) {
+  public CompletableFuture<Boolean> executeAsync(final CommandSource source, final String cmdLine) {
     Preconditions.checkNotNull(source, "source");
     Preconditions.checkNotNull(cmdLine, "cmdLine");
 
     CommandExecuteEvent.InvocationInfo invocationInfo = new CommandExecuteEvent.InvocationInfo(
-        CommandExecuteEvent.SignedState.UNSUPPORTED,
-        CommandExecuteEvent.Source.API
+                    CommandExecuteEvent.SignedState.UNSUPPORTED,
+                    CommandExecuteEvent.Source.API
     );
 
     return callCommandEvent(source, cmdLine, invocationInfo).thenComposeAsync(event -> {
@@ -286,20 +278,22 @@ public class VelocityCommandManager implements CommandManager {
       if (commandResult.isForwardToServer() || !commandResult.isAllowed()) {
         return CompletableFuture.completedFuture(false);
       }
-      ParseResults<CommandSource> parsed = this.parse(
+      final ParseResults<CommandSource> parsed = this.parse(
           commandResult.getCommand().orElse(cmdLine), source);
-      return CompletableFuture.supplyAsync(() -> executeImmediately0(source, parsed), this.getAsyncExecutor(parsed)
+      return CompletableFuture.supplyAsync(
+          () -> executeImmediately0(source, parsed), this.getAsyncExecutor(parsed)
       );
     }, figureAsyncExecutorForParsing());
   }
 
   @Override
   public CompletableFuture<Boolean> executeImmediatelyAsync(
-      CommandSource source, String cmdLine) {
+      final CommandSource source, final String cmdLine) {
     Preconditions.checkNotNull(source, "source");
     Preconditions.checkNotNull(cmdLine, "cmdLine");
 
-    return CompletableFuture.supplyAsync(() -> this.parse(cmdLine, source), figureAsyncExecutorForParsing()
+    return CompletableFuture.supplyAsync(
+        () -> this.parse(cmdLine, source), figureAsyncExecutorForParsing()
     ).thenCompose(
         parsed -> CompletableFuture.supplyAsync(
             () -> executeImmediately0(source, parsed), this.getAsyncExecutor(parsed)
@@ -308,23 +302,26 @@ public class VelocityCommandManager implements CommandManager {
   }
 
   @Override
-  public CompletableFuture<List<String>> offerSuggestions(CommandSource source, String cmdLine) {
+  public CompletableFuture<List<String>> offerSuggestions(final CommandSource source,
+      final String cmdLine) {
     return offerBrigadierSuggestions(source, cmdLine)
         .thenApply(suggestions -> Lists.transform(suggestions.getList(), Suggestion::getText));
   }
 
   @Override
-  public CompletableFuture<Suggestions> offerBrigadierSuggestions(CommandSource source, String cmdLine) {
+  public CompletableFuture<Suggestions> offerBrigadierSuggestions(
+      final CommandSource source, final String cmdLine) {
     Preconditions.checkNotNull(source, "source");
     Preconditions.checkNotNull(cmdLine, "cmdLine");
 
-    String normalizedInput = VelocityCommands.normalizeInput(cmdLine, false);
+    final String normalizedInput = VelocityCommands.normalizeInput(cmdLine, false);
     try {
       return suggestionsProvider.provideSuggestions(normalizedInput, source);
-    } catch (Throwable e) {
+    } catch (final Throwable e) {
       // Again, plugins are naughty
       return CompletableFuture.failedFuture(
-          new RuntimeException("Unable to provide suggestions for " + cmdLine + " for " + source, e));
+          new RuntimeException("Unable to provide suggestions for " + cmdLine + " for " + source,
+              e));
     }
   }
 
@@ -335,8 +332,8 @@ public class VelocityCommandManager implements CommandManager {
    * @param source the command source to parse the command for
    * @return the parse results
    */
-  private ParseResults<CommandSource> parse(String input, CommandSource source) {
-    String normalizedInput = VelocityCommands.normalizeInput(input, true);
+  private ParseResults<CommandSource> parse(final String input, final CommandSource source) {
+    final String normalizedInput = VelocityCommands.normalizeInput(input, true);
     lock.readLock().lock();
     try {
       return dispatcher.parse(normalizedInput, source);
@@ -359,7 +356,7 @@ public class VelocityCommandManager implements CommandManager {
   }
 
   @Override
-  public boolean hasCommand(String alias) {
+  public boolean hasCommand(final String alias) {
     return getCommand(alias) != null;
   }
 
@@ -370,12 +367,12 @@ public class VelocityCommandManager implements CommandManager {
     return command != null && command.canUse(source);
   }
 
-  CommandNode<CommandSource> getCommand(String alias) {
+  CommandNode<CommandSource> getCommand(final String alias) {
     Preconditions.checkNotNull(alias, "alias");
     return dispatcher.getRoot().getChild(alias.toLowerCase(Locale.ENGLISH));
   }
 
-  @VisibleForTesting
+  @VisibleForTesting // this constitutes unsafe publication
   RootCommandNode<CommandSource> getRoot() {
     return dispatcher.getRoot();
   }
@@ -395,12 +392,11 @@ public class VelocityCommandManager implements CommandManager {
     } else {
       registrant = VelocityVirtualPlugin.INSTANCE;
     }
-
     return pluginManager.ensurePluginContainer(registrant).getExecutorService();
   }
 
   private Executor figureAsyncExecutorForParsing() {
-    Thread thread = Thread.currentThread();
+    final Thread thread = Thread.currentThread();
     if (thread instanceof FastThreadLocalThread) {
       // we *never* want to block the Netty event loop, so use the async executor
       return pluginManager.ensurePluginContainer(VelocityVirtualPlugin.INSTANCE).getExecutorService();

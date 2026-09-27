@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,25 +33,22 @@ import java.util.List;
 public final class StringArrayArgumentType implements ArgumentType<String[]> {
 
   public static final StringArrayArgumentType INSTANCE = new StringArrayArgumentType();
-
   public static final String[] EMPTY = new String[0];
 
   private static final Splitter WORD_SPLITTER =
       Splitter.on(CommandDispatcher.ARGUMENT_SEPARATOR_CHAR);
-
   private static final List<String> EXAMPLES = Arrays.asList("word", "some words");
 
   private StringArrayArgumentType() {
   }
 
   @Override
-  public String[] parse(StringReader reader) throws CommandSyntaxException {
-    String text = reader.getRemaining();
+  public String[] parse(final StringReader reader) throws CommandSyntaxException {
+    final String text = reader.getRemaining();
     reader.setCursor(reader.getTotalLength());
     if (text.isEmpty()) {
       return EMPTY;
     }
-
     return WORD_SPLITTER.splitToList(text).toArray(EMPTY);
   }
 

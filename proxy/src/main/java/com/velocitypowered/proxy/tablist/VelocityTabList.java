@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,7 +51,6 @@ public class VelocityTabList implements InternalTabList {
   private static final Logger LOGGER = LogManager.getLogger(VelocityConsole.class);
 
   private final ConnectedPlayer player;
-
   private final MinecraftConnection connection;
 
   private final ConcurrentMap<UUID, VelocityTabListEntry> entries;
@@ -105,46 +104,42 @@ public class VelocityTabList implements InternalTabList {
 
     this.entries.compute(entry.getProfile().getId(), (uuid, previousEntry) -> {
       if (previousEntry != null) {
-        // We should merge entries here
+        // we should merge entries here
         if (previousEntry.equals(entry)) {
-          return previousEntry; // Nothing else to do, this entry is perfect
+          return previousEntry; // nothing else to do, this entry is perfect
         }
-
         if (!Objects.equals(previousEntry.getDisplayNameComponent().orElse(null),
                 entry.getDisplayNameComponent().orElse(null))) {
           actions.add(UpsertPlayerInfoPacket.Action.UPDATE_DISPLAY_NAME);
           playerInfoEntry.setDisplayName(entry.getDisplayNameComponent().isEmpty()
-              ? null : new ComponentHolder(player.getProtocolVersion(), entry.getDisplayNameComponent().get())
+                  ?
+                  null :
+                  new ComponentHolder(player.getProtocolVersion(),
+                          entry.getDisplayNameComponent().get())
           );
         }
-
         if (!Objects.equals(previousEntry.getLatency(), entry.getLatency())) {
           actions.add(UpsertPlayerInfoPacket.Action.UPDATE_LATENCY);
           playerInfoEntry.setLatency(entry.getLatency());
         }
-
         if (!Objects.equals(previousEntry.getGameMode(), entry.getGameMode())) {
           actions.add(UpsertPlayerInfoPacket.Action.UPDATE_GAME_MODE);
           playerInfoEntry.setGameMode(entry.getGameMode());
         }
-
         if (!Objects.equals(previousEntry.isListed(), entry.isListed())) {
           actions.add(UpsertPlayerInfoPacket.Action.UPDATE_LISTED);
           playerInfoEntry.setListed(entry.isListed());
         }
-
         if (!Objects.equals(previousEntry.getListOrder(), entry.getListOrder())
             && player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_21_2)) {
           actions.add(UpsertPlayerInfoPacket.Action.UPDATE_LIST_ORDER);
           playerInfoEntry.setListOrder(entry.getListOrder());
         }
-
         if (!Objects.equals(previousEntry.isShowHat(), entry.isShowHat())
                 && player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_21_4)) {
           actions.add(UpsertPlayerInfoPacket.Action.UPDATE_HAT);
           playerInfoEntry.setShowHat(entry.isShowHat());
         }
-
         if (!Objects.equals(previousEntry.getChatSession(), entry.getChatSession())) {
           ChatSession from = entry.getChatSession();
           if (from != null) {
@@ -161,22 +156,22 @@ public class VelocityTabList implements InternalTabList {
         if (entry.getDisplayNameComponent().isPresent()) {
           actions.add(UpsertPlayerInfoPacket.Action.UPDATE_DISPLAY_NAME);
           playerInfoEntry.setDisplayName(entry.getDisplayNameComponent().isEmpty()
-              ? null : new ComponentHolder(player.getProtocolVersion(), entry.getDisplayNameComponent().get())
+                  ?
+                  null :
+                  new ComponentHolder(player.getProtocolVersion(),
+                          entry.getDisplayNameComponent().get())
           );
         }
-
         if (entry.getChatSession() != null) {
           actions.add(UpsertPlayerInfoPacket.Action.INITIALIZE_CHAT);
           ChatSession from = entry.getChatSession();
           playerInfoEntry.setChatSession(
                   new RemoteChatSession(from.getSessionId(), from.getIdentifiedKey()));
         }
-
         if (entry.getGameMode() != -1 && entry.getGameMode() != 256) {
           actions.add(UpsertPlayerInfoPacket.Action.UPDATE_GAME_MODE);
           playerInfoEntry.setGameMode(entry.getGameMode());
         }
-
         playerInfoEntry.setLatency(entry.getLatency());
         playerInfoEntry.setListed(entry.isListed());
         if (entry.getListOrder() != 0
@@ -184,7 +179,6 @@ public class VelocityTabList implements InternalTabList {
           actions.add(UpsertPlayerInfoPacket.Action.UPDATE_LIST_ORDER);
           playerInfoEntry.setListOrder(entry.getListOrder());
         }
-
         if (!entry.isShowHat() && player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_21_4)) {
           actions.add(UpsertPlayerInfoPacket.Action.UPDATE_HAT);
           playerInfoEntry.setShowHat(entry.isShowHat());
@@ -233,9 +227,10 @@ public class VelocityTabList implements InternalTabList {
 
   @Override
   public TabListEntry buildEntry(GameProfile profile, @Nullable Component displayName, int latency,
-                                 int gameMode, @Nullable ChatSession chatSession, boolean listed, int listOrder,
-                                 boolean showHat) {
-    return new VelocityTabListEntry(this, profile, displayName, latency, gameMode, chatSession, listed, listOrder, showHat);
+      int gameMode,
+      @Nullable ChatSession chatSession, boolean listed, int listOrder, boolean showHat) {
+    return new VelocityTabListEntry(this, profile, displayName, latency, gameMode, chatSession,
+        listed, listOrder, showHat);
   }
 
   @Override
@@ -258,7 +253,7 @@ public class VelocityTabList implements InternalTabList {
   }
 
   private void processUpsert(EnumSet<UpsertPlayerInfoPacket.Action> actions,
-                             UpsertPlayerInfoPacket.Entry entry) {
+      UpsertPlayerInfoPacket.Entry entry) {
     Preconditions.checkNotNull(entry.getProfileId(), "Profile ID cannot be null");
     UUID profileId = entry.getProfileId();
     VelocityTabListEntry currentEntry = this.entries.get(profileId);
@@ -286,28 +281,22 @@ public class VelocityTabList implements InternalTabList {
           entry);
       return;
     }
-
     if (actions.contains(UpsertPlayerInfoPacket.Action.UPDATE_GAME_MODE)) {
       currentEntry.setGameModeWithoutUpdate(entry.getGameMode());
     }
-
     if (actions.contains(UpsertPlayerInfoPacket.Action.UPDATE_LATENCY)) {
       currentEntry.setLatencyWithoutUpdate(entry.getLatency());
     }
-
     if (actions.contains(UpsertPlayerInfoPacket.Action.UPDATE_DISPLAY_NAME)) {
       currentEntry.setDisplayNameWithoutUpdate(entry.getDisplayName() != null
           ? entry.getDisplayName().getComponent() : null);
     }
-
     if (actions.contains(UpsertPlayerInfoPacket.Action.INITIALIZE_CHAT)) {
       currentEntry.setChatSession(entry.getChatSession());
     }
-
     if (actions.contains(UpsertPlayerInfoPacket.Action.UPDATE_LISTED)) {
       currentEntry.setListedWithoutUpdate(entry.isListed());
     }
-
     if (actions.contains(UpsertPlayerInfoPacket.Action.UPDATE_LIST_ORDER)) {
       currentEntry.setListOrderWithoutUpdate(entry.getListOrder());
     }

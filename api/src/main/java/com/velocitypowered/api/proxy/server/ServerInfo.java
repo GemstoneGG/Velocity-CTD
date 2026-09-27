@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -18,14 +18,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public final class ServerInfo implements Comparable<ServerInfo> {
 
-  /**
-   * The name used to identify the server.
-   */
   private final String name;
-
-  /**
-   * The network address the server is reachable at.
-   */
   private final InetSocketAddress address;
 
   /**
@@ -61,12 +54,7 @@ public final class ServerInfo implements Comparable<ServerInfo> {
     this.forwardingMode = null;
   }
 
-  /**
-   * Gets the name of the server.
-   *
-   * @return the name of the server
-   */
-  public String getName() {
+  public final String getName() {
     return name;
   }
 
@@ -100,7 +88,7 @@ public final class ServerInfo implements Comparable<ServerInfo> {
   }
 
   @Override
-  public boolean equals(@Nullable Object o) {
+  public final boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

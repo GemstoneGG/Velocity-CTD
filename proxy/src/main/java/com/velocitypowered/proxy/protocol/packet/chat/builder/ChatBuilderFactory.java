@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,6 @@ import java.util.function.Function;
 public class ChatBuilderFactory {
 
   private final ProtocolVersion version;
-
   private final Function<ProtocolVersion, ChatBuilderV2> builderFunction;
 
   public ChatBuilderFactory(ProtocolVersion version) {

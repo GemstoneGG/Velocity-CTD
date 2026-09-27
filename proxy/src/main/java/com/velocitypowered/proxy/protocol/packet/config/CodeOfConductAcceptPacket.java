@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2025 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
 import io.netty.buffer.ByteBuf;
 
-public final class CodeOfConductAcceptPacket implements MinecraftPacket {
+public class CodeOfConductAcceptPacket implements MinecraftPacket {
 
   public static final CodeOfConductAcceptPacket INSTANCE = new CodeOfConductAcceptPacket();
 

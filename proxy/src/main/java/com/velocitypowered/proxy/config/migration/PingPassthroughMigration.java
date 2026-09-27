@@ -25,7 +25,6 @@ import org.apache.logging.log4j.Logger;
  * Migrate the old ping passthrough entry to separate config entries.
  */
 public final class PingPassthroughMigration implements ConfigurationMigration {
-
   @Override
   public boolean shouldMigrate(final CommentedFileConfig config) {
     // Upstream bumped the config version to 2.9 while we (Velocity-CTD) were already at 2.9,

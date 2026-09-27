@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2024 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@ import static java.util.Objects.requireNonNull;
  * @since 3.3.0
  */
 public final class VelocityProperties {
-
   /**
    * Attempts to read a system property as boolean.
    *
@@ -36,13 +35,12 @@ public final class VelocityProperties {
    *     it will return {@code true}, otherwise, it will return false.
    * @since 3.3.0
    */
-  public static boolean readBoolean(String property, boolean defaultValue) {
+  public static boolean readBoolean(final String property, final boolean defaultValue) {
     requireNonNull(property);
-    String value = System.getProperty(property);
+    final String value = System.getProperty(property);
     if (value == null) {
       return defaultValue;
     }
-
     return Boolean.parseBoolean(value);
   }
 
@@ -53,7 +51,7 @@ public final class VelocityProperties {
    * @return if a value is assigned to this system property
    * @since 3.3.0
    */
-  public static boolean hasProperty(String property) {
+  public static boolean hasProperty(final String property) {
     requireNonNull(property);
 
     return System.getProperty(property) != null;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2019-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,6 @@ import org.jetbrains.annotations.NotNull;
 public class ByteBufDataOutput extends OutputStream implements ByteArrayDataOutput {
 
   private final ByteBuf buf;
-
   private final DataOutputStream utf8out;
 
   public ByteBufDataOutput(ByteBuf buf) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2019-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,11 +61,10 @@ public class BungeeCordMessageResponder {
 
   private static final MinecraftChannelIdentifier MODERN_CHANNEL = MinecraftChannelIdentifier
       .create("bungeecord", "main");
-
-  private static final LegacyChannelIdentifier LEGACY_CHANNEL = new LegacyChannelIdentifier("BungeeCord");
+  private static final LegacyChannelIdentifier LEGACY_CHANNEL =
+      new LegacyChannelIdentifier("BungeeCord");
 
   private final VelocityServer proxy;
-
   private final ConnectedPlayer player;
 
   BungeeCordMessageResponder(VelocityServer proxy, ConnectedPlayer player) {
@@ -74,7 +73,8 @@ public class BungeeCordMessageResponder {
   }
 
   public static boolean isBungeeCordMessage(PluginMessagePacket message) {
-    return MODERN_CHANNEL.getId().equals(message.getChannel()) || LEGACY_CHANNEL.getId().equals(message.getChannel());
+    return MODERN_CHANNEL.getId().equals(message.getChannel()) || LEGACY_CHANNEL.getId()
+        .equals(message.getChannel());
   }
 
   private void processConnect(ByteBufDataInput in, boolean queue) {
@@ -327,7 +327,6 @@ public class BungeeCordMessageResponder {
         for (ConnectedPlayer online : proxy.getOnlinePlayers()) {
           joiner.add(online.getUsername());
         }
-
         out.writeUTF(joiner.toString());
       } else {
         proxy.getServer(target).ifPresent(info -> {
@@ -376,7 +375,7 @@ public class BungeeCordMessageResponder {
   }
 
   private void processMessage0(ByteBufDataInput in,
-                               ComponentSerializer<Component, ?, String> serializer) {
+      ComponentSerializer<Component, ?, String> serializer) {
     String target = in.readUTF();
     String message = in.readUTF();
 
@@ -530,7 +529,8 @@ public class BungeeCordMessageResponder {
   }
 
   static ChannelIdentifier getBungeeCordChannel(ProtocolVersion version) {
-    return version.noLessThan(ProtocolVersion.MINECRAFT_1_13) ? MODERN_CHANNEL : LEGACY_CHANNEL;
+    return version.noLessThan(ProtocolVersion.MINECRAFT_1_13) ? MODERN_CHANNEL
+        : LEGACY_CHANNEL;
   }
 
   // Note: this method will always release the buffer!
@@ -546,7 +546,7 @@ public class BungeeCordMessageResponder {
     serverConnection.write(msg);
   }
 
-  final boolean process(PluginMessagePacket message) {
+  boolean process(PluginMessagePacket message) {
     if (!proxy.getConfiguration().isBungeePluginChannelEnabled()) {
       return false;
     }
@@ -555,8 +555,8 @@ public class BungeeCordMessageResponder {
       return false;
     }
 
-    ByteBufDataInput in = new ByteBufDataInput(message.content());
-    String subChannel = in.readUTF();
+    final ByteBufDataInput in = new ByteBufDataInput(message.content());
+    final String subChannel = in.readUTF();
     switch (subChannel) {
       case "GetPlayerServer" -> this.processGetPlayerServer(in);
       case "ForwardToPlayer" -> this.processForwardToPlayer(in);
@@ -587,7 +587,7 @@ public class BungeeCordMessageResponder {
       case "QueuedPausedChannel" -> this.queuedPaused(in);
       case "QueueStates" -> this.queueStates(in);
       default -> {
-        // Do nothing, unknown command
+          // Do nothing, unknown command
       }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ public class ServerChannelInitializerHolder implements Supplier<ChannelInitializ
 
   private ChannelInitializer<Channel> initializer;
 
-  ServerChannelInitializerHolder(ChannelInitializer<Channel> initializer) {
+  ServerChannelInitializerHolder(final ChannelInitializer<Channel> initializer) {
     this.initializer = initializer;
   }
 

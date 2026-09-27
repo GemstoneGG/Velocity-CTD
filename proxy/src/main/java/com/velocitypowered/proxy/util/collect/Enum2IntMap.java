@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2020-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,9 +44,7 @@ public final class Enum2IntMap<E extends Enum<E>> {
   public static class Builder<E extends Enum<E>> {
 
     private final int[] mappings;
-
     private final EnumSet<E> populated;
-
     private int defaultValue = -1;
 
     public Builder(Class<E> klazz) {
@@ -77,11 +75,16 @@ public final class Enum2IntMap<E extends Enum<E>> {
       return this;
     }
 
+    /**
+     * Fetches a mapping from the map.
+     *
+     * @param key the key to use
+     * @return the value in the map
+     */
     public int get(E key) {
       if (this.populated.contains(key)) {
         return this.mappings[key.ordinal()];
       }
-
       return this.defaultValue;
     }
 
@@ -94,7 +97,6 @@ public final class Enum2IntMap<E extends Enum<E>> {
       for (E unpopulated : EnumSet.complementOf(this.populated)) {
         this.mappings[unpopulated.ordinal()] = this.defaultValue;
       }
-
       return new Enum2IntMap<>(this.mappings.clone());
     }
   }

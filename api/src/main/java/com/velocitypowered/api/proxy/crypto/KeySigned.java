@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -33,6 +33,7 @@ public interface KeySigned {
    * @return the expiry time point
    */
   Instant getExpiryTemporal();
+
 
   /**
    * Check if the signature has expired.
@@ -73,4 +74,5 @@ public interface KeySigned {
   default byte[] getSalt() {
     return null;
   }
+
 }

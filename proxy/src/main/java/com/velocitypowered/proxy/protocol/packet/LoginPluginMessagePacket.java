@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class LoginPluginMessagePacket extends DeferredByteBufHolder implements MinecraftPacket {
 
   private int id;
-
   private @Nullable String channel;
 
   public LoginPluginMessagePacket() {
@@ -51,7 +50,6 @@ public class LoginPluginMessagePacket extends DeferredByteBufHolder implements M
     if (channel == null) {
       throw new IllegalStateException("Channel is not specified!");
     }
-
     return channel;
   }
 
@@ -81,7 +79,6 @@ public class LoginPluginMessagePacket extends DeferredByteBufHolder implements M
     if (channel == null) {
       throw new IllegalStateException("Channel is not specified!");
     }
-
     ProtocolUtils.writeString(buf, channel);
     buf.writeBytes(content());
   }

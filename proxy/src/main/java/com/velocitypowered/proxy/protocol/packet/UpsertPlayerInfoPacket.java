@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,6 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
   private static final Action[] ALL_ACTIONS = Action.class.getEnumConstants();
 
   private final EnumSet<Action> actions;
-
   private final List<Entry> entries;
 
   public UpsertPlayerInfoPacket() {
@@ -86,7 +85,8 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
   }
 
   @Override
-  public void decode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
+  public void decode(ByteBuf buf, ProtocolUtils.Direction direction,
+      ProtocolVersion protocolVersion) {
     byte[] bytes = new byte[-Math.floorDiv(-ALL_ACTIONS.length, 8)];
     buf.readBytes(bytes);
     BitSet actionSet = BitSet.valueOf(bytes);
@@ -103,13 +103,13 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
       for (Action action : this.actions) {
         action.read.read(protocolVersion, buf, entry);
       }
-
       addEntry(entry);
     }
   }
 
   @Override
-  public void encode(ByteBuf buf, ProtocolUtils.Direction direction, ProtocolVersion protocolVersion) {
+  public void encode(ByteBuf buf, ProtocolUtils.Direction direction,
+      ProtocolVersion protocolVersion) {
     BitSet set = new BitSet(ALL_ACTIONS.length);
     for (int idx = 0; idx < ALL_ACTIONS.length; idx++) {
       set.set(idx, this.actions.contains(ALL_ACTIONS[idx]));
@@ -143,14 +143,13 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
       ProtocolUtils.writeString(buf, info.profile.getName());
       ProtocolUtils.writeProperties(buf, info.profile.getProperties());
     }),
-
-    INITIALIZE_CHAT((version, buf, info) -> {
+    INITIALIZE_CHAT((version, buf, info) -> { // read
       if (buf.readBoolean()) {
         info.chatSession = new RemoteChatSession(version, buf);
       } else {
         info.chatSession = null;
       }
-    }, (ignored, buf, info) -> {
+    }, (ignored, buf, info) -> { // write
       buf.writeBoolean(info.chatSession != null);
       if (info.chatSession != null) {
         info.chatSession.write(buf);
@@ -175,7 +174,7 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
       } else {
         info.displayName = null;
       }
-    }, (version, buf, info) -> {
+    }, (version, buf, info) -> { // write
       buf.writeBoolean(info.displayName != null);
       if (info.displayName != null) {
         info.displayName.write(buf);
@@ -191,7 +190,6 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
             buf.writeBoolean(info.showHat));
 
     private final Read read;
-
     private final Write write;
 
     Action(Read read, Write write) {
@@ -200,10 +198,12 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
     }
 
     private interface Read {
+
       void read(ProtocolVersion version, ByteBuf buf, Entry info);
     }
 
     private interface Write {
+
       void write(ProtocolVersion version, ByteBuf buf, Entry info);
     }
   }
@@ -211,22 +211,16 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
   public static class Entry {
 
     private final UUID profileId;
-
     private GameProfile profile;
-
     private boolean listed;
-
     private int latency;
-
     private int gameMode;
-
-    @Nullable private ComponentHolder displayName;
-
+    @Nullable
+    private ComponentHolder displayName;
     private boolean showHat;
-
     private int listOrder;
-
-    @Nullable private RemoteChatSession chatSession;
+    @Nullable
+    private RemoteChatSession chatSession;
 
     public Entry(UUID uuid) {
       this.profileId = uuid;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@ public class CommandManagerTests extends CommandTestSuite {
 
   @Test
   void testRegisterWithMeta() {
-    var meta = manager.metaBuilder("hello").build();
+    final var meta = manager.metaBuilder("hello").build();
     manager.register(meta, DummyCommand.INSTANCE);
 
     assertTrue(manager.hasCommand("hello"));
@@ -52,7 +52,7 @@ public class CommandManagerTests extends CommandTestSuite {
 
   @Test
   void testRegisterWithMetaContainingMultipleAliases() {
-    var meta = manager.metaBuilder("foo")
+    final var meta = manager.metaBuilder("foo")
         .aliases("bar")
         .aliases("baz", "qux")
         .build();
@@ -71,7 +71,7 @@ public class CommandManagerTests extends CommandTestSuite {
 
   @Test
   void testRegisterAliasesAreCaseInsensitive() {
-    var meta = manager.metaBuilder("Foo")
+    final var meta = manager.metaBuilder("Foo")
         .aliases("Bar")
         .build();
     manager.register(meta, DummyCommand.INSTANCE);
@@ -83,7 +83,7 @@ public class CommandManagerTests extends CommandTestSuite {
 
   @Test
   void testRegisterBrigadierCommand() {
-    var node = LiteralArgumentBuilder
+    final var node = LiteralArgumentBuilder
         .<CommandSource>literal("hello")
         .build();
     manager.register(new BrigadierCommand(node));
@@ -94,13 +94,13 @@ public class CommandManagerTests extends CommandTestSuite {
 
   @Test
   void testRegisterOverridesPreviousCommand() {
-    var called = new AtomicBoolean();
+    final var called = new AtomicBoolean();
 
-    var oldMeta = manager.metaBuilder("foo").build();
+    final var oldMeta = manager.metaBuilder("foo").build();
     manager.register(oldMeta, DummyCommand.INSTANCE); // fails on execution
     assertEquals(oldMeta, manager.getCommandMeta("foo"));
 
-    var newMeta = manager.metaBuilder("foo").build();
+    final var newMeta = manager.metaBuilder("foo").build();
     manager.register(newMeta, (RawCommand) invocation -> called.set(true));
     assertEquals(newMeta, manager.getCommandMeta("foo"));
     manager.executeAsync(MockCommandSource.INSTANCE, "foo").join();
@@ -110,7 +110,7 @@ public class CommandManagerTests extends CommandTestSuite {
 
   @Test
   void testAddingExecutableHintToMetaThrows() {
-    var hintNode = LiteralArgumentBuilder
+    final var hintNode = LiteralArgumentBuilder
         .<CommandSource>literal("hint")
         .executes(context -> fail())
         .build();
@@ -120,10 +120,10 @@ public class CommandManagerTests extends CommandTestSuite {
 
   @Test
   void testAddingHintWithRedirectToMetaThrows() {
-    var targetNode = LiteralArgumentBuilder
+    final var targetNode = LiteralArgumentBuilder
         .<CommandSource>literal("target")
         .build();
-    var hintNode = LiteralArgumentBuilder
+    final var hintNode = LiteralArgumentBuilder
         .<CommandSource>literal("origin")
         .redirect(targetNode)
         .build();
@@ -153,7 +153,7 @@ public class CommandManagerTests extends CommandTestSuite {
 
   @Test
   void testUnregisterSecondaryAlias() {
-    var meta = manager.metaBuilder("foo")
+    final var meta = manager.metaBuilder("foo")
         .aliases("bar")
         .build();
     manager.register(meta, DummyCommand.INSTANCE);
@@ -167,7 +167,7 @@ public class CommandManagerTests extends CommandTestSuite {
 
   @Test
   void testUnregisterAllAliases() {
-    var meta = manager.metaBuilder("foo")
+    final var meta = manager.metaBuilder("foo")
         .aliases("bar")
         .build();
     manager.register(meta, DummyCommand.INSTANCE);
@@ -179,11 +179,11 @@ public class CommandManagerTests extends CommandTestSuite {
 
   @Test
   void testUnregisterAliasOverlap() {
-    var meta1 = manager.metaBuilder("foo")
+    final var meta1 = manager.metaBuilder("foo")
         .aliases("bar")
         .build();
     manager.register(meta1, DummyCommand.INSTANCE);
-    var meta2 = manager.metaBuilder("bar")
+    final var meta2 = manager.metaBuilder("bar")
         .build();
     manager.register(meta2, DummyCommand.INSTANCE);
     assertEquals(meta1, manager.getCommandMeta("foo"));
@@ -211,27 +211,23 @@ public class CommandManagerTests extends CommandTestSuite {
 
   static final class DummyCommand implements SimpleCommand {
 
-    /**
-     * Singleton instance of {@link DummyCommand}, used as a placeholder
-     * for command registration tests where execution should fail.
-     */
     static final DummyCommand INSTANCE = new DummyCommand();
 
     private DummyCommand() {
     }
 
     @Override
-    public void execute(Invocation invocation) {
+    public void execute(final Invocation invocation) {
       fail();
     }
 
     @Override
-    public List<String> suggest(Invocation invocation) {
+    public List<String> suggest(final Invocation invocation) {
       return fail();
     }
 
     @Override
-    public boolean hasPermission(Invocation invocation) {
+    public boolean hasPermission(final Invocation invocation) {
       return fail();
     }
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,7 +59,8 @@ public class VelocityChannelRegistrar implements ChannelRegistrar {
   public void unregister(ChannelIdentifier... identifiers) {
     for (ChannelIdentifier identifier : identifiers) {
       Preconditions.checkArgument(identifier instanceof LegacyChannelIdentifier
-          || identifier instanceof MinecraftChannelIdentifier, "identifier is unknown");
+              || identifier instanceof MinecraftChannelIdentifier,
+          "identifier is unknown");
     }
 
     for (ChannelIdentifier identifier : identifiers) {
@@ -83,7 +84,6 @@ public class VelocityChannelRegistrar implements ChannelRegistrar {
     for (ChannelIdentifier value : identifierMap.values()) {
       ids.add(new LegacyChannelIdentifier(value.getId()));
     }
-
     return ids;
   }
 
@@ -101,7 +101,6 @@ public class VelocityChannelRegistrar implements ChannelRegistrar {
         ids.add(MinecraftChannelIdentifier.from(PluginMessageUtil.transformLegacyToModernChannel(value.getId())));
       }
     }
-
     return ids;
   }
 
@@ -119,7 +118,6 @@ public class VelocityChannelRegistrar implements ChannelRegistrar {
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_13)) {
       return getModernChannelIds();
     }
-
     return getLegacyChannelIds();
   }
 }

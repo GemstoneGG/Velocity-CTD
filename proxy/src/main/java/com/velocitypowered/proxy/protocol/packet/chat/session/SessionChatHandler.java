@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,6 @@ public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> 
   private static final Logger LOGGER = LogManager.getLogger(SessionChatHandler.class);
 
   private final ConnectedPlayer player;
-
   private final VelocityServer server;
 
   public SessionChatHandler(ConnectedPlayer player, VelocityServer server) {
@@ -60,7 +59,6 @@ public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> 
                 if (server.getConfiguration().enforceChatSigning() && packet.isSigned()) {
                   SignedChatViolations.invalidCancel(player);
                 }
-
                 return null;
               }
 
@@ -70,14 +68,12 @@ public class SessionChatHandler implements ChatHandler<SessionPlayerChatPacket> 
                   SignedChatViolations.invalidChange(player);
                   return null;
                 }
-
                 return this.player.getChatBuilderFactory().builder()
                     .message(chatResult.getMessage().orElse(packet.getMessage()))
                     .setTimestamp(packet.timestamp)
                     .setLastSeenMessages(newLastSeenMessages)
                     .toServer();
               }
-
               return packet.withLastSeenMessages(newLastSeenMessages);
             })
             .exceptionally((ex) -> {

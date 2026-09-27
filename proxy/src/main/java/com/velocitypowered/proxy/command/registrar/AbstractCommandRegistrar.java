@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,15 +34,14 @@ import org.checkerframework.checker.lock.qual.GuardedBy;
 abstract class AbstractCommandRegistrar<T extends Command> implements CommandRegistrar<T> {
 
   private final @GuardedBy("lock") RootCommandNode<CommandSource> root;
-
   private final Lock lock;
 
-  protected AbstractCommandRegistrar(RootCommandNode<CommandSource> root, Lock lock) {
+  protected AbstractCommandRegistrar(final RootCommandNode<CommandSource> root, final Lock lock) {
     this.root = Preconditions.checkNotNull(root, "root");
     this.lock = Preconditions.checkNotNull(lock, "lock");
   }
 
-  protected void register(LiteralCommandNode<CommandSource> node) {
+  protected void register(final LiteralCommandNode<CommandSource> node) {
     lock.lock();
     try {
       // Registration overrides previous aliased command
@@ -53,8 +52,10 @@ abstract class AbstractCommandRegistrar<T extends Command> implements CommandReg
     }
   }
 
-  protected void register(LiteralCommandNode<CommandSource> node, String secondaryAlias) {
-    LiteralCommandNode<CommandSource> copy = VelocityCommands.shallowCopy(node, secondaryAlias);
+  protected void register(final LiteralCommandNode<CommandSource> node,
+      final String secondaryAlias) {
+    final LiteralCommandNode<CommandSource> copy =
+        VelocityCommands.shallowCopy(node, secondaryAlias);
     this.register(copy);
   }
 }

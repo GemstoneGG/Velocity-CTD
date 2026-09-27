@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,15 +35,12 @@ import org.jetbrains.annotations.NotNull;
 public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
 
   public static final boolean DEBUG = Boolean.getBoolean("velocity.packet-decode-logging");
-
   private static final QuietRuntimeException DECODE_FAILED =
       new QuietRuntimeException("A packet did not decode successfully (invalid data). For more "
           + "information, launch Velocity with -Dvelocity.packet-decode-logging=true to see more.");
 
   private final ProtocolUtils.Direction direction;
-
   private StateRegistry state;
-
   private StateRegistry.PacketRegistry.ProtocolRegistry registry;
 
   /**
@@ -53,7 +50,8 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
    */
   public MinecraftDecoder(ProtocolUtils.Direction direction) {
     this.direction = Preconditions.checkNotNull(direction, "direction");
-    this.registry = StateRegistry.HANDSHAKE.getProtocolRegistry(direction, ProtocolVersion.MINIMUM_VERSION);
+    this.registry = StateRegistry.HANDSHAKE.getProtocolRegistry(
+        direction, ProtocolVersion.MINIMUM_VERSION);
     this.state = StateRegistry.HANDSHAKE;
   }
 
@@ -83,7 +81,6 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
       if (this.direction == ProtocolUtils.Direction.SERVERBOUND && this.state != StateRegistry.PLAY) {
         throw this.handleInvalidPacketId(packetId);
       }
-
       ctx.fireChannelRead(buf.retain());
     } else {
       doLengthSanityChecks(buf, packet);
@@ -97,7 +94,6 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
       if (buf.isReadable()) {
         throw handleOverflow(packet, buf.readerIndex(), buf.writerIndex());
       }
-
       ctx.fireChannelRead(packet);
     }
   }
@@ -108,7 +104,6 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
     if (expectedMaxLen != -1 && buf.readableBytes() > expectedMaxLen) {
       throw handleOverflow(packet, expectedMaxLen, buf.readableBytes());
     }
-
     if (buf.readableBytes() < expectedMinLen) {
       throw handleUnderflow(packet, expectedMinLen, buf.readableBytes());
     }

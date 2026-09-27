@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,6 @@ import io.netty.buffer.ByteBuf;
 public class PlayerChatCompletionPacket implements MinecraftPacket {
 
   private String[] completions;
-
   private Action action;
 
   public PlayerChatCompletionPacket() {
@@ -55,14 +54,14 @@ public class PlayerChatCompletionPacket implements MinecraftPacket {
 
   @Override
   public void decode(ByteBuf buf, ProtocolUtils.Direction direction,
-                     ProtocolVersion protocolVersion) {
+      ProtocolVersion protocolVersion) {
     action = Action.values()[ProtocolUtils.readVarInt(buf)];
     completions = ProtocolUtils.readStringArray(buf);
   }
 
   @Override
   public void encode(ByteBuf buf, ProtocolUtils.Direction direction,
-                     ProtocolVersion protocolVersion) {
+      ProtocolVersion protocolVersion) {
     ProtocolUtils.writeVarInt(buf, action.ordinal());
     ProtocolUtils.writeStringArray(buf, completions);
   }
@@ -73,20 +72,8 @@ public class PlayerChatCompletionPacket implements MinecraftPacket {
   }
 
   public enum Action {
-
-    /**
-     * Add the specified completions to the client's current suggestion list.
-     */
     ADD,
-
-    /**
-     * Remove the specified completions from the client's current suggestion list.
-     */
     REMOVE,
-
-    /**
-     * Replace the client's entire suggestion list with the specified completions.
-     */
     SET
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -82,19 +82,14 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
           .concat(MOJANG_HASJOINED_GET_PARAMS);
 
   private final VelocityServer server;
-
   private final MinecraftConnection mcConnection;
-
   private final LoginInboundConnection inbound;
-
   private @MonotonicNonNull ServerLoginPacket login;
-
   private byte[] verify = EMPTY_BYTE_ARRAY;
 
   private boolean authenticateWithMojang;
 
   private LoginState currentState = LoginState.LOGIN_PACKET_EXPECTED;
-
   private final boolean forceKeyAuthentication;
 
   private CompletableFuture<byte[]> appliedResourcePacksFuture;
@@ -139,7 +134,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
 
       boolean isKeyValid;
       if (playerKey.getKeyRevision() == IdentifiedKey.Revision.LINKED_V2
-          && playerKey instanceof IdentifiedKeyImpl keyImpl) {
+          && playerKey instanceof final IdentifiedKeyImpl keyImpl) {
         isKeyValid = keyImpl.internalAddHolder(packet.getHolderUuid());
       } else {
         isKeyValid = playerKey.isSignatureValid();
@@ -155,11 +150,10 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
       inbound.disconnect(Component.translatable("multiplayer.disconnect.missing_public_key"));
       return true;
     }
-
     inbound.setPlayerKey(playerKey);
     this.login = packet;
 
-    PreLoginEvent event = new PreLoginEvent(inbound, login.getUsername(), login.getHolderUuid());
+    final PreLoginEvent event = new PreLoginEvent(inbound, login.getUsername(), login.getHolderUuid());
     server.getEventManager().fire(event).thenRunAsync(() -> {
       if (mcConnection.isClosed()) {
         // The player was disconnected
@@ -285,7 +279,7 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
               // Not so fast, now we verify the public key for 1.19.1+
               if (inbound.getIdentifiedKey() != null
                   && inbound.getIdentifiedKey().getKeyRevision() == IdentifiedKey.Revision.LINKED_V2
-                  && inbound.getIdentifiedKey() instanceof IdentifiedKeyImpl key) {
+                  && inbound.getIdentifiedKey() instanceof final IdentifiedKeyImpl key) {
                 if (!key.internalAddHolder(profile.getId())) {
                   inbound.disconnect(
                       Component.translatable("multiplayer.disconnect.invalid_public_key"));
@@ -310,7 +304,6 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
       LOGGER.error("Unable to enable encryption", e);
       mcConnection.close(true);
     }
-
     return true;
   }
 
@@ -352,7 +345,6 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
             inbound,
             expectedState, this.currentState);
       }
-
       mcConnection.close(true);
     }
   }

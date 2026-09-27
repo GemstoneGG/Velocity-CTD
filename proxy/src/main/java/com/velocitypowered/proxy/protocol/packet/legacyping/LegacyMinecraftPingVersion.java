@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2019-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,19 +18,7 @@
 package com.velocitypowered.proxy.protocol.packet.legacyping;
 
 public enum LegacyMinecraftPingVersion {
-
-  /**
-   * Minecraft 1.3.
-   */
   MINECRAFT_1_3,
-
-  /**
-   * Minecraft 1.4.
-   */
   MINECRAFT_1_4,
-
-  /**
-   * Minecraft 1.6.
-   */
   MINECRAFT_1_6
 }

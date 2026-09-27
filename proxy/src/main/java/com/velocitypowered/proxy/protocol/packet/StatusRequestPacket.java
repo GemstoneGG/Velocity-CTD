@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,11 +24,12 @@ import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.ProtocolUtils.Direction;
 import io.netty.buffer.ByteBuf;
 
-public final class StatusRequestPacket implements MinecraftPacket {
+public class StatusRequestPacket implements MinecraftPacket {
 
   public static final StatusRequestPacket INSTANCE = new StatusRequestPacket();
 
   private StatusRequestPacket() {
+
   }
 
   @Override

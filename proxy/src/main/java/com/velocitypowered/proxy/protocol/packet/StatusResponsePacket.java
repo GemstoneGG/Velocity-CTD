@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,7 +40,6 @@ public class StatusResponsePacket implements MinecraftPacket {
     if (status == null) {
       throw new IllegalStateException("Status is not specified");
     }
-
     return status.toString();
   }
 
@@ -61,7 +60,6 @@ public class StatusResponsePacket implements MinecraftPacket {
     if (status == null) {
       throw new IllegalStateException("Status is not specified");
     }
-
     ProtocolUtils.writeString(buf, status);
   }
 

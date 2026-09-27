@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,6 @@ import com.velocitypowered.proxy.protocol.packet.chat.ChatHandler;
 public class LegacyChatHandler implements ChatHandler<LegacyChatPacket> {
 
   private final VelocityServer server;
-
   private final ConnectedPlayer player;
 
   public LegacyChatHandler(VelocityServer server, ConnectedPlayer player) {
@@ -45,7 +44,6 @@ public class LegacyChatHandler implements ChatHandler<LegacyChatPacket> {
     if (serverConnection == null) {
       return;
     }
-
     this.server.getEventManager().fire(new PlayerChatEvent(this.player, packet.getMessage()))
         .whenComplete((chatEvent, throwable) -> {
           if (!chatEvent.getResult().isAllowed()) {

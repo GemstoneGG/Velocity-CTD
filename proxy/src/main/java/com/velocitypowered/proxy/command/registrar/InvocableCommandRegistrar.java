@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2021-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,46 +38,52 @@ import java.util.Iterator;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Predicate;
 
-abstract class InvocableCommandRegistrar<T extends InvocableCommand<I>, I extends CommandInvocation<A>, A> extends AbstractCommandRegistrar<T> {
+/**
+ * Base class for {@link CommandRegistrar}s capable of registering a subinterface of
+ * {@link InvocableCommand} in a root node.
+ */
+abstract class InvocableCommandRegistrar<T extends InvocableCommand<I>,
+    I extends CommandInvocation<A>, A> extends AbstractCommandRegistrar<T> {
 
   private final CommandInvocationFactory<I> invocationFactory;
-
   private final ArgumentType<A> argumentsType;
 
-  protected InvocableCommandRegistrar(RootCommandNode<CommandSource> root, Lock lock,
-                                      CommandInvocationFactory<I> invocationFactory,
-                                      ArgumentType<A> argumentsType) {
+  protected InvocableCommandRegistrar(final RootCommandNode<CommandSource> root, final Lock lock,
+      final CommandInvocationFactory<I> invocationFactory,
+      final ArgumentType<A> argumentsType) {
     super(root, lock);
     this.invocationFactory = Preconditions.checkNotNull(invocationFactory, "invocationFactory");
     this.argumentsType = Preconditions.checkNotNull(argumentsType, "argumentsType");
   }
 
   @Override
-  public void register(CommandMeta meta, T command) {
-    Iterator<String> aliases = meta.getAliases().iterator();
+  public void register(final CommandMeta meta, final T command) {
+    final Iterator<String> aliases = meta.getAliases().iterator();
 
-    String primaryAlias = aliases.next();
-    LiteralCommandNode<CommandSource> literal = this.createLiteral(command, meta, primaryAlias);
+    final String primaryAlias = aliases.next();
+    final LiteralCommandNode<CommandSource> literal =
+        this.createLiteral(command, meta, primaryAlias);
     this.register(literal);
 
     while (aliases.hasNext()) {
-      String alias = aliases.next();
+      final String alias = aliases.next();
       this.register(literal, alias);
     }
   }
 
-  private LiteralCommandNode<CommandSource> createLiteral(T command, CommandMeta meta, String alias) {
-    Predicate<CommandContextBuilder<CommandSource>> requirement = context -> {
-      I invocation = invocationFactory.create(context);
+  private LiteralCommandNode<CommandSource> createLiteral(final T command, final CommandMeta meta,
+      final String alias) {
+    final Predicate<CommandContextBuilder<CommandSource>> requirement = context -> {
+      final I invocation = invocationFactory.create(context);
       return command.hasPermission(invocation);
     };
-    Command<CommandSource> callback = VelocityBrigadierCommandWrapper.wrap(context -> {
-      I invocation = invocationFactory.create(context);
+    final Command<CommandSource> callback = VelocityBrigadierCommandWrapper.wrap(context -> {
+      final I invocation = invocationFactory.create(context);
       command.execute(invocation);
       return 1; // handled
     }, meta.getPlugin());
 
-    LiteralCommandNode<CommandSource> literal = LiteralArgumentBuilder
+    final LiteralCommandNode<CommandSource> literal = LiteralArgumentBuilder
         .<CommandSource>literal(alias)
         .requiresWithContext((context, reader) -> {
           if (reader.canRead()) {
@@ -87,28 +93,26 @@ abstract class InvocableCommandRegistrar<T extends InvocableCommand<I>, I extend
             // Only check for permissions once parsing is complete.
             return true;
           }
-
           return requirement.test(context);
         })
         .executes(callback)
         .build();
 
-    ArgumentCommandNode<CommandSource, String> arguments = VelocityArgumentBuilder
+    final ArgumentCommandNode<CommandSource, String> arguments = VelocityArgumentBuilder
         .<CommandSource, A>velocityArgument(VelocityCommands.ARGS_NODE_NAME, argumentsType)
         .requiresWithContext((context, reader) -> requirement.test(context))
         .executes(callback)
         .suggests((context, builder) -> {
-          // Offset the suggestion to the last space separated word
+          // Offset the suggestion to the last space seperated word
           int lastSpace = builder.getRemaining().lastIndexOf(' ') + 1;
-          var offsetBuilder = builder.createOffset(builder.getStart() + lastSpace);
+          final var offsetBuilder = builder.createOffset(builder.getStart() + lastSpace);
 
-          I invocation = invocationFactory.create(context);
+          final I invocation = invocationFactory.create(context);
           return command.suggestAsync(invocation).thenApply(suggestions -> {
             for (String value : suggestions) {
               Preconditions.checkNotNull(value, "suggestion");
               offsetBuilder.suggest(value);
             }
-
             return offsetBuilder.build();
           });
         })

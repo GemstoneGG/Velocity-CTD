@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -72,9 +72,7 @@ import org.jetbrains.annotations.NotNull;
 public class VelocityRegisteredServer implements RegisteredServer, ForwardingAudience {
 
   private final @Nullable VelocityServer server;
-
   private final ServerInfo serverInfo;
-
   private final Map<UUID, ConnectedPlayer> players = new ConcurrentHashMap<>();
 
   public VelocityRegisteredServer(@Nullable VelocityServer server, ServerInfo serverInfo) {
@@ -171,7 +169,6 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
     if (server == null) {
       throw new IllegalStateException("No Velocity proxy instance available");
     }
-
     CompletableFuture<ServerPing> pingFuture = new CompletableFuture<>();
     server.createBootstrap(loop).handler(new ChannelInitializer<>() {
       @Override
@@ -197,7 +194,6 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
         pingFuture.completeExceptionally(future.cause());
       }
     });
-
     return pingFuture;
   }
 
@@ -210,30 +206,21 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
   }
 
   @Override
-  public boolean sendPluginMessage(@NotNull ChannelIdentifier identifier, byte @NotNull [] data) {
+  public boolean sendPluginMessage(final @NotNull ChannelIdentifier identifier, final byte @NotNull [] data) {
     requireNonNull(identifier);
     requireNonNull(data);
     return sendPluginMessage(identifier, Unpooled.wrappedBuffer(data));
   }
 
-  /**
-   * Sends a plugin message to this server using the given {@link ChannelIdentifier} and
-   * a {@link PluginMessageEncoder} to encode the message payload.
-   *
-   * <p>The encoder writes the message data into a {@link ByteBuf}, which is then dispatched
-   * to the backend server via a connected player. If the buffer contains no data after
-   * encoding, the message is not sent and the buffer is released.</p>
-   *
-   * @param identifier the plugin message channel identifier
-   * @param dataEncoder the encoder that writes the message data
-   * @return {@code true} if the message was successfully sent, {@code false} otherwise
-   */
   @Override
-  public boolean sendPluginMessage(@NotNull ChannelIdentifier identifier, @NotNull PluginMessageEncoder dataEncoder) {
+  public boolean sendPluginMessage(
+          final @NotNull ChannelIdentifier identifier,
+          final @NotNull PluginMessageEncoder dataEncoder
+  ) {
     requireNonNull(identifier);
     requireNonNull(dataEncoder);
-    ByteBuf buf = Unpooled.buffer();
-    ByteBufDataOutput dataInput = new ByteBufDataOutput(buf);
+    final ByteBuf buf = Unpooled.buffer();
+    final ByteBufDataOutput dataInput = new ByteBufDataOutput(buf);
     dataEncoder.encode(dataInput);
     if (buf.isReadable()) {
       return sendPluginMessage(identifier, buf);
@@ -245,15 +232,15 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
 
   /**
    * Sends a plugin message to the server through this connection. The message will be released
-   * afterward.
+   * afterwards.
    *
    * @param identifier the channel ID to use
    * @param data       the data
-   * @return whether the message was sent
+   * @return whether or not the message was sent
    */
   public boolean sendPluginMessage(ChannelIdentifier identifier, ByteBuf data) {
-    for (ConnectedPlayer player : players.values()) {
-      VelocityServerConnection serverConnection = player.getConnectedServer();
+    for (final ConnectedPlayer player : players.values()) {
+      final VelocityServerConnection serverConnection = player.getConnectedServer();
       if (serverConnection != null && serverConnection.getConnection() != null
               && serverConnection.getServer() == this) {
         return serverConnection.sendPluginMessage(identifier, data);

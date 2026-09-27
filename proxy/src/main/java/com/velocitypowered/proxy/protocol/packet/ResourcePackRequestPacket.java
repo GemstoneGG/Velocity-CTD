@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2021 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,10 +35,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class ResourcePackRequestPacket implements MinecraftPacket {
 
-  private @MonotonicNonNull UUID id;
-
+  private @MonotonicNonNull UUID id; // 1.20.3+
   private @MonotonicNonNull String url;
-
   private @MonotonicNonNull String hash;
 
   private boolean isRequired;
@@ -92,7 +90,6 @@ public class ResourcePackRequestPacket implements MinecraftPacket {
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_20_3)) {
       this.id = ProtocolUtils.readUuid(buf);
     }
-
     this.url = ProtocolUtils.readString(buf);
     this.hash = ProtocolUtils.readString(buf);
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_17)) {
@@ -111,14 +108,11 @@ public class ResourcePackRequestPacket implements MinecraftPacket {
       if (id == null) {
         throw new IllegalStateException("Resource pack proxyId not set yet!");
       }
-
       ProtocolUtils.writeUuid(buf, id);
     }
-
     if (url == null || hash == null) {
       throw new IllegalStateException("Packet not fully filled in yet!");
     }
-
     ProtocolUtils.writeString(buf, url);
     ProtocolUtils.writeString(buf, hash);
     if (protocolVersion.noLessThan(ProtocolVersion.MINECRAFT_1_17)) {
@@ -133,7 +127,7 @@ public class ResourcePackRequestPacket implements MinecraftPacket {
   }
 
   public VelocityResourcePackInfo toServerPromptedPack() {
-    ResourcePackInfo.Builder builder =
+    final ResourcePackInfo.Builder builder =
         new VelocityResourcePackInfo.BuilderImpl(Preconditions.checkNotNull(url))
             .setId(id).setPrompt(prompt == null ? null : prompt.getComponent())
             .setShouldForce(isRequired).setOrigin(ResourcePackInfo.Origin.DOWNSTREAM_SERVER);
@@ -143,7 +137,6 @@ public class ResourcePackRequestPacket implements MinecraftPacket {
         builder.setHash(ByteBufUtil.decodeHexDump(hash));
       }
     }
-
     return (VelocityResourcePackInfo) builder.build();
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,9 +27,10 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 public record LegacyDisconnect(String reason) {
 
-  private static final ServerPing.Players FAKE_PLAYERS = new ServerPing.Players(0, 0, ImmutableList.of());
-
-  private static final String LEGACY_COLOR_CODE = Character.toString(LegacyComponentSerializer.SECTION_CHAR);
+  private static final ServerPing.Players FAKE_PLAYERS = new ServerPing.Players(0, 0,
+      ImmutableList.of());
+  private static final String LEGACY_COLOR_CODE = Character
+      .toString(LegacyComponentSerializer.SECTION_CHAR);
 
   /**
    * Converts a modern server list ping response into a legacy disconnect packet.
@@ -39,8 +40,8 @@ public record LegacyDisconnect(String reason) {
    * @return the disconnect packet
    */
   public static LegacyDisconnect fromServerPing(ServerPing response,
-                                                LegacyMinecraftPingVersion version) {
-    Players players = response.getPlayers().orElse(FAKE_PLAYERS);
+      LegacyMinecraftPingVersion version) {
+    final Players players = response.getPlayers().orElse(FAKE_PLAYERS);
 
     return switch (version) {
       case MINECRAFT_1_3 ->
@@ -71,7 +72,7 @@ public record LegacyDisconnect(String reason) {
   }
 
   private static String getFirstLine(String legacyMotd) {
-    int newline = legacyMotd.indexOf('\n');
+    final int newline = legacyMotd.indexOf('\n');
     return newline == -1 ? legacyMotd : legacyMotd.substring(0, newline);
   }
 
@@ -83,7 +84,7 @@ public record LegacyDisconnect(String reason) {
    */
   public static LegacyDisconnect from(TextComponent component) {
     // We intentionally use the legacy serializers, because the old clients can't understand JSON.
-    String serialized = LegacyComponentSerializer.legacySection().serialize(component);
+    final String serialized = LegacyComponentSerializer.legacySection().serialize(component);
     return new LegacyDisconnect(serialized);
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,19 +73,12 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
   private static final ComponentLogger COMPONENT_LOGGER = ComponentLogger.logger(AuthSessionHandler.class);
 
   private final VelocityServer server;
-
   private final MinecraftConnection mcConnection;
-
   private final LoginInboundConnection inbound;
-
   private GameProfile profile;
-
   private @MonotonicNonNull ConnectedPlayer connectedPlayer;
-
   private final boolean onlineMode;
-
-  private State loginState = State.START;
-
+  private State loginState = State.START; // 1.20.2+
   private final String serverIdHash;
 
   private final CompletableFuture<byte[]> appliedResourcePacksFuture;
@@ -236,7 +229,6 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
       mcConnection.write(new SetCompressionPacket(threshold));
       mcConnection.setCompressionThreshold(threshold);
     }
-
     VelocityConfiguration configuration = server.getConfiguration();
     UUID playerUniqueId = player.getUniqueId();
     if (configuration.getPlayerInfoForwardingMode() == PlayerInfoForwarding.NONE) {
@@ -244,7 +236,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
     }
 
     if (player.getIdentifiedKey() != null) {
-      IdentifiedKey playerKey = player.getIdentifiedKey();
+      final IdentifiedKey playerKey = player.getIdentifiedKey();
       if (playerKey.getSignatureHolder() == null) {
         if (playerKey instanceof IdentifiedKeyImpl unlinkedKey) {
           // Failsafe
@@ -289,7 +281,6 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
             return null;
           });
     }
-
     return true;
   }
 
@@ -306,8 +297,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
           if (event.getResult().isAllowed()) {
             // The received cookie must have been requested by a proxy plugin in login phase,
             // because if a backend server requests a cookie in login phase, the client is already
-            // in config phase.
-            // Therefore, the only way we receive a CookieResponsePacket from a
+            // in config phase. Therefore, the only way, we receive a CookieResponsePacket from a
             // client in login phase is when a proxy plugin requested a cookie in login phase.
             throw new IllegalStateException(
                 "A cookie was requested by a proxy plugin in login phase but the response wasn't handled");
@@ -398,13 +388,10 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
     if (connectedPlayer != null) {
       connectedPlayer.teardown();
     }
-
     this.inbound.cleanup();
   }
 
   enum State {
-    START,
-    SUCCESS_SENT,
-    ACKNOWLEDGED
+    START, SUCCESS_SENT, ACKNOWLEDGED
   }
 }

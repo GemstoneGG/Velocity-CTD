@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2022 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,13 +33,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class ServerLoginSuccessPacket implements MinecraftPacket {
 
   private @Nullable UUID uuid;
-
   private @Nullable String username;
-
   private @Nullable List<GameProfile.Property> properties;
-
   private @Nullable UUID sessionId;
-
   private static final boolean strictErrorHandling = VelocityProperties
           .readBoolean("velocity.strictErrorHandling", true);
 
@@ -47,7 +43,6 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
     if (uuid == null) {
       throw new IllegalStateException("No UUID specified!");
     }
-
     return uuid;
   }
 
@@ -59,7 +54,6 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
     if (username == null) {
       throw new IllegalStateException("No username specified!");
     }
-
     return username;
   }
 
@@ -99,13 +93,11 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
     } else {
       uuid = UuidUtils.fromUndashed(ProtocolUtils.readString(buf, 32));
     }
-
     username = ProtocolUtils.readString(buf, 16);
 
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19)) {
       properties = ProtocolUtils.readProperties(buf);
     }
-
     if (version == ProtocolVersion.MINECRAFT_1_20_5 || version == ProtocolVersion.MINECRAFT_1_21) {
       buf.readBoolean();
     }
@@ -120,7 +112,6 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
     if (uuid == null) {
       throw new IllegalStateException("No UUID specified!");
     }
-
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19)) {
       ProtocolUtils.writeUuid(buf, uuid);
     } else if (version.noLessThan(ProtocolVersion.MINECRAFT_1_16)) {
@@ -130,11 +121,9 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
     } else {
       ProtocolUtils.writeString(buf, UuidUtils.toUndashed(uuid));
     }
-
     if (username == null) {
       throw new IllegalStateException("No username specified!");
     }
-
     ProtocolUtils.writeString(buf, username);
 
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19)) {
@@ -144,7 +133,6 @@ public class ServerLoginSuccessPacket implements MinecraftPacket {
         ProtocolUtils.writeProperties(buf, properties);
       }
     }
-
     if (version == ProtocolVersion.MINECRAFT_1_20_5 || version == ProtocolVersion.MINECRAFT_1_21) {
       buf.writeBoolean(strictErrorHandling);
     }

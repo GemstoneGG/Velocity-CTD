@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,14 +43,12 @@ public class MinecraftCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
   private static final int CLIENTBOUND_UNCOMPRESSED_CAP =
       Boolean.getBoolean("velocity.increased-compression-cap")
           ? HARD_MAXIMUM_UNCOMPRESSED_SIZE : VANILLA_MAXIMUM_UNCOMPRESSED_SIZE;
-
   private static final int SERVERBOUND_UNCOMPRESSED_CAP =
-      Boolean.getBoolean("velocity.increased-compression-cap")
-          ? HARD_MAXIMUM_UNCOMPRESSED_SIZE : SERVERBOUND_MAXIMUM_UNCOMPRESSED_SIZE;
-
+          Boolean.getBoolean("velocity.increased-compression-cap")
+                  ? HARD_MAXIMUM_UNCOMPRESSED_SIZE : SERVERBOUND_MAXIMUM_UNCOMPRESSED_SIZE;
   private static final boolean SKIP_COMPRESSION_VALIDATION = Boolean.getBoolean("velocity.skip-uncompressed-packet-size-validation");
-
   private final ProtocolUtils.Direction direction;
+
   private int threshold;
   private final VelocityCompressor compressor;
   @Nullable
@@ -78,7 +76,6 @@ public class MinecraftCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
         checkFrame(actualUncompressedSize < threshold, "Actual uncompressed size %s is greater than"
             + " threshold %s", actualUncompressedSize, threshold);
       }
-
       // This message is not compressed.
       if (packetLimiter != null && !packetLimiter.account(in.readableBytes())) {
         throw new QuietDecoderException("Rate limit exceeded while processing packets for %s"

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2018-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -164,9 +164,8 @@ public class ServerListPingHandler {
 
       VelocityRegisteredServer vrs = rs.get();
       pings.add(vrs.ping(connection.getConnection().eventLoop(), PingOptions.builder()
-          .version(responseProtocolVersion).virtualHost(virtualHostStr).build()));
+              .version(responseProtocolVersion).virtualHost(virtualHostStr).build()));
     }
-
     if (pings.isEmpty()) {
       return CompletableFuture.completedFuture(fallback);
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2020-2023 Velocity Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,11 +49,8 @@ public final class SeparatePoolInetNameResolver extends InetNameResolver {
   private static final int MAX_RESOLVE_THREADS = 8;
 
   private final ExecutorService resolveExecutor;
-
   private final InetNameResolver delegate;
-
   private final Cache<String, List<InetAddress>> cache;
-
   private AddressResolverGroup<InetSocketAddress> resolverGroup;
 
   /**
@@ -94,7 +91,6 @@ public final class SeparatePoolInetNameResolver extends InetNameResolver {
             cache.put(inetHost, ImmutableList.of((InetAddress) future.getNow()));
           }
         });
-
         this.delegate.resolve(inetHost, promise);
       });
     } catch (RejectedExecutionException e) {
@@ -117,7 +113,6 @@ public final class SeparatePoolInetNameResolver extends InetNameResolver {
           cache.put(inetHost, Collections.unmodifiableList(result));
         }
       });
-
       resolveExecutor.execute(() -> this.delegate.resolveAll(inetHost, promise));
     } catch (RejectedExecutionException e) {
       promise.setFailure(e);
@@ -142,7 +137,6 @@ public final class SeparatePoolInetNameResolver extends InetNameResolver {
         }
       };
     }
-
     return this.resolverGroup;
   }
 }

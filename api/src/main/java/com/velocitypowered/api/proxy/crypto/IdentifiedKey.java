@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2026 Velocity Contributors
+ * Copyright (C) 2022-2023 Velocity Contributors
  *
  * The Velocity API is licensed under the terms of the MIT License. For more details,
  * reference the LICENSE file in the api top-level directory.
@@ -27,6 +27,7 @@ public interface IdentifiedKey extends KeySigned {
    * @return the RSA public key in question
    */
   PublicKey getSignedPublicKey();
+
 
   /**
    * Validates a signature against this public key.
@@ -58,50 +59,24 @@ public interface IdentifiedKey extends KeySigned {
    * The different versions of player keys, per Minecraft version.
    */
   enum Revision implements Ordered<Revision> {
-
-    /**
-     * Represents the original key revision introduced in Minecraft 1.19.
-     * Keys are not tied to a specific player identity.
-     */
     GENERIC_V1(ImmutableSet.of(), ImmutableSet.of(ProtocolVersion.MINECRAFT_1_19)),
-
-    /**
-     * Represents the key revision introduced in Minecraft 1.19.1.
-     * Keys are cryptographically linked to player identities.
-     */
     LINKED_V2(ImmutableSet.of(), ImmutableSet.of(ProtocolVersion.MINECRAFT_1_19_1));
 
-    /**
-     * The set of older key revisions that this revision is backward-compatible with.
-     */
     final Set<Revision> backwardsCompatibleTo;
-
-    /**
-     * The set of Minecraft protocol versions this revision applies to.
-     */
     final Set<ProtocolVersion> applicableTo;
 
     Revision(Set<Revision> backwardsCompatibleTo, Set<ProtocolVersion> applicableTo) {
       this.backwardsCompatibleTo = backwardsCompatibleTo;
       this.applicableTo = applicableTo;
     }
-
-    /**
-     * Returns the set of revisions that this revision is backwards-compatible with.
-     *
-     * @return a set of compatible earlier revisions
-     */
+    
     public Set<Revision> getBackwardsCompatibleTo() {
       return backwardsCompatibleTo;
     }
-
-    /**
-     * Returns the set of Minecraft protocol versions this revision applies to.
-     *
-     * @return a set of applicable protocol versions
-     */
+    
     public Set<ProtocolVersion> getApplicableTo() {
       return applicableTo;
     }
   }
+
 }
