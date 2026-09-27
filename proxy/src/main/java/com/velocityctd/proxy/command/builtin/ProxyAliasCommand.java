@@ -94,7 +94,7 @@ public class ProxyAliasCommand implements SimpleCommand {
    *         any of its requirement predicates return false.
    */
   private Optional<Boolean> passesCommandRequirements(@NonNull CommandSource commandSource) {
-    VelocityCommandManager commandManager = (VelocityCommandManager) server.getCommandManager();
+    VelocityCommandManager commandManager = server.getCommandManager();
     for (String command : commands) {
       String commandRoot = command.split(" ", 2)[0];
       CommandNode<CommandSource> commandNode = commandManager.getDispatcher().getRoot().getChild(commandRoot);
