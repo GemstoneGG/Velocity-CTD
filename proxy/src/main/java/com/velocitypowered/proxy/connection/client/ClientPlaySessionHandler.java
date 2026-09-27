@@ -190,6 +190,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
 
   @Override
   public void deactivated() {
+    flushServerConnection();
     player.discardChatQueue();
     PluginMessagePacket message;
     while ((message = loginPluginMessages.poll()) != null) {
@@ -536,7 +537,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
       if (packet instanceof PluginMessagePacket) {
         ((PluginMessagePacket) packet).retain();
       }
-      smc.write(packet);
+      smc.delayedWrite(packet);
     }
   }
 
@@ -554,12 +555,32 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
         && serverConnection.getPhase().consideredComplete()
         && smc.getState() == StateRegistry.PLAY;
     if (stateAllowsForward) {
-      smc.write(buf.retain());
+      smc.delayedWrite(buf.retain());
+    }
+  }
+
+  @Override
+  public void readCompleted() {
+    flushServerConnection();
+  }
+
+  /**
+   * Flushes the packets forwarded to the server connection. Forwarded packets are only queued, so
+   * everything the client sent in one read reaches the server in a single write.
+   */
+  private void flushServerConnection() {
+    VelocityServerConnection serverConnection = player.getConnectedServer();
+    if (serverConnection != null) {
+      MinecraftConnection smc = serverConnection.getConnection();
+      if (smc != null) {
+        smc.flush();
+      }
     }
   }
 
   @Override
   public void disconnected() {
+    flushServerConnection();
     player.teardown();
   }
 
