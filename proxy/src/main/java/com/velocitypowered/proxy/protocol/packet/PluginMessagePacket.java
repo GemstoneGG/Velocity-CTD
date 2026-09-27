@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.protocol.packet;
 
+import static com.velocitypowered.proxy.protocol.util.NettyPreconditions.checkFrame;
 import static com.velocitypowered.proxy.protocol.util.PluginMessageUtil.transformLegacyToModernChannel;
 
 import com.velocitypowered.api.network.ProtocolVersion;
@@ -85,6 +86,13 @@ public class PluginMessagePacket extends DeferredByteBufHolder implements Minecr
       this.channel = transformLegacyToModernChannel(this.channel);
     }
     if (version.noLessThan(ProtocolVersion.MINECRAFT_1_8)) {
+      // The frame limit also covers the channel name, so check the payload on its own too: a short
+      // channel name must not let a client send far more than the payload limit.
+      if (direction == Direction.SERVERBOUND) {
+        checkFrame(buf.readableBytes() <= MAX_PAYLOAD_SIZE_SERVERBOUND,
+            "Plugin message payload too big (got %s, maximum is %s)",
+            buf.readableBytes(), MAX_PAYLOAD_SIZE_SERVERBOUND);
+      }
       this.replace(buf.readRetainedSlice(buf.readableBytes()));
     } else {
       this.replace(ProtocolUtils.readRetainedByteBufSlice17(buf));
