@@ -148,8 +148,9 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
   }
 
   /**
-   * Publishes this proxy's heartbeat key to Redis with a TTL of {@link #HEARTBEAT_TTL}, and
-   * warns if another live proxy shares this {@code proxy-id}.
+   * Publishes this proxy's heartbeat key to Redis with a TTL of {@link #HEARTBEAT_TTL}, restores
+   * this proxy's entry if it was reaped, and warns if another live proxy shares this
+   * {@code proxy-id}.
    * Called every {@link #HEARTBEAT_INTERVAL} by the scheduler.
    */
   private void publishHeartbeat() {
@@ -175,6 +176,13 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
             this.instanceId,
             HEARTBEAT_TTL.toSeconds()
     );
+
+    // Another proxy reaps this one's entry when a heartbeat is missed for longer than the TTL (a
+    // long pause, a Redis blip or restart) while it is still running; put it back once the
+    // heartbeat is live again, as player entries are by the player sync.
+    if (!this.depot.contains(this.redis.getProxyId())) {
+      this.depot.upsert(new ProxyEntry(this.redis.getServer()));
+    }
 
     this.heartbeatPublished = true;
   }
