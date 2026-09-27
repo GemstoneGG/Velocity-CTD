@@ -54,7 +54,8 @@ import org.jspecify.annotations.Nullable;
  * until either {@link #finalizeLogin(ConnectedPlayer)} runs (after {@code PostLoginEvent}) or
  * {@link #unregisterConnection(ConnectedPlayer)} runs (firing {@code DisconnectEvent}). A
  * timeout forcibly releases the lock and closes the connection if login does not complete
- * within {@link #LOGIN_LOCK_TIMEOUT_SECONDS}.
+ * within {@link #LOGIN_LOCK_TIMEOUT_SECONDS}. A connection that closes while it waits for the
+ * lock gives up its place, so the lock never goes to a connection nobody will unregister.
  */
 public final class PlayerRegistry {
 
@@ -100,13 +101,25 @@ public final class PlayerRegistry {
    * {@link ConnectedPlayer#setIdentityLock(LockHandle)} and held until {@link #finalizeLogin}
    * or {@link #unregisterConnection} runs. The caller must call exactly one of those.
    *
-   * @return a future resolving to {@code true} if the connection was registered, {@code false} if not
+   * @return a future resolving to {@code true} if the connection was registered, {@code false} if
+   *         not, including when it closed before the lock was granted
    */
   public @NonNull CompletableFuture<Boolean> registerConnection(@NonNull ConnectedPlayer player) {
     UUID uuid = player.getUniqueId();
     String name = player.getUsername().toLowerCase(Locale.ROOT);
-    return identityLock.acquire(uuid, name)
-        .thenCompose(lock -> withLockReleasedOnFailure(lock, () -> tryRegisterLocked(player, lock)));
+    CompletableFuture<LockHandle> acquisition = identityLock.acquire(uuid, name);
+    if (!acquisition.isDone()) {
+      // Its own teardown queues behind this wait and only runs once it resolves, so without this
+      // a connection that closed while waiting would be registered with nobody left to remove it.
+      player.getConnection().getChannel().closeFuture()
+          .addListener(closed -> acquisition.cancel(false));
+    }
+
+    return acquisition
+        .thenCompose(lock -> withLockReleasedOnFailure(lock, () -> tryRegisterLocked(player, lock)))
+        .exceptionallyCompose(error -> acquisition.isCancelled()
+            ? completedFuture(false)
+            : failedFuture(error));
   }
 
   /**
@@ -167,6 +180,12 @@ public final class PlayerRegistry {
   }
 
   private CompletableFuture<Boolean> tryRegisterLocked(ConnectedPlayer player, LockHandle lock) {
+    if (player.getConnection().isClosed()) {
+      // A connection that is already gone must not refuse or evict the players it would replace.
+      lock.release();
+      return completedFuture(false);
+    }
+
     UUID uuid = player.getUniqueId();
     String name = player.getUsername().toLowerCase(Locale.ROOT);
 
@@ -176,10 +195,7 @@ public final class PlayerRegistry {
         return completedFuture(false);
       }
 
-      byUuid.put(uuid, player);
-      byName.put(name, player);
-      attachLockToPlayer(player, lock);
-      return completedFuture(true);
+      return completedFuture(publish(player, lock));
     }
 
     ConnectedPlayer existingByUuid = byUuid.get(uuid);
@@ -220,11 +236,31 @@ public final class PlayerRegistry {
         return false;
       }
 
-      byUuid.put(uuid, player);
-      byName.put(name, player);
-      attachLockToPlayer(player, lock);
-      return true;
+      return publish(player, lock);
     });
+  }
+
+  /**
+   * Registers the player and hands it the lock. A connection that closed just before may already
+   * have run its teardown past the map removal and the lock hand-off, so a registration whose
+   * connection is closed by now is undone.
+   *
+   * @return {@code true} if the player stays registered
+   */
+  private boolean publish(ConnectedPlayer player, LockHandle lock) {
+    byUuid.put(player.getUniqueId(), player);
+    byName.put(player.getUsername().toLowerCase(Locale.ROOT), player);
+    attachLockToPlayer(player, lock);
+    if (!player.getConnection().isClosed()) {
+      return true;
+    }
+
+    removeFromMaps(player);
+    LockHandle attached = player.consumeIdentityLock();
+    if (attached != null) {
+      attached.release();
+    }
+    return false;
   }
 
   private void attachLockToPlayer(ConnectedPlayer player, LockHandle lock) {
@@ -293,7 +329,7 @@ public final class PlayerRegistry {
     }
 
     DisconnectEvent event = new DisconnectEvent(player, status);
-    return server.getEventManager().fire(event)
+    return fireDisconnectEvent(event)
         .completeOnTimeout(event, DISCONNECT_EVENT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .handle((v, ex) -> {
           if (ex != null) {
@@ -302,6 +338,19 @@ public final class PlayerRegistry {
           runCleanup(player, ex, label);
           return null;
         });
+  }
+
+  /**
+   * Fires the event, turning a synchronous throw (such as a plugin executor rejecting the handler
+   * during shutdown) into a failed future, so it is logged and cleanup still runs instead of the
+   * teardown never completing.
+   */
+  private CompletableFuture<DisconnectEvent> fireDisconnectEvent(DisconnectEvent event) {
+    try {
+      return server.getEventManager().fire(event);
+    } catch (Throwable t) {
+      return failedFuture(t);
+    }
   }
 
   /**

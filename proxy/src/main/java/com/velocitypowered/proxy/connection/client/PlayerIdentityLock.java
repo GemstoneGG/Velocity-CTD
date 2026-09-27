@@ -40,7 +40,8 @@ import org.checkerframework.checker.nullness.qual.NonNull;
  * that completes when the lock is granted. Waiters are stored in a FIFO queue, but the lock is
  * not strictly FIFO across all identities: a later waiter whose required (uuid, name) pair is
  * free may be granted ahead of an earlier waiter who is still blocked. Per-identity ordering is
- * preserved (two waiters for the same identity are granted in FIFO order).
+ * preserved (two waiters for the same identity are granted in FIFO order). A waiter that cancels
+ * its future hands the lock straight on to the next one when its turn comes.
  */
 public final class PlayerIdentityLock {
 
@@ -54,7 +55,8 @@ public final class PlayerIdentityLock {
    *
    * @param uuid the player's uuid
    * @param name the player's lowercased name
-   * @return a future that resolves to the held lock handle once acquired
+   * @return a future that resolves to the held lock handle once acquired; cancel it to stop
+   *         waiting
    */
   public @NonNull CompletableFuture<LockHandle> acquire(@NonNull UUID uuid, @NonNull String name) {
     synchronized (monitor) {
@@ -96,7 +98,11 @@ public final class PlayerIdentityLock {
     }
     if (granted != null) {
       for (Waiter w : granted) {
-        w.future.complete(new LockHandle(w.uuid, w.name));
+        LockHandle lock = new LockHandle(w.uuid, w.name);
+        // A canceled waiter can no longer take the lock, so pass it on.
+        if (!w.future.complete(lock)) {
+          lock.release();
+        }
       }
     }
   }

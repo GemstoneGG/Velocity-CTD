@@ -152,6 +152,10 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
       this.connectedPlayer = player;
 
       return server.registerConnection(player).thenComposeAsync(registered -> {
+        if (!registered && mcConnection.isClosed()) {
+          // Closed while waiting for the identity lock, so it is not connected anywhere else.
+          return CompletableFuture.completedFuture(null);
+        }
         if (!registered) {
           player.disconnect0(
               Component.translatable("velocity.error.already-connected-proxy", NamedTextColor.RED),
