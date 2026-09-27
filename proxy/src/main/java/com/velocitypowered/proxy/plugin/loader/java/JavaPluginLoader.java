@@ -17,6 +17,8 @@
 
 package com.velocitypowered.proxy.plugin.loader.java;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
@@ -42,6 +44,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Implements loading a Java plugin.
@@ -63,15 +66,6 @@ public class JavaPluginLoader implements PluginLoader {
     }
 
     SerializedPluginDescription pd = serialized.get();
-    //noinspection ConstantValue
-    if (pd.getId() == null) {
-      throw new InvalidPluginException("No plugin ID provided.");
-    }
-    //noinspection ConstantValue
-    if (pd.getMain() == null) {
-      throw new InvalidPluginException("No plugin main class provided.");
-    }
-
     if (!SerializedPluginDescription.ID_PATTERN.matcher(pd.getId()).matches()) {
       throw new InvalidPluginException("Plugin ID '" + pd.getId() + "' is invalid.");
     }
@@ -148,6 +142,41 @@ public class JavaPluginLoader implements PluginLoader {
     pluginContainer.setInstance(instance);
   }
 
+  /**
+   * Reads a plugin's description, refusing one that names no ID or no main class.
+   *
+   * <p>Gson fills in the description without calling its constructor, and the constructor is where
+   * those two are required, so a file leaving one out would otherwise produce a description holding
+   * null where its getters promise a value. The file is checked as JSON instead, before it becomes
+   * a description.
+   *
+   * @param reader the {@code velocity-plugin.json} contents
+   * @return the description, or {@code null} when the file is empty
+   * @throws InvalidPluginException if the ID or the main class is missing
+   */
+  private static @Nullable SerializedPluginDescription readDescription(Reader reader)
+      throws InvalidPluginException {
+    JsonObject json = VelocityServer.GENERAL_GSON.fromJson(reader, JsonObject.class);
+
+    if (json == null) {
+      return null;
+    }
+
+    requirePresent(json, "id", "No plugin ID provided.");
+    requirePresent(json, "main", "No plugin main class provided.");
+
+    return VelocityServer.GENERAL_GSON.fromJson(json, SerializedPluginDescription.class);
+  }
+
+  private static void requirePresent(JsonObject json, String key, String message)
+      throws InvalidPluginException {
+    JsonElement value = json.get(key);
+
+    if (value == null || value.isJsonNull()) {
+      throw new InvalidPluginException(message);
+    }
+  }
+
   private Optional<SerializedPluginDescription> getSerializedPluginInfo(Path source)
       throws Exception {
     boolean foundBungeeBukkitPluginFile = false;
@@ -158,8 +187,7 @@ public class JavaPluginLoader implements PluginLoader {
         switch (entry.getName()) {
           case "velocity-plugin.json" -> {
             try (Reader pluginInfoReader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-              return Optional.of(VelocityServer.GENERAL_GSON.fromJson(pluginInfoReader,
-                  SerializedPluginDescription.class));
+              return Optional.ofNullable(readDescription(pluginInfoReader));
             }
           }
           case "paper-plugin.yml", "plugin.yml", "bungee.yml" -> foundBungeeBukkitPluginFile = true;
