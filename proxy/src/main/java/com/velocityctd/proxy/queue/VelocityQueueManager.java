@@ -503,8 +503,12 @@ public class VelocityQueueManager implements QueueManager {
       return priority;
     }
 
+    if (priority >= maxDynamicPriority) {
+      return priority;
+    }
+
     long bonus = (nowMs - joinedAtMs) / TimeUnit.MINUTES.toMillis(minutesPerIncrease);
-    return (int) Math.max(priority, Math.min(priority + bonus, maxDynamicPriority));
+    return (int) Math.min(priority + bonus, maxDynamicPriority);
   }
 
   private void pingBackends() {
