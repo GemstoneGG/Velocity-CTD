@@ -51,6 +51,7 @@ import com.velocitypowered.proxy.protocol.packet.ClientSettingsPacket;
 import com.velocitypowered.proxy.protocol.packet.ClientboundCookieRequestPacket;
 import com.velocitypowered.proxy.protocol.packet.ClientboundStoreCookiePacket;
 import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
+import com.velocitypowered.proxy.protocol.packet.HeaderAndFooterPacket;
 import com.velocitypowered.proxy.protocol.packet.JoinGamePacket;
 import com.velocitypowered.proxy.protocol.packet.KeepAlivePacket;
 import com.velocitypowered.proxy.protocol.packet.LegacyPlayerListItemPacket;
@@ -355,6 +356,16 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
   public boolean handle(TabCompleteResponsePacket packet) {
     playerSessionHandler.handleTabCompleteResponse(packet);
     return true;
+  }
+
+  @Override
+  public boolean handle(HeaderAndFooterPacket packet) {
+    // Snoop the backend's player list header/footer so the proxy's tracked values stay in sync
+    // with what the player actually sees.
+    serverConn.getPlayer().setPlayerListHeaderAndFooterSilent(
+        packet.getHeader().getComponent(),
+        packet.getFooter().getComponent());
+    return false;
   }
 
   @Override
