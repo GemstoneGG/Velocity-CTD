@@ -66,22 +66,18 @@ public class JavaPluginLoader implements PluginLoader {
     }
 
     SerializedPluginDescription pd = serialized.get();
-    if (!SerializedPluginDescription.ID_PATTERN.matcher(pd.getId()).matches()) {
-      throw new InvalidPluginException("Plugin ID '" + pd.getId() + "' is invalid.");
-    }
-
-    for (SerializedPluginDescription.Dependency dependency : pd.getDependencies()) {
-      if (!SerializedPluginDescription.ID_PATTERN.matcher(dependency.getId()).matches()) {
+    for (SerializedPluginDescription.Dependency dependency : pd.dependencies()) {
+      if (!SerializedPluginDescription.ID_PATTERN.matcher(dependency.id()).matches()) {
         throw new InvalidPluginException(
-            "Dependency ID '" + dependency.getId() + "' for plugin '" + pd.getId() + "' is invalid."
+            "Dependency ID '" + dependency.id() + "' for plugin '" + pd.id() + "' is invalid."
         );
       }
     }
 
-    for (String providedId : pd.getProvides()) {
+    for (String providedId : pd.provides()) {
       if (!SerializedPluginDescription.ID_PATTERN.matcher(providedId).matches()) {
         throw new InvalidPluginException(
-            "Provided ID '" + providedId + "' for plugin '" + pd.getId() + "' is invalid."
+            "Provided ID '" + providedId + "' for plugin '" + pd.id() + "' is invalid."
         );
       }
     }
@@ -143,16 +139,17 @@ public class JavaPluginLoader implements PluginLoader {
   }
 
   /**
-   * Reads a plugin's description, refusing one that names no ID or no main class.
+   * Reads a plugin's description, refusing one whose ID is missing or invalid, or that names no
+   * main class.
    *
-   * <p>Gson fills in the description without calling its constructor, and the constructor is where
-   * those two are required, so a file leaving one out would otherwise produce a description holding
-   * null where its getters promise a value. The file is checked as JSON instead, before it becomes
-   * a description.
+   * <p>The description is a record, so Gson builds it through its constructor, which requires
+   * those same things; a file breaking one would otherwise fail inside Gson and reach the plugin's
+   * author as a constructor failure wrapped in Gson's stack trace. The file is checked as JSON
+   * first, so the refusal names what is wrong.
    *
    * @param reader the {@code velocity-plugin.json} contents
    * @return the description, or {@code null} when the file is empty
-   * @throws InvalidPluginException if the ID or the main class is missing
+   * @throws InvalidPluginException if the ID is missing or invalid, or the main class is missing
    */
   private static @Nullable SerializedPluginDescription readDescription(Reader reader)
       throws InvalidPluginException {
@@ -162,19 +159,30 @@ public class JavaPluginLoader implements PluginLoader {
       return null;
     }
 
-    requirePresent(json, "id", "No plugin ID provided.");
+    JsonElement id = requirePresent(json, "id", "No plugin ID provided.");
     requirePresent(json, "main", "No plugin main class provided.");
+
+    if (!id.isJsonPrimitive()
+        || !SerializedPluginDescription.ID_PATTERN.matcher(id.getAsString()).matches()) {
+      throw new InvalidPluginException("Plugin ID '" + readable(id) + "' is invalid.");
+    }
 
     return VelocityServer.GENERAL_GSON.fromJson(json, SerializedPluginDescription.class);
   }
 
-  private static void requirePresent(JsonObject json, String key, String message)
+  private static JsonElement requirePresent(JsonObject json, String key, String message)
       throws InvalidPluginException {
     JsonElement value = json.get(key);
 
     if (value == null || value.isJsonNull()) {
       throw new InvalidPluginException(message);
     }
+
+    return value;
+  }
+
+  private static String readable(JsonElement value) {
+    return value.isJsonPrimitive() ? value.getAsString() : value.toString();
   }
 
   private Optional<SerializedPluginDescription> getSerializedPluginInfo(Path source)
@@ -211,21 +219,21 @@ public class JavaPluginLoader implements PluginLoader {
       Path source) {
     Set<PluginDependency> dependencies = new HashSet<>();
 
-    for (SerializedPluginDescription.Dependency dependency : description.getDependencies()) {
+    for (SerializedPluginDescription.Dependency dependency : description.dependencies()) {
       dependencies.add(toDependencyMeta(dependency));
     }
 
     return new JavaVelocityPluginDescriptionCandidate(
-        description.getId(),
-        description.getName(),
-        description.getVersion(),
-        description.getDescription(),
-        description.getUrl(),
-        description.getAuthors(),
+        description.id(),
+        description.name(),
+        description.version(),
+        description.description(),
+        description.url(),
+        description.authors(),
         dependencies,
-        description.getProvides(),
+        description.provides(),
         source,
-        description.getMain()
+        description.main()
     );
   }
 
@@ -249,9 +257,9 @@ public class JavaPluginLoader implements PluginLoader {
   private static PluginDependency toDependencyMeta(
       SerializedPluginDescription.Dependency dependency) {
     return new PluginDependency(
-        dependency.getId(),
+        dependency.id(),
         null, // TODO Implement version matching in dependency annotation
-        dependency.isOptional()
+        dependency.optional()
     );
   }
 }

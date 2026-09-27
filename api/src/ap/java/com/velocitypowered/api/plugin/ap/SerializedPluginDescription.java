@@ -14,45 +14,50 @@ import com.velocitypowered.api.plugin.Plugin;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Serialized version of {@link com.velocitypowered.api.plugin.PluginDescription}.
+ *
+ * <p>A value the plugin leaves out is held as {@code null}, which Gson leaves out of the
+ * serialized file.
+ *
+ * @param id the plugin ID
+ * @param name the display name, or {@code null} for none
+ * @param version the version, or {@code null} for none
+ * @param description the description, or {@code null} for none
+ * @param url the website, or {@code null} for none
+ * @param authors the authors
+ * @param dependencies the plugins this one depends on
+ * @param provides the other IDs this plugin claims
+ * @param main the fully qualified name of the main class
  */
-public final class SerializedPluginDescription {
+public record SerializedPluginDescription(String id, @Nullable String name,
+    @Nullable String version, @Nullable String description, @Nullable String url,
+    @Nullable List<String> authors, @Nullable List<Dependency> dependencies,
+    @Nullable List<String> provides, String main) {
 
   public static final String ID_PATTERN_STRING = "[a-z][a-z0-9-_]{0,63}";
   public static final Pattern ID_PATTERN = Pattern.compile(ID_PATTERN_STRING);
 
-  // @Nullable is used here to make GSON skip these in the serialized file
-  private final String id;
-  private final @Nullable String name;
-  private final @Nullable String version;
-  private final @Nullable String description;
-  private final @Nullable String url;
-  private final @Nullable List<String> authors;
-  private final @Nullable List<Dependency> dependencies;
-  private final @Nullable List<String> provides;
-  private final String main;
-
-  private SerializedPluginDescription(String id, String name, String version, String description,
-      String url,
-      List<String> authors, List<Dependency> dependencies, List<String> provides, String main) {
+  /**
+   * Checks the ID and the main class, and settles what is absent: empty text becomes
+   * {@code null}, and a missing or empty list becomes an empty one.
+   */
+  public SerializedPluginDescription {
     Preconditions.checkNotNull(id, "id");
     Preconditions.checkArgument(ID_PATTERN.matcher(id).matches(), "id is not valid");
-    this.id = id;
-    this.name = Strings.emptyToNull(name);
-    this.version = Strings.emptyToNull(version);
-    this.description = Strings.emptyToNull(description);
-    this.url = Strings.emptyToNull(url);
-    this.authors = authors == null || authors.isEmpty() ? ImmutableList.of() : authors;
-    this.dependencies =
+    Preconditions.checkNotNull(main, "main");
+    name = Strings.emptyToNull(name);
+    version = Strings.emptyToNull(version);
+    description = Strings.emptyToNull(description);
+    url = Strings.emptyToNull(url);
+    authors = authors == null || authors.isEmpty() ? ImmutableList.of() : authors;
+    dependencies =
         dependencies == null || dependencies.isEmpty() ? ImmutableList.of() : dependencies;
-    this.provides = provides == null || provides.isEmpty() ? ImmutableList.of() : provides;
-    this.main = Preconditions.checkNotNull(main, "main");
+    provides = provides == null || provides.isEmpty() ? ImmutableList.of() : provides;
   }
 
   static SerializedPluginDescription from(Plugin plugin, String qualifiedName) {
@@ -68,127 +73,148 @@ public final class SerializedPluginDescription {
             .collect(Collectors.toList()), qualifiedName);
   }
 
-  public String getId() {
-    return id;
-  }
-
-  public @Nullable String getName() {
-    return name;
-  }
-
-  public @Nullable String getVersion() {
-    return version;
-  }
-
-  public @Nullable String getDescription() {
-    return description;
-  }
-
-  public @Nullable String getUrl() {
-    return url;
-  }
-
-  public List<String> getAuthors() {
+  @Override
+  public List<String> authors() {
     return authors == null ? ImmutableList.of() : authors;
   }
 
-  public List<Dependency> getDependencies() {
+  @Override
+  public List<Dependency> dependencies() {
     return dependencies == null ? ImmutableList.of() : dependencies;
   }
 
-  public List<String> getProvides() {
+  @Override
+  public List<String> provides() {
     return provides == null ? ImmutableList.of() : provides;
   }
 
+  /**
+   * Returns the plugin ID.
+   *
+   * @return the plugin ID
+   * @deprecated this is a record now; use {@link #id()}
+   */
+  @Deprecated(forRemoval = true)
+  public String getId() {
+    return this.id();
+  }
+
+  /**
+   * Returns the display name.
+   *
+   * @return the display name, or {@code null} for none
+   * @deprecated this is a record now; use {@link #name()}
+   */
+  @Deprecated(forRemoval = true)
+  public @Nullable String getName() {
+    return this.name();
+  }
+
+  /**
+   * Returns the version.
+   *
+   * @return the version, or {@code null} for none
+   * @deprecated this is a record now; use {@link #version()}
+   */
+  @Deprecated(forRemoval = true)
+  public @Nullable String getVersion() {
+    return this.version();
+  }
+
+  /**
+   * Returns the description.
+   *
+   * @return the description, or {@code null} for none
+   * @deprecated this is a record now; use {@link #description()}
+   */
+  @Deprecated(forRemoval = true)
+  public @Nullable String getDescription() {
+    return this.description();
+  }
+
+  /**
+   * Returns the website.
+   *
+   * @return the website, or {@code null} for none
+   * @deprecated this is a record now; use {@link #url()}
+   */
+  @Deprecated(forRemoval = true)
+  public @Nullable String getUrl() {
+    return this.url();
+  }
+
+  /**
+   * Returns the authors.
+   *
+   * @return the authors
+   * @deprecated this is a record now; use {@link #authors()}
+   */
+  @Deprecated(forRemoval = true)
+  public List<String> getAuthors() {
+    return this.authors();
+  }
+
+  /**
+   * Returns the plugins this one depends on.
+   *
+   * @return the dependencies
+   * @deprecated this is a record now; use {@link #dependencies()}
+   */
+  @Deprecated(forRemoval = true)
+  public List<Dependency> getDependencies() {
+    return this.dependencies();
+  }
+
+  /**
+   * Returns the other IDs this plugin claims.
+   *
+   * @return the provided IDs
+   * @deprecated this is a record now; use {@link #provides()}
+   */
+  @Deprecated(forRemoval = true)
+  public List<String> getProvides() {
+    return this.provides();
+  }
+
+  /**
+   * Returns the fully qualified name of the main class.
+   *
+   * @return the main class
+   * @deprecated this is a record now; use {@link #main()}
+   */
+  @Deprecated(forRemoval = true)
   public String getMain() {
-    return main;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    SerializedPluginDescription that = (SerializedPluginDescription) o;
-    return Objects.equals(id, that.id)
-        && Objects.equals(name, that.name)
-        && Objects.equals(version, that.version)
-        && Objects.equals(description, that.description)
-        && Objects.equals(url, that.url)
-        && Objects.equals(authors, that.authors)
-        && Objects.equals(dependencies, that.dependencies)
-        && Objects.equals(provides, that.provides)
-        && Objects.equals(main, that.main);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(id, name, version, description, url, authors, dependencies, provides);
-  }
-
-  @Override
-  public String toString() {
-    return "SerializedPluginDescription{"
-        + "id='" + id + '\''
-        + ", name='" + name + '\''
-        + ", version='" + version + '\''
-        + ", description='" + description + '\''
-        + ", url='" + url + '\''
-        + ", authors=" + authors
-        + ", dependencies=" + dependencies
-        + ", provides=" + provides
-        + ", main='" + main + '\''
-        + '}';
+    return this.main();
   }
 
   /**
    * Represents a dependency.
+   *
+   * @param id the ID of the plugin depended on
+   * @param optional whether this plugin loads without it
    */
-  public static final class Dependency {
+  public record Dependency(String id, boolean optional) {
 
-    private final String id;
-    private final boolean optional;
-
-    public Dependency(String id, boolean optional) {
-      this.id = id;
-      this.optional = optional;
-    }
-
+    /**
+     * Returns the ID of the plugin depended on.
+     *
+     * @return the dependency's ID
+     * @deprecated this is a record now; use {@link #id()}
+     */
+    @Deprecated(forRemoval = true)
     public String getId() {
-      return id;
+      return this.id();
     }
 
+    /**
+     * Returns whether this plugin loads without the dependency.
+     *
+     * @return {@code true} when the dependency is optional
+     * @deprecated this is a record now; use {@link #optional()}
+     */
+    @Deprecated(forRemoval = true)
     public boolean isOptional() {
-      return optional;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      Dependency that = (Dependency) o;
-      return optional == that.optional
-          && Objects.equals(id, that.id);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(id, optional);
-    }
-
-    @Override
-    public String toString() {
-      return "Dependency{"
-          + "id='" + id + '\''
-          + ", optional=" + optional
-          + '}';
+      return this.optional();
     }
   }
 }
