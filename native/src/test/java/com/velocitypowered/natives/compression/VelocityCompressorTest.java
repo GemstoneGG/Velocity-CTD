@@ -77,6 +77,22 @@ class VelocityCompressorTest {
     check(compressor, () -> Unpooled.buffer(TEST_DATA.length + 32));
   }
 
+  @Test
+  void javaDeflateRecoversAfterFailedCall() throws DataFormatException {
+    VelocityCompressor compressor = JavaVelocityCompressor.FACTORY
+        .create(Deflater.DEFAULT_COMPRESSION);
+    ByteBuf source = Unpooled.buffer().writeBytes(TEST_DATA);
+    ByteBuf tooSmall = Unpooled.buffer(16, 16);
+    try {
+      assertThrows(IndexOutOfBoundsException.class, () -> compressor.deflate(source, tooSmall));
+    } finally {
+      source.release();
+      tooSmall.release();
+    }
+
+    check(compressor, () -> Unpooled.buffer(TEST_DATA.length + 32));
+  }
+
   private static final int BOMB_ACTUAL_SIZE = 1 << 20;
   private static final int BOMB_LYING_CLAIM = 1024;
 

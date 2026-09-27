@@ -112,19 +112,22 @@ public class JavaVelocityCompressor implements VelocityCompressor {
     deflater.setInput(source.nioBuffer());
     deflater.finish();
 
-    while (!deflater.finished()) {
-      if (!destination.isWritable()) {
-        destination.ensureWritable(ZLIB_BUFFER_SIZE);
+    try {
+      while (!deflater.finished()) {
+        if (!destination.isWritable()) {
+          destination.ensureWritable(ZLIB_BUFFER_SIZE);
+        }
+
+        ByteBuffer destNioBuf = destination.nioBuffer(destination.writerIndex(),
+            destination.writableBytes());
+        int produced = deflater.deflate(destNioBuf);
+        destination.writerIndex(destination.writerIndex() + produced);
       }
 
-      ByteBuffer destNioBuf = destination.nioBuffer(destination.writerIndex(),
-          destination.writableBytes());
-      int produced = deflater.deflate(destNioBuf);
-      destination.writerIndex(destination.writerIndex() + produced);
+      source.readerIndex(origIdx + (int) deflater.getBytesRead());
+    } finally {
+      deflater.reset();
     }
-
-    source.readerIndex(origIdx + (int) deflater.getBytesRead());
-    deflater.reset();
   }
 
   @Override
