@@ -30,6 +30,7 @@ import com.velocitypowered.api.scheduler.Scheduler;
 import com.velocitypowered.proxy.config.VelocityConfiguration;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
+import io.lettuce.core.SetArgs;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.sync.RedisCommands;
 import io.lettuce.core.pubsub.RedisPubSubAdapter;
@@ -387,7 +388,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
       return;
     }
 
-    this.syncPublisher.setex(key, ttlSeconds, value);
+    this.syncPublisher.set(key, value, SetArgs.Builder.ex(ttlSeconds));
   }
 
   /**
@@ -404,7 +405,7 @@ public final class LettuceProvider extends AbstractRedisProvider {
       return;
     }
 
-    this.syncPublisher.setnx(key, value);
+    this.syncPublisher.set(key, value, SetArgs.Builder.nx());
   }
 
   /**
