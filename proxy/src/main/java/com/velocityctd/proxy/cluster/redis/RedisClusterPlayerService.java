@@ -58,7 +58,7 @@ public final class RedisClusterPlayerService implements VelocityClusterPlayerSer
 
   @Override
   public int getPlayersOnServerCount(String serverName) {
-    return playerService().getPlayerEntriesInServer(serverName).size();
+    return playerService().getPlayerCountInServer(serverName);
   }
 
   @Override

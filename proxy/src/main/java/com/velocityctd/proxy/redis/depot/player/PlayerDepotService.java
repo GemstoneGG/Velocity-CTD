@@ -26,8 +26,14 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import java.time.Duration;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -65,6 +71,11 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    * The number of players currently recorded across all proxies.
    */
   private int totalPlayerCount = 0;
+
+  /**
+   * The number of players on each server across all proxies, as of the last player entry sync.
+   */
+  private volatile Map<String, Integer> serverPlayerCounts = Map.of();
 
   /**
    * Constructs a new {@link PlayerDepotService}.
@@ -203,6 +214,17 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
   }
 
   /**
+   * Get the number of players on a specific server across all proxies, as of the last player
+   * entry sync. Unlike {@link #getPlayerEntriesInServer(String)}, this does not query Redis.
+   *
+   * @param serverName the name of the server, compared case-insensitively
+   * @return the number of players on the server
+   */
+  public int getPlayerCountInServer(@NotNull String serverName) {
+    return this.serverPlayerCounts.getOrDefault(serverName, 0);
+  }
+
+  /**
    * Get a player entry by their unique ID.
    *
    * @param uniqueId the unique ID of the player
@@ -303,26 +325,33 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
   /**
    * Synchronizes the player entries within the depot. This method ensures that the depot's
    * player entries are kept up to date and consistent with the current state of players on
-   * the server.
+   * the server, and refreshes the per-server player counts from the same read.
    */
   private void syncPlayerEntries() {
     if (this.redis.isShutdown()) {
       return;
     }
 
+    Collection<PlayerEntry> playerEntries = this.depot.values();
+    this.serverPlayerCounts = countPlayersByServer(playerEntries);
+
+    Set<UUID> storedPlayers = playerEntries.stream()
+        .map(PlayerEntry::getUniqueId)
+        .collect(Collectors.toSet());
+
     for (ConnectedPlayer player : this.server.getOnlinePlayers()) {
       if (!player.isFullyConnected()) {
         continue;
       }
 
-      if (this.depot.contains(player.getUniqueId())) {
+      if (storedPlayers.contains(player.getUniqueId())) {
         continue;
       }
 
       this.upsertPlayerEntry(player);
     }
 
-    for (PlayerEntry playerEntry : this.depot.values()) {
+    for (PlayerEntry playerEntry : playerEntries) {
       if (!playerEntry.getProxyId().equalsIgnoreCase(this.redis.getProxyId())) {
         continue;
       }
@@ -333,5 +362,16 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
 
       playerEntry.remove();
     }
+  }
+
+  private static Map<String, Integer> countPlayersByServer(Collection<PlayerEntry> playerEntries) {
+    Map<String, Integer> counts = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    for (PlayerEntry playerEntry : playerEntries) {
+      if (playerEntry.getServerName() != null) {
+        counts.merge(playerEntry.getServerName(), 1, Integer::sum);
+      }
+    }
+
+    return Collections.unmodifiableMap(counts);
   }
 }
