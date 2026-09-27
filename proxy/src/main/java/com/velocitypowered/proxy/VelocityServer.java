@@ -1096,7 +1096,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
     DynamicProxyFilterMode filter = getConfiguration().getDynamicProxyFilter();
     List<ProxyAddress> addresses = new ArrayList<>(getConfiguration().getProxyAddresses().stream().toList());
-    addresses.removeIf(address -> getProxyId().equalsIgnoreCase(address.proxyId()));
+    addresses.removeIf(address -> getProxyId().equalsIgnoreCase(address.proxyId())
+        || !redis.getProxyService().isAlive(address.proxyId()));
 
     if (addresses.isEmpty()) {
       return null;

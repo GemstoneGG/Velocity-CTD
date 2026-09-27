@@ -148,6 +148,16 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
   }
 
   /**
+   * Whether a proxy is running: its heartbeat key has been renewed within {@link #HEARTBEAT_TTL}.
+   *
+   * @param proxyId the proxy's ID
+   * @return {@code true} if the proxy's heartbeat is live
+   */
+  public boolean isAlive(@NotNull String proxyId) {
+    return this.redis.getProvider().existsKey(this.heartbeatKeyPrefix + proxyId);
+  }
+
+  /**
    * Publishes this proxy's heartbeat key to Redis with a TTL of {@link #HEARTBEAT_TTL}, restores
    * this proxy's entry if it was reaped, and warns if another live proxy shares this
    * {@code proxy-id}.
@@ -202,8 +212,8 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
         continue; // Never reap ourselves.
       }
 
-      if (this.redis.getProvider().existsKey(this.heartbeatKeyPrefix + proxyId)) {
-        continue; // Proxy is alive.
+      if (this.isAlive(proxyId)) {
+        continue;
       }
 
       reapProxy(proxyId);
