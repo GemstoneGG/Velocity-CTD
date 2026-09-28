@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.protocol.netty;
 
+import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.ReferenceCountUtil;
@@ -31,6 +32,7 @@ import org.jetbrains.annotations.NotNull;
 public class AutoReadHolderHandler extends ChannelDuplexHandler {
 
   private final Queue<Object> queuedMessages;
+  private boolean deliveredSinceReadComplete;
 
   public AutoReadHolderHandler() {
     this.queuedMessages = new ArrayDeque<>();
@@ -38,23 +40,38 @@ public class AutoReadHolderHandler extends ChannelDuplexHandler {
 
   @Override
   public void read(ChannelHandlerContext ctx) throws Exception {
-    drainQueuedMessages(ctx);
-    ctx.read();
+    if (drainQueuedMessages(ctx)) {
+      ctx.read();
+    }
   }
 
-  private void drainQueuedMessages(ChannelHandlerContext ctx) {
+  /**
+   * Releases held messages in order for as long as the channel is auto-reading. A message handled
+   * here can pause reading again (backpressure, a protocol step), and the rest then wait for the
+   * next read rather than being pushed past the pause.
+   *
+   * @param ctx this handler's context
+   * @return whether no held messages are left
+   */
+  private boolean drainQueuedMessages(ChannelHandlerContext ctx) {
     if (!this.queuedMessages.isEmpty()) {
       Object queued;
-      while ((queued = this.queuedMessages.poll()) != null) {
+      while (ctx.channel().config().isAutoRead() && (queued = this.queuedMessages.poll()) != null) {
         ctx.fireChannelRead(queued);
       }
+      this.deliveredSinceReadComplete = false;
       ctx.fireChannelReadComplete();
     }
+    return this.queuedMessages.isEmpty();
   }
 
   @Override
   public void channelRead(ChannelHandlerContext ctx, @NotNull Object msg) {
-    if (ctx.channel().config().isAutoRead()) {
+    // A disconnect ends the connection, so it is never held: epoll reads the peer's close even
+    // while reading is paused, and a held disconnect would be released unread, losing its reason.
+    if (msg instanceof DisconnectPacket
+        || (ctx.channel().config().isAutoRead() && this.queuedMessages.isEmpty())) {
+      this.deliveredSinceReadComplete = true;
       ctx.fireChannelRead(msg);
     } else {
       this.queuedMessages.add(msg);
@@ -63,12 +80,13 @@ public class AutoReadHolderHandler extends ChannelDuplexHandler {
 
   @Override
   public void channelReadComplete(ChannelHandlerContext ctx) {
-    if (ctx.channel().config().isAutoRead()) {
-      if (!this.queuedMessages.isEmpty()) {
-        this.drainQueuedMessages(ctx); // will also call fireChannelReadComplete()
-      } else {
-        ctx.fireChannelReadComplete();
-      }
+    if (ctx.channel().config().isAutoRead() && !this.queuedMessages.isEmpty()) {
+      this.drainQueuedMessages(ctx); // will also call fireChannelReadComplete()
+    } else if (ctx.channel().config().isAutoRead() || this.deliveredSinceReadComplete) {
+      // Messages of this read went through before a pause held the rest, so they still complete
+      // (and get flushed on), rather than waiting for reading to resume.
+      this.deliveredSinceReadComplete = false;
+      ctx.fireChannelReadComplete();
     }
   }
 

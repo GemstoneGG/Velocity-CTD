@@ -37,15 +37,14 @@ import com.velocitypowered.proxy.connection.player.resourcepack.handler.Resource
 import com.velocitypowered.proxy.connection.util.ConnectionMessages;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults.Impl;
-import com.velocitypowered.proxy.network.Connections;
-import com.velocitypowered.proxy.network.netty.StallSafeReadTimeoutHandler;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
+import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
-import com.velocitypowered.proxy.protocol.netty.MinecraftVarintFrameDecoder;
 import com.velocitypowered.proxy.protocol.packet.ClientboundCookieRequestPacket;
 import com.velocitypowered.proxy.protocol.packet.ClientboundStoreCookiePacket;
 import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
+import com.velocitypowered.proxy.protocol.packet.JoinGamePacket;
 import com.velocitypowered.proxy.protocol.packet.KeepAlivePacket;
 import com.velocitypowered.proxy.protocol.packet.PluginMessagePacket;
 import com.velocitypowered.proxy.protocol.packet.RemoveResourcePackPacket;
@@ -60,6 +59,7 @@ import com.velocitypowered.proxy.protocol.packet.config.RegistrySyncPacket;
 import com.velocitypowered.proxy.protocol.packet.config.StartUpdatePacket;
 import com.velocitypowered.proxy.protocol.packet.config.TagsUpdatePacket;
 import com.velocitypowered.proxy.protocol.util.PluginMessageUtil;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -95,7 +95,9 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
   private final State state;
 
-  // Guards advanceBackendToPlay; only touched on the backend event loop.
+  // Guards advanceBackendToPlay; only touched on the backend event loop. Cleared on activation,
+  // since this handler serves every configuration phase of the connection, including one the
+  // backend starts again from PLAY.
   private boolean backendAdvancedToPlay;
 
   /**
@@ -115,6 +117,7 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public void activated() {
+    backendAdvancedToPlay = false;
     ConnectedPlayer player = serverConn.getPlayer();
     if (player.getProtocolVersion() == ProtocolVersion.MINECRAFT_1_20_2) {
       resourcePackToApply = player.resourcePackHandler().getFirstAppliedPack();
@@ -251,10 +254,8 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
     final ConnectedPlayer player = serverConn.getPlayer();
     final ClientConfigSessionHandler configHandler = (ClientConfigSessionHandler) player.getConnection().getActiveSessionHandler();
 
-    smc.getChannel().pipeline().get(MinecraftVarintFrameDecoder.class).setState(StateRegistry.PLAY);
-    smc.getChannel().pipeline().get(MinecraftDecoder.class).setState(StateRegistry.PLAY);
-
     // Start client-side configuration; may hold the player to apply a resource pack.
+    // The backend stays in CONFIG until it reads our acknowledgement (see advanceBackendToPlay).
     // noinspection DataFlowIssue
     CompletableFuture<Void> clientFinished = configHandler.handleBackendFinishUpdate(serverConn);
 
@@ -435,6 +436,13 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
       smc.setActiveSessionHandler(StateRegistry.PLAY, new TransitionSessionHandler(server, serverConn, resultFuture));
     }
 
+    // The backend switches to PLAY only once it reads the acknowledgement above, and JoinGame is the
+    // first packet it sends there; configuration packets it sent before then may still arrive.
+    smc.getChannel().pipeline().get(MinecraftDecoder.class).awaitState(StateRegistry.CONFIG,
+        StateRegistry.PLAY, StateRegistry.PLAY.getProtocolRegistry(
+            ProtocolUtils.Direction.CLIENTBOUND, smc.getProtocolVersion())
+            .getPacketId(new JoinGamePacket()));
+
     if (player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_21)) {
       String target = serverConn.getServerInfo().getName();
       player.setServerLinks(server.getConfiguration().getServerLinksFor(target));
@@ -443,15 +451,9 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
     // Must follow setActiveSessionHandler: switching to PLAY strips any inbound queue handler.
     if (buffer) {
       smc.addPlayPacketQueueInboundHandler();
-
-      // Swap the short login read-timeout for the in-play one now; otherwise a quiet backend could
-      // be dropped before the deferred JoinGame processing does the swap.
-      final var backendPipeline = smc.getChannel().pipeline();
-      if (backendPipeline.context(Connections.READ_TIMEOUT) != null) {
-        backendPipeline.replace(Connections.READ_TIMEOUT, Connections.READ_TIMEOUT,
-            new StallSafeReadTimeoutHandler(server.getConfiguration().getReadTimeout(),
-                TimeUnit.MILLISECONDS));
-      }
+      // The proxy answers this backend's keepalives until the player catches up, so the backend no
+      // longer times out a player that went silent; the player's own read-timeout does.
+      player.resumeReadTimeout();
     }
   }
 
@@ -467,6 +469,11 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
   }
 
   @Override
+  public void handleUnknown(ByteBuf buf) {
+    serverConn.getPlayer().getConnection().write(buf.retain());
+  }
+
+  @Override
   public void writabilityChanged() {
     Channel serverChan = serverConn.ensureConnected().getChannel();
     boolean writable = serverChan.isWritable();
@@ -479,7 +486,7 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
       }
     }
 
-    serverConn.getPlayer().getConnection().setAutoReading(writable);
+    serverConn.getPlayer().getConnection().setPausedForBackpressure(!writable);
   }
 
   private void switchFailure(Throwable cause) {

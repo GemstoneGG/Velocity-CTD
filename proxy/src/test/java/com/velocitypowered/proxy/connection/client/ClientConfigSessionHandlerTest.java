@@ -70,7 +70,7 @@ class ClientConfigSessionHandlerTest {
     VelocityServerConnection inFlight = mock(VelocityServerConnection.class);
     MinecraftConnection backend = mock(MinecraftConnection.class);
     when(player.getConnectionInFlightOrConnectedServer()).thenReturn(inFlight);
-    when(inFlight.ensureConnected()).thenReturn(backend);
+    when(inFlight.getConnection()).thenReturn(backend);
 
     ServerboundCustomClickActionPacket pkt = makePacket();
     assertTrue(handler.handle(pkt));
@@ -83,7 +83,7 @@ class ClientConfigSessionHandlerTest {
     VelocityServerConnection connected = mock(VelocityServerConnection.class);
     MinecraftConnection backend = mock(MinecraftConnection.class);
     when(player.getConnectionInFlightOrConnectedServer()).thenReturn(connected);
-    when(connected.ensureConnected()).thenReturn(backend);
+    when(connected.getConnection()).thenReturn(backend);
 
     ServerboundCustomClickActionPacket pkt = makePacket();
     assertTrue(handler.handle(pkt));

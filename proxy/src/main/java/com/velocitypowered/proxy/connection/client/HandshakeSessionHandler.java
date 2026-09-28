@@ -40,9 +40,14 @@ import com.velocitypowered.proxy.protocol.packet.LegacyDisconnect;
 import com.velocitypowered.proxy.protocol.packet.LegacyHandshakePacket;
 import com.velocitypowered.proxy.protocol.packet.LegacyPingPacket;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.util.ReferenceCountUtil;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.ArrayDeque;
 import java.util.Optional;
+import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.translation.Argument;
@@ -59,6 +64,7 @@ import org.jetbrains.annotations.NotNull;
 public class HandshakeSessionHandler implements MinecraftSessionHandler {
 
   private static final Logger LOGGER = LogManager.getLogger(HandshakeSessionHandler.class);
+  private static final int MAX_HELD_PACKETS = 16;
 
   private final MinecraftConnection connection;
   private final VelocityServer server;
@@ -72,6 +78,12 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
    * The configured maximum version string used to validate connecting clients.
    */
   private final String maximumVersion;
+
+  /**
+   * Packets the client sent behind its handshake, held while a {@link ConnectionEstablishEvent}
+   * listener decides on the connection; {@code null} when nothing is being decided.
+   */
+  private @Nullable Queue<Object> heldPackets;
 
   public HandshakeSessionHandler(MinecraftConnection connection, VelocityServer server) {
     this.connection = Preconditions.checkNotNull(connection, "connection");
@@ -106,39 +118,126 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
     if (nextState == null) {
       LOGGER.error("{} provided invalid protocol {}", this, handshake.getNextStatus());
       connection.close(true);
-    } else {
-      InitialInboundConnection ic = new InitialInboundConnection(connection, cleanVhost(handshake.getServerAddress()), handshake);
-      // Handle connection establish event.
-      connection.setAutoReading(false);
-      server.getEventManager()
-          .fire(new ConnectionEstablishEvent(ic, handshake.getIntent()))
-          .thenAccept(result -> {
-            // Clean up the disabling of auto-read.
-            connection.setAutoReading(true);
-
-            if (!result.getResult().isAllowed()) {
-              connection.close(true);
-            } else {
-              if (handshake.getIntent() == HandshakeIntent.TRANSFER && !server.getConfiguration().isAcceptTransfers()) {
-                ic.disconnect(Component.translatable("multiplayer.disconnect.transfers_disabled"));
-                return;
-              }
-
-              connection.setProtocolVersion(handshake.getProtocolVersion());
-              connection.setAssociation(ic);
-
-              switch (nextState) {
-                case STATUS -> connection.setActiveSessionHandler(StateRegistry.STATUS, new StatusSessionHandler(server, ic));
-                case LOGIN -> this.handleLogin(handshake, ic);
-                default ->
-                // If you get this, it's a bug in Velocity.
-                throw new AssertionError("getStateForProtocol provided invalid state!");
-              }
-            }
-          });
+      return true;
     }
 
+    InitialInboundConnection ic = new InitialInboundConnection(connection, cleanVhost(handshake.getServerAddress()), handshake);
+    CompletableFuture<ConnectionEstablishEvent> establish = server.getEventManager()
+        .fire(new ConnectionEstablishEvent(ic, handshake.getIntent()));
+    if (establish.isDone() && !establish.isCompletedExceptionally()) {
+      // Nobody listens off the event loop, so decide before the client's next packet is read.
+      establish(handshake, nextState, ic, establish.getNow(null));
+      return true;
+    }
+
+    // A listener decides off the event loop. The client sends its next packet right behind the
+    // handshake, often in the same read, so decode what follows for the state the client moved to
+    // and hold it until the listener has decided.
+    connection.setProtocolVersion(handshake.getProtocolVersion());
+    connection.setState(nextState);
+    connection.setAutoReading(false);
+    heldPackets = new ArrayDeque<>();
+    establish.whenCompleteAsync(
+        (result, throwable) -> establishHeld(handshake, nextState, ic, result, throwable),
+        connection.eventLoop());
     return true;
+  }
+
+  private void establish(HandshakePacket handshake, StateRegistry nextState,
+                         InitialInboundConnection ic, ConnectionEstablishEvent result) {
+    if (!result.getResult().isAllowed()) {
+      connection.close(true);
+      return;
+    }
+
+    if (handshake.getIntent() == HandshakeIntent.TRANSFER && !server.getConfiguration().isAcceptTransfers()) {
+      // Bump connection into correct protocol state so that we can send the disconnect packet.
+      connection.setProtocolVersion(handshake.getProtocolVersion());
+      connection.setState(StateRegistry.LOGIN);
+      ic.disconnect(Component.translatable("multiplayer.disconnect.transfers_disabled"));
+      return;
+    }
+
+    connection.setProtocolVersion(handshake.getProtocolVersion());
+    connection.setAssociation(ic);
+
+    switch (nextState) {
+      case STATUS -> connection.setActiveSessionHandler(StateRegistry.STATUS, new StatusSessionHandler(server, ic));
+      case LOGIN -> this.handleLogin(handshake, ic);
+      default ->
+      // If you get this, it's a bug in Velocity.
+      throw new AssertionError("getStateForProtocol provided invalid state!");
+    }
+  }
+
+  private void establishHeld(HandshakePacket handshake, StateRegistry nextState,
+                             InitialInboundConnection ic, @Nullable ConnectionEstablishEvent result,
+                             @Nullable Throwable throwable) {
+    final Queue<Object> held = heldPackets;
+    heldPackets = null;
+    try {
+      if (connection.isClosed() || held == null) {
+        return;
+      }
+      if (throwable != null || result == null) {
+        LOGGER.error("{}: exception while handling the connection establish event", this,
+            throwable);
+        connection.close(true);
+        return;
+      }
+
+      establish(handshake, nextState, ic, result);
+      if (connection.getActiveSessionHandler() == this || connection.isClosed()
+          || connection.isKnownDisconnect()) {
+        return;
+      }
+
+      // Reading resumes on a later pass of the event loop, so the held packets still go first, and
+      // a pause one of them asks for is not undone.
+      connection.setAutoReading(true);
+      final ChannelHandlerContext ctx = connection.getChannel().pipeline().context(connection);
+      Object packet;
+      while (ctx != null && !connection.isClosed() && (packet = held.poll()) != null) {
+        connection.channelRead(ctx, packet);
+      }
+    } catch (RuntimeException e) {
+      LOGGER.error("{}: exception while establishing the connection", this, e);
+      connection.close(true);
+    } finally {
+      releaseHeldPackets(held);
+    }
+  }
+
+  /**
+   * Holds a packet the client sent behind its handshake while a listener of the
+   * {@link ConnectionEstablishEvent} decides on the connection. A client has no reason to send more
+   * than a packet or two before it hears back, so a connection that sends more is closed.
+   *
+   * @param packet the packet to hold
+   * @return whether the packet was held, or the connection closed for sending too many
+   */
+  private boolean hold(Object packet) {
+    final Queue<Object> held = heldPackets;
+    if (held == null) {
+      return false;
+    }
+
+    if (held.size() >= MAX_HELD_PACKETS) {
+      connection.close(true);
+      return true;
+    }
+    held.add(ReferenceCountUtil.retain(packet));
+    return true;
+  }
+
+  private static void releaseHeldPackets(@Nullable Queue<Object> held) {
+    if (held == null) {
+      return;
+    }
+    Object packet;
+    while ((packet = held.poll()) != null) {
+      ReferenceCountUtil.release(packet);
+    }
   }
 
   private static @Nullable StateRegistry getStateForProtocol(int status) {
@@ -232,14 +331,27 @@ public class HandshakeSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public void handleGeneric(MinecraftPacket packet) {
+    if (hold(packet)) {
+      return;
+    }
     // Unknown packet received. Better to close the connection.
     connection.close(true);
   }
 
   @Override
   public void handleUnknown(ByteBuf buf) {
+    if (hold(buf)) {
+      return;
+    }
     // Unknown packet received. Better to close the connection.
     connection.close(true);
+  }
+
+  @Override
+  public void disconnected() {
+    final Queue<Object> held = heldPackets;
+    heldPackets = null;
+    releaseHeldPackets(held);
   }
 
   @Override

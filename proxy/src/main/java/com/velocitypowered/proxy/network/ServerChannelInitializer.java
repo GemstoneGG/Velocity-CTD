@@ -30,7 +30,7 @@ import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.client.HandshakeSessionHandler;
 import com.velocitypowered.proxy.network.limiter.SimpleBytesPerSecondLimiter;
-import com.velocitypowered.proxy.network.netty.StallSafeReadTimeoutHandler;
+import com.velocitypowered.proxy.network.netty.VelocityReadTimeoutHandler;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.LegacyPingDecoder;
@@ -62,7 +62,7 @@ public class ServerChannelInitializer extends ChannelInitializer<Channel> {
         .addLast(LEGACY_PING_DECODER, new LegacyPingDecoder())
         .addLast(FRAME_DECODER, new MinecraftVarintFrameDecoder(ProtocolUtils.Direction.SERVERBOUND))
         .addLast(READ_TIMEOUT,
-            new StallSafeReadTimeoutHandler(this.server.getConfiguration().getReadTimeout(),
+            new VelocityReadTimeoutHandler(this.server.getConfiguration().getReadTimeout(),
                 TimeUnit.MILLISECONDS))
         .addLast(LEGACY_PING_ENCODER, LegacyPingEncoder.INSTANCE)
         .addLast(FRAME_ENCODER, MinecraftVarintLengthEncoder.INSTANCE)

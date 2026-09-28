@@ -42,7 +42,6 @@ import com.velocitypowered.proxy.connection.player.resourcepack.handler.Resource
 import com.velocitypowered.proxy.connection.util.ConnectionMessages;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.StateRegistry;
-import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintFrameDecoder;
 import com.velocitypowered.proxy.protocol.packet.AvailableCommandsPacket;
 import com.velocitypowered.proxy.protocol.packet.BossBarPacket;
@@ -72,7 +71,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-import io.netty.handler.timeout.ReadTimeoutException;
+import io.netty.handler.timeout.TimeoutException;
 import java.net.InetSocketAddress;
 import java.util.regex.Pattern;
 import net.kyori.adventure.key.Key;
@@ -151,9 +150,8 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
   public boolean handle(StartUpdatePacket packet) {
     MinecraftConnection smc = serverConn.ensureConnected();
     smc.setAutoReading(false);
-    // Even when not auto reading messages are still decoded. Decode them with the correct state
+    // MinecraftDecoder switched to CONFIG when it decoded this packet
     smc.getChannel().pipeline().get(MinecraftVarintFrameDecoder.class).setState(StateRegistry.CONFIG);
-    smc.getChannel().pipeline().get(MinecraftDecoder.class).setState(StateRegistry.CONFIG);
     serverConn.getPlayer().switchToConfigState();
     return true;
   }
@@ -496,7 +494,7 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
   @Override
   public void exception(Throwable throwable) {
     exceptionTriggered = true;
-    boolean safe = !(throwable instanceof ReadTimeoutException)
+    boolean safe = !(throwable instanceof TimeoutException)
         || server.getConfiguration().isFailoverOnUnexpectedServerDisconnect();
     serverConn.getPlayer().handleConnectionException(serverConn.getServer(), throwable, safe);
   }
@@ -527,12 +525,12 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
 
     if (BACKPRESSURE_LOG) {
       if (writable) {
-        LOGGER.info("{} is not writable, not auto-reading player connection data", this.serverConn);
-      } else {
         LOGGER.info("{} is writable, will auto-read player connection data", this.serverConn);
+      } else {
+        LOGGER.info("{} is not writable, not auto-reading player connection data", this.serverConn);
       }
     }
 
-    playerConnection.setAutoReading(writable);
+    playerConnection.setPausedForBackpressure(!writable);
   }
 }

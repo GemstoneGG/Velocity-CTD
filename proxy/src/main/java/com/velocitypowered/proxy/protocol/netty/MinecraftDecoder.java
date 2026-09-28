@@ -22,12 +22,15 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
+import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
+import com.velocitypowered.proxy.protocol.packet.config.StartUpdatePacket;
 import com.velocitypowered.proxy.util.except.QuietRuntimeException;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.CorruptedFrameException;
 import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Decodes Minecraft packets.
@@ -42,6 +45,8 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
   private final ProtocolUtils.Direction direction;
   private StateRegistry state;
   private StateRegistry.PacketRegistry.ProtocolRegistry registry;
+  private @Nullable StateRegistry awaitedState;
+  private int awaitedFirstPacketId;
 
   /**
    * Creates a new {@code MinecraftDecoder} decoding packets from the specified {@code direction}.
@@ -75,6 +80,13 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
 
     int originalReaderIndex = buf.readerIndex();
     int packetId = ProtocolUtils.readVarInt(buf);
+    if (this.awaitedState != null) {
+      if (packetId == this.awaitedFirstPacketId) {
+        setState(this.awaitedState);
+      } else if (!(this.registry.createPacket(packetId) instanceof DisconnectPacket)) {
+        return;
+      }
+    }
     MinecraftPacket packet = this.registry.createPacket(packetId);
     if (packet == null) {
       buf.readerIndex(originalReaderIndex);
@@ -93,6 +105,12 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
 
       if (buf.isReadable()) {
         throw handleOverflow(packet, buf.readerIndex(), buf.writerIndex());
+      }
+      if (packet instanceof StartUpdatePacket && direction == ProtocolUtils.Direction.CLIENTBOUND) {
+        // The backend switches to CONFIG as soon as it sends this, without waiting for the
+        // acknowledgement, so switch here rather than in the session handler: a paused connection
+        // holds this packet while the ones behind it are decoded.
+        setState(StateRegistry.CONFIG);
       }
       ctx.fireChannelRead(packet);
     }
@@ -155,7 +173,25 @@ public class MinecraftDecoder extends ChannelInboundHandlerAdapter {
 
   public void setState(StateRegistry state) {
     this.state = state;
+    this.awaitedState = null;
     this.setProtocolVersion(registry.version);
+  }
+
+  /**
+   * Keeps decoding in {@code current} until the peer's first packet in {@code next} arrives, and
+   * switches then. A peer asked to change state does so only once it reads the request, so what it
+   * sent before that is still in {@code current} and was meant for a state it has left: a
+   * disconnect among it is passed on, anything else is dropped (a keepalive answered now would be
+   * refused by the peer's new state).
+   *
+   * @param current the state the peer is still sending in
+   * @param next the state the peer was asked to switch to
+   * @param firstPacketId the ID, in {@code next}, of the first packet the peer sends there
+   */
+  public void awaitState(StateRegistry current, StateRegistry next, int firstPacketId) {
+    setState(current);
+    this.awaitedState = next;
+    this.awaitedFirstPacketId = firstPacketId;
   }
 
   public ProtocolUtils.Direction getDirection() {

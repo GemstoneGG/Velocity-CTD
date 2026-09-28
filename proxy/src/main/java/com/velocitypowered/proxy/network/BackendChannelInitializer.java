@@ -25,7 +25,7 @@ import static com.velocitypowered.proxy.network.Connections.MINECRAFT_ENCODER;
 import static com.velocitypowered.proxy.network.Connections.READ_TIMEOUT;
 
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.network.netty.StallSafeReadTimeoutHandler;
+import com.velocitypowered.proxy.network.netty.VelocityReadTimeoutHandler;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.netty.AutoReadHolderHandler;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
@@ -52,9 +52,10 @@ public class BackendChannelInitializer extends ChannelInitializer<Channel> {
   protected void initChannel(Channel ch) {
     ch.pipeline()
         .addLast(FRAME_DECODER, new MinecraftVarintFrameDecoder(ProtocolUtils.Direction.CLIENTBOUND))
-        // Short login timeout while establishing the connection, so a stalled backend is abandoned
-        // quickly for the fallback chain. Swapped for read-timeout at PLAY (TransitionSessionHandler).
-        .addLast(READ_TIMEOUT, new StallSafeReadTimeoutHandler(
+        // Short login timeout while establishing the connection, so an unresponsive backend is
+        // abandoned quickly for the fallback chain. Swapped for read-timeout once the backend has
+        // logged in (LoginSessionHandler).
+        .addLast(READ_TIMEOUT, new VelocityReadTimeoutHandler(
             server.getConfiguration().getLoginTimeout(), TimeUnit.MILLISECONDS))
         .addLast(FRAME_ENCODER, MinecraftVarintLengthEncoder.INSTANCE)
         .addLast(MINECRAFT_DECODER,

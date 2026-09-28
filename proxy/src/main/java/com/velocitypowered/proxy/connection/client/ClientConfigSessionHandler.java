@@ -157,7 +157,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(final PluginMessagePacket packet) {
-    final VelocityServerConnection serverConn = player.getConnectionInFlight();
+    final VelocityServerConnection serverConn = configurationTarget();
     if (PluginMessageUtil.isMcBrand(packet)) {
       final String brand = PluginMessageUtil.readBrandMessage(packet.content());
       server.getEventManager().fireAndForget(new PlayerClientBrandEvent(player, brand));
@@ -171,7 +171,10 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
       ChannelIdentifier id = this.server.getChannelRegistrar().getFromId(packet.getChannel());
 
       if (id == null) {
-        serverConn.ensureConnected().write(packet.retain());
+        final MinecraftConnection smc = serverConn.getConnection();
+        if (smc != null) {
+          smc.write(packet.retain());
+        }
         return true;
       }
 
@@ -197,12 +200,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(PingIdentifyPacket packet) {
-    if (player.getConnectionInFlight() != null) {
-      player.getConnectionInFlight().ensureConnected().write(packet);
-      return true;
-    }
-
-    return false;
+    return writeToConnectionInFlight(packet);
   }
 
   @Override
@@ -210,8 +208,9 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
     callConfigurationEvent().thenRun(() -> {
       VelocityServerConnection targetServer =
           player.getConnectionInFlightOrConnectedServer();
-      if (targetServer != null) {
-        targetServer.ensureConnected().write(packet);
+      final MinecraftConnection smc = targetServer == null ? null : targetServer.getConnection();
+      if (smc != null) {
+        smc.write(packet);
       }
     }).exceptionally(ex -> {
       LOGGER.error("Error forwarding known packs response to backend:", ex);
@@ -227,15 +226,16 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
         .fire(new CookieReceiveEvent(player, packet.getKey(), packet.getPayload()))
         .thenAcceptAsync(event -> {
           if (event.getResult().isAllowed()) {
-            final VelocityServerConnection serverConnection = player.getConnectionInFlight();
-            if (serverConnection != null) {
+            final VelocityServerConnection serverConnection = configurationTarget();
+            final MinecraftConnection smc =
+                serverConnection == null ? null : serverConnection.getConnection();
+            if (smc != null) {
               final Key resultedKey = event.getResult().getKey() == null
                   ? event.getOriginalKey() : event.getResult().getKey();
               final byte[] resultedData = event.getResult().getData() == null
                   ? event.getOriginalData() : event.getResult().getData();
 
-              serverConnection.ensureConnected()
-                  .write(new ServerboundCookieResponsePacket(resultedKey, resultedData));
+              smc.write(new ServerboundCookieResponsePacket(resultedKey, resultedData));
             }
           }
         }, player.getConnection().eventLoop());
@@ -247,7 +247,10 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   public boolean handle(ServerboundCustomClickActionPacket packet) {
     VelocityServerConnection serverConnection = player.getConnectionInFlightOrConnectedServer();
     if (serverConnection != null) {
-      serverConnection.ensureConnected().write(packet.retain());
+      final MinecraftConnection smc = serverConnection.getConnection();
+      if (smc != null) {
+        smc.write(packet.retain());
+      }
       return true;
     }
 
@@ -256,12 +259,47 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(CodeOfConductAcceptPacket packet) {
-    if (this.player.getConnectionInFlight() != null) {
-      this.player.getConnectionInFlight().ensureConnected().write(packet);
-      return true;
+    return writeToConnectionInFlight(packet);
+  }
+
+  /**
+   * Forwards a packet to the server connection in flight, if there is one. A connection in flight
+   * that is still connecting, or already gone, takes nothing, rather than the player being
+   * disconnected for it.
+   *
+   * @param packet the packet to forward
+   * @return whether a connection was in flight
+   */
+  private boolean writeToConnectionInFlight(MinecraftPacket packet) {
+    final VelocityServerConnection inFlight = player.getConnectionInFlight();
+    if (inFlight == null) {
+      return false;
     }
 
-    return false;
+    final MinecraftConnection smc = inFlight.getConnection();
+    if (smc != null) {
+      smc.write(packet);
+    }
+    return true;
+  }
+
+  /**
+   * Returns the backend the player is being configured for: the one in flight, or else the
+   * connected server when it is the one that sent the player back to configuration, which leaves
+   * it in CONFIG itself. Without it, what the client answers during a reconfiguration the backend
+   * started was dropped.
+   *
+   * @return the backend being configured, or {@code null} if there is none
+   */
+  private @Nullable VelocityServerConnection configurationTarget() {
+    final VelocityServerConnection inFlight = player.getConnectionInFlight();
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final VelocityServerConnection connected = player.getConnectedServer();
+    final MinecraftConnection smc = connected == null ? null : connected.getConnection();
+    return smc != null && smc.getState() == StateRegistry.CONFIG ? connected : null;
   }
 
   @Override
@@ -336,7 +374,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
     if (serverConn != null) {
       final MinecraftConnection smc = serverConn.getConnection();
       if (smc != null) {
-        smc.setAutoReading(writable);
+        smc.setPausedForBackpressure(!writable);
       }
     }
   }

@@ -21,6 +21,8 @@ import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
+import com.velocitypowered.proxy.protocol.packet.DisconnectPacket;
+import com.velocitypowered.proxy.protocol.packet.KeepAlivePacket;
 import com.velocitypowered.proxy.util.except.QuietDecoderException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufHolder;
@@ -29,6 +31,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.ReferenceCountUtil;
 import java.util.ArrayDeque;
 import java.util.Queue;
+import java.util.function.Predicate;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -48,7 +51,7 @@ public class PlayPacketQueueInboundHandler extends ChannelDuplexHandler {
   private static final QuietDecoderException QUEUE_LIMIT_FAILED = new QuietDecoderException(
       "Queue too big (greater than " + MAXIMUM_SIZE + " bytes)");
 
-  private final StateRegistry.PacketRegistry.ProtocolRegistry registry;
+  private final Predicate<MinecraftPacket> passThrough;
   private final boolean discardStaleInbound;
 
   private final Queue<Object> queue = new ArrayDeque<>();
@@ -62,16 +65,37 @@ public class PlayPacketQueueInboundHandler extends ChannelDuplexHandler {
    */
   public PlayPacketQueueInboundHandler(ProtocolVersion version, ProtocolUtils.Direction direction,
                                        boolean discardStaleInbound) {
-    this.registry = StateRegistry.CONFIG.getProtocolRegistry(direction, version);
+    this(StateRegistry.CONFIG.getProtocolRegistry(direction, version)::containsPacket,
+        discardStaleInbound);
+  }
+
+  private PlayPacketQueueInboundHandler(Predicate<MinecraftPacket> passThrough,
+                                        boolean discardStaleInbound) {
+    this.passThrough = passThrough;
     this.discardStaleInbound = discardStaleInbound;
+  }
+
+  /**
+   * Creates a queue for a backend that has moved on to PLAY while its player is still being
+   * configured. Everything the backend sends is PLAY and waits in order behind its JoinGame, even a
+   * packet whose class CONFIG also has (a plugin message, a resource pack, tags): let through
+   * early, it would reach the player out of order or be dropped before the JoinGame. Only a
+   * keepalive, which the backend times the connection out over, and a disconnect, which ends it,
+   * go ahead.
+   *
+   * @return the queue
+   */
+  public static PlayPacketQueueInboundHandler forBackendAheadOfPlayer() {
+    return new PlayPacketQueueInboundHandler(
+        packet -> packet instanceof KeepAlivePacket || packet instanceof DisconnectPacket, false);
   }
 
   @Override
   public void channelRead(@NotNull ChannelHandlerContext ctx, @NotNull Object msg) {
     if (msg instanceof MinecraftPacket packet) {
-      // If the packet exists in the CONFIG state, we want to always
-      // ensure that it gets handled by the current handler
-      if (this.registry.containsPacket(packet)) {
+      // Packets this queue lets through (see the constructor and the factory) are handled by the
+      // current handler right away
+      if (this.passThrough.test(packet)) {
         ctx.fireChannelRead(msg);
         return;
       }

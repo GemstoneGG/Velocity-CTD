@@ -32,6 +32,8 @@ import com.velocitypowered.proxy.connection.client.ClientPlaySessionHandler;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults;
 import com.velocitypowered.proxy.connection.util.ConnectionRequestResults.Impl;
+import com.velocitypowered.proxy.network.Connections;
+import com.velocitypowered.proxy.network.netty.VelocityReadTimeoutHandler;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.ClientboundCookieRequestPacket;
 import com.velocitypowered.proxy.protocol.packet.ClientboundStoreCookiePacket;
@@ -47,6 +49,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import org.apache.logging.log4j.LogManager;
@@ -160,6 +163,15 @@ public class LoginSessionHandler implements MinecraftSessionHandler {
 
     // Move into the PLAY phase.
     MinecraftConnection smc = serverConn.ensureConnected();
+
+    // The backend has logged in, which is all the short login-timeout bounds. Configuration can
+    // leave the backend silent for longer while the player catches up (known packs, a resource
+    // pack hold), so the regular read-timeout applies from here on (issue GemstoneGG#938).
+    if (smc.getChannel().pipeline().context(Connections.READ_TIMEOUT) != null) {
+      smc.getChannel().pipeline().replace(Connections.READ_TIMEOUT, Connections.READ_TIMEOUT,
+          new VelocityReadTimeoutHandler(server.getConfiguration().getReadTimeout(),
+              TimeUnit.MILLISECONDS));
+    }
     if (smc.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
       smc.setActiveSessionHandler(StateRegistry.PLAY, new TransitionSessionHandler(server, serverConn, resultFuture));
     } else {

@@ -87,7 +87,7 @@ import com.velocitypowered.proxy.connection.util.ConnectionRequestResults.Impl;
 import com.velocitypowered.proxy.connection.util.FallbackServers;
 import com.velocitypowered.proxy.connection.util.VelocityInboundConnection;
 import com.velocitypowered.proxy.network.Connections;
-import com.velocitypowered.proxy.network.netty.StallSafeReadTimeoutHandler;
+import com.velocitypowered.proxy.network.netty.VelocityReadTimeoutHandler;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
@@ -1283,11 +1283,11 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   /**
    * Suspends the read-timeout on the player's own (client-facing) connection while we establish
    * their initial connection. The client legitimately idles on the loading screen during that
-   * window, so its read-timeout must not fire -- otherwise a backend that stalls after accepting
-   * the TCP connection times the idle client out before the backend connection's own timeout can
-   * drive the fallback chain, dropping the player instead of moving them on. Restored by
-   * {@link #resumeReadTimeout()} once a server is reached, or once the attempt fails
-   * (issues GemstoneGG#938 and GemstoneGG#1055).
+   * window, so its read-timeout must not fire -- otherwise a backend that stops responding after
+   * accepting the TCP connection times the idle client out before the backend connection's own
+   * timeout can drive the fallback chain, dropping the player instead of moving them on. Restored
+   * by {@link #resumeReadTimeout()} once a server is reached, or once the attempt fails (issues
+   * GemstoneGG#938 and GemstoneGG#1055).
    */
   private void pauseReadTimeout() {
     final var pipeline = connection.getChannel().pipeline();
@@ -1299,12 +1299,15 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   /**
    * Restores the read-timeout on the player's own connection after it was suspended by
    * {@link #pauseReadTimeout()}. Idempotent: does nothing if the handler is already present.
+   * Also called once a backend is advanced to PLAY ahead of a player still being configured: the
+   * proxy then answers that backend's keepalives itself, so the backend no longer notices a player
+   * that has gone silent, and the player's own read-timeout has to.
    */
-  private void resumeReadTimeout() {
+  public void resumeReadTimeout() {
     final var pipeline = connection.getChannel().pipeline();
     if (pipeline.context(Connections.READ_TIMEOUT) == null && pipeline.context(Connections.FRAME_DECODER) != null) {
       pipeline.addAfter(Connections.FRAME_DECODER, Connections.READ_TIMEOUT,
-          new StallSafeReadTimeoutHandler(server.getConfiguration().getReadTimeout(),
+          new VelocityReadTimeoutHandler(server.getConfiguration().getReadTimeout(),
               TimeUnit.MILLISECONDS));
     }
   }
@@ -2007,6 +2010,14 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
             return;
           }
 
+          // The client has not acknowledged the previous switch yet (a failover can land here while
+          // it is still catching up). Its acknowledgement completes the switch for whichever server
+          // now waits on it, and a second request would leave the client and the proxy in
+          // different states.
+          if (connection.pendingConfigurationSwitch) {
+            return;
+          }
+
           if (bundleHandler.isInBundleSession()) {
             bundleHandler.toggleBundleSession();
             connection.write(BundleDelimiterPacket.INSTANCE);
@@ -2137,8 +2148,9 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           if (connectedServer == null) {
             // Establishing the player's initial connection (or working through the fallback chain
             // for it): they have no backend yet and are idling on a loading screen. Suspend their
-            // connection's read-timeout so a stalled backend can't time the idle client out before
-            // the backend timeout drives the fallback. Restored in setConnectedServer (issue GemstoneGG#938).
+            // connection's read-timeout so an unresponsive backend can't time the idle client out
+            // before the backend timeout drives the fallback. Restored in setConnectedServer (issue
+            // GemstoneGG#938).
             pauseReadTimeout();
           }
 
