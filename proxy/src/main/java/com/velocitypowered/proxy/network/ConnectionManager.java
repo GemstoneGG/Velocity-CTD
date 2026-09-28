@@ -352,12 +352,17 @@ public final class ConnectionManager {
   }
 
   private CloseableHttpAsyncClient createHttpClient() {
+    return createHttpClient(server.getVersion().getName() + "/" + server.getVersion().getVersion());
+  }
+
+  static CloseableHttpAsyncClient createHttpClient(String userAgent) {
     PoolingAsyncClientConnectionManager connectionManager =
         PoolingAsyncClientConnectionManagerBuilder.create()
             .setDefaultConnectionConfig(ConnectionConfig.custom()
                 .setConnectTimeout(Timeout.ofSeconds(15))
                 .setSocketTimeout(Timeout.ofSeconds(30))
                 .setTimeToLive(TimeValue.ofMinutes(5))
+                .setValidateAfterInactivity(TimeValue.ofSeconds(2))
                 .build())
             .setDefaultTlsConfig(TlsConfig.custom()
                 .setVersionPolicy(HttpVersionPolicy.NEGOTIATE)
@@ -368,7 +373,8 @@ public final class ConnectionManager {
 
     CloseableHttpAsyncClient client = HttpAsyncClients.custom()
         .setConnectionManager(connectionManager)
-        .setUserAgent(server.getVersion().getName() + "/" + server.getVersion().getVersion())
+        .setRetryStrategy(ClosedConnectionRetryStrategy.INSTANCE)
+        .setUserAgent(userAgent)
         .useSystemProperties()
         .evictExpiredConnections()
         .evictIdleConnections(TimeValue.ofSeconds(60))
