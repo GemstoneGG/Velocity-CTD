@@ -48,6 +48,7 @@ import org.jspecify.annotations.Nullable;
 public class ServerListPingHandler {
 
   private final VelocityServer server;
+  private final BackendPings backendPings = new BackendPings();
 
   public ServerListPingHandler(VelocityServer server) {
     this.server = server;
@@ -164,7 +165,7 @@ public class ServerListPingHandler {
       }
 
       VelocityRegisteredServer vrs = rs.get();
-      pings.add(vrs.ping(connection.getConnection().eventLoop(), PingOptions.builder()
+      pings.add(backendPings.ping(vrs, connection.getConnection().eventLoop(), PingOptions.builder()
               .version(responseProtocolVersion).virtualHost(virtualHostStr).build()));
     }
     if (pings.isEmpty()) {
