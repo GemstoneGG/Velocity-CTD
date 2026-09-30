@@ -47,7 +47,7 @@ public class SamplePlayersPicker {
   }
 
   public static SamplePlayersPicker create(VelocityServer server) {
-    return new SamplePlayersPicker(server.getClusterPlayerService()::getAllPlayers);
+    return new SamplePlayersPicker(server.getClusterPlayerService()::getPlayersAsOfLastSync);
   }
 
   public List<VelocityClusterPlayer> samplePlayers(int sampleSize, @NonNull Ordering ordering) {

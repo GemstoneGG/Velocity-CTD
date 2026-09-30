@@ -114,14 +114,6 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
   private static final int MAX_QUEUED_LOGIN_PLUGIN_MESSAGES =
       Integer.getInteger("velocity.max-queued-login-plugin-messages", 1024);
 
-  // Caps the plugin messages a connection may have waiting on a PluginMessageEvent. Each holds a
-  // copy of its payload until the event's handlers finish, so without these caps a client flooding
-  // a channel that a plugin listens on grows the heap for as long as those handlers lag behind.
-  private static final long MAX_PENDING_PLUGIN_MESSAGE_BYTES =
-      Long.getLong("velocity.max-pending-plugin-message-bytes", 4L * 1024 * 1024);
-  private static final int MAX_PENDING_PLUGIN_MESSAGES =
-      Integer.getInteger("velocity.max-pending-plugin-messages", 1024);
-
   private static final Logger LOGGER = LogManager.getLogger(ClientPlaySessionHandler.class);
 
   private final ConnectedPlayer player;
@@ -131,9 +123,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
   private final AtomicLong loginPluginMessagesBytes = new AtomicLong();
   private final AtomicInteger loginPluginMessagesCount = new AtomicInteger();
   private volatile boolean loginPluginMessagesOverflowed;
-  private final AtomicLong pendingPluginMessageBytes = new AtomicLong();
-  private final AtomicInteger pendingPluginMessageCount = new AtomicInteger();
-  private volatile boolean pendingPluginMessagesOverflowed;
+  private final PendingPluginMessages pendingPluginMessages;
   private final VelocityServer server;
   private @Nullable TabCompleteRequestPacket outstandingTabComplete;
   private final ChatHandler<? extends MinecraftPacket> chatHandler;
@@ -153,6 +143,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
   public ClientPlaySessionHandler(VelocityServer server, ConnectedPlayer player) {
     this.player = player;
     this.server = server;
+    this.pendingPluginMessages = new PendingPluginMessages(player);
 
     if (this.player.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_19_3)) {
       this.chatHandler = new SessionChatHandler(this.player, this.server);
@@ -234,33 +225,6 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     }
     loginPluginMessages.add(packet);
     return true;
-  }
-
-  /**
-   * Reserves room for a plugin message waiting on its {@link PluginMessageEvent}, enforcing the
-   * per-connection byte and count caps. Returns {@code false} (and disconnects the player) when the
-   * message would exceed them; every successful reservation is released once its event is done.
-   */
-  private boolean reservePendingPluginMessage(int size) {
-    if (pendingPluginMessagesOverflowed) {
-      return false;
-    }
-    long newBytes = pendingPluginMessageBytes.addAndGet(size);
-    int newCount = pendingPluginMessageCount.incrementAndGet();
-    if (newBytes > MAX_PENDING_PLUGIN_MESSAGE_BYTES || newCount > MAX_PENDING_PLUGIN_MESSAGES) {
-      pendingPluginMessagesOverflowed = true;
-      releasePendingPluginMessage(size);
-      LOGGER.warn("Disconnecting {}: plugin messages waiting on events exceeded their limits "
-              + "({} messages, {} bytes).", player, newCount, newBytes);
-      player.disconnect(Component.translatable("velocity.error.pending-plugin-message-overflow"));
-      return false;
-    }
-    return true;
-  }
-
-  private void releasePendingPluginMessage(int size) {
-    pendingPluginMessageBytes.addAndGet(-size);
-    pendingPluginMessageCount.decrementAndGet();
   }
 
   @Override
@@ -461,7 +425,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
             }
           } else {
             int size = packet.content().readableBytes();
-            if (!reservePendingPluginMessage(size)) {
+            if (!pendingPluginMessages.reserve(size)) {
               return true;
             }
             byte[] copy = ByteBufUtil.getBytes(packet.content());
@@ -481,7 +445,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
             }, backendConn.eventLoop()).exceptionally((ex) -> {
               LOGGER.error("Exception while handling plugin message packet for {}", player, ex);
               return null;
-            }).whenComplete((ignored, ex) -> releasePendingPluginMessage(size));
+            }).whenComplete((ignored, ex) -> pendingPluginMessages.release(size));
           }
         }
       }

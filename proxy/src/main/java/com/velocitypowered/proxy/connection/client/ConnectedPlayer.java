@@ -478,8 +478,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     final ClientSettingsWrapper cs = new ClientSettingsWrapper(clientSettingsPacket);
     this.settings = cs;
     server.getEventManager().fireAndForget(new PlayerSettingsChangedEvent(this, cs));
-
-    this.server.getClusterPlayerService().onPlayerSettingsChange(this, cs);
   }
 
   @Override
@@ -1837,7 +1835,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
             + " characters in length");
     if (getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_1_19)) {
       ChatBuilderV2 message = getChatBuilderFactory().builder().asPlayer(this).message(input);
-      this.chatQueue.queuePacket(chatState -> {
+      this.chatQueue.queueProxyPacket(chatState -> {
         message.setTimestamp(chatState.lastTimestamp);
         message.setLastSeenMessages(chatState.createLastSeen());
         return message.toServer();

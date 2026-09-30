@@ -136,19 +136,21 @@ public class LoginInboundConnection implements LoginPhaseConnection, KeyIdentifi
     this.onAllMessagesHandled = null;
   }
 
-  void handleLoginPluginResponse(final LoginPluginResponsePacket response) {
+  boolean handleLoginPluginResponse(final LoginPluginResponsePacket response) {
     final MessageConsumer consumer = this.outstandingResponses.remove(response.getId());
-    if (consumer != null) {
-      try {
-        consumer.onMessageResponse(response.isSuccess() ? ByteBufUtil.getBytes(response.content())
-            : null);
-      } finally {
-        final Runnable onAllMessagesHandled = this.onAllMessagesHandled;
-        if (this.outstandingResponses.isEmpty() && onAllMessagesHandled != null) {
-          onAllMessagesHandled.run();
-        }
+    if (consumer == null) {
+      return false;
+    }
+    try {
+      consumer.onMessageResponse(response.isSuccess() ? ByteBufUtil.getBytes(response.content())
+          : null);
+    } finally {
+      final Runnable onAllMessagesHandled = this.onAllMessagesHandled;
+      if (this.outstandingResponses.isEmpty() && onAllMessagesHandled != null) {
+        onAllMessagesHandled.run();
       }
     }
+    return true;
   }
 
   void loginEventFired(final Runnable onAllMessagesHandled) {

@@ -20,21 +20,27 @@ package com.velocitypowered.proxy.connection.client;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.velocitypowered.api.event.player.configuration.PlayerConfigurationEvent;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.backend.BackendConnectionPhase;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
+import com.velocitypowered.proxy.event.VelocityEventManager;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.packet.ClientSettingsPacket;
 import com.velocitypowered.proxy.protocol.packet.ServerboundCustomClickActionPacket;
+import com.velocitypowered.proxy.protocol.packet.config.KnownPacksPacket;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -151,5 +157,57 @@ class ClientConfigSessionHandlerTest {
     when(backend.getConnection()).thenReturn(connection);
     when(connection.getState()).thenReturn(state);
     return connection;
+  }
+
+  private MinecraftConnection knownPacksBackend(
+      CompletableFuture<PlayerConfigurationEvent> configurationEvent) {
+    VelocityEventManager eventManager = mock(VelocityEventManager.class);
+    when(server.getEventManager()).thenReturn(eventManager);
+    when(eventManager.fire(any(PlayerConfigurationEvent.class))).thenReturn(configurationEvent);
+    VelocityServerConnection inFlight = mock(VelocityServerConnection.class);
+    MinecraftConnection backend = mock(MinecraftConnection.class);
+    when(player.getConnectionInFlightOrConnectedServer()).thenReturn(inFlight);
+    when(inFlight.getConnection()).thenReturn(backend);
+    return backend;
+  }
+
+  @Test
+  void secondKnownPacksAnswerWhileTheFirstWaitsDisconnects() {
+    CompletableFuture<PlayerConfigurationEvent> configurationEvent = new CompletableFuture<>();
+    final MinecraftConnection backend = knownPacksBackend(configurationEvent);
+    KnownPacksPacket first = new KnownPacksPacket();
+
+    assertTrue(handler.handle(first));
+    verify(player, never()).disconnect(any());
+
+    assertTrue(handler.handle(new KnownPacksPacket()));
+    verify(player, times(1)).disconnect(any());
+
+    configurationEvent.complete(null);
+    verify(backend, times(1)).write(any());
+    verify(backend).write(first);
+  }
+
+  @Test
+  void knownPacksAnswerAfterTheEventIsForwardedAtOnce() {
+    final MinecraftConnection backend = knownPacksBackend(CompletableFuture.completedFuture(null));
+
+    assertTrue(handler.handle(new KnownPacksPacket()));
+    assertTrue(handler.handle(new KnownPacksPacket()));
+
+    verify(player, never()).disconnect(any());
+    verify(backend, times(2)).write(any());
+  }
+
+  @Test
+  void nextConfigurationPhaseWaitsForItsOwnAnswer() {
+    CompletableFuture<PlayerConfigurationEvent> configurationEvent = new CompletableFuture<>();
+    knownPacksBackend(configurationEvent);
+
+    assertTrue(handler.handle(new KnownPacksPacket()));
+    handler.deactivated();
+    assertTrue(handler.handle(new KnownPacksPacket()));
+
+    verify(player, never()).disconnect(any());
   }
 }

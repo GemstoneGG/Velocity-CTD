@@ -51,6 +51,7 @@ class PlayerDepotSyncTest {
     final Map<UUID, PlayerEntry> map = new LinkedHashMap<>();
     int containsCalls;
     int valuesCalls;
+    int upsertCalls;
 
     @Override
     public boolean contains(UUID key) {
@@ -65,6 +66,7 @@ class PlayerDepotSyncTest {
 
     @Override
     public void upsert(PlayerEntry value) {
+      upsertCalls++;
       map.put(value.getUniqueId(), value);
       value.setDepot(this);
     }
@@ -188,5 +190,52 @@ class PlayerDepotSyncTest {
     assertTrue(depot.map.containsKey(here.getUniqueId()));
     assertFalse(depot.map.containsKey(gone.getUniqueId()));
     assertTrue(depot.map.containsKey(elsewhere.getUniqueId()));
+  }
+
+  @Test
+  void listingChangeIsWrittenOnTheNextSync() throws Exception {
+    ConnectedPlayer here = player("here", "Lobby", true);
+    online.add(here);
+    when(here.getPlayerSettings().isClientListingAllowed()).thenReturn(true);
+    store(here, "proxy-a");
+    when(here.getPlayerSettings().isClientListingAllowed()).thenReturn(false);
+    sync();
+    assertEquals(1, depot.upsertCalls);
+    assertFalse(depot.map.get(here.getUniqueId()).isClientListingAllowed());
+  }
+
+  @Test
+  void unchangedListingIsNotWrittenAgain() throws Exception {
+    ConnectedPlayer here = player("here", "Lobby", true);
+    online.add(here);
+    when(here.getPlayerSettings().isClientListingAllowed()).thenReturn(true);
+    store(here, "proxy-a");
+    sync();
+    sync();
+    assertEquals(0, depot.upsertCalls);
+  }
+
+  @Test
+  void listingOnAnotherProxysEntryIsLeftAlone() throws Exception {
+    ConnectedPlayer here = player("here", "Lobby", true);
+    online.add(here);
+    when(here.getPlayerSettings().isClientListingAllowed()).thenReturn(true);
+    store(here, "proxy-b");
+    when(here.getPlayerSettings().isClientListingAllowed()).thenReturn(false);
+    sync();
+    assertEquals(0, depot.upsertCalls);
+    assertTrue(depot.map.get(here.getUniqueId()).isClientListingAllowed());
+  }
+
+  @Test
+  void syncedEntriesAreReadWithoutAskingRedis() throws Exception {
+    store(player("a", "Lobby", true), "proxy-b");
+    store(player("b", "Survival", true), "proxy-b");
+    assertTrue(service.getSyncedPlayerEntries().isEmpty(), "nothing before the first sync");
+    sync();
+    int reads = depot.valuesCalls;
+    assertEquals(2, service.getSyncedPlayerEntries().size());
+    assertEquals(2, service.getSyncedPlayerEntries().size());
+    assertEquals(reads, depot.valuesCalls);
   }
 }

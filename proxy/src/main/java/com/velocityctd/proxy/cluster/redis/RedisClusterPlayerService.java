@@ -24,7 +24,6 @@ import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.data.VelocityAlert;
 import com.velocityctd.proxy.redis.depot.player.PlayerDepotService;
 import com.velocityctd.proxy.redis.depot.player.PlayerEntry;
-import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -64,6 +63,13 @@ public final class RedisClusterPlayerService implements VelocityClusterPlayerSer
   @Override
   public Collection<VelocityClusterPlayer> getAllPlayers() {
     return playerService().getAll().stream()
+        .<VelocityClusterPlayer>map(this::toRedisPlayer)
+        .toList();
+  }
+
+  @Override
+  public Collection<VelocityClusterPlayer> getPlayersAsOfLastSync() {
+    return playerService().getSyncedPlayerEntries().stream()
         .<VelocityClusterPlayer>map(this::toRedisPlayer)
         .toList();
   }
@@ -128,11 +134,6 @@ public final class RedisClusterPlayerService implements VelocityClusterPlayerSer
       // hence the `isQueueEnabled()` guard. This may change in the future if we add cluster events!
       server.getRedis().publish(new VelocityBackendLeave(previousServerName, System.currentTimeMillis()));
     }
-  }
-
-  @Override
-  public void onPlayerSettingsChange(ConnectedPlayer player, PlayerSettings settings) {
-    playerService().onPlayerSettingsChange(player, settings);
   }
 
   @Override

@@ -18,12 +18,18 @@
 package com.velocitypowered.proxy.protocol.netty;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.velocitypowered.proxy.VelocityServer;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
+import java.lang.reflect.Field;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -68,5 +74,27 @@ class GameSpyQueryHandlerTest {
     GameSpyQueryHandler handler = new GameSpyQueryHandler(server);
     DatagramPacket packet = new DatagramPacket(buf, sender, sender);
     handler.channelRead0(ctx, packet);
+  }
+
+  @Test
+  void handshakesFromManyAddressesStayBounded() throws Exception {
+    when(ctx.alloc()).thenReturn(UnpooledByteBufAllocator.DEFAULT);
+    GameSpyQueryHandler handler = new GameSpyQueryHandler(server);
+    for (int i = 0; i < 20_000; i++) {
+      ByteBuf handshake = Unpooled.buffer();
+      handshake.writeByte(0xFE);
+      handshake.writeByte(0xFD);
+      handshake.writeByte(0x09);
+      handshake.writeInt(i);
+      byte[] address = {10, (byte) (i >> 16), (byte) (i >> 8), (byte) i};
+      InetSocketAddress forged = new InetSocketAddress(InetAddress.getByAddress(address), 12345);
+      handler.channelRead0(ctx, new DatagramPacket(handshake, forged, forged));
+    }
+
+    Field field = GameSpyQueryHandler.class.getDeclaredField("sessions");
+    field.setAccessible(true);
+    Cache<?, ?> sessions = (Cache<?, ?>) field.get(handler);
+    sessions.cleanUp();
+    assertTrue(sessions.estimatedSize() <= 10_000, "sessions: " + sessions.estimatedSize());
   }
 }

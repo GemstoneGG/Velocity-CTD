@@ -83,9 +83,11 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
 
   private final VelocityServer server;
   private final ConnectedPlayer player;
+  private final PendingPluginMessages pendingPluginMessages;
   private String brandChannel = null;
 
   private CompletableFuture<?> configurationFuture;
+  private volatile boolean knownPacksResponseWaiting;
   private CompletableFuture<Void> configSwitchFuture;
 
   private boolean configuredOnce;
@@ -103,6 +105,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   public ClientConfigSessionHandler(VelocityServer server, ConnectedPlayer player) {
     this.server = server;
     this.player = player;
+    this.pendingPluginMessages = new PendingPluginMessages(player);
   }
 
   @Override
@@ -113,6 +116,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
   @Override
   public void deactivated() {
     configurationFuture = null;
+    knownPacksResponseWaiting = false;
   }
 
   @Override
@@ -178,6 +182,11 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
         return true;
       }
 
+      int size = packet.content().readableBytes();
+      if (!pendingPluginMessages.reserve(size)) {
+        return true;
+      }
+
       // Handling this stuff async means that we should probably pause
       // the connection while we toss this off into another pool
       byte[] bytes = ByteBufUtil.getBytes(packet.content());
@@ -193,7 +202,7 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
           }, player.getConnection().eventLoop()).exceptionally((ex) -> {
             LOGGER.error("Exception while handling plugin message packet for {}", player, ex);
             return null;
-          });
+          }).whenComplete((ignored, ex) -> pendingPluginMessages.release(size));
     }
     return true;
   }
@@ -205,7 +214,22 @@ public class ClientConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(KnownPacksPacket packet) {
+    if (knownPacksResponseWaiting) {
+      // A client answers each known packs request once, and a backend only asks again after it
+      // has the answer, so a second answer while the first still waits on the configuration
+      // event was never asked for. Holding it would keep another copy in memory for as long as
+      // the event runs.
+      if (MinecraftDecoder.DEBUG) {
+        LOGGER.info("{} sent a known packs response that was not requested", player);
+      }
+      player.disconnect(
+          Component.translatable("velocity.error.player-connection-error", NamedTextColor.RED));
+      return true;
+    }
+
+    knownPacksResponseWaiting = true;
     callConfigurationEvent().thenRun(() -> {
+      knownPacksResponseWaiting = false;
       VelocityServerConnection targetServer =
           player.getConnectionInFlightOrConnectedServer();
       final MinecraftConnection smc = targetServer == null ? null : targetServer.getConnection();

@@ -20,7 +20,6 @@ package com.velocityctd.proxy.redis.depot.player;
 import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.data.VelocityKick;
 import com.velocityctd.proxy.redis.depot.AbstractDepotService;
-import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
@@ -30,9 +29,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
@@ -76,6 +75,11 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    * The number of players on each server across all proxies, as of the last player entry sync.
    */
   private volatile Map<String, Integer> serverPlayerCounts = Map.of();
+
+  /**
+   * Every player entry across all proxies, as of the last player entry sync.
+   */
+  private volatile List<PlayerEntry> syncedPlayerEntries = List.of();
 
   /**
    * Constructs a new {@link PlayerDepotService}.
@@ -189,22 +193,6 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
   }
 
   /**
-   * Called when a {@link ConnectedPlayer} changes its {@link PlayerSettings}.
-   *
-   * @param player the player that got its settings changed
-   * @param settings the new settings
-   */
-  public void onPlayerSettingsChange(ConnectedPlayer player, PlayerSettings settings) {
-    PlayerEntry playerEntry = this.getPlayerEntry(player.getUniqueId());
-    if (playerEntry == null) {
-      return;
-    }
-
-    playerEntry.setClientListingAllowed(settings.isClientListingAllowed());
-    playerEntry.upsert();
-  }
-
-  /**
    * Get the total player count across all proxies, currently present in the depot.
    *
    * @return the total player count
@@ -222,6 +210,16 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    */
   public int getPlayerCountInServer(@NotNull String serverName) {
     return this.serverPlayerCounts.getOrDefault(serverName, 0);
+  }
+
+  /**
+   * Get every player entry across all proxies, as of the last player entry sync. Unlike
+   * {@link #getAll()}, this does not query Redis, so it is safe to call on a network thread.
+   *
+   * @return an unmodifiable list of the player entries read by the last sync; never null
+   */
+  public @NotNull @Unmodifiable List<PlayerEntry> getSyncedPlayerEntries() {
+    return this.syncedPlayerEntries;
   }
 
   /**
@@ -334,17 +332,17 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
 
     Collection<PlayerEntry> playerEntries = this.depot.values();
     this.serverPlayerCounts = countPlayersByServer(playerEntries);
+    this.syncedPlayerEntries = List.copyOf(playerEntries);
 
-    Set<UUID> storedPlayers = playerEntries.stream()
-        .map(PlayerEntry::getUniqueId)
-        .collect(Collectors.toSet());
+    Map<UUID, PlayerEntry> storedPlayers = playerEntries.stream()
+        .collect(Collectors.toMap(PlayerEntry::getUniqueId, Function.identity()));
 
     for (ConnectedPlayer player : this.server.getOnlinePlayers()) {
       if (!player.isFullyConnected()) {
         continue;
       }
 
-      if (storedPlayers.contains(player.getUniqueId())) {
+      if (!this.needsUpsert(player, storedPlayers.get(player.getUniqueId()))) {
         continue;
       }
 
@@ -362,6 +360,25 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
 
       playerEntry.remove();
     }
+  }
+
+  /**
+   * Whether the entry for a connected player has to be written again: it is missing, or this
+   * proxy's entry no longer says whether the player may be listed in the server list ping. A
+   * settings packet does not write to Redis itself, since a client can send one after another and
+   * each write would block the network thread, so the change reaches Redis here instead.
+   *
+   * @param player the connected player
+   * @param stored the player's entry as read by this sync, or {@code null} if there is none
+   * @return {@code true} if the entry should be written again
+   */
+  private boolean needsUpsert(ConnectedPlayer player, @Nullable PlayerEntry stored) {
+    if (stored == null) {
+      return true;
+    }
+
+    return stored.getProxyId().equalsIgnoreCase(this.redis.getProxyId())
+        && stored.isClientListingAllowed() != player.getPlayerSettings().isClientListingAllowed();
   }
 
   private static Map<String, Integer> countPlayersByServer(Collection<PlayerEntry> playerEntries) {

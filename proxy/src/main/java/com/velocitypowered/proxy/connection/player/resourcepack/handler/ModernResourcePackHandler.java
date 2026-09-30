@@ -134,6 +134,24 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
     final ResourcePackInfo queued = outstandingResourcePacks.isEmpty() ? null :
         peek ? outstandingResourcePacks.getFirst() : outstandingResourcePacks.removeFirst();
 
+    if (queued == null) {
+      // Every pack sent to the client stays outstanding until its final status, so a status
+      // with no offer behind it can only concern a pack already applied. Anything else was never
+      // asked for, and answering it would run every status listener once per packet.
+      final ResourcePackInfo appliedPack = appliedResourcePacks.get(uuid);
+      if (appliedPack == null || peek) {
+        return true;
+      }
+      if (bundle.status() == PlayerResourcePackStatusEvent.Status.SUCCESSFUL) {
+        // When transitioning to another server that has a resource pack to apply,
+        // if one or more resource packs have already been applied from Velocity,
+        // the player sends more than 1 SUCCESSFUL response to the backend server,
+        // which results in the server receiving more resource pack responses
+        // than the server has sent requests to the player
+        return handleResponseResult(appliedPack, bundle);
+      }
+    }
+
     dispatchPackCallback(uuid, bundle.status());
     server.getEventManager()
             .fire(new PlayerResourcePackStatusEvent(this.player, uuid, bundle.status(), queued))
@@ -149,27 +167,11 @@ public final class ModernResourcePackHandler extends ResourcePackHandler {
 
     switch (bundle.status()) {
       // The player has accepted the resource pack and will proceed to download it.
-      case ACCEPTED -> {
-        if (queued != null) {
-          pendingResourcePacks.put(uuid, queued);
-        }
-      }
+      case ACCEPTED -> pendingResourcePacks.put(uuid, queued);
       // The resource pack has been applied correctly.
       case SUCCESSFUL -> {
         pendingResourcePacks.remove(uuid);
-        if (queued != null) {
-          appliedResourcePacks.put(uuid, queued);
-        } else {
-          // When transitioning to another server that has a resource pack to apply,
-          // if one or more resource packs have already been applied from Velocity,
-          // the player sends more than 1 SUCCESSFUL response to the backend server,
-          // which results in the server receiving more resource pack responses
-          // than the server has sent requests to the player
-          final ResourcePackInfo appliedPack = appliedResourcePacks.get(uuid);
-          if (appliedPack != null) {
-            return handleResponseResult(appliedPack, bundle);
-          }
-        }
+        appliedResourcePacks.put(uuid, queued);
       }
       // An error occurred while trying to download the resource pack to the client,
       // so the resource pack cannot be applied.

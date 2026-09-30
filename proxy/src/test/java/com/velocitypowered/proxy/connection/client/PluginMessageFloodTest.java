@@ -136,4 +136,52 @@ class PluginMessageFloodTest {
     }
     verify(player, never()).disconnect(any());
   }
+
+  private void sendDuringConfiguration(ClientConfigSessionHandler config, int payload) {
+    PluginMessagePacket packet = new PluginMessagePacket("t:c", Unpooled.wrappedBuffer(
+        new byte[payload]));
+    config.handle(packet);
+    packet.release();
+  }
+
+  @Test
+  void unfinishedEventsDuringConfigurationHitTheCountCap() {
+    ClientConfigSessionHandler config = new ClientConfigSessionHandler(server, player);
+    when(server.getEventManager().fire(any(PluginMessageEvent.class))).thenReturn(
+        new CompletableFuture<>());
+    for (int i = 0; i < 1024; i++) {
+      sendDuringConfiguration(config, 1);
+    }
+    verify(player, never()).disconnect(any());
+    sendDuringConfiguration(config, 1);
+    verify(player, times(1)).disconnect(any());
+    sendDuringConfiguration(config, 1);
+    verify(server.getEventManager(), times(1024)).fire(any(PluginMessageEvent.class));
+  }
+
+  @Test
+  void unfinishedEventsDuringConfigurationHitTheByteCap() {
+    ClientConfigSessionHandler config = new ClientConfigSessionHandler(server, player);
+    when(server.getEventManager().fire(any(PluginMessageEvent.class))).thenReturn(
+        new CompletableFuture<>());
+    for (int i = 0; i < 128; i++) {
+      sendDuringConfiguration(config, 32767);
+    }
+    verify(player, never()).disconnect(any());
+    sendDuringConfiguration(config, 32767);
+    verify(player, times(1)).disconnect(any());
+  }
+
+  @Test
+  void finishedEventsDuringConfigurationFreeTheirRoom() throws Exception {
+    ClientConfigSessionHandler config = new ClientConfigSessionHandler(server, player);
+    when(player.getConnection().eventLoop()).thenReturn(loop);
+    when(server.getEventManager().fire(any(PluginMessageEvent.class))).thenAnswer(
+        inv -> CompletableFuture.completedFuture(inv.getArgument(0)));
+    for (int i = 0; i < 5000; i++) {
+      sendDuringConfiguration(config, 1000);
+      loop.submit(() -> {}).sync();
+    }
+    verify(player, never()).disconnect(any());
+  }
 }

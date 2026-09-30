@@ -18,7 +18,6 @@
 package com.velocityctd.proxy.cluster;
 
 import com.velocityctd.api.cluster.ClusterPlayerService;
-import com.velocitypowered.api.proxy.player.PlayerSettings;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.Collection;
@@ -35,6 +34,14 @@ public interface VelocityClusterPlayerService extends ClusterPlayerService {
 
   @Override
   Collection<VelocityClusterPlayer> getAllPlayers();
+
+  /**
+   * Gets every player in the cluster as of the last player sync, without a remote lookup, for a
+   * caller that answers on a network thread, such as the server list ping.
+   *
+   * @return the players as of the last sync
+   */
+  Collection<VelocityClusterPlayer> getPlayersAsOfLastSync();
 
   @Override
   Collection<VelocityClusterPlayer> getPlayersOnServer(String serverName);
@@ -58,6 +65,4 @@ public interface VelocityClusterPlayerService extends ClusterPlayerService {
   void onPlayerDisconnect(ConnectedPlayer player);
 
   void onPlayerSwitchServer(ConnectedPlayer player, @Nullable String previousServerName, String serverName);
-
-  void onPlayerSettingsChange(ConnectedPlayer player, PlayerSettings settings);
 }

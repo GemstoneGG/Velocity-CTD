@@ -83,8 +83,13 @@ public class GameSpyQueryHandler extends SimpleChannelInboundHandler<DatagramPac
       "hostip"
   );
 
+  // A handshake stores a challenge for its sender address, and a UDP sender address can be forged,
+  // so without a bound a flood of handshakes from made-up addresses grows this for 30 seconds each.
+  private static final int MAX_SESSIONS = 10_000;
+
   private final Cache<InetAddress, Integer> sessions = Caffeine.newBuilder()
       .expireAfterWrite(30, TimeUnit.SECONDS)
+      .maximumSize(MAX_SESSIONS)
       .build();
   private final SecureRandom random;
   private final VelocityServer server;

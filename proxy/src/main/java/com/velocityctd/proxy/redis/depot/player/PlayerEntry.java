@@ -85,7 +85,7 @@ public final class PlayerEntry extends DepotEntry<UUID, PlayerEntry> {
    * {@link com.velocitypowered.proxy.connection.util.ServerListPingHandler}.
    * Reflects {@link ClientSettingsPacket#isClientListingAllowed()}.
    */
-  private boolean clientListingAllowed;
+  private final boolean clientListingAllowed;
 
   /**
    * Constructs a new {@link PlayerEntry} from a {@link ConnectedPlayer}.
@@ -210,15 +210,6 @@ public final class PlayerEntry extends DepotEntry<UUID, PlayerEntry> {
    */
   public boolean isClientListingAllowed() {
     return clientListingAllowed;
-  }
-
-  /**
-   * Sets clientListingAllowed. Should reflect {@link ClientSettingsPacket#isClientListingAllowed()}.
-   *
-   * @param clientListingAllowed whether this player may be listed in the server list ping MOTD hover
-   */
-  public void setClientListingAllowed(boolean clientListingAllowed) {
-    this.clientListingAllowed = clientListingAllowed;
   }
 
   @Override

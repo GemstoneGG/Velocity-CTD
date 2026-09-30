@@ -21,6 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.velocitypowered.proxy.connection.MinecraftConnection;
@@ -40,6 +43,7 @@ class ChatQueueTest {
 
   private EmbeddedChannel backendChannel;
   private List<MinecraftPacket> written;
+  private ConnectedPlayer player;
   private ChatQueue queue;
 
   @BeforeEach
@@ -57,7 +61,7 @@ class ChatQueueTest {
 
     VelocityServerConnection serverConnection = mock(VelocityServerConnection.class);
     when(serverConnection.getConnection()).thenReturn(smc);
-    ConnectedPlayer player = mock(ConnectedPlayer.class);
+    player = mock(ConnectedPlayer.class);
     when(player.getCurrentServer()).thenReturn(Optional.of(serverConnection));
 
     queue = new ChatQueue(player);
@@ -96,5 +100,41 @@ class ChatQueueTest {
     backendChannel.runPendingTasks();
 
     assertEquals(List.of(first, second), written);
+  }
+
+  @Test
+  void packetsWaitingBehindPendingOneHitTheCap() {
+    queue.queuePacket(lastSeenMessages -> new CompletableFuture<>(), null, null);
+    for (int i = 1; i < 256; i++) {
+      queue.queuePacket(chatState -> new ChatAcknowledgementPacket(1));
+    }
+    verify(player, never()).disconnect(any());
+
+    queue.queuePacket(chatState -> new ChatAcknowledgementPacket(1));
+    verify(player, times(1)).disconnect(any());
+
+    queue.queuePacket(chatState -> new ChatAcknowledgementPacket(1));
+    verify(player, times(1)).disconnect(any());
+  }
+
+  @Test
+  void finishedPacketsFreeTheirRoom() {
+    for (int i = 0; i < 1000; i++) {
+      queue.queuePacket(chatState -> new ChatAcknowledgementPacket(1));
+      backendChannel.runPendingTasks();
+    }
+
+    verify(player, never()).disconnect(any());
+    assertEquals(1000, written.size());
+  }
+
+  @Test
+  void packetsTheProxySendsDoNotCountTowardTheCap() {
+    queue.queuePacket(lastSeenMessages -> new CompletableFuture<>(), null, null);
+    for (int i = 0; i < 1000; i++) {
+      queue.queueProxyPacket(chatState -> new ChatAcknowledgementPacket(1));
+    }
+
+    verify(player, never()).disconnect(any());
   }
 }

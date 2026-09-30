@@ -26,6 +26,7 @@ import java.util.BitSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import net.kyori.adventure.text.Component;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -38,10 +39,19 @@ public class ChatQueue implements AutoCloseable {
 
   private static final Logger LOGGER = LogManager.getLogger(ChatQueue.class);
 
+  // Caps the chat, command and acknowledgement packets a client may have waiting here. Each one
+  // waits for the one before it, so while an earlier one is held up (a plugin slow to finish its
+  // chat or command event) everything sent after it stays in memory. A player typing never comes
+  // close; the backend's own chat spam limit disconnects long before.
+  private static final int MAX_PENDING_TASKS =
+      Integer.getInteger("velocity.max-pending-chat-packets", 256);
+
   private final Object internalLock = new Object();
   private final ConnectedPlayer player;
   private final ChatState chatState = new ChatState();
   private CompletableFuture<Void> head = CompletableFuture.completedFuture(null);
+  private final AtomicInteger pendingTasks = new AtomicInteger();
+  private boolean overflowed;
 
   private volatile boolean closed;
 
@@ -55,9 +65,17 @@ public class ChatQueue implements AutoCloseable {
   }
 
   private void queueTask(Task task) {
+    queueTask(task, true);
+  }
+
+  private void queueTask(Task task, boolean sentByClient) {
     synchronized (internalLock) {
       if (closed) {
         throw new IllegalStateException("ChatQueue has already been closed");
+      }
+
+      if (overflowed) {
+        return;
       }
 
       MinecraftConnection smc = player.getCurrentServer()
@@ -65,6 +83,15 @@ public class ChatQueue implements AutoCloseable {
           .orElse(null);
 
       if (smc == null) {
+        return;
+      }
+
+      if (sentByClient && pendingTasks.incrementAndGet() > MAX_PENDING_TASKS) {
+        pendingTasks.decrementAndGet();
+        overflowed = true;
+        LOGGER.warn("Disconnecting {}: chat packets waiting in its queue exceeded their limit "
+            + "({}).", player, MAX_PENDING_TASKS);
+        player.disconnect(Component.translatable("velocity.error.pending-chat-overflow"));
         return;
       }
 
@@ -78,6 +105,9 @@ public class ChatQueue implements AutoCloseable {
           return CompletableFuture.completedFuture(null);
         }
       });
+      if (sentByClient) {
+        head = head.whenComplete((ignored, throwable) -> pendingTasks.decrementAndGet());
+      }
     }
   }
 
@@ -111,6 +141,21 @@ public class ChatQueue implements AutoCloseable {
       T packet = packetFunction.apply(chatState);
       return writePacket(packet, smc);
     });
+  }
+
+  /**
+   * Queues a packet the proxy itself sends in the player's name, such as spoofed chat input. It
+   * keeps its place in the order like any other, but does not count toward the limit on packets
+   * the client may have waiting, since the client did not send it.
+   *
+   * @param packetFunction a function that maps the prior {@link ChatState} into a new packet.
+   * @param <T>            the type of packet to send.
+   */
+  public <T extends MinecraftPacket> void queueProxyPacket(Function<ChatState, T> packetFunction) {
+    queueTask((chatState, smc) -> {
+      T packet = packetFunction.apply(chatState);
+      return writePacket(packet, smc);
+    }, false);
   }
 
   public void handleAcknowledgement(int offset) {
