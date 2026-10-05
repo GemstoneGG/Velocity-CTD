@@ -426,17 +426,13 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
     ConnectedPlayer player = serverConn.getPlayer();
 
-    smc.write(FinishedUpdatePacket.INSTANCE);
     if (serverConn == player.getConnectedServer()) {
       smc.setActiveSessionHandler(StateRegistry.PLAY);
-      player.sendPlayerListHeaderAndFooter(player.getPlayerListHeader(), player.getPlayerListFooter());
-      // The client cleared the tab list. TODO: Restore changes done via TabList API
-      player.getTabList().clearAllSilent();
     } else {
       smc.setActiveSessionHandler(StateRegistry.PLAY, new TransitionSessionHandler(server, serverConn, resultFuture));
     }
 
-    // The backend switches to PLAY only once it reads the acknowledgement above, and JoinGame is the
+    // The backend switches to PLAY only once it reads our acknowledgement, and JoinGame is the
     // first packet it sends there; configuration packets it sent before then may still arrive.
     smc.getChannel().pipeline().get(MinecraftDecoder.class).awaitState(StateRegistry.CONFIG,
         StateRegistry.PLAY, StateRegistry.PLAY.getProtocolRegistry(
@@ -454,6 +450,23 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
       // The proxy answers this backend's keepalives until the player catches up, so the backend no
       // longer times out a player that went silent; the player's own read-timeout does.
       player.resumeReadTimeout();
+    }
+
+    // ViaVersion can synchronously release queued PLAY packets while processing this acknowledgement.
+    // Prepare the session, decoder and optional inbound queue before writing it. The encoder is now
+    // in PLAY, so encode the empty acknowledgement explicitly with its CONFIG packet ID.
+    int acknowledgementId = StateRegistry.CONFIG.getProtocolRegistry(
+        ProtocolUtils.Direction.SERVERBOUND, smc.getProtocolVersion())
+        .getPacketId(FinishedUpdatePacket.INSTANCE);
+    ByteBuf acknowledgement = smc.getChannel().alloc().buffer(
+        ProtocolUtils.varIntBytes(acknowledgementId));
+    ProtocolUtils.writeVarInt(acknowledgement, acknowledgementId);
+    smc.write(acknowledgement);
+
+    if (serverConn == player.getConnectedServer()) {
+      player.sendPlayerListHeaderAndFooter(player.getPlayerListHeader(), player.getPlayerListFooter());
+      // The client cleared the tab list. TODO: Restore changes done via TabList API
+      player.getTabList().clearAllSilent();
     }
   }
 
