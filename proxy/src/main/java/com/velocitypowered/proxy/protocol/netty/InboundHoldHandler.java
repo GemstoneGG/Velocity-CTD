@@ -26,11 +26,6 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * Holds every inbound message that reaches it and passes them on, in order, once it is removed.
- *
- * <p>It sits in front of the {@link MinecraftDecoder} while a protocol step writes a packet that
- * asks the peer to change state and then switches to that state itself. A handler in the pipeline
- * may answer that packet before its write returns, and the answer has to be decoded and handled in
- * the state the step switches to, not the one it is leaving.
  */
 public class InboundHoldHandler extends ChannelInboundHandlerAdapter {
 
