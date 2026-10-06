@@ -47,6 +47,7 @@ import com.velocitypowered.proxy.protocol.MinecraftPacket;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
 import com.velocitypowered.proxy.protocol.VelocityConnectionEvent;
+import com.velocitypowered.proxy.protocol.netty.InboundHoldHandler;
 import com.velocitypowered.proxy.protocol.netty.MinecraftCipherDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftCipherEncoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftCompressDecoder;
@@ -744,6 +745,28 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
   public void removePlayPacketQueueInboundHandler() {
     if (this.channel.pipeline().get(Connections.PLAY_PACKET_QUEUE_INBOUND) != null) {
       this.channel.pipeline().remove(Connections.PLAY_PACKET_QUEUE_INBOUND);
+    }
+  }
+
+  /**
+   * Runs a protocol step that writes a packet asking the peer to change state and then switches
+   * this connection to that state, holding back whatever reaches the decoder meanwhile until the
+   * step is done. A handler in the pipeline may answer the packet before its write returns, and the
+   * answer is then decoded and handled in the state the step switched to.
+   *
+   * @param step the step to run
+   */
+  public void holdInboundDuring(Runnable step) {
+    ensureInEventLoop();
+
+    this.channel.pipeline().addBefore(MINECRAFT_DECODER, Connections.INBOUND_HOLD,
+        new InboundHoldHandler());
+    try {
+      step.run();
+    } finally {
+      if (this.channel.pipeline().get(Connections.INBOUND_HOLD) != null) {
+        this.channel.pipeline().remove(Connections.INBOUND_HOLD);
+      }
     }
   }
 

@@ -30,6 +30,7 @@ public class Connections {
   public static final String FRAME_DECODER = "frame-decoder";
   public static final String FRAME_ENCODER = "frame-encoder";
   public static final String HANDLER = "handler";
+  public static final String INBOUND_HOLD = "inbound-hold";
   public static final String LEGACY_PING_DECODER = "legacy-ping-decoder";
   public static final String LEGACY_PING_ENCODER = "legacy-ping-encoder";
   public static final String MINECRAFT_DECODER = "minecraft-decoder";

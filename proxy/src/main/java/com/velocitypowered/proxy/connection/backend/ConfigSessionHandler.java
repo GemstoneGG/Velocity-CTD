@@ -424,6 +424,12 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
     }
     backendAdvancedToPlay = true;
 
+    // A handler on the backend's pipeline may deliver the backend's PLAY packets while the
+    // acknowledgement is still being written; they wait until this connection is in PLAY.
+    smc.holdInboundDuring(() -> acknowledgeAndSwitchToPlay(smc, buffer));
+  }
+
+  private void acknowledgeAndSwitchToPlay(MinecraftConnection smc, boolean buffer) {
     ConnectedPlayer player = serverConn.getPlayer();
 
     smc.write(FinishedUpdatePacket.INSTANCE);
