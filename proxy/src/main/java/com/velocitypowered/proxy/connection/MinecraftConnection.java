@@ -782,8 +782,13 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
   public void setProtocolVersion(ProtocolVersion protocolVersion) {
     ensureInEventLoop();
 
-    boolean changed = this.protocolVersion != protocolVersion;
+    final boolean changed = this.protocolVersion != protocolVersion;
     this.protocolVersion = protocolVersion;
+    final MinecraftVarintFrameDecoder frameDecoder = this.channel.pipeline()
+        .get(MinecraftVarintFrameDecoder.class);
+    if (frameDecoder != null) {
+      frameDecoder.setProtocolVersion(protocolVersion);
+    }
     if (protocolVersion != ProtocolVersion.LEGACY) {
       this.channel.pipeline().get(MinecraftEncoder.class).setProtocolVersion(protocolVersion);
       this.channel.pipeline().get(MinecraftDecoder.class).setProtocolVersion(protocolVersion);
@@ -881,6 +886,12 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
   public void setCompressionThreshold(int threshold) {
     ensureOpen();
     ensureInEventLoop();
+
+    final MinecraftVarintFrameDecoder frameDecoder = channel.pipeline()
+        .get(MinecraftVarintFrameDecoder.class);
+    if (frameDecoder != null) {
+      frameDecoder.setCompressionEnabled(threshold != -1);
+    }
 
     if (threshold == -1) {
       final ChannelHandler removedDecoder = channel.pipeline().remove(COMPRESSION_DECODER);
