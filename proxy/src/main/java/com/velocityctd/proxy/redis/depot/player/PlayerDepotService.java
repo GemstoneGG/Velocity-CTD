@@ -143,12 +143,19 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
       for (ExecutorService lane : this.playerTasks) {
         long left = deadline - System.nanoTime();
         if (left <= 0 || !lane.awaitTermination(left, TimeUnit.NANOSECONDS)) {
-          LOGGER.warn("Player depot calls still queued after {} seconds, they are dropped", DRAIN_SECONDS);
+          LOGGER.warn("Player depot calls still running after {} seconds, they are cancelled", DRAIN_SECONDS);
           break;
         }
       }
     } catch (InterruptedException exception) {
       Thread.currentThread().interrupt();
+    }
+
+    // A call still running past the deadline is interrupted, and every write checks the shutdown
+    // flag first, so nothing is written after the sweep below. A command already sent goes ahead
+    // of the sweep on the same connection, so the sweep removes it.
+    for (ExecutorService lane : this.playerTasks) {
+      lane.shutdownNow();
     }
 
     // Every entry this proxy owns, not only those of who is online: a quit still queued when
@@ -177,6 +184,8 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
     try {
       return CompletableFuture.supplyAsync(() -> this.onPlayerConnect(player), this.laneOf(player.getUniqueId()));
     } catch (RejectedExecutionException exception) {
+      // Shutting down: the login cannot be recorded, so it is turned away rather than left waiting.
+      player.disconnect(Component.translatable("velocity.kick.shutdown"));
       return CompletableFuture.completedFuture(false);
     }
   }
@@ -194,6 +203,17 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
     }
 
     this.runLater(player, "disconnect", () -> this.removeOwnEntry(player));
+  }
+
+  /**
+   * Removes the entry written for a login whose connection closed while the duplicate check ran,
+   * on the player's lane. The teardown released the identity lock long before, so whether another
+   * connection replaced the player says nothing here; the entry only goes if this proxy owns it.
+   *
+   * @param player the player whose login was abandoned
+   */
+  public void onPlayerLoginAbortedAsync(ConnectedPlayer player) {
+    this.runLater(player, "abandoned login", () -> this.removeOwnEntry(player));
   }
 
   /**
@@ -267,19 +287,6 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
   }
 
   /**
-   * Called when a {@link ConnectedPlayer} disconnects from the proxy.
-   *
-   * @param player the player that disconnected
-   */
-  public void onPlayerDisconnect(ConnectedPlayer player) {
-    if (this.isReplaced(player)) {
-      return;
-    }
-
-    this.removeOwnEntry(player);
-  }
-
-  /**
    * Whether another connection of the same player is registered on this proxy already, which
    * owns the entry from then on.
    */
@@ -315,6 +322,10 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    * @param serverName the name of the server that the player switched to
    */
   public void onPlayerSwitchServer(ConnectedPlayer player, String serverName) {
+    if (this.redis.isShutdown()) {
+      return;
+    }
+
     PlayerEntry playerEntry = this.getPlayerEntry(player.getUniqueId());
     if (playerEntry == null) {
       return;
@@ -326,6 +337,10 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
     }
 
     playerEntry.setServerName(serverName);
+    if (this.redis.isShutdown()) {
+      return;
+    }
+
     playerEntry.upsert();
   }
 
@@ -440,6 +455,10 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    * @param player the {@link ConnectedPlayer} object representing the player for whom the entry is to be upserted; must not be null
    */
   public void upsertPlayerEntry(@NotNull ConnectedPlayer player) {
+    if (this.redis.isShutdown()) {
+      return;
+    }
+
     PlayerEntry playerEntry = new PlayerEntry(player, this.redis.getProxyId());
     playerEntry.setDepot(this.depot);
 

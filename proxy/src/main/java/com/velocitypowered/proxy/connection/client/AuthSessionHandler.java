@@ -336,13 +336,15 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
           if (mcConnection.isClosed()) {
             // Closed while the cluster was asked: the teardown skipped the cluster, which had not
             // registered the player yet, so the entry written meanwhile is taken out here.
-            this.server.getClusterPlayerService().onPlayerDisconnect(player);
+            this.server.getClusterPlayerService().onPlayerLoginAborted(player);
             return;
           }
 
           this.sendLoginSuccess(player);
         }, mcConnection.eventLoop()).exceptionally((ex) -> {
           LOGGER.error("Exception while registering {} with the cluster", player, ex);
+          // Without this the client waits on the login screen until the login watchdog fires.
+          player.disconnect(Component.translatable("velocity.error.player-connection-error", NamedTextColor.RED));
           return null;
         });
       }

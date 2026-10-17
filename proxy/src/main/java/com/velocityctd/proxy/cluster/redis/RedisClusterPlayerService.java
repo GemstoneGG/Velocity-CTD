@@ -117,6 +117,11 @@ public final class RedisClusterPlayerService implements VelocityClusterPlayerSer
   }
 
   @Override
+  public void onPlayerLoginAborted(ConnectedPlayer player) {
+    playerService().onPlayerLoginAbortedAsync(player);
+  }
+
+  @Override
   public void onPlayerDisconnect(ConnectedPlayer player) {
     playerService().onPlayerDisconnectAsync(player);
 

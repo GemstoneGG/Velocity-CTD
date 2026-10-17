@@ -24,6 +24,7 @@ import com.velocityctd.proxy.redis.provider.LettuceProvider;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -223,18 +224,22 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
     }
 
     List<String> proxyIds = this.getAllProxyIds();
-    this.knownProxyIds = proxyIds;
+    List<String> living = new ArrayList<>(proxyIds.size());
     for (String proxyId : proxyIds) {
       if (proxyId.equalsIgnoreCase(this.redis.getProxyId())) {
+        living.add(proxyId);
         continue; // Never reap ourselves.
       }
 
       if (this.isAlive(proxyId)) {
+        living.add(proxyId);
         continue;
       }
 
       reapProxy(proxyId);
     }
+
+    this.knownProxyIds = List.copyOf(living);
   }
 
   /**

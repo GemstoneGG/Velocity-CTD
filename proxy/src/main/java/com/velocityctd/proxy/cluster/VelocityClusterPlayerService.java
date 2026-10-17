@@ -89,5 +89,15 @@ public interface VelocityClusterPlayerService extends ClusterPlayerService {
 
   void onPlayerDisconnect(ConnectedPlayer player);
 
+  /**
+   * Forgets a player whose connection closed while {@link #onPlayerConnectAsync} was still
+   * deciding, so whatever it recorded meanwhile does not outlive the connection.
+   *
+   * @param player the player whose login was abandoned
+   */
+  default void onPlayerLoginAborted(ConnectedPlayer player) {
+    onPlayerDisconnect(player);
+  }
+
   void onPlayerSwitchServer(ConnectedPlayer player, @Nullable String previousServerName, String serverName);
 }
