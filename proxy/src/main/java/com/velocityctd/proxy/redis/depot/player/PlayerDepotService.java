@@ -59,6 +59,11 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
   private static final long DRAIN_SECONDS = 5L;
 
   /**
+   * How many threads the player calls are spread over. A player always lands on the same one.
+   */
+  private static final int LANES = 8;
+
+  /**
    * The Redis manager used to coordinate multi-proxy player synchronization.
    */
   private final VelocityRedis redis;
@@ -96,14 +101,14 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
   private volatile List<PlayerEntry> syncedPlayerEntries = List.of();
 
   /**
-   * The thread every join, server switch and quit reaches Redis on. These used to run on the
+   * The threads every join, server switch and quit reaches Redis on. These used to run on the
    * player's network thread, where each call waited for Redis, behind the whole-depot reads on
-   * the same connection, and froze every other player on that thread meanwhile. One thread keeps
-   * them in the order they happened, so a quick reconnect never sees its own old entry removed
-   * after the new one was written.
+   * the same connection, and froze every other player on that thread meanwhile. A player's calls
+   * always go to the same lane, which keeps them in the order they happened, so a quick reconnect
+   * never sees its own old entry removed after the new one was written; other players' calls run
+   * on the other lanes meanwhile, so a burst of joins does not queue behind one thread.
    */
-  private final ExecutorService playerTasks = Executors.newSingleThreadExecutor(
-      Thread.ofPlatform().name("Velocity-CTD - Player Depot").daemon(true).factory());
+  private final ExecutorService[] playerTasks = createLanes();
 
   /**
    * Constructs a new {@link PlayerDepotService}.
@@ -129,10 +134,18 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
 
   @Override
   public void teardown() {
-    this.playerTasks.shutdown();
+    for (ExecutorService lane : this.playerTasks) {
+      lane.shutdown();
+    }
+
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(DRAIN_SECONDS);
     try {
-      if (!this.playerTasks.awaitTermination(DRAIN_SECONDS, TimeUnit.SECONDS)) {
-        LOGGER.warn("Player depot calls still queued after {} seconds, they are dropped", DRAIN_SECONDS);
+      for (ExecutorService lane : this.playerTasks) {
+        long left = deadline - System.nanoTime();
+        if (left <= 0 || !lane.awaitTermination(left, TimeUnit.NANOSECONDS)) {
+          LOGGER.warn("Player depot calls still queued after {} seconds, they are dropped", DRAIN_SECONDS);
+          break;
+        }
       }
     } catch (InterruptedException exception) {
       Thread.currentThread().interrupt();
@@ -162,7 +175,7 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    */
   public CompletableFuture<Boolean> onPlayerConnectAsync(ConnectedPlayer player) {
     try {
-      return CompletableFuture.supplyAsync(() -> this.onPlayerConnect(player), this.playerTasks);
+      return CompletableFuture.supplyAsync(() -> this.onPlayerConnect(player), this.laneOf(player.getUniqueId()));
     } catch (RejectedExecutionException exception) {
       return CompletableFuture.completedFuture(false);
     }
@@ -180,7 +193,7 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
       return;
     }
 
-    this.runLater("disconnect of " + player.getUsername(), () -> this.removeOwnEntry(player));
+    this.runLater(player, "disconnect", () -> this.removeOwnEntry(player));
   }
 
   /**
@@ -190,21 +203,35 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    * @param serverName the name of the server that the player switched to
    */
   public void onPlayerSwitchServerAsync(ConnectedPlayer player, String serverName) {
-    this.runLater("server switch of " + player.getUsername(), () -> this.onPlayerSwitchServer(player, serverName));
+    this.runLater(player, "server switch", () -> this.onPlayerSwitchServer(player, serverName));
   }
 
-  private void runLater(String what, Runnable task) {
+  private void runLater(ConnectedPlayer player, String what, Runnable task) {
     try {
-      this.playerTasks.execute(() -> {
+      this.laneOf(player.getUniqueId()).execute(() -> {
         try {
           task.run();
         } catch (RuntimeException exception) {
-          LOGGER.error("Could not record the {} in Redis", what, exception);
+          LOGGER.error("Could not record the {} of {} in Redis", what, player.getUsername(), exception);
         }
       });
     } catch (RejectedExecutionException exception) {
       // Shutting down: teardown clears this proxy's entries anyway.
     }
+  }
+
+  private ExecutorService laneOf(UUID uniqueId) {
+    return this.playerTasks[Math.floorMod(uniqueId.hashCode(), this.playerTasks.length)];
+  }
+
+  private static ExecutorService[] createLanes() {
+    ExecutorService[] lanes = new ExecutorService[LANES];
+    for (int i = 0; i < LANES; i++) {
+      lanes[i] = Executors.newSingleThreadExecutor(
+          Thread.ofPlatform().name("Velocity-CTD - Player Depot #" + i).daemon(true).factory());
+    }
+
+    return lanes;
   }
 
   /**
