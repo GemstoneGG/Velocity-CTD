@@ -329,9 +329,18 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
         // The cluster may ask Redis whether the player is online elsewhere; that answer is
         // awaited off the event loop, which serves every other player on it meanwhile.
         this.server.getClusterPlayerService().onPlayerConnectAsync(player).thenAcceptAsync(allowed -> {
-          if (allowed && !mcConnection.isClosed()) {
-            this.sendLoginSuccess(player);
+          if (!allowed) {
+            return;
           }
+
+          if (mcConnection.isClosed()) {
+            // Closed while the cluster was asked: the teardown skipped the cluster, which had not
+            // registered the player yet, so the entry written meanwhile is taken out here.
+            this.server.getClusterPlayerService().onPlayerDisconnect(player);
+            return;
+          }
+
+          this.sendLoginSuccess(player);
         }, mcConnection.eventLoop()).exceptionally((ex) -> {
           LOGGER.error("Exception while registering {} with the cluster", player, ex);
           return null;

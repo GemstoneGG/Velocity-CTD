@@ -138,8 +138,10 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
       Thread.currentThread().interrupt();
     }
 
-    for (ConnectedPlayer player : this.server.getOnlinePlayers()) {
-      this.depot.remove(player.getUniqueId());
+    // Every entry this proxy owns, not only those of who is online: a quit still queued when
+    // the drain ended returns early once Redis is shut down, and its entry would outlive us.
+    for (PlayerEntry entry : this.getPlayerEntriesOnProxy(this.redis.getProxyId())) {
+      this.depot.remove(entry.getUniqueId());
     }
 
     if (this.updateTotalPlayerCountTask != null) {
@@ -172,7 +174,13 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    * @param player the player that disconnected
    */
   public void onPlayerDisconnectAsync(ConnectedPlayer player) {
-    this.runLater("disconnect of " + player.getUsername(), () -> this.onPlayerDisconnect(player));
+    // Asked now, while the caller still holds the player's identity lock. On the depot's thread a
+    // reconnect may already be registered, and the old entry would be kept and refuse it.
+    if (this.isReplaced(player)) {
+      return;
+    }
+
+    this.runLater("disconnect of " + player.getUsername(), () -> this.removeOwnEntry(player));
   }
 
   /**
@@ -221,7 +229,8 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
         }
       } else {
         Component component = Component.translatable("velocity.error.already-connected-proxy.remote");
-        player.disconnect0(component, true);
+        // This may run on the depot's thread; the connection is only touched on its event loop.
+        player.getConnection().eventLoop().execute(() -> player.disconnect0(component, true));
         return false;
       }
     }
@@ -236,6 +245,26 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    * @param player the player that disconnected
    */
   public void onPlayerDisconnect(ConnectedPlayer player) {
+    if (this.isReplaced(player)) {
+      return;
+    }
+
+    this.removeOwnEntry(player);
+  }
+
+  /**
+   * Whether another connection of the same player is registered on this proxy already, which
+   * owns the entry from then on.
+   */
+  private boolean isReplaced(ConnectedPlayer player) {
+    ConnectedPlayer currentPlayer = this.server.getPlayer(player.getUniqueId()).orElse(null);
+    return currentPlayer != null && currentPlayer != player;
+  }
+
+  /**
+   * Removes the player's entry when this proxy owns it.
+   */
+  private void removeOwnEntry(ConnectedPlayer player) {
     if (this.redis.isShutdown()) {
       return;
     }
@@ -246,11 +275,6 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
     }
 
     if (!existing.getProxyId().equalsIgnoreCase(this.redis.getProxyId())) {
-      return;
-    }
-
-    ConnectedPlayer currentPlayer = this.server.getPlayer(player.getUniqueId()).orElse(null);
-    if (currentPlayer != null && currentPlayer != player) {
       return;
     }
 
@@ -266,6 +290,11 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
   public void onPlayerSwitchServer(ConnectedPlayer player, String serverName) {
     PlayerEntry playerEntry = this.getPlayerEntry(player.getUniqueId());
     if (playerEntry == null) {
+      return;
+    }
+
+    // A switch that ran late must not rewrite the entry of a proxy the player has moved to since.
+    if (!playerEntry.getProxyId().equalsIgnoreCase(this.redis.getProxyId())) {
       return;
     }
 
