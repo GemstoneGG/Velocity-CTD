@@ -87,6 +87,11 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
   private volatile boolean heartbeatPublished = false;
 
   /**
+   * Every proxy ID as of the last reap, which reads them every heartbeat anyway.
+   */
+  private volatile List<String> knownProxyIds = List.of();
+
+  /**
    * Whether the duplicate-{@code proxy-id} error has been logged once.
    */
   private final AtomicBoolean duplicateWarned = new AtomicBoolean(false);
@@ -102,6 +107,7 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
     this.redis = redis;
 
     this.depot.upsert(new ProxyEntry(redis.getServer()));
+    this.knownProxyIds = this.getAllProxyIds();
 
     this.heartbeatKeyPrefix = HEARTBEAT_KEY_TEMPLATE.formatted(
             redis.getProvider().getNamespace(),
@@ -145,6 +151,15 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
    */
   public List<String> getAllProxyIds() {
     return this.depot.keys().stream().sorted().toList();
+  }
+
+  /**
+   * Gets every proxy ID as of the last reap, without a remote lookup.
+   *
+   * @return the proxy IDs, sorted
+   */
+  public @NotNull List<String> getProxyIdsAsOfLastSync() {
+    return this.knownProxyIds;
   }
 
   /**
@@ -207,7 +222,9 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
       return;
     }
 
-    for (String proxyId : this.getAllProxyIds()) {
+    List<String> proxyIds = this.getAllProxyIds();
+    this.knownProxyIds = proxyIds;
+    for (String proxyId : proxyIds) {
       if (proxyId.equalsIgnoreCase(this.redis.getProxyId())) {
         continue; // Never reap ourselves.
       }

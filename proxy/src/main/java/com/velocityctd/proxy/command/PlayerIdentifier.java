@@ -152,14 +152,15 @@ public final class PlayerIdentifier {
       }
 
       if ((argument.isEmpty() || argument.startsWith("-")) && server.getClusterProxyService().isMultiProxy()) {
-        for (String id : server.getClusterProxyService().getAllProxyIds()) {
+        for (String id : server.getClusterProxyService().getProxyIdsAsOfLastSync()) {
           if (id.regionMatches(true, 0, argument, 1, argument.length() - 1)) {
             builder.suggest("-" + id);
           }
         }
       }
 
-      for (String playerName : server.getClusterPlayerService().getPlayerNames()) {
+      // Suggestions are asked for on the player's network thread, so they never wait for Redis.
+      for (String playerName : server.getClusterPlayerService().getPlayerNamesAsOfLastSync()) {
         if (playerName.regionMatches(true, 0, argument, 0, argument.length())) {
           builder.suggest(playerName);
         }

@@ -44,6 +44,18 @@ public interface VelocityClusterPlayerService extends ClusterPlayerService {
    */
   Collection<VelocityClusterPlayer> getPlayersAsOfLastSync();
 
+  /**
+   * Gets the names of every player in the cluster as of the last player sync, without a remote
+   * lookup, for tab completion, which is asked for on a network thread.
+   *
+   * @return the player names as of the last sync
+   */
+  default Collection<String> getPlayerNamesAsOfLastSync() {
+    return getPlayersAsOfLastSync().stream()
+        .map(VelocityClusterPlayer::getUsername)
+        .toList();
+  }
+
   @Override
   Collection<VelocityClusterPlayer> getPlayersOnServer(String serverName);
 
