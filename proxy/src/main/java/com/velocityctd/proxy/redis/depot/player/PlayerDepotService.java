@@ -31,9 +31,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -43,6 +50,13 @@ import org.jetbrains.annotations.Unmodifiable;
  * functionality to track certain information about a single player, or multiple players.
  */
 public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerEntry> {
+
+  private static final Logger LOGGER = LogManager.getLogger(PlayerDepotService.class);
+
+  /**
+   * How long a shutdown waits for the player calls still queued before it clears the depot.
+   */
+  private static final long DRAIN_SECONDS = 5L;
 
   /**
    * The Redis manager used to coordinate multi-proxy player synchronization.
@@ -82,6 +96,16 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
   private volatile List<PlayerEntry> syncedPlayerEntries = List.of();
 
   /**
+   * The thread every join, server switch and quit reaches Redis on. These used to run on the
+   * player's network thread, where each call waited for Redis, behind the whole-depot reads on
+   * the same connection, and froze every other player on that thread meanwhile. One thread keeps
+   * them in the order they happened, so a quick reconnect never sees its own old entry removed
+   * after the new one was written.
+   */
+  private final ExecutorService playerTasks = Executors.newSingleThreadExecutor(
+      Thread.ofPlatform().name("Velocity-CTD - Player Depot").daemon(true).factory());
+
+  /**
    * Constructs a new {@link PlayerDepotService}.
    *
    * @param redis the {@link VelocityRedis} instance
@@ -105,6 +129,15 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
 
   @Override
   public void teardown() {
+    this.playerTasks.shutdown();
+    try {
+      if (!this.playerTasks.awaitTermination(DRAIN_SECONDS, TimeUnit.SECONDS)) {
+        LOGGER.warn("Player depot calls still queued after {} seconds, they are dropped", DRAIN_SECONDS);
+      }
+    } catch (InterruptedException exception) {
+      Thread.currentThread().interrupt();
+    }
+
     for (ConnectedPlayer player : this.server.getOnlinePlayers()) {
       this.depot.remove(player.getUniqueId());
     }
@@ -115,6 +148,54 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
 
     if (this.syncPlayerEntriesTask != null) {
       this.syncPlayerEntriesTask.cancel();
+    }
+  }
+
+  /**
+   * {@link #onPlayerConnect(ConnectedPlayer)} on the player depot's thread, so the network thread
+   * that logs the player in is free while Redis answers.
+   *
+   * @param player the player that connected
+   * @return completes with whether the player was added to the depot
+   */
+  public CompletableFuture<Boolean> onPlayerConnectAsync(ConnectedPlayer player) {
+    try {
+      return CompletableFuture.supplyAsync(() -> this.onPlayerConnect(player), this.playerTasks);
+    } catch (RejectedExecutionException exception) {
+      return CompletableFuture.completedFuture(false);
+    }
+  }
+
+  /**
+   * {@link #onPlayerDisconnect(ConnectedPlayer)} on the player depot's thread.
+   *
+   * @param player the player that disconnected
+   */
+  public void onPlayerDisconnectAsync(ConnectedPlayer player) {
+    this.runLater("disconnect of " + player.getUsername(), () -> this.onPlayerDisconnect(player));
+  }
+
+  /**
+   * {@link #onPlayerSwitchServer(ConnectedPlayer, String)} on the player depot's thread.
+   *
+   * @param player the player that switched servers
+   * @param serverName the name of the server that the player switched to
+   */
+  public void onPlayerSwitchServerAsync(ConnectedPlayer player, String serverName) {
+    this.runLater("server switch of " + player.getUsername(), () -> this.onPlayerSwitchServer(player, serverName));
+  }
+
+  private void runLater(String what, Runnable task) {
+    try {
+      this.playerTasks.execute(() -> {
+        try {
+          task.run();
+        } catch (RuntimeException exception) {
+          LOGGER.error("Could not record the {} in Redis", what, exception);
+        }
+      });
+    } catch (RejectedExecutionException exception) {
+      // Shutting down: teardown clears this proxy's entries anyway.
     }
   }
 
