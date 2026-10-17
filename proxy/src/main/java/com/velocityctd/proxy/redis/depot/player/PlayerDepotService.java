@@ -101,12 +101,8 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
   private volatile List<PlayerEntry> syncedPlayerEntries = List.of();
 
   /**
-   * The threads every join, server switch and quit reaches Redis on. These used to run on the
-   * player's network thread, where each call waited for Redis, behind the whole-depot reads on
-   * the same connection, and froze every other player on that thread meanwhile. A player's calls
-   * always go to the same lane, which keeps them in the order they happened, so a quick reconnect
-   * never sees its own old entry removed after the new one was written; other players' calls run
-   * on the other lanes meanwhile, so a burst of joins does not queue behind one thread.
+   * The threads joins, server switches and quits reach Redis on, so no network thread waits for
+   * Redis. A player's calls always go to the same lane, which keeps them in order.
    */
   private final ExecutorService[] playerTasks = createLanes();
 
@@ -151,15 +147,22 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
       Thread.currentThread().interrupt();
     }
 
-    // A call still running past the deadline is interrupted, and every write checks the shutdown
-    // flag first, so nothing is written after the sweep below. A command already sent goes ahead
-    // of the sweep on the same connection, so the sweep removes it.
+    // Queued calls return early, since Redis is flagged shut down, so the drain only waits for the
+    // calls in flight. One still running is interrupted; a command it already sent runs ahead of
+    // the sweep below on the same connection, and every write checks the flag first.
     for (ExecutorService lane : this.playerTasks) {
       lane.shutdownNow();
     }
 
-    // Every entry this proxy owns, not only those of who is online: a quit still queued when
-    // the drain ended returns early once Redis is shut down, and its entry would outlive us.
+    try {
+      for (ExecutorService lane : this.playerTasks) {
+        lane.awaitTermination(1L, TimeUnit.SECONDS);
+      }
+    } catch (InterruptedException exception) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Every entry this proxy owns, including those of quits that returned early above.
     for (PlayerEntry entry : this.getPlayerEntriesOnProxy(this.redis.getProxyId())) {
       this.depot.remove(entry.getUniqueId());
     }
@@ -207,13 +210,18 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
 
   /**
    * Removes the entry written for a login whose connection closed while the duplicate check ran,
-   * on the player's lane. The teardown released the identity lock long before, so whether another
-   * connection replaced the player says nothing here; the entry only goes if this proxy owns it.
+   * on the player's lane, unless a newer connection of the player has registered since.
    *
    * @param player the player whose login was abandoned
    */
   public void onPlayerLoginAbortedAsync(ConnectedPlayer player) {
-    this.runLater(player, "abandoned login", () -> this.removeOwnEntry(player));
+    this.runLater(player, "abandoned login", () -> {
+      // The abandoned connection is out of the registry already, so whoever is in it is newer
+      // and owns the entry; skipping is harmless, since that login writes the entry itself.
+      if (this.server.getPlayer(player.getUniqueId()).isEmpty()) {
+        this.removeOwnEntry(player);
+      }
+    });
   }
 
   /**
@@ -262,21 +270,20 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    */
   public boolean onPlayerConnect(ConnectedPlayer player) {
     if (this.redis.isShutdown()) {
+      player.disconnect(Component.translatable("velocity.kick.shutdown"));
       return false;
     }
 
-    if (this.depot.contains(player.getUniqueId())) {
+    // An entry this proxy owns is left over from an earlier connection: the player registry allows
+    // one connection per player here, so it is overwritten rather than refusing the login.
+    PlayerEntry existingEntry = this.depot.get(player.getUniqueId());
+    if (existingEntry != null && !existingEntry.getProxyId().equalsIgnoreCase(this.redis.getProxyId())) {
       if (this.server.getConfiguration().isKickExistingPlayers()) {
         Component component = Component.translatable("multiplayer.disconnect.duplicate_login");
-        PlayerEntry existingEntry = this.depot.get(player.getUniqueId());
-        // Only send a VelocityKick if the existing player is on a DIFFERENT proxy.
-        // If they are on this proxy, registerConnection() already kicked them locally.
-        if (existingEntry != null && !existingEntry.getProxyId().equalsIgnoreCase(this.redis.getProxyId())) {
-          this.redis.publish(new VelocityKick(player.getUniqueId(), component, existingEntry.getProxyId()));
-        }
+        this.redis.publish(new VelocityKick(player.getUniqueId(), component, existingEntry.getProxyId()));
       } else {
         Component component = Component.translatable("velocity.error.already-connected-proxy.remote");
-        // This may run on the depot's thread; the connection is only touched on its event loop.
+        // This runs on a depot lane; the connection is only touched on its event loop.
         player.getConnection().eventLoop().execute(() -> player.disconnect0(component, true));
         return false;
       }

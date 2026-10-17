@@ -326,8 +326,8 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
       if (reason.isPresent()) {
         player.disconnect0(reason.get(), true);
       } else {
-        // The cluster may ask Redis whether the player is online elsewhere; that answer is
-        // awaited off the event loop, which serves every other player on it meanwhile.
+        // The cluster may ask Redis whether the player is online elsewhere; that is awaited off
+        // the event loop.
         this.server.getClusterPlayerService().onPlayerConnectAsync(player).thenAcceptAsync(allowed -> {
           if (!allowed) {
             return;
@@ -342,7 +342,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
 
           this.sendLoginSuccess(player);
         }, mcConnection.eventLoop()).exceptionally((ex) -> {
-          LOGGER.error("Exception while registering {} with the cluster", player, ex);
+          LOGGER.error("Exception while completing the login of {}", player, ex);
           // Without this the client waits on the login screen until the login watchdog fires.
           player.disconnect(Component.translatable("velocity.error.player-connection-error", NamedTextColor.RED));
           return null;
