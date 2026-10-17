@@ -31,6 +31,7 @@ import com.velocityctd.proxy.redis.data.VelocitySudo;
 import com.velocityctd.proxy.redis.data.VelocitySwitchServer;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
+import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import java.util.function.BiConsumer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -160,12 +161,16 @@ public enum RouteHandlerRegistry {
 
     ConnectedPlayer player = server.getPlayer(data.uniqueId()).orElse(null);
     if (player == null) {
-      if (!server.getRedis().getPlayerService().isPlayerOnline(data.uniqueId())) {
-        VelocityQueueEntry entry = queue.getEntry(data.uniqueId());
-        if (entry != null) {
-          entry.abortTransfer();
+      // This runs on Lettuce's pub/sub thread, which must never wait for Redis, so asking
+      // whether the player is on another proxy is done on the scheduler instead.
+      server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, () -> {
+        if (!server.getRedis().getPlayerService().isPlayerOnline(data.uniqueId())) {
+          VelocityQueueEntry entry = queue.getEntry(data.uniqueId());
+          if (entry != null) {
+            entry.abortTransfer();
+          }
         }
-      }
+      }).schedule();
       return;
     }
 
