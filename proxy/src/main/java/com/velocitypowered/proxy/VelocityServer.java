@@ -962,9 +962,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     Runnable shutdownProcess = () -> {
       LOGGER.info("Shutting down the proxy...");
 
-      // Shutdown the connection manager, this should be
-      // done first to refuse new connections
-      cm.shutdown();
+      // Stop accepting new connections, but keep DNS available to pre-shutdown handlers.
+      cm.closeEndpoints(true);
 
       try {
         eventManager.fire(new ProxyPreShutdownEvent())
@@ -978,6 +977,8 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
         Thread.currentThread().interrupt();
         LOGGER.warn("Interrupted while waiting for ProxyPreShutdownEvent; continuing shutdown.");
       }
+
+      cm.shutdown();
 
       ImmutableList<@NotNull ConnectedPlayer> players = ImmutableList.copyOf(playerRegistry.getPlayers());
       ImmutableList<@NotNull UUID> playerUuids = players.stream()
