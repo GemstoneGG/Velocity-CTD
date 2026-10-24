@@ -23,6 +23,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -43,6 +44,18 @@ public interface VelocityClusterPlayerService extends ClusterPlayerService {
    */
   Collection<VelocityClusterPlayer> getPlayersAsOfLastSync();
 
+  /**
+   * Gets the names of every player in the cluster as of the last player sync, without a remote
+   * lookup, for tab completion, which is asked for on a network thread.
+   *
+   * @return the player names as of the last sync
+   */
+  default Collection<String> getPlayerNamesAsOfLastSync() {
+    return getPlayersAsOfLastSync().stream()
+        .map(VelocityClusterPlayer::getUsername)
+        .toList();
+  }
+
   @Override
   Collection<VelocityClusterPlayer> getPlayersOnServer(String serverName);
 
@@ -62,7 +75,29 @@ public interface VelocityClusterPlayerService extends ClusterPlayerService {
 
   boolean onPlayerConnect(ConnectedPlayer player);
 
+  /**
+   * Registers a player who just logged in, without holding up the calling thread. The login
+   * goes on once the future completes with {@code true}; {@code false} means the player was
+   * already turned away.
+   *
+   * @param player the player who logged in
+   * @return whether the login may go on
+   */
+  default CompletableFuture<Boolean> onPlayerConnectAsync(ConnectedPlayer player) {
+    return CompletableFuture.completedFuture(onPlayerConnect(player));
+  }
+
   void onPlayerDisconnect(ConnectedPlayer player);
+
+  /**
+   * Forgets a player whose connection closed while {@link #onPlayerConnectAsync} was still
+   * deciding, so whatever it recorded meanwhile does not outlive the connection.
+   *
+   * @param player the player whose login was abandoned
+   */
+  default void onPlayerLoginAborted(ConnectedPlayer player) {
+    onPlayerDisconnect(player);
+  }
 
   void onPlayerSwitchServer(ConnectedPlayer player, @Nullable String previousServerName, String serverName);
 }

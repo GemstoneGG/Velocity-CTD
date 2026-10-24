@@ -188,7 +188,7 @@ public class CommandUtils {
           ? ctx.getArgument(argName, String.class)
           : "";
 
-      List<String> possibilities = new ArrayList<>(server.getClusterProxyService().getAllProxyIds());
+      List<String> possibilities = new ArrayList<>(server.getClusterProxyService().getProxyIdsAsOfLastSync());
       possibilities.addAll(Arrays.asList(magicProxies));
 
       for (String possibility : possibilities) {
@@ -217,7 +217,8 @@ public class CommandUtils {
     String argument = ctx.getArguments().containsKey("player")
         ? ctx.getArgument("player", String.class)
         : "";
-    Collection<String> playerNames = server.getClusterPlayerService().getPlayerNames();
+    // Suggestions are asked for on the player's network thread, so they never wait for Redis.
+    Collection<String> playerNames = server.getClusterPlayerService().getPlayerNamesAsOfLastSync();
 
     for (String playerName : playerNames) {
       if (playerName.regionMatches(true, 0, argument, 0, argument.length())) {

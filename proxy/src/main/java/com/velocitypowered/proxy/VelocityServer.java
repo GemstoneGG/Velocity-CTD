@@ -43,6 +43,7 @@ import com.velocityctd.proxy.command.builtin.TransferCommand;
 import com.velocityctd.proxy.queue.RedisVelocityQueueManager;
 import com.velocityctd.proxy.queue.VelocityQueueManager;
 import com.velocityctd.proxy.redis.VelocityRedis;
+import com.velocityctd.proxy.redis.depot.player.PlayerEntry;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandMeta;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
@@ -112,6 +113,8 @@ import java.security.KeyPair;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -1091,6 +1094,19 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
     shutdown(true);
   }
 
+  /**
+   * Counts the players on every proxy as of the last player sync, once, rather than reading the
+   * whole player depot from Redis for every comparison of a sort.
+   */
+  private Map<String, Long> playersPerProxy() {
+    Map<String, Long> counts = new HashMap<>();
+    for (PlayerEntry entry : redis.getPlayerService().getSyncedPlayerEntries()) {
+      counts.merge(entry.getProxyId().toLowerCase(Locale.ROOT), 1L, Long::sum);
+    }
+
+    return counts;
+  }
+
   private @Nullable ProxyAddress getProxyAddressToUse() {
     if (!this.getClusterProxyService().isMultiProxy()) {
       return null;
@@ -1111,19 +1127,14 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
       }
       case MOST_EMPTY -> {
         // Sort to get most empty first
-        addresses.sort((o1, o2) -> {
-          int connectedSize1 = redis.getPlayerService().getPlayerEntriesOnProxy(o1.proxyId()).size();
-          int connectedSize2 = redis.getPlayerService().getPlayerEntriesOnProxy(o2.proxyId()).size();
-          return Long.compare(connectedSize1, connectedSize2);
-        });
+        Map<String, Long> counts = playersPerProxy();
+        addresses.sort(Comparator.comparingLong(address -> counts.getOrDefault(address.proxyId().toLowerCase(Locale.ROOT), 0L)));
       }
       case LEAST_EMPTY -> {
         // Sort to get least empty first
-        addresses.sort((o1, o2) -> {
-          int connectedSize1 = redis.getPlayerService().getPlayerEntriesOnProxy(o1.proxyId()).size();
-          int connectedSize2 = redis.getPlayerService().getPlayerEntriesOnProxy(o2.proxyId()).size();
-          return Long.compare(connectedSize2, connectedSize1);
-        });
+        Map<String, Long> counts = playersPerProxy();
+        addresses.sort(Comparator.<ProxyAddress>comparingLong(address -> counts.getOrDefault(address.proxyId().toLowerCase(Locale.ROOT), 0L))
+            .reversed());
       }
       case NONE -> {
         // No next address

@@ -326,38 +326,58 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
       if (reason.isPresent()) {
         player.disconnect0(reason.get(), true);
       } else {
-        if (!this.server.getClusterPlayerService().onPlayerConnect(player)) {
-          return;
-        }
+        // The cluster may ask Redis whether the player is online elsewhere; that is awaited off
+        // the event loop.
+        this.server.getClusterPlayerService().onPlayerConnectAsync(player).thenAcceptAsync(allowed -> {
+          if (!allowed) {
+            return;
+          }
 
-        player.fullyConnected();
+          if (mcConnection.isClosed()) {
+            // Closed while the cluster was asked: the teardown skipped the cluster, which had not
+            // registered the player yet, so the entry written meanwhile is taken out here.
+            this.server.getClusterPlayerService().onPlayerLoginAborted(player);
+            return;
+          }
 
-        ServerLoginSuccessPacket success = new ServerLoginSuccessPacket();
-        success.setUsername(player.getUsername());
-        success.setProperties(player.getGameProfileProperties());
-        success.setUuid(player.getUniqueId());
-        if (inbound.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_26_2)) {
-          success.setSessionId(server.getSessionId());
-        }
-        mcConnection.write(success);
-
-        loginState = State.SUCCESS_SENT;
-        if (inbound.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
-          loginState = State.ACKNOWLEDGED;
-          mcConnection.setActiveSessionHandler(StateRegistry.PLAY, new InitialConnectSessionHandler(player, server));
-          server.getEventManager().fire(new PostLoginEvent(player))
-              .whenComplete((ignored, throwable) -> server.getPlayerRegistry().finalizeLogin(player))
-              .thenCompose((ignored) -> connectToInitialServer(player))
-              .exceptionally((ex) -> {
-                LOGGER.error("Exception while connecting {} to initial server", player, ex);
-                return null;
-              });
-        }
+          this.sendLoginSuccess(player);
+        }, mcConnection.eventLoop()).exceptionally((ex) -> {
+          LOGGER.error("Exception while completing the login of {}", player, ex);
+          // Without this the client waits on the login screen until the login watchdog fires.
+          player.disconnect(Component.translatable("velocity.error.player-connection-error", NamedTextColor.RED));
+          return null;
+        });
       }
     }, mcConnection.eventLoop()).exceptionally((ex) -> {
       LOGGER.error("Exception while completing login initialisation phase for {}", player, ex);
       return null;
     });
+  }
+
+  private void sendLoginSuccess(ConnectedPlayer player) {
+    player.fullyConnected();
+
+    ServerLoginSuccessPacket success = new ServerLoginSuccessPacket();
+    success.setUsername(player.getUsername());
+    success.setProperties(player.getGameProfileProperties());
+    success.setUuid(player.getUniqueId());
+    if (inbound.getProtocolVersion().noLessThan(ProtocolVersion.MINECRAFT_26_2)) {
+      success.setSessionId(server.getSessionId());
+    }
+    mcConnection.write(success);
+
+    loginState = State.SUCCESS_SENT;
+    if (inbound.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_20_2)) {
+      loginState = State.ACKNOWLEDGED;
+      mcConnection.setActiveSessionHandler(StateRegistry.PLAY, new InitialConnectSessionHandler(player, server));
+      server.getEventManager().fire(new PostLoginEvent(player))
+          .whenComplete((ignored, throwable) -> server.getPlayerRegistry().finalizeLogin(player))
+          .thenCompose((ignored) -> connectToInitialServer(player))
+          .exceptionally((ex) -> {
+            LOGGER.error("Exception while connecting {} to initial server", player, ex);
+            return null;
+          });
+    }
   }
 
   private CompletableFuture<Void> connectToInitialServer(ConnectedPlayer player) {
