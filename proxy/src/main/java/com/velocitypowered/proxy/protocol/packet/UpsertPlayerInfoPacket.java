@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.protocol.packet;
 
+import com.velocityctd.proxy.tablist.SharedTabData;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.proxy.connection.MinecraftSessionHandler;
@@ -145,7 +146,7 @@ public class UpsertPlayerInfoPacket implements MinecraftPacket {
     }),
     INITIALIZE_CHAT((version, buf, info) -> { // read
       if (buf.readBoolean()) {
-        info.chatSession = new RemoteChatSession(version, buf);
+        info.chatSession = SharedTabData.readChatSession(version, buf);
       } else {
         info.chatSession = null;
       }

@@ -18,6 +18,7 @@
 package com.velocitypowered.proxy.protocol.packet;
 
 import com.google.common.collect.ImmutableList;
+import com.velocityctd.proxy.tablist.SharedTabData;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.crypto.IdentifiedKey;
 import com.velocitypowered.api.proxy.player.TabListEntry;
@@ -77,7 +78,7 @@ public class LegacyPlayerListItemPacket implements MinecraftPacket {
             item.setDisplayName(readOptionalComponent(buf, version));
             if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19)) {
               if (buf.readBoolean()) {
-                item.setPlayerKey(ProtocolUtils.readPlayerKey(version, buf));
+                item.setPlayerKey(SharedTabData.readPlayerKey(version, buf));
               }
             }
           }

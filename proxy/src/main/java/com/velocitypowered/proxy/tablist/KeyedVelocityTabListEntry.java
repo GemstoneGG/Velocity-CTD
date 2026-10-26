@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.tablist;
 
+import com.velocityctd.proxy.tablist.SharedTabData;
 import com.velocitypowered.api.proxy.crypto.IdentifiedKey;
 import com.velocitypowered.api.proxy.player.ChatSession;
 import com.velocitypowered.api.proxy.player.TabList;
@@ -46,7 +47,7 @@ public class KeyedVelocityTabListEntry implements TabListEntry {
                             @Nullable Component displayName, int latency,
                             int gameMode, @Nullable IdentifiedKey playerKey) {
     this.tabList = tabList;
-    this.profile = profile;
+    this.profile = SharedTabData.profile(profile);
     this.displayName = displayName;
     this.latency = latency;
     this.gameMode = gameMode;

@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.tablist;
 
+import com.velocityctd.proxy.tablist.SharedTabData;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.player.ChatSession;
 import com.velocitypowered.api.proxy.player.TabList;
@@ -50,7 +51,7 @@ public class VelocityTabListEntry implements TabListEntry {
                               int latency,
                               int gameMode, @Nullable ChatSession session, boolean listed, int listOrder, boolean showHat) {
     this.tabList = tabList;
-    this.profile = profile;
+    this.profile = SharedTabData.profile(profile);
     this.displayName = displayName;
     this.latency = latency;
     this.gameMode = gameMode;
