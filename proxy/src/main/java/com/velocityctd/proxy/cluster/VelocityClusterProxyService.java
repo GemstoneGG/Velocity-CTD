@@ -18,6 +18,7 @@
 package com.velocityctd.proxy.cluster;
 
 import com.velocityctd.api.cluster.ClusterProxyService;
+import java.util.Collection;
 
 /**
  * Provides proxy discovery and cross-proxy operations across the cluster.
@@ -25,4 +26,13 @@ import com.velocityctd.api.cluster.ClusterProxyService;
  * <p>Exposes more methods for the internal implementation module.
  */
 public interface VelocityClusterProxyService extends ClusterProxyService {
+
+  /**
+   * Gets the IDs of all proxies in the cluster as last read, without a remote lookup.
+   *
+   * @return the proxy IDs as last read
+   */
+  default Collection<String> getProxyIdsAsOfLastSync() {
+    return getAllProxyIds();
+  }
 }
