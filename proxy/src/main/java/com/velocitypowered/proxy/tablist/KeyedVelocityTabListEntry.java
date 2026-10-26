@@ -48,7 +48,7 @@ public class KeyedVelocityTabListEntry implements TabListEntry {
                             int gameMode, @Nullable IdentifiedKey playerKey) {
     this.tabList = tabList;
     this.profile = SharedTabData.profile(profile);
-    this.displayName = displayName;
+    this.displayName = SharedTabData.displayName(displayName);
     this.latency = latency;
     this.gameMode = gameMode;
     this.playerKey = playerKey;
@@ -71,13 +71,13 @@ public class KeyedVelocityTabListEntry implements TabListEntry {
 
   @Override
   public TabListEntry setDisplayName(@Nullable Component displayName) {
-    this.displayName = displayName;
+    this.displayName = SharedTabData.displayName(displayName);
     tabList.updateEntry(LegacyPlayerListItemPacket.UPDATE_DISPLAY_NAME, this);
     return this;
   }
 
   void setDisplayNameInternal(@Nullable Component displayName) {
-    this.displayName = displayName;
+    this.displayName = SharedTabData.displayName(displayName);
   }
 
   @Override

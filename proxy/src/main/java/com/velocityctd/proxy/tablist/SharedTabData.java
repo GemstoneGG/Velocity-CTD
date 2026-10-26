@@ -17,6 +17,8 @@
 
 package com.velocityctd.proxy.tablist;
 
+import com.google.common.collect.Interner;
+import com.google.common.collect.Interners;
 import com.velocityctd.proxy.util.WeakInterner;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.crypto.IdentifiedKey;
@@ -29,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import net.kyori.adventure.text.Component;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -46,6 +49,7 @@ public final class SharedTabData {
       new WeakInterner<>();
   private static final WeakInterner<ChatSessionKey, RemoteChatSession> CHAT_SESSIONS =
       new WeakInterner<>();
+  private static final Interner<Component> COMPONENTS = Interners.newWeakInterner();
 
   private SharedTabData() {
     throw new AssertionError();
@@ -91,6 +95,15 @@ public final class SharedTabData {
         property);
   }
 
+  /**
+   * Returns the shared component equal to {@code component}.
+   *
+   * @param component the display name to share, or {@code null}
+   * @return the shared component, or {@code null} when {@code component} is {@code null}
+   */
+  public static @Nullable Component displayName(@Nullable Component component) {
+    return component == null ? null : COMPONENTS.intern(component);
+  }
 
   /**
    * Reads a chat session like {@link RemoteChatSession#RemoteChatSession(ProtocolVersion, ByteBuf)}

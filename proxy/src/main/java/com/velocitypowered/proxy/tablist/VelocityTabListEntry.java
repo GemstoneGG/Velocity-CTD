@@ -52,7 +52,7 @@ public class VelocityTabListEntry implements TabListEntry {
                               int gameMode, @Nullable ChatSession session, boolean listed, int listOrder, boolean showHat) {
     this.tabList = tabList;
     this.profile = SharedTabData.profile(profile);
-    this.displayName = displayName;
+    this.displayName = SharedTabData.displayName(displayName);
     this.latency = latency;
     this.gameMode = gameMode;
     this.session = session;
@@ -83,7 +83,7 @@ public class VelocityTabListEntry implements TabListEntry {
 
   @Override
   public TabListEntry setDisplayName(@Nullable Component displayName) {
-    this.displayName = displayName;
+    this.displayName = SharedTabData.displayName(displayName);
     UpsertPlayerInfoPacket.Entry upsertEntry = this.tabList.createRawEntry(this);
     upsertEntry.setDisplayName(
             displayName == null
@@ -96,7 +96,7 @@ public class VelocityTabListEntry implements TabListEntry {
   }
 
   void setDisplayNameWithoutUpdate(@Nullable Component displayName) {
-    this.displayName = displayName;
+    this.displayName = SharedTabData.displayName(displayName);
   }
 
   @Override

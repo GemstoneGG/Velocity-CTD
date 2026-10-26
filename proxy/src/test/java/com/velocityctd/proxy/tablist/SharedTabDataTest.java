@@ -130,6 +130,19 @@ class SharedTabDataTest {
     assertNull(reference.get());
   }
 
+  @Test
+  void equalDisplayNamesShareOneInstance() {
+    Component first = SharedTabData.displayName(
+        Component.text("[VIP] ", NamedTextColor.GOLD).append(Component.text("Steve")));
+    Component second = SharedTabData.displayName(
+        Component.text("[VIP] ", NamedTextColor.GOLD).append(Component.text("Steve")));
+    Component other = SharedTabData.displayName(
+        Component.text("[VIP] ", NamedTextColor.RED).append(Component.text("Steve")));
+
+    assertSame(first, second);
+    assertNotSame(first, other);
+    assertNull(SharedTabData.displayName(null));
+  }
 
   @Test
   void equalChatSessionsShareOneInstanceAndKey() {
@@ -194,6 +207,8 @@ class SharedTabDataTest {
       TabListEntry entry = tabList.getEntry(playerId).orElseThrow();
       assertSame(first.getProfile(), entry.getProfile());
       assertSame(first.getChatSession(), entry.getChatSession());
+      assertSame(first.getDisplayNameComponent().orElseThrow(),
+          entry.getDisplayNameComponent().orElseThrow());
     }
   }
 
