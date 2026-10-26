@@ -154,7 +154,8 @@ public class ServerCommand implements BuiltinCommandDefinition {
     TextComponent.Builder serverTextComponent = Component.text()
             .content(serverInfo.getName());
 
-    final int connectedPlayers = server.getPlayersConnected().size();
+    // Players on every proxy as of the last cluster sync.
+    final long connectedPlayers = server.getTotalPlayerCount();
     final TranslatableComponent.Builder playersTextComponent = Component.translatable();
     if (connectedPlayers == 1) {
       playersTextComponent.key("velocity.command.server-tooltip-player-online");
