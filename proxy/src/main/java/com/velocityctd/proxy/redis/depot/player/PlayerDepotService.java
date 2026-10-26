@@ -31,9 +31,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -43,6 +50,18 @@ import org.jetbrains.annotations.Unmodifiable;
  * functionality to track certain information about a single player, or multiple players.
  */
 public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerEntry> {
+
+  private static final Logger LOGGER = LogManager.getLogger(PlayerDepotService.class);
+
+  /**
+   * How long teardown waits for running depot tasks.
+   */
+  private static final long SHUTDOWN_TIMEOUT_SECONDS = 5L;
+
+  /**
+   * The number of executors depot tasks are spread over.
+   */
+  private static final int EXECUTOR_COUNT = 8;
 
   /**
    * The Redis manager used to coordinate multi-proxy player synchronization.
@@ -82,6 +101,12 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
   private volatile List<PlayerEntry> syncedPlayerEntries = List.of();
 
   /**
+   * Executors running the depot's Redis calls off the network threads. A player's tasks always
+   * run on the same executor, so they stay in order.
+   */
+  private final ExecutorService[] executors = createExecutors();
+
+  /**
    * Constructs a new {@link PlayerDepotService}.
    *
    * @param redis the {@link VelocityRedis} instance
@@ -105,8 +130,41 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
 
   @Override
   public void teardown() {
-    for (ConnectedPlayer player : this.server.getOnlinePlayers()) {
-      this.depot.remove(player.getUniqueId());
+    for (ExecutorService executor : this.executors) {
+      executor.shutdown();
+    }
+
+    final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(SHUTDOWN_TIMEOUT_SECONDS);
+    try {
+      for (ExecutorService executor : this.executors) {
+        final long remaining = deadline - System.nanoTime();
+        if (remaining <= 0 || !executor.awaitTermination(remaining, TimeUnit.NANOSECONDS)) {
+          LOGGER.warn("Player depot tasks did not finish within {} seconds, interrupting them",
+              SHUTDOWN_TIMEOUT_SECONDS);
+          break;
+        }
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Queued tasks return early once Redis is shut down, so only running tasks are left. Every
+    // write checks the shutdown flag first, so interrupting them is safe.
+    for (ExecutorService executor : this.executors) {
+      executor.shutdownNow();
+    }
+
+    try {
+      for (ExecutorService executor : this.executors) {
+        executor.awaitTermination(1L, TimeUnit.SECONDS);
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Also covers disconnects that returned early because of the shutdown.
+    for (PlayerEntry entry : this.getPlayerEntriesOnProxy(this.redis.getProxyId())) {
+      this.depot.remove(entry.getUniqueId());
     }
 
     if (this.updateTotalPlayerCountTask != null) {
@@ -119,6 +177,91 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
   }
 
   /**
+   * Runs {@link #onPlayerConnect(ConnectedPlayer)} on the player's depot executor.
+   *
+   * @param player the player that connected
+   * @return a future completing with whether the player was added to the depot
+   */
+  public CompletableFuture<Boolean> onPlayerConnectAsync(ConnectedPlayer player) {
+    try {
+      return CompletableFuture.supplyAsync(() -> this.onPlayerConnect(player),
+          this.executorFor(player.getUniqueId()));
+    } catch (RejectedExecutionException e) {
+      // Shutting down, the login can't be recorded.
+      player.disconnect(Component.translatable("velocity.kick.shutdown"));
+      return CompletableFuture.completedFuture(false);
+    }
+  }
+
+  /**
+   * Removes the player's entry on the player's depot executor.
+   *
+   * @param player the player that disconnected
+   */
+  public void onPlayerDisconnectAsync(ConnectedPlayer player) {
+    // Must be checked while the identity lock is held, a reconnect may be registered by the time
+    // the task runs.
+    if (this.isReplaced(player)) {
+      return;
+    }
+
+    this.executeAsync(player, "disconnect", () -> this.removeOwnEntry(player));
+  }
+
+  /**
+   * Removes the entry of a login whose connection closed during the duplicate check.
+   *
+   * @param player the player whose login was aborted
+   */
+  public void onPlayerLoginAbortedAsync(ConnectedPlayer player) {
+    this.executeAsync(player, "aborted login", () -> {
+      // A registered player is a newer connection, which owns the entry.
+      if (this.server.getPlayer(player.getUniqueId()).isEmpty()) {
+        this.removeOwnEntry(player);
+      }
+    });
+  }
+
+  /**
+   * Runs {@link #onPlayerSwitchServer(ConnectedPlayer, String)} on the player's depot executor.
+   *
+   * @param player the player that switched servers
+   * @param serverName the name of the server that the player switched to
+   */
+  public void onPlayerSwitchServerAsync(ConnectedPlayer player, String serverName) {
+    this.executeAsync(player, "server switch", () -> this.onPlayerSwitchServer(player, serverName));
+  }
+
+  private void executeAsync(ConnectedPlayer player, String action, Runnable task) {
+    try {
+      this.executorFor(player.getUniqueId()).execute(() -> {
+        try {
+          task.run();
+        } catch (RuntimeException e) {
+          LOGGER.error("Failed to update the player depot for the {} of {}", action,
+              player.getUsername(), e);
+        }
+      });
+    } catch (RejectedExecutionException ignored) {
+      // Shutting down, teardown removes this proxy's entries.
+    }
+  }
+
+  private ExecutorService executorFor(UUID uniqueId) {
+    return this.executors[Math.floorMod(uniqueId.hashCode(), this.executors.length)];
+  }
+
+  private static ExecutorService[] createExecutors() {
+    final ExecutorService[] executors = new ExecutorService[EXECUTOR_COUNT];
+    for (int i = 0; i < EXECUTOR_COUNT; i++) {
+      executors[i] = Executors.newSingleThreadExecutor(
+          Thread.ofPlatform().name("Velocity-CTD - Player Depot #" + i).daemon(true).factory());
+    }
+
+    return executors;
+  }
+
+  /**
    * Called when a {@link ConnectedPlayer} connects to the proxy.
    *
    * @param player the player that connected
@@ -126,21 +269,21 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    */
   public boolean onPlayerConnect(ConnectedPlayer player) {
     if (this.redis.isShutdown()) {
+      player.disconnect(Component.translatable("velocity.kick.shutdown"));
       return false;
     }
 
-    if (this.depot.contains(player.getUniqueId())) {
+    // The player registry allows one connection per player, so an entry of this proxy is stale.
+    final PlayerEntry existingEntry = this.depot.get(player.getUniqueId());
+    if (existingEntry != null
+        && !existingEntry.getProxyId().equalsIgnoreCase(this.redis.getProxyId())) {
       if (this.server.getConfiguration().isKickExistingPlayers()) {
         Component component = Component.translatable("multiplayer.disconnect.duplicate_login");
-        PlayerEntry existingEntry = this.depot.get(player.getUniqueId());
-        // Only send a VelocityKick if the existing player is on a DIFFERENT proxy.
-        // If they are on this proxy, registerConnection() already kicked them locally.
-        if (existingEntry != null && !existingEntry.getProxyId().equalsIgnoreCase(this.redis.getProxyId())) {
-          this.redis.publish(new VelocityKick(player.getUniqueId(), component, existingEntry.getProxyId()));
-        }
+        this.redis.publish(new VelocityKick(player.getUniqueId(), component, existingEntry.getProxyId()));
       } else {
         Component component = Component.translatable("velocity.error.already-connected-proxy.remote");
-        player.disconnect0(component, true);
+        // We're on a depot executor, not the connection's event loop.
+        player.getConnection().eventLoop().execute(() -> player.disconnect0(component, true));
         return false;
       }
     }
@@ -150,11 +293,17 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
   }
 
   /**
-   * Called when a {@link ConnectedPlayer} disconnects from the proxy.
-   *
-   * @param player the player that disconnected
+   * Returns whether a newer connection of the player is registered on this proxy.
    */
-  public void onPlayerDisconnect(ConnectedPlayer player) {
+  private boolean isReplaced(ConnectedPlayer player) {
+    final ConnectedPlayer currentPlayer = this.server.getPlayer(player.getUniqueId()).orElse(null);
+    return currentPlayer != null && currentPlayer != player;
+  }
+
+  /**
+   * Removes the player's entry if this proxy owns it.
+   */
+  private void removeOwnEntry(ConnectedPlayer player) {
     if (this.redis.isShutdown()) {
       return;
     }
@@ -168,11 +317,6 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
       return;
     }
 
-    ConnectedPlayer currentPlayer = this.server.getPlayer(player.getUniqueId()).orElse(null);
-    if (currentPlayer != null && currentPlayer != player) {
-      return;
-    }
-
     this.depot.remove(player.getUniqueId());
   }
 
@@ -183,12 +327,25 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    * @param serverName the name of the server that the player switched to
    */
   public void onPlayerSwitchServer(ConnectedPlayer player, String serverName) {
+    if (this.redis.isShutdown()) {
+      return;
+    }
+
     PlayerEntry playerEntry = this.getPlayerEntry(player.getUniqueId());
     if (playerEntry == null) {
       return;
     }
 
+    // The player may have moved to another proxy since.
+    if (!playerEntry.getProxyId().equalsIgnoreCase(this.redis.getProxyId())) {
+      return;
+    }
+
     playerEntry.setServerName(serverName);
+    if (this.redis.isShutdown()) {
+      return;
+    }
+
     playerEntry.upsert();
   }
 
@@ -303,6 +460,10 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    * @param player the {@link ConnectedPlayer} object representing the player for whom the entry is to be upserted; must not be null
    */
   public void upsertPlayerEntry(@NotNull ConnectedPlayer player) {
+    if (this.redis.isShutdown()) {
+      return;
+    }
+
     PlayerEntry playerEntry = new PlayerEntry(player, this.redis.getProxyId());
     playerEntry.setDepot(this.depot);
 

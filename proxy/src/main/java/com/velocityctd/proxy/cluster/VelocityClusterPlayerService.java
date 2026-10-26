@@ -23,6 +23,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -62,7 +63,27 @@ public interface VelocityClusterPlayerService extends ClusterPlayerService {
 
   boolean onPlayerConnect(ConnectedPlayer player);
 
+  /**
+   * Registers a player that just logged in without blocking the calling thread.
+   *
+   * @param player the player that logged in
+   * @return a future completing with whether the login may continue, {@code false} if the player
+   *     was disconnected
+   */
+  default CompletableFuture<Boolean> onPlayerConnectAsync(ConnectedPlayer player) {
+    return CompletableFuture.completedFuture(onPlayerConnect(player));
+  }
+
   void onPlayerDisconnect(ConnectedPlayer player);
+
+  /**
+   * Called when a connection closes while {@link #onPlayerConnectAsync} is still running.
+   *
+   * @param player the player whose login was aborted
+   */
+  default void onPlayerLoginAborted(ConnectedPlayer player) {
+    onPlayerDisconnect(player);
+  }
 
   void onPlayerSwitchServer(ConnectedPlayer player, @Nullable String previousServerName, String serverName);
 }

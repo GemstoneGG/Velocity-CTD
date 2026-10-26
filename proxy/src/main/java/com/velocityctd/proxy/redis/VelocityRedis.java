@@ -75,7 +75,7 @@ public final class VelocityRedis {
   /**
    * Whether the Redis module has been shutdown.
    */
-  private boolean shutdown = false;
+  private volatile boolean shutdown = false;
 
   /**
    * Constructs a new {@link VelocityRedis} instance.
