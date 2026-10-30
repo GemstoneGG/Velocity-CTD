@@ -41,6 +41,11 @@ public final class RedisClusterProxyService implements VelocityClusterProxyServi
   }
 
   @Override
+  public Collection<String> getProxyIdsAsOfLastSync() {
+    return this.redis.getProxyService().getProxyIdsAsOfLastSync();
+  }
+
+  @Override
   public String getSelfProxyId() {
     return this.redis.getProxyId();
   }

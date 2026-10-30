@@ -30,6 +30,7 @@ import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.Nullable;
 
@@ -75,6 +76,13 @@ public final class RedisClusterPlayerService implements VelocityClusterPlayerSer
   }
 
   @Override
+  public Collection<String> getPlayerNamesAsOfLastSync() {
+    return playerService().getSyncedPlayerEntries().stream()
+        .map(PlayerEntry::getUsername)
+        .toList();
+  }
+
+  @Override
   public Collection<VelocityClusterPlayer> getPlayersOnServer(String serverName) {
     return playerService().getPlayerEntriesInServer(serverName).stream()
         .<VelocityClusterPlayer>map(this::toRedisPlayer)
@@ -111,8 +119,18 @@ public final class RedisClusterPlayerService implements VelocityClusterPlayerSer
   }
 
   @Override
+  public CompletableFuture<Boolean> onPlayerConnectAsync(ConnectedPlayer player) {
+    return playerService().onPlayerConnectAsync(player);
+  }
+
+  @Override
+  public void onPlayerLoginAborted(ConnectedPlayer player) {
+    playerService().onPlayerLoginAbortedAsync(player);
+  }
+
+  @Override
   public void onPlayerDisconnect(ConnectedPlayer player) {
-    playerService().onPlayerDisconnect(player);
+    playerService().onPlayerDisconnectAsync(player);
 
     if (server.isQueueEnabled()) {
       // The queue system is currently the only consumer of `VelocityBackendLeave`,
@@ -127,7 +145,7 @@ public final class RedisClusterPlayerService implements VelocityClusterPlayerSer
 
   @Override
   public void onPlayerSwitchServer(ConnectedPlayer player, @Nullable String previousServerName, String serverName) {
-    playerService().onPlayerSwitchServer(player, serverName);
+    playerService().onPlayerSwitchServerAsync(player, serverName);
 
     if (server.isQueueEnabled() && previousServerName != null) {
       // The queue system is currently the only consumer of `VelocityBackendLeave`,

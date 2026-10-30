@@ -24,6 +24,7 @@ import com.velocityctd.proxy.redis.provider.LettuceProvider;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -87,6 +88,11 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
   private volatile boolean heartbeatPublished = false;
 
   /**
+   * The proxy IDs that were alive at the last reap.
+   */
+  private volatile List<String> knownProxyIds = List.of();
+
+  /**
    * Whether the duplicate-{@code proxy-id} error has been logged once.
    */
   private final AtomicBoolean duplicateWarned = new AtomicBoolean(false);
@@ -102,6 +108,7 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
     this.redis = redis;
 
     this.depot.upsert(new ProxyEntry(redis.getServer()));
+    this.knownProxyIds = this.getAllProxyIds();
 
     this.heartbeatKeyPrefix = HEARTBEAT_KEY_TEMPLATE.formatted(
             redis.getProvider().getNamespace(),
@@ -145,6 +152,15 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
    */
   public List<String> getAllProxyIds() {
     return this.depot.keys().stream().sorted().toList();
+  }
+
+  /**
+   * Gets every proxy ID as of the last reap, without a remote lookup.
+   *
+   * @return the proxy IDs, sorted
+   */
+  public @NotNull List<String> getProxyIdsAsOfLastSync() {
+    return this.knownProxyIds;
   }
 
   /**
@@ -207,17 +223,23 @@ public final class ProxyDepotService extends AbstractDepotService<String, ProxyE
       return;
     }
 
-    for (String proxyId : this.getAllProxyIds()) {
+    final List<String> proxyIds = this.getAllProxyIds();
+    final List<String> aliveProxyIds = new ArrayList<>(proxyIds.size());
+    for (String proxyId : proxyIds) {
       if (proxyId.equalsIgnoreCase(this.redis.getProxyId())) {
+        aliveProxyIds.add(proxyId);
         continue; // Never reap ourselves.
       }
 
       if (this.isAlive(proxyId)) {
+        aliveProxyIds.add(proxyId);
         continue;
       }
 
       reapProxy(proxyId);
     }
+
+    this.knownProxyIds = List.copyOf(aliveProxyIds);
   }
 
   /**
