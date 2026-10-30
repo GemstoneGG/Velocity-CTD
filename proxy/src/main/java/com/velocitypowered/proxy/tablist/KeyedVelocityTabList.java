@@ -18,7 +18,6 @@
 package com.velocitypowered.proxy.tablist;
 
 import com.google.common.base.Preconditions;
-import com.velocityctd.proxy.tablist.SharedTabData;
 import com.velocitypowered.api.proxy.crypto.IdentifiedKey;
 import com.velocitypowered.api.proxy.player.ChatSession;
 import com.velocitypowered.api.proxy.player.TabListEntry;
@@ -196,16 +195,17 @@ public class KeyedVelocityTabList implements InternalTabList {
             throw new IllegalStateException("Got null game profile for ADD_PLAYER");
           }
 
-          // Key by the shared profile's UUID, not the copy decoded for this packet.
-          final GameProfile profile = SharedTabData.profile(new GameProfile(uuid, name, properties));
-          entries.putIfAbsent(profile.getId(), (KeyedVelocityTabListEntry) TabListEntry.builder()
+          // The entry interns the profile, so key by the shared profile's UUID, not the copy
+          // decoded for this packet.
+          final KeyedVelocityTabListEntry entry = (KeyedVelocityTabListEntry) TabListEntry.builder()
                   .tabList(this)
-                  .profile(profile)
+                  .profile(new GameProfile(uuid, name, properties))
                   .displayName(item.getDisplayName())
                   .latency(item.getLatency())
                   .chatSession(new RemoteChatSession(null, item.getPlayerKey()))
                   .gameMode(item.getGameMode())
-                  .build());
+                  .build();
+          entries.putIfAbsent(entry.getProfile().getId(), entry);
         }
         case LegacyPlayerListItemPacket.REMOVE_PLAYER -> entries.remove(uuid);
         case LegacyPlayerListItemPacket.UPDATE_DISPLAY_NAME -> {
