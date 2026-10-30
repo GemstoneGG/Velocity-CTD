@@ -22,7 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.velocityctd.proxy.redis.VelocityRedis;
@@ -42,8 +44,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class PlayerDepotSyncTest {
 
@@ -237,5 +241,47 @@ class PlayerDepotSyncTest {
     assertEquals(2, service.getSyncedPlayerEntries().size());
     assertEquals(2, service.getSyncedPlayerEntries().size());
     assertEquals(reads, depot.valuesCalls);
+  }
+
+  @Test
+  void transferRemovesThisProxysEntryBeforeCompleting() throws Exception {
+    ConnectedPlayer here = player("here", "Lobby", true);
+    online.add(here);
+    store(here, "proxy-a");
+    service.onPlayerTransferAsync(here).get(5, TimeUnit.SECONDS);
+    assertFalse(depot.map.containsKey(here.getUniqueId()));
+  }
+
+  @Test
+  void syncDoesNotWriteBackTransferringPlayers() throws Exception {
+    ConnectedPlayer here = player("here", "Lobby", true);
+    online.add(here);
+    store(here, "proxy-a");
+    service.onPlayerTransferAsync(here).get(5, TimeUnit.SECONDS);
+    sync();
+    assertFalse(depot.map.containsKey(here.getUniqueId()), "still connected, but on its way out");
+    assertEquals(0, depot.upsertCalls);
+  }
+
+  @Test
+  void transferLeavesAnotherProxysEntryAlone() throws Exception {
+    ConnectedPlayer here = player("here", "Lobby", true);
+    online.add(here);
+    store(here, "proxy-b");
+    service.onPlayerTransferAsync(here).get(5, TimeUnit.SECONDS);
+    assertEquals("proxy-b", depot.map.get(here.getUniqueId()).getProxyId());
+  }
+
+  @Test
+  void entryComesBackWhenTheClientStaysAfterTheTimeout() throws Exception {
+    ConnectedPlayer here = player("here", "Lobby", true);
+    online.add(here);
+    store(here, "proxy-a");
+    service.onPlayerTransferAsync(here).get(5, TimeUnit.SECONDS);
+    ArgumentCaptor<Runnable> tasks = ArgumentCaptor.forClass(Runnable.class);
+    verify(server.getScheduler(), atLeastOnce()).buildTask(any(), tasks.capture());
+    tasks.getValue().run(); // the release timeout, scheduled last
+    sync();
+    assertTrue(depot.map.containsKey(here.getUniqueId()));
   }
 }

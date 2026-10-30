@@ -1660,8 +1660,13 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           resultedAddress = address;
         }
 
-        storeAppliedPacks();
-        connection.write(new TransferPacket(resultedAddress.getHostName(), resultedAddress.getPort()));
+        // The client reconnects within milliseconds; a proxy of this cluster would refuse it as
+        // connected elsewhere while this proxy still holds its cluster entry.
+        final InetSocketAddress target = resultedAddress;
+        server.getClusterPlayerService().onPlayerTransfer(this).thenRunAsync(() -> {
+          storeAppliedPacks();
+          connection.write(new TransferPacket(target.getHostName(), target.getPort()));
+        }, connection.eventLoop());
       }
     });
   }

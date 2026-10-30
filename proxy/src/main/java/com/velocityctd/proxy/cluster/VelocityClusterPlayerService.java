@@ -98,4 +98,15 @@ public interface VelocityClusterPlayerService extends ClusterPlayerService {
   }
 
   void onPlayerSwitchServer(ConnectedPlayer player, @Nullable String previousServerName, String serverName);
+
+  /**
+   * Called before a player is sent a transfer packet, so the cluster no longer counts them as
+   * connected here when they arrive at the target.
+   *
+   * @param player the player about to be transferred
+   * @return a future completing when the transfer packet may be sent, never exceptionally
+   */
+  default CompletableFuture<Void> onPlayerTransfer(ConnectedPlayer player) {
+    return CompletableFuture.completedFuture(null);
+  }
 }

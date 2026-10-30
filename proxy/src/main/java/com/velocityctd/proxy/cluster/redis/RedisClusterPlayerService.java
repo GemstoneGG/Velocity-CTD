@@ -129,6 +129,11 @@ public final class RedisClusterPlayerService implements VelocityClusterPlayerSer
   }
 
   @Override
+  public CompletableFuture<Void> onPlayerTransfer(ConnectedPlayer player) {
+    return playerService().onPlayerTransferAsync(player);
+  }
+
+  @Override
   public void onPlayerDisconnect(ConnectedPlayer player) {
     playerService().onPlayerDisconnectAsync(player);
 

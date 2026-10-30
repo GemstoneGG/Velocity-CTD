@@ -29,9 +29,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -76,6 +78,12 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
   private static final long BACKLOG_WARNING_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(30L);
 
   /**
+   * How long the sync leaves a transferring player's entry out. A client that follows the
+   * transfer is gone long before that; one that stays gets its entry back afterwards.
+   */
+  private static final Duration TRANSFER_RELEASE_TIMEOUT = Duration.ofSeconds(10L);
+
+  /**
    * The Redis manager used to coordinate multi-proxy player synchronization.
    */
   private final VelocityRedis redis;
@@ -117,6 +125,11 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    * run on the same executor, so they stay in order.
    */
   private final ThreadPoolExecutor[] executors = createExecutors();
+
+  /**
+   * Players whose entry was removed for a transfer, which the sync must not write back.
+   */
+  private final Set<ConnectedPlayer> transferringPlayers = ConcurrentHashMap.newKeySet();
 
   /**
    * When the last backlog warning was logged, from {@link System#nanoTime()}.
@@ -216,6 +229,8 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    * @param player the player that disconnected
    */
   public void onPlayerDisconnectAsync(ConnectedPlayer player) {
+    this.transferringPlayers.remove(player);
+
     // Must be checked while the identity lock is held, a reconnect may be registered by the time
     // the task runs.
     if (this.isReplaced(player)) {
@@ -238,6 +253,35 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
         this.removeOwnEntry(player);
       }
     });
+  }
+
+  /**
+   * Removes the player's entry before they are transferred away, on the player's depot executor.
+   * The client reconnects within milliseconds, and the proxy it lands on would refuse it as
+   * connected elsewhere while this proxy still owns the entry. Until the player disconnects (or
+   * {@link #TRANSFER_RELEASE_TIMEOUT} passes) the sync does not write the entry back.
+   *
+   * @param player the player about to be transferred
+   * @return a future completing once the entry is removed, never exceptionally
+   */
+  public CompletableFuture<Void> onPlayerTransferAsync(ConnectedPlayer player) {
+    this.transferringPlayers.add(player);
+    try {
+      this.server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE,
+              () -> this.transferringPlayers.remove(player))
+          .delay(TRANSFER_RELEASE_TIMEOUT)
+          .schedule();
+      return CompletableFuture.runAsync(() -> this.removeOwnEntry(player),
+              this.executorFor(player.getUniqueId()))
+          .exceptionally(e -> {
+            LOGGER.error("Failed to release the player depot entry of {} before a transfer",
+                player.getUsername(), e);
+            return null;
+          });
+    } catch (RejectedExecutionException e) {
+      // Shutting down, teardown removes this proxy's entries.
+      return CompletableFuture.completedFuture(null);
+    }
   }
 
   /**
@@ -538,7 +582,8 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
         .collect(Collectors.toMap(PlayerEntry::getUniqueId, Function.identity()));
 
     for (ConnectedPlayer player : this.server.getOnlinePlayers()) {
-      if (!player.isFullyConnected()) {
+      // A transferring player's entry was removed on purpose, see onPlayerTransferAsync.
+      if (!player.isFullyConnected() || this.transferringPlayers.contains(player)) {
         continue;
       }
 
