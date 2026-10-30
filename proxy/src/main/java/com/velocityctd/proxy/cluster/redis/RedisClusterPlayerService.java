@@ -76,6 +76,13 @@ public final class RedisClusterPlayerService implements VelocityClusterPlayerSer
   }
 
   @Override
+  public Collection<String> getPlayerNamesAsOfLastSync() {
+    return playerService().getSyncedPlayerEntries().stream()
+        .map(PlayerEntry::getUsername)
+        .toList();
+  }
+
+  @Override
   public Collection<VelocityClusterPlayer> getPlayersOnServer(String serverName) {
     return playerService().getPlayerEntriesInServer(serverName).stream()
         .<VelocityClusterPlayer>map(this::toRedisPlayer)

@@ -33,9 +33,11 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
@@ -62,6 +64,16 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    * The number of executors depot tasks are spread over.
    */
   private static final int EXECUTOR_COUNT = 8;
+
+  /**
+   * How many waiting tasks on one executor count as a backlog worth a warning.
+   */
+  private static final int BACKLOG_WARNING_THRESHOLD = 256;
+
+  /**
+   * The least time between two backlog warnings.
+   */
+  private static final long BACKLOG_WARNING_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(30L);
 
   /**
    * The Redis manager used to coordinate multi-proxy player synchronization.
@@ -104,7 +116,12 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    * Executors running the depot's Redis calls off the network threads. A player's tasks always
    * run on the same executor, so they stay in order.
    */
-  private final ExecutorService[] executors = createExecutors();
+  private final ThreadPoolExecutor[] executors = createExecutors();
+
+  /**
+   * When the last backlog warning was logged, from {@link System#nanoTime()}.
+   */
+  private final AtomicLong lastBacklogWarning = new AtomicLong(System.nanoTime() - BACKLOG_WARNING_INTERVAL_NANOS);
 
   /**
    * Constructs a new {@link PlayerDepotService}.
@@ -215,8 +232,9 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    */
   public void onPlayerLoginAbortedAsync(ConnectedPlayer player) {
     this.executeAsync(player, "aborted login", () -> {
-      // A registered player is a newer connection, which owns the entry.
-      if (this.server.getPlayer(player.getUniqueId()).isEmpty()) {
+      // A newer connection owns the entry. The aborted player itself can still be registered
+      // here, since its teardown may not have run yet when the closed channel was seen.
+      if (!this.isReplaced(player)) {
         this.removeOwnEntry(player);
       }
     });
@@ -248,13 +266,34 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
   }
 
   private ExecutorService executorFor(UUID uniqueId) {
-    return this.executors[Math.floorMod(uniqueId.hashCode(), this.executors.length)];
+    final int index = Math.floorMod(uniqueId.hashCode(), this.executors.length);
+    final ThreadPoolExecutor executor = this.executors[index];
+    final int waiting = executor.getQueue().size();
+    if (waiting >= BACKLOG_WARNING_THRESHOLD) {
+      this.warnBacklog(index, waiting);
+    }
+
+    return executor;
   }
 
-  private static ExecutorService[] createExecutors() {
-    final ExecutorService[] executors = new ExecutorService[EXECUTOR_COUNT];
+  /**
+   * Logs that an executor is falling behind, at most once per interval. Logins wait in the same
+   * line as switches and quits, so a slow Redis shows up here before it shows up as login lag.
+   */
+  private void warnBacklog(int index, int waiting) {
+    final long now = System.nanoTime();
+    final long last = this.lastBacklogWarning.get();
+    if (now - last >= BACKLOG_WARNING_INTERVAL_NANOS && this.lastBacklogWarning.compareAndSet(last, now)) {
+      LOGGER.warn("Player depot executor #{} has {} tasks waiting; Redis may be slow or unreachable, "
+          + "and logins on this executor wait for them", index, waiting);
+    }
+  }
+
+  private static ThreadPoolExecutor[] createExecutors() {
+    final ThreadPoolExecutor[] executors = new ThreadPoolExecutor[EXECUTOR_COUNT];
     for (int i = 0; i < EXECUTOR_COUNT; i++) {
-      executors[i] = Executors.newSingleThreadExecutor(
+      // A single-thread executor whose queue can be read for the backlog warning.
+      executors[i] = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(),
           Thread.ofPlatform().name("Velocity-CTD - Player Depot #" + i).daemon(true).factory());
     }
 
