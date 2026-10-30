@@ -46,6 +46,10 @@ public interface TabListEntry extends KeyIdentifiable {
    * containing {@link java.util.UUID}, as well as deciding what is shown as the player head in the
    * tab list.
    *
+   * <p>The proxy may share one copy of a profile between all tab lists, so this can be an equal
+   * profile rather than the instance the entry was built with. Compare profiles by their contents
+   * (id, name and properties), not by identity.</p>
+   *
    * @return {@link GameProfile} of the entry
    */
   GameProfile getProfile();

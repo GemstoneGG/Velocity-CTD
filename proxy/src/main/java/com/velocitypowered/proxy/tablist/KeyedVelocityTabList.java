@@ -195,14 +195,17 @@ public class KeyedVelocityTabList implements InternalTabList {
             throw new IllegalStateException("Got null game profile for ADD_PLAYER");
           }
 
-          entries.putIfAbsent(item.getUuid(), (KeyedVelocityTabListEntry) TabListEntry.builder()
+          // The entry interns the profile, so key by the shared profile's UUID, not the copy
+          // decoded for this packet.
+          final KeyedVelocityTabListEntry entry = (KeyedVelocityTabListEntry) TabListEntry.builder()
                   .tabList(this)
                   .profile(new GameProfile(uuid, name, properties))
                   .displayName(item.getDisplayName())
                   .latency(item.getLatency())
                   .chatSession(new RemoteChatSession(null, item.getPlayerKey()))
                   .gameMode(item.getGameMode())
-                  .build());
+                  .build();
+          entries.putIfAbsent(entry.getProfile().getId(), entry);
         }
         case LegacyPlayerListItemPacket.REMOVE_PLAYER -> entries.remove(uuid);
         case LegacyPlayerListItemPacket.UPDATE_DISPLAY_NAME -> {

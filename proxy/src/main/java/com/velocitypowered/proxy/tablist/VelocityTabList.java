@@ -259,19 +259,19 @@ public class VelocityTabList implements InternalTabList {
     VelocityTabListEntry currentEntry = this.entries.get(profileId);
     if (actions.contains(UpsertPlayerInfoPacket.Action.ADD_PLAYER)) {
       if (currentEntry == null) {
-        this.entries.put(profileId,
-            currentEntry = new VelocityTabListEntry(
-                this,
-                entry.getProfile(),
-                null,
-                0,
-                -1,
-                null,
-                false,
-                0,
-                true
-            )
+        currentEntry = new VelocityTabListEntry(
+            this,
+            entry.getProfile(),
+            null,
+            0,
+            -1,
+            null,
+            false,
+            0,
+            true
         );
+        // Key by the shared profile's UUID, not the copy decoded for this packet.
+        this.entries.put(currentEntry.getProfile().getId(), currentEntry);
       } else {
         LOGGER.debug("Received an add player packet for an existing entry; this does nothing.");
       }

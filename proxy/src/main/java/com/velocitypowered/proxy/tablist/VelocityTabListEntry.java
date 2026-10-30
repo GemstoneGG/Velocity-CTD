@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.tablist;
 
+import com.velocityctd.proxy.tablist.SharedTabData;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.player.ChatSession;
 import com.velocitypowered.api.proxy.player.TabList;
@@ -50,8 +51,8 @@ public class VelocityTabListEntry implements TabListEntry {
                               int latency,
                               int gameMode, @Nullable ChatSession session, boolean listed, int listOrder, boolean showHat) {
     this.tabList = tabList;
-    this.profile = profile;
-    this.displayName = displayName;
+    this.profile = SharedTabData.profile(profile);
+    this.displayName = SharedTabData.displayName(displayName);
     this.latency = latency;
     this.gameMode = gameMode;
     this.session = session;
@@ -82,7 +83,7 @@ public class VelocityTabListEntry implements TabListEntry {
 
   @Override
   public TabListEntry setDisplayName(@Nullable Component displayName) {
-    this.displayName = displayName;
+    this.displayName = SharedTabData.displayName(displayName);
     UpsertPlayerInfoPacket.Entry upsertEntry = this.tabList.createRawEntry(this);
     upsertEntry.setDisplayName(
             displayName == null
@@ -95,7 +96,7 @@ public class VelocityTabListEntry implements TabListEntry {
   }
 
   void setDisplayNameWithoutUpdate(@Nullable Component displayName) {
-    this.displayName = displayName;
+    this.displayName = SharedTabData.displayName(displayName);
   }
 
   @Override
