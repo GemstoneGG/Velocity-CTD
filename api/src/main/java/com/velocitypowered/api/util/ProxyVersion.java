@@ -69,11 +69,7 @@ public final class ProxyVersion {
       return true;
     }
 
-    if (BUILD_NUMBER_SUFFIX.matcher(version).find()) {
-      return false;
-    }
-
-    return version.contains("SNAPSHOT");
+    return !BUILD_NUMBER_SUFFIX.matcher(version).find() && version.contains("SNAPSHOT");
   }
 
   @Override

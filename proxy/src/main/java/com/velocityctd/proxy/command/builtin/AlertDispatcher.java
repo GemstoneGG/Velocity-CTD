@@ -19,26 +19,62 @@ package com.velocityctd.proxy.command.builtin;
 
 import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
 
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
+import com.velocityctd.proxy.command.CommandUtils;
 import com.velocityctd.proxy.command.PlayerIdentifier;
+import com.velocityctd.proxy.util.ComponentUtils;
+import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.proxy.VelocityServer;
-import com.velocitypowered.proxy.command.builtin.CommandMessages;
 import java.util.function.Function;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.minimessage.translation.Argument;
 
 /**
- * Shared dispatch logic for {@code /alert} and {@code /alertraw}.
+ * Shared command tree and dispatch logic for {@code /alert} and {@code /alertraw}.
  *
  * <p>Handles parsing of the optional {@link PlayerIdentifier} target and routing the
  * alert either to all players (legacy behavior) or to a specific subset.</p>
  */
 final class AlertDispatcher {
 
+  private static final String INPUT_ARG = "message";
+
   private AlertDispatcher() {
     throw new AssertionError();
+  }
+
+  /**
+   * Builds an alert command. The command takes a single greedy-string argument holding the
+   * optional target and the message, and formats the alert text with {@code messageKey}.
+   *
+   * @param server       the proxy server
+   * @param label        the command label
+   * @param permission   the permission required to use the command
+   * @param usageKey     translation key for the usage message
+   * @param noMessageKey translation key to use when there is no message to send
+   * @param messageKey   translation key that wraps the parsed alert text
+   * @return the built command
+   */
+  static BrigadierCommand build(VelocityServer server, String label, String permission,
+                                String usageKey, String noMessageKey, String messageKey) {
+    Function<String, Component> formatter = message -> Component.translatable(messageKey,
+        NamedTextColor.WHITE, ComponentUtils.parse(message));
+
+    LiteralArgumentBuilder<CommandSource> rootNode = BrigadierCommand
+            .literalArgumentBuilder(label)
+            .requires(source -> source.getPermissionValue(permission) == Tristate.TRUE)
+            .executes(ctx -> CommandUtils.emitUsage(ctx, usageKey))
+            .then(BrigadierCommand
+                    .requiredArgumentBuilder(INPUT_ARG, StringArgumentType.greedyString())
+                    .suggests(PlayerIdentifier.suggest(server, INPUT_ARG))
+                    .executes(ctx -> dispatch(server, ctx.getSource(),
+                        StringArgumentType.getString(ctx, INPUT_ARG), noMessageKey, formatter)));
+
+    return new BrigadierCommand(rootNode);
   }
 
   /**
@@ -65,9 +101,9 @@ final class AlertDispatcher {
    * @param formatter    builds the final alert component from the raw message text
    * @return {@link com.mojang.brigadier.Command#SINGLE_SUCCESS} on success, {@code 0} on failure
    */
-  static int dispatch(VelocityServer server, CommandSource source,
-                      String input, String noMessageKey,
-                      Function<String, Component> formatter) {
+  private static int dispatch(VelocityServer server, CommandSource source,
+                              String input, String noMessageKey,
+                              Function<String, Component> formatter) {
     int split = indexOfWhitespace(input);
     String target = split == -1 ? input : input.substring(0, split);
     String message = split == -1 ? "" : input.substring(split + 1);
@@ -89,7 +125,7 @@ final class AlertDispatcher {
     // Resolution failed. If the target looked like an explicit identifier, surface the error,
     // otherwise fall back to treating the whole input as a legacy message broadcast.
     if (looksLikeIdentifier(target)) {
-      sendResolveError(source, result);
+      PlayerIdentifier.sendResolveError(source, result);
       return 0;
     }
 
@@ -116,17 +152,5 @@ final class AlertDispatcher {
         || target.startsWith("-")
         || target.equalsIgnoreCase("all")
         || target.equalsIgnoreCase("current");
-  }
-
-  private static void sendResolveError(CommandSource source, PlayerIdentifier.Result result) {
-    switch (result.type()) {
-      case PLAYER -> source.sendMessage(CommandMessages.PLAYER_NOT_FOUND
-          .arguments(Argument.string("player", result.name())));
-      case SERVER -> source.sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
-          .arguments(Component.text(result.name())));
-      case PLAYER_EXECUTOR_REQUIRED -> source.sendMessage(CommandMessages.PLAYERS_ONLY);
-      default -> {
-      }
-    }
   }
 }

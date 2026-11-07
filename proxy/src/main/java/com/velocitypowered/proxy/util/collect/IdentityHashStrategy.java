@@ -26,13 +26,11 @@ import it.unimi.dsi.fastutil.Hash.Strategy;
  */
 public final class IdentityHashStrategy<T> implements Strategy<T> {
 
-  @SuppressWarnings("rawtypes")
-  private static final IdentityHashStrategy INSTANCE = new IdentityHashStrategy();
+  private static final IdentityHashStrategy<?> INSTANCE = new IdentityHashStrategy<>();
 
   @SuppressWarnings("unchecked")
   public static <T> Strategy<T> instance() {
-    //noinspection unchecked
-    return INSTANCE;
+    return (Strategy<T>) INSTANCE;
   }
 
   @Override

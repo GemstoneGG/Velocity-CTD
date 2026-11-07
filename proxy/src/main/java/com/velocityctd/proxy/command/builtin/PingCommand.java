@@ -83,14 +83,9 @@ public class PingCommand implements BuiltinCommandDefinition {
   }
 
   private int getPing(CommandContext<CommandSource> context, String username) {
-    boolean matchesSender = false;
     ConnectedPlayer player = this.server.getPlayer(username).orElse(null);
-
-    if (context.getSource() instanceof ConnectedPlayer sendingPlayer) {
-      if (player != null && player.getUniqueId().equals(sendingPlayer.getUniqueId())) {
-        matchesSender = true;
-      }
-    }
+    boolean matchesSender = context.getSource() instanceof ConnectedPlayer sendingPlayer
+        && player != null && player.getUniqueId().equals(sendingPlayer.getUniqueId());
 
     if (matchesSender) {
       long ping = player.getPing();

@@ -51,11 +51,9 @@ public class ModernForgeConnectionType extends ConnectionTypeImpl {
     int idx = hostName.indexOf('\0');
     if (idx != -1) {
       for (var pt : hostName.split("\0")) {
-        if (pt.startsWith(MODERN_FORGE_TOKEN)) {
-          if (pt.length() > MODERN_FORGE_TOKEN.length()) {
-            natVersion = Integer.parseInt(
-                    pt.substring(MODERN_FORGE_TOKEN.length()));
-          }
+        if (pt.startsWith(MODERN_FORGE_TOKEN) && pt.length() > MODERN_FORGE_TOKEN.length()) {
+          natVersion = Integer.parseInt(
+                  pt.substring(MODERN_FORGE_TOKEN.length()));
         }
       }
     }

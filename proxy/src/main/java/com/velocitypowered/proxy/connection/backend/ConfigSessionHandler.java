@@ -93,8 +93,6 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
   private ResourcePackInfo resourcePackToApply;
 
-  private final State state;
-
   // Guards advanceBackendToPlay; only touched on the backend event loop. Cleared on activation,
   // since this handler serves every configuration phase of the connection, including one the
   // backend starts again from PLAY.
@@ -112,7 +110,6 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
     this.server = server;
     this.serverConn = serverConn;
     this.resultFuture = resultFuture;
-    this.state = State.START;
   }
 
   @Override
@@ -493,25 +490,5 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
     }
 
     serverConn.getPlayer().getConnection().setPausedForBackpressure(!writable);
-  }
-
-  private void switchFailure(Throwable cause) {
-    LOGGER.error("Unable to switch to new server {} for {}", serverConn.getServerInfo().getName(),
-        serverConn.getPlayer().getUsername(), cause);
-    serverConn.getPlayer().disconnect(ConnectionMessages.INTERNAL_SERVER_CONNECTION_ERROR);
-    resultFuture.completeExceptionally(cause);
-  }
-
-  /**
-   * Gets the current state of the configuration session.
-   *
-   * @return the current {@link State} of this configuration handler
-   */
-  public State getState() {
-    return state;
-  }
-
-  public enum State {
-    START, NEGOTIATING, PLUGIN_MESSAGE_INTERRUPT, RESOURCE_PACK_INTERRUPT, COMPLETE
   }
 }

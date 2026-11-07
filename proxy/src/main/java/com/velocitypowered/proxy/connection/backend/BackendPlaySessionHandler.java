@@ -211,10 +211,8 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
         .setOrigin(ResourcePackInfo.Origin.DOWNSTREAM_SERVER);
 
     final String hash = packet.getHash();
-    if (hash != null && !hash.isEmpty()) {
-      if (PLAUSIBLE_SHA1_HASH.matcher(hash).matches()) {
-        builder.setHash(ByteBufUtil.decodeHexDump(hash));
-      }
+    if (hash != null && !hash.isEmpty() && PLAUSIBLE_SHA1_HASH.matcher(hash).matches()) {
+      builder.setHash(ByteBufUtil.decodeHexDump(hash));
     }
 
     final ResourcePackInfo resourcePackInfo = builder.build();
@@ -497,10 +495,6 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
     boolean safe = !(throwable instanceof TimeoutException)
         || server.getConfiguration().isFailoverOnUnexpectedServerDisconnect();
     serverConn.getPlayer().handleConnectionException(serverConn.getServer(), throwable, safe);
-  }
-
-  public VelocityServer getServer() {
-    return server;
   }
 
   @Override

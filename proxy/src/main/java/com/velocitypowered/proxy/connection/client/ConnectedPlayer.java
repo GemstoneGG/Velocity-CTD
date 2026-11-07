@@ -133,7 +133,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -255,9 +254,10 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   private final BundleDelimiterHandler bundleHandler = new BundleDelimiterHandler(this);
 
   /**
-   * Whether the player should be excluded from Redis player removal on disconnect.
+   * Whether this player's connection was lost (timed out, broke, or was replaced by a new login of
+   * the same player) rather than closed on purpose; see {@link #markConnectionLost()}.
    */
-  private boolean dontRemoveFromRedis;
+  private volatile boolean connectionLost;
 
   /**
    * Whether this player has fully completed the login handshake and is considered
@@ -797,24 +797,6 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   /**
-   * Sets whether the disconnect event should remove the player from the Redis cache.
-   *
-   * @param remove Whether to remove the player or not.
-   */
-  public void setDontRemoveFromRedis(boolean remove) {
-    this.dontRemoveFromRedis = remove;
-  }
-
-  /**
-   * Gets whether the disconnect event should remove the player from the Redis cache.
-   *
-   * @return Whether to remove the player or not.
-   */
-  public boolean isDontRemoveFromRedis() {
-    return this.dontRemoveFromRedis;
-  }
-
-  /**
    * Executed when this player is fully connected, meaning the login success packet has been sent
    * and the player is considered truly online on this proxy.
    */
@@ -838,7 +820,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
 
   @Override
   public void disconnect(@NotNull Component reason) {
-    Objects.requireNonNull(reason, "reason");
+    requireNonNull(reason, "reason");
     if (connection.eventLoop().inEventLoop()) {
       disconnect0(reason, false);
     } else {
@@ -910,7 +892,7 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    */
   public CompletableFuture<Void> sendAvailableCommands(@Nullable VelocityServerConnection conn) {
     if (connection.getState() != StateRegistry.PLAY) {
-      return CompletableFuture.completedFuture(null);
+      return completedFuture(null);
     }
 
     RootCommandNode<CommandSource> workingNode = new RootCommandNode<>();
@@ -1466,6 +1448,9 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
   }
 
   void teardown() {
+    if (connectionLost) {
+      rememberServerForReconnect();
+    }
     if (connectionInFlight != null) {
       connectionInFlight.disconnect();
     }
@@ -1474,6 +1459,27 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     }
 
     server.getPlayerRegistry().unregisterConnection(this);
+  }
+
+  /**
+   * Marks this player's connection as lost (it timed out or broke) rather than closed on purpose, so
+   * that the server they were on is remembered when it is torn down.
+   */
+  public void markConnectionLost() {
+    this.connectionLost = true;
+  }
+
+  /**
+   * Remembers the server this player is on so that, if they log in again within
+   * {@code advanced.reconnect-to-last-server}, they are sent back to it instead of the default
+   * initial server. Called on this player's event loop.
+   */
+  void rememberServerForReconnect() {
+    VelocityServerConnection current = this.connectedServer;
+    int window = server.getConfiguration().getReconnectToLastServer();
+    if (current != null && window > 0) {
+      server.getLastServerTracker().remember(getUniqueId(), current.getServerInfo().getName(), window);
+    }
   }
 
   void setIdentityLock(@NonNull PlayerIdentityLock.LockHandle lock) {

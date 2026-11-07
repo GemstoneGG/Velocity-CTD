@@ -42,6 +42,7 @@ import com.velocityctd.proxy.command.builtin.SlashServerCommand;
 import com.velocityctd.proxy.command.builtin.TransferCommand;
 import com.velocityctd.proxy.queue.RedisVelocityQueueManager;
 import com.velocityctd.proxy.queue.VelocityQueueManager;
+import com.velocityctd.proxy.reconnect.LastServerTracker;
 import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.depot.player.PlayerEntry;
 import com.velocitypowered.api.command.BrigadierCommand;
@@ -199,6 +200,7 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
   private final VelocityPluginManager pluginManager;
 
   private final PlayerRegistry playerRegistry = new PlayerRegistry(this);
+  private final LastServerTracker lastServerTracker = new LastServerTracker();
 
   /**
    * Holds a set of all registered BuiltinCommand instances. Used for unregistering these commands later.
@@ -1171,6 +1173,16 @@ public class VelocityServer implements ProxyServer, ForwardingAudience {
 
   public PlayerRegistry getPlayerRegistry() {
     return playerRegistry;
+  }
+
+  /**
+   * Returns the servers players were on when their connection was lost, used to send them back
+   * there when they reconnect ({@code advanced.reconnect-to-last-server}).
+   *
+   * @return the last-server tracker
+   */
+  public LastServerTracker getLastServerTracker() {
+    return lastServerTracker;
   }
 
   /**

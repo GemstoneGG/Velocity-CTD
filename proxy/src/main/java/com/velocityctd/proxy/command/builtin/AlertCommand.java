@@ -17,27 +17,14 @@
 
 package com.velocityctd.proxy.command.builtin;
 
-import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.context.CommandContext;
-import com.velocityctd.proxy.command.CommandUtils;
-import com.velocityctd.proxy.command.PlayerIdentifier;
-import com.velocityctd.proxy.util.ComponentUtils;
 import com.velocitypowered.api.command.BrigadierCommand;
-import com.velocitypowered.api.command.CommandSource;
-import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.builtin.BuiltinCommandDefinition;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 
 /**
  * Implements Velocity-CTD's {@code /alert} command.
  */
 public class AlertCommand implements BuiltinCommandDefinition {
-
-  private static final String INPUT_ARG = "message";
-  private static final String NO_MESSAGE_KEY = "velocity.command.alert.no-message";
 
   private final VelocityServer server;
 
@@ -52,27 +39,7 @@ public class AlertCommand implements BuiltinCommandDefinition {
 
   @Override
   public BrigadierCommand build() {
-    LiteralArgumentBuilder<CommandSource> rootNode = BrigadierCommand
-            .literalArgumentBuilder(label())
-            .requires(source ->
-                    source.getPermissionValue("velocity.command.alert") == Tristate.TRUE)
-            .executes(ctx -> CommandUtils.emitUsage(ctx, "velocity.command.alert.usage"))
-            .then(BrigadierCommand
-                    .requiredArgumentBuilder(INPUT_ARG, StringArgumentType.greedyString())
-                    .suggests(PlayerIdentifier.suggest(server, INPUT_ARG))
-                    .executes(this::alert));
-
-    return new BrigadierCommand(rootNode);
-  }
-
-  private int alert(CommandContext<CommandSource> context) {
-    String input = StringArgumentType.getString(context, INPUT_ARG);
-    return AlertDispatcher.dispatch(server, context.getSource(),
-        input, NO_MESSAGE_KEY, AlertCommand::format);
-  }
-
-  private static Component format(String message) {
-    return Component.translatable("velocity.command.alert.message",
-        NamedTextColor.WHITE, ComponentUtils.parse(message));
+    return AlertDispatcher.build(server, label(), "velocity.command.alert", "velocity.command.alert.usage",
+        "velocity.command.alert.no-message", "velocity.command.alert.message");
   }
 }

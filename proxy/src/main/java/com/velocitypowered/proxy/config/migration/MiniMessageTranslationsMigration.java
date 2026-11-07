@@ -46,7 +46,7 @@ public final class MiniMessageTranslationsMigration implements ConfigurationMigr
       return;
     }
     final Pattern oldPlaceholderPattern = Pattern.compile("\\{(\\d+)}");
-    try (final DirectoryStream<Path> stream
+    try (DirectoryStream<Path> stream
                  = Files.newDirectoryStream(langFolder, Files::isRegularFile)) {
       for (final Path path : stream) {
         String content = Files.readString(path, StandardCharsets.UTF_8);

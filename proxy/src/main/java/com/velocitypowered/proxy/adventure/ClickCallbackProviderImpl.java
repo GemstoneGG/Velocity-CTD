@@ -31,7 +31,7 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("UnstableApiUsage") // permitted provider
 public class ClickCallbackProviderImpl implements ClickCallback.Provider {
   @Override
-  public final @NotNull ClickEvent create(@NotNull ClickCallback<Audience> callback, ClickCallback.@NotNull Options options) {
+  public final @NotNull ClickEvent<?> create(@NotNull ClickCallback<Audience> callback, ClickCallback.@NotNull Options options) {
     UUID id = ClickCallbackManager.INSTANCE.register(callback, options);
     return ClickEvent.runCommand(ClickCallbackManager.COMMAND + id);
   }

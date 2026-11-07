@@ -132,12 +132,11 @@ public class VelocityEventManager implements EventManager {
    *                       the handler, taking the listener instance and event as parameters and returning an EventTask
    * @param <F> the type of the functional interface used to invoke the handler method
    */
-  @SuppressWarnings({"unchecked", "rawtypes"})
   public <F> void registerHandlerAdapter(String name, Predicate<Method> filter,
                                          BiConsumer<Method, List<String>> validator,
                                          TypeToken<@NotNull F> invokeFunctionType,
                                          Function<F, BiFunction<Object, Object, EventTask>> handlerBuilder) {
-    handlerAdapters.add(new CustomHandlerAdapter(name, filter, validator, invokeFunctionType, handlerBuilder, METHOD_HANDLES_LOOKUP));
+    handlerAdapters.add(new CustomHandlerAdapter<>(name, filter, validator, invokeFunctionType, handlerBuilder, METHOD_HANDLES_LOOKUP));
   }
 
   /**

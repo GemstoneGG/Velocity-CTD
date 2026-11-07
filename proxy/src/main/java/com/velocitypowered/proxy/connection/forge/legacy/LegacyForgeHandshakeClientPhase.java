@@ -51,7 +51,7 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
       //
       // As we know that calling this branch only happens on first join, we set that if we are a
       // Forge client that we must reset on the next switch.
-      player.setPhase(LegacyForgeHandshakeClientPhase.COMPLETE);
+      player.setPhase(COMPLETE);
     }
 
     @Override
@@ -147,7 +147,7 @@ public enum LegacyForgeHandshakeClientPhase implements ClientConnectionPhase {
     @Override
     public void resetConnectionPhase(ConnectedPlayer player) {
       player.getConnection().write(LegacyForgeUtil.resetPacket());
-      player.setPhase(LegacyForgeHandshakeClientPhase.NOT_STARTED);
+      player.setPhase(NOT_STARTED);
     }
 
     @Override

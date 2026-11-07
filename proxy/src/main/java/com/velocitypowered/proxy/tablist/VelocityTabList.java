@@ -304,6 +304,9 @@ public class VelocityTabList implements InternalTabList {
     if (actions.contains(UpsertPlayerInfoPacket.Action.UPDATE_LIST_ORDER)) {
       currentEntry.setListOrderWithoutUpdate(entry.getListOrder());
     }
+    if (actions.contains(UpsertPlayerInfoPacket.Action.UPDATE_HAT)) {
+      currentEntry.setShowHatWithoutUpdate(entry.isShowHat());
+    }
   }
 
   @Override

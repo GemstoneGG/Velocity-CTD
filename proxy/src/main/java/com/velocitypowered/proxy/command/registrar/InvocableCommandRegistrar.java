@@ -86,14 +86,11 @@ abstract class InvocableCommandRegistrar<T extends InvocableCommand<I>,
     final LiteralCommandNode<CommandSource> literal = LiteralArgumentBuilder
         .<CommandSource>literal(alias)
         .requiresWithContext((context, reader) -> {
-          if (reader.canRead()) {
-            // InvocableCommands do not follow a tree-like permissions checking structure.
-            // Thus, a CommandSource may be able to execute a command with arguments while
-            // not being able to execute the argument-less variant.
-            // Only check for permissions once parsing is complete.
-            return true;
-          }
-          return requirement.test(context);
+          // InvocableCommands do not follow a tree-like permissions checking structure.
+          // Thus, a CommandSource may be able to execute a command with arguments while
+          // not being able to execute the argument-less variant.
+          // Only check for permissions once parsing is complete.
+          return reader.canRead() || requirement.test(context);
         })
         .executes(callback)
         .build();

@@ -57,10 +57,7 @@ abstract class AbstractCommandInvocation<T> implements CommandInvocation<T> {
 
     final AbstractCommandInvocation<?> that = (AbstractCommandInvocation<?>) o;
 
-    if (!this.source.equals(that.source)) {
-      return false;
-    }
-    return this.arguments.equals(that.arguments);
+    return this.source.equals(that.source) && this.arguments.equals(that.arguments);
   }
 
   @Override

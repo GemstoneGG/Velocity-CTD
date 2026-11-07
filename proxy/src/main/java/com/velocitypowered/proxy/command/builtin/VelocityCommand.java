@@ -83,6 +83,7 @@ import net.kyori.adventure.text.minimessage.translation.Argument;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Implements Velocity's {@code /velocity} command.
@@ -141,27 +142,21 @@ public class VelocityCommand implements BuiltinCommandDefinition {
             .literalArgumentBuilder("reload")
             .requires(source -> source.getPermissionValue("velocity.command.reload") == Tristate.TRUE)
             .executes(new Reload(server));
+    Command<CommandSource> sudoUsage = ctx -> {
+      ctx.getSource().sendMessage(
+              Component.translatable("velocity.command.sudo.usage", NamedTextColor.YELLOW)
+                      .arguments(Argument.string("command", "velocity sudo"))
+      );
+
+      return 0;
+    };
     LiteralCommandNode<CommandSource> sudo = BrigadierCommand
             .literalArgumentBuilder("sudo")
             .requires(source -> source.getPermissionValue("velocity.command.sudo") == Tristate.TRUE)
-            .executes(ctx -> {
-              ctx.getSource().sendMessage(
-                      Component.translatable("velocity.command.sudo.usage", NamedTextColor.YELLOW)
-                              .arguments(Argument.string("command", "velocity sudo"))
-              );
-
-              return 0;
-            })
+            .executes(sudoUsage)
             .then(BrigadierCommand.requiredArgumentBuilder("target", StringArgumentType.word())
                     .suggests(PlayerIdentifier.suggest(server, "target"))
-                    .executes(ctx -> {
-                      ctx.getSource().sendMessage(
-                              Component.translatable("velocity.command.sudo.usage", NamedTextColor.YELLOW)
-                                      .arguments(Argument.string("command", "velocity sudo"))
-                      );
-
-                      return 0;
-                    })
+                    .executes(sudoUsage)
                     .then(BrigadierCommand.requiredArgumentBuilder("message/command", StringArgumentType.greedyString())
                             .executes(new Sudo(server))))
             .build();
@@ -246,25 +241,41 @@ public class VelocityCommand implements BuiltinCommandDefinition {
     }
   }
 
+  /**
+   * Resolves the {@code proxy} argument to the matching proxy ID, ignoring case, and tells the
+   * source when no such proxy exists.
+   *
+   * @param server the proxy server
+   * @param context the command context holding the {@code proxy} argument
+   * @return the matching proxy ID, or {@code null} if there is none
+   */
+  private static @Nullable String resolveProxyId(VelocityServer server, CommandContext<CommandSource> context) {
+    String proxyId = StringArgumentType.getString(context, "proxy");
+
+    String realId = server.getClusterProxyService().getAllProxyIds().stream()
+        .filter(s -> s.equalsIgnoreCase(proxyId))
+        .findFirst().orElse(null);
+
+    if (realId == null) {
+      context.getSource().sendMessage(Component.translatable("velocity.command.proxy-does-not-exist")
+              .arguments(Component.text(proxyId)));
+    }
+
+    return realId;
+  }
+
   private record UptimeRemote(VelocityServer server) implements Command<CommandSource> {
 
     private static final Logger LOGGER = LogManager.getLogger(UptimeRemote.class);
 
     @Override
     public int run(CommandContext<CommandSource> context) {
-      CommandSource source = context.getSource();
-      String proxyId = StringArgumentType.getString(context, "proxy");
-
-      String realId = server.getClusterProxyService().getAllProxyIds().stream()
-          .filter(s -> s.equalsIgnoreCase(proxyId))
-          .findFirst().orElse(null);
-
+      String realId = resolveProxyId(server, context);
       if (realId == null) {
-        source.sendMessage(Component.translatable("velocity.command.proxy-does-not-exist")
-                .arguments(Component.text(proxyId)));
         return 0;
       }
 
+      CommandSource source = context.getSource();
       server.getClusterProxyService().queryProxyUptime(realId).thenAccept(uptimeSeconds -> {
         source.sendMessage(getUptimeComponent(uptimeSeconds));
       }).exceptionally(ex -> {
@@ -314,10 +325,8 @@ public class VelocityCommand implements BuiltinCommandDefinition {
 
       String targetDisplay = switch (result.type()) {
         case ALL -> "everyone";
-        case PLAYER -> result.players().size() == 1
-            ? result.players().iterator().next().getUsername()
-            : sudoTarget;
-        default -> result.name() != null ? result.name() : sudoTarget;
+        case PLAYER -> result.players().iterator().next().getUsername();
+        default -> result.name();
       };
       source.sendMessage(Component.translatable("velocity.command.sudo.success")
               .arguments(Argument.string("target", targetDisplay),
@@ -359,19 +368,12 @@ public class VelocityCommand implements BuiltinCommandDefinition {
 
     @Override
     public int run(CommandContext<CommandSource> context) {
-      CommandSource source = context.getSource();
-      String proxyId = StringArgumentType.getString(context, "proxy");
-
-      String realId = server.getClusterProxyService().getAllProxyIds().stream()
-          .filter(s -> s.equalsIgnoreCase(proxyId))
-          .findFirst().orElse(null);
-
+      String realId = resolveProxyId(server, context);
       if (realId == null) {
-        source.sendMessage(Component.translatable("velocity.command.proxy-does-not-exist")
-                .arguments(Component.text(proxyId)));
         return 0;
       }
 
+      CommandSource source = context.getSource();
       server.getClusterProxyService().reloadProxy(realId).thenAccept(success -> {
         if (success) {
           source.sendMessage(Component.translatable("velocity.command.reload-success", NamedTextColor.GREEN));
@@ -391,8 +393,6 @@ public class VelocityCommand implements BuiltinCommandDefinition {
   }
 
   private static class Info implements Command<CommandSource> {
-
-    private static final Logger LOGGER = LogManager.getLogger(Info.class);
 
     private static final TextColor VELOCITY_COLOR = TextColor.color(0xff3a4c);
 
@@ -585,7 +585,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
       final Path dumpPath = Path.of("velocity-dump-"
           + new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(new Date())
           + ".json");
-      try (final BufferedWriter bw = Files.newBufferedWriter(
+      try (BufferedWriter bw = Files.newBufferedWriter(
           dumpPath, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW)) {
         bw.write(InformationUtils.toHumanReadableString(dump));
 

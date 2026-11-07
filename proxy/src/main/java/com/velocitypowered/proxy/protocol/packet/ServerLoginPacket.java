@@ -109,10 +109,8 @@ public class ServerLoginPacket implements MinecraftPacket {
         return;
       }
 
-      if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19_1)) {
-        if (buf.readBoolean()) {
-          holderUuid = ProtocolUtils.readUuid(buf);
-        }
+      if (version.noLessThan(ProtocolVersion.MINECRAFT_1_19_1) && buf.readBoolean()) {
+        holderUuid = ProtocolUtils.readUuid(buf);
       }
     } else {
       playerKey = null;

@@ -175,4 +175,10 @@ public class IdentifiedKeyImpl implements IdentifiedKey {
         && Arrays.equals(this.getSignature(), that.getSignature())
         && Objects.equal(this.getSigner(), that.getSigner());
   }
+
+  @Override
+  public int hashCode() {
+    return 31 * Objects.hashCode(this.getSignedPublicKey(), this.getExpiryTemporal(), this.getSigner())
+        + Arrays.hashCode(this.signature);
+  }
 }

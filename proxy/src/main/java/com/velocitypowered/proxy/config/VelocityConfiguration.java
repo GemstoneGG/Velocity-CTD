@@ -115,7 +115,7 @@ public final class VelocityConfiguration implements ProxyConfig {
   private final boolean kickExistingPlayersCheckIp;
 
   @Expose
-  private PingPassthroughMode pingPassthrough = PingPassthroughMode.DEFAULT;
+  private final PingPassthroughMode pingPassthrough;
   @Expose
   private final Servers servers;
 
@@ -369,12 +369,11 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
 
       PlayerInfoForwarding mode = entry.getValue().forwardingMode();
-      if (mode == PlayerInfoForwarding.MODERN || mode == PlayerInfoForwarding.BUNGEEGUARD) {
-        if (forwardingSecret == null || forwardingSecret.length == 0) {
-          LOGGER.error("You don't have a forwarding secret set. This is required if "
-                  + "you are using MODERN or BUNGEEGUARD forwarding modes.");
-          valid = false;
-        }
+      if ((mode == PlayerInfoForwarding.MODERN || mode == PlayerInfoForwarding.BUNGEEGUARD)
+          && (forwardingSecret == null || forwardingSecret.length == 0)) {
+        LOGGER.error("You don't have a forwarding secret set. This is required if "
+                + "you are using MODERN or BUNGEEGUARD forwarding modes.");
+        valid = false;
       }
     }
 
@@ -777,6 +776,26 @@ public final class VelocityConfiguration implements ProxyConfig {
     return advanced.getLoginTimeout();
   }
 
+  /**
+   * Gets how long, in milliseconds, a player in game may send nothing before a new login of the same
+   * player replaces their session even with {@code kick-existing-players} off.
+   *
+   * @return the stale-session threshold, or {@code 0} or less if disabled
+   */
+  public int getStaleSessionTakeover() {
+    return advanced.getStaleSessionTakeover();
+  }
+
+  /**
+   * Gets how long, in milliseconds, the server a player was on is remembered after their connection
+   * is lost, so that reconnecting sends them back to it.
+   *
+   * @return the reconnect window, or {@code 0} or less if disabled
+   */
+  public int getReconnectToLastServer() {
+    return advanced.getReconnectToLastServer();
+  }
+
   @Override
   public int getCommandRatelimit() {
     return advanced.getCommandRateLimit();
@@ -1006,12 +1025,24 @@ public final class VelocityConfiguration implements ProxyConfig {
   }
 
   /**
-   * Gets the map of per-server player caps.
+   * Gets the map of per-server player caps, keyed by lower-cased server name.
    *
    * @return the player caps mapping
    */
   public Map<String, Integer> getPlayerCaps() {
     return playerCaps;
+  }
+
+  /**
+   * Gets the artificial player cap configured in {@code [playercaps]} for a server. The queue
+   * treats the server as full once this many players are online, instead of using the maximum
+   * player count the backend reports.
+   *
+   * @param serverName the server name, matched case-insensitively
+   * @return the cap, or {@code null} if none is configured for the server
+   */
+  public @Nullable Integer getPlayerCap(String serverName) {
+    return playerCaps.get(serverName.toLowerCase(Locale.ROOT));
   }
 
   /**
@@ -1096,13 +1127,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
     }
 
-    // Create the forwarding-secret file on first-time startup if it doesn't exist.
-    Path defaultForwardingSecretPath = Path.of("forwarding.secret");
-    if (Files.notExists(path) && Files.notExists(defaultForwardingSecretPath)) {
-      Files.writeString(defaultForwardingSecretPath, generateRandomString(12));
-    }
-
-    try (final CommentedFileConfig config = CommentedFileConfig.builder(path)
+    try (CommentedFileConfig config = CommentedFileConfig.builder(path)
             .defaultData(defaultConfigLocation)
             .autosave()
             .preserveInsertionOrder()
@@ -1147,7 +1172,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       if (forwardingSecretString.isBlank()) {
         final String forwardSecretFile = config.get("forwarding-secret-file");
         final Path secretPath = forwardSecretFile == null
-                ? defaultForwardingSecretPath
+                ? Path.of("forwarding.secret")
                 : Path.of(forwardSecretFile);
         if (Files.exists(secretPath)) {
           if (Files.isRegularFile(secretPath)) {
@@ -1218,32 +1243,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       final Map<String, List<String>> slashServers =
           parseSlashServers(config.getOrElse("slash-servers", (CommentedConfig) null));
 
-      Map<String, List<ServerLink>> links = new HashMap<>();
-      if (serverLinksConfig != null) {
-        for (CommentedConfig.Entry entry : serverLinksConfig.entrySet()) {
-          CommentedConfig link = entry.getValue();
-          String label = link.get("label");
-          String url = link.get("link");
-          Object serverName = link.get("server");
-          if (!(serverName instanceof List<?> serverList)) {
-            LOGGER.warn("Invalid 'server' value for server-link '{}'. Expected a list of servers like \"factions\" or \"minigames\"", entry.getKey());
-            continue;
-          }
-
-          List<String> scopes = serverList.stream()
-              .filter(Objects::nonNull)
-              .map(Object::toString)
-              .map(String::trim)
-              .toList();
-
-          if (label != null && url != null) {
-            for (String scope : scopes) {
-              links.computeIfAbsent(scope, s -> new ArrayList<>())
-                  .add(ServerLink.serverLink(ComponentUtils.parse(label), url));
-            }
-          }
-        }
-      }
+      Map<String, List<ServerLink>> links = parseServerLinks(serverLinksConfig);
 
       DynamicProxyFilterMode filter = DynamicProxyFilterMode.MOST_EMPTY;
       List<ProxyAddress> addresses = new ArrayList<>();
@@ -1265,7 +1265,11 @@ public final class VelocityConfiguration implements ProxyConfig {
       Map<String, Integer> playerCaps = new HashMap<>();
       if (playerCapsConfig != null) {
         for (CommentedConfig.Entry entry : playerCapsConfig.entrySet()) {
-          playerCaps.put(entry.getKey(), entry.getValue());
+          if (entry.getValue() instanceof Number cap) {
+            playerCaps.put(entry.getKey().toLowerCase(Locale.ROOT), cap.intValue());
+          } else {
+            LOGGER.warn("Invalid player cap in [playercaps] for '{}': {}", entry.getKey(), (Object) entry.getValue());
+          }
         }
       }
 
@@ -2237,6 +2241,10 @@ public final class VelocityConfiguration implements ProxyConfig {
 
     @Expose
     private int loginTimeout = 6000;
+    @Expose
+    private int staleSessionTakeover = 5000;
+    @Expose
+    private int reconnectToLastServer = 120000;
 
     @Expose
     private boolean proxyProtocol = false;
@@ -2335,6 +2343,8 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.connectionTimeout = config.getIntOrElse("connection-timeout", 5000);
         this.readTimeout = config.getIntOrElse("read-timeout", 25000);
         this.loginTimeout = config.getIntOrElse("login-timeout", 6000);
+        this.staleSessionTakeover = config.getIntOrElse("stale-session-takeover", 5000);
+        this.reconnectToLastServer = config.getIntOrElse("reconnect-to-last-server", 120000);
         if (config.contains("haproxy-protocol")) {
           this.proxyProtocol = config.getOrElse("haproxy-protocol", false);
         } else {
@@ -2389,6 +2399,14 @@ public final class VelocityConfiguration implements ProxyConfig {
 
     public int getLoginTimeout() {
       return loginTimeout;
+    }
+
+    public int getStaleSessionTakeover() {
+      return staleSessionTakeover;
+    }
+
+    public int getReconnectToLastServer() {
+      return reconnectToLastServer;
     }
 
     public boolean isProxyProtocol() {
@@ -2492,6 +2510,8 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("connectionTimeout", connectionTimeout)
           .add("readTimeout", readTimeout)
           .add("loginTimeout", loginTimeout)
+          .add("staleSessionTakeover", staleSessionTakeover)
+          .add("reconnectToLastServer", reconnectToLastServer)
           .add("proxyProtocol", proxyProtocol)
           .add("tcpFastOpen", tcpFastOpen)
           .add("bungeePluginMessageChannel", bungeePluginMessageChannel)

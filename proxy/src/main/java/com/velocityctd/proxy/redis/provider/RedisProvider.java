@@ -17,12 +17,10 @@
 
 package com.velocityctd.proxy.redis.provider;
 
-import com.google.common.collect.ImmutableList;
 import com.velocityctd.proxy.redis.depot.Depot;
 import com.velocityctd.proxy.redis.depot.DepotEntry;
 import com.velocityctd.proxy.redis.handler.RouteHandler;
 import com.velocityctd.proxy.redis.transaction.Transaction;
-import com.velocityctd.proxy.redis.transaction.TransactionData;
 import com.velocityctd.proxy.redis.transaction.TransactionHandler;
 import java.util.concurrent.TimeUnit;
 import org.jetbrains.annotations.NotNull;
@@ -86,33 +84,11 @@ public sealed interface RedisProvider permits AbstractRedisProvider {
   <T> void registerRoute(@NotNull RouteHandler<T> routeHandler);
 
   /**
-   * Unregister a {@link RouteHandler} for a specific data class, if it exists.
-   *
-   * @param dataClass the class of the data to unregister
-   * @param <T>       the type of the data
-   */
-  <T> void unregisterRoute(@NotNull Class<T> dataClass);
-
-  /**
-   * Get an immutable list of all route registrations.
-   *
-   * @return the immutable list of all route registrations
-   */
-  @NotNull ImmutableList<@NotNull RouteHandler<?>> getRouteHandlers();
-
-  /**
    * Register a {@link TransactionHandler} for a specific transaction class.
    *
    * @param transactionHandler the transaction handler to register
    */
   void registerTransaction(@NotNull TransactionHandler<?, ?> transactionHandler);
-
-  /**
-   * Unregister a {@link TransactionHandler} for a specific data class, if it exists.
-   *
-   * @param dataClass the data class whose handler should be removed
-   */
-  void unregisterTransaction(@NotNull Class<? extends TransactionData<?>> dataClass);
 
   /**
    * Create a {@link Depot} that can hold objects of a specific type.

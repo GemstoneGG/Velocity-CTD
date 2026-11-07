@@ -618,12 +618,9 @@ public final class PlayerDepotService extends AbstractDepotService<UUID, PlayerE
    * @return {@code true} if the entry should be written again
    */
   private boolean needsUpsert(ConnectedPlayer player, @Nullable PlayerEntry stored) {
-    if (stored == null) {
-      return true;
-    }
-
-    return stored.getProxyId().equalsIgnoreCase(this.redis.getProxyId())
-        && stored.isClientListingAllowed() != player.getPlayerSettings().isClientListingAllowed();
+    return stored == null
+        || (stored.getProxyId().equalsIgnoreCase(this.redis.getProxyId())
+            && stored.isClientListingAllowed() != player.getPlayerSettings().isClientListingAllowed());
   }
 
   private static Map<String, Integer> countPlayersByServer(Collection<PlayerEntry> playerEntries) {

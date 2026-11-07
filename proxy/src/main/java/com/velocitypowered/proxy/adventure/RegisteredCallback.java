@@ -45,9 +45,6 @@ record RegisteredCallback(
   }
 
   boolean tryUse() {
-    if (this.remainingUses != null) {
-      return this.remainingUses.decrementAndGet() >= 0;
-    }
-    return true;
+    return this.remainingUses == null || this.remainingUses.decrementAndGet() >= 0;
   }
 }

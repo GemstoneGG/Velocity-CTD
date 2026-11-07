@@ -97,15 +97,6 @@ public final class DataPacket {
   }
 
   /**
-   * Gets the unique internal identifier assigned to this packet.
-   *
-   * @return the packet's unique identifier
-   */
-  public UUID getId() {
-    return packetId;
-  }
-
-  /**
    * Gets the fully qualified class name of the payload type.
    *
    * @return the payload type string

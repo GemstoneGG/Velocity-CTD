@@ -124,10 +124,9 @@ public class PermissionUtils {
       }
 
       Integer value = safeParseInt(permission.substring(permissionPrefix.length()));
-      if (value != null && value > 0 && value <= max) {
-        if (highestPermissionValue == null || value > highestPermissionValue) {
-          highestPermissionValue = value;
-        }
+      if (value != null && value > 0 && value <= max
+          && (highestPermissionValue == null || value > highestPermissionValue)) {
+        highestPermissionValue = value;
       }
     }
 

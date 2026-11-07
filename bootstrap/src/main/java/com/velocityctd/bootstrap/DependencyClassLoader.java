@@ -30,12 +30,12 @@ import java.util.List;
 public final class DependencyClassLoader extends URLClassLoader {
 
   static {
-    ClassLoader.registerAsParallelCapable();
+    registerAsParallelCapable();
   }
 
   private DependencyClassLoader(URL[] urls) {
     // ClassLoader name referenced in com.velocitypowered.proxy.Metrics.VelocityMetrics#isBootstrap
-    super("velocity-bootstrap", urls, ClassLoader.getSystemClassLoader().getParent());
+    super("velocity-bootstrap", urls, getSystemClassLoader().getParent());
   }
 
   static DependencyClassLoader create(List<Path> jars) {

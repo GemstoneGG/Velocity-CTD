@@ -144,7 +144,7 @@ public class VelocityPluginManager implements PluginManager {
     JavaPluginLoader loader = new JavaPluginLoader(server, directory);
 
     for (Path path : extraPluginJars) {
-      if (VelocityPluginManager.isJarFile(path)) {
+      if (isJarFile(path)) {
         loadPluginDescription(loader, foundCandidates, path);
       }
     }

@@ -178,6 +178,14 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     return true;
   }
 
+  /**
+   * Shared guard for every chat and command packet: drop it when the player has no server yet, when
+   * its timestamp is out of order, or when its text fails validation (the last two disconnect).
+   */
+  private boolean shouldDropChat(@Nullable Instant timestamp, String text) {
+    return player.getCurrentServer().isEmpty() || !updateTimeKeeper(timestamp) || !validateChat(text);
+  }
+
   @Override
   public void activated() {
     configSwitchFuture = new CompletableFuture<>();
@@ -265,80 +273,40 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
 
   @Override
   public boolean handle(SessionPlayerCommandPacket packet) {
-    if (player.getCurrentServer().isEmpty()) {
+    if (shouldDropChat(packet.getTimeStamp(), packet.getCommand())) {
       return true;
     }
-
-    if (!updateTimeKeeper(packet.getTimeStamp())) {
-      return true;
-    }
-
-    if (!validateChat(packet.getCommand())) {
-      return true;
-    }
-
     return this.commandHandler.handlePlayerCommand(packet);
   }
 
   @Override
   public boolean handle(SessionPlayerChatPacket packet) {
-    if (player.getCurrentServer().isEmpty()) {
+    if (shouldDropChat(packet.getTimestamp(), packet.getMessage())) {
       return true;
     }
-
-    if (!updateTimeKeeper(packet.getTimestamp())) {
-      return true;
-    }
-
-    if (!validateChat(packet.getMessage())) {
-      return true;
-    }
-
     return this.chatHandler.handlePlayerChat(packet);
   }
 
   @Override
   public boolean handle(KeyedPlayerCommandPacket packet) {
-    if (player.getCurrentServer().isEmpty()) {
+    if (shouldDropChat(packet.getTimestamp(), packet.getCommand())) {
       return true;
     }
-
-    if (!updateTimeKeeper(packet.getTimestamp())) {
-      return true;
-    }
-
-    if (!validateChat(packet.getCommand())) {
-      return true;
-    }
-
     return this.commandHandler.handlePlayerCommand(packet);
   }
 
   @Override
   public boolean handle(KeyedPlayerChatPacket packet) {
-    if (player.getCurrentServer().isEmpty()) {
+    if (shouldDropChat(packet.getExpiry(), packet.getMessage())) {
       return true;
     }
-
-    if (!updateTimeKeeper(packet.getExpiry())) {
-      return true;
-    }
-
-    if (!validateChat(packet.getMessage())) {
-      return true;
-    }
-
     return this.chatHandler.handlePlayerChat(packet);
   }
 
   @Override
   public boolean handle(LegacyChatPacket packet) {
-    if (player.getCurrentServer().isEmpty()) {
-      return true;
-    }
-
     String msg = packet.getMessage();
-    if (!validateChat(msg)) {
+    if (shouldDropChat(null, msg)) {
       return true;
     }
 
@@ -372,7 +340,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
             + "ready. Channel: {}. Packet discarded.", packet.getChannel());
       } else if (PluginMessageUtil.isRegister(packet)) {
         List<ChannelIdentifier> channels = PluginMessageUtil.getChannels(this.player.getClientsideChannels().size(), packet,
-                this.player.getProtocolVersion(), this.server);
+                this.player.getProtocolVersion());
         player.getClientsideChannels().addAll(channels);
         server.getEventManager()
             .fireAndForget(
@@ -380,7 +348,7 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
         forwardPluginMessage(serverConn, backendConn, packet.retain());
       } else if (PluginMessageUtil.isUnregister(packet)) {
         List<ChannelIdentifier> channels =
-            PluginMessageUtil.getChannels(0, packet, this.player.getProtocolVersion(), this.server);
+            PluginMessageUtil.getChannels(0, packet, this.player.getProtocolVersion());
         player.getClientsideChannels().removeAll(channels);
         server.getEventManager()
             .fireAndForget(

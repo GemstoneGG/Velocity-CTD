@@ -192,13 +192,10 @@ public final class SharedTabData {
 
     @Override
     public boolean equals(Object other) {
-      if (this == other) {
-        return true;
-      }
-
-      return other instanceof PlayerKeyKey that && this.revision == that.revision
-          && this.expiry == that.expiry && Arrays.equals(this.publicKey, that.publicKey)
-          && Arrays.equals(this.signature, that.signature);
+      return this == other
+          || (other instanceof PlayerKeyKey that && this.revision == that.revision
+              && this.expiry == that.expiry && Arrays.equals(this.publicKey, that.publicKey)
+              && Arrays.equals(this.signature, that.signature));
     }
 
     @Override
@@ -217,12 +214,9 @@ public final class SharedTabData {
 
     @Override
     public boolean equals(Object other) {
-      if (this == other) {
-        return true;
-      }
-
-      return other instanceof ChatSessionKey that && this.playerKey == that.playerKey
-          && this.sessionId.equals(that.sessionId);
+      return this == other
+          || (other instanceof ChatSessionKey that && this.playerKey == that.playerKey
+              && this.sessionId.equals(that.sessionId));
     }
 
     @Override

@@ -157,7 +157,7 @@ public final class QueryResponse {
    * @return {@link QueryResponse} builder
    */
   public Builder toBuilder() {
-    return QueryResponse.builder()
+    return builder()
         .hostname(getHostname())
         .gameVersion(getGameVersion())
         .map(getMap())

@@ -32,7 +32,7 @@ public enum TranslatableMapper implements BiConsumer<TranslatableComponent, Cons
   INSTANCE;
 
   public static final ComponentFlattener FLATTENER = ComponentFlattener.basic().toBuilder()
-          .complexMapper(TranslatableComponent.class, TranslatableMapper.INSTANCE)
+          .complexMapper(TranslatableComponent.class, INSTANCE)
           .build();
 
   @Override

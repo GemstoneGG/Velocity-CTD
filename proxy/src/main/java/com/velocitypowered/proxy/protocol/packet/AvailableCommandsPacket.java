@@ -262,11 +262,9 @@ public class AvailableCommandsPacket implements MinecraftPacket {
         }
       }
 
-      if (redirectTo != -1) {
-        if (redirectTo < 0 || redirectTo >= wireNodes.size()) {
-          throw new IllegalStateException("Redirect node points to non-existent index "
-              + redirectTo);
-        }
+      if (redirectTo != -1 && (redirectTo < 0 || redirectTo >= wireNodes.size())) {
+        throw new IllegalStateException("Redirect node points to non-existent index "
+            + redirectTo);
       }
 
       this.validated = true;
@@ -337,9 +335,9 @@ public class AvailableCommandsPacket implements MinecraftPacket {
           .add("children", children)
           .add("redirectTo", redirectTo);
 
-      if (args instanceof LiteralArgumentBuilder literal) {
+      if (args instanceof LiteralArgumentBuilder<?> literal) {
         helper.add("argsLabel", literal.getLiteral());
-      } else if (args instanceof RequiredArgumentBuilder required) {
+      } else if (args instanceof RequiredArgumentBuilder<?, ?> required) {
         helper.add("argsName", required.getName());
       }
 

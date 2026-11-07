@@ -163,10 +163,7 @@ public final class VelocityCommandMeta implements CommandMeta {
 
     final VelocityCommandMeta that = (VelocityCommandMeta) o;
 
-    if (!this.aliases.equals(that.aliases)) {
-      return false;
-    }
-    return this.hints.equals(that.hints);
+    return this.aliases.equals(that.aliases) && this.hints.equals(that.hints);
   }
 
   @Override

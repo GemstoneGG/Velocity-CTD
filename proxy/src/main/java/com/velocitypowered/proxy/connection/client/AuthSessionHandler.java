@@ -380,9 +380,26 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
   }
 
   private CompletableFuture<Void> connectToInitialServer(ConnectedPlayer player) {
-    Optional<VelocityRegisteredServer> initialFromConfig = player.currentServerRetrySession().getNextServerToTry();
+    ConnectedPlayer.ServerRetrySession retrySession = player.currentServerRetrySession();
+    Optional<VelocityRegisteredServer> lastServer = server.getLastServerTracker()
+        .consume(player.getUniqueId())
+        .flatMap(server::getServer);
+    Optional<VelocityRegisteredServer> initial;
+    if (lastServer.isPresent()) {
+      // The player's previous connection was lost moments ago: start them where they were. The
+      // retry session keeps the configured order for when that server does not take them.
+      retrySession.exclude(lastServer.get());
+      initial = lastServer;
+      if (server.getConfiguration().isLogPlayerConnections()) {
+        LOGGER.info("{} lost their connection recently; sending them back to {}", player,
+            lastServer.get().getServerInfo().getName());
+      }
+    } else {
+      initial = retrySession.getNextServerToTry();
+    }
+
     PlayerChooseInitialServerEvent event =
-        new PlayerChooseInitialServerEvent(player, initialFromConfig.orElse(null));
+        new PlayerChooseInitialServerEvent(player, initial.orElse(null));
 
     return server.getEventManager().fire(event).thenRunAsync(() -> {
       // Cast required (API event class)

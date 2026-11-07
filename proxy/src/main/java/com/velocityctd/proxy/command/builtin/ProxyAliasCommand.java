@@ -110,12 +110,4 @@ public class ProxyAliasCommand implements SimpleCommand {
 
     return Optional.of(true);
   }
-
-  public String alias() {
-    return alias;
-  }
-
-  public List<String> commands() {
-    return commands;
-  }
 }

@@ -61,11 +61,10 @@ public class KeyedCommandHandler extends RateLimitedCommandHandler<KeyedPlayerCo
       CommandExecuteEvent.CommandResult result = event.getResult();
       IdentifiedKey playerKey = player.getIdentifiedKey();
       if (result == CommandExecuteEvent.CommandResult.denied()) {
-        if (server.getConfiguration().enforceChatSigning() && playerKey != null) {
-          if (!packet.isUnsigned()
-              && playerKey.getKeyRevision().noLessThan(IdentifiedKey.Revision.LINKED_V2)) {
-            SignedChatViolations.alterSignableComponentError("deny", player, packet);
-          }
+        if (server.getConfiguration().enforceChatSigning() && playerKey != null
+            && !packet.isUnsigned()
+            && playerKey.getKeyRevision().noLessThan(IdentifiedKey.Revision.LINKED_V2)) {
+          SignedChatViolations.alterSignableComponentError("deny", player, packet);
         }
         return CompletableFuture.completedFuture(null);
       }

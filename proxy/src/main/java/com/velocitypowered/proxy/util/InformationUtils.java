@@ -158,7 +158,6 @@ public enum InformationUtils {
         }
       } case Inet6Address v6 -> {
         if (v6.isAnyLocalAddress() || v6.isLoopbackAddress()
-                || v6.isSiteLocalAddress()
                 || v6.isSiteLocalAddress()) {
           yield address.getHostAddress();
         } else {
@@ -244,16 +243,6 @@ public enum InformationUtils {
    */
   public static String toHumanReadableString(JsonElement json) {
     return GSON_WITHOUT_EXCLUDES.toJson(json);
-  }
-
-  /**
-   * Creates a {@link JsonObject} from a String.
-   *
-   * @param toParse the String to parse
-   * @return {@link JsonObject} object
-   */
-  public static JsonObject parseString(String toParse) {
-    return GSON_WITHOUT_EXCLUDES.fromJson(toParse, JsonObject.class);
   }
 
   private static JsonElement serializeObject(Object toSerialize, boolean withExcludes) {

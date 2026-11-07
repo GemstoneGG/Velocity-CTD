@@ -133,7 +133,7 @@ log-player-disconnections = true
 
 [commands]
 # Users often prefer to outright unregister the command instead of setting
-# the command's permission to false for users, as console overrides that priviledge.
+# the command's permission to false for users, as console overrides that privilege.
 # We particularly exclude raw /velocity {ALL}, callback, and shutdown
 # to maintain functionality or because (for example) "/velocity uptime" does not
 # overlap with any other known commands in Velocity and should never be of concern.
@@ -292,6 +292,21 @@ read-timeout = 25000
 # the player on through the fallback chain. Unlike read-timeout this only bounds connection
 # establishment, so it can be kept short for fast failover. The default is 6 seconds.
 login-timeout = 6000
+
+# How long (in milliseconds) a player in game may send nothing before their session is considered
+# lost. When a player whose connection dropped logs in again while that old session is still open,
+# the old session is replaced instead of refusing the new login, even if kick-existing-players is
+# disabled. A connected client sends packets every tick, so live sessions are never replaced. The new
+# login must be authenticated (online mode) or come from the same IP address (offline mode).
+# Set to 0 to disable. The default is 5 seconds.
+stale-session-takeover = 5000
+
+# How long (in milliseconds) to remember the server a player was on after their connection is lost
+# (timed out, broke, or was replaced by a new login of theirs). If they log in again within this time
+# they are sent back to that server instead of the default initial server, falling back to the
+# regular fallback order if it does not accept them. Plugins can still change the initial server.
+# Remembered per proxy. Set to 0 to disable. The default is 2 minutes.
+reconnect-to-last-server = 120000
 
 # Enables compatibility with HAProxy's PROXY protocol. If you don't know what this is for, then
 # don't enable it.

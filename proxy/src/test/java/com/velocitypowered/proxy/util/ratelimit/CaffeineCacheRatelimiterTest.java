@@ -26,12 +26,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("unchecked")
 class CaffeineCacheRatelimiterTest {
 
   @Test
   void attemptZero() {
-    Ratelimiter noRatelimiter = new CaffeineCacheRatelimiter(0, TimeUnit.MILLISECONDS);
+    Ratelimiter<InetAddress> noRatelimiter = new CaffeineCacheRatelimiter<>(0, TimeUnit.MILLISECONDS);
     assertTrue(noRatelimiter.attempt(InetAddress.getLoopbackAddress()));
     assertTrue(noRatelimiter.attempt(InetAddress.getLoopbackAddress()));
   }
@@ -41,7 +40,7 @@ class CaffeineCacheRatelimiterTest {
     long base = System.nanoTime();
     AtomicLong extra = new AtomicLong();
     Ticker testTicker = () -> base + extra.get();
-    Ratelimiter ratelimiter = new CaffeineCacheRatelimiter(1000, TimeUnit.MILLISECONDS, testTicker);
+    Ratelimiter<InetAddress> ratelimiter = new CaffeineCacheRatelimiter<>(1000, TimeUnit.MILLISECONDS, testTicker);
     assertTrue(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
     assertFalse(ratelimiter.attempt(InetAddress.getLoopbackAddress()));
     extra.addAndGet(TimeUnit.SECONDS.toNanos(2));

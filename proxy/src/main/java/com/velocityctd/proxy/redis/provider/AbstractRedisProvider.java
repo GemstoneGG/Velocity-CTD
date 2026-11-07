@@ -17,7 +17,6 @@
 
 package com.velocityctd.proxy.redis.provider;
 
-import com.google.common.collect.ImmutableList;
 import com.velocityctd.proxy.redis.handler.RouteHandler;
 import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocityctd.proxy.redis.packet.PacketSerializer;
@@ -157,21 +156,6 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
   }
 
   /**
-   * Unregisters the route associated with the given data class, if present.
-   *
-   * @param dataClass the data class whose route should be removed
-   * @param <T> the type of data handled by the route
-   */
-  @Override
-  public <T> void unregisterRoute(@NotNull Class<T> dataClass) {
-    if (this.routeHandlers.remove(dataClass.getName()) == null) {
-      LOGGER.debug("Route registration for '{}' does not exist, ignoring", dataClass.getSimpleName());
-    } else {
-      LOGGER.debug("Unregistered route registration for '{}'", dataClass.getSimpleName());
-    }
-  }
-
-  /**
    * Registers a {@link TransactionHandler} for a given {@link TransactionData} type.
    *
    * @param transactionHandler the handler to register
@@ -185,30 +169,6 @@ public abstract sealed class AbstractRedisProvider implements RedisProvider perm
     }
 
     this.transactionHandlers.put(dataClass.getName(), transactionHandler);
-  }
-
-  /**
-   * Unregisters the {@link TransactionHandler} associated with the given data class, if present.
-   *
-   * @param dataClass the data class whose handler should be removed
-   */
-  @Override
-  public void unregisterTransaction(@NotNull Class<? extends TransactionData<?>> dataClass) {
-    if (this.transactionHandlers.remove(dataClass.getName()) == null) {
-      LOGGER.debug("Transaction handler for '{}' does not exist, ignoring", dataClass.getSimpleName());
-    } else {
-      LOGGER.debug("Unregistered transaction handler for '{}'", dataClass.getSimpleName());
-    }
-  }
-
-  /**
-   * Gets an immutable list of all registered {@link RouteHandler} instances.
-   *
-   * @return an immutable list of route registrations
-   */
-  @Override
-  public @NotNull ImmutableList<@NotNull RouteHandler<?>> getRouteHandlers() {
-    return ImmutableList.copyOf(this.routeHandlers.values());
   }
 
   /**
