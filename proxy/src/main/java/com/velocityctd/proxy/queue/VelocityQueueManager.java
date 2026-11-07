@@ -18,6 +18,7 @@
 package com.velocityctd.proxy.queue;
 
 import static com.velocityctd.api.queue.QueueState.ACTIVE;
+import static com.velocityctd.api.queue.QueueState.INACTIVE;
 import static com.velocityctd.api.queue.QueueState.PAUSED;
 import static com.velocityctd.api.queue.ServerStatus.FULL;
 import static com.velocityctd.api.queue.ServerStatus.OFFLINE;
@@ -113,11 +114,7 @@ public class VelocityQueueManager implements QueueManager {
     // Ensure every registered server has a queue (fills gaps not covered by preInitialize).
     for (VelocityRegisteredServer rs : server.getAllServers()) {
       String name = rs.getServerInfo().getName();
-      queues.computeIfAbsent(name, n -> {
-        boolean inactive = server.getConfiguration().getQueue()
-            .getNoQueueServers().contains(n);
-        return createQueue(rs, inactive ? QueueState.INACTIVE : QueueState.ACTIVE);
-      });
+      queues.computeIfAbsent(name, n -> createQueue(rs, initialState(n)));
     }
 
     rescheduleTasks();
@@ -163,6 +160,13 @@ public class VelocityQueueManager implements QueueManager {
   }
 
   /**
+   * Returns the state a newly created queue for the given server starts in.
+   */
+  private QueueState initialState(String serverName) {
+    return server.getConfiguration().getQueue().getNoQueueServers().contains(serverName) ? INACTIVE : ACTIVE;
+  }
+
+  /**
    * Sends an action-bar update for the given queue entry.
    */
   protected void sendActionBar(VelocityQueueEntry entry) {
@@ -199,10 +203,7 @@ public class VelocityQueueManager implements QueueManager {
     // Create queues for newly-added servers.
     for (VelocityRegisteredServer rs : server.getAllServers()) {
       String name = rs.getServerInfo().getName();
-      queues.computeIfAbsent(name, n -> {
-        boolean inactive = server.getConfiguration().getQueue().getNoQueueServers().contains(n);
-        return createQueue(rs, inactive ? QueueState.INACTIVE : QueueState.ACTIVE);
-      });
+      queues.computeIfAbsent(name, n -> createQueue(rs, initialState(n)));
     }
   }
 
@@ -231,10 +232,7 @@ public class VelocityQueueManager implements QueueManager {
     VelocityRegisteredServer rs = server.getServer(serverName)
         .orElseThrow(() -> new IllegalArgumentException("Unknown server: " + serverName));
 
-    return queues.computeIfAbsent(serverName, n -> {
-      boolean inactive = server.getConfiguration().getQueue().getNoQueueServers().contains(n);
-      return createQueue(rs, inactive ? QueueState.INACTIVE : QueueState.ACTIVE);
-    });
+    return queues.computeIfAbsent(serverName, n -> createQueue(rs, initialState(n)));
   }
 
   @Override
@@ -511,6 +509,18 @@ public class VelocityQueueManager implements QueueManager {
     return (int) Math.min(priority + bonus, maxDynamicPriority);
   }
 
+  /**
+   * The capacity the queue works with for a backend: the {@code [playercaps]} cap when one is
+   * configured, otherwise the maximum player count the backend reports in its ping.
+   */
+  static int effectiveMaxPlayers(int reportedMax, @Nullable Integer playerCap) {
+    return playerCap != null ? playerCap : reportedMax;
+  }
+
+  static boolean isFull(int online, int maxPlayers) {
+    return maxPlayers > 0 && online >= maxPlayers;
+  }
+
   private void pingBackends() {
     if (!isMasterProxy()) {
       return;
@@ -529,11 +539,12 @@ public class VelocityQueueManager implements QueueManager {
           return;
         }
 
-        queue.getEtaTracker().ifPresent(
-            t -> result.getPlayers().ifPresent(t::recordBackendPing));
+        Integer playerCap = server.getConfiguration().getPlayerCap(queue.getName());
+        result.getPlayers().ifPresent(p -> queue.getEtaTracker().ifPresent(
+            t -> t.recordBackendPing(p.getOnline(), effectiveMaxPlayers(p.getMax(), playerCap))));
 
         boolean serverFull = result.getPlayers()
-            .map(p -> p.getMax() > 0 && p.getOnline() >= p.getMax())
+            .map(p -> isFull(p.getOnline(), effectiveMaxPlayers(p.getMax(), playerCap)))
             .orElse(false);
         ServerStatus activeStatus = serverFull ? FULL : ONLINE;
 

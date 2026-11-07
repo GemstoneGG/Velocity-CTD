@@ -122,10 +122,7 @@ public class VelocityArgumentCommandNode<S, T> extends ArgumentCommandNode<S, St
     if (!(o instanceof VelocityArgumentCommandNode<?, ?> that)) {
       return false;
     }
-    if (!super.equals(that)) {
-      return false;
-    }
-    return this.type.equals(that.type);
+    return super.equals(that) && this.type.equals(that.type);
   }
 
   @Override

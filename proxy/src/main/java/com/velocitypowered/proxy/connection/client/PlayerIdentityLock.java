@@ -131,10 +131,6 @@ public final class PlayerIdentityLock {
         PlayerIdentityLock.this.release(uuid, name);
       }
     }
-
-    public boolean isReleased() {
-      return released.get();
-    }
   }
 
   private record Waiter(UUID uuid, String name, CompletableFuture<LockHandle> future) {

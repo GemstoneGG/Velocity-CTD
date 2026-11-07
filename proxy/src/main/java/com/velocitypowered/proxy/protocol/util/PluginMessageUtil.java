@@ -28,7 +28,6 @@ import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.LegacyChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.velocitypowered.api.util.ProxyVersion;
-import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
@@ -106,14 +105,12 @@ public final class PluginMessageUtil {
    * @param existingChannels the number of plugin channels already registered for the player
    * @param message the {@link PluginMessagePacket} containing channel registration data
    * @param protocolVersion the protocol version of the client that sent the packet
-   * @param server the current Velocity proxy server instance
    * @return the channels, as an immutable list
    * @throws IllegalArgumentException if the payload is malformed or exceeds limits
    */
   public static List<ChannelIdentifier> getChannels(int existingChannels,
                                                     PluginMessagePacket message,
-                                                    ProtocolVersion protocolVersion,
-                                                    VelocityServer server) {
+                                                    ProtocolVersion protocolVersion) {
     checkNotNull(message, "message");
     checkArgument(isRegister(message) || isUnregister(message), "Unknown channel type %s",
         message.getChannel());

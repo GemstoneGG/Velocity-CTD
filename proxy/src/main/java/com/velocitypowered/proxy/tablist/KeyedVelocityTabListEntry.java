@@ -121,8 +121,4 @@ public class KeyedVelocityTabListEntry implements TabListEntry {
   public IdentifiedKey getIdentifiedKey() {
     return playerKey;
   }
-
-  void setPlayerKeyInternal(IdentifiedKey playerKey) {
-    this.playerKey = playerKey;
-  }
 }

@@ -18,7 +18,6 @@
 package com.velocityctd.proxy.queue;
 
 import com.velocityctd.api.queue.EtaTracker;
-import com.velocitypowered.api.proxy.server.ServerPing;
 import com.velocitypowered.proxy.VelocityServer;
 import java.time.Duration;
 import org.jetbrains.annotations.NotNull;
@@ -41,9 +40,15 @@ public final class VelocityEtaTracker implements EtaTracker {
     this.server = server;
   }
 
-  synchronized void recordBackendPing(ServerPing.Players pingPlayers) {
-    this.lastOnline = pingPlayers.getOnline();
-    this.lastMax = pingPlayers.getMax();
+  /**
+   * Records the latest backend occupancy.
+   *
+   * @param online     the players online on the backend
+   * @param maxPlayers the capacity the queue works with (the [playercaps] cap, if configured)
+   */
+  synchronized void recordBackendPing(int online, int maxPlayers) {
+    this.lastOnline = online;
+    this.lastMax = maxPlayers;
   }
 
   synchronized void recordBackendPlayerLeave(long nowMillis) {

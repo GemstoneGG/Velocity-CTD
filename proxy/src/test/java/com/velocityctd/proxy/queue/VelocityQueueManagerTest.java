@@ -17,8 +17,12 @@
 
 package com.velocityctd.proxy.queue;
 
+import static com.velocityctd.proxy.queue.VelocityQueueManager.effectiveMaxPlayers;
 import static com.velocityctd.proxy.queue.VelocityQueueManager.effectivePriority;
+import static com.velocityctd.proxy.queue.VelocityQueueManager.isFull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
@@ -71,5 +75,25 @@ class VelocityQueueManagerTest {
     long joinedAt = now - TimeUnit.DAYS.toMillis(1);
     assertEquals(5, effectivePriority(5, joinedAt, now, 0, MAX_DYNAMIC_PRIORITY));
     assertEquals(5, effectivePriority(5, joinedAt, now, -1, MAX_DYNAMIC_PRIORITY));
+  }
+
+  @Test
+  void playerCapReplacesReportedMaximum() {
+    assertEquals(300, effectiveMaxPlayers(500, 300));
+    assertEquals(500, effectiveMaxPlayers(500, null));
+  }
+
+  @Test
+  void serverIsFullAtTheConfiguredCap() {
+    // 300 of 500 slots used: not full by the backend's count, but full at a [playercaps] cap of 300.
+    assertFalse(isFull(300, effectiveMaxPlayers(500, null)));
+    assertTrue(isFull(300, effectiveMaxPlayers(500, 300)));
+    assertFalse(isFull(299, effectiveMaxPlayers(500, 300)));
+  }
+
+  @Test
+  void nonPositiveMaximumIsNeverFull() {
+    assertFalse(isFull(10, 0));
+    assertFalse(isFull(10, -1));
   }
 }

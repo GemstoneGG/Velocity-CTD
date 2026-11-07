@@ -28,7 +28,7 @@ public final class PingOptions {
   /**
    * Default PingOptions.
    */
-  public static final PingOptions DEFAULT = PingOptions.builder().build();
+  public static final PingOptions DEFAULT = builder().build();
   private final ProtocolVersion protocolVersion;
   private final long timeout;
   private final String virtualHost;

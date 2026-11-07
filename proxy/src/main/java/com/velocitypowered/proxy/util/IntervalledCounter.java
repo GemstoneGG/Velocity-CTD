@@ -241,7 +241,7 @@ public final class IntervalledCounter {
    * @return the rate in units per second for the current window
    */
   public double getRate() {
-    return (double) this.sum / ((double) this.interval * 1.0E-9);
+    return this.sum / (this.interval * 1.0E-9);
   }
 
   /**

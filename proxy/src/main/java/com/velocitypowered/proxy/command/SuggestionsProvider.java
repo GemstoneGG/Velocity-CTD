@@ -157,9 +157,7 @@ final class SuggestionsProvider<S> {
     }
 
     final Collection<CommandNode<S>> aliases = contextSoFar.getRootNode().getChildren();
-    @SuppressWarnings("unchecked")
-    final CompletableFuture<Suggestions>[] futures = new CompletableFuture[aliases.size()];
-    int i = 0;
+    final List<CompletableFuture<Suggestions>> futures = new ArrayList<>(aliases.size());
     for (final CommandNode<S> node : aliases) {
       CompletableFuture<Suggestions> future = Suggestions.empty();
       final String alias = node.getName();
@@ -173,7 +171,7 @@ final class SuggestionsProvider<S> {
           future = builder.suggest(alias).buildFuture();
         }
       }
-      futures[i++] = future;
+      futures.add(future);
     }
     return this.merge(input, futures);
   }
@@ -230,14 +228,14 @@ final class SuggestionsProvider<S> {
         this.getArgumentsNodeSuggestions(argsNode, reader, context);
     final boolean hasHints = alias.getChildren().size() > 1;
     if (!hasHints) {
-      return this.merge(fullInput, cmdSuggestions);
+      return this.merge(fullInput, List.of(cmdSuggestions));
     }
 
     // Parse the hint nodes to get remaining suggestions
     reader.setCursor(start);
     final CompletableFuture<Suggestions> hintSuggestions =
         this.getHintSuggestions(alias, reader, contextSoFar);
-    return this.merge(fullInput, cmdSuggestions, hintSuggestions);
+    return this.merge(fullInput, List.of(cmdSuggestions, hintSuggestions));
   }
 
   /**
@@ -357,12 +355,11 @@ final class SuggestionsProvider<S> {
    * @param futures   the futures that complete with the suggestions
    * @return the future that completes with the merged suggestions
    */
-  @SafeVarargs
   private CompletableFuture<Suggestions> merge(
-      final String fullInput, final CompletableFuture<Suggestions>... futures) {
+      final String fullInput, final List<CompletableFuture<Suggestions>> futures) {
     // https://github.com/Mojang/brigadier/pull/81
-    return CompletableFuture.allOf(futures).handle((unused, throwable) -> {
-      final List<Suggestions> suggestions = new ArrayList<>(futures.length);
+    return CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[0])).handle((unused, throwable) -> {
+      final List<Suggestions> suggestions = new ArrayList<>(futures.size());
       for (final CompletableFuture<Suggestions> future : futures) {
         if (future.isCompletedExceptionally()) {
           final Throwable exception = CompletableFutures.getException(future);

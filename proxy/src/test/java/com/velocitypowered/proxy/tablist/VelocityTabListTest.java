@@ -33,6 +33,8 @@ import com.velocitypowered.api.util.GameProfile;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.protocol.packet.RemovePlayerInfoPacket;
+import com.velocitypowered.proxy.protocol.packet.UpsertPlayerInfoPacket;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,5 +78,22 @@ class VelocityTabListTest {
 
     assertTrue(tabList.removeEntry(uuid).isEmpty());
     verifyNoMoreInteractions(connection);
+  }
+
+  @Test
+  void backendHatUpdateIsTracked() {
+    UUID uuid = UUID.randomUUID();
+    UpsertPlayerInfoPacket.Entry added = new UpsertPlayerInfoPacket.Entry(uuid);
+    added.setProfile(new GameProfile(uuid, "TestPlayer", List.of()));
+    tabList.processUpdate(new UpsertPlayerInfoPacket(
+        EnumSet.of(UpsertPlayerInfoPacket.Action.ADD_PLAYER), List.of(added)));
+    assertTrue(tabList.getEntry(uuid).orElseThrow().isShowHat());
+
+    UpsertPlayerInfoPacket.Entry hatUpdate = new UpsertPlayerInfoPacket.Entry(uuid);
+    hatUpdate.setShowHat(false);
+    tabList.processUpdate(new UpsertPlayerInfoPacket(
+        EnumSet.of(UpsertPlayerInfoPacket.Action.UPDATE_HAT), List.of(hatUpdate)));
+
+    assertFalse(tabList.getEntry(uuid).orElseThrow().isShowHat());
   }
 }

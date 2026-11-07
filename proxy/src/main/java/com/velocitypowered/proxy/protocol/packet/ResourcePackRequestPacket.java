@@ -132,10 +132,8 @@ public class ResourcePackRequestPacket implements MinecraftPacket {
             .setId(id).setPrompt(prompt == null ? null : prompt.getComponent())
             .setShouldForce(isRequired).setOrigin(ResourcePackInfo.Origin.DOWNSTREAM_SERVER);
 
-    if (hash != null && !hash.isEmpty()) {
-      if (PLAUSIBLE_SHA1_HASH.matcher(hash).matches()) {
-        builder.setHash(ByteBufUtil.decodeHexDump(hash));
-      }
+    if (hash != null && !hash.isEmpty() && PLAUSIBLE_SHA1_HASH.matcher(hash).matches()) {
+      builder.setHash(ByteBufUtil.decodeHexDump(hash));
     }
     return (VelocityResourcePackInfo) builder.build();
   }

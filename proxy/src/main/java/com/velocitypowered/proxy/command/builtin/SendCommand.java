@@ -72,7 +72,7 @@ public class SendCommand implements BuiltinCommandDefinition {
                 .then(
                     BrigadierCommand
                         .requiredArgumentBuilder(TARGET_ARG, StringArgumentType.word())
-                        .suggests(this::suggestServers)
+                        .suggests((ctx, builder) -> suggestServers(builder))
                         .executes(this::executeSend)
                 )
         );
@@ -80,7 +80,7 @@ public class SendCommand implements BuiltinCommandDefinition {
     return new BrigadierCommand(command);
   }
 
-  private CompletableFuture<Suggestions> suggestServers(CommandContext<CommandSource> ctx, SuggestionsBuilder builder) {
+  private CompletableFuture<Suggestions> suggestServers(SuggestionsBuilder builder) {
     String input = builder.getRemaining();
     for (VelocityRegisteredServer rs : server.getAllServers()) {
       String name = rs.getServerInfo().getName();
@@ -109,42 +109,35 @@ public class SendCommand implements BuiltinCommandDefinition {
 
     PlayerIdentifier.Result result = PlayerIdentifier.resolve(server, selector, ctx.getSource());
     if (!result.success()) {
-      sendResolveError(ctx.getSource(), result);
+      PlayerIdentifier.sendResolveError(ctx.getSource(), result);
       return 0;
     }
 
     return switch (result.type()) {
-      case PLAYER -> sendPlayers(ctx, result, toName);
+      case PLAYER -> sendPlayer(ctx, result, toName);
       case SERVER, CURRENT_SERVER -> sendFromServer(ctx, result, toName);
       default -> sendBulk(ctx, result, toName);
     };
   }
 
-  private int sendPlayers(CommandContext<CommandSource> ctx, PlayerIdentifier.Result result, String toName) {
-    Collection<VelocityClusterPlayer> players = result.players();
-
-    if (players.size() == 1) {
-      VelocityClusterPlayer player = players.iterator().next();
-      if (equalsIgnoreCase(player.getServerName(), toName)) {
-        ctx.getSource().sendMessage(Component.translatable("velocity.command.send-player-none")
-            .arguments(
-                Argument.string("player", player.getUsername()),
-                Argument.string("server", toName)
-            ));
-        return 0;
-      }
-
-      player.move(toName);
-      ctx.getSource().sendMessage(Component.translatable("velocity.command.send-player")
+  private int sendPlayer(CommandContext<CommandSource> ctx, PlayerIdentifier.Result result, String toName) {
+    VelocityClusterPlayer player = result.players().iterator().next();
+    if (equalsIgnoreCase(player.getServerName(), toName)) {
+      ctx.getSource().sendMessage(Component.translatable("velocity.command.send-player-none")
           .arguments(
               Argument.string("player", player.getUsername()),
               Argument.string("server", toName)
           ));
-      return SINGLE_SUCCESS;
+      return 0;
     }
 
-    // Multiple comma-separated players
-    return sendBulk(ctx, result, toName);
+    player.move(toName);
+    ctx.getSource().sendMessage(Component.translatable("velocity.command.send-player")
+        .arguments(
+            Argument.string("player", player.getUsername()),
+            Argument.string("server", toName)
+        ));
+    return SINGLE_SUCCESS;
   }
 
   private int sendFromServer(CommandContext<CommandSource> ctx, PlayerIdentifier.Result result, String toName) {
@@ -208,18 +201,6 @@ public class SendCommand implements BuiltinCommandDefinition {
             )
     );
     return moved;
-  }
-
-  private void sendResolveError(CommandSource source, PlayerIdentifier.Result result) {
-    switch (result.type()) {
-      case PLAYER -> source.sendMessage(CommandMessages.PLAYER_NOT_FOUND
-          .arguments(Argument.string("player", result.name())));
-      case SERVER -> source.sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
-          .arguments(Component.text(result.name())));
-      case PLAYER_EXECUTOR_REQUIRED -> source.sendMessage(CommandMessages.PLAYERS_ONLY);
-      default -> {
-      }
-    }
   }
 
   private static boolean equalsIgnoreCase(@Nullable String a, @Nullable String b) {

@@ -45,14 +45,4 @@ public interface PermissionResolverProvider {
    */
   @Nullable
   PermissionResolver createResolver(PermissionSubject subject, @Nullable PermissionFunction delegate);
-
-  /**
-   * Creates a {@link PermissionResolver} for the subject without a delegate.
-   *
-   * @param subject the subject
-   * @return the permission resolver
-   */
-  default @Nullable PermissionResolver createResolver(PermissionSubject subject) {
-    return createResolver(subject, null);
-  }
 }

@@ -104,11 +104,11 @@ public enum Tristate {
    * @return equivalent Adventure TriState
    */
   public TriState toAdventureTriState() {
-    if (this == Tristate.TRUE) {
+    if (this == TRUE) {
       return TriState.TRUE;
-    } else if (this == Tristate.UNDEFINED) {
+    } else if (this == UNDEFINED) {
       return TriState.NOT_SET;
-    } else if (this == Tristate.FALSE) {
+    } else if (this == FALSE) {
       return TriState.FALSE;
     } else {
       throw new IllegalArgumentException();

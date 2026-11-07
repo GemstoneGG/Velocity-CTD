@@ -30,7 +30,6 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.builtin.BuiltinCommandDefinition;
-import com.velocitypowered.proxy.command.builtin.CommandMessages;
 import com.velocitypowered.proxy.config.ProxyAddress;
 import java.util.Objects;
 import java.util.Optional;
@@ -128,37 +127,30 @@ public class TransferCommand implements BuiltinCommandDefinition {
   private int transfer(CommandSource source, String player, Address address, String targetDisplayName) {
     PlayerIdentifier.Result result = PlayerIdentifier.resolve(server, player, source);
     if (!result.success()) {
-      sendResolveError(source, result);
+      PlayerIdentifier.sendResolveError(source, result);
       return 0;
     }
 
     switch (result.type()) {
       case PLAYER -> {
-        if (result.players().size() == 1) {
-          VelocityClusterPlayer clusterPlayer = result.players().iterator().next();
-          clusterPlayer.transfer(address.hostname(), address.port()).thenAccept(success -> {
-            if (success) {
-              source.sendMessage(Component.translatable("velocity.command.transfer.success.player")
-                  .arguments(Argument.string("player", clusterPlayer.getUsername()),
-                      Argument.string("proxy", targetDisplayName)));
-            } else {
-              source.sendMessage(Component.translatable("velocity.command.transfer.invalid-version")
-                  .arguments(Argument.string("player", clusterPlayer.getUsername())));
-            }
-          }).exceptionally(ex -> {
-            if (CompletableUtils.cause(ex) instanceof TimeoutException) {
-              source.sendMessage(Component.translatable("velocity.command.transfer.timeout", NamedTextColor.RED));
-            }
+        VelocityClusterPlayer clusterPlayer = result.players().iterator().next();
+        clusterPlayer.transfer(address.hostname(), address.port()).thenAccept(success -> {
+          if (success) {
+            source.sendMessage(Component.translatable("velocity.command.transfer.success.player")
+                .arguments(Argument.string("player", clusterPlayer.getUsername()),
+                    Argument.string("proxy", targetDisplayName)));
+          } else {
+            source.sendMessage(Component.translatable("velocity.command.transfer.invalid-version")
+                .arguments(Argument.string("player", clusterPlayer.getUsername())));
+          }
+        }).exceptionally(ex -> {
+          if (CompletableUtils.cause(ex) instanceof TimeoutException) {
+            source.sendMessage(Component.translatable("velocity.command.transfer.timeout", NamedTextColor.RED));
+          }
 
-            handleTransferError(clusterPlayer, ex);
-            return null;
-          });
-        } else {
-          // Multiple comma-separated players
-          source.sendMessage(Component.translatable("velocity.command.transfer.success.all")
-              .arguments(Component.text(targetDisplayName)));
-          transferAll(result, address);
-        }
+          handleTransferError(clusterPlayer, ex);
+          return null;
+        });
       }
       case SERVER, CURRENT_SERVER -> {
         source.sendMessage(Component.translatable("velocity.command.transfer.success.server")
@@ -189,18 +181,6 @@ public class TransferCommand implements BuiltinCommandDefinition {
   private void handleTransferError(VelocityClusterPlayer player, Throwable ex) {
     if (!(CompletableUtils.cause(ex) instanceof TimeoutException)) {
       LOGGER.error("Failed to transfer player {}", player.getUsername(), ex);
-    }
-  }
-
-  private void sendResolveError(CommandSource source, PlayerIdentifier.Result result) {
-    switch (result.type()) {
-      case PLAYER -> source.sendMessage(CommandMessages.PLAYER_NOT_FOUND
-          .arguments(Argument.string("player", result.name())));
-      case SERVER -> source.sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
-          .arguments(Component.text(result.name())));
-      case PLAYER_EXECUTOR_REQUIRED -> source.sendMessage(CommandMessages.PLAYERS_ONLY);
-      default -> {
-      }
     }
   }
 

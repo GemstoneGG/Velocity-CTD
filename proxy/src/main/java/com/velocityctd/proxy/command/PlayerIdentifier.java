@@ -21,12 +21,15 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.velocityctd.proxy.cluster.VelocityClusterPlayer;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.command.builtin.CommandMessages;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -69,7 +72,7 @@ public final class PlayerIdentifier {
     PROXY,
 
     /**
-     * One or more player names (possibly comma-separated).
+     * A single player name.
      */
     PLAYER,
 
@@ -176,7 +179,8 @@ public final class PlayerIdentifier {
    *
    * <p>This method does <b>not</b> send any messages to the source. The caller
    * is responsible for checking {@link Result#success()} and sending appropriate
-   * error or success messages based on {@link Result#type()} and {@link Result#name()}.</p>
+   * error or success messages based on {@link Result#type()} and {@link Result#name()};
+   * {@link #sendResolveError(CommandSource, Result)} sends the standard error messages.</p>
    *
    * @param server the proxy server instance
    * @param identifier the identifier string to resolve
@@ -233,6 +237,25 @@ public final class PlayerIdentifier {
     }
 
     return Result.success(Type.PLAYER, Collections.singleton(singlePlayer), null);
+  }
+
+  /**
+   * Sends the standard error message for a failed {@link #resolve} result: player not found,
+   * server does not exist, or players only. Other failure types send nothing.
+   *
+   * @param source the command source to notify
+   * @param result the failed resolution result
+   */
+  public static void sendResolveError(CommandSource source, Result result) {
+    switch (result.type()) {
+      case PLAYER -> source.sendMessage(CommandMessages.PLAYER_NOT_FOUND
+          .arguments(Argument.string("player", result.name())));
+      case SERVER -> source.sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
+          .arguments(Component.text(result.name())));
+      case PLAYER_EXECUTOR_REQUIRED -> source.sendMessage(CommandMessages.PLAYERS_ONLY);
+      default -> {
+      }
+    }
   }
 
   /**

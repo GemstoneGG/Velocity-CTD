@@ -60,9 +60,9 @@ public final class ArgumentPropertyRegistry {
 
   private static final Map<ArgumentIdentifier, ArgumentPropertySerializer<?>> byIdentifier =
       new HashMap<>();
-  private static final Map<Class<? extends ArgumentType>,
+  private static final Map<Class<? extends ArgumentType<?>>,
       ArgumentPropertySerializer<?>> byClass = new HashMap<>();
-  private static final Map<Class<? extends ArgumentType>, ArgumentIdentifier> classToId =
+  private static final Map<Class<? extends ArgumentType<?>>, ArgumentIdentifier> classToId =
       new HashMap<>();
 
   private static <T extends ArgumentType<?>> void register(ArgumentIdentifier identifier,
@@ -89,14 +89,17 @@ public final class ArgumentPropertyRegistry {
    */
   public static ArgumentType<?> deserialize(ByteBuf buf, ProtocolVersion protocolVersion) {
     ArgumentIdentifier identifier = readIdentifier(buf, protocolVersion);
+    return deserializeWith(byIdentifier.get(identifier), identifier, buf, protocolVersion);
+  }
 
-    ArgumentPropertySerializer<?> serializer = byIdentifier.get(identifier);
-    Object result = serializer.deserialize(buf, protocolVersion);
+  private static <T> ArgumentType<?> deserializeWith(ArgumentPropertySerializer<T> serializer,
+      ArgumentIdentifier identifier, ByteBuf buf, ProtocolVersion protocolVersion) {
+    T result = serializer.deserialize(buf, protocolVersion);
 
-    if (result instanceof ArgumentType) {
-      return (ArgumentType<?>) result;
+    if (result instanceof ArgumentType<?> argumentType) {
+      return argumentType;
     } else {
-      return new PassthroughProperty(identifier, serializer, result);
+      return new PassthroughProperty<>(identifier, serializer, result);
     }
   }
 
@@ -109,17 +112,15 @@ public final class ArgumentPropertyRegistry {
    */
   public static void serialize(ByteBuf buf, ArgumentType<?> type,
       ProtocolVersion protocolVersion) {
-    if (type instanceof PassthroughProperty) {
-      PassthroughProperty property = (PassthroughProperty) type;
+    if (type instanceof PassthroughProperty<?> property) {
       writeIdentifier(buf, property.getIdentifier(), protocolVersion);
-      if (property.getResult() != null) {
-        property.getSerializer().serialize(property.getResult(), buf, protocolVersion);
-      }
+      serializePassthroughResult(property, buf, protocolVersion);
     } else if (type instanceof ModArgumentProperty property) {
       writeIdentifier(buf, property.getIdentifier(), protocolVersion);
       buf.writeBytes(property.getData());
     } else {
-      ArgumentPropertySerializer serializer = byClass.get(type.getClass());
+      ArgumentPropertySerializer<ArgumentType<?>> serializer =
+          (ArgumentPropertySerializer<ArgumentType<?>>) byClass.get(type.getClass());
       ArgumentIdentifier id = classToId.get(type.getClass());
       if (serializer == null || id == null) {
         throw new IllegalArgumentException("Don't know how to serialize "
@@ -127,6 +128,14 @@ public final class ArgumentPropertyRegistry {
       }
       writeIdentifier(buf, id, protocolVersion);
       serializer.serialize(type, buf, protocolVersion);
+    }
+  }
+
+  private static <T> void serializePassthroughResult(PassthroughProperty<T> property, ByteBuf buf,
+      ProtocolVersion protocolVersion) {
+    T result = property.getResult();
+    if (result != null) {
+      property.getSerializer().serialize(result, buf, protocolVersion);
     }
   }
 
@@ -251,7 +260,9 @@ public final class ArgumentPropertyRegistry {
         mapSet(MINECRAFT_1_19_3, 40), mapSet(MINECRAFT_1_19, 42)), TimeArgumentSerializer.TIME); // added in 1.14
 
     register(id("minecraft:resource_or_tag", mapSet(MINECRAFT_1_21_6, 44), mapSet(MINECRAFT_1_20_5, 43), mapSet(MINECRAFT_1_20_3, 42),
-        mapSet(MINECRAFT_1_19_3, 41), mapSet(MINECRAFT_1_19, 43)), RegistryKeyArgument.class, RegistryKeyArgumentSerializer.REGISTRY);
+        mapSet(MINECRAFT_1_19_3, 41), mapSet(MINECRAFT_1_19, 43)),
+        RegistryKeyArgumentList.ResourceOrTag.class,
+        RegistryKeyArgumentList.ResourceOrTag.Serializer.REGISTRY);
     register(id("minecraft:resource_or_tag_key", mapSet(MINECRAFT_1_21_6, 45), mapSet(MINECRAFT_1_20_5, 44), mapSet(MINECRAFT_1_20_3, 43),
         mapSet(MINECRAFT_1_19_3, 42)),
         RegistryKeyArgumentList.ResourceOrTagKey.class,

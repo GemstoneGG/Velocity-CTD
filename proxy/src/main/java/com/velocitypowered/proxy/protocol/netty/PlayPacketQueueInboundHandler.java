@@ -92,13 +92,11 @@ public class PlayPacketQueueInboundHandler extends ChannelDuplexHandler {
 
   @Override
   public void channelRead(@NotNull ChannelHandlerContext ctx, @NotNull Object msg) {
-    if (msg instanceof MinecraftPacket packet) {
-      // Packets this queue lets through (see the constructor and the factory) are handled by the
-      // current handler right away
-      if (this.passThrough.test(packet)) {
-        ctx.fireChannelRead(msg);
-        return;
-      }
+    // Packets this queue lets through (see the constructor and the factory) are handled by the
+    // current handler right away
+    if (msg instanceof MinecraftPacket packet && this.passThrough.test(packet)) {
+      ctx.fireChannelRead(msg);
+      return;
     }
 
     if (this.discardStaleInbound) {

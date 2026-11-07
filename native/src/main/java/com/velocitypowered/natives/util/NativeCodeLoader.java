@@ -42,11 +42,9 @@ public final class NativeCodeLoader<T> implements Supplier<T> {
 
   private static <T> Variant<T> getVariant(List<Variant<T>> variants) {
     for (Variant<T> variant : variants) {
-      T got = variant.get();
-      if (got == null) {
-        continue;
+      if (variant.get() != null) {
+        return variant;
       }
-      return variant;
     }
     throw new IllegalArgumentException("Can't find any suitable variants");
   }

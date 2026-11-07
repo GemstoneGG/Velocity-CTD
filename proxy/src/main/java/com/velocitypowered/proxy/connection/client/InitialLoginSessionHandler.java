@@ -295,13 +295,11 @@ public class InitialLoginSessionHandler implements MinecraftSessionHandler {
               GameProfile profile = GENERAL_GSON.fromJson(response.getBodyText(), GameProfile.class);
 
               // Not so fast, now we verify the public key for 1.19.1+
-              if (inbound.getIdentifiedKey() != null
-                  && inbound.getIdentifiedKey().getKeyRevision() == IdentifiedKey.Revision.LINKED_V2
-                  && inbound.getIdentifiedKey() instanceof final IdentifiedKeyImpl key) {
-                if (!key.internalAddHolder(profile.getId())) {
-                  inbound.disconnect(
-                      Component.translatable("multiplayer.disconnect.invalid_public_key"));
-                }
+              if (inbound.getIdentifiedKey() instanceof final IdentifiedKeyImpl key
+                  && key.getKeyRevision() == IdentifiedKey.Revision.LINKED_V2
+                  && !key.internalAddHolder(profile.getId())) {
+                inbound.disconnect(
+                    Component.translatable("multiplayer.disconnect.invalid_public_key"));
               }
               // All went well, initialize the session.
               mcConnection.setActiveSessionHandler(StateRegistry.LOGIN,

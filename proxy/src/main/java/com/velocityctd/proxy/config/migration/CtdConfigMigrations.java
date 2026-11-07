@@ -179,6 +179,25 @@ public class CtdConfigMigrations {
             6000
         ),
         migration(
+            "How long (in milliseconds) a player in game may send nothing before their session is considered\n"
+                + "lost. When a player whose connection dropped logs in again while that old session is still open,\n"
+                + "the old session is replaced instead of refusing the new login, even if kick-existing-players is\n"
+                + "disabled. A connected client sends packets every tick, so live sessions are never replaced. The new\n"
+                + "login must be authenticated (online mode) or come from the same IP address (offline mode).\n"
+                + "Set to 0 to disable. The default is 5 seconds.",
+            "advanced.stale-session-takeover",
+            5000
+        ),
+        migration(
+            "How long (in milliseconds) to remember the server a player was on after their connection is lost\n"
+                + "(timed out, broke, or was replaced by a new login of theirs). If they log in again within this time\n"
+                + "they are sent back to that server instead of the default initial server, falling back to the\n"
+                + "regular fallback order if it does not accept them. Plugins can still change the initial server.\n"
+                + "Remembered per proxy. Set to 0 to disable. The default is 2 minutes.",
+            "advanced.reconnect-to-last-server",
+            120000
+        ),
+        migration(
             "Enables the execution of illegal characters in chat and only allows\n"
                 + " or denies illegal characters that are executed through the proxy.",
             "advanced.allow-illegal-characters-in-chat",

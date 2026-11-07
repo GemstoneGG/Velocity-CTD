@@ -103,11 +103,9 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
         throw BAD_PACKET_LENGTH;
       }
 
-      if (length > 0 && shouldValidateFrame()) {
-        if (validateServerboundPacket(in, length)) {
-          in.readerIndex(packetStart);
-          return;
-        }
+      if (length > 0 && shouldValidateFrame() && validateServerboundPacket(in, length)) {
+        in.readerIndex(packetStart);
+        return;
       }
 
       // note that zero-length packets are ignored
@@ -116,12 +114,10 @@ public class MinecraftVarintFrameDecoder extends ByteToMessageDecoder {
           in.readerIndex(packetStart);
         } else {
           // If enabled, rate-limit serverbound payload bytes based on frame length
-          if (packetLimiter != null) {
-            if (!packetLimiter.account(length)) {
-              throw new QuietDecoderException(
-                      "Rate limit exceeded while processing packets for %s".formatted(
-                              ctx.channel().remoteAddress()));
-            }
+          if (packetLimiter != null && !packetLimiter.account(length)) {
+            throw new QuietDecoderException(
+                    "Rate limit exceeded while processing packets for %s".formatted(
+                            ctx.channel().remoteAddress()));
           }
           out.add(in.readRetainedSlice(length));
         }

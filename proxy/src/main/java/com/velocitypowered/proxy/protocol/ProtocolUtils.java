@@ -147,7 +147,7 @@ public enum ProtocolUtils {
   public static final int DEFAULT_MAX_STRING_SIZE = 65536; // 64KiB
   private static final int DEFAULT_MAX_KEY_ARRAY_SIZE = 1024;
   private static final int MAXIMUM_VARINT_SIZE = 5;
-  private static final BinaryTagType<? extends BinaryTag>[] BINARY_TAG_TYPES = new BinaryTagType[] {
+  private static final BinaryTagType<?>[] BINARY_TAG_TYPES = new BinaryTagType<?>[] {
       BinaryTagTypes.END, BinaryTagTypes.BYTE, BinaryTagTypes.SHORT, BinaryTagTypes.INT,
       BinaryTagTypes.LONG, BinaryTagTypes.FLOAT, BinaryTagTypes.DOUBLE,
       BinaryTagTypes.BYTE_ARRAY, BinaryTagTypes.STRING, BinaryTagTypes.LIST,
@@ -372,7 +372,7 @@ public enum ProtocolUtils {
     Key[] ret = new Key[length];
 
     for (int i = 0; i < ret.length; i++) {
-      ret[i] = ProtocolUtils.readKey(buf);
+      ret[i] = readKey(buf);
     }
     return ret;
   }
@@ -463,10 +463,10 @@ public enum ProtocolUtils {
    */
   public static UUID readUuidIntArray(ByteBuf buf) {
     long msbHigh = (long) buf.readInt() << 32;
-    long msbLow = (long) buf.readInt() & 0xFFFFFFFFL;
+    long msbLow = buf.readInt() & 0xFFFFFFFFL;
     long msb = msbHigh | msbLow;
     long lsbHigh = (long) buf.readInt() << 32;
-    long lsbLow = (long) buf.readInt() & 0xFFFFFFFFL;
+    long lsbLow = buf.readInt() & 0xFFFFFFFFL;
     long lsb = lsbHigh | lsbLow;
     return new UUID(msb, lsb);
   }
@@ -821,8 +821,8 @@ public enum ProtocolUtils {
    */
   public static void writePlayerKey(ByteBuf buf, IdentifiedKey playerKey) {
     buf.writeLong(playerKey.getExpiryTemporal().toEpochMilli());
-    ProtocolUtils.writeByteArray(buf, playerKey.getSignedPublicKey().getEncoded());
-    ProtocolUtils.writeByteArray(buf, Objects.requireNonNull(playerKey.getSignature()));
+    writeByteArray(buf, playerKey.getSignedPublicKey().getEncoded());
+    writeByteArray(buf, Objects.requireNonNull(playerKey.getSignature()));
   }
 
   /**
@@ -833,8 +833,8 @@ public enum ProtocolUtils {
    */
   public static IdentifiedKey readPlayerKey(ProtocolVersion version, ByteBuf buf) {
     long expiry = buf.readLong();
-    byte[] key = ProtocolUtils.readByteArray(buf);
-    byte[] signature = ProtocolUtils.readByteArray(buf, 4096);
+    byte[] key = readByteArray(buf);
+    byte[] signature = readByteArray(buf, 4096);
     IdentifiedKey.Revision revision = version.noGreaterOrLessThan(ProtocolVersion.MINECRAFT_1_19)
         ? IdentifiedKey.Revision.GENERIC_V1 : IdentifiedKey.Revision.LINKED_V2;
     return new IdentifiedKeyImpl(revision, key, expiry, signature);

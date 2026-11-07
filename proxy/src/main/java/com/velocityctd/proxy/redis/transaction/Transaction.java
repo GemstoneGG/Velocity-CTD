@@ -20,7 +20,6 @@ package com.velocityctd.proxy.redis.transaction;
 import com.github.f4b6a3.uuid.UuidCreator;
 import com.velocityctd.proxy.redis.packet.DataPacket;
 import com.velocityctd.proxy.redis.packet.PacketSerializer;
-import com.velocityctd.proxy.redis.provider.RedisProvider;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -78,12 +77,12 @@ public final class Transaction<T extends TransactionData<R>, R> {
   /**
    * The timeout duration to use for this transaction, expressed in {@link #timeUnit}.
    */
-  private int timeout = DEFAULT_TIMEOUT;
+  private final int timeout = DEFAULT_TIMEOUT;
 
   /**
    * The time unit associated with {@link #timeout}.
    */
-  private TimeUnit timeUnit = DEFAULT_TIME_UNIT;
+  private final TimeUnit timeUnit = DEFAULT_TIME_UNIT;
 
   /**
    * Constructs a new {@link Transaction} with the given data.
@@ -109,39 +108,12 @@ public final class Transaction<T extends TransactionData<R>, R> {
   }
 
   /**
-   * Publish the {@link Transaction} to all subscribers on the redis and return a
-   * {@link CompletableFuture} that will be completed with the response data.
-   *
-   * @param provider the {@link RedisProvider} to publish the transaction to
-   * @return a future that completes with the response data or exceptionally on timeout
-   *
-   * @see RedisProvider#publish(Transaction, int, TimeUnit)
-   */
-  public CompletableFuture<R> publish(@NotNull RedisProvider provider) {
-    provider.publish(this);
-    return this.future;
-  }
-
-  /**
    * Gets the future that this Transaction will complete upon receiving a reply.
    *
    * @return the transaction's reply future
    */
   public CompletableFuture<R> getFuture() {
     return future;
-  }
-
-  /**
-   * Set the timeout for the {@link Transaction}.
-   *
-   * @param timeout  the timeout in the given time unit
-   * @param timeUnit the time unit of the timeout argument
-   * @return itself for chaining
-   */
-  public Transaction<T, R> setTimeout(int timeout, TimeUnit timeUnit) {
-    this.timeout = timeout;
-    this.timeUnit = timeUnit;
-    return this;
   }
 
   /**

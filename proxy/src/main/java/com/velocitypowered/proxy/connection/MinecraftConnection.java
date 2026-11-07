@@ -73,6 +73,7 @@ import io.netty.handler.codec.haproxy.HAProxyMessage;
 import io.netty.handler.timeout.ReadTimeoutException;
 import io.netty.handler.timeout.WriteTimeoutException;
 import io.netty.util.ReferenceCountUtil;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.security.GeneralSecurityException;
@@ -183,11 +184,9 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     if (association != null && !knownDisconnect
         && !(activeSessionHandler instanceof StatusSessionHandler)
         && (!(association instanceof InitialInboundConnection)
-        || server.getConfiguration().isLogOfflineConnections())) {
-
-      if (server.getConfiguration().isLogPlayerDisconnections()) {
-        LOGGER.info("{} has disconnected", association);
-      }
+        || server.getConfiguration().isLogOfflineConnections())
+        && server.getConfiguration().isLogPlayerDisconnections()) {
+      LOGGER.info("{} has disconnected", association);
     }
   }
 
@@ -216,13 +215,12 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
         case HAProxyMessage proxyMessage -> this.remoteAddress = new InetSocketAddress(proxyMessage.sourceAddress(),
             proxyMessage.sourcePort());
         case ByteBuf buf -> {
-          if (activeSessionHandler instanceof ClientPlaySessionHandler) {
-            if (MAX_CLIENT_PACKET_SIZE > 0 && buf.readableBytes() > MAX_CLIENT_PACKET_SIZE) {
-              LOGGER.error("{}: received oversized packet ({} bytes > {} byte limit)", association, buf.readableBytes(), MAX_CLIENT_PACKET_SIZE);
-              Component translated = GlobalTranslator.render(Component.translatable("velocity.kick.oversized-packet"), Locale.getDefault());
-              closeWith(DisconnectPacket.create(translated, getProtocolVersion(), getState()));
-              return;
-            }
+          if (activeSessionHandler instanceof ClientPlaySessionHandler
+              && MAX_CLIENT_PACKET_SIZE > 0 && buf.readableBytes() > MAX_CLIENT_PACKET_SIZE) {
+            LOGGER.error("{}: received oversized packet ({} bytes > {} byte limit)", association, buf.readableBytes(), MAX_CLIENT_PACKET_SIZE);
+            Component translated = GlobalTranslator.render(Component.translatable("velocity.kick.oversized-packet"), Locale.getDefault());
+            closeWith(DisconnectPacket.create(translated, getProtocolVersion(), getState()));
+            return;
           }
 
           activeSessionHandler.handleUnknown(buf);
@@ -253,6 +251,14 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
           LOGGER.error("{}: exception handling exception in {}",
               (association != null ? association : channel.remoteAddress()), activeSessionHandler, cause);
         }
+      }
+
+      // The player's connection broke rather than being closed on purpose: remember where they were
+      // so they can be sent back there if they reconnect soon (advanced.reconnect-to-last-server).
+      if (association instanceof ConnectedPlayer player
+          && (cause instanceof ReadTimeoutException || cause instanceof WriteTimeoutException
+              || cause instanceof IOException)) {
+        player.markConnectionLost();
       }
 
       if (association != null) {
@@ -644,6 +650,19 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     return channel.pipeline().get(VelocityReadTimeoutHandler.class);
   }
 
+  /**
+   * Returns how long this connection has gone without receiving anything from its peer, counted
+   * like its read timeout: time paused for backpressure is left out. Must be called on the event
+   * loop.
+   *
+   * @return the idle time in milliseconds, or {@code -1} if this connection has no read timeout
+   */
+  public long getIdleMillis() {
+    ensureInEventLoop();
+    VelocityReadTimeoutHandler readTimeout = getReadTimeoutHandler();
+    return readTimeout == null ? -1 : TimeUnit.NANOSECONDS.toMillis(readTimeout.idleNanos());
+  }
+
   // Ideally only used by the state switch
 
   /**
@@ -698,7 +717,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     addPlayPacketQueueOutboundHandler();
 
     if (this.channel.pipeline().get(Connections.PLAY_PACKET_QUEUE_INBOUND) == null) {
-      this.channel.pipeline().addAfter(Connections.MINECRAFT_DECODER, Connections.PLAY_PACKET_QUEUE_INBOUND,
+      this.channel.pipeline().addAfter(MINECRAFT_DECODER, Connections.PLAY_PACKET_QUEUE_INBOUND,
            new PlayPacketQueueInboundHandler(this.protocolVersion,
                channel.pipeline().get(MinecraftDecoder.class).getDirection(), false));
     }
@@ -711,7 +730,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     addPlayPacketQueueOutboundHandler();
 
     if (this.channel.pipeline().get(Connections.PLAY_PACKET_QUEUE_INBOUND) == null) {
-      this.channel.pipeline().addAfter(Connections.MINECRAFT_DECODER, Connections.PLAY_PACKET_QUEUE_INBOUND,
+      this.channel.pipeline().addAfter(MINECRAFT_DECODER, Connections.PLAY_PACKET_QUEUE_INBOUND,
            new PlayPacketQueueInboundHandler(this.protocolVersion,
                channel.pipeline().get(MinecraftDecoder.class).getDirection(), true));
     }
@@ -722,7 +741,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
    */
   public void addPlayPacketQueueOutboundHandler() {
     if (this.channel.pipeline().get(Connections.PLAY_PACKET_QUEUE_OUTBOUND) == null) {
-      this.channel.pipeline().addAfter(Connections.MINECRAFT_ENCODER, Connections.PLAY_PACKET_QUEUE_OUTBOUND,
+      this.channel.pipeline().addAfter(MINECRAFT_ENCODER, Connections.PLAY_PACKET_QUEUE_OUTBOUND,
            new PlayPacketQueueOutboundHandler(this.protocolVersion,
                channel.pipeline().get(MinecraftEncoder.class).getDirection()));
     }
@@ -734,7 +753,7 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
    */
   public void addPlayPacketQueueInboundHandler() {
     if (this.channel.pipeline().get(Connections.PLAY_PACKET_QUEUE_INBOUND) == null) {
-      this.channel.pipeline().addAfter(Connections.MINECRAFT_DECODER, Connections.PLAY_PACKET_QUEUE_INBOUND,
+      this.channel.pipeline().addAfter(MINECRAFT_DECODER, Connections.PLAY_PACKET_QUEUE_INBOUND,
            PlayPacketQueueInboundHandler.forBackendAheadOfPlayer());
     }
   }

@@ -112,13 +112,13 @@ public class VelocityServerConnection implements MinecraftConnectionAssociation,
           if (future.isSuccess()) {
             connection = new MinecraftConnection(future.channel(), server,
                 proxyPlayer.getConnection().getSessionId());
-            connection.setAssociation(VelocityServerConnection.this);
+            connection.setAssociation(this);
             future.channel().pipeline().addLast(HANDLER, connection);
 
             // Kick off the connection process
             if (!connection.setActiveSessionHandler(StateRegistry.HANDSHAKE)) {
               MinecraftSessionHandler handler =
-                  new LoginSessionHandler(server, VelocityServerConnection.this, result);
+                  new LoginSessionHandler(server, this, result);
               connection.setActiveSessionHandler(StateRegistry.HANDSHAKE, handler);
               connection.addSessionHandler(StateRegistry.LOGIN, handler);
             }

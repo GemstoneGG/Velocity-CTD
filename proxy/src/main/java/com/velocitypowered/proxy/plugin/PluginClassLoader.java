@@ -34,7 +34,7 @@ public class PluginClassLoader extends URLClassLoader {
   private static final Set<PluginClassLoader> loaders = new CopyOnWriteArraySet<>();
 
   static {
-    ClassLoader.registerAsParallelCapable();
+    registerAsParallelCapable();
   }
 
   public PluginClassLoader(URL[] urls) {

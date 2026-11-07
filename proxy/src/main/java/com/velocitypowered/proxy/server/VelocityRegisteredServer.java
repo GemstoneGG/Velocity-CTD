@@ -28,7 +28,6 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.velocityctd.proxy.queue.VelocityQueue;
-import com.velocityctd.proxy.queue.VelocityQueueManager;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.PluginMessageEncoder;
 import com.velocitypowered.api.proxy.server.PingOptions;
@@ -188,7 +187,7 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
       if (future.isSuccess()) {
         MinecraftConnection conn = future.channel().pipeline().get(MinecraftConnection.class);
         PingSessionHandler handler = new PingSessionHandler(pingFuture,
-            VelocityRegisteredServer.this, conn, pingOptions.getProtocolVersion(), pingOptions.getVirtualHost());
+            this, conn, pingOptions.getProtocolVersion(), pingOptions.getVirtualHost());
         conn.setActiveSessionHandler(StateRegistry.HANDSHAKE, handler);
       } else {
         pingFuture.completeExceptionally(future.cause());
@@ -268,11 +267,7 @@ public class VelocityRegisteredServer implements RegisteredServer, ForwardingAud
    */
   @Override
   public VelocityQueue<?> getQueue() {
-    VelocityQueueManager queueManager = requireNonNull(server).getQueueManager();
-    if (queueManager == null) {
-      throw new IllegalStateException("No QueueManager available on the server");
-    }
-
-    return queueManager.getQueue(serverInfo.getName());
+    // getQueueManager() throws IllegalStateException when the queue is disabled; it never returns null.
+    return requireNonNull(server).getQueueManager().getQueue(serverInfo.getName());
   }
 }

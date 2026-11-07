@@ -51,17 +51,6 @@ public class SamplePlayersPlaceholderResolver implements PlaceholderSubstitutor.
     return new Builder(samplePlayersPicker);
   }
 
-  public Builder toBuilder() {
-    return new Builder(samplePlayersPicker)
-        .defaultMax(defaultMax)
-        .defaultMaxPerLine(defaultMaxPerLine)
-        .defaultOrdering(defaultOrdering)
-        .defaultEmpty(defaultEmpty)
-        .defaultPrefix(defaultPrefix)
-        .defaultSeparator(defaultSeparator)
-        .ignoreAnonymousPlayerRequest(ignoreAnonymousPlayerRequest);
-  }
-
   @Override
   public @Nullable String resolve(@NonNull String name, @NonNull Map<String, String> arguments) {
     if (!name.equals("players")) {

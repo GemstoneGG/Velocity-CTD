@@ -229,8 +229,7 @@ public class QueueAdminCommand implements BuiltinCommandDefinition {
 
   private int list(CommandContext<CommandSource> ctx) {
     String serverName = ctx.getArgument("server", String.class);
-    VelocityRegisteredServer server = this.server.getServer(ctx
-            .getArgument("server", String.class)).orElse(null);
+    VelocityRegisteredServer server = this.server.getServer(serverName).orElse(null);
 
     if (serverName.equalsIgnoreCase("current")) {
       if (!(ctx.getSource() instanceof ConnectedPlayer p)) {
@@ -327,12 +326,8 @@ public class QueueAdminCommand implements BuiltinCommandDefinition {
                               Argument.numeric("count", players.size()),
                               Argument.component("players", playerList));
               ctx.getSource().sendMessage(builder.build());
-            }, () -> {
-              if (players.isEmpty()) {
-                ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.list.empty")
-                        .arguments(Component.text(finalServer.getServerInfo().getName())));
-              }
-            });
+            }, () -> ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.list.empty")
+                    .arguments(Component.text(finalServer.getServerInfo().getName()))));
 
     return SINGLE_SUCCESS;
   }
@@ -345,13 +340,13 @@ public class QueueAdminCommand implements BuiltinCommandDefinition {
 
     VelocityQueue<?> queue = server.getQueue();
     String serverName = server.getServerInfo().getName();
-    if (queue.getState() == QueueState.PAUSED) {
+    if (queue.getState() == PAUSED) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.already-paused")
               .arguments(Component.text(serverName)));
       return 0;
     }
 
-    queue.setState(QueueState.PAUSED);
+    queue.setState(PAUSED);
 
     ctx.getSource().sendMessage(Component.translatable("velocity.queue.command.pause")
             .arguments(Component.text(serverName)));
@@ -371,7 +366,7 @@ public class QueueAdminCommand implements BuiltinCommandDefinition {
     }
 
     VelocityQueue<?> queue = server.getQueue();
-    if (queue.getState() != QueueState.PAUSED) {
+    if (queue.getState() != PAUSED) {
       ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.not-paused")
               .arguments(Component.text(server.getServerInfo().getName())));
       return 0;

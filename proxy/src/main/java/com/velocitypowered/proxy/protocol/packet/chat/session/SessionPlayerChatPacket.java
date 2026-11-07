@@ -34,9 +34,6 @@ public class SessionPlayerChatPacket implements MinecraftPacket {
   protected byte[] signature;
   protected LastSeenMessages lastSeenMessages;
 
-  public SessionPlayerChatPacket() {
-  }
-
   public String getMessage() {
     return message;
   }

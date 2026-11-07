@@ -31,7 +31,6 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.builtin.BuiltinCommandDefinition;
-import com.velocitypowered.proxy.command.builtin.CommandMessages;
 import java.util.Collection;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.translation.Argument;
@@ -81,7 +80,7 @@ public class GkickCommand implements BuiltinCommandDefinition {
 
     PlayerIdentifier.Result result = PlayerIdentifier.resolve(server, selector, context.getSource());
     if (!result.success()) {
-      sendResolveError(context.getSource(), result);
+      PlayerIdentifier.sendResolveError(context.getSource(), result);
       return 0;
     }
 
@@ -201,17 +200,5 @@ public class GkickCommand implements BuiltinCommandDefinition {
     }
 
     return CommandUtils.deserializeComponent(context.getArgument(REASON_ARG, String.class));
-  }
-
-  private void sendResolveError(CommandSource source, PlayerIdentifier.Result result) {
-    switch (result.type()) {
-      case PLAYER -> source.sendMessage(CommandMessages.PLAYER_NOT_FOUND
-          .arguments(Argument.string("player", result.name())));
-      case SERVER -> source.sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
-          .arguments(Component.text(result.name())));
-      case PLAYER_EXECUTOR_REQUIRED -> source.sendMessage(CommandMessages.PLAYERS_ONLY);
-      default -> {
-      }
-    }
   }
 }

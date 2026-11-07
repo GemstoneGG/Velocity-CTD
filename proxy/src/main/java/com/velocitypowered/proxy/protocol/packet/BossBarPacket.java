@@ -77,7 +77,7 @@ public class BossBarPacket implements MinecraftPacket {
   ) {
     final BossBarPacket packet = new BossBarPacket();
     packet.setUuid(id);
-    packet.setAction(BossBarPacket.ADD);
+    packet.setAction(ADD);
     packet.setName(name);
     packet.setColor(COLORS_TO_PROTOCOL.get(bar.color()));
     packet.setOverlay(OVERLAY_TO_PROTOCOL.get(bar.overlay()));

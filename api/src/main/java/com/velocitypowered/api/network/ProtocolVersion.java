@@ -296,7 +296,7 @@ public enum ProtocolVersion implements Ordered<@NotNull ProtocolVersion> {
    * @return the protocol version
    */
   public static ProtocolVersion getVersionByName(String version) {
-    return NAME_TO_PROTOCOL_CONSTANT.getOrDefault(version, ProtocolVersion.MINECRAFT_1_7_2);
+    return NAME_TO_PROTOCOL_CONSTANT.getOrDefault(version, MINECRAFT_1_7_2);
   }
 
   /**
