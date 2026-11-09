@@ -20,13 +20,24 @@ package com.velocitypowered.proxy.connection.client;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.concurrent.CompletableFuture.failedFuture;
 
+import com.velocityctd.proxy.reconnect.LastServerTracker;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.connection.DisconnectEvent.LoginStatus;
 import com.velocitypowered.proxy.VelocityServer;
+import com.velocitypowered.proxy.config.VelocityConfiguration;
+import com.velocitypowered.proxy.connection.MinecraftConnection;
+import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.PlayerIdentityLock.LockHandle;
+import com.velocitypowered.proxy.network.netty.VelocityReadTimeoutHandler;
+import com.velocitypowered.proxy.protocol.StateRegistry;
+import com.velocitypowered.proxy.server.VelocityRegisteredServer;
+import io.netty.handler.timeout.ReadTimeoutException;
+import io.netty.handler.timeout.WriteTimeoutException;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -83,6 +94,7 @@ public final class PlayerRegistry {
   private final Map<UUID, ConnectedPlayer> byUuid = new ConcurrentHashMap<>();
   private final Map<String, ConnectedPlayer> byName = new ConcurrentHashMap<>();
   private final PlayerIdentityLock identityLock = new PlayerIdentityLock();
+  private final LastServerTracker lastServers = new LastServerTracker();
 
   private final VelocityServer server;
 
@@ -95,7 +107,8 @@ public final class PlayerRegistry {
 
   /**
    * Acquires the identity lock for the given profile, then either registers the connection or
-   * kicks the existing player(s) with the same uuid or name (per {@code kick-existing-players}).
+   * kicks the existing player(s) with the same uuid or name (per {@code kick-existing-players}, or
+   * when they are stale sessions per {@code advanced.stale-session-takeover}).
    *
    * <p>On successful registration the lock is transferred to the {@link ConnectedPlayer} via
    * {@link ConnectedPlayer#setIdentityLock(LockHandle)} and held until {@link #finalizeLogin}
@@ -186,58 +199,186 @@ public final class PlayerRegistry {
       return completedFuture(false);
     }
 
-    UUID uuid = player.getUniqueId();
-    String name = player.getUsername().toLowerCase(Locale.ROOT);
-
-    if (!server.getConfiguration().isKickExistingPlayers()) {
-      if (byUuid.containsKey(uuid) || byName.containsKey(name)) {
-        lock.release();
-        return completedFuture(false);
-      }
-
+    ConnectedPlayer existingByUuid = byUuid.get(player.getUniqueId());
+    ConnectedPlayer existingByName = byName.get(player.getUsername().toLowerCase(Locale.ROOT));
+    if (existingByUuid == null && existingByName == null) {
       return completedFuture(publish(player, lock));
     }
 
-    ConnectedPlayer existingByUuid = byUuid.get(uuid);
-    ConnectedPlayer existingByName = byName.get(name);
-
-    if (server.getConfiguration().isKickExistingPlayersCheckIp()) {
-      InetAddress address = player.getRemoteAddress().getAddress();
-
-      if (existingByUuid != null
-          && !address.equals(existingByUuid.getRemoteAddress().getAddress())) {
-        lock.release();
-        return completedFuture(false);
-      }
-
-      if (existingByName != null
-          && !address.equals(existingByName.getRemoteAddress().getAddress())) {
-        lock.release();
-        return completedFuture(false);
-      }
-    }
-
-    CompletableFuture<Void> evictFuture;
+    List<ConnectedPlayer> existing;
     if (existingByUuid != null && existingByName != null && existingByUuid != existingByName) {
-      evictFuture = CompletableFuture.allOf(
-          forciblyEvict(existingByUuid),
-          forciblyEvict(existingByName));
-    } else if (existingByUuid != null) {
-      evictFuture = forciblyEvict(existingByUuid);
-    } else if (existingByName != null) {
-      evictFuture = forciblyEvict(existingByName);
+      existing = List.of(existingByUuid, existingByName);
     } else {
-      evictFuture = completedFuture(null);
+      existing = List.of(existingByUuid != null ? existingByUuid : existingByName);
     }
 
-    return evictFuture.thenApply(v -> {
-      if (player.getConnection().isClosed()) {
+    return allReplaceable(existing, player).thenCompose(replaceable -> {
+      if (!replaceable) {
         lock.release();
-        return false;
+        return completedFuture(false);
       }
 
-      return publish(player, lock);
+      CompletableFuture<?>[] evictions = existing.stream()
+          .map(this::takeOver)
+          .toArray(CompletableFuture<?>[]::new);
+      return CompletableFuture.allOf(evictions).thenApply(v -> {
+        if (player.getConnection().isClosed()) {
+          lock.release();
+          return false;
+        }
+
+        return publish(player, lock);
+      });
     });
+  }
+
+  private CompletableFuture<Boolean> allReplaceable(List<ConnectedPlayer> existing,
+                                                    ConnectedPlayer newcomer) {
+    CompletableFuture<Boolean> result = completedFuture(true);
+    for (ConnectedPlayer session : existing) {
+      result = result.thenCombine(canReplace(session, newcomer), Boolean::logicalAnd);
+    }
+    return result;
+  }
+
+  /**
+   * Whether {@code newcomer} may take over the slot of {@code existing}: always when
+   * {@code kick-existing-players} allows it, and otherwise only when {@code existing} is a stale
+   * session (see {@link #isStaleSession}).
+   */
+  private CompletableFuture<Boolean> canReplace(ConnectedPlayer existing, ConnectedPlayer newcomer) {
+    VelocityConfiguration config = server.getConfiguration();
+    if (config.isKickExistingPlayers()
+        && (!config.isKickExistingPlayersCheckIp() || isSameAddress(existing, newcomer))) {
+      return completedFuture(true);
+    }
+    return isStaleSession(existing, newcomer);
+  }
+
+  /**
+   * Whether {@code existing} is a session left behind by a connection that dropped, which the same
+   * player logging in again may replace even when {@code kick-existing-players} is off: it is in
+   * game but has sent nothing for {@code advanced.stale-session-takeover}, while a live client sends
+   * packets every tick. The newcomer must prove it is the same player: authenticated in online mode,
+   * from the same address otherwise. Evaluated on the existing connection's event loop.
+   */
+  private CompletableFuture<Boolean> isStaleSession(ConnectedPlayer existing, ConnectedPlayer newcomer) {
+    int threshold = server.getConfiguration().getStaleSessionTakeover();
+    if (threshold <= 0 || !(newcomer.isOnlineMode() || isSameAddress(existing, newcomer))) {
+      return completedFuture(false);
+    }
+
+    MinecraftConnection connection = existing.getConnection();
+    return CompletableFuture.supplyAsync(() -> {
+      if (connection.isClosed()) {
+        // Already gone; its teardown is under way.
+        return true;
+      }
+
+      long idleMillis = idleMillis(connection);
+      boolean stale = isStale(connection.getState(), idleMillis, threshold);
+      if (stale) {
+        LOGGER.info("{} logged in again while their previous session was silent for {} ms; "
+            + "replacing the stale session", newcomer, idleMillis);
+      }
+      return stale;
+    }, connection.eventLoop()).exceptionally(ex -> false);
+  }
+
+  /**
+   * Whether a session counts as stale: only a client in game is expected to send something every
+   * tick, as one that is configuring or loading the world may legitimately stay quiet for a while.
+   *
+   * @param state           the session's protocol state
+   * @param idleMillis      how long it has sent nothing, or a negative value if unknown
+   * @param thresholdMillis the configured stale-session threshold
+   * @return whether the session is stale
+   */
+  static boolean isStale(StateRegistry state, long idleMillis, int thresholdMillis) {
+    return thresholdMillis > 0 && state == StateRegistry.PLAY && idleMillis >= thresholdMillis;
+  }
+
+  /**
+   * How long a connection has received nothing, counted like its read timeout (time paused for
+   * backpressure is left out). Must be called on the connection's event loop.
+   *
+   * @return the idle time in milliseconds, or {@code -1} if the connection has no read timeout
+   */
+  private static long idleMillis(MinecraftConnection connection) {
+    VelocityReadTimeoutHandler readTimeout =
+        connection.getChannel().pipeline().get(VelocityReadTimeoutHandler.class);
+    return readTimeout == null ? -1 : TimeUnit.NANOSECONDS.toMillis(readTimeout.idleNanos());
+  }
+
+  private static boolean isSameAddress(ConnectedPlayer first, ConnectedPlayer second) {
+    InetAddress address = first.getRemoteAddress().getAddress();
+    return address != null && address.equals(second.getRemoteAddress().getAddress());
+  }
+
+  /**
+   * Evicts a session that a new login of the same player replaces, first remembering the server it
+   * was on so the new session can resume there ({@code advanced.reconnect-to-last-server}).
+   */
+  private CompletableFuture<Void> takeOver(ConnectedPlayer existing) {
+    return CompletableFuture.runAsync(() -> rememberLastServer(existing), existing.getConnection().eventLoop())
+        .exceptionally(ex -> {
+          LOGGER.debug("Could not remember the last server of {}", existing, ex);
+          return null;
+        })
+        .thenCompose(v -> forciblyEvict(existing));
+  }
+
+  /**
+   * Called on the player's event loop when their connection fails. If it timed out or broke, as
+   * opposed to failing on something the client sent, the server they were on is remembered so that
+   * logging in again soon sends them back there ({@code advanced.reconnect-to-last-server}).
+   *
+   * @param player the player whose connection failed
+   * @param cause  why it failed
+   */
+  public void connectionFailed(@NonNull ConnectedPlayer player, @NonNull Throwable cause) {
+    if (cause instanceof ReadTimeoutException || cause instanceof WriteTimeoutException
+        || cause instanceof IOException) {
+      rememberLastServer(player);
+    }
+  }
+
+  /**
+   * Picks the server a player who just logged in tries first: the one they were on when their
+   * previous connection was lost moments ago, if it still exists, and the next server of their
+   * retry session otherwise. The retry session keeps the configured order for when the remembered
+   * server does not take them. Plugins can still change the result through
+   * {@code PlayerChooseInitialServerEvent}.
+   *
+   * @param player the player who just logged in
+   * @return the server to try first, if any
+   */
+  public Optional<VelocityRegisteredServer> nextInitialServer(@NonNull ConnectedPlayer player) {
+    ConnectedPlayer.ServerRetrySession retrySession = player.currentServerRetrySession();
+    Optional<VelocityRegisteredServer> lastServer = lastServers.consume(player.getUniqueId())
+        .flatMap(server::getServer);
+    if (lastServer.isEmpty()) {
+      return retrySession.getNextServerToTry();
+    }
+
+    retrySession.exclude(lastServer.get());
+    if (server.getConfiguration().isLogPlayerConnections()) {
+      LOGGER.info("{} lost their connection recently; sending them back to {}", player,
+          lastServer.get().getServerInfo().getName());
+    }
+    return lastServer;
+  }
+
+  /**
+   * Remembers the server a player is on for {@code advanced.reconnect-to-last-server}. Must be
+   * called on the player's event loop.
+   */
+  private void rememberLastServer(ConnectedPlayer player) {
+    VelocityServerConnection current = player.getConnectedServer();
+    int window = server.getConfiguration().getReconnectToLastServer();
+    if (current != null && window > 0) {
+      lastServers.remember(player.getUniqueId(), current.getServerInfo().getName(), window);
+    }
   }
 
   /**

@@ -777,6 +777,26 @@ public final class VelocityConfiguration implements ProxyConfig {
     return advanced.getLoginTimeout();
   }
 
+  /**
+   * Gets how long, in milliseconds, a player in game may send nothing before a new login of the same
+   * player replaces their session even with {@code kick-existing-players} off.
+   *
+   * @return the stale-session threshold, or {@code 0} or less if disabled
+   */
+  public int getStaleSessionTakeover() {
+    return advanced.getStaleSessionTakeover();
+  }
+
+  /**
+   * Gets how long, in milliseconds, the server a player was on is remembered after their connection
+   * is lost, so that reconnecting sends them back to it.
+   *
+   * @return the reconnect window, or {@code 0} or less if disabled
+   */
+  public int getReconnectToLastServer() {
+    return advanced.getReconnectToLastServer();
+  }
+
   @Override
   public int getCommandRatelimit() {
     return advanced.getCommandRateLimit();
@@ -2237,6 +2257,10 @@ public final class VelocityConfiguration implements ProxyConfig {
 
     @Expose
     private int loginTimeout = 6000;
+    @Expose
+    private int staleSessionTakeover = 5000;
+    @Expose
+    private int reconnectToLastServer = 120000;
 
     @Expose
     private boolean proxyProtocol = false;
@@ -2335,6 +2359,8 @@ public final class VelocityConfiguration implements ProxyConfig {
         this.connectionTimeout = config.getIntOrElse("connection-timeout", 5000);
         this.readTimeout = config.getIntOrElse("read-timeout", 25000);
         this.loginTimeout = config.getIntOrElse("login-timeout", 6000);
+        this.staleSessionTakeover = config.getIntOrElse("stale-session-takeover", 5000);
+        this.reconnectToLastServer = config.getIntOrElse("reconnect-to-last-server", 120000);
         if (config.contains("haproxy-protocol")) {
           this.proxyProtocol = config.getOrElse("haproxy-protocol", false);
         } else {
@@ -2389,6 +2415,14 @@ public final class VelocityConfiguration implements ProxyConfig {
 
     public int getLoginTimeout() {
       return loginTimeout;
+    }
+
+    public int getStaleSessionTakeover() {
+      return staleSessionTakeover;
+    }
+
+    public int getReconnectToLastServer() {
+      return reconnectToLastServer;
     }
 
     public boolean isProxyProtocol() {
@@ -2492,6 +2526,8 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("connectionTimeout", connectionTimeout)
           .add("readTimeout", readTimeout)
           .add("loginTimeout", loginTimeout)
+          .add("staleSessionTakeover", staleSessionTakeover)
+          .add("reconnectToLastServer", reconnectToLastServer)
           .add("proxyProtocol", proxyProtocol)
           .add("tcpFastOpen", tcpFastOpen)
           .add("bungeePluginMessageChannel", bungeePluginMessageChannel)

@@ -72,6 +72,7 @@ class BackpressureTimeoutTest {
     server = mock(VelocityServer.class);
     VelocityConfiguration config = mock(VelocityConfiguration.class);
     when(server.getConfiguration()).thenReturn(config);
+    when(server.getPlayerRegistry()).thenReturn(new PlayerRegistry(server));
     when(config.getReadTimeout()).thenReturn(writeTimeout);
     VelocityPluginManager plugins = mock(VelocityPluginManager.class);
     PluginContainer container = mock(PluginContainer.class);
