@@ -150,7 +150,7 @@ val generateLibraries by tasks.registering {
             val classifier = artifact.classifier ?: "-"
             val extension = artifact.extension ?: "jar"
 
-            if (id.version.endsWith("-SNAPSHOT")) {
+            if (isSnapshot(id.version)) {
                 val classifierSuffix = if (classifier == "-") "" else "-$classifier"
                 val fileName = "${id.name}-${id.version}$classifierSuffix.$extension"
                 val target = jarInJarDir.resolve(fileName)
@@ -185,6 +185,11 @@ tasks.jar {
         attributes["Enable-Final-Field-Mutation"] = "ALL-UNNAMED"
     }
 }
+
+val uniqueSnapshotVersion = Regex(".+-\\d{8}\\.\\d{6}-\\d+")
+
+fun isSnapshot(version: String): Boolean =
+    version.endsWith("-SNAPSHOT") || uniqueSnapshotVersion.matches(version)
 
 fun sha256(file: File): String {
     val digest = MessageDigest.getInstance("SHA-256")
