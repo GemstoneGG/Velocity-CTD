@@ -19,6 +19,7 @@ package com.velocitypowered.proxy.connection.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -472,6 +473,36 @@ class ConnectionTransitionTest {
     handler.handle(FinishedUpdatePacket.INSTANCE);
     assertFalse(player.getConnection().pendingConfigurationSwitch,
         "the acknowledgement settles it");
+  }
+
+  @Test
+  void pendingSwitchKeepsTheClientReadTimeout() throws Exception {
+    player();
+    when(playerServer.getEventManager().fire(any()))
+        .thenAnswer(invocation -> CompletableFuture.completedFuture(invocation.getArgument(0)));
+    EmbeddedChannel channel = (EmbeddedChannel) player.getConnection().getChannel();
+    channel.pipeline().addFirst(Connections.FRAME_DECODER,
+        new MinecraftVarintFrameDecoder(ProtocolUtils.Direction.SERVERBOUND));
+    player.getConnection().setState(StateRegistry.PLAY);
+    player.resumeReadTimeout();
+    call(player, "pauseReadTimeout");
+    assertNull(channel.pipeline().get(Connections.READ_TIMEOUT), "suspended while connecting");
+
+    player.switchToConfigState();
+    channel.runPendingTasks();
+    assertNotNull(channel.pipeline().get(Connections.READ_TIMEOUT),
+        "the client owes its acknowledgement, so it may not go silent");
+    call(player, "pauseReadTimeout");
+    assertNotNull(channel.pipeline().get(Connections.READ_TIMEOUT),
+        "a redirect while the switch is pending keeps it");
+
+    player.getConnection().setState(StateRegistry.PLAY);
+    ClientPlaySessionHandler handler = new ClientPlaySessionHandler(playerServer, player);
+    set(ClientPlaySessionHandler.class, handler, "configSwitchFuture", new CompletableFuture<Void>(
+        ));
+    handler.handle(FinishedUpdatePacket.INSTANCE);
+    assertNull(channel.pipeline().get(Connections.READ_TIMEOUT),
+        "suspended again once the client may idle in configuration");
   }
 
   @Test

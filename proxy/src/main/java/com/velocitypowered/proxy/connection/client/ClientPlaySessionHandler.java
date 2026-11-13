@@ -470,6 +470,8 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     // Complete client switch
     player.getConnection().setActiveSessionHandler(StateRegistry.CONFIG);
     player.getConnection().pendingConfigurationSwitch = false;
+    // The client may idle in configuration from here, so a suspended read-timeout is removed again
+    player.updateReadTimeout();
     VelocityServerConnection serverConnection = player.getConnectedServer();
     server.getEventManager()
         .fireAndForget(new PlayerEnteredConfigurationEvent(player, serverConnection));

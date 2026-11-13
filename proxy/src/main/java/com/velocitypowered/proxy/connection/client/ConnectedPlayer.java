@@ -277,6 +277,12 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    */
   private boolean firstServerConnected = false;
 
+  /**
+   * Whether the read-timeout on the player's own connection is suspended while their initial
+   * connection is established. See {@link #pauseReadTimeout()}.
+   */
+  private boolean readTimeoutPaused;
+
   private @Nullable String clientBrand;
   private @Nullable Locale effectiveLocale;
   private final @Nullable IdentifiedKey playerKey;
@@ -1288,10 +1294,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * GemstoneGG#938 and GemstoneGG#1055).
    */
   private void pauseReadTimeout() {
-    final var pipeline = connection.getChannel().pipeline();
-    if (pipeline.context(Connections.READ_TIMEOUT) != null) {
-      pipeline.remove(Connections.READ_TIMEOUT);
-    }
+    readTimeoutPaused = true;
+    updateReadTimeout();
   }
 
   /**
@@ -1302,7 +1306,28 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    * that has gone silent, and the player's own read-timeout has to.
    */
   public void resumeReadTimeout() {
+    readTimeoutPaused = false;
+    updateReadTimeout();
+  }
+
+  /**
+   * Adds or removes the read-timeout on the player's own connection, depending on whether it is
+   * suspended and whether a configuration switch is pending. Called again when a switch starts
+   * and when the client acknowledges it.
+   */
+  public void updateReadTimeout() {
     final var pipeline = connection.getChannel().pipeline();
+    // A client that has not acknowledged a configuration switch is still in PLAY, where it sends
+    // at least a position update every second, so it is not idling. Keep its read-timeout, or a
+    // client that stopped responding holds the switch, and its session, forever (issue
+    // GemstoneGG#1125).
+    if (readTimeoutPaused && !connection.pendingConfigurationSwitch) {
+      if (pipeline.context(Connections.READ_TIMEOUT) != null) {
+        pipeline.remove(Connections.READ_TIMEOUT);
+      }
+      return;
+    }
+
     if (pipeline.context(Connections.READ_TIMEOUT) == null && pipeline.context(Connections.FRAME_DECODER) != null) {
       pipeline.addAfter(Connections.FRAME_DECODER, Connections.READ_TIMEOUT,
           new VelocityReadTimeoutHandler(server.getConfiguration().getReadTimeout(),
@@ -2027,6 +2052,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
           }
           connection.write(StartUpdatePacket.INSTANCE);
           connection.pendingConfigurationSwitch = true;
+          // The client owes us its acknowledgement now, so its read-timeout applies until then
+          updateReadTimeout();
           connection.getChannel().pipeline().get(MinecraftEncoder.class).setState(StateRegistry.CONFIG);
           // Queue clientbound play packets, and drop stale serverbound ones, during reconfiguration
           connection.addReconfigurationPlayPacketQueueHandler();
