@@ -111,6 +111,19 @@ public final class VelocityReadTimeoutHandler extends ReadTimeoutHandler {
     }
   }
 
+  /**
+   * How long the connection has gone without reading anything, counted the way this timeout counts
+   * it: time spent paused for backpressure is left out, so a slow peer is not mistaken for a silent
+   * one. Must be called on the event loop.
+   *
+   * @return the idle time in nanoseconds
+   */
+  public long idleNanos() {
+    long now = ticker.nanoTime();
+    long paused = pausedSinceNanos >= 0 ? pausedNanos + now - pausedSinceNanos : pausedNanos;
+    return Math.max(0, now - lastReadNanos - paused);
+  }
+
   @Override
   protected void readTimedOut(ChannelHandlerContext ctx) {
     if (pendingCheck == null) {

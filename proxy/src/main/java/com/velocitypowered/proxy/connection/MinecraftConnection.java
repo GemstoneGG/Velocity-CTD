@@ -246,6 +246,9 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
   @Override
   public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
     if (ctx.channel().isActive()) {
+      if (association instanceof ConnectedPlayer player) {
+        server.getPlayerRegistry().connectionFailed(player, cause);
+      }
       if (activeSessionHandler != null) {
         try {
           activeSessionHandler.exception(cause);

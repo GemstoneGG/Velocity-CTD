@@ -17,6 +17,7 @@
 
 package com.velocitypowered.proxy.network.netty;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -108,5 +109,26 @@ class VelocityReadTimeoutHandlerTest {
     ch.advanceTimeBy(5, TimeUnit.MILLISECONDS);
     ch.runScheduledPendingTasks();
     assertTrue(ch.isOpen(), "a replaced or paused timeout must not fire later");
+  }
+
+  @Test
+  void idleTimeCountsSilenceButNotBackpressurePauses() {
+    VelocityReadTimeoutHandler handler = new VelocityReadTimeoutHandler(30, TimeUnit.SECONDS);
+    EmbeddedChannel ch = channel(handler);
+
+    ch.writeInbound("data");
+    assertEquals(0, handler.idleNanos(), "reading resets the idle time");
+
+    ch.advanceTimeBy(3, TimeUnit.SECONDS);
+    assertEquals(TimeUnit.SECONDS.toNanos(3), handler.idleNanos());
+
+    handler.backpressurePaused();
+    ch.advanceTimeBy(10, TimeUnit.SECONDS);
+    assertEquals(TimeUnit.SECONDS.toNanos(3), handler.idleNanos(),
+        "time paused for backpressure is not silence");
+
+    handler.backpressureResumed();
+    ch.advanceTimeBy(2, TimeUnit.SECONDS);
+    assertEquals(TimeUnit.SECONDS.toNanos(5), handler.idleNanos());
   }
 }
