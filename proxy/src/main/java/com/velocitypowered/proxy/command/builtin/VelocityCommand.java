@@ -442,7 +442,7 @@ public class VelocityCommand implements BuiltinCommandDefinition {
 
         infoBuilder.appendNewline();
         if (version.isDevelopmentVersion()) {
-          infoBuilder.append(Component.text("You are running a development build of Velocity.", NamedTextColor.RED));
+          infoBuilder.append(Component.translatable("velocity.command.info.development-build", NamedTextColor.RED));
         } else {
           int dist = fetchDistanceFromGitHub(version.getVersion());
           switch (dist) {
