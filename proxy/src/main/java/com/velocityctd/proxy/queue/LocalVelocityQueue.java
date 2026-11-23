@@ -21,6 +21,8 @@ import com.velocityctd.api.queue.QueueEntryData;
 import com.velocityctd.api.queue.QueueState;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
+import java.util.Optional;
+import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -33,6 +35,23 @@ public final class LocalVelocityQueue extends VelocityQueue<VelocityQueueEntry> 
   public LocalVelocityQueue(VelocityServer server, VelocityQueueManager manager,
                             VelocityRegisteredServer backend, QueueState initialState) {
     super(server, manager, backend, initialState);
+  }
+
+  /**
+   * Creates a group queue with a shared display name and a backend resolver.
+   *
+   * @param server          the proxy instance
+   * @param manager         the owning queue manager
+   * @param backend         a registered server used as a fallback target
+   * @param initialState    the initial queue state
+   * @param displayName     the group name shown to players
+   * @param backendResolver resolves the target backend for a player
+   */
+  public LocalVelocityQueue(VelocityServer server, VelocityQueueManager manager,
+                            VelocityRegisteredServer backend, QueueState initialState,
+                            String displayName,
+                            java.util.function.Function<UUID, Optional<VelocityRegisteredServer>> backendResolver) {
+    super(server, manager, backend, initialState, displayName, backendResolver);
   }
 
   @Override

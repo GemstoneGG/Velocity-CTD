@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.gson.annotations.Expose;
+import com.velocityctd.api.queue.SelectionStrategy;
 import com.velocityctd.proxy.config.migration.CtdConfigMigrations;
 import com.velocityctd.proxy.util.ComponentUtils;
 import com.velocitypowered.api.proxy.config.BackendServerConfig;
@@ -2915,6 +2916,40 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private List<String> queueOnJoinServers = List.of();
 
+    /**
+     * Logical server groups. Each group presents several backends as one queue destination.
+     */
+    @Expose
+    private Map<String, ServerGroupDefinition> groups = ImmutableMap.of();
+
+    /**
+     * Definition of a logical server group loaded from configuration.
+     *
+     * @param name       the name players use to queue for the group
+     * @param servers    the backend names belonging to the group
+     * @param strategy   how a backend is chosen for a player
+     * @param maxPlayers the configured per-backend player limit, or {@code -1} for no limit
+     */
+    public record ServerGroupDefinition(String name, List<String> servers,
+                                        SelectionStrategy strategy, int maxPlayers) {
+
+      /**
+       * Copies the backend list and normalizes invalid values.
+       */
+      public ServerGroupDefinition {
+        if (servers == null || servers.isEmpty()) {
+          LOGGER.warn("Server group '{}' has no backend servers and will be ignored.", name);
+          servers = ImmutableList.of();
+        } else {
+          servers = ImmutableList.copyOf(servers);
+        }
+
+        if (maxPlayers < 1) {
+          maxPlayers = -1;
+        }
+      }
+    }
+
     private Queue(CommentedConfig config) {
       if (config == null) {
         return;
@@ -2948,6 +2983,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.queueServer = config.getOrElse("queue-server", "");
       this.queueOnJoinServers = parseQueueOnJoinServers(config.get("queue-on-join"));
       this.autoQueueServers = parseAutoQueueServers(config.get("auto-queue-servers"));
+      this.groups = parseServerGroups(config.get("groups"));
 
       if (!this.queueServer.isEmpty() && !this.autoQueueServers.isEmpty()) {
         LOGGER.warn("Both 'queue-server' and 'auto-queue-servers' are configured in [queue]. "
@@ -2975,6 +3011,65 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
 
       return ImmutableMap.copyOf(autoQueueServers);
+    }
+
+    private Map<String, ServerGroupDefinition> parseServerGroups(Object raw) {
+      if (!(raw instanceof UnmodifiableConfig config)) {
+        return ImmutableMap.of();
+      }
+
+      Map<String, ServerGroupDefinition> groups = new HashMap<>();
+      for (UnmodifiableConfig.Entry entry : config.entrySet()) {
+        String name = entry.getKey();
+        if (name.isEmpty()) {
+          LOGGER.warn("Ignoring a server group with an empty name.");
+          continue;
+        }
+
+        Object value = entry.getValue();
+        List<String> servers;
+        SelectionStrategy strategy = SelectionStrategy.LEAST_PLAYERS;
+        int maxPlayers = -1;
+
+        if (value instanceof UnmodifiableConfig nested) {
+          servers = parseGroupServers(nested.get("servers"));
+
+          Object strategyValue = nested.get("strategy");
+          if (strategyValue instanceof String strategyName) {
+            strategy = SelectionStrategy.fromConfig(strategyName);
+          }
+
+          Object maxPlayersValue = nested.get("max-players");
+          if (maxPlayersValue instanceof Number number) {
+            maxPlayers = number.intValue();
+          }
+        } else {
+          servers = parseGroupServers(value);
+        }
+
+        ServerGroupDefinition definition = new ServerGroupDefinition(name, servers, strategy, maxPlayers);
+        if (!definition.servers().isEmpty()) {
+          groups.put(name, definition);
+        }
+      }
+
+      return ImmutableMap.copyOf(groups);
+    }
+
+    private List<String> parseGroupServers(Object raw) {
+      if (raw instanceof String single) {
+        return single.isEmpty() ? ImmutableList.of() : ImmutableList.of(single);
+      }
+
+      if (raw instanceof List<?> list) {
+        return list.stream()
+            .filter(entry -> entry instanceof String)
+            .map(entry -> (String) entry)
+            .filter(server -> !server.isEmpty())
+            .collect(ImmutableList.toImmutableList());
+      }
+
+      return ImmutableList.of();
     }
 
     private List<String> parseQueueOnJoinServers(Object raw) {
@@ -3175,6 +3270,25 @@ public final class VelocityConfiguration implements ProxyConfig {
       return queueOnJoinServers;
     }
 
+    /**
+     * Returns all configured server groups keyed by their exact group name.
+     *
+     * @return an immutable map of group definitions
+     */
+    public Map<String, ServerGroupDefinition> getGroups() {
+      return groups;
+    }
+
+    /**
+     * Returns the group definition for an exact group name.
+     *
+     * @param name the group name to look up
+     * @return the definition, or {@code null} when no such group is configured
+     */
+    public @Nullable ServerGroupDefinition getGroup(String name) {
+      return groups.get(name);
+    }
+
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
@@ -3197,6 +3311,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("autoQueueServers", autoQueueServers)
           .add("queueServer", queueServer)
           .add("queueOnJoinServers", queueOnJoinServers)
+          .add("groups", groups)
           .toString();
     }
   }

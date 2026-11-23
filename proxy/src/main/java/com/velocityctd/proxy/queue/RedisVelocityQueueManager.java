@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.velocityctd.api.queue.QueueEntryData;
 import com.velocityctd.api.queue.QueueState;
+import com.velocityctd.proxy.queue.group.VelocityServerGroup;
 import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotEntry;
 import com.velocityctd.proxy.queue.redis.depot.VelocityQueueDepotService;
 import com.velocityctd.proxy.queue.redis.packet.VelocityQueueSync;
@@ -157,6 +158,22 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
   @Override
   protected RedisVelocityQueue createQueue(VelocityRegisteredServer rs, QueueState state) {
     return new RedisVelocityQueue(server, this, rs, state);
+  }
+
+  @Override
+  protected RedisVelocityQueue createGroupQueue(VelocityServerGroup group, QueueState state) {
+    VelocityRegisteredServer backend = groupBackend(group);
+    if (backend == null) {
+      backend = server.getAllServers().stream().findFirst().orElse(null);
+    }
+
+    if (backend == null) {
+      throw new IllegalArgumentException("No registered backend available for group: " + group.getName());
+    }
+
+    return new RedisVelocityQueue(server, this, backend, state, group.getName(),
+        playerId -> groupManager.selectBackend(group, playerId)
+            .flatMap(name -> server.getServer(name)));
   }
 
   @Override

@@ -25,6 +25,8 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.velocityctd.api.queue.QueueState;
+import com.velocityctd.proxy.queue.group.ServerGroupManager;
+import com.velocityctd.proxy.queue.group.VelocityServerGroup;
 import com.velocityctd.proxy.util.ComponentUtils;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
@@ -92,6 +94,18 @@ public class CommandUtils {
           .filter(s -> allowNonQueueable || !queueConfig.isEnabled() || !queueConfig.getNoQueueServers().contains(s))
           .collect(Collectors.toList());
 
+      if (server.isQueueEnabled()) {
+        ServerGroupManager groupManager = server.getQueueManager().getServerGroupManager();
+        if (groupManager != null) {
+          for (VelocityServerGroup group : groupManager.getGroups()) {
+            String name = group.getName();
+            if (allowNonQueueable || !queueConfig.getNoQueueServers().contains(name)) {
+              possibilities.add(name);
+            }
+          }
+        }
+      }
+
       possibilities.addAll(Arrays.asList(magicServers));
 
       for (String possibility : possibilities) {
@@ -155,6 +169,20 @@ public class CommandUtils {
   public static boolean checkServerPermissions(VelocityRegisteredServer server, CommandSource source) {
     String serverName = server.getServerInfo().getName();
     return source.getPermissionValue("velocity.command.server." + serverName) != Tristate.FALSE;
+  }
+
+  /**
+   * Checks whether a command source may join a destination by name.
+   *
+   * <p>The name may be a registered server or a configured server group.</p>
+   *
+   * @param server the proxy instance
+   * @param source the command source to check
+   * @param name   the server or group name
+   * @return whether the source has permission to use the destination
+   */
+  public static boolean hasServerPermission(VelocityServer server, CommandSource source, String name) {
+    return source.getPermissionValue("velocity.command.server." + name) != Tristate.FALSE;
   }
 
   /**

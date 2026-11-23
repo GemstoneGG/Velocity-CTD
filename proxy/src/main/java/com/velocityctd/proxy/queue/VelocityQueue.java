@@ -47,6 +47,8 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
 
   private final VelocityRegisteredServer backend;
   private final QueuePlayerList<E> playerList = new QueuePlayerList<>();
+  private final @Nullable String displayName;
+  private final @Nullable Function<UUID, Optional<VelocityRegisteredServer>> backendResolver;
 
   private volatile ServerStatus serverStatus;
   private volatile QueueState state;
@@ -58,16 +60,61 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
    */
   public VelocityQueue(VelocityServer server, VelocityQueueManager manager,
                        VelocityRegisteredServer backend, QueueState initialState) {
+    this(server, manager, backend, initialState, null, null);
+  }
+
+  /**
+   * Creates a queue with a display name and a per-player backend resolver.
+   *
+   * <p>The extra parameters are used by server group queues, which share one queue
+   * across several backends and choose the target only when a player is transferred.</p>
+   *
+   * @param server          the proxy instance
+   * @param manager         the owning queue manager
+   * @param backend         a registered server used as a fallback target
+   * @param initialState    the initial queue state
+   * @param displayName     the name shown to players, or {@code null} for the backend name
+   * @param backendResolver resolves the target backend for a player, or {@code null}
+   */
+  public VelocityQueue(VelocityServer server, VelocityQueueManager manager,
+                       VelocityRegisteredServer backend, QueueState initialState,
+                       @Nullable String displayName,
+                       @Nullable Function<UUID, Optional<VelocityRegisteredServer>> backendResolver) {
     this.server = server;
     this.manager = manager;
     this.backend = backend;
+    this.displayName = displayName;
+    this.backendResolver = backendResolver;
     this.serverStatus = ServerStatus.OFFLINE;
     this.state = initialState;
   }
 
   @Override
   public String getName() {
-    return backend.getServerInfo().getName();
+    return displayName != null ? displayName : backend.getServerInfo().getName();
+  }
+
+  /**
+   * Resolves the backend a player should be sent to when they leave this queue.
+   *
+   * @param playerId the player's unique id
+   * @return the target backend, or an empty optional when none is currently available
+   */
+  public Optional<VelocityRegisteredServer> resolveTargetServer(UUID playerId) {
+    if (backendResolver != null) {
+      return backendResolver.apply(playerId);
+    }
+
+    return Optional.of(backend);
+  }
+
+  /**
+   * Returns whether this queue represents a logical server group.
+   *
+   * @return {@code true} when a per-player backend resolver is configured
+   */
+  public boolean isGroupQueue() {
+    return backendResolver != null;
   }
 
   @Override

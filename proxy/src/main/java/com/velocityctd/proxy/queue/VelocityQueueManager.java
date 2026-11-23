@@ -28,6 +28,8 @@ import static com.velocityctd.proxy.permission.PermissionUtils.findHighestPermis
 import com.velocityctd.api.queue.QueueManager;
 import com.velocityctd.api.queue.QueueState;
 import com.velocityctd.api.queue.ServerStatus;
+import com.velocityctd.proxy.queue.group.ServerGroupManager;
+import com.velocityctd.proxy.queue.group.VelocityServerGroup;
 import com.velocityctd.proxy.queue.util.QueueComponents;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
@@ -45,6 +47,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -74,6 +77,11 @@ public class VelocityQueueManager implements QueueManager {
   private static final int TICKS_PER_ACTION_BAR_CHANGE = 2;
 
   protected final VelocityServer server;
+
+  /**
+   * Owns the configured logical server groups and their shared queues.
+   */
+  protected ServerGroupManager groupManager;
 
   /**
    * Local in-memory queues keyed by server name.
@@ -110,6 +118,8 @@ public class VelocityQueueManager implements QueueManager {
 
     preInitialize();
 
+    groupManager = new ServerGroupManager(server, this);
+
     // Ensure every registered server has a queue (fills gaps not covered by preInitialize).
     for (VelocityRegisteredServer rs : server.getAllServers()) {
       String name = rs.getServerInfo().getName();
@@ -119,6 +129,8 @@ public class VelocityQueueManager implements QueueManager {
         return createQueue(rs, inactive ? QueueState.INACTIVE : QueueState.ACTIVE);
       });
     }
+
+    createGroupQueues();
 
     rescheduleTasks();
 
@@ -163,6 +175,51 @@ public class VelocityQueueManager implements QueueManager {
   }
 
   /**
+   * Creates the shared queue for a logical server group.
+   *
+   * @param group the group to create a queue for
+   * @param state the initial queue state
+   * @return the new group queue
+   */
+  protected VelocityQueue<?> createGroupQueue(VelocityServerGroup group, QueueState state) {
+    VelocityRegisteredServer backend = groupBackend(group);
+    if (backend == null) {
+      backend = server.getAllServers().stream().findFirst().orElse(null);
+    }
+
+    if (backend == null) {
+      throw new IllegalArgumentException("No registered backend available for group: " + group.getName());
+    }
+
+    return new LocalVelocityQueue(server, this, backend, state, group.getName(),
+        playerId -> groupManager.selectBackend(group, playerId)
+            .flatMap(name -> server.getServer(name)));
+  }
+
+  /**
+   * Finds a registered backend that belongs to the given group.
+   *
+   * @param group the group to inspect
+   * @return the first registered backend, or {@code null} when none is registered
+   */
+  protected @Nullable VelocityRegisteredServer groupBackend(VelocityServerGroup group) {
+    for (String name : group.getServers()) {
+      Optional<VelocityRegisteredServer> backend = server.getServer(name);
+      if (backend.isPresent()) {
+        return backend.get();
+      }
+    }
+
+    return null;
+  }
+
+  private QueueState stateFor(String name) {
+    return server.getConfiguration().getQueue().getNoQueueServers().contains(name)
+        ? QueueState.INACTIVE
+        : QueueState.ACTIVE;
+  }
+
+  /**
    * Sends an action-bar update for the given queue entry.
    */
   protected void sendActionBar(VelocityQueueEntry entry) {
@@ -174,19 +231,35 @@ public class VelocityQueueManager implements QueueManager {
 
   @Override
   public void reload() {
+    groupManager.rebuild();
     reconcileQueues();
     rescheduleTasks();
   }
 
+  /**
+   * Returns the manager responsible for logical server groups.
+   *
+   * @return the server group manager
+   */
+  public ServerGroupManager getServerGroupManager() {
+    return groupManager;
+  }
+
   protected void reconcileQueues() {
-    Set<String> registered = new HashSet<>();
+    Set<String> validNames = new HashSet<>();
     for (VelocityRegisteredServer rs : server.getAllServers()) {
-      registered.add(rs.getServerInfo().getName());
+      validNames.add(rs.getServerInfo().getName());
+    }
+
+    for (VelocityServerGroup group : groupManager.getGroups()) {
+      if (groupBackend(group) != null) {
+        validNames.add(group.getName());
+      }
     }
 
     // Drop queues whose backing server no longer exists.
     for (Map.Entry<String, VelocityQueue<?>> entry : new HashMap<>(queues).entrySet()) {
-      if (registered.contains(entry.getKey())) {
+      if (validNames.contains(entry.getKey())) {
         continue;
       }
 
@@ -200,9 +273,21 @@ public class VelocityQueueManager implements QueueManager {
     for (VelocityRegisteredServer rs : server.getAllServers()) {
       String name = rs.getServerInfo().getName();
       queues.computeIfAbsent(name, n -> {
-        boolean inactive = server.getConfiguration().getQueue().getNoQueueServers().contains(n);
-        return createQueue(rs, inactive ? QueueState.INACTIVE : QueueState.ACTIVE);
+        return createQueue(rs, stateFor(n));
       });
+    }
+
+    createGroupQueues();
+  }
+
+  private void createGroupQueues() {
+    for (VelocityServerGroup group : groupManager.getGroups()) {
+      if (groupBackend(group) == null) {
+        continue;
+      }
+
+      String name = group.getName();
+      queues.computeIfAbsent(name, n -> createGroupQueue(group, stateFor(n)));
     }
   }
 
@@ -218,6 +303,7 @@ public class VelocityQueueManager implements QueueManager {
   @Override
   public void teardown() {
     cancelTasks();
+    groupManager.shutdown();
     queues.values().forEach(VelocityQueue::teardown);
   }
 
@@ -228,13 +314,15 @@ public class VelocityQueueManager implements QueueManager {
       return existing;
     }
 
+    VelocityServerGroup group = groupManager.getGroup(serverName);
+    if (group != null) {
+      return queues.computeIfAbsent(serverName, n -> createGroupQueue(group, stateFor(n)));
+    }
+
     VelocityRegisteredServer rs = server.getServer(serverName)
         .orElseThrow(() -> new IllegalArgumentException("Unknown server: " + serverName));
 
-    return queues.computeIfAbsent(serverName, n -> {
-      boolean inactive = server.getConfiguration().getQueue().getNoQueueServers().contains(n);
-      return createQueue(rs, inactive ? QueueState.INACTIVE : QueueState.ACTIVE);
-    });
+    return queues.computeIfAbsent(serverName, n -> createQueue(rs, stateFor(n)));
   }
 
   @Override
@@ -301,6 +389,75 @@ public class VelocityQueueManager implements QueueManager {
         .arguments(Component.text(targetName)));
 
     // If a queue-server is configured, move the player there if they aren't already on it
+    String queueServerName = config.getQueueServer();
+    if (!queueServerName.isEmpty()) {
+      server.getServer(queueServerName).ifPresentOrElse(queueServer -> {
+        player.getCurrentServer().ifPresent(currentServer -> {
+          if (!currentServer.getServerInfo().getName().equals(queueServerName)) {
+            player.createConnectionRequest(queueServer).connectWithIndication();
+          }
+        });
+      }, () -> LOGGER.warn("Queue server '{}' is configured but not registered!", queueServerName));
+    }
+  }
+
+  /**
+   * Validates eligibility and adds the given player to the shared queue for a server group.
+   *
+   * @param player    the player to queue
+   * @param groupName the logical group name
+   */
+  public void queue(@NotNull ConnectedPlayer player, @NotNull String groupName) {
+    VelocityConfiguration.Queue config = server.getConfiguration().getQueue();
+    if (!config.isEnabled()) {
+      return;
+    }
+
+    VelocityQueue<?> queue = getQueue(groupName);
+    Optional<String> selected = groupManager.selectBackend(groupName, player);
+
+    if (player.hasPermission("velocity.queue.bypass")) {
+      selected.flatMap(name -> server.getServer(name))
+          .ifPresent(target -> player.createConnectionRequest(target).connectWithIndication());
+      return;
+    }
+
+    if (queue.contains(player)) {
+      player.sendMessage(Component.translatable("velocity.queue.error.already-queued")
+          .arguments(Component.text(groupName)));
+      return;
+    }
+
+    if (!config.isAllowMultiQueue()) {
+      for (VelocityQueue<?> q : queues.values()) {
+        if (q.contains(player)) {
+          q.dequeue(player);
+          player.sendMessage(Component.translatable("velocity.queue.error.queued-swap")
+              .arguments(
+                  Argument.string("from", q.getName()),
+                  Argument.string("to", groupName)));
+          break;
+        }
+      }
+    }
+
+    if (queue.getState() == PAUSED && !config.isAllowPausedQueueJoining()) {
+      player.sendMessage(Component.translatable("velocity.queue.error.paused")
+          .arguments(Component.text(groupName)));
+      return;
+    }
+
+    if (selected.isPresent()) {
+      VelocityRegisteredServer target = server.getServer(selected.get()).orElse(null);
+      if (target != null && !player.checkVersionCompatibility(target)) {
+        return;
+      }
+    }
+
+    queue.enqueue(player);
+    player.sendMessage(Component.translatable("velocity.queue.command.queued")
+        .arguments(Component.text(groupName)));
+
     String queueServerName = config.getQueueServer();
     if (!queueServerName.isEmpty()) {
       server.getServer(queueServerName).ifPresentOrElse(queueServer -> {
@@ -517,6 +674,10 @@ public class VelocityQueueManager implements QueueManager {
     }
 
     for (VelocityQueue<?> queue : queues.values()) {
+      if (queue.isGroupQueue()) {
+        continue;
+      }
+
       VelocityRegisteredServer rs = server.getServer(queue.getName()).orElse(null);
       if (rs == null) {
         continue;

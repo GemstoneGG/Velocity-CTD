@@ -190,10 +190,9 @@ public class VelocityQueueEntry implements QueueEntry {
   @ApiStatus.Internal
   public void handleTransfer() {
     VelocityConfiguration.Queue config = this.server.getConfiguration().getQueue();
-    String targetServerName = this.queue.getName();
 
     this.server.getPlayer(this.uniqueId).ifPresentOrElse(player -> {
-      VelocityRegisteredServer foundServer = this.server.getServer(targetServerName).orElse(null);
+      VelocityRegisteredServer foundServer = this.queue.resolveTargetServer(this.uniqueId).orElse(null);
       if (foundServer == null) {
         queue.dequeue(this.uniqueId);
         return;
@@ -237,7 +236,14 @@ public class VelocityQueueEntry implements QueueEntry {
   }
 
   private void resetAfterFailedTransfer(VelocityConfiguration.Queue config) {
-    VelocityRegisteredServer targetServer = this.server.getServer(this.queue.getName()).orElseThrow();
+    VelocityRegisteredServer targetServer = this.queue.resolveTargetServer(this.uniqueId).orElse(null);
+    if (targetServer == null) {
+      synchronized (this) {
+        this.waitingForConnection = false;
+      }
+      publishWaitingChange();
+      return;
+    }
 
     targetServer.ping().orTimeout(3, TimeUnit.SECONDS).whenComplete((result, th) -> {
       if (th != null) {

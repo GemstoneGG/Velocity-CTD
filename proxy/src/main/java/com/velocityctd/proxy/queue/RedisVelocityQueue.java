@@ -26,6 +26,7 @@ import com.velocityctd.proxy.redis.VelocityRedis;
 import com.velocityctd.proxy.redis.data.VelocityMessage;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -46,6 +47,25 @@ public final class RedisVelocityQueue extends VelocityQueue<RedisVelocityQueueEn
   public RedisVelocityQueue(VelocityServer server, VelocityQueueManager manager,
                             VelocityRegisteredServer backend, QueueState initialState) {
     super(server, manager, backend, initialState);
+
+    this.redis = server.getRedis();
+  }
+
+  /**
+   * Creates a Redis-backed group queue with a shared display name and backend resolver.
+   *
+   * @param server          the proxy instance
+   * @param manager         the owning queue manager
+   * @param backend         a registered server used as a fallback target
+   * @param initialState    the initial queue state
+   * @param displayName     the group name shown to players
+   * @param backendResolver resolves the target backend for a player
+   */
+  public RedisVelocityQueue(VelocityServer server, VelocityQueueManager manager,
+                            VelocityRegisteredServer backend, QueueState initialState,
+                            String displayName,
+                            java.util.function.Function<UUID, Optional<VelocityRegisteredServer>> backendResolver) {
+    super(server, manager, backend, initialState, displayName, backendResolver);
 
     this.redis = server.getRedis();
   }
