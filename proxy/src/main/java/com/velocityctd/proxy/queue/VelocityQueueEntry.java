@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents a player that is currently in a {@link VelocityQueue}.
@@ -192,9 +193,14 @@ public class VelocityQueueEntry implements QueueEntry {
     VelocityConfiguration.Queue config = this.server.getConfiguration().getQueue();
 
     this.server.getPlayer(this.uniqueId).ifPresentOrElse(player -> {
-      VelocityRegisteredServer foundServer = this.queue.resolveTargetServer(this.uniqueId).orElse(null);
+      // Resolve through the entry so full-bypass reaches the resolver, and remember the
+      // exact backend we tried: re-resolving on failure would advance round-robin/random
+      // and could diagnose a different backend than the one that refused the player.
+      VelocityRegisteredServer foundServer = this.queue.resolveTargetServer(this).orElse(null);
       if (foundServer == null) {
-        queue.dequeue(this.uniqueId);
+        // Temporary unavailability (group full/offline). Keep queue position, priority and
+        // attempts untouched; the transfer tick interval is the natural retry backoff.
+        resetWaitingWithoutAttempt();
         return;
       }
 
@@ -216,12 +222,13 @@ public class VelocityQueueEntry implements QueueEntry {
           }
         }
 
-        resetAfterFailedTransfer(config);
+        resetAfterFailedTransfer(config, foundServer);
       }).exceptionally(ex -> {
-        resetAfterFailedTransfer(config);
+        resetAfterFailedTransfer(config, foundServer);
         return null;
       });
-    }, () -> resetAfterFailedTransfer(config));
+    }, () -> resetAfterFailedTransfer(config,
+        this.queue.isGroupQueue() ? null : this.queue.getServer()));
   }
 
   /**
@@ -235,25 +242,31 @@ public class VelocityQueueEntry implements QueueEntry {
     // no-op
   }
 
-  private void resetAfterFailedTransfer(VelocityConfiguration.Queue config) {
-    VelocityRegisteredServer targetServer = this.queue.resolveTargetServer(this.uniqueId).orElse(null);
-    if (targetServer == null) {
-      synchronized (this) {
-        this.waitingForConnection = false;
-      }
-      publishWaitingChange();
+  /**
+   * Diagnoses a failed connection against the backend that was actually attempted, so a
+   * round-robin or random strategy is not advanced a second time during the diagnosis.
+   *
+   * @param config          the queue configuration
+   * @param attemptedServer the backend tried by {@link #handleTransfer()}, or {@code null}
+   *                        when no connection was made (offline player / no target)
+   */
+  private void resetAfterFailedTransfer(VelocityConfiguration.Queue config,
+                                        @Nullable VelocityRegisteredServer attemptedServer) {
+    if (attemptedServer == null) {
+      // No connection was ever made, so there is nothing to penalise.
+      resetWaitingWithoutAttempt();
       return;
     }
 
-    targetServer.ping().orTimeout(3, TimeUnit.SECONDS).whenComplete((result, th) -> {
+    attemptedServer.ping().orTimeout(3, TimeUnit.SECONDS).whenComplete((result, th) -> {
       if (th != null) {
-        // Backend is offline. Mark it and silently reset this entry without counting the attempt,
-        // so the player sees no error and stays in the queue.
-        this.queue.setServerStatus(ServerStatus.OFFLINE);
-        synchronized (this) {
-          this.waitingForConnection = false;
+        // A physical backend failure marks its own queue offline. A group has several backends
+        // and its aggregate status is owned by ServerGroupManager.refresh(), so one failed
+        // member must not stall transfers to the healthy members.
+        if (!this.queue.isGroupQueue()) {
+          this.queue.setServerStatus(ServerStatus.OFFLINE);
         }
-        publishWaitingChange();
+        resetWaitingWithoutAttempt();
       } else {
         // Backend is reachable. The connection failure was legitimate.
         applyFailedAttempt(config);
@@ -261,7 +274,40 @@ public class VelocityQueueEntry implements QueueEntry {
     });
   }
 
-  private void applyFailedAttempt(VelocityConfiguration.Queue config) {
+  /**
+   * Clears the waiting flag and broadcasts the change without counting a failed attempt,
+   * leaving the player in the queue for a later retry.
+   */
+  private void resetWaitingWithoutAttempt() {
+    synchronized (this) {
+      this.waitingForConnection = false;
+    }
+    publishWaitingChange();
+  }
+
+  /**
+   * Clears a stale waiting flag on an entry restored from the depot. A snapshot can capture
+   * an entry whose transfer was still pending; without this reset the master would skip it
+   * forever via {@code selectCandidate}.
+   */
+  public void resetWaitingForRetry() {
+    synchronized (this) {
+      if (!this.waitingForConnection) {
+        return;
+      }
+      this.waitingForConnection = false;
+    }
+    publishWaitingChange();
+  }
+
+  /**
+   * Counts a failed connection attempt, refreshes permissions and publishes the waiting
+   * change. Enforces the configured retry limit: once reached, the player is notified and
+   * removed from the queue.
+   *
+   * @param config the queue configuration
+   */
+  protected void applyFailedAttempt(VelocityConfiguration.Queue config) {
     int attempts;
     synchronized (this) {
       this.waitingForConnection = false;

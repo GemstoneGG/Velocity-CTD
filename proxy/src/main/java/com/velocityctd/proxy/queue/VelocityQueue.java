@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.ToIntFunction;
 import net.kyori.adventure.text.Component;
@@ -48,7 +49,7 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
   private final VelocityRegisteredServer backend;
   private final QueuePlayerList<E> playerList = new QueuePlayerList<>();
   private final @Nullable String displayName;
-  private final @Nullable Function<UUID, Optional<VelocityRegisteredServer>> backendResolver;
+  private final @Nullable BiFunction<UUID, Boolean, Optional<VelocityRegisteredServer>> backendResolver;
 
   private volatile ServerStatus serverStatus;
   private volatile QueueState state;
@@ -74,12 +75,14 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
    * @param backend         a registered server used as a fallback target
    * @param initialState    the initial queue state
    * @param displayName     the name shown to players, or {@code null} for the backend name
-   * @param backendResolver resolves the target backend for a player, or {@code null}
+   * @param backendResolver resolves the target backend for a player and its full-bypass
+   *                        flag, or {@code null}
    */
   public VelocityQueue(VelocityServer server, VelocityQueueManager manager,
                        VelocityRegisteredServer backend, QueueState initialState,
                        @Nullable String displayName,
-                       @Nullable Function<UUID, Optional<VelocityRegisteredServer>> backendResolver) {
+                       @Nullable BiFunction<UUID, Boolean, Optional<VelocityRegisteredServer>>
+                           backendResolver) {
     this.server = server;
     this.manager = manager;
     this.backend = backend;
@@ -95,14 +98,35 @@ public abstract class VelocityQueue<E extends VelocityQueueEntry> implements Que
   }
 
   /**
-   * Resolves the backend a player should be sent to when they leave this queue.
+   * Resolves the backend a player should be sent to when they leave this queue, without
+   * granting full-server bypass. Kept for API compatibility.
    *
    * @param playerId the player's unique id
    * @return the target backend, or an empty optional when none is currently available
    */
   public Optional<VelocityRegisteredServer> resolveTargetServer(UUID playerId) {
+    return resolveTargetServer(playerId, false);
+  }
+
+  /**
+   * Resolves the backend for a queue entry, forwarding that entry's full-bypass flag to
+   * the resolver. Group queues use the flag to include otherwise-full backends.
+   *
+   * @param entry the queued player
+   * @return the target backend, or an empty optional when none is currently available
+   */
+  public Optional<VelocityRegisteredServer> resolveTargetServer(VelocityQueueEntry entry) {
+    return resolveTargetServer(entry.getUniqueId(), entry.isFullBypass());
+  }
+
+  /**
+   * Shared resolver entry point. Ordinary queues always use their single fixed backend;
+   * group queues delegate to the configured resolver with the caller's bypass flag.
+   */
+  private Optional<VelocityRegisteredServer> resolveTargetServer(UUID playerId, boolean fullBypass) {
     if (backendResolver != null) {
-      return backendResolver.apply(playerId);
+      // The Boolean box is never null: both public entry points pass a primitive.
+      return backendResolver.apply(playerId, fullBypass);
     }
 
     return Optional.of(backend);

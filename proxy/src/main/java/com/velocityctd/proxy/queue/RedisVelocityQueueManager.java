@@ -17,7 +17,6 @@
 
 package com.velocityctd.proxy.queue;
 
-import static com.velocityctd.api.queue.ServerStatus.WAITING;
 import static java.util.Objects.requireNonNull;
 
 import com.velocityctd.api.queue.QueueEntryData;
@@ -35,7 +34,9 @@ import com.velocitypowered.proxy.plugin.virtual.VelocityVirtualPlugin;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
@@ -160,25 +161,32 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
     return new RedisVelocityQueue(server, this, rs, state);
   }
 
+  /**
+   * Creates a Redis-backed group queue. No unrelated-server fallback is used, and the
+   * resolver captures the group name so configuration rebuilds cannot leave it stale.
+   *
+   * @param group the group to create a queue for
+   * @param state the initial queue state
+   * @return the new group queue, or {@code null} when no group member is registered
+   */
   @Override
-  protected RedisVelocityQueue createGroupQueue(VelocityServerGroup group, QueueState state) {
+  protected @Nullable RedisVelocityQueue createGroupQueue(VelocityServerGroup group, QueueState state) {
     VelocityRegisteredServer backend = groupBackend(group);
     if (backend == null) {
-      backend = server.getAllServers().stream().findFirst().orElse(null);
+      return null;
     }
 
-    if (backend == null) {
-      throw new IllegalArgumentException("No registered backend available for group: " + group.getName());
-    }
-
-    return new RedisVelocityQueue(server, this, backend, state, group.getName(),
-        playerId -> groupManager.selectBackend(group, playerId)
+    String groupName = group.getName();
+    return new RedisVelocityQueue(server, this, backend, state, groupName,
+        (playerId, fullBypass) -> groupManager.selectBackend(groupName, playerId, fullBypass)
             .flatMap(name -> server.getServer(name)));
   }
 
   @Override
   protected void onQueueRemoved(@NotNull String serverName) {
-    if (isMasterProxy() && !server.getRedis().isShutdown()) {
+    // Snapshot cleanup is idempotent and must happen on every proxy: restricting it to the
+    // master leaves orphaned depot entries whenever master ownership moves.
+    if (!server.getRedis().isShutdown()) {
       server.getRedis().getQueueService().removeQueue(serverName);
     }
   }
@@ -294,17 +302,35 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
 
     queues.clear();
     for (VelocityQueueDepotEntry entry : service.getAll()) {
-      VelocityRegisteredServer rs = server.getServer(entry.getUniqueId()).orElse(null);
-      if (rs != null) {
-        queues.put(entry.getUniqueId(), new RedisVelocityQueue(server, this, rs, entry));
-
-        // Seed the warmup timer so pingBackends() can promote a WAITING queue to ONLINE/FULL
-        // once the delay elapses. Without this the queue would stay stuck in WAITING forever.
-        if (entry.getServerStatus() == WAITING) {
-          LAST_TURNED_ONLINE_TIME.put(entry.getUniqueId(), System.currentTimeMillis());
+      // Depot keys are queue names, not necessarily registered backend names. Logical
+      // group queues must be resolved through the group manager or their players, priority
+      // and state would be silently dropped on cold start / reconnect.
+      String queueName = entry.getUniqueId();
+      VelocityServerGroup group = groupManager.getGroup(queueName);
+      if (group != null) {
+        VelocityRegisteredServer backend = groupBackend(group);
+        if (backend == null) {
+          LOGGER.warn("Skipping depot queue '{}': no registered backend for the group.", queueName);
+          continue;
         }
+
+        // Capture the name, never the group object: rebuild() replaces group instances.
+        String groupName = group.getName();
+        queues.put(queueName, new RedisVelocityQueue(server, this, backend, entry, groupName,
+            (playerId, fullBypass) -> groupManager.selectBackend(groupName, playerId, fullBypass)
+                .flatMap(name -> server.getServer(name))));
+      } else {
+        VelocityRegisteredServer rs = server.getServer(queueName).orElse(null);
+        if (rs == null) {
+          LOGGER.warn("Skipping unknown depot queue '{}'.", queueName);
+          continue;
+        }
+        queues.put(queueName, new RedisVelocityQueue(server, this, rs, entry));
       }
     }
+
+    // Configured groups with no depot snapshot still need a queue.
+    createGroupQueues();
   }
 
   /**
@@ -315,12 +341,30 @@ public final class RedisVelocityQueueManager extends VelocityQueueManager {
    * also re-broadcasts all server statuses and queue states so non-master proxies recover.</p>
    */
   private void reloadFromRedis() {
+    // Cancel stale removal tasks before replacing the queues; otherwise a task scheduled
+    // before the reconnect could remove a player just restored from the depot snapshot.
+    pendingTimeoutTasks.values().forEach(ScheduledTask::cancel);
+    pendingTimeoutTasks.clear();
+    // The restored snapshot reseeds this itself; drop the old warmup timestamps first.
+    LAST_TURNED_ONLINE_TIME.clear();
+
+    Map<String, QueueState> previousStates = new HashMap<>();
+    for (Map.Entry<String, VelocityQueue<?>> queue : queues.entrySet()) {
+      previousStates.put(queue.getKey(), queue.getValue().getState());
+    }
+
     loadFromRedis();
+    scheduleOfflineRemovals();
 
     if (isMasterProxy()) {
-      for (VelocityQueue<?> queue : queues.values()) {
-        server.getRedis().publish(VelocityQueueSync.statusChange(queue.getName(), queue.getServerStatus()));
-        server.getRedis().publish(VelocityQueueSync.stateChange(queue.getName(), queue.getState()));
+      for (Map.Entry<String, VelocityQueue<?>> queue : queues.entrySet()) {
+        QueueState previous = previousStates.get(queue.getKey());
+        QueueState current = queue.getValue().getState();
+        // A blanket state re-broadcast would overwrite a newer administrative pause on
+        // non-master proxies. Only re-publish a state the reload actually changed.
+        if (previous != null && previous != current) {
+          server.getRedis().publish(VelocityQueueSync.stateChange(queue.getKey(), current));
+        }
       }
     }
   }

@@ -33,8 +33,14 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.VelocityCommands;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -91,22 +97,51 @@ public class GlistCommand implements BuiltinCommandDefinition {
     CommandSource source = context.getSource();
     String serverName = getString(context, SERVER_ARG);
     if (serverName.equalsIgnoreCase(SERVER_ALL)) {
-      for (VelocityRegisteredServer server : CommandUtils.sortedServerList(server)) {
-        sendServerPlayers(source, true, server);
+      Set<UUID> seen = new HashSet<>();
+      for (VelocityRegisteredServer registeredServer : CommandUtils.sortedServerList(server)) {
+        String backendName = registeredServer.getServerInfo().getName();
+        sendPlayerList(source, backendName, collectPlayers(List.of(backendName), seen), true);
       }
       sendTotalProxyCount(source);
-    } else {
-      Optional<VelocityRegisteredServer> registeredServer = server.getServer(serverName);
-      if (registeredServer.isEmpty()) {
-        source.sendMessage(
-                CommandMessages.SERVER_DOES_NOT_EXIST
-                        .arguments(Component.text(serverName)));
-        return 0;
-      }
-      sendServerPlayers(source, false, registeredServer.get());
+      return SINGLE_SUCCESS;
     }
 
+    List<String> groupBackends = CommandUtils.getGroupBackendNames(server, serverName);
+    if (groupBackends != null) {
+      sendPlayerList(source, serverName, collectPlayers(groupBackends, new HashSet<>()), false);
+      return SINGLE_SUCCESS;
+    }
+
+    Optional<VelocityRegisteredServer> registeredServer = server.getServer(serverName);
+    if (registeredServer.isEmpty()) {
+      source.sendMessage(
+              CommandMessages.SERVER_DOES_NOT_EXIST
+                      .arguments(Component.text(serverName)));
+      return 0;
+    }
+
+    String backendName = registeredServer.get().getServerInfo().getName();
+    sendPlayerList(source, backendName, collectPlayers(List.of(backendName), new HashSet<>()), false);
     return SINGLE_SUCCESS;
+  }
+
+  /**
+   * Collects online cluster players from the given backends, keeping one entry per player.
+   *
+   * @param backendNames the backends to inspect
+   * @param seen         player ids already shown in an earlier row
+   * @return the distinct players in first-seen order
+   */
+  private List<VelocityClusterPlayer> collectPlayers(Collection<String> backendNames, Set<UUID> seen) {
+    Map<UUID, VelocityClusterPlayer> found = new LinkedHashMap<>();
+    for (String backendName : backendNames) {
+      for (VelocityClusterPlayer player : this.server.getClusterPlayerService().getPlayersOnServer(backendName)) {
+        if (seen.add(player.getUniqueId())) {
+          found.put(player.getUniqueId(), player);
+        }
+      }
+    }
+    return List.copyOf(found.values());
   }
 
   private void sendTotalProxyCount(CommandSource target) {
@@ -127,32 +162,39 @@ public class GlistCommand implements BuiltinCommandDefinition {
     target.sendMessage(msg.build());
   }
 
-  private void sendServerPlayers(CommandSource target, boolean fromAll, VelocityRegisteredServer server) {
-    int totalPlayers = 0;
-    List<Component> players = new ArrayList<>();
+  /**
+   * Renders one {@code /glist} row for a server or group.
+   *
+   * @param target   the command source to message
+   * @param name     the row's destination label
+   * @param players  the players to list
+   * @param fromAll  whether empty rows should be suppressed
+   */
+  private void sendPlayerList(CommandSource target, String name,
+                              Collection<VelocityClusterPlayer> players, boolean fromAll) {
+    List<Component> playerComponents = new ArrayList<>();
     String selfProxyId = this.server.getClusterProxyService().getSelfProxyId();
 
-    for (VelocityClusterPlayer player : this.server.getClusterPlayerService().getPlayersOnServer(server.getServerInfo().getName())) {
+    for (VelocityClusterPlayer player : players) {
       String proxyId = player.getProxyId();
       String key = proxyId.equals(selfProxyId)
           ? "velocity.command.glist.proxy-self"
           : "velocity.command.glist.proxy-other";
       Component hover = Component.translatable(key).arguments(Component.text(proxyId));
-      players.add(Component.text(player.getUsername()).hoverEvent(HoverEvent.showText(hover)));
-      totalPlayers += 1;
+      playerComponents.add(Component.text(player.getUsername()).hoverEvent(HoverEvent.showText(hover)));
     }
 
-    if (totalPlayers == 0 && fromAll) {
+    if (playerComponents.isEmpty() && fromAll) {
       return;
     }
 
-    Component playerList = players.stream()
+    Component playerList = playerComponents.stream()
             .reduce((a, b) -> a.append(Component.text(", ")).append(b))
             .orElse(Component.text(""));
     target.sendMessage(Component.translatable("velocity.command.glist-server")
             .arguments(
-                    Argument.string("server", server.getServerInfo().getName()),
-                    Argument.numeric("count", totalPlayers),
+                    Argument.string("server", name),
+                    Argument.numeric("count", playerComponents.size()),
                     Argument.component("players", playerList)
             )
     );

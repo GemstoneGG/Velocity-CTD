@@ -45,6 +45,13 @@ public class SlashServerCommand implements BuiltinCommandDefinition {
   private final VelocityRegisteredServer registeredServer;
   private final String commandLabel;
 
+  /**
+   * Creates a slash command targeting one registered backend server.
+   *
+   * @param server           the proxy instance
+   * @param targetServerName the physical backend the command connects to
+   * @param commandLabel     the command label to register
+   */
   public SlashServerCommand(VelocityServer server, String targetServerName, String commandLabel) {
     this.server = server;
     this.registeredServer = this.server.getServer(targetServerName)

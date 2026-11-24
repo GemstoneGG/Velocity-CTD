@@ -141,8 +141,7 @@ public class ServerCommand implements BuiltinCommandDefinition {
 
     // Filter servers based on player permissions
     List<VelocityRegisteredServer> accessibleServers = servers.stream()
-        .filter(rs -> executor.getPermissionValue("velocity.command.server."
-            + rs.getServerInfo().getName()) != Tristate.FALSE)
+        .filter(rs -> CommandUtils.hasServerPermission(server, executor, rs.getServerInfo().getName()))
         .toList();
 
     if (accessibleServers.isEmpty()) {

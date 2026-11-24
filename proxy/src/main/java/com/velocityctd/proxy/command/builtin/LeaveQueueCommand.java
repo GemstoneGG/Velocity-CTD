@@ -30,7 +30,6 @@ import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.command.builtin.BuiltinCommandDefinition;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.List;
 import net.kyori.adventure.text.Component;
 
@@ -81,8 +80,7 @@ public class LeaveQueueCommand implements BuiltinCommandDefinition {
     }
 
     int amountDone = 0;
-    for (VelocityRegisteredServer registeredServer : this.server.getAllServers()) {
-      VelocityQueue<?> queue = this.server.getQueueManager().getQueue(registeredServer.getServerInfo().getName());
+    for (VelocityQueue<?> queue : this.server.getQueueManager().getQueues()) {
       if (!queue.contains(player)) {
         continue;
       }
@@ -102,8 +100,8 @@ public class LeaveQueueCommand implements BuiltinCommandDefinition {
   }
 
   private int leaveQueue(CommandContext<CommandSource> ctx) {
-    VelocityRegisteredServer registeredServer = CommandUtils.getServer(this.server, ctx, "server", false);
-    if (registeredServer == null) {
+    VelocityQueue<?> queue = CommandUtils.resolveQueue(this.server, ctx, "server", false);
+    if (queue == null) {
       return 0;
     }
 
@@ -111,17 +109,17 @@ public class LeaveQueueCommand implements BuiltinCommandDefinition {
       return 0;
     }
 
-    VelocityQueue<?> queue = this.server.getQueueManager().getQueue(registeredServer.getServerInfo().getName());
+    String destinationName = queue.getName();
     if (queue.contains(player)) {
       queue.dequeue(player);
       player.sendMessage(
           Component.translatable("velocity.queue.command.left-queue")
-              .arguments(Component.text(registeredServer.getServerInfo().getName())));
+              .arguments(Component.text(destinationName)));
       return SINGLE_SUCCESS;
     } else {
       player.sendMessage(
           Component.translatable("velocity.queue.error.not-in-queue")
-              .arguments(Component.text(registeredServer.getServerInfo().getName())));
+              .arguments(Component.text(destinationName)));
       return 0;
     }
   }

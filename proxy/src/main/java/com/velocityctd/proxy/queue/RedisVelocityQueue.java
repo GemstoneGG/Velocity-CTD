@@ -29,6 +29,7 @@ import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.ApiStatus;
@@ -59,12 +60,12 @@ public final class RedisVelocityQueue extends VelocityQueue<RedisVelocityQueueEn
    * @param backend         a registered server used as a fallback target
    * @param initialState    the initial queue state
    * @param displayName     the group name shown to players
-   * @param backendResolver resolves the target backend for a player
+   * @param backendResolver resolves the target backend for a player and its full-bypass flag
    */
   public RedisVelocityQueue(VelocityServer server, VelocityQueueManager manager,
                             VelocityRegisteredServer backend, QueueState initialState,
                             String displayName,
-                            java.util.function.Function<UUID, Optional<VelocityRegisteredServer>> backendResolver) {
+                            BiFunction<UUID, Boolean, Optional<VelocityRegisteredServer>> backendResolver) {
     super(server, manager, backend, initialState, displayName, backendResolver);
 
     this.redis = server.getRedis();
@@ -76,6 +77,11 @@ public final class RedisVelocityQueue extends VelocityQueue<RedisVelocityQueueEn
    * <p>Entries are appended in their already-sorted depot order via
    * {@link #addEntryInternal(RedisVelocityQueueEntry)}, which bypasses priority-insertion and
    * any publish/persist side effects.</p>
+   *
+   * @param server  the proxy instance
+   * @param manager the owning queue manager
+   * @param backend the registered backend this queue represents
+   * @param entry   the persisted depot snapshot
    */
   public RedisVelocityQueue(VelocityServer server, VelocityQueueManager manager,
                             VelocityRegisteredServer backend,
@@ -83,13 +89,55 @@ public final class RedisVelocityQueue extends VelocityQueue<RedisVelocityQueueEn
     super(server, manager, backend, entry.getState());
 
     this.redis = server.getRedis();
+    restoreSnapshot(entry);
+  }
 
-    // Use super.setServerStatus to set the field without triggering the publish override.
+  /**
+   * Reconstructs a Redis-backed group queue from a persisted depot snapshot.
+   *
+   * <p>The logical group name and a name-based resolver are kept so the restored queue keeps
+   * working after {@code groupManager.rebuild()} replaces the runtime group object. The
+   * snapshot's state, server status, entries and ordering are preserved verbatim.</p>
+   *
+   * @param server          the proxy instance
+   * @param manager         the owning queue manager
+   * @param backend         a registered member of the group used as a fallback target
+   * @param entry           the persisted depot snapshot
+   * @param displayName     the group name shown to players (also the depot key)
+   * @param backendResolver resolves the target backend for a player and its full-bypass flag
+   */
+  public RedisVelocityQueue(VelocityServer server, VelocityQueueManager manager,
+                            VelocityRegisteredServer backend, VelocityQueueDepotEntry entry,
+                            String displayName,
+                            BiFunction<UUID, Boolean, Optional<VelocityRegisteredServer>>
+                                backendResolver) {
+    super(server, manager, backend, entry.getState(), displayName, backendResolver);
+
+    this.redis = server.getRedis();
+    restoreSnapshot(entry);
+  }
+
+  /**
+   * Applies a depot snapshot without emitting the usual publish/persist side effects.
+   *
+   * <p>Warmup timing is reseeded so a restored WAITING queue can still be promoted once its
+   * configured delay elapses.</p>
+   */
+  private void restoreSnapshot(VelocityQueueDepotEntry entry) {
+    // super.setServerStatus sets the field without triggering the publish override.
     super.setServerStatus(entry.getServerStatus());
 
     for (RedisVelocityQueueEntry queueEntry : entry.getEntries()) {
       queueEntry.setContext(server, this);
+      // A snapshot can catch an entry mid-transfer. Clear the flag (and publish the reset)
+      // so selectCandidate() can retry it instead of skipping it forever.
+      queueEntry.resetWaitingForRetry();
+      // Append in the depot's existing order without priority insertion or publish side effects.
       addEntryInternal(queueEntry);
+    }
+
+    if (entry.getServerStatus() == ServerStatus.WAITING) {
+      VelocityQueueManager.LAST_TURNED_ONLINE_TIME.put(getName(), System.currentTimeMillis());
     }
   }
 
@@ -172,6 +220,9 @@ public final class RedisVelocityQueue extends VelocityQueue<RedisVelocityQueueEn
   @ApiStatus.Internal
   void applyEnqueue(@NotNull QueueEntryData data) {
     super.enqueue(data);
+    // The master owns the depot snapshot: changes made on other proxies arrive only as sync
+    // packets, so persist them here or they would be lost on the next reconnect.
+    persistAsync();
   }
 
   /**
@@ -180,6 +231,7 @@ public final class RedisVelocityQueue extends VelocityQueue<RedisVelocityQueueEn
   @ApiStatus.Internal
   void applyDequeue(@NotNull UUID uuid) {
     super.dequeue(uuid);
+    persistAsync();
   }
 
   /**
@@ -188,6 +240,7 @@ public final class RedisVelocityQueue extends VelocityQueue<RedisVelocityQueueEn
   @ApiStatus.Internal
   void applyStateChange(@NotNull QueueState newState) {
     super.setState(newState);
+    persistAsync();
   }
 
   /**
@@ -196,6 +249,7 @@ public final class RedisVelocityQueue extends VelocityQueue<RedisVelocityQueueEn
   @ApiStatus.Internal
   void applyStatusChange(@NotNull ServerStatus newStatus) {
     super.setServerStatus(newStatus);
+    persistAsync();
   }
 
   /**
@@ -210,6 +264,7 @@ public final class RedisVelocityQueue extends VelocityQueue<RedisVelocityQueueEn
           waitingForConnection, connectionAttempts,
           updatedPriority, updatedFullBypass, updatedQueueBypass
       );
+      persistAsync();
     }
   }
 

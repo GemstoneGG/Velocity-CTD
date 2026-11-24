@@ -23,6 +23,7 @@ import com.velocitypowered.proxy.VelocityServer;
 import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -45,12 +46,12 @@ public final class LocalVelocityQueue extends VelocityQueue<VelocityQueueEntry> 
    * @param backend         a registered server used as a fallback target
    * @param initialState    the initial queue state
    * @param displayName     the group name shown to players
-   * @param backendResolver resolves the target backend for a player
+   * @param backendResolver resolves the target backend for a player and its full-bypass flag
    */
   public LocalVelocityQueue(VelocityServer server, VelocityQueueManager manager,
                             VelocityRegisteredServer backend, QueueState initialState,
                             String displayName,
-                            java.util.function.Function<UUID, Optional<VelocityRegisteredServer>> backendResolver) {
+                            BiFunction<UUID, Boolean, Optional<VelocityRegisteredServer>> backendResolver) {
     super(server, manager, backend, initialState, displayName, backendResolver);
   }
 

@@ -25,12 +25,15 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A {@link LastServerStore} backed by the shared Redis key/value provider.
  *
- * <p>Records expire after thirty days so stale data does not accumulate indefinitely.
- * Redis failures are logged at debug level and never interrupt queue processing.</p>
+ * <p>Group-scoped values use the key {@code <namespace>:queue:last-server:<group>:<uuid>};
+ * unscoped legacy values keep {@code <namespace>:queue:last-server:<uuid>}. Records expire
+ * after thirty days so stale data does not accumulate indefinitely. Redis failures are
+ * logged at debug level and never interrupt queue processing.</p>
  */
 public final class RedisLastServerStore implements LastServerStore {
 
@@ -51,28 +54,46 @@ public final class RedisLastServerStore implements LastServerStore {
 
   @Override
   public Optional<String> getLastServer(UUID playerId) {
+    return read(playerId, null);
+  }
+
+  @Override
+  public Optional<String> getLastServer(UUID playerId, String groupName) {
+    return read(playerId, groupName);
+  }
+
+  @Override
+  public void recordLastServer(UUID playerId, String serverName) {
+    write(playerId, null, serverName);
+  }
+
+  @Override
+  public void recordLastServer(UUID playerId, String groupName, String serverName) {
+    write(playerId, groupName, serverName);
+  }
+
+  private Optional<String> read(UUID playerId, @Nullable String groupName) {
     RedisProvider provider = usableProvider();
     if (provider == null) {
       return Optional.empty();
     }
 
     try {
-      return Optional.ofNullable(provider.get(key(provider, playerId)));
+      return Optional.ofNullable(provider.get(key(provider, playerId, groupName)));
     } catch (Exception exception) {
       LOGGER.debug("Unable to read the last server for {} from Redis.", playerId, exception);
       return Optional.empty();
     }
   }
 
-  @Override
-  public void recordLastServer(UUID playerId, String serverName) {
+  private void write(UUID playerId, @Nullable String groupName, String serverName) {
     RedisProvider provider = usableProvider();
     if (provider == null) {
       return;
     }
 
     try {
-      provider.setWithExpiry(key(provider, playerId), serverName, EXPIRY_SECONDS);
+      provider.setWithExpiry(key(provider, playerId, groupName), serverName, EXPIRY_SECONDS);
     } catch (Exception exception) {
       LOGGER.debug("Unable to store the last server for {} in Redis.", playerId, exception);
     }
@@ -87,7 +108,8 @@ public final class RedisLastServerStore implements LastServerStore {
     return provider != null && provider.isConnected() ? provider : null;
   }
 
-  private String key(RedisProvider provider, UUID playerId) {
-    return provider.getNamespace() + KEY_PREFIX + playerId;
+  private String key(RedisProvider provider, UUID playerId, @Nullable String groupName) {
+    String scope = groupName == null || groupName.isEmpty() ? "" : groupName + ":";
+    return provider.getNamespace() + KEY_PREFIX + scope + playerId;
   }
 }

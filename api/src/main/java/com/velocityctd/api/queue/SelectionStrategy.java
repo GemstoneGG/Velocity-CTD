@@ -19,13 +19,15 @@ public enum SelectionStrategy {
 
   /**
    * Send the player to the available backend with the fewest players. Ties are broken
-   * by the order in which the backends are listed in the configuration.
+   * by the order in which the backends are listed in the configuration. Counts are a
+   * best-effort snapshot, so the choice is advisory rather than a hard capacity guarantee.
    */
   LEAST_PLAYERS("least_players"),
 
   /**
-   * Send the player back to the backend they last played on when it is available,
-   * otherwise fall back to {@link #LEAST_PLAYERS}.
+   * Send the player back to the backend they last played on within this group when it
+   * is available, otherwise fall back to {@link #LEAST_PLAYERS}. Last-server values are
+   * group-scoped and are recorded only after a successful connection.
    */
   LAST_SERVER("last_server"),
 

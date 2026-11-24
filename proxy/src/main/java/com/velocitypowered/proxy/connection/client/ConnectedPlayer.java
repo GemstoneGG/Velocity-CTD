@@ -1341,7 +1341,8 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
    *
    * <p>The switch is allowed (returns {@code false}) if the destination is one of the servers
    * the player is currently queued for — this ensures the queue manager can still transfer the
-   * player to their destination without being blocked.</p>
+   * player to their destination without being blocked. For a logical group queue the queue name
+   * is the group name, so the destination is matched against the group's physical member servers.</p>
    */
   private boolean shouldBlockQueueServerSwitch(VelocityRegisteredServer destination) {
     if (!server.isQueueEnabled()) {
@@ -1364,9 +1365,23 @@ public class ConnectedPlayer implements MinecraftConnectionAssociation, Player, 
     }
 
     // Allow the switch if the destination is a server the player is queued for
-    // (i.e. the queue manager is sending them to their destination)
+    // (i.e. the queue manager is sending them to their destination). A group queue is
+    // named after its logical group, so match the physical destination against the
+    // group's member servers instead.
+    var groupManager = server.getQueueManager().getServerGroupManager();
+    String destinationName = destination.getServerInfo().getName();
     for (var queue : server.getQueueManager().getQueues()) {
-      if (queue.contains(this) && queue.getName().equals(destination.getServerInfo().getName())) {
+      if (!queue.contains(this)) {
+        continue;
+      }
+      if (queue.isGroupQueue()) {
+        if (groupManager != null) {
+          var group = groupManager.getGroup(queue.getName());
+          if (group != null && group.getServers().contains(destinationName)) {
+            return false;
+          }
+        }
+      } else if (queue.getName().equals(destinationName)) {
         return false;
       }
     }

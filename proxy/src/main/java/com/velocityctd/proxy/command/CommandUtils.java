@@ -25,6 +25,7 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.velocityctd.api.queue.QueueState;
+import com.velocityctd.proxy.queue.VelocityQueue;
 import com.velocityctd.proxy.queue.group.ServerGroupManager;
 import com.velocityctd.proxy.queue.group.VelocityServerGroup;
 import com.velocityctd.proxy.util.ComponentUtils;
@@ -57,6 +58,9 @@ import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+/**
+ * Shared helpers for Velocity-CTD's commands.
+ */
 public class CommandUtils {
 
   private static final Logger LOGGER = LogManager.getLogger(CommandUtils.class);
@@ -183,6 +187,88 @@ public class CommandUtils {
    */
   public static boolean hasServerPermission(VelocityServer server, CommandSource source, String name) {
     return source.getPermissionValue("velocity.command.server." + name) != Tristate.FALSE;
+  }
+
+  /**
+   * Resolves a command argument to the queue of a physical server or a configured group.
+   *
+   * <p>Use this for commands that operate on a queue rather than on a registered
+   * server. Group names are resolved to their shared queue; physical names keep the
+   * lookup and permission behavior of {@link #getServer}.</p>
+   *
+   * @param server            the proxy instance
+   * @param ctx               the command context holding the name argument
+   * @param argName           the name of the argument to resolve
+   * @param allowNonQueueable whether an inactive queue is an acceptable result
+   * @return the resolved queue, or {@code null} if the destination cannot be used
+   */
+  public static @Nullable VelocityQueue<?> resolveQueue(VelocityServer server,
+                                                        CommandContext<CommandSource> ctx,
+                                                        String argName, boolean allowNonQueueable) {
+    return resolveQueue(server, ctx, argName, allowNonQueueable, true);
+  }
+
+  /**
+   * Resolves a command argument to a queue, optionally omitting the per-destination
+   * permission check for commands guarded by their own admin permission.
+   *
+   * @param server            the proxy instance
+   * @param ctx               the command context holding the name argument
+   * @param argName           the name of the argument to resolve
+   * @param allowNonQueueable whether an inactive queue is an acceptable result
+   * @param checkPermission   whether to apply {@code velocity.command.server.<name>}
+   * @return the resolved queue, or {@code null} if the destination cannot be used
+   */
+  public static @Nullable VelocityQueue<?> resolveQueue(VelocityServer server,
+                                                        CommandContext<CommandSource> ctx,
+                                                        String argName, boolean allowNonQueueable,
+                                                        boolean checkPermission) {
+    String name = ctx.getArgument(argName, String.class);
+    ServerGroupManager groupManager = server.getQueueManager().getServerGroupManager();
+    boolean isGroup = groupManager != null && groupManager.hasGroup(name);
+    boolean known = isGroup || server.getServer(name).isPresent();
+
+    if (!known || checkPermission && !hasServerPermission(server, ctx.getSource(), name)) {
+      ctx.getSource().sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
+          .arguments(Component.text(name)));
+      return null;
+    }
+
+    VelocityQueue<?> queue;
+    try {
+      queue = server.getQueueManager().getQueue(name);
+    } catch (IllegalArgumentException exception) {
+      // A configured group may have no registered member right now. It is suggested from
+      // configuration, so report a friendly error instead of letting Brigadier throw.
+      ctx.getSource().sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
+          .arguments(Component.text(name)));
+      return null;
+    }
+    if (queue == null) {
+      ctx.getSource().sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
+          .arguments(Component.text(name)));
+      return null;
+    }
+    if (!allowNonQueueable && queue.getState() == QueueState.INACTIVE) {
+      ctx.getSource().sendMessage(Component.translatable("velocity.queue.error.server-has-no-queue")
+          .arguments(Component.text(name)));
+      return null;
+    }
+
+    return queue;
+  }
+
+  /**
+   * Returns the member backends of a configured group.
+   *
+   * @param server the proxy instance
+   * @param name   the destination name
+   * @return the group's backend names, or {@code null} when the name is not a group
+   */
+  public static @Nullable List<String> getGroupBackendNames(VelocityServer server, String name) {
+    ServerGroupManager groupManager = server.getQueueManager().getServerGroupManager();
+    VelocityServerGroup group = groupManager == null ? null : groupManager.getGroup(name);
+    return group == null ? null : group.getServers();
   }
 
   /**

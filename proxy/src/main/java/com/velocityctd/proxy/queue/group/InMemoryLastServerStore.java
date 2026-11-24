@@ -22,23 +22,80 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * An in-memory {@link LastServerStore} used when no shared store is available.
  *
- * <p>Entries live only for the lifetime of this proxy process.</p>
+ * <p>Entries expire after thirty days. Expired entries are removed on every read and
+ * write, so the map does not grow without bound during long proxy sessions.</p>
  */
 public final class InMemoryLastServerStore implements LastServerStore {
 
-  private final ConcurrentMap<UUID, String> lastServers = new ConcurrentHashMap<>();
+  private static final long EXPIRY_MILLIS = TimeUnit.DAYS.toMillis(30L);
+  private static final String UNSCOPED = "";
+
+  private final ConcurrentMap<StoreKey, Entry> lastServers = new ConcurrentHashMap<>();
 
   @Override
   public Optional<String> getLastServer(UUID playerId) {
-    return Optional.ofNullable(lastServers.get(playerId));
+    return read(playerId, UNSCOPED);
+  }
+
+  @Override
+  public Optional<String> getLastServer(UUID playerId, String groupName) {
+    return read(playerId, scope(groupName));
   }
 
   @Override
   public void recordLastServer(UUID playerId, String serverName) {
-    lastServers.put(playerId, serverName);
+    write(playerId, UNSCOPED, serverName);
+  }
+
+  @Override
+  public void recordLastServer(UUID playerId, String groupName, String serverName) {
+    write(playerId, scope(groupName), serverName);
+  }
+
+  private Optional<String> read(UUID playerId, String scope) {
+    pruneExpired();
+    StoreKey key = new StoreKey(playerId, scope);
+    Entry entry = lastServers.get(key);
+    if (entry == null) {
+      return Optional.empty();
+    }
+
+    if (entry.expiresAt() <= System.currentTimeMillis()) {
+      lastServers.remove(key, entry);
+      return Optional.empty();
+    }
+
+    return Optional.of(entry.serverName());
+  }
+
+  private void write(UUID playerId, String scope, String serverName) {
+    pruneExpired();
+    StoreKey key = new StoreKey(playerId, scope);
+    if (serverName == null || serverName.isEmpty()) {
+      lastServers.remove(key);
+      return;
+    }
+
+    lastServers.put(key, new Entry(serverName, System.currentTimeMillis() + EXPIRY_MILLIS));
+  }
+
+  private void pruneExpired() {
+    long now = System.currentTimeMillis();
+    lastServers.entrySet().removeIf(entry -> entry.getValue().expiresAt() <= now);
+  }
+
+  private static String scope(String groupName) {
+    return groupName == null ? UNSCOPED : groupName;
+  }
+
+  private record StoreKey(UUID playerId, String scope) {
+  }
+
+  private record Entry(String serverName, long expiresAt) {
   }
 }

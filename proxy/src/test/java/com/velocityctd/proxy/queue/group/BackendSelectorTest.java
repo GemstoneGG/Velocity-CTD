@@ -94,7 +94,7 @@ class BackendSelectorTest {
   }
 
   @Test
-  void randomAlwaysReturnsAMemberOfTheAvailableSet() {
+  void randomSelectionStaysWithinAvailableSet() {
     Set<String> allowed = Set.copyOf(BACKENDS);
     Random random = new Random(1234L);
     for (int index = 0; index < 100; index++) {

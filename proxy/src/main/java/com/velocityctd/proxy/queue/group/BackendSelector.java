@@ -43,15 +43,14 @@ public final class BackendSelector {
   /**
    * Filters configured backends down to those that are online and below the group limit.
    *
-   * <p>Configured order is preserved and duplicate names are ignored. A backend with a
-   * player count at or above {@code maxPlayers} is excluded. A non-positive limit means
-   * the group applies no limit of its own.</p>
+   * <p>Equivalent to {@link #availableBackends(List, Predicate, ToIntFunction, int, String,
+   * boolean)} with {@code allowFull = false}.</p>
    *
-   * @param configured   the configured backend names, in selection order
-   * @param isOnline     tests whether a backend is online
-   * @param playerCount  returns the current player count of a backend
-   * @param maxPlayers   the group player limit, or a non-positive value for no limit
-   * @param lastServer   the player's last backend, retained for callers that need it
+   * @param configured  the configured backend names, in selection order
+   * @param isOnline    tests whether a backend is reachable
+   * @param playerCount returns the current player count of a backend
+   * @param maxPlayers  the group player limit, or a non-positive value for no limit
+   * @param lastServer  the player's last backend, retained for API compatibility
    * @return an eligible backend snapshot in configured order
    */
   public static List<String> availableBackends(List<String> configured,
@@ -59,6 +58,33 @@ public final class BackendSelector {
                                                ToIntFunction<String> playerCount,
                                                int maxPlayers,
                                                @Nullable String lastServer) {
+    return availableBackends(configured, isOnline, playerCount, maxPlayers, lastServer, false);
+  }
+
+  /**
+   * Filters configured backends down to those that are reachable and, unless bypassed,
+   * below the group limit.
+   *
+   * <p>Configured order is preserved and duplicate names are ignored. A backend with a
+   * player count at or above {@code maxPlayers} is excluded unless {@code allowFull} is
+   * {@code true} (full-server bypass). Offline or unregistered backends are always excluded.
+   * A non-positive limit means the group applies no limit of its own. The {@code lastServer}
+   * hint is not used for availability filtering; this helper stays stateless.</p>
+   *
+   * @param configured  the configured backend names, in selection order
+   * @param isOnline    tests whether a backend is reachable
+   * @param playerCount returns the current player count of a backend
+   * @param maxPlayers  the group player limit, or a non-positive value for no limit
+   * @param lastServer  the player's last backend, retained for API compatibility
+   * @param allowFull   whether full backends are eligible (full-server bypass)
+   * @return an eligible backend snapshot in configured order
+   */
+  public static List<String> availableBackends(List<String> configured,
+                                               Predicate<String> isOnline,
+                                               ToIntFunction<String> playerCount,
+                                               int maxPlayers,
+                                               @Nullable String lastServer,
+                                               boolean allowFull) {
     Set<String> seen = new HashSet<>();
     List<String> available = new ArrayList<>();
 
@@ -71,7 +97,7 @@ public final class BackendSelector {
         continue;
       }
 
-      if (maxPlayers > 0 && playerCount.applyAsInt(name) >= maxPlayers) {
+      if (!allowFull && maxPlayers > 0 && playerCount.applyAsInt(name) >= maxPlayers) {
         continue;
       }
 

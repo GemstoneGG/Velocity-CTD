@@ -36,9 +36,11 @@ import com.velocitypowered.proxy.server.VelocityRegisteredServer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -143,6 +145,20 @@ public class PlistCommand implements BuiltinCommandDefinition {
       return SINGLE_SUCCESS;
     }
 
+    List<String> groupBackends = CommandUtils.getGroupBackendNames(server, serverName);
+    if (groupBackends != null) {
+      Map<UUID, VelocityClusterPlayer> uniquePlayers = new LinkedHashMap<>();
+      for (String backendName : groupBackends) {
+        for (VelocityClusterPlayer player : server.getClusterPlayerService().getPlayersOnServer(backendName)) {
+          if (validatedProxy == null || player.getProxyId().equalsIgnoreCase(validatedProxy)) {
+            uniquePlayers.putIfAbsent(player.getUniqueId(), player);
+          }
+        }
+      }
+      sendPlayerList(context.getSource(), validatedProxy, serverName, uniquePlayers.values(), false);
+      return SINGLE_SUCCESS;
+    }
+
     VelocityRegisteredServer validatedServer = validateServer(serverName, context.getSource()).orElse(null);
     if (validatedServer == null) {
       return 0;
@@ -234,36 +250,59 @@ public class PlistCommand implements BuiltinCommandDefinition {
     target.sendMessage(msg.build());
   }
 
-  // Returns total player count
+  /**
+   * Sends one player row for a physical server, returning the number of listed players.
+   *
+   * @param target      the command source to message
+   * @param proxyId     the proxy filter, or {@code null} for every proxy
+   * @param server      the backend to inspect
+   * @param ignoreEmpty whether an empty row should be suppressed
+   * @return the number of listed players
+   */
   private int sendServerPlayers(CommandSource target,
                                 @Nullable String proxyId,
                                 VelocityRegisteredServer server,
                                 boolean ignoreEmpty) {
-    List<Component> players = new ArrayList<>();
-    int totalPlayers = 0;
-
+    List<VelocityClusterPlayer> players = new ArrayList<>();
     for (VelocityClusterPlayer player : this.server.getClusterPlayerService().getPlayersOnServer(server.getServerInfo().getName())) {
       if (proxyId == null || player.getProxyId().equalsIgnoreCase(proxyId)) {
-        players.add(Component.text(player.getUsername()));
-        totalPlayers++;
+        players.add(player);
       }
     }
 
-    if (ignoreEmpty && totalPlayers == 0) {
-      return 0;
+    sendPlayerList(target, proxyId, server.getServerInfo().getName(), players, ignoreEmpty);
+    return players.size();
+  }
+
+  /**
+   * Renders one {@code /plist} player row, optionally filtered by proxy id.
+   *
+   * @param target      the command source to message
+   * @param proxyId     the proxy filter, or {@code null} for every proxy
+   * @param name        the row's destination label
+   * @param players     the players to list
+   * @param ignoreEmpty whether an empty row should be suppressed
+   */
+  private void sendPlayerList(CommandSource target, @Nullable String proxyId, String name,
+                              Collection<VelocityClusterPlayer> players, boolean ignoreEmpty) {
+    List<Component> playerComponents = new ArrayList<>();
+    for (VelocityClusterPlayer player : players) {
+      playerComponents.add(Component.text(player.getUsername()));
     }
 
-    Component playerList = players.stream()
+    if (playerComponents.isEmpty() && ignoreEmpty) {
+      return;
+    }
+
+    Component playerList = playerComponents.stream()
             .reduce((a, b) -> a.append(Component.text(", ")).append(b))
             .orElse(Component.text(""));
     target.sendMessage(Component.translatable("velocity.command.plist-server")
             .arguments(
-                    Argument.string("server", server.getServerInfo().getName()),
-                    Argument.numeric("count", totalPlayers),
+                    Argument.string("server", name),
+                    Argument.numeric("count", playerComponents.size()),
                     Argument.component("players", playerList)
             )
     );
-
-    return totalPlayers;
   }
 }
