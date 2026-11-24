@@ -576,6 +576,42 @@ queue-on-shutdown = true
 # If false, they will bypass the queue and be sent directly to the backend.
 override-bungee-messaging = true
 
+[queue.groups]
+# Logical groups of backend servers. A group is queued and displayed as one destination,
+# so players use the group name (for example /server Lobby) instead of a backend name.
+# Backends may be added or removed here without changing the command players use.
+#
+# servers:    the backend names in the group, in selection order. Duplicates are ignored.
+# strategy:   least_players, last_server, round_robin, or random. Defaults to least_players.
+#             An unknown value is warned about before the default is used.
+# max-players: the most players a single backend in the group may hold before it is skipped.
+#             Use -1 or 0 for no group-specific limit. This is best effort: the limit uses
+#             the player counts visible to the proxy and does not reserve slots across
+#             proxies atomically.
+# Group names are normalised to lower case and resolved case-insensitively, like server
+# names. They must not be "all" or "current" (ignoring case); those names are reserved
+# command arguments. Invalid member entries are warned about and ignored. last_server
+# values are scoped by group and recorded only after a connection succeeds.
+#
+# Commands that accept a group name: /server (and its aliases), /leavequeue,
+# /queueadmin (list, listqueues, pause, unpause, add, addall, remove, removeall),
+# /glist and /plist. Group listings are labeled with the group name and combine the
+# member backends; queued players are counted once across physical and group queues.
+#
+# [queue.groups.lobby]
+# servers = ["Lobby-01", "Lobby-02", "Lobby-03"]
+# strategy = "least_players"
+# max-players = -1
+#
+# [queue.groups.survival]
+# servers = ["Survival-01", "Survival-02", "Survival-03"]
+# strategy = "last_server"
+# max-players = 60
+#
+# A group may also be declared as a plain list of backend names, which uses the
+# least_players strategy with no player limit:
+# lobby = ["Lobby-01", "Lobby-02", "Lobby-03"]
+
 [queue.auto-queue-servers]
 # The list of servers that should auto-queue players on join.
 # When a player joins the server on the left, it will enqueue them to the server(s) to the right.

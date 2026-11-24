@@ -183,7 +183,14 @@ public enum RouteHandlerRegistry {
       return;
     }
 
-    entry.handleTransfer();
+    // handleTransfer starts a connection request, pings on failure and publishes sync
+    // packets. Do not run it on Lettuce's pub/sub thread (see the null-player branch).
+    try {
+      server.getScheduler().buildTask(VelocityVirtualPlugin.INSTANCE, entry::handleTransfer)
+          .schedule();
+    } catch (RejectedExecutionException ignored) {
+      // Shutting down, the transfer won't happen anyway.
+    }
   });
 
   /**

@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.gson.annotations.Expose;
+import com.velocityctd.api.queue.SelectionStrategy;
 import com.velocityctd.proxy.config.migration.CtdConfigMigrations;
 import com.velocityctd.proxy.util.ComponentUtils;
 import com.velocitypowered.api.proxy.config.BackendServerConfig;
@@ -53,6 +54,8 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -418,8 +421,40 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
 
       if (!servers.getBackendServers().containsKey(entry.getKey())) {
-        LOGGER.error("Server '{}' does not exist in slash server aliases", entry.getKey());
+        boolean isGroup = queue.getGroups().keySet().stream()
+            .anyMatch(name -> name.equalsIgnoreCase(entry.getKey()));
+        if (isGroup) {
+          LOGGER.error("Slash server key '{}' names a server group; slash-server keys must be "
+              + "physical server names.", entry.getKey());
+        } else {
+          LOGGER.error("Server '{}' does not exist in slash server aliases", entry.getKey());
+        }
         valid = false;
+      }
+    }
+
+    Set<String> groupNames = new HashSet<>();
+    for (Queue.ServerGroupDefinition group : queue.getGroups().values()) {
+      String groupName = group.name();
+      if (groupName.isBlank()) {
+        LOGGER.error("A server group has an empty name.");
+        valid = false;
+      }
+      if (!groupNames.add(groupName.toLowerCase(Locale.ROOT))) {
+        LOGGER.error("Duplicate server group name '{}' (ignoring case).", groupName);
+        valid = false;
+      }
+      if (Queue.isReservedName(groupName)) {
+        LOGGER.error("Server group '{}' uses the reserved name 'all' or 'current' and cannot "
+            + "be used as a command destination.", groupName);
+        valid = false;
+      }
+      for (String member : group.servers()) {
+        if (!servers.getBackendServers().containsKey(member)) {
+          LOGGER.error("Server '{}' in group '{}' is not registered in your configuration!",
+              member, groupName);
+          valid = false;
+        }
       }
     }
 
@@ -1079,6 +1114,13 @@ public final class VelocityConfiguration implements ProxyConfig {
         .toString();
   }
 
+  /**
+   * Reads a configuration file, creating it from the bundled default when missing.
+   *
+   * @param path the configuration file path
+   * @return the loaded configuration
+   * @throws IOException if the file cannot be read or written
+   */
   public static VelocityConfiguration read(Path path) throws IOException {
     URL defaultConfigLocation = VelocityConfiguration.class.getClassLoader()
         .getResource("default-velocity.toml");
@@ -2915,6 +2957,40 @@ public final class VelocityConfiguration implements ProxyConfig {
     @Expose
     private List<String> queueOnJoinServers = List.of();
 
+    /**
+     * Logical server groups. Each group presents several backends as one queue destination.
+     */
+    @Expose
+    private Map<String, ServerGroupDefinition> groups = ImmutableMap.of();
+
+    /**
+     * Definition of a logical server group loaded from configuration.
+     *
+     * @param name       the name players use to queue for the group
+     * @param servers    the backend names belonging to the group
+     * @param strategy   how a backend is chosen for a player
+     * @param maxPlayers the configured per-backend player limit, or {@code -1} for no limit
+     */
+    public record ServerGroupDefinition(String name, List<String> servers,
+                                        SelectionStrategy strategy, int maxPlayers) {
+
+      /**
+       * Copies the backend list in order, removes duplicates, and normalizes invalid values.
+       */
+      public ServerGroupDefinition {
+        if (servers == null || servers.isEmpty()) {
+          LOGGER.warn("Server group '{}' has no backend servers and will be ignored.", name);
+          servers = ImmutableList.of();
+        } else {
+          servers = ImmutableList.copyOf(new LinkedHashSet<>(servers));
+        }
+
+        if (maxPlayers < 1) {
+          maxPlayers = -1;
+        }
+      }
+    }
+
     private Queue(CommentedConfig config) {
       if (config == null) {
         return;
@@ -2948,6 +3024,7 @@ public final class VelocityConfiguration implements ProxyConfig {
       this.queueServer = config.getOrElse("queue-server", "");
       this.queueOnJoinServers = parseQueueOnJoinServers(config.get("queue-on-join"));
       this.autoQueueServers = parseAutoQueueServers(config.get("auto-queue-servers"));
+      this.groups = parseServerGroups(config.get("groups"));
 
       if (!this.queueServer.isEmpty() && !this.autoQueueServers.isEmpty()) {
         LOGGER.warn("Both 'queue-server' and 'auto-queue-servers' are configured in [queue]. "
@@ -2975,6 +3052,109 @@ public final class VelocityConfiguration implements ProxyConfig {
       }
 
       return ImmutableMap.copyOf(autoQueueServers);
+    }
+
+    private Map<String, ServerGroupDefinition> parseServerGroups(Object raw) {
+      if (!(raw instanceof UnmodifiableConfig config)) {
+        return ImmutableMap.of();
+      }
+
+      Map<String, ServerGroupDefinition> groups = new HashMap<>();
+      for (UnmodifiableConfig.Entry entry : config.entrySet()) {
+        // Group names follow the same case-insensitive lookup rule as physical server names.
+        String name = entry.getKey().trim().toLowerCase(Locale.ROOT);
+        if (name.isEmpty()) {
+          LOGGER.warn("Ignoring a server group with an empty name.");
+          continue;
+        }
+        if (isReservedName(name)) {
+          LOGGER.warn("Ignoring server group '{}': 'all' and 'current' are reserved command "
+              + "arguments and cannot name a group.", name);
+          continue;
+        }
+
+        Object value = entry.getValue();
+        List<String> servers;
+        SelectionStrategy strategy = SelectionStrategy.LEAST_PLAYERS;
+        int maxPlayers = -1;
+
+        if (value instanceof UnmodifiableConfig nested) {
+          servers = parseGroupServers(nested.get("servers"), name);
+          strategy = parseGroupStrategy(nested.get("strategy"), name);
+
+          Object maxPlayersValue = nested.get("max-players");
+          if (maxPlayersValue instanceof Number number) {
+            maxPlayers = number.intValue();
+          } else if (maxPlayersValue != null) {
+            LOGGER.warn("Invalid max-players value for server group '{}'; using no limit.", name);
+          }
+        } else {
+          servers = parseGroupServers(value, name);
+        }
+
+        ServerGroupDefinition definition = new ServerGroupDefinition(name, servers, strategy, maxPlayers);
+        if (!definition.servers().isEmpty()) {
+          groups.put(name, definition);
+        }
+      }
+
+      return ImmutableMap.copyOf(groups);
+    }
+
+    /**
+     * Returns whether a name is reserved for the {@code all} and {@code current} magic arguments.
+     *
+     * @param name the group name to check
+     * @return {@code true} if the name is reserved
+     */
+    private static boolean isReservedName(String name) {
+      return name.equalsIgnoreCase("all") || name.equalsIgnoreCase("current");
+    }
+
+    /**
+     * Parses a group strategy, warning about values that are missing or not recognized.
+     *
+     * @param raw       the configured value
+     * @param groupName the group name used in warnings
+     * @return the matching strategy, or {@link SelectionStrategy#LEAST_PLAYERS} as the default
+     */
+    private static SelectionStrategy parseGroupStrategy(@Nullable Object raw, String groupName) {
+      if (!(raw instanceof String value) || value.isBlank()) {
+        return SelectionStrategy.LEAST_PLAYERS;
+      }
+      SelectionStrategy strategy = SelectionStrategy.fromConfig(value);
+      if (strategy == SelectionStrategy.LEAST_PLAYERS
+          && !"least_players".equals(value.trim().replace('-', '_').toLowerCase(Locale.ROOT))) {
+        LOGGER.warn("Invalid strategy '{}' for server group '{}'; using '{}'.", raw, groupName,
+            SelectionStrategy.LEAST_PLAYERS.configName());
+      }
+      return strategy;
+    }
+
+    private List<String> parseGroupServers(Object raw, String groupName) {
+      if (raw instanceof String single) {
+        if (single.isEmpty()) {
+          LOGGER.warn("Server group '{}' has an empty backend name and will be ignored.", groupName);
+        }
+        return single.isEmpty() ? ImmutableList.of() : ImmutableList.of(single);
+      }
+
+      if (raw instanceof List<?> list) {
+        LinkedHashSet<String> unique = new LinkedHashSet<>();
+        for (Object entry : list) {
+          if (entry instanceof String server && !server.isEmpty()) {
+            unique.add(server);
+          } else {
+            LOGGER.warn("Ignoring invalid backend '{}' in server group '{}'.", entry, groupName);
+          }
+        }
+        return ImmutableList.copyOf(unique);
+      }
+
+      if (raw != null) {
+        LOGGER.warn("Invalid servers value in server group '{}'; expected a name or list.", groupName);
+      }
+      return ImmutableList.of();
     }
 
     private List<String> parseQueueOnJoinServers(Object raw) {
@@ -3175,6 +3355,25 @@ public final class VelocityConfiguration implements ProxyConfig {
       return queueOnJoinServers;
     }
 
+    /**
+     * Returns all configured server groups keyed by their exact group name.
+     *
+     * @return an immutable map of group definitions
+     */
+    public Map<String, ServerGroupDefinition> getGroups() {
+      return groups;
+    }
+
+    /**
+     * Returns the group definition for an exact group name.
+     *
+     * @param name the group name to look up
+     * @return the definition, or {@code null} when no such group is configured
+     */
+    public @Nullable ServerGroupDefinition getGroup(String name) {
+      return groups.get(name);
+    }
+
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
@@ -3197,6 +3396,7 @@ public final class VelocityConfiguration implements ProxyConfig {
           .add("autoQueueServers", autoQueueServers)
           .add("queueServer", queueServer)
           .add("queueOnJoinServers", queueOnJoinServers)
+          .add("groups", groups)
           .toString();
     }
   }

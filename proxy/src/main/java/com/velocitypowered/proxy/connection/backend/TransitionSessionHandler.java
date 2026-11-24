@@ -177,9 +177,27 @@ public class TransitionSessionHandler implements MinecraftSessionHandler {
               serverConn.getServerInfo().getName());
 
           if (this.server.isQueueEnabled()) {
-            VelocityQueue<?> queue = this.server.getQueueManager().getQueue(serverConn.getServer()
-                    .getServerInfo().getName());
-            queue.dequeue(player.getUniqueId());
+            // Dequeue only a queue the player is actually in whose destination matches the
+            // server just joined. A group queue is named after its logical group, so the
+            // joined physical server must be one of that group's members. Iterating existing
+            // queues avoids lazily creating a queue for an unknown server name.
+            String joinedServerName = serverConn.getServerInfo().getName();
+            var groupManager = server.getQueueManager().getServerGroupManager();
+            for (VelocityQueue<?> queue : server.getQueueManager().getQueues()) {
+              if (!queue.contains(player.getUniqueId())) {
+                continue;
+              }
+              boolean matchesDestination;
+              if (queue.isGroupQueue()) {
+                var group = groupManager != null ? groupManager.getGroup(queue.getName()) : null;
+                matchesDestination = group != null && group.getServers().contains(joinedServerName);
+              } else {
+                matchesDestination = queue.getName().equals(joinedServerName);
+              }
+              if (matchesDestination) {
+                queue.dequeue(player.getUniqueId());
+              }
+            }
           }
 
           // We're done! :)

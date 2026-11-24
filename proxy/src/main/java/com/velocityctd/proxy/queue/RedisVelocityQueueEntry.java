@@ -67,25 +67,25 @@ public final class RedisVelocityQueueEntry extends VelocityQueueEntry {
   }
 
   /**
-   * Resets the waiting state after any proxy never picked up a transfer.
+   * Resets the waiting state after no proxy picked up a transfer within the read timeout.
    *
-   * <p>Checks the volatile {@code waitingForConnection} flag first. If another proxy already
-   * handled the transfer and published a {@code WAITING_CHANGE} sync that reset the flag,
-   * the abort is skipped.</p>
+   * <p>The waiting flag is the cross-proxy completion signal: the holder proxy publishes a
+   * {@code WAITING_CHANGE} (or a {@code DEQUEUE} on success) when its connection callback
+   * finishes, so a completed callback makes this abort a no-op. The counter and the retry
+   * limit are then enforced by {@link #applyFailedAttempt}, exactly like a failed local
+   * connection attempt.</p>
    */
   @Override
   @ApiStatus.Internal
   public void abortTransfer() {
     synchronized (this) {
-      if (!this.waitingForConnection) {
+      // Guard against a race with the holder proxy's connection callback: a reset or a
+      // successful dequeue already published above removes this entry from the queue.
+      if (!this.waitingForConnection || !getQueue().contains(getUniqueId())) {
         return;
       }
-
-      this.waitingForConnection = false;
-      this.connectionAttempts++;
     }
-    refreshPermissions();
-    publishWaitingChange();
+    applyFailedAttempt(server.getConfiguration().getQueue());
   }
 
   /**

@@ -23,6 +23,7 @@ import static net.kyori.adventure.text.event.HoverEvent.showText;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.velocityctd.proxy.command.CommandUtils;
+import com.velocityctd.proxy.queue.group.ServerGroupManager;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.Tristate;
@@ -86,6 +87,22 @@ public class ServerCommand implements BuiltinCommandDefinition {
             .suggests(CommandUtils.suggestServer(server, SERVER_ARG, true, true))
             .executes(ctx -> {
               ConnectedPlayer player = (ConnectedPlayer) ctx.getSource();
+              String targetName = ctx.getArgument(SERVER_ARG, String.class);
+
+              if (server.isQueueEnabled()) {
+                ServerGroupManager groupManager = server.getQueueManager().getServerGroupManager();
+                if (groupManager != null && groupManager.hasGroup(targetName)) {
+                  if (!CommandUtils.hasServerPermission(server, player, targetName)) {
+                    player.sendMessage(CommandMessages.SERVER_DOES_NOT_EXIST
+                        .arguments(Component.text(targetName)));
+                    return 0;
+                  }
+
+                  server.getQueueManager().queue(player, targetName);
+                  return SINGLE_SUCCESS;
+                }
+              }
+
               VelocityRegisteredServer registeredServer = CommandUtils.getServer(server, ctx, SERVER_ARG, true);
 
               if (registeredServer == null) {
@@ -124,8 +141,7 @@ public class ServerCommand implements BuiltinCommandDefinition {
 
     // Filter servers based on player permissions
     List<VelocityRegisteredServer> accessibleServers = servers.stream()
-        .filter(rs -> executor.getPermissionValue("velocity.command.server."
-            + rs.getServerInfo().getName()) != Tristate.FALSE)
+        .filter(rs -> CommandUtils.hasServerPermission(server, executor, rs.getServerInfo().getName()))
         .toList();
 
     if (accessibleServers.isEmpty()) {
