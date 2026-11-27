@@ -360,9 +360,14 @@ public class BackendPlaySessionHandler implements MinecraftSessionHandler {
   public boolean handle(HeaderAndFooterPacket packet) {
     // Snoop the backend's player list header/footer so the proxy's tracked values stay in sync
     // with what the player actually sees.
-    serverConn.getPlayer().setPlayerListHeaderAndFooterSilent(
-        packet.getHeader().getComponent(),
-        packet.getFooter().getComponent());
+    try {
+      serverConn.getPlayer().setPlayerListHeaderAndFooterSilent(
+          packet.getHeader().getComponent(),
+          packet.getFooter().getComponent());
+    } catch (RuntimeException e) {
+      // The client may accept what Adventure rejects, so the packet still goes through as is.
+      LOGGER.debug("{}: could not parse the player list header or footer", serverConn, e);
+    }
     return false;
   }
 
